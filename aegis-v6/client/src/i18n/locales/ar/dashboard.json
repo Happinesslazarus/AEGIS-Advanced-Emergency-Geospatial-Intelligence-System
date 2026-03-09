@@ -1,0 +1,12 @@
+{
+  "title": "لوحة التحكم",
+  "overview": "نظرة عامة",
+  "incidentFilter": { "label": "تصفية حسب نوع الحادث", "all": "جميع الحوادث", "active": "النشطة فقط", "byType": "حسب النوع", "bySeverity": "حسب الخطورة", "byRegion": "حسب المنطقة" },
+  "stats": { "totalActive": "الحوادث النشطة", "criticalAlerts": "تنبيهات حرجة", "predictedRisks": "مخاطر متوقعة", "regionsAffected": "المناطق المتأثرة", "reportsToday": "تقارير اليوم", "averageResponse": "متوسط وقت الاستجابة", "systemUptime": "وقت عمل النظام", "aiAccuracy": "دقة الذكاء الاصطناعي" },
+  "panels": { "liveIncidents": "الحوادث المباشرة", "predictions": "التنبؤات والتحذيرات", "recentReports": "التقارير الأخيرة", "systemHealth": "صحة النظام", "weatherOutlook": "توقعات الطقس", "communityFeed": "تغذية المجتمع", "riskMatrix": "مصفوفة المخاطر", "responseTeams": "فرق الاستجابة" },
+  "widgets": { "incidentTimeline": "الجدول الزمني للحوادث", "severityBreakdown": "توزيع الخطورة", "incidentTrends": "اتجاهات الحوادث", "predictionConfidence": "مستوى الثقة في التنبؤات", "regionHeatmap": "خريطة حرارية للمنطقة", "aiModelStatus": "حالة نموذج الذكاء الاصطناعي" },
+  "timeRange": { "live": "مباشر", "1h": "ساعة واحدة", "6h": "6 ساعات", "24h": "24 ساعة", "7d": "7 أيام", "30d": "30 يوم", "custom": "مخصص" },
+  "noData": { "title": "لا توجد حوادث نشطة", "description": "ستظهر الحوادث هنا عند الإبلاغ عنها", "checkBack": "تحقق لاحقاً أو أرسل تقريراً" },
+  "admin": { "title": "لوحة تحكم الإدارة", "userManagement": "إدارة المستخدمين", "systemConfig": "إعدادات النظام", "auditLog": "سجل المراجعة", "incidentManagement": "إدارة الحوادث", "alertManagement": "إدارة التنبيهات", "analytics": "التحليلات", "regionConfig": "إعدادات المنطقة", "aiConfig": "إعدادات الذكاء الاصطناعي", "n8nStatus": "حالة n8n", "cronStatus": "حالة المهام المجدولة" },
+  "citizen": { "title": "لوحة تحكم المواطن", "myArea": "منطقتي", "myAlerts": "تنبيهاتي", "areaRisk": "مستوى خطر المنطقة", "preparedness": "نقاط الاستعداد", "nearbyIncidents": "الحوادث القريبة", "nearbyResources": "الموارد القريبة" }
+}

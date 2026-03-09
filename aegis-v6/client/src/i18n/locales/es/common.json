@@ -1,0 +1,148 @@
+{
+  "app": {
+    "name": "AEGIS",
+    "fullName": "Sistema Avanzado de Inteligencia Geoespacial de Emergencias",
+    "tagline": "Protegiendo comunidades mediante respuesta inteligente ante desastres"
+  },
+  "nav": {
+    "home": "Inicio",
+    "dashboard": "Panel",
+    "admin": "Administración",
+    "citizen": "Portal Ciudadano",
+    "about": "Acerca de",
+    "login": "Iniciar Sesión",
+    "logout": "Cerrar Sesión",
+    "register": "Registrarse",
+    "settings": "Configuración",
+    "profile": "Perfil",
+    "language": "Idioma"
+  },
+  "actions": {
+    "submit": "Enviar",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "close": "Cerrar",
+    "confirm": "Confirmar",
+    "refresh": "Actualizar",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "export": "Exportar",
+    "import": "Importar",
+    "back": "Volver",
+    "next": "Siguiente",
+    "loading": "Cargando...",
+    "retry": "Reintentar",
+    "viewAll": "Ver Todo",
+    "viewDetails": "Ver Detalles",
+    "reportIncident": "Reportar Incidente",
+    "sendAlert": "Enviar Alerta",
+    "acknowledge": "Acusar Recibo",
+    "resolve": "Resolver",
+    "dismiss": "Descartar"
+  },
+  "status": {
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "pending": "Pendiente",
+    "resolved": "Resuelto",
+    "closed": "Cerrado",
+    "critical": "Crítico",
+    "warning": "Advertencia",
+    "advisory": "Aviso",
+    "normal": "Normal",
+    "online": "En línea",
+    "offline": "Sin conexión"
+  },
+  "severity": {
+    "low": "Bajo",
+    "medium": "Medio",
+    "high": "Alto",
+    "critical": "Crítico"
+  },
+  "time": {
+    "now": "Ahora",
+    "minutesAgo": "hace {{count}} min",
+    "hoursAgo": "hace {{count}}h",
+    "daysAgo": "hace {{count}}d",
+    "today": "Hoy",
+    "yesterday": "Ayer",
+    "lastWeek": "Semana pasada",
+    "lastMonth": "Mes pasado"
+  },
+  "errors": {
+    "general": "Algo salió mal. Inténtalo de nuevo.",
+    "network": "No se puede conectar al servidor.",
+    "unauthorized": "Inicia sesión para continuar.",
+    "forbidden": "No tienes permiso para esto.",
+    "notFound": "No encontrado.",
+    "serverError": "Error del servidor.",
+    "validation": "Revisa los datos e inténtalo de nuevo.",
+    "timeout": "Tiempo de espera agotado."
+  },
+  "auth": {
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "confirmPassword": "Confirmar Contraseña",
+    "loginTitle": "Iniciar Sesión",
+    "registerTitle": "Crear Cuenta",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
+    "resetPassword": "Restablecer Contraseña",
+    "loginButton": "Iniciar Sesión",
+    "registerButton": "Crear Cuenta",
+    "logoutButton": "Cerrar Sesión",
+    "rememberMe": "Recordarme",
+    "orContinueWith": "O continuar con",
+    "noAccount": "¿No tienes cuenta?",
+    "hasAccount": "¿Ya tienes cuenta?"
+  },
+  "safety": {
+    "stayInformed": "Mantente Informado",
+    "takeAction": "Toma Acción",
+    "seekShelter": "Busca Refugio",
+    "evacuate": "Evacúa",
+    "callEmergency": "Llama a Emergencias",
+    "emergencyNumber": "Emergencia: {{number}}",
+    "safetyGuidance": "Guía de Seguridad",
+    "preparedness": "Preparación",
+    "emergencyKit": "Kit de Emergencia",
+    "evacuationRoutes": "Rutas de Evacuación",
+    "shelters": "Refugios"
+  },
+  "report": {
+    "title": "Título del Reporte",
+    "description": "Descripción",
+    "location": "Ubicación",
+    "severity": "Severidad",
+    "category": "Categoría",
+    "photos": "Fotos",
+    "submitReport": "Enviar Reporte",
+    "reportSubmitted": "Reporte enviado exitosamente",
+    "myReports": "Mis Reportes",
+    "recentReports": "Reportes Recientes",
+    "noReports": "Sin reportes"
+  },
+  "community": {
+    "chat": "Chat Comunitario",
+    "help": "Ayuda Comunitaria",
+    "guidelines": "Normas",
+    "offers": "Ofertas de Ayuda",
+    "requests": "Solicitudes",
+    "volunteers": "Voluntarios"
+  },
+  "accessibility": {
+    "title": "Accesibilidad",
+    "highContrast": "Alto Contraste",
+    "largeText": "Texto Grande",
+    "reduceMotion": "Reducir Movimiento",
+    "screenReader": "Optimizado para Lector de Pantalla"
+  },
+  "footer": {
+    "privacy": "Política de Privacidad",
+    "terms": "Términos de Servicio",
+    "contact": "Contacto",
+    "about": "Acerca de AEGIS",
+    "accessibility": "Accesibilidad"
+  }
+}

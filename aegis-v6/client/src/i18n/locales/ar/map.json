@@ -1,0 +1,29 @@
+{
+  "title": "الخريطة",
+  "controls": { "zoomIn": "تكبير", "zoomOut": "تصغير", "myLocation": "موقعي", "fullscreen": "ملء الشاشة", "resetView": "إعادة تعيين العرض", "satellite": "قمر صناعي", "terrain": "تضاريس", "street": "شارع" },
+  "layers": {
+    "title": "طبقات الخريطة",
+    "incidents": "الحوادث",
+    "predictions": "التنبؤات",
+    "alerts": "التنبيهات",
+    "evacuation": "مسارات الإخلاء",
+    "shelters": "الملاجئ",
+    "resources": "الموارد",
+    "sensors": "أجهزة الاستشعار",
+    "flood": "مناطق الفيضان",
+    "severe_storm": "مسارات العواصف",
+    "heatwave": "مناطق الحرارة",
+    "wildfire": "محيط الحرائق",
+    "landslide": "مناطق الانهيار",
+    "power_outage": "مناطق انقطاع الكهرباء",
+    "water_supply": "مناطق تأثر المياه",
+    "infrastructure_damage": "البنية التحتية المتضررة",
+    "public_safety": "مناطق السلامة",
+    "environmental_hazard": "انتشار الملوثات"
+  },
+  "markers": { "report": "تقرير مواطن", "sensor": "بيانات مستشعر", "alert": "منطقة تنبيه", "prediction": "منطقة متوقعة", "shelter": "ملجأ طوارئ", "resource": "مركز موارد" },
+  "popup": { "severity": "الخطورة", "reported": "تم الإبلاغ", "lastUpdate": "آخر تحديث", "affectedArea": "المنطقة المتأثرة", "prediction": "تنبؤ", "confidence": "الثقة", "source": "المصدر", "details": "التفاصيل" },
+  "legend": { "title": "المفتاح", "critical": "حرج", "high": "مرتفع", "medium": "متوسط", "low": "منخفض", "predicted": "متوقع", "confirmed": "مؤكد", "resolved": "تم الحل" },
+  "search": { "placeholder": "البحث عن موقع...", "noResults": "لم يتم العثور على نتائج", "useMyLocation": "استخدام موقعي" },
+  "drawing": { "title": "أدوات الرسم", "polygon": "رسم مضلع", "circle": "رسم دائرة", "marker": "وضع علامة", "clear": "مسح الرسومات" }
+}

@@ -1,0 +1,36 @@
+{
+  "title": "Incidentes",
+  "filter": { "all": "Todos", "active": "Activos", "resolved": "Resueltos", "byType": "Filtrar por Tipo" },
+  "types": {
+    "flood": "Inundación", "severe_storm": "Tormenta Severa", "heatwave": "Ola de Calor",
+    "wildfire": "Incendio Forestal", "landslide": "Deslizamiento", "power_outage": "Apagón",
+    "water_supply_disruption": "Interrupción de Agua", "infrastructure_damage": "Daño a Infraestructura",
+    "public_safety_incident": "Incidente de Seguridad Pública", "environmental_hazard": "Peligro Ambiental"
+  },
+  "categories": {
+    "natural_disaster": "Desastre Natural", "community_safety": "Seguridad Comunitaria",
+    "infrastructure": "Infraestructura", "public_safety": "Seguridad Pública", "environmental": "Ambiental"
+  },
+  "status": {
+    "fully_operational": "Completamente Operativo", "partial": "Parcialmente Operativo",
+    "configured_only": "Solo Configurado", "disabled": "Deshabilitado"
+  },
+  "predictions": {
+    "title": "Predicciones", "noPredictions": "Sin predicciones activas",
+    "confidence": "Confianza", "probability": "Probabilidad", "source": "Fuente de Datos",
+    "ruleBasedNote": "Basado en análisis de reglas.", "statisticalNote": "Basado en modelo estadístico.",
+    "mlNote": "Basado en predicción de aprendizaje automático."
+  },
+  "report": {
+    "selectType": "Seleccionar Tipo de Incidente", "whatHappened": "¿Qué sucedió?",
+    "whereHappened": "¿Dónde sucedió?", "howSevere": "¿Qué tan grave es?",
+    "additionalDetails": "Detalles Adicionales", "attachPhotos": "Adjuntar Fotos",
+    "submitReport": "Enviar Reporte de Incidente",
+    "reportSuccess": "Su reporte ha sido enviado. Los servicios de emergencia han sido notificados.",
+    "reportFailed": "Error al enviar el reporte. Intente de nuevo o llame a emergencias."
+  },
+  "ai": {
+    "tier": { "rule_based": "Análisis Basado en Reglas", "statistical": "Modelo Estadístico", "ml": "Aprendizaje Automático" },
+    "confidence": { "high": "Alta confianza", "medium": "Confianza media", "low": "Confianza baja" }
+  }
+}

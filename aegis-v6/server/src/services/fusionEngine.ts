@@ -734,7 +734,7 @@ function estimateElevation(lat: number, lng: number): number {
   const baseElevation = 5 + distFromCoast * 15 // Rough gradient
   // River valleys are lower
   const activeRegion = getActiveCityRegion()
-  const nearRiver = (Math.abs(lat - activeRegion.center[0]) < 0.02 && Math.abs(lng - activeRegion.center[1]) < 0.03) ? -10 : 0
+  const nearRiver = (Math.abs(lat - activeRegion.centre.lat) < 0.02 && Math.abs(lng - activeRegion.centre.lng) < 0.03) ? -10 : 0
   return Math.max(2, baseElevation + nearRiver)
 }
 
@@ -743,7 +743,7 @@ function estimateUrbanDensity(lat: number, lng: number): number {
   // Region-centre zones: city centre ~0.82, residential ~0.5, suburbs ~0.3, rural ~0.1
   const activeRegion = getActiveCityRegion()
   const distFromCentre = Math.sqrt(
-    (lat - activeRegion.center[0]) ** 2 + (lng - activeRegion.center[1]) ** 2,
+    (lat - activeRegion.centre.lat) ** 2 + (lng - activeRegion.centre.lng) ** 2,
   ) * 111 // km from configured city centre
 
   if (distFromCentre < 1) return 0.82    // City centre

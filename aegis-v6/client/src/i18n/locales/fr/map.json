@@ -1,0 +1,7 @@
+{
+  "title": "Carte",
+  "layers": { "title": "Couches", "base": "Carte de base", "flood": "Inondations", "wildfire": "Incendies", "heatwave": "Canicule", "storm": "Tempêtes", "infrastructure": "Infrastructure", "reports": "Rapports", "evacuation": "Évacuation", "shelters": "Abris", "sensors": "Capteurs", "satellite": "Satellite" },
+  "controls": { "zoomIn": "Agrandir", "zoomOut": "Réduire", "myLocation": "Ma position", "fullscreen": "Plein écran", "layerControl": "Couches", "measure": "Mesurer", "draw": "Dessiner" },
+  "legend": { "title": "Légende", "low": "Risque faible", "medium": "Risque moyen", "high": "Risque élevé", "critical": "Risque critique", "activeIncident": "Incident actif", "resolvedIncident": "Résolu" },
+  "popup": { "incidentType": "Type", "severity": "Gravité", "reportedAt": "Signalé", "lastUpdate": "Mise à jour", "viewDetails": "Détails", "navigate": "Naviguer" }
+}

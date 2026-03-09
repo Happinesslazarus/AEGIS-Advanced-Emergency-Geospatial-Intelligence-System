@@ -1,0 +1,31 @@
+{
+  "types": {
+    "flood": { "name": "فيضان", "description": "فيضان نهري أو ساحلي أو سطحي", "icon": "droplets" },
+    "severe_storm": { "name": "عاصفة شديدة", "description": "رياح عاتية وبرق وعواصف رعدية", "icon": "cloud-lightning" },
+    "heatwave": { "name": "موجة حر", "description": "درجات حرارة شديدة ومخاطر صحية", "icon": "thermometer-sun" },
+    "wildfire": { "name": "حريق غابات", "description": "حرائق غابات نشطة وخطر اندلاع حرائق", "icon": "flame" },
+    "landslide": { "name": "انهيار أرضي", "description": "تدفقات طينية وانهيارات أرضية", "icon": "mountain-snow" },
+    "power_outage": { "name": "انقطاع كهرباء", "description": "انقطاع التيار الكهربائي عن مناطق واسعة", "icon": "zap-off" },
+    "water_supply": { "name": "إمدادات المياه", "description": "تلوث المياه أو انقطاعها", "icon": "droplet-off" },
+    "infrastructure_damage": { "name": "أضرار البنية التحتية", "description": "أضرار في الطرق والجسور والمباني", "icon": "hard-hat" },
+    "public_safety": { "name": "السلامة العامة", "description": "حوادث السلامة وحالات الطوارئ الجماعية", "icon": "shield-alert" },
+    "environmental_hazard": { "name": "مخاطر بيئية", "description": "تلوث الهواء والتسربات الكيميائية", "icon": "biohazard" }
+  },
+  "severity": { "low": "منخفض", "medium": "متوسط", "high": "مرتفع", "critical": "حرج" },
+  "status": { "active": "نشط", "monitoring": "قيد المراقبة", "resolved": "تم الحل", "predicted": "متوقع", "confirmed": "مؤكد", "declined": "متراجع" },
+  "fields": {
+    "waterLevel": "مستوى المياه (م)", "flowRate": "معدل التدفق (م³/ث)", "affectedArea": "المنطقة المتأثرة",
+    "windSpeed": "سرعة الرياح (كم/س)", "gustSpeed": "سرعة الهبات (كم/س)", "precipitation": "كمية الأمطار (مم)",
+    "temperature": "درجة الحرارة (°م)", "humidity": "الرطوبة (%)", "duration": "المدة (ساعات)",
+    "fireSize": "حجم الحريق (هكتار)", "containment": "نسبة الاحتواء (%)", "fuelType": "نوع الوقود",
+    "soilMoisture": "رطوبة التربة (%)", "rainfall7d": "أمطار 7 أيام (مم)", "slopeAngle": "زاوية المنحدر (°)",
+    "customersAffected": "العملاء المتأثرون", "estimatedRestoration": "وقت الاستعادة المقدر", "criticalServices": "الخدمات الحيوية المتأثرة",
+    "contaminationType": "نوع التلوث", "areaAffected": "المنطقة المتأثرة", "alternativeSupply": "إمداد بديل",
+    "structureType": "نوع الهيكل", "damageLevel": "مستوى الضرر", "isOccupied": "مأهول بالسكان",
+    "injuriesReported": "إصابات مُبلغ عنها", "crowdSize": "حجم الحشد", "hazmatInvolved": "مواد خطرة",
+    "pollutantType": "نوع الملوث", "aqi": "مؤشر جودة الهواء", "concentration": "التركيز (ميكروغرام/م³)"
+  },
+  "aiTier": { "rule_based": "قائم على القواعد", "statistical": "تحليل إحصائي", "ml": "تعلم آلي" },
+  "operationalStatus": { "fully_operational": "يعمل بالكامل", "partial": "جزئي", "configured_only": "مُعد فقط", "disabled": "معطل" },
+  "actions": { "report": "الإبلاغ عن {{type}}", "viewActive": "عرض {{type}} النشطة", "viewHistory": "عرض السجل", "subscribe": "الاشتراك في تنبيهات {{type}}", "unsubscribe": "إلغاء الاشتراك" }
+}

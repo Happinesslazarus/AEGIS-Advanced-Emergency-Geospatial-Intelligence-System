@@ -1,0 +1,99 @@
+{
+  "title": "Incidents",
+  "filter": {
+    "all": "All Incidents",
+    "active": "Active",
+    "resolved": "Resolved",
+    "byType": "Filter by Type"
+  },
+  "types": {
+    "flood": "Flood",
+    "severe_storm": "Severe Storm",
+    "heatwave": "Heatwave",
+    "wildfire": "Wildfire",
+    "landslide": "Landslide",
+    "power_outage": "Power Outage",
+    "water_supply_disruption": "Water Supply Disruption",
+    "infrastructure_damage": "Infrastructure Damage",
+    "public_safety_incident": "Public Safety Incident",
+    "environmental_hazard": "Environmental Hazard"
+  },
+  "categories": {
+    "natural_disaster": "Natural Disaster",
+    "community_safety": "Community Safety",
+    "infrastructure": "Infrastructure",
+    "public_safety": "Public Safety",
+    "environmental": "Environmental"
+  },
+  "status": {
+    "fully_operational": "Fully Operational",
+    "partial": "Partially Operational",
+    "configured_only": "Configured Only",
+    "disabled": "Disabled"
+  },
+  "predictions": {
+    "title": "Predictions",
+    "noPredictions": "No active predictions",
+    "confidence": "Confidence",
+    "probability": "Probability",
+    "source": "Data Source",
+    "ruleBasedNote": "Based on rule-based analysis. Confidence reflects available data quality.",
+    "statisticalNote": "Based on statistical model analysis.",
+    "mlNote": "Based on machine learning model prediction."
+  },
+  "fields": {
+    "waterDepthCm": "Estimated Water Depth (cm)",
+    "waterSpeed": "Water Speed",
+    "blockedRoutes": "Blocked Routes",
+    "windDamage": "Wind Damage Observed",
+    "hailPresent": "Hail Present",
+    "powerLinesDown": "Power Lines Down",
+    "temperatureC": "Observed Temperature (°C)",
+    "vulnerablePeopleAffected": "Vulnerable People Affected",
+    "waterAccessIssues": "Water Access Issues",
+    "smokeIntensity": "Smoke Intensity",
+    "flameVisible": "Visible Flames",
+    "evacuationNeeded": "Evacuation Needed",
+    "roadBlocked": "Road Blocked",
+    "slopeFailureExtent": "Slope Failure Extent",
+    "ongoingMovement": "Ongoing Ground Movement",
+    "outageDurationHours": "Outage Duration (hours)",
+    "criticalServicesImpacted": "Critical Services Impacted",
+    "areaWide": "Area-wide",
+    "waterUnavailable": "No Running Water",
+    "contaminationSuspected": "Contamination Suspected",
+    "durationHours": "Duration (hours)",
+    "assetType": "Asset Type",
+    "serviceDisruption": "Service Disruption",
+    "accessRestricted": "Access Restricted",
+    "injuriesReported": "Injuries Reported",
+    "crowdSize": "Crowd Size",
+    "policeRequired": "Police Required",
+    "hazardMaterial": "Hazard Material",
+    "airOrWaterImpact": "Air/Water Impact",
+    "containmentNeeded": "Containment Needed"
+  },
+  "report": {
+    "selectType": "Select Incident Type",
+    "whatHappened": "What happened?",
+    "whereHappened": "Where did it happen?",
+    "howSevere": "How severe is it?",
+    "additionalDetails": "Additional Details",
+    "attachPhotos": "Attach Photos",
+    "submitReport": "Submit Incident Report",
+    "reportSuccess": "Your report has been submitted. Emergency services have been notified.",
+    "reportFailed": "Failed to submit report. Please try again or call emergency services."
+  },
+  "ai": {
+    "tier": {
+      "rule_based": "Rule-Based Analysis",
+      "statistical": "Statistical Model",
+      "ml": "Machine Learning"
+    },
+    "confidence": {
+      "high": "High confidence — ML model with verified data",
+      "medium": "Medium confidence — Statistical analysis",
+      "low": "Lower confidence — Rule-based assessment"
+    }
+  }
+}

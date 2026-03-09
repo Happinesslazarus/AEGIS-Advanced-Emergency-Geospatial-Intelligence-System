@@ -20,7 +20,7 @@ interface Props { onClose: () => void; lang?: string; anchor?: 'left' | 'right' 
 
 export default function Chatbot({ onClose, lang = 'en', anchor = 'right' }: Props): JSX.Element {
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { sender: 'bot', text: "Hello! I'm the AEGIS Emergency Assistant. I can help with safety guidance for **floods, storms, earthquakes, fires**, mental health support, and more.\n\nI understand multiple languages — feel free to ask in yours.\n\nWhat do you need help with?", timestamp: new Date() },
+    { sender: 'bot', text: "Hello! I'm the AEGIS Emergency Assistant. I can help with safety guidance for **all disaster types** — floods, storms, heatwaves, wildfires, landslides, power outages, water supply issues, infrastructure damage, public safety, and environmental hazards.\n\nI can also help you:\n• **Report incidents** and check active alerts\n• Find **evacuation routes** and shelters\n• Get **real-time predictions** from our AI models\n\nI understand multiple languages — feel free to ask in yours.\n\nWhat do you need help with?", timestamp: new Date() },
   ])
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)

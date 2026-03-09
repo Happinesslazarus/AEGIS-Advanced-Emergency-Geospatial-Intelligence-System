@@ -1,0 +1,71 @@
+{
+  "name": "AEGIS WF4 — Multi-Hazard Weather Monitor",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "minutes", "minutesInterval": 15 }] } },
+      "name": "Schedule (15 min)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.open-meteo.com/v1/forecast?latitude=57.15&longitude=-2.09&hourly=temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,soil_moisture_0_to_1cm&forecast_days=3&timezone=Europe/London",
+        "options": { "timeout": 15000 },
+        "headerParametersJson": "{ \"User-Agent\": \"AEGIS-n8n/1.0\" }"
+      },
+      "name": "Fetch Weather Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Evaluate multi-hazard thresholds from weather data\nconst hourly = $input.first().json.hourly || {};\nconst times = hourly.time || [];\nconst alerts = [];\n\nfor (let i = 0; i < Math.min(times.length, 72); i++) {\n  const temp = hourly.temperature_2m?.[i] || 0;\n  const wind = hourly.wind_speed_10m?.[i] || 0;\n  const gusts = hourly.wind_gusts_10m?.[i] || 0;\n  const precip = hourly.precipitation?.[i] || 0;\n  const humidity = hourly.relative_humidity_2m?.[i] || 0;\n  const soil = hourly.soil_moisture_0_to_1cm?.[i] || 0;\n\n  // SEVERE STORM: gusts > 60 km/h\n  if (gusts > 60) alerts.push({ type: 'severe_storm', severity: gusts > 80 ? 'critical' : 'high', time: times[i], detail: `Gusts ${gusts} km/h, wind ${wind} km/h` });\n\n  // HEATWAVE: temp > 30°C\n  if (temp > 30) alerts.push({ type: 'heatwave', severity: temp > 35 ? 'critical' : 'high', time: times[i], detail: `Temperature ${temp}°C, humidity ${humidity}%` });\n\n  // FLOOD RISK: heavy rain > 10mm/h\n  if (precip > 10) alerts.push({ type: 'flood', severity: precip > 25 ? 'critical' : precip > 15 ? 'high' : 'medium', time: times[i], detail: `Precipitation ${precip} mm/h` });\n\n  // LANDSLIDE RISK: high soil moisture + rain\n  if (soil > 0.4 && precip > 5) alerts.push({ type: 'landslide', severity: soil > 0.6 ? 'high' : 'medium', time: times[i], detail: `Soil moisture ${(soil*100).toFixed(0)}%, rain ${precip}mm` });\n}\n\nreturn [{ json: { alerts, evaluatedAt: new Date().toISOString(), totalAlerts: alerts.length } }];"
+      },
+      "name": "Evaluate Hazard Thresholds",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [{ "value1": "={{$json.totalAlerts}}", "operation": "larger", "value2": 0 }]
+        }
+      },
+      "name": "Has Alerts?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [860, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.AEGIS_BACKEND_URL || 'http://localhost:3001'}}/api/internal/n8n-webhook/multi-hazard",
+        "method": "POST",
+        "bodyParametersJson": "{{ JSON.stringify($json) }}",
+        "options": { "timeout": 10000 }
+      },
+      "name": "Send Alerts to AEGIS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1080, 200]
+    },
+    {
+      "parameters": {},
+      "name": "No Action",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1080, 400]
+    }
+  ],
+  "connections": {
+    "Schedule (15 min)": { "main": [[{ "node": "Fetch Weather Data", "type": "main", "index": 0 }]] },
+    "Fetch Weather Data": { "main": [[{ "node": "Evaluate Hazard Thresholds", "type": "main", "index": 0 }]] },
+    "Evaluate Hazard Thresholds": { "main": [[{ "node": "Has Alerts?", "type": "main", "index": 0 }]] },
+    "Has Alerts?": { "main": [[{ "node": "Send Alerts to AEGIS", "type": "main", "index": 0 }], [{ "node": "No Action", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1", "saveManualExecutions": true },
+  "tags": [{ "name": "AEGIS" }, { "name": "multi-incident" }],
+  "active": true
+}

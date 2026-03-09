@@ -291,4 +291,107 @@ router.post('/n8n-webhook/gauges', async (req: Request, res: Response) => {
   }
 })
 
+
+// -------------------------------------------------------------------------------
+// §5  Multi-incident n8n webhook endpoints
+// -------------------------------------------------------------------------------
+
+/**
+ * WF4 — Multi-hazard weather alerts
+ * n8n posts evaluated multi-hazard weather alerts here.
+ */
+router.post('/n8n-webhook/multi-hazard', async (req: Request, res: Response) => {
+  try {
+    const { hazard_type, severity, region, description, data } = req.body
+    if (!hazard_type || !severity) {
+      return res.status(400).json({ error: 'Missing hazard_type or severity' })
+    }
+
+    // Insert alert into database
+    await pool.query(
+      `INSERT INTO alerts (type, severity, title, description, region_id, metadata, source, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, 'n8n_wf4', NOW())`,
+      [hazard_type, severity, `${hazard_type} Alert`, description || `${hazard_type} alert detected`,
+       region || activeRegion.id, JSON.stringify(data || {})]
+    )
+
+    // Broadcast via Socket.IO
+    const io = req.app.get('io')
+    if (io) {
+      io.emit('incident:alert', { type: hazard_type, severity, description, region, data, source: 'n8n_wf4' })
+    }
+
+    devLog(`[n8n-webhook/multi-hazard] ${hazard_type} alert (${severity}) ingested`)
+    res.json({ ok: true, source: 'n8n_wf4', hazard_type, severity })
+  } catch (err: any) {
+    console.error(`[n8n-webhook/multi-hazard] Error: ${err.message}`)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+/**
+ * WF5 — Air quality monitoring alerts
+ */
+router.post('/n8n-webhook/air-quality', async (req: Request, res: Response) => {
+  try {
+    const { aqi, pollutant, severity, region, description, data } = req.body
+    if (!severity) {
+      return res.status(400).json({ error: 'Missing severity' })
+    }
+
+    await pool.query(
+      `INSERT INTO alerts (type, severity, title, description, region_id, metadata, source, created_at)
+       VALUES ('environmental_hazard', $1, $2, $3, $4, $5, 'n8n_wf5', NOW())`,
+      [severity, `Air Quality Alert - AQI ${aqi || 'unknown'}`,
+       description || `Air quality alert: ${pollutant || 'multiple pollutants'}`,
+       region || activeRegion.id, JSON.stringify({ aqi, pollutant, ...(data || {}) })]
+    )
+
+    const io = req.app.get('io')
+    if (io) {
+      io.emit('incident:alert', { type: 'environmental_hazard', severity, aqi, pollutant, region, source: 'n8n_wf5' })
+    }
+
+    devLog(`[n8n-webhook/air-quality] AQI alert (${severity}) ingested`)
+    res.json({ ok: true, source: 'n8n_wf5', severity, aqi })
+  } catch (err: any) {
+    console.error(`[n8n-webhook/air-quality] Error: ${err.message}`)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+/**
+ * WF6 — Cross-incident escalation alerts
+ * Receives compound/cascading emergency alerts from the incident alert evaluator.
+ */
+router.post('/n8n-webhook/escalation', async (req: Request, res: Response) => {
+  try {
+    const { escalation_type, severity, involved_incidents, description, data } = req.body
+    if (!escalation_type || !severity) {
+      return res.status(400).json({ error: 'Missing escalation_type or severity' })
+    }
+
+    await pool.query(
+      `INSERT INTO alerts (type, severity, title, description, region_id, metadata, source, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, 'n8n_wf6', NOW())`,
+      [escalation_type, severity, `ESCALATION: ${escalation_type}`,
+       description || `Compound emergency: ${(involved_incidents || []).join(', ')}`,
+       activeRegion.id, JSON.stringify({ involved_incidents, ...(data || {}) })]
+    )
+
+    const io = req.app.get('io')
+    if (io) {
+      io.emit('incident:escalation', {
+        type: escalation_type, severity, involved_incidents, description, source: 'n8n_wf6'
+      })
+    }
+
+    devLog(`[n8n-webhook/escalation] ${escalation_type} (${severity}) — involves: ${(involved_incidents || []).join(', ')}`)
+    res.json({ ok: true, source: 'n8n_wf6', escalation_type, severity })
+  } catch (err: any) {
+    console.error(`[n8n-webhook/escalation] Error: ${err.message}`)
+    res.status(500).json({ error: err.message })
+  }
+})
+
 export default router

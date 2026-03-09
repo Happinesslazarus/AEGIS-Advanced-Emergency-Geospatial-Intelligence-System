@@ -1,0 +1,12 @@
+{
+  "title": "التنبيهات",
+  "current": "التنبيهات الحالية",
+  "history": "سجل التنبيهات",
+  "severity": { "critical": { "label": "حرج", "description": "هناك خطر مباشر على الحياة - اتخذ إجراءً فورياً" }, "high": { "label": "مرتفع", "description": "احتمال كبير لأضرار جسيمة - كن مستعداً للإخلاء" }, "medium": { "label": "متوسط", "description": "كن يقظاً - تابع التحديثات بانتظام" }, "low": { "label": "منخفض", "description": "كن على علم بالمخاطر المحتملة" } },
+  "actions": { "acknowledge": "تأكيد الاستلام", "dismiss": "رفض", "share": "مشاركة", "viewDetails": "عرض التفاصيل", "viewOnMap": "عرض على الخريطة", "getDirections": "الحصول على الاتجاهات", "subscribe": "اشتراك في التنبيهات", "unsubscribe": "إلغاء الاشتراك", "markSafe": "أنا بأمان", "requestHelp": "طلب مساعدة" },
+  "types": { "prediction": "تنبؤ", "warning": "تحذير", "watch": "مراقبة", "advisory": "إرشادي", "emergency": "طوارئ", "allClear": "انتهاء الخطر" },
+  "channels": { "push": "إشعارات فورية", "sms": "رسائل نصية", "email": "بريد إلكتروني", "inApp": "داخل التطبيق", "siren": "صفارات الإنذار" },
+  "settings": { "title": "إعدادات التنبيهات", "enableAll": "تفعيل جميع التنبيهات", "quietHours": "ساعات الهدوء", "severityFilter": "الحد الأدنى للخطورة", "incidentFilter": "أنواع الحوادث", "radiusFilter": "نطاق التنبيه (كم)" },
+  "empty": { "title": "لا توجد تنبيهات نشطة", "description": "ستصلك إشعارات عند صدور تنبيهات جديدة في منطقتك" },
+  "confidence": { "high": "ثقة عالية", "medium": "ثقة متوسطة", "low": "ثقة منخفضة", "source": "المصدر: {{source}}" }
+}

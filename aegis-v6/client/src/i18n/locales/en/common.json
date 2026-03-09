@@ -1,0 +1,148 @@
+{
+  "app": {
+    "name": "AEGIS",
+    "fullName": "Advanced Emergency Geospatial Intelligence System",
+    "tagline": "Protecting communities through intelligent disaster response"
+  },
+  "nav": {
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "admin": "Admin",
+    "citizen": "Citizen Portal",
+    "about": "About",
+    "login": "Login",
+    "logout": "Logout",
+    "register": "Register",
+    "settings": "Settings",
+    "profile": "Profile",
+    "language": "Language"
+  },
+  "actions": {
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "confirm": "Confirm",
+    "refresh": "Refresh",
+    "search": "Search",
+    "filter": "Filter",
+    "export": "Export",
+    "import": "Import",
+    "back": "Back",
+    "next": "Next",
+    "loading": "Loading...",
+    "retry": "Retry",
+    "viewAll": "View All",
+    "viewDetails": "View Details",
+    "reportIncident": "Report Incident",
+    "sendAlert": "Send Alert",
+    "acknowledge": "Acknowledge",
+    "resolve": "Resolve",
+    "dismiss": "Dismiss"
+  },
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "pending": "Pending",
+    "resolved": "Resolved",
+    "closed": "Closed",
+    "critical": "Critical",
+    "warning": "Warning",
+    "advisory": "Advisory",
+    "normal": "Normal",
+    "online": "Online",
+    "offline": "Offline"
+  },
+  "severity": {
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High",
+    "critical": "Critical"
+  },
+  "time": {
+    "now": "Now",
+    "minutesAgo": "{{count}} min ago",
+    "hoursAgo": "{{count}}h ago",
+    "daysAgo": "{{count}}d ago",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "lastWeek": "Last week",
+    "lastMonth": "Last month"
+  },
+  "errors": {
+    "general": "Something went wrong. Please try again.",
+    "network": "Cannot connect to server. Check your connection.",
+    "unauthorized": "Please log in to continue.",
+    "forbidden": "You don't have permission to do this.",
+    "notFound": "Not found.",
+    "serverError": "Server error. Our team has been notified.",
+    "validation": "Please check your input and try again.",
+    "timeout": "Request timed out. Please try again."
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "loginTitle": "Sign In",
+    "registerTitle": "Create Account",
+    "forgotPassword": "Forgot Password?",
+    "resetPassword": "Reset Password",
+    "loginButton": "Sign In",
+    "registerButton": "Create Account",
+    "logoutButton": "Sign Out",
+    "rememberMe": "Remember me",
+    "orContinueWith": "Or continue with",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?"
+  },
+  "safety": {
+    "stayInformed": "Stay Informed",
+    "takeAction": "Take Action",
+    "seekShelter": "Seek Shelter",
+    "evacuate": "Evacuate",
+    "callEmergency": "Call Emergency Services",
+    "emergencyNumber": "Emergency: {{number}}",
+    "safetyGuidance": "Safety Guidance",
+    "preparedness": "Preparedness",
+    "emergencyKit": "Emergency Kit",
+    "evacuationRoutes": "Evacuation Routes",
+    "shelters": "Shelters"
+  },
+  "report": {
+    "title": "Report Title",
+    "description": "Description",
+    "location": "Location",
+    "severity": "Severity",
+    "category": "Category",
+    "photos": "Photos",
+    "submitReport": "Submit Report",
+    "reportSubmitted": "Report submitted successfully",
+    "myReports": "My Reports",
+    "recentReports": "Recent Reports",
+    "noReports": "No reports yet"
+  },
+  "community": {
+    "chat": "Community Chat",
+    "help": "Community Help",
+    "guidelines": "Guidelines",
+    "offers": "Help Offers",
+    "requests": "Help Requests",
+    "volunteers": "Volunteers"
+  },
+  "accessibility": {
+    "title": "Accessibility",
+    "highContrast": "High Contrast",
+    "largeText": "Large Text",
+    "reduceMotion": "Reduce Motion",
+    "screenReader": "Screen Reader Optimized"
+  },
+  "footer": {
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "contact": "Contact",
+    "about": "About AEGIS",
+    "accessibility": "Accessibility"
+  }
+}

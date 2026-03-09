@@ -1,0 +1,95 @@
+{
+  "name": "AEGIS WF6 — Incident Alert Evaluator",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "minutes", "minutesInterval": 10 }] } },
+      "name": "Schedule (10 min)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.AEGIS_BACKEND_URL || 'http://localhost:3001'}}/api/v1/incidents/all/predictions",
+        "options": { "timeout": 20000 },
+        "headerParametersJson": "{ \"User-Agent\": \"AEGIS-n8n/1.0\" }"
+      },
+      "name": "Fetch All Predictions",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [420, 200]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.AEGIS_BACKEND_URL || 'http://localhost:3001'}}/api/v1/incidents/all/alerts",
+        "options": { "timeout": 20000 },
+        "headerParametersJson": "{ \"User-Agent\": \"AEGIS-n8n/1.0\" }"
+      },
+      "name": "Fetch All Alerts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [420, 400]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "mergeByPosition": true,
+        "options": {}
+      },
+      "name": "Merge Data",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Cross-incident correlation and escalation logic\nconst items = $input.all();\nconst predictions = items[0]?.json?.predictions || {};\nconst alerts = items[1]?.json?.alerts || {};\n\nconst escalations = [];\n\n// Check for compound incidents (multiple high-severity across types)\nconst criticalTypes = [];\nfor (const [type, preds] of Object.entries(predictions)) {\n  const criticals = (preds || []).filter(p => p.severity === 'critical' || p.probability > 0.85);\n  if (criticals.length > 0) criticalTypes.push(type);\n}\n\nif (criticalTypes.length >= 2) {\n  escalations.push({\n    level: 'compound_emergency',\n    types: criticalTypes,\n    message: `COMPOUND EMERGENCY: ${criticalTypes.length} simultaneous critical incidents (${criticalTypes.join(', ')})`,\n    action: 'activate_emergency_operations_centre'\n  });\n}\n\n// Check for cascading risks\nif (criticalTypes.includes('flood') && criticalTypes.includes('power_outage')) {\n  escalations.push({\n    level: 'cascading_risk',\n    types: ['flood', 'power_outage'],\n    message: 'CASCADING RISK: Flood + power outage combination — critical infrastructure at risk',\n    action: 'deploy_backup_generators'\n  });\n}\n\nif (criticalTypes.includes('severe_storm') && criticalTypes.includes('infrastructure_damage')) {\n  escalations.push({\n    level: 'cascading_risk',\n    types: ['severe_storm', 'infrastructure_damage'],\n    message: 'CASCADING RISK: Storm damage to infrastructure — transport disruption likely',\n    action: 'close_affected_routes'\n  });\n}\n\nreturn [{ json: {\n  evaluatedAt: new Date().toISOString(),\n  totalPredictionTypes: Object.keys(predictions).length,\n  totalAlertTypes: Object.keys(alerts).length,\n  criticalTypes,\n  escalations,\n  hasEscalations: escalations.length > 0\n} }];"
+      },
+      "name": "Cross-Incident Correlation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [860, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [{ "value1": "={{$json.hasEscalations}}", "operation": "equal", "value2": true }]
+        }
+      },
+      "name": "Has Escalations?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1080, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.AEGIS_BACKEND_URL || 'http://localhost:3001'}}/api/internal/n8n-webhook/escalation",
+        "method": "POST",
+        "bodyParametersJson": "{{ JSON.stringify($json) }}",
+        "options": { "timeout": 10000 }
+      },
+      "name": "Send Escalation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1300, 200]
+    },
+    {
+      "parameters": {},
+      "name": "No Escalation",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1300, 400]
+    }
+  ],
+  "connections": {
+    "Schedule (10 min)": { "main": [[{ "node": "Fetch All Predictions", "type": "main", "index": 0 }, { "node": "Fetch All Alerts", "type": "main", "index": 0 }]] },
+    "Fetch All Predictions": { "main": [[{ "node": "Merge Data", "type": "main", "index": 0 }]] },
+    "Fetch All Alerts": { "main": [[{ "node": "Merge Data", "type": "main", "index": 1 }]] },
+    "Merge Data": { "main": [[{ "node": "Cross-Incident Correlation", "type": "main", "index": 0 }]] },
+    "Cross-Incident Correlation": { "main": [[{ "node": "Has Escalations?", "type": "main", "index": 0 }]] },
+    "Has Escalations?": { "main": [[{ "node": "Send Escalation", "type": "main", "index": 0 }], [{ "node": "No Escalation", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1", "saveManualExecutions": true },
+  "tags": [{ "name": "AEGIS" }, { "name": "multi-incident" }, { "name": "escalation" }],
+  "active": true
+}

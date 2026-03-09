@@ -94,6 +94,36 @@ const glasgow: CityRegionConfig = {
   evacuationRouteFiles: {
     glasgow: 'glasgow_routes.json',
   },
+
+  // ── Multi-Incident Configuration ──────────────────────────────
+  language: 'en',
+  units: 'metric',
+  enabledIncidents: {
+    flood:                  { enabled: true,  dataSources: ['sepa_gauges', 'ea_flood_api', 'citizen_reports'], alertThresholds: { advisory: 0.3, warning: 0.6, critical: 0.85 } },
+    severe_storm:           { enabled: true,  dataSources: ['met_office', 'openweathermap'], alertThresholds: { advisory: 0.25, warning: 0.5, critical: 0.8 } },
+    heatwave:               { enabled: true,  dataSources: ['met_office', 'open_meteo'] },
+    wildfire:               { enabled: false, notes: 'Low wildfire risk in central Scotland' },
+    landslide:              { enabled: true,  dataSources: ['sepa_rainfall', 'bgs_geology'] },
+    power_outage:           { enabled: true,  dataSources: ['sp_energy_networks', 'citizen_reports'] },
+    water_supply:           { enabled: true,  dataSources: ['scottish_water', 'citizen_reports'] },
+    infrastructure_damage:  { enabled: true,  dataSources: ['glasgow_city_council', 'citizen_reports'] },
+    public_safety:          { enabled: true,  dataSources: ['police_scotland', 'citizen_reports'] },
+    environmental_hazard:   { enabled: true,  dataSources: ['sepa_air_quality', 'defra_aqi'] },
+  },
+  emergencyContacts: [
+    { name: 'Police Scotland (non-emergency)', number: '101', type: 'police' },
+    { name: 'Scottish Fire & Rescue', number: '999', type: 'fire' },
+    { name: 'NHS 24', number: '111', type: 'ambulance' },
+    { name: 'SP Energy Networks', number: '105', type: 'utility' },
+    { name: 'Scottish Water', number: '0800 077 8778', type: 'utility' },
+  ],
+  alertAuthorities: {
+    flood: 'SEPA',
+    severe_storm: 'Met Office',
+    heatwave: 'Met Office',
+    environmental_hazard: 'SEPA',
+    public_safety: 'Police Scotland',
+  },
 }
 
 export default glasgow

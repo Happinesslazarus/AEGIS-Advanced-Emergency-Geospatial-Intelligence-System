@@ -3,7 +3,8 @@
  *
  * Defines the structure of a city-level region configuration.
  * Each region specifies everything AEGIS needs to operate in that city:
- * map centre, rivers, flood thresholds, data providers, and emergency contacts.
+ * map centre, rivers, flood thresholds, data providers, emergency contacts,
+ * and enabled incident types with their configuration.
  *
  * This architecture allows AEGIS to be deployed for any city on Earth
  * by creating a single configuration file per region.
@@ -35,11 +36,35 @@ export interface WMSLayerDef {
   riskLevel?: 'low' | 'medium' | 'high'
 }
 
+/** Per-incident regional configuration */
+export interface RegionIncidentConfig {
+  enabled: boolean
+  /** Thresholds for alert generation in this region */
+  alertThresholds?: {
+    advisory: number
+    warning: number
+    critical: number
+  }
+  /** Custom data sources for this incident type in this region */
+  dataSources?: string[]
+  /** Custom notes for operators about this incident type in this region */
+  notes?: string
+}
+
+export type IncidentTypeId =
+  | 'flood' | 'severe_storm' | 'heatwave' | 'wildfire' | 'landslide'
+  | 'power_outage' | 'water_supply' | 'infrastructure_damage'
+  | 'public_safety' | 'environmental_hazard'
+
 export interface CityRegionConfig {
   id: string
   name: string
   country: string
   timezone: string
+  /** Primary language code for this region */
+  language?: string
+  /** Unit system: 'metric' | 'imperial' */
+  units?: 'metric' | 'imperial'
   centre: { lat: number; lng: number }
   zoom: number
   boundingBox: {
@@ -61,6 +86,18 @@ export interface CityRegionConfig {
   floodExtentFiles?: Record<string, string>
   /** Pre-calculated evacuation route file paths */
   evacuationRouteFiles?: Record<string, string>
+
+  // ── Multi-Incident Configuration ──────────────────────────────
+  /** Per-incident type configuration for this region */
+  enabledIncidents?: Partial<Record<IncidentTypeId, RegionIncidentConfig>>
+  /** Emergency contacts beyond the primary number */
+  emergencyContacts?: Array<{
+    name: string
+    number: string
+    type: 'police' | 'fire' | 'ambulance' | 'coast_guard' | 'utility' | 'other'
+  }>
+  /** Alert authority hierarchy for different incident types */
+  alertAuthorities?: Partial<Record<IncidentTypeId, string>>
 }
 
 /**

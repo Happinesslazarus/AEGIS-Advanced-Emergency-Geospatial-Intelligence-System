@@ -1,0 +1,39 @@
+{
+  "title": "Alerts",
+  "activeAlerts": "Active Alerts",
+  "noAlerts": "No active alerts",
+  "severity": {
+    "advisory": "Advisory",
+    "warning": "Warning",
+    "critical": "Critical Emergency"
+  },
+  "actions": {
+    "acknowledge": "Acknowledge",
+    "dismiss": "Dismiss",
+    "viewDetails": "View Details",
+    "subscribeAlerts": "Subscribe to Alerts",
+    "unsubscribe": "Unsubscribe"
+  },
+  "channels": {
+    "push": "Push Notifications",
+    "email": "Email",
+    "sms": "SMS",
+    "telegram": "Telegram",
+    "whatsapp": "WhatsApp"
+  },
+  "messages": {
+    "criticalAlert": "CRITICAL: {{incident}} — {{description}}",
+    "warningAlert": "WARNING: {{incident}} — {{description}}",
+    "advisoryAlert": "ADVISORY: {{incident}} — {{description}}",
+    "newAlert": "New alert received",
+    "alertExpired": "Alert has expired",
+    "alertAcknowledged": "Alert acknowledged"
+  },
+  "subscribe": {
+    "title": "Alert Subscriptions",
+    "description": "Choose how you want to receive emergency alerts",
+    "selectIncidents": "Select incident types",
+    "selectSeverity": "Minimum severity level",
+    "savePreferences": "Save Preferences"
+  }
+}

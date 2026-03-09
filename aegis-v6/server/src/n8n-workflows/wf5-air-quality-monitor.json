@@ -1,0 +1,71 @@
+{
+  "name": "AEGIS WF5 — Air Quality Monitor",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "minutes", "minutesInterval": 30 }] } },
+      "name": "Schedule (30 min)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://air-quality-api.open-meteo.com/v1/air-quality?latitude=57.15&longitude=-2.09&hourly=pm2_5,pm10,nitrogen_dioxide,european_aqi&forecast_days=2&timezone=Europe/London",
+        "options": { "timeout": 15000 },
+        "headerParametersJson": "{ \"User-Agent\": \"AEGIS-n8n/1.0\" }"
+      },
+      "name": "Fetch Air Quality",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Evaluate air quality thresholds\nconst hourly = $input.first().json.hourly || {};\nconst times = hourly.time || [];\nconst alerts = [];\n\nfor (let i = 0; i < Math.min(times.length, 48); i++) {\n  const aqi = hourly.european_aqi?.[i] || 0;\n  const pm25 = hourly.pm2_5?.[i] || 0;\n  const pm10 = hourly.pm10?.[i] || 0;\n  const no2 = hourly.nitrogen_dioxide?.[i] || 0;\n\n  // European AQI thresholds: >100=High, >75=Medium\n  if (aqi > 75) {\n    alerts.push({\n      type: 'environmental_hazard',\n      severity: aqi > 100 ? 'critical' : 'high',\n      time: times[i],\n      detail: `AQI: ${aqi}, PM2.5: ${pm25}μg/m³, PM10: ${pm10}μg/m³, NO2: ${no2}μg/m³`\n    });\n  }\n}\n\nreturn [{ json: { alerts, evaluatedAt: new Date().toISOString(), totalAlerts: alerts.length } }];"
+      },
+      "name": "Evaluate AQI Thresholds",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [{ "value1": "={{$json.totalAlerts}}", "operation": "larger", "value2": 0 }]
+        }
+      },
+      "name": "Has Alerts?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [860, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.AEGIS_BACKEND_URL || 'http://localhost:3001'}}/api/internal/n8n-webhook/air-quality",
+        "method": "POST",
+        "bodyParametersJson": "{{ JSON.stringify($json) }}",
+        "options": { "timeout": 10000 }
+      },
+      "name": "Send to AEGIS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1080, 200]
+    },
+    {
+      "parameters": {},
+      "name": "No Action",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1080, 400]
+    }
+  ],
+  "connections": {
+    "Schedule (30 min)": { "main": [[{ "node": "Fetch Air Quality", "type": "main", "index": 0 }]] },
+    "Fetch Air Quality": { "main": [[{ "node": "Evaluate AQI Thresholds", "type": "main", "index": 0 }]] },
+    "Evaluate AQI Thresholds": { "main": [[{ "node": "Has Alerts?", "type": "main", "index": 0 }]] },
+    "Has Alerts?": { "main": [[{ "node": "Send to AEGIS", "type": "main", "index": 0 }], [{ "node": "No Action", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1", "saveManualExecutions": true },
+  "tags": [{ "name": "AEGIS" }, { "name": "multi-incident" }],
+  "active": true
+}

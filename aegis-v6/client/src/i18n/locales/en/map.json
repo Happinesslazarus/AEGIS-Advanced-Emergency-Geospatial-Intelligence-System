@@ -1,0 +1,43 @@
+{
+  "title": "Map",
+  "layers": {
+    "title": "Map Layers",
+    "base": "Base Map",
+    "flood": "Flood Layer",
+    "wildfire": "Wildfire Layer",
+    "heatwave": "Heatwave Layer",
+    "storm": "Storm Layer",
+    "infrastructure": "Infrastructure Layer",
+    "reports": "Citizen Reports",
+    "evacuation": "Evacuation Routes",
+    "shelters": "Shelters",
+    "sensors": "Sensors",
+    "satellite": "Satellite Imagery"
+  },
+  "controls": {
+    "zoomIn": "Zoom In",
+    "zoomOut": "Zoom Out",
+    "myLocation": "My Location",
+    "fullscreen": "Fullscreen",
+    "layerControl": "Layer Control",
+    "measure": "Measure Distance",
+    "draw": "Draw Area"
+  },
+  "legend": {
+    "title": "Legend",
+    "low": "Low Risk",
+    "medium": "Medium Risk",
+    "high": "High Risk",
+    "critical": "Critical Risk",
+    "activeIncident": "Active Incident",
+    "resolvedIncident": "Resolved"
+  },
+  "popup": {
+    "incidentType": "Incident Type",
+    "severity": "Severity",
+    "reportedAt": "Reported At",
+    "lastUpdate": "Last Update",
+    "viewDetails": "View Details",
+    "navigate": "Navigate Here"
+  }
+}
