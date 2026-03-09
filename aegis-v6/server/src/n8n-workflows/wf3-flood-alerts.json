@@ -1,0 +1,56 @@
+{
+  "name": "AEGIS WF3 — Flood Alert Monitoring",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "minutes", "minutesInterval": 15 }] } },
+      "name": "Schedule (15 min)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://environment.data.gov.uk/flood-monitoring/id/floods?_limit=50",
+        "options": { "timeout": 15000 },
+        "headerParametersJson": "{ \"User-Agent\": \"AEGIS-n8n/1.0\", \"Accept\": \"application/json\" }"
+      },
+      "name": "Fetch EA Floods",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [450, 200]
+    },
+    {
+      "parameters": {
+        "url": "https://floodline.sepa.org.uk/floodmap/rest/flood/warnings",
+        "options": { "timeout": 15000 },
+        "headerParametersJson": "{ \"User-Agent\": \"AEGIS-n8n/1.0\", \"Accept\": \"application/json\" }"
+      },
+      "name": "Fetch SEPA Warnings",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [450, 400]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.AEGIS_BACKEND_URL || 'http://localhost:3001'}}/api/internal/n8n-webhook/alerts",
+        "method": "POST",
+        "bodyParametersJson": "{ \"source\": \"n8n_wf3\", \"ea_data\": {{ JSON.stringify($node['Fetch EA Floods'].json) }}, \"sepa_data\": {{ JSON.stringify($node['Fetch SEPA Warnings'].json) }} }",
+        "options": { "timeout": 10000 }
+      },
+      "name": "Send to AEGIS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [700, 300]
+    }
+  ],
+  "connections": {
+    "Schedule (15 min)": { "main": [
+      [{ "node": "Fetch EA Floods", "type": "main", "index": 0 }, { "node": "Fetch SEPA Warnings", "type": "main", "index": 0 }]
+    ]},
+    "Fetch EA Floods": { "main": [[{ "node": "Send to AEGIS", "type": "main", "index": 0 }]] },
+    "Fetch SEPA Warnings": { "main": [[{ "node": "Send to AEGIS", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1", "saveManualExecutions": true },
+  "tags": [{ "name": "AEGIS" }],
+  "active": true
+}

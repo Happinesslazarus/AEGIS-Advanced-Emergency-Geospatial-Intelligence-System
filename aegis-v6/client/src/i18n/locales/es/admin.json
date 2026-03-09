@@ -1,0 +1,29 @@
+{
+  "reports": {
+    "filters": {
+      "severity": {
+        "all": "Todas las severidades",
+        "high": "Alta",
+        "medium": "Media",
+        "low": "Baja"
+      },
+      "status": {
+        "all": "Todos los estados",
+        "urgent": "Urgente",
+        "unverified": "Sin verificar",
+        "verified": "Verificado",
+        "flagged": "Marcado",
+        "resolved": "Resuelto"
+      }
+    },
+    "actions": {
+      "view": "Ver detalle del reporte",
+      "openMedia": "Abrir archivo",
+      "share": "Compartir reporte",
+      "print": "Imprimir reporte"
+    }
+  },
+  "analytics": {
+    "title": "Panel de analítica"
+  }
+}

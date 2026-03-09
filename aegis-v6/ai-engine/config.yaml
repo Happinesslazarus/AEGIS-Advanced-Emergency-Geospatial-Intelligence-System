@@ -1,0 +1,361 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+#  AEGIS AI ENGINE — Master Configuration
+#  Sovereign-grade multi-hazard environmental intelligence platform
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ────────────────────────────────────────────────────────────────────────────────
+# SYSTEM CONFIGURATION
+# ────────────────────────────────────────────────────────────────────────────────
+system:
+  name: "AEGIS AI Engine"
+  version: "1.0.0"
+  environment: "production"
+  deployment_region: "scotland"
+
+# ────────────────────────────────────────────────────────────────────────────────
+# UNIVERSAL FEATURE SCHEMA (REGION-AGNOSTIC)
+# ────────────────────────────────────────────────────────────────────────────────
+features:
+  static:
+    - latitude
+    - longitude
+    - elevation
+    - basin_slope
+    - catchment_area
+    - soil_type_encoded
+    - permeability_index
+    - drainage_density
+    - land_use_encoded
+    - impervious_surface_ratio
+    - vegetation_class_encoded
+
+  dynamic:
+    - rainfall_1h
+    - rainfall_6h
+    - rainfall_24h
+    - rainfall_7d
+    - rainfall_30d
+    - river_level
+    - river_discharge
+    - soil_moisture
+    - temperature
+    - evapotranspiration
+    - vegetation_index_ndvi
+    - wind_speed
+    - humidity
+
+  climate_macro:
+    - seasonal_anomaly
+    - climate_zone_encoding
+    - enso_index
+    - long_term_rainfall_anomaly
+
+# ────────────────────────────────────────────────────────────────────────────────
+# HAZARD MODULE CONFIGURATION
+# ────────────────────────────────────────────────────────────────────────────────
+hazards:
+  flood:
+    enabled: true
+    priority: 1
+    models:
+      - name: "lstm_timeseries"
+        type: "deep_learning"
+        architecture: "LSTM"
+        input_window: 168 # 7 days hourly
+        horizon: 48 # 48 hour forecast
+
+      - name: "xgboost_spatial"
+        type: "gradient_boosting"
+        architecture: "XGBoost"
+        max_depth: 7
+        n_estimators: 200
+
+      - name: "hydrological_sim"
+        type: "physics_based"
+        architecture: "Runoff_Routing"
+
+      - name: "ensemble_meta"
+        type: "meta_learner"
+        architecture: "Stacking"
+        base_models: ["lstm_timeseries", "xgboost_spatial", "hydrological_sim"]
+
+    thresholds:
+      low: 0.30
+      medium: 0.55
+      high: 0.75
+      critical: 0.90
+
+  drought:
+    enabled: true
+    priority: 2
+    models:
+      - name: "drought_lstm"
+        type: "deep_learning"
+        architecture: "LSTM"
+        input_window: 720 # 30 days
+        horizon: 2160 # 90 day forecast
+
+      - name: "spi_calculator"
+        type: "statistical"
+        architecture: "SPI"
+
+      - name: "lightgbm_classifier"
+        type: "gradient_boosting"
+        architecture: "LightGBM"
+
+    thresholds:
+      low: 0.25
+      medium: 0.50
+      high: 0.70
+      critical: 0.85
+
+  heatwave:
+    enabled: true
+    priority: 3
+    models:
+      - name: "temperature_transformer"
+        type: "deep_learning"
+        architecture: "Transformer"
+
+      - name: "duration_predictor"
+        type: "gradient_boosting"
+        architecture: "CatBoost"
+
+    thresholds:
+      low: 0.30
+      medium: 0.55
+      high: 0.75
+      critical: 0.90
+
+  wildfire:
+    enabled: false
+    priority: 4
+    models:
+      - name: "ignition_risk"
+        type: "ensemble"
+        architecture: "RandomForest+XGBoost"
+
+    thresholds:
+      low: 0.20
+      medium: 0.45
+      high: 0.70
+      critical: 0.85
+
+# ────────────────────────────────────────────────────────────────────────────────
+# MODEL REGISTRY STRUCTURE
+# ────────────────────────────────────────────────────────────────────────────────
+model_registry:
+  base_path: "./model_registry"
+  versioning_strategy: "semantic"
+  auto_load_latest: true
+  structure:
+    - region: "scotland"
+      hazards:
+        - flood
+        - drought
+        - heatwave
+    - region: "uk"
+      hazards:
+        - flood
+        - drought
+    - region: "global"
+      hazards:
+        - flood
+
+# ────────────────────────────────────────────────────────────────────────────────
+# TRAINING PIPELINE CONFIGURATION
+# ────────────────────────────────────────────────────────────────────────────────
+training:
+  reproducibility:
+    random_seed: 42
+    deterministic_mode: true
+
+  validation:
+    strategy: "time_series_split"
+    n_splits: 5
+    test_size: 0.2
+    gap: 24 # hours between train and test
+
+  hyperparameter_tuning:
+    enabled: true
+    method: "optuna"
+    n_trials: 100
+    timeout: 3600
+
+  calibration:
+    method: "isotonic"
+    alternatives: ["platt", "beta"]
+
+  data_validation:
+    enabled: true
+    checks:
+      - null_check
+      - range_check
+      - temporal_consistency
+      - spatial_consistency
+
+  imbalanced_handling:
+    method: "smote"
+    alternatives: ["adasyn", "class_weight"]
+
+  feature_engineering:
+    auto_generate: true
+    methods:
+      - rolling_statistics
+      - lag_features
+      - interaction_terms
+      - fourier_seasonal
+
+# ────────────────────────────────────────────────────────────────────────────────
+# EVALUATION METRICS
+# ────────────────────────────────────────────────────────────────────────────────
+evaluation:
+  metrics:
+    classification:
+      - accuracy
+      - precision
+      - recall
+      - f1_score
+      - roc_auc
+      - pr_auc
+      - brier_score
+      - log_loss
+      - false_alarm_rate
+      - miss_rate
+
+    regression:
+      - mae
+      - rmse
+      - mape
+      - r2_score
+
+    probabilistic:
+      - calibration_error
+      - sharpness
+      - reliability_diagram
+
+  explainability:
+    methods:
+      - shap_values
+      - lime
+      - partial_dependence
+      - feature_importance
+
+  reporting:
+    auto_generate: true
+    formats: ["json", "html", "pdf"]
+
+# ────────────────────────────────────────────────────────────────────────────────
+# DRIFT DETECTION
+# ────────────────────────────────────────────────────────────────────────────────
+drift_detection:
+  enabled: true
+  methods:
+    - kolmogorov_smirnov
+    - population_stability_index
+    - jensen_shannon_divergence
+
+  thresholds:
+    warning: 0.10
+    critical: 0.20
+
+  auto_retrain_trigger: true
+  notification_channels: ["email", "webhook"]
+
+# ────────────────────────────────────────────────────────────────────────────────
+# SPATIAL INTELLIGENCE
+# ────────────────────────────────────────────────────────────────────────────────
+spatial:
+  coordinate_system: "EPSG:4326"
+  dem_resolution: 30 # meters
+  buffer_radius: 5000 # meters
+  grid_size: 1000 # meters
+
+  data_sources:
+    dem:
+      source: "SRTM"
+      resolution: 30
+
+    satellite:
+      enabled: false
+      providers: ["sentinel-2", "landsat-8"]
+
+    radar:
+      enabled: false
+      source: "met_office"
+
+# ────────────────────────────────────────────────────────────────────────────────
+# SCALING & PERFORMANCE
+# ────────────────────────────────────────────────────────────────────────────────
+performance:
+  caching:
+    enabled: true
+    ttl: 3600
+    backend: "redis"
+
+  batch_processing:
+    enabled: true
+    batch_size: 100
+    max_workers: 4
+
+  gpu_acceleration:
+    enabled: false
+    device: "cuda:0"
+
+# ────────────────────────────────────────────────────────────────────────────────
+# API CONTRACT (STRICT SCHEMA)
+# ────────────────────────────────────────────────────────────────────────────────
+api_contract:
+  prediction_response:
+    required_fields:
+      - model_version
+      - hazard_type
+      - region_id
+      - probability
+      - risk_level
+      - confidence
+      - predicted_peak_time
+      - geo_polygon
+      - contributing_factors
+
+  risk_levels:
+    - Low
+    - Medium
+    - High
+    - Critical
+
+# ────────────────────────────────────────────────────────────────────────────────
+# EXPANSION ROADMAP
+# ────────────────────────────────────────────────────────────────────────────────
+expansion:
+  phase_1:
+    region: "scotland"
+    hazards: ["flood"]
+    status: "active"
+
+  phase_2:
+    region: "scotland"
+    hazards: ["flood", "drought"]
+    status: "planned"
+
+  phase_3:
+    region: "scotland"
+    hazards: ["flood", "drought", "heatwave"]
+    status: "planned"
+
+  phase_4:
+    region: "uk"
+    hazards: ["flood", "drought", "heatwave"]
+    status: "future"
+
+  phase_5:
+    integration: "satellite_data"
+    status: "future"
+
+  phase_6:
+    region: "global"
+    status: "future"
+
+  phase_7:
+    enhancement: "research_grade_ensemble"
+    status: "future"

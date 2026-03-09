@@ -1,0 +1,235 @@
+/**
+ * SOSButton.tsx — Personal Distress Beacon / Emergency SOS Button
+ *
+ * Floating red button with:
+ *   - 5-second hold countdown (prevent accidental activation)
+ *   - Pulsing animation when active
+ *   - Live GPS coordinates display
+ *   - Operator acknowledgement notification
+ *   - Cancel / resolve status
+ *   - Accessible with keyboard (Enter/Space to activate)
+ */
+
+import { useState, useCallback, useRef } from 'react'
+import { Radio, X, MapPin, Shield, Phone, Loader2, AlertTriangle } from 'lucide-react'
+import { useDistress } from '../../hooks/useDistress'
+
+// ─── Audio/haptic feedback helpers (#60) ──────────────────────────────────────
+function vibrate(pattern: number | number[]): void {
+  try { navigator.vibrate?.(pattern) } catch { /* not supported */ }
+}
+
+function playTone(freq: number, durationMs: number, type: OscillatorType = 'sine'): void {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.type = type
+    osc.frequency.value = freq
+    gain.gain.value = 0.3
+    osc.connect(gain).connect(ctx.destination)
+    osc.start()
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + durationMs / 1000)
+    osc.stop(ctx.currentTime + durationMs / 1000)
+  } catch { /* audio not available */ }
+}
+
+interface Props {
+  socket: any
+  citizenId: string
+  citizenName: string
+  className?: string
+}
+
+export default function SOSButton({ socket, citizenId, citizenName, className = '' }: Props): JSX.Element {
+  const [showPanel, setShowPanel] = useState(false)
+
+  const {
+    isActive,
+    status: rawStatus,
+    countdownSeconds,
+    latitude,
+    longitude,
+    accuracy,
+    acknowledgedBy,
+    triageLevel,
+    resolution,
+    error,
+    startCountdown,
+    cancelCountdown,
+    cancelSOS,
+  } = useDistress({
+    socket,
+    citizenId,
+    citizenName,
+    onActivated: () => {
+      setShowPanel(true)
+      // Strong haptic + alarm tone when SOS goes active
+      vibrate([300, 100, 300, 100, 500])
+      playTone(880, 500, 'square')
+    },
+    onAcknowledged: () => {
+      // Double pulse — help is on the way
+      vibrate([200, 100, 200])
+      playTone(660, 300)
+    },
+    onResolved: () => {
+      // Gentle confirmation
+      vibrate(100)
+      playTone(523, 200)
+      setTimeout(() => playTone(659, 200), 250)
+      setTimeout(() => setShowPanel(false), 5000)
+    },
+  })
+
+  // Widen status type to prevent TS narrowing issues in template comparisons
+  const status: string = rawStatus
+
+  const handleSOSPress = () => {
+    if (status === 'idle' || status === 'cancelled' || status === 'resolved') {
+      startCountdown()
+      setShowPanel(true)
+      vibrate(50) // Haptic tick on countdown start
+      playTone(440, 150) // Short beep
+    } else if (status === 'countdown') {
+      cancelCountdown()
+      setShowPanel(false)
+    } else if (isEmergencyActive) {
+      // Toggle panel visibility instead of disabling the button
+      setShowPanel(!showPanel)
+    }
+  }
+
+  const handleCancel = () => {
+    if (status === 'countdown') {
+      cancelCountdown()
+      setShowPanel(false)
+    } else if (status === 'active' || status === 'acknowledged') {
+      cancelSOS()
+    }
+  }
+
+  const isEmergencyActive = status === 'active' || status === 'acknowledged'
+
+  return (
+    <>
+      {/* Floating SOS button */}
+      <button
+        onClick={handleSOSPress}
+        className={`
+          fixed bottom-6 right-6 z-[9999]
+          w-16 h-16 rounded-full
+          flex items-center justify-center
+          shadow-2xl transition-all duration-300
+          ${isEmergencyActive
+            ? 'bg-red-600 shadow-red-600/50 animate-pulse cursor-pointer'
+            : status === 'countdown'
+              ? 'bg-orange-500 shadow-orange-500/50 scale-110'
+              : 'bg-red-600 hover:bg-red-500 hover:scale-110 shadow-red-600/30 active:scale-95'}
+          ${className}
+        `}
+        title="Emergency SOS"
+        aria-label="Emergency SOS Button"
+      >
+        {status === 'countdown' ? (
+          <span className="text-2xl font-black text-white">{countdownSeconds}</span>
+        ) : (
+          <Radio className="w-7 h-7 text-white" />
+        )}
+      </button>
+
+      {/* Outer pulse rings when active */}
+      {isEmergencyActive && (
+        <>
+          <div className="fixed bottom-6 right-6 z-[9998] w-16 h-16 rounded-full bg-red-600/30 animate-ping pointer-events-none" />
+          <div className="fixed bottom-4 right-4 z-[9997] w-20 h-20 rounded-full border-2 border-red-500/20 animate-pulse pointer-events-none" />
+        </>
+      )}
+
+      {/* SOS Panel */}
+      {showPanel && (
+        <div className="fixed bottom-24 right-4 z-[9999] w-72 bg-gray-900/95 backdrop-blur-lg border border-gray-700/60 rounded-2xl shadow-2xl overflow-hidden">
+          {/* Header */}
+          <div className={`px-4 py-3 flex items-center gap-2 ${isEmergencyActive ? 'bg-red-900/50' : status === 'countdown' ? 'bg-orange-900/50' : status === 'resolved' ? 'bg-green-900/30' : 'bg-gray-800/50'}`}>
+            <div className={`p-1.5 rounded-lg ${isEmergencyActive ? 'bg-red-600 animate-pulse' : status === 'resolved' ? 'bg-green-700' : 'bg-orange-600'}`}>
+              {isEmergencyActive ? <Radio className="w-4 h-4 text-white" /> : status === 'resolved' ? <Shield className="w-4 h-4 text-white" /> : <AlertTriangle className="w-4 h-4 text-white" />}
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-bold text-white">
+                {status === 'countdown' ? 'Activating SOS...' : status === 'active' ? 'SOS ACTIVE' : status === 'acknowledged' ? 'HELP COMING' : status === 'resolved' ? 'RESOLVED' : status === 'cancelled' ? 'Cancelled' : 'Emergency SOS'}
+              </h3>
+              <p className="text-[10px] text-gray-400">
+                {status === 'countdown' ? `Sending distress in ${countdownSeconds}s...` : status === 'active' ? 'Broadcasting location to emergency operators' : status === 'acknowledged' ? `${acknowledgedBy} is responding` : status === 'resolved' ? resolution || 'Situation resolved' : 'Press SOS to activate'}
+              </p>
+            </div>
+            <button
+              onClick={() => setShowPanel(false)}
+              className="p-1 text-gray-400 hover:text-white transition"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Body */}
+          <div className="p-4 space-y-3">
+            {/* GPS coordinates */}
+            {(latitude != null && longitude != null) && (
+              <div className="flex items-center gap-2 bg-gray-800/40 rounded-lg px-3 py-2">
+                <MapPin className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                <div>
+                  <p className="text-xs font-mono text-white">{latitude.toFixed(6)}, {longitude.toFixed(6)}</p>
+                  {accuracy != null && (
+                    <p className="text-[9px] text-gray-400">±{Math.round(accuracy)}m accuracy</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Triage level */}
+            {triageLevel && (
+              <div className="flex items-center gap-2 bg-gray-800/40 rounded-lg px-3 py-2">
+                <Shield className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                <p className="text-xs text-white">Triage: <span className="font-bold capitalize">{triageLevel}</span></p>
+              </div>
+            )}
+
+            {/* Status indicators */}
+            <div className="space-y-1.5">
+              <StatusDot active label="GPS signal acquired" done={latitude != null} />
+              <StatusDot active={isEmergencyActive || status === 'resolved'} label="Beacon transmitted" done={isEmergencyActive || status === 'resolved' || status === 'acknowledged'} />
+              <StatusDot active={status === 'acknowledged' || status === 'resolved'} label="Operator acknowledged" done={status === 'acknowledged' || status === 'resolved'} />
+              <StatusDot active={status === 'resolved'} label="Situation resolved" done={status === 'resolved'} />
+            </div>
+
+            {/* Error */}
+            {error && (
+              <div className="bg-red-900/30 border border-red-700/40 rounded-lg px-3 py-2 text-xs text-red-300">
+                {error}
+              </div>
+            )}
+
+            {/* Actions */}
+            {(status === 'countdown' || isEmergencyActive) && (
+              <button
+                onClick={handleCancel}
+                className="w-full py-2.5 bg-gray-800 border border-gray-600 rounded-xl text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white transition flex items-center justify-center gap-2"
+              >
+                <X className="w-4 h-4" />
+                {status === 'countdown' ? 'Cancel' : 'Cancel SOS'}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
+function StatusDot({ active, label, done }: { active: boolean; label: string; done: boolean }) {
+  return (
+    <div className="flex items-center gap-2">
+      <div className={`w-2 h-2 rounded-full flex-shrink-0 transition-all ${done ? 'bg-green-400' : active ? 'bg-yellow-400 animate-pulse' : 'bg-gray-600'}`} />
+      <span className={`text-[11px] ${done ? 'text-green-300' : active ? 'text-white' : 'text-gray-500'}`}>{label}</span>
+    </div>
+  )
+}

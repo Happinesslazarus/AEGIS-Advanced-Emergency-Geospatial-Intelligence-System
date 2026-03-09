@@ -1,0 +1,42 @@
+{
+  "name": "AEGIS WF2 — Weather Forecast Ingestion",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "minutes", "minutesInterval": 30 }] } },
+      "name": "Schedule (30 min)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.open-meteo.com/v1/forecast?latitude=55.86&longitude=-4.25&hourly=temperature_2m,precipitation,weather_code,wind_speed_10m&forecast_days=3&timezone=Europe/London",
+        "options": { "timeout": 15000 },
+        "headerParametersJson": "{ \"User-Agent\": \"AEGIS-n8n/1.0\" }"
+      },
+      "name": "Fetch Open-Meteo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.AEGIS_BACKEND_URL || 'http://localhost:3001'}}/api/internal/n8n-webhook/weather",
+        "method": "POST",
+        "bodyParametersJson": "{{ JSON.stringify($json) }}",
+        "options": { "timeout": 10000 }
+      },
+      "name": "Send to AEGIS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [650, 300]
+    }
+  ],
+  "connections": {
+    "Schedule (30 min)": { "main": [[{ "node": "Fetch Open-Meteo", "type": "main", "index": 0 }]] },
+    "Fetch Open-Meteo": { "main": [[{ "node": "Send to AEGIS", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1", "saveManualExecutions": true },
+  "tags": [{ "name": "AEGIS" }],
+  "active": true
+}

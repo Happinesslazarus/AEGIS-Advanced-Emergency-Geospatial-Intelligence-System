@@ -1,0 +1,38 @@
+{
+  "reports": {
+    "filters": {
+      "severity": {
+        "all": "All Severity",
+        "high": "High",
+        "medium": "Medium",
+        "low": "Low"
+      },
+      "status": {
+        "all": "All Status",
+        "urgent": "Urgent",
+        "unverified": "Unverified",
+        "verified": "Verified",
+        "flagged": "Flagged",
+        "resolved": "Resolved"
+      },
+      "type": {
+        "all": "All Types",
+        "natural_disaster": "Natural Disaster",
+        "infrastructure": "Infrastructure Accident",
+        "public_safety": "Public Safety",
+        "community_safety": "Community Safety",
+        "environmental": "Environmental Hazard",
+        "medical": "Medical Emergency"
+      }
+    },
+    "actions": {
+      "view": "View report detail",
+      "openMedia": "Open media",
+      "share": "Share report",
+      "print": "Print report"
+    }
+  },
+  "analytics": {
+    "title": "Analytics Dashboard"
+  }
+}

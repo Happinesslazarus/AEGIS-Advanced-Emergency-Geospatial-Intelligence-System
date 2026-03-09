@@ -1,0 +1,15 @@
+{
+  "tabs": {
+    "overview": "Overview",
+    "livemap": "Live Map",
+    "reports": "Reports",
+    "messages": "Messages",
+    "community": "Community",
+    "prepare": "Preparedness",
+    "news": "News",
+    "safety": "Safety",
+    "profile": "Profile",
+    "security": "Security",
+    "settings": "Settings"
+  }
+}

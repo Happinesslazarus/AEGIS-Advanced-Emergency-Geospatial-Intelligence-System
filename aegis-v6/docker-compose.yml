@@ -1,0 +1,99 @@
+# AEGIS v6.9 — Full Stack Docker Compose
+#
+# Services:
+#   db      — PostgreSQL 16 with PostGIS + pgvector
+#   server  — Express API on port 3001
+#   client  — Nginx serving Vite build on port 80
+#   ai      — Python AI engine on port 8000 (optional)
+#
+# Usage:
+#   docker compose up -d
+#   docker compose exec db psql -U postgres -d aegis -f /docker-entrypoint-initdb.d/schema.sql
+
+version: "3.9"
+
+services:
+  # ── Database ──────────────────────────────────────────────
+  db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-aegis_secure_2026}
+      POSTGRES_DB: aegis
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./server/sql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./server/sql/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
+      - ./server/sql/migration_citizen_system.sql:/docker-entrypoint-initdb.d/03-citizen.sql
+      - ./server/sql/migration_production_upgrade.sql:/docker-entrypoint-initdb.d/04-production.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d aegis"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ── Backend API ───────────────────────────────────────────
+  server:
+    build: ./server
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgresql://postgres:${DB_PASSWORD:-aegis_secure_2026}@db:5432/aegis
+      JWT_SECRET: ${JWT_SECRET:-aegis-jwt-secret-change-in-production}
+      AEGIS_REGION: ${AEGIS_REGION:-scotland}
+      # AI API keys — set in .env
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      HF_API_KEY: ${HF_API_KEY:-}
+      OPENWEATHER_API_KEY: ${OPENWEATHER_API_KEY:-}
+      # Notification keys
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      TWILIO_SID: ${TWILIO_SID:-}
+      TWILIO_AUTH: ${TWILIO_AUTH:-}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+    volumes:
+      - uploads:/app/uploads
+
+  # ── Frontend ──────────────────────────────────────────────
+  client:
+    build:
+      context: ./client
+      args:
+        VITE_API_URL: ""
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - server
+
+  # ── AI Engine (optional) ──────────────────────────────────
+  ai:
+    build: ./ai-engine
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:${DB_PASSWORD:-aegis_secure_2026}@db:5432/aegis
+    profiles:
+      - ai
+
+volumes:
+  pgdata:
+  uploads:

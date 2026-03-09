@@ -1,0 +1,40 @@
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# Node
+node_modules/
+.npm/
+.pnpm-store/
+dist/
+build/
+coverage/
+
+# Logs / runtime
+*.log
+logs/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Data / artifacts
+uploads/
+feature_store/
+model_registry/
+
+# Jupyter
+.ipynb_checkpoints/

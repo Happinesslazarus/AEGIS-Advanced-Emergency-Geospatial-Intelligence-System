@@ -1,0 +1,42 @@
+{
+  "name": "AEGIS WF1 — SEPA Gauge Polling",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "minutes", "minutesInterval": 5 }] } },
+      "name": "Schedule (5 min)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://timeseries.sepa.org.uk/KiWIS/KiWIS?service=kisters&type=queryServices&datasource=0&request=getTimeseriesValues&ts_id=all&format=json&period=PT1H",
+        "options": { "timeout": 15000 },
+        "headerParametersJson": "{ \"User-Agent\": \"AEGIS-n8n/1.0\" }"
+      },
+      "name": "Fetch SEPA Gauges",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.AEGIS_BACKEND_URL || 'http://localhost:3001'}}/api/internal/ws-broadcast",
+        "method": "POST",
+        "bodyParametersJson": "{ \"event\": \"gauge:update\", \"payload\": {{ JSON.stringify($json) }} }",
+        "options": { "timeout": 10000 }
+      },
+      "name": "Broadcast to AEGIS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [650, 300]
+    }
+  ],
+  "connections": {
+    "Schedule (5 min)": { "main": [[{ "node": "Fetch SEPA Gauges", "type": "main", "index": 0 }]] },
+    "Fetch SEPA Gauges": { "main": [[{ "node": "Broadcast to AEGIS", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1", "saveManualExecutions": true },
+  "tags": [{ "name": "AEGIS" }],
+  "active": true
+}

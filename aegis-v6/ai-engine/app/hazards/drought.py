@@ -1,0 +1,219 @@
+"""
+═══════════════════════════════════════════════════════════════════════════════
+ AEGIS AI ENGINE — Drought Prediction Module
+═══════════════════════════════════════════════════════════════════════════════
+"""
+
+from typing import Dict, List, Optional, Any, Tuple
+import numpy as np
+from datetime import datetime, timedelta
+from loguru import logger
+
+from app.schemas.predictions import *
+from app.core.model_registry import ModelRegistry
+from app.core.feature_store import FeatureStore
+
+
+class DroughtPredictor:
+    """
+    Drought prediction module focusing on:
+    - Rainfall deficit analysis
+    - Soil moisture trends
+    - Vegetation health (NDVI)
+    - Temperature persistence
+    
+    Long-horizon probabilistic severity classification.
+    """
+    
+    def __init__(self, model_registry: ModelRegistry, feature_store: FeatureStore):
+        self.model_registry = model_registry
+        self.feature_store = feature_store
+        self.hazard_type = HazardType.DROUGHT
+        logger.info("Drought prediction module initialized")
+    
+    async def predict(self, request: PredictionRequest) -> PredictionResponse:
+        """Generate drought prediction."""
+        
+        logger.info(f"Drought prediction request: ({request.latitude}, {request.longitude})")
+        start_time = datetime.utcnow()
+        
+        # Extract features
+        features = await self.feature_store.get_all_features(
+            request.latitude, request.longitude, request.region_id
+        )
+        
+        # Get model or use stub; fall back to uk-default if no regional model
+        model_metadata = await self.model_registry.get_metadata(
+            self.hazard_type.value, request.region_id, request.model_version
+        )
+        if not model_metadata and request.region_id != 'uk-default':
+            model_metadata = await self.model_registry.get_metadata(
+                self.hazard_type.value, 'uk-default', request.model_version
+            )
+
+        if model_metadata:
+            model = await self.model_registry.get_model(
+                self.hazard_type.value, model_metadata.region_id, model_metadata.version
+            )
+            if model:
+                probability, confidence = await self._predict_with_model(model, features, model_metadata)
+            else:
+                probability, confidence = self._stub_prediction(features)
+        else:
+            probability, confidence = self._stub_prediction(features)
+        
+        risk_level = self._classify_risk(probability)
+        predicted_peak_time = self._estimate_onset_time(probability, features)
+        geo_polygon = self._generate_affected_polygon(request.latitude, request.longitude, probability)
+        contributing_factors = self._identify_contributing_factors(features, probability)
+        
+        execution_time = (datetime.utcnow() - start_time).total_seconds() * 1000
+        version = model_metadata.version if model_metadata else "stub-v1.0.0"
+        
+        self.model_registry.record_prediction(
+            self.hazard_type.value, request.region_id, execution_time, version
+        )
+        
+        logger.success(f"Drought prediction: prob={probability:.2f}, risk={risk_level.value}")
+        
+        return PredictionResponse(
+            model_version=version,
+            hazard_type=self.hazard_type,
+            region_id=request.region_id,
+            probability=probability,
+            risk_level=risk_level,
+            confidence=confidence,
+            predicted_peak_time=predicted_peak_time.isoformat() if predicted_peak_time else None,
+            geo_polygon=geo_polygon,
+            contributing_factors=contributing_factors if request.include_contributing_factors else [],
+            generated_at=datetime.utcnow(),
+            expires_at=datetime.utcnow() + timedelta(days=7),
+            data_sources=["rainfall_records", "soil_moisture", "ndvi_satellite", "temperature"],
+            warnings=[]
+        )
+    
+    async def _predict_with_model(self, model: Any, features: Dict[str, float], metadata: Any) -> Tuple[float, float]:
+        """Use trained model."""
+        try:
+            feature_vector = np.array([features.get(f, 0.0) for f in metadata.feature_names]).reshape(1, -1)
+            if hasattr(model, 'predict_proba'):
+                probability = model.predict_proba(feature_vector)[0, 1]
+            else:
+                probability = float(model.predict(feature_vector)[0])
+            probability = np.clip(probability, 0.0, 1.0)
+            confidence = metadata.performance_metrics.get('roc_auc', 0.80)
+            return probability, confidence
+        except Exception as e:
+            logger.error(f"Model error: {e}")
+            return self._stub_prediction(features)
+    
+    def _stub_prediction(self, features: Dict[str, float]) -> Tuple[float, float]:
+        """Physics-based drought estimation."""
+        
+        # Key drought indicators
+        rainfall_30d = features.get('rainfall_30d', 80)
+        soil_moisture = features.get('soil_moisture', 0.5)
+        ndvi = features.get('vegetation_index_ndvi', 0.4)
+        temperature = features.get('temperature', 10)
+        evapotranspiration = features.get('evapotranspiration', 1.5)
+        long_term_anomaly = features.get('long_term_rainfall_anomaly', 0.0)
+        
+        # Rainfall deficit factor
+        normal_rainfall_30d = 100.0  # mm (climate-dependent)
+        deficit_factor = max(0.0, 1.0 - (rainfall_30d / normal_rainfall_30d))
+        
+        # Soil dryness factor
+        dryness_factor = 1.0 - soil_moisture
+        
+        # Vegetation stress factor
+        ndvi_stress = max(0.0, 1.0 - (ndvi / 0.6))
+        
+        # Temperature persistence (higher = worse)
+        temp_factor = min(1.0, max(0.0, (temperature - 15.0) / 10.0))
+        
+        # Evaporative demand
+        et_factor = min(1.0, evapotranspiration / 3.0)
+        
+        # Long-term anomaly contribution
+        anomaly_factor = max(0.0, -long_term_anomaly)  # Negative anomaly = deficit
+        
+        # Weighted combination
+        probability = (
+            deficit_factor * 0.30 +
+            dryness_factor * 0.25 +
+            ndvi_stress * 0.20 +
+            temp_factor * 0.10 +
+            et_factor * 0.05 +
+            anomaly_factor * 0.10
+        )
+        
+        probability = np.clip(probability, 0.0, 1.0)
+        confidence = 0.70
+        
+        return float(probability), float(confidence)
+    
+    def _classify_risk(self, probability: float) -> RiskLevel:
+        """Classify drought severity."""
+        if probability >= 0.70:
+            return RiskLevel.CRITICAL
+        elif probability >= 0.50:
+            return RiskLevel.HIGH
+        elif probability >= 0.25:
+            return RiskLevel.MEDIUM
+        else:
+            return RiskLevel.LOW
+    
+    def _estimate_onset_time(self, probability: float, features: Dict[str, float]) -> Optional[datetime]:
+        """Estimate drought onset/peak."""
+        if probability < 0.25:
+            return None
+        # Droughts develop slowly - estimate weeks to months
+        weeks_to_peak = 4 + (1.0 - probability) * 8
+        return datetime.utcnow() + timedelta(weeks=weeks_to_peak)
+    
+    def _generate_affected_polygon(self, lat: float, lng: float, prob: float) -> Optional[GeoPolygon]:
+        """Generate affected area polygon."""
+        radius_km = 10.0 * (0.5 + prob)  # Droughts affect large areas
+        lat_delta = radius_km / 111.0
+        lng_delta = radius_km / (111.0 * np.cos(np.radians(lat)))
+        
+        return GeoPolygon(
+            type="Polygon",
+            coordinates=[[
+                [lng - lng_delta, lat + lat_delta],
+                [lng + lng_delta, lat + lat_delta],
+                [lng + lng_delta, lat - lat_delta],
+                [lng - lng_delta, lat - lat_delta],
+                [lng - lng_delta, lat + lat_delta],
+            ]]
+        )
+    
+    def _identify_contributing_factors(self, features: Dict[str, float], prob: float) -> List[ContributingFactor]:
+        """Identify key drought drivers."""
+        candidates = [
+            ("rainfall_30d", features.get('rainfall_30d', 0), "mm"),
+            ("soil_moisture", features.get('soil_moisture', 0), "fraction"),
+            ("vegetation_index_ndvi", features.get('vegetation_index_ndvi', 0), "index"),
+            ("temperature", features.get('temperature', 0), "°C"),
+            ("evapotranspiration", features.get('evapotranspiration', 0), "mm/day"),
+            ("long_term_rainfall_anomaly", features.get('long_term_rainfall_anomaly', 0), "fraction"),
+        ]
+        
+        factors = []
+        for name, value, unit in candidates:
+            if "rainfall" in name or "soil_moisture" in name:
+                importance = 1.0 - min(1.0, value / 100.0) if "rainfall" in name else 1.0 - value
+            elif "ndvi" in name:
+                importance = 1.0 - min(1.0, value / 0.6)
+            else:
+                importance = 0.4
+            
+            importance *= (0.5 + 0.5 * prob)
+            
+            if importance > 0.1:
+                factors.append(ContributingFactor(
+                    factor=name, value=round(value, 2), importance=round(importance, 3), unit=unit
+                ))
+        
+        factors.sort(key=lambda f: f.importance, reverse=True)
+        return factors[:6]
