@@ -1,5 +1,5 @@
 /**
- * incidents/severe_storm/service.ts — Severe Storm incident business logic
+ * incidents/severe_storm/service.ts â€” Severe Storm incident business logic
  */
 
 import pool from '../../models/db.js'
@@ -73,12 +73,25 @@ export class SevereStormService {
   /**
    * Analyze wind speed data
    */
-  static async analyzeWindPatterns(region: string): Promise<Record<string, unknown>> {
-    // Placeholder for wind pattern analysis
-    return {
-      maxWindSpeed: 0,
-      avgWindSpeed: 0,
-      gustDetected: false
+  static async analyzeWindPatterns(region: string): Promise<{ currentWindSpeed: number; maxGust: number; gustLevel: string; direction: number }> {
+    try {
+      const { SevereStormDataIngestion } = await import('./dataIngestion.js')
+      const weather = await SevereStormDataIngestion.fetchCurrentWeather(57.15, -2.11)
+      const currentWindSpeed = parseFloat(String(weather.windspeed_10m || 0))
+      const maxGust = parseFloat(String(weather.windgusts_10m || 0))
+      const direction = parseFloat(String(weather.winddirection_10m || 0))
+      let gustLevel = 'Low'
+      if (maxGust >= 100) {
+        gustLevel = 'Critical'
+      } else if (maxGust >= 75) {
+        gustLevel = 'High'
+      } else if (maxGust >= 50) {
+        gustLevel = 'Medium'
+      }
+      return { currentWindSpeed: Math.round(currentWindSpeed * 10) / 10, maxGust: Math.round(maxGust * 10) / 10, gustLevel, direction: Math.round(direction) }
+    } catch (error) {
+      console.error('Wind pattern analysis error:', error)
+      return { currentWindSpeed: 0, maxGust: 0, gustLevel: 'Unknown', direction: 0 }
     }
   }
 }

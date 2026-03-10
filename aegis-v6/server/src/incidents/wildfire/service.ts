@@ -1,5 +1,5 @@
 /**
- * incidents/wildfire/service.ts — Wildfire incident business logic
+ * incidents/wildfire/service.ts â€” Wildfire incident business logic
  */
 
 import pool from '../../models/db.js'
@@ -74,8 +74,42 @@ export class WildfireService {
   /**
    * Analyze fire hotspots
    */
-  static async analyzeFireHotspots(region: string): Promise<Record<string, unknown>[]> {
-    // Placeholder for NASA FIRMS hotspot analysis
-    return []
+  static async analyzeFireHotspots(region: string, lat = 57.15, lon = -2.11): Promise<{ hotspotCount: number; totalFRP: number; nearUrban: number }> {
+    try {
+      const { WildfireDataIngestion } = await import('./dataIngestion.js')
+      const result = await WildfireDataIngestion.ingestFireData(region, lat, lon, 100)
+      if (result.recordsIngested === 0) {
+        return { hotspotCount: 0, totalFRP: 0, nearUrban: 0 }
+      }
+      const apiKey = process.env.NASA_FIRMS_API_KEY
+      if (!apiKey) {
+        console.warn('NASA FIRMS API key not configured — cannot analyze hotspots')
+        return { hotspotCount: 0, totalFRP: 0, nearUrban: 0 }
+      }
+      const source = 'VIIRS_NOAA20_NRT'
+      const area = `${lat},${lon},100km`
+      const url = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${apiKey}/${source}/${area}/1`
+      const response = await fetch(url)
+      if (!response.ok) {
+        return { hotspotCount: 0, totalFRP: 0, nearUrban: 0 }
+      }
+      const csvData = await response.text()
+      const hotspots = WildfireDataIngestion.parseFireHotspots(csvData)
+      let totalFRP = 0
+      let nearUrban = 0
+      const urbanRadius = 50
+      for (const hotspot of hotspots) {
+        const frp = parseFloat(String(hotspot.frp || 0))
+        totalFRP += frp
+        const hotspotLat = parseFloat(String(hotspot.latitude || lat))
+        const hotspotLon = parseFloat(String(hotspot.longitude || lon))
+        const distance = Math.sqrt(Math.pow((hotspotLat - lat) * 111, 2) + Math.pow((hotspotLon - lon) * 111 * Math.cos(lat * Math.PI / 180), 2))
+        if (distance <= urbanRadius) nearUrban++
+      }
+      return { hotspotCount: hotspots.length, totalFRP: Math.round(totalFRP * 100) / 100, nearUrban }
+    } catch (error) {
+      console.error('Fire hotspot analysis error:', error)
+      return { hotspotCount: 0, totalFRP: 0, nearUrban: 0 }
+    }
   }
 }

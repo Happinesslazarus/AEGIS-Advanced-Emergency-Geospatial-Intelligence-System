@@ -13,7 +13,8 @@ export class WildfireDataIngestion {
     try {
       const apiKey = process.env.NASA_FIRMS_API_KEY
       if (!apiKey) {
-        console.warn('NASA FIRMS API key not configured')
+        console.warn('??  NASA FIRMS API key not configured — wildfire satellite data disabled. Set NASA_FIRMS_API_KEY in .env')
+        console.warn('   Get a free API key from: https://firms.modaps.eosdis.nasa.gov/api/area/')
         return { recordsIngested: 0, source: 'NASA FIRMS (no API key)' }
       }
 

@@ -1,5 +1,5 @@
 /**
- * incidents/flood/service.ts â€” Flood incident business logic
+ * incidents/flood/service.ts Ã¢â‚¬â€ Flood incident business logic
  */
 
 import pool from '../../models/db.js'
@@ -80,9 +80,41 @@ export class FloodService {
   /**
    * Analyze river gauge trends
    */
-  static async analyzeRiverGauges(region: string): Promise<Record<string, unknown>[]> {
-    // Placeholder for river gauge analysis
-    return []
+  static async analyzeRiverGauges(region: string): Promise<{ gaugeCount: number; aboveWarning: number; maxLevel: number; averageLevel: number }> {
+    try {
+      const { FloodDataIngestion } = await import('./dataIngestion.js')
+      const gauges = await FloodDataIngestion.fetchRiverGauges(region)
+      
+      if (gauges.length === 0) {
+        return { gaugeCount: 0, aboveWarning: 0, maxLevel: 0, averageLevel: 0 }
+      }
+
+      const { floodConfig } = await import('./config.js')
+      const warningThreshold = floodConfig.alertThresholds.warning || 2.0
+      
+      let aboveWarning = 0
+      let maxLevel = 0
+      let totalLevel = 0
+      
+      for (const gauge of gauges) {
+        const level = parseFloat(String((gauge.latestReading as any)?.value || 0))
+        totalLevel += level
+        if (level > maxLevel) maxLevel = level
+        if (level > warningThreshold) aboveWarning++
+      }
+      
+      const averageLevel = gauges.length > 0 ? totalLevel / gauges.length : 0
+      
+      return {
+        gaugeCount: gauges.length,
+        aboveWarning,
+        maxLevel: Math.round(maxLevel * 100) / 100,
+        averageLevel: Math.round(averageLevel * 100) / 100
+      }
+    } catch (error) {
+      console.error('River gauge analysis error:', error)
+      return { gaugeCount: 0, aboveWarning: 0, maxLevel: 0, averageLevel: 0 }
+    }
   }
 
   /**
