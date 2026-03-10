@@ -104,7 +104,7 @@ function computeRiskScore(
   let weatherScore = 0
   if (weather) {
     const rainFactor = Math.min(50, (weather.rain_1h || 0) * 10)
-    const windFactor = Math.min(25, weather.wind_speed * 2.5)
+    const windFactor = Math.min(25, (weather.wind_speed ?? 0) * 2.5)
     const humidityFactor = weather.humidity > 80 ? 25 : weather.humidity > 60 ? 15 : 0
     weatherScore = rainFactor + windFactor + humidityFactor
   }

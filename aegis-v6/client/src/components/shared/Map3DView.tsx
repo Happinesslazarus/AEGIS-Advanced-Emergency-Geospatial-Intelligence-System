@@ -254,7 +254,10 @@ export default function Map3DView({
 
   const fetchDistress = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/api/distress/active`)
+      const token = localStorage.getItem('aegis-token')
+      const res = await fetch(`${API}/api/distress/active`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
       if (!res.ok) return
       const data = await res.json()
       setDistressData(data.beacons || data.active || [])

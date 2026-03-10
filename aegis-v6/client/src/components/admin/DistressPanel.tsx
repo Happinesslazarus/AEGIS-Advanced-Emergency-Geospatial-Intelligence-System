@@ -70,7 +70,10 @@ export default function DistressPanel({ socket, operatorId, operatorName, classN
   const fetchActive = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch(`${API}/api/distress/active`)
+      const token = localStorage.getItem('aegis-token')
+      const res = await fetch(`${API}/api/distress/active`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
       if (res.ok) {
         const data = await res.json()
         setDistressCalls(data.distressCalls || [])

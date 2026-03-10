@@ -369,10 +369,15 @@ export default function DisasterMap({
   // Fetch distress beacons (real-time SOS signals)
   useEffect(() => {
     if (!showDistress) return
-    const load = () => fetch('/api/distress/active')
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data) setDistressBeacons(data.beacons || data.distressCalls || data.active || []) })
-      .catch(() => {})
+    const load = () => {
+      const token = localStorage.getItem('aegis-token')
+      return fetch('/api/distress/active', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => { if (data) setDistressBeacons(data.beacons || data.distressCalls || data.active || []) })
+        .catch(() => {})
+    }
     load()
     const interval = setInterval(load, 30000)
     return () => clearInterval(interval)

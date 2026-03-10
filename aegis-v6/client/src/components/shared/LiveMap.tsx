@@ -194,6 +194,9 @@ export default function LiveMap({
   const stationLayerRef = useRef<L.LayerGroup>(L.layerGroup())
   const riskLayerRef = useRef<L.LayerGroup>(L.layerGroup())
   const heatmapLayerRef = useRef<L.Layer | null>(null)
+  // Stable ref for onReportClick — avoids infinite loop when parent doesn't memoize the callback
+  const onReportClickRef = useRef(onReportClick)
+  useEffect(() => { onReportClickRef.current = onReportClick })
 
   const [basemap, setBasemap] = useState<'dark' | 'satellite' | 'terrain'>('dark')
   const [evacuationData, setEvacuationData] = useState<any[]>([])
@@ -323,14 +326,14 @@ export default function LiveMap({
       `
       marker.bindPopup(popupContent, { maxWidth: 280, closeButton: true })
 
-      if (onReportClick) {
-        marker.on('click', () => onReportClick(r))
+      if (onReportClickRef.current) {
+        marker.on('click', () => onReportClickRef.current!(r))
       }
       marker.addTo(layer)
       count++
     }
     setMarkerCount(prev => ({ ...prev, reports: count }))
-  }, [reports, onReportClick])
+  }, [reports])
 
   // ── Fetch & render river gauge stations ──
   const fetchRivers = useCallback(async () => {
@@ -398,7 +401,10 @@ export default function LiveMap({
   // ── Fetch & render distress beacons ──
   const fetchDistress = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/api/distress/active`)
+      const token = localStorage.getItem('aegis-token')
+      const res = await fetch(`${API}/api/distress/active`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
       if (!res.ok) return
       const data = await res.json()
       const beacons = data.beacons || data.distressCalls || data.active || []
