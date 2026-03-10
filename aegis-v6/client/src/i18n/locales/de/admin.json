@@ -2,10 +2,10 @@
   "reports": {
     "filters": {
       "severity": { "all": "Alle Schweregrade", "high": "Hoch", "medium": "Mittel", "low": "Niedrig" },
-      "status": { "all": "Alle Status", "urgent": "Dringend", "unverified": "Unbestätigt", "verified": "Bestätigt", "flagged": "Gemeldet", "resolved": "Gelöst" },
+      "status": { "all": "Alle Status", "urgent": "Dringend", "unverified": "Ungeprüft", "verified": "Geprüft", "flagged": "Markiert", "resolved": "Gelöst" },
       "type": { "all": "Alle Typen", "natural_disaster": "Naturkatastrophe", "infrastructure": "Infrastrukturunfall", "public_safety": "Öffentliche Sicherheit", "community_safety": "Gemeinschaftssicherheit", "environmental": "Umweltgefahr", "medical": "Medizinischer Notfall" }
     },
-    "actions": { "view": "Berichtsdetails anzeigen", "openMedia": "Medien öffnen", "share": "Bericht teilen", "print": "Bericht drucken" }
+    "actions": { "view": "Bericht ansehen", "openMedia": "Medien öffnen", "share": "Bericht teilen", "print": "Bericht drucken" }
   },
   "analytics": { "title": "Analyse-Dashboard" }
 }

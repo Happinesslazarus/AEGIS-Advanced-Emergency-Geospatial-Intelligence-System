@@ -1,3 +1,7 @@
 {
-  "tabs": { "overview": "نظرة عامة", "livemap": "خريطة مباشرة", "reports": "التقارير", "messages": "الرسائل", "community": "المجتمع", "prepare": "الاستعداد", "news": "الأخبار", "safety": "السلامة", "profile": "الملف الشخصي", "security": "الأمان", "settings": "الإعدادات" }
+  "tabs": {
+    "overview": "نظرة عامة", "livemap": "الخريطة المباشرة", "reports": "التقارير", "messages": "الرسائل",
+    "community": "المجتمع", "prepare": "الاستعداد", "news": "الأخبار", "safety": "السلامة",
+    "profile": "الملف الشخصي", "security": "الأمان", "settings": "الإعدادات"
+  }
 }

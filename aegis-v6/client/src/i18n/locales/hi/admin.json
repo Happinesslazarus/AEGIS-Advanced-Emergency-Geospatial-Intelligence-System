@@ -1,9 +1,9 @@
 {
   "reports": {
     "filters": {
-      "severity": { "all": "सभी गंभीरता", "high": "उच्च", "medium": "मध्यम", "low": "निम्न" },
-      "status": { "all": "सभी स्थितियाँ", "urgent": "अत्यावश्यक", "unverified": "असत्यापित", "verified": "सत्यापित", "flagged": "चिह्नित", "resolved": "समाधान किया गया" },
-      "type": { "all": "सभी प्रकार", "natural_disaster": "प्राकृतिक आपदा", "infrastructure": "बुनियादी ढाँचा दुर्घटना", "public_safety": "सार्वजनिक सुरक्षा", "community_safety": "सामुदायिक सुरक्षा", "environmental": "पर्यावरणीय खतरा", "medical": "चिकित्सा आपातकाल" }
+      "severity": { "all": "सभी गंभीरता", "high": "उच्च", "medium": "मध्यम", "low": "कम" },
+      "status": { "all": "सभी स्थिति", "urgent": "अत्यावश्यक", "unverified": "असत्यापित", "verified": "सत्यापित", "flagged": "चिह्नित", "resolved": "हल किया गया" },
+      "type": { "all": "सभी प्रकार", "natural_disaster": "प्राकृतिक आपदा", "infrastructure": "बुनियादी ढांचा दुर्घटना", "public_safety": "सार्वजनिक सुरक्षा", "community_safety": "सामुदायिक सुरक्षा", "environmental": "पर्यावरणीय खतरा", "medical": "चिकित्सा आपातकाल" }
     },
     "actions": { "view": "रिपोर्ट विवरण देखें", "openMedia": "मीडिया खोलें", "share": "रिपोर्ट साझा करें", "print": "रिपोर्ट प्रिंट करें" }
   },

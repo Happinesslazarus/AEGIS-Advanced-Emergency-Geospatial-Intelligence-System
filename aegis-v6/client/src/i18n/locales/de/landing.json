@@ -1,4 +1,4 @@
 {
-  "hero": { "title": "AEGIS", "subtitle": "Fortschrittliches Geospatiales Notfall-Aufklärungssystem", "description": "Multimodale KI-gestützte Katastrophenschutzplattform." },
-  "cta": { "citizen": "Bürger-Oberfläche", "operator": "Operator-Konsole" }
+  "hero": { "title": "AEGIS", "subtitle": "Fortgeschrittenes Notfall-Geointelligenz-System", "description": "KI-gestützte multimodale Katastrophenschutzplattform." },
+  "cta": { "citizen": "Bürgerschnittstelle", "operator": "Bediener-Konsole" }
 }

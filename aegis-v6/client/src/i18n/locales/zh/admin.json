@@ -3,7 +3,7 @@
     "filters": {
       "severity": { "all": "所有严重程度", "high": "高", "medium": "中", "low": "低" },
       "status": { "all": "所有状态", "urgent": "紧急", "unverified": "未验证", "verified": "已验证", "flagged": "已标记", "resolved": "已解决" },
-      "type": { "all": "所有类型", "natural_disaster": "自然灾害", "infrastructure": "基础设施事故", "public_safety": "公共安全", "community_safety": "社区安全", "environmental": "环境危害", "medical": "医疗紧急事件" }
+      "type": { "all": "所有类型", "natural_disaster": "自然灾害", "infrastructure": "基础设施事故", "public_safety": "公共安全", "community_safety": "社区安全", "environmental": "环境危害", "medical": "医疗紧急情况" }
     },
     "actions": { "view": "查看报告详情", "openMedia": "打开媒体", "share": "分享报告", "print": "打印报告" }
   },

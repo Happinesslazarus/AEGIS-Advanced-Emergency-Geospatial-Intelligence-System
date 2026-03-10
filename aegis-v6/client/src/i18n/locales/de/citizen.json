@@ -1,3 +1,7 @@
 {
-  "tabs": { "overview": "Übersicht", "livemap": "Live-Karte", "reports": "Berichte", "messages": "Nachrichten", "community": "Gemeinschaft", "prepare": "Vorsorge", "news": "Neuigkeiten", "safety": "Sicherheit", "profile": "Profil", "security": "Schutz", "settings": "Einstellungen" }
+  "tabs": {
+    "overview": "Übersicht", "livemap": "Live-Karte", "reports": "Berichte", "messages": "Nachrichten",
+    "community": "Gemeinschaft", "prepare": "Vorbereitung", "news": "Neuigkeiten", "safety": "Sicherheit",
+    "profile": "Profil", "security": "Sicherheit", "settings": "Einstellungen"
+  }
 }

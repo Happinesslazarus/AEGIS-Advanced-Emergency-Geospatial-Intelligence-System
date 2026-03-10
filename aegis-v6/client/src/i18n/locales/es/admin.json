@@ -1,29 +1,11 @@
 {
   "reports": {
     "filters": {
-      "severity": {
-        "all": "Todas las severidades",
-        "high": "Alta",
-        "medium": "Media",
-        "low": "Baja"
-      },
-      "status": {
-        "all": "Todos los estados",
-        "urgent": "Urgente",
-        "unverified": "Sin verificar",
-        "verified": "Verificado",
-        "flagged": "Marcado",
-        "resolved": "Resuelto"
-      }
+      "severity": { "all": "Toda Severidad", "high": "Alto", "medium": "Medio", "low": "Bajo" },
+      "status": { "all": "Todo Estado", "urgent": "Urgente", "unverified": "No verificado", "verified": "Verificado", "flagged": "Marcado", "resolved": "Resuelto" },
+      "type": { "all": "Todos los Tipos", "natural_disaster": "Desastre Natural", "infrastructure": "Accidente de Infraestructura", "public_safety": "Seguridad Pública", "community_safety": "Seguridad Comunitaria", "environmental": "Peligro Ambiental", "medical": "Emergencia Médica" }
     },
-    "actions": {
-      "view": "Ver detalle del reporte",
-      "openMedia": "Abrir archivo",
-      "share": "Compartir reporte",
-      "print": "Imprimir reporte"
-    }
+    "actions": { "view": "Ver detalle del informe", "openMedia": "Abrir media", "share": "Compartir informe", "print": "Imprimir informe" }
   },
-  "analytics": {
-    "title": "Panel de analítica"
-  }
+  "analytics": { "title": "Panel de Análisis" }
 }

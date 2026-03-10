@@ -105,6 +105,79 @@ export const REGIONS: Record<string, RegionConfig> = {
       'River Wye', 'River Aire', 'River Avon', 'River Exe',
     ],
   },
+
+  wales: {
+    id: 'wales',
+    name: 'Wales',
+    country: 'GB',
+    center: [52.13, -3.78],
+    zoom: 7,
+    bounds: [[51.34, -5.35], [53.43, -2.65]],
+    timezone: 'Europe/London',
+    emergencyNumber: '999',
+    floodAuthority: 'Natural Resources Wales',
+    weatherApi: 'https://api.openweathermap.org/data/2.5',
+    // NRW uses EA flood-monitoring API for gauge data
+    gaugeApi: 'https://environment.data.gov.uk/flood-monitoring',
+    wmsLayers: [
+      {
+        name: 'NRW Flood Map — Rivers (High)',
+        url: 'https://lle.gov.wales/services/wms/nrw',
+        layers: 'NRW:Fluvial_Flood_Map_for_Planning_High_Risk',
+        format: 'image/png',
+        transparent: true,
+        attribution: '© Natural Resources Wales',
+      },
+      {
+        name: 'NRW Flood Map — Surface Water',
+        url: 'https://lle.gov.wales/services/wms/nrw',
+        layers: 'NRW:Surface_Water_Flood_Map_High_Risk',
+        format: 'image/png',
+        transparent: true,
+        attribution: '© Natural Resources Wales',
+      },
+    ],
+    rivers: [
+      'River Wye', 'River Severn', 'River Usk', 'River Taff',
+      'River Conwy', 'River Dee', 'River Teifi', 'River Tywi',
+    ],
+  },
+
+  northern_ireland: {
+    id: 'northern_ireland',
+    name: 'Northern Ireland',
+    country: 'GB',
+    center: [54.60, -6.73],
+    zoom: 8,
+    bounds: [[53.96, -8.18], [55.37, -5.43]],
+    timezone: 'Europe/London',
+    emergencyNumber: '999',
+    floodAuthority: 'Rivers Agency (DfI)',
+    weatherApi: 'https://api.openweathermap.org/data/2.5',
+    gaugeApi: 'https://www.nidirect.gov.uk/floodnireland',
+    wmsLayers: [
+      {
+        name: 'DfI Flood Map — Fluvial',
+        url: 'https://mapping.infrastructure-ni.gov.uk/arcgis/services/FloodMaps/Flood_Maps_wms/MapServer/WmsServer',
+        layers: 'Fluvial_Flood_Extent_High',
+        format: 'image/png',
+        transparent: true,
+        attribution: '© Department for Infrastructure Northern Ireland',
+      },
+      {
+        name: 'DfI Flood Map — Coastal',
+        url: 'https://mapping.infrastructure-ni.gov.uk/arcgis/services/FloodMaps/Flood_Maps_wms/MapServer/WmsServer',
+        layers: 'Coastal_Flood_Extent_High',
+        format: 'image/png',
+        transparent: true,
+        attribution: '© Department for Infrastructure Northern Ireland',
+      },
+    ],
+    rivers: [
+      'River Bann', 'River Foyle', 'River Erne', 'River Lagan',
+      'River Bush', 'River Blackwater', 'River Maine', 'River Six Mile Water',
+    ],
+  },
 }
 
 /**

@@ -23,6 +23,7 @@ import waterSupply from './water_supply/index.js'
 import infrastructureDamage from './infrastructure_damage/index.js'
 import publicSafety from './public_safety/index.js'
 import environmentalHazard from './environmental_hazard/index.js'
+import drought from './drought/index.js'
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Registry
@@ -39,6 +40,7 @@ const MODULES: IncidentModule[] = [
   infrastructureDamage,
   publicSafety,
   environmentalHazard,
+  drought,
 ]
 
 const moduleMap = new Map<string, IncidentModule>()

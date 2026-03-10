@@ -126,9 +126,13 @@ async def predict_hazard(
             predictor = FloodPredictor(model_registry, feature_store)
         elif request.hazard_type == HazardType.HEATWAVE:
             predictor = HeatwavePredictor(model_registry, feature_store)
+        elif request.hazard_type == HazardType.WILDFIRE:
+            from app.hazards.wildfire import WildfirePredictor
+            predictor = WildfirePredictor(model_registry, feature_store)
+        elif request.hazard_type == HazardType.DROUGHT:
+            predictor = DroughtPredictor(model_registry, feature_store)
         else:
-            # Generic fallback for all other incident types
-            # Returns LOW risk with generic contributing factors
+            # Generic fallback for storm, landslide, power_outage, etc.
             logger.warning(f"No specialized predictor for {request.hazard_type.value}, using generic fallback")
             from app.schemas.predictions import PredictionResponse, ContributingFactor, RiskLevel
             return PredictionResponse(
@@ -261,10 +265,10 @@ async def get_hazard_types(
         if settings.ENABLE_WILDFIRE_MODULE:
             hazard_types.append(HazardTypeInfo(
                 hazard_type=HazardType.WILDFIRE,
-                enabled=False,
-                models_available=[],
-                supported_regions=[],
-                forecast_horizons=[]
+                enabled=True,
+                models_available=["wildfire_fdi_v1"],
+                supported_regions=["global"],
+                forecast_horizons=[6, 12, 24]
             ))
         
         return hazard_types

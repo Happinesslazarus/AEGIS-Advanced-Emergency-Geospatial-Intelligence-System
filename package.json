@@ -1,0 +1,27 @@
+{
+  "name": "aegis-v6-fullstack",
+  "version": "6.0.0",
+  "private": true,
+  "description": "AEGIS — Advanced Emergency Geospatial Intelligence System (monorepo root)",
+  "workspaces": [
+    "aegis-v6/client",
+    "aegis-v6/server"
+  ],
+  "scripts": {
+    "dev:server": "cd aegis-v6/server && npm run dev",
+    "dev:client": "cd aegis-v6/client && npm run dev",
+    "dev:ai": "cd aegis-v6/ai-engine && ../.venv/Scripts/uvicorn main:app --reload --port 8000",
+    "build:client": "cd aegis-v6/client && npm run build",
+    "build:server": "cd aegis-v6/server && npm run build",
+    "build": "npm run build:server && npm run build:client",
+    "test:server": "cd aegis-v6/server && npm test",
+    "test:client": "cd aegis-v6/client && npm test",
+    "test:e2e": "cd aegis-v6/client && npm run e2e",
+    "lint:client": "cd aegis-v6/client && npm run lint",
+    "lint:server": "cd aegis-v6/server && npm run lint"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}

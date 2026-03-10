@@ -1,4 +1,6 @@
 ﻿import { Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { LocationProvider } from './contexts/LocationContext'
 import { ReportsProvider } from './contexts/ReportsContext'
@@ -20,10 +22,24 @@ import AccessibilityPanel from './components/shared/AccessibilityPanel'
 import FloatingChatWidget from './components/FloatingChatWidget'
 import LanguagePreferenceDialog from './components/shared/LanguagePreferenceDialog'
 import OfflineIndicator from './components/shared/OfflineIndicator'
+import { SUPPORTED_LANGUAGES } from './i18n/config'
+
+/** Synchronises document dir/lang attributes with the active i18next language. */
+function RtlEnforcer(): null {
+  const { i18n } = useTranslation()
+  useEffect(() => {
+    const lang = SUPPORTED_LANGUAGES.find(l => l.code === i18n.language)
+    const dir = lang?.dir ?? 'ltr'
+    document.documentElement.setAttribute('dir', dir)
+    document.documentElement.setAttribute('lang', i18n.language)
+  }, [i18n.language])
+  return null
+}
 
 export default function App(): JSX.Element {
   return (
     <ErrorBoundary name="App">
+      <RtlEnforcer />
       <ThemeProvider>
         <LocationProvider>
           <ReportsProvider>
