@@ -1,0 +1,82 @@
+/**
+ * incidents/wildfire/aiClient.ts — AI client for wildfire predictions
+ * AI Tier: tier3 (ML) - Uses trained machine learning models
+ */
+
+import type { IncidentPrediction } from '../types.js'
+
+const AI_ENGINE_URL = process.env.AI_ENGINE_URL || 'http://localhost:8000'
+
+export class WildfireAIClient {
+  /**
+   * Get ML-based wildfire predictions from AI engine
+   */
+  static async getPredictions(region: string, features: Record<string, unknown>): Promise<IncidentPrediction[]> {
+    try {
+      const response = await fetch(`${AI_ENGINE_URL}/api/ai/predict/wildfire`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          region,
+          features: {
+            temperature: features.temperature || 20,
+            humidity: features.humidity || 50,
+            windSpeed: features.windSpeed || 10,
+            vegetationDryness: features.vegetationDryness || 0.5,
+            hotspotCount: features.hotspotCount || 0
+          }
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error(`AI engine returned ${response.status}`)
+      }
+
+      const data = await response.json()
+      
+      return [{
+        incidentType: 'wildfire',
+        severity: data.severity || 'Low',
+        probability: data.probability || 0,
+        confidence: data.confidence || 0.65,
+        confidenceSource: 'ml_model',
+        region,
+        description: data.explanation || 'Wildfire prediction from ML model',
+        advisoryText: data.advisory || 'Monitor fire conditions',
+        generatedAt: new Date().toISOString(),
+        dataSourcesUsed: ['ml_model', 'nasa_firms', 'weather_data'],
+        modelVersion: data.model_version || 'wildfire_v1.0'
+      }]
+    } catch (error) {
+      console.error(`Wildfire AI client error: ${error}`)
+      // Return fallback prediction
+      return [{
+        incidentType: 'wildfire',
+        severity: 'Low',
+        probability: 0.1,
+        confidence: 0.3,
+        confidenceSource: 'rule_based',
+        region,
+        description: 'AI model unavailable, using fallback prediction',
+        advisoryText: 'Monitor fire weather conditions and stay alert',
+        generatedAt: new Date().toISOString(),
+        dataSourcesUsed: ['fallback']
+      }]
+    }
+  }
+
+  /**
+   * Check if AI engine is available
+   */
+  static async healthCheck(): Promise<boolean> {
+    try {
+      const response = await fetch(`${AI_ENGINE_URL}/health`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      return response.ok
+    } catch {
+      return false
+    }
+  }
+}
