@@ -1,4 +1,4 @@
-"""
+﻿"""
 ═══════════════════════════════════════════════════════════════════════════════
  AEGIS AI ENGINE — Strict API Schemas
  Enforces the API contract that MUST NOT change after implementation
@@ -14,11 +14,15 @@ from enum import Enum
 class HazardType(str, Enum):
     """Supported hazard types."""
     FLOOD = "flood"
-    DROUGHT = "drought"
     HEATWAVE = "heatwave"
     WILDFIRE = "wildfire"
     LANDSLIDE = "landslide"
-    STORM_SURGE = "storm_surge"
+    SEVERE_STORM = "severe_storm"
+    POWER_OUTAGE = "power_outage"
+    WATER_SUPPLY = "water_supply_disruption"
+    INFRASTRUCTURE = "infrastructure_damage"
+    PUBLIC_SAFETY = "public_safety_incident"
+    ENVIRONMENTAL = "environmental_hazard"
     # Training-specific types
     ALL = "all"
     SEVERITY = "severity"

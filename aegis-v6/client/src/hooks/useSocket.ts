@@ -493,10 +493,16 @@ export function useSocket(): SocketState {
     // Use REST API only — socket 'thread:join' already triggers 'thread:messages' event
     // This eliminates the race condition of dual REST + socket fetch (#21)
     try {
-      const token = localStorage.getItem('aegis-citizen-token') || localStorage.getItem('aegis-token') || localStorage.getItem('token')
+      const citizenToken = localStorage.getItem('aegis-citizen-token')
+      const operatorToken = localStorage.getItem('aegis-token') || localStorage.getItem('token')
+      const token = citizenToken || operatorToken
       if (!token) return
       
-      const endpoint = `/api/citizen/threads/${threadId}`
+      // Use admin endpoint if operator token, citizen endpoint if citizen token
+      const endpoint = operatorToken && !citizenToken 
+        ? `/api/admin/threads/${threadId}`
+        : `/api/citizen/threads/${threadId}`
+      
       const res = await fetch(endpoint, {
         headers: { 'Authorization': `Bearer ${token}` }
       })

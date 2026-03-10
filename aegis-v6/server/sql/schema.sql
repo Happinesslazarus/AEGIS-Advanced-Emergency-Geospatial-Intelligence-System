@@ -348,7 +348,7 @@ CREATE TABLE IF NOT EXISTS alerts (
     title           VARCHAR(200)            NOT NULL,
     message         TEXT                    NOT NULL,
     severity        alert_severity          NOT NULL DEFAULT 'info',
-    alert_type      VARCHAR(50)             NOT NULL DEFAULT 'flood_warning',
+    alert_type      VARCHAR(50)             NOT NULL DEFAULT 'incident_alert',
     location_text   VARCHAR(200),
     coordinates     GEOMETRY(Point, 4326),
     radius_km       FLOAT                   NOT NULL DEFAULT 10.0,

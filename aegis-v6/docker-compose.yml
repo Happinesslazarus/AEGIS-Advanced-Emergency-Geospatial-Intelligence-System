@@ -21,7 +21,7 @@ services:
       - "5432:5432"
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-aegis_secure_2026}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD environment variable must be set}
       POSTGRES_DB: aegis
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -47,8 +47,8 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3001
-      DATABASE_URL: postgresql://postgres:${DB_PASSWORD:-aegis_secure_2026}@db:5432/aegis
-      JWT_SECRET: ${JWT_SECRET:-aegis-jwt-secret-change-in-production}
+      DATABASE_URL: postgresql://postgres:${DB_PASSWORD:?DB_PASSWORD must be set}@db:5432/aegis
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET environment variable must be set}
       AEGIS_REGION: ${AEGIS_REGION:-scotland}
       # AI API keys — set in .env
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
@@ -90,7 +90,7 @@ services:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://postgres:${DB_PASSWORD:-aegis_secure_2026}@db:5432/aegis
+      DATABASE_URL: postgresql://postgres:${DB_PASSWORD:?DB_PASSWORD must be set}@db:5432/aegis
     profiles:
       - ai
 

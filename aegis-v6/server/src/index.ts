@@ -241,6 +241,7 @@ app.use('/api/docs', docsRoutes)                      // Swagger API documentati
 app.use('/api/internal', internalRoutes)              // n8n ws-bridge, error log, system health
 app.use('/api/translate', translationRoutes)           // Translation service (MyMemory / LibreTranslate)
 app.use('/api/spatial', spatialRoutes)                  // PostGIS spatial analysis tools
+app.use('/api/v1/incidents', incidentRoutes)            // Multi-incident plugin system (v1 API)
 
 // Health check endpoint for monitoring
 app.get('/api/health', async (_req, res) => {

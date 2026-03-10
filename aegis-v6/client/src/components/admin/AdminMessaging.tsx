@@ -220,10 +220,10 @@ export default function AdminMessaging(): JSX.Element {
     joinThread(thread.id)
     loadThreadMessages(thread.id)
     
-    // Mark thread as read to clear unread badge
+    // Mark thread as read to clear unread badge - use admin endpoint
     const token = localStorage.getItem('aegis-token') || localStorage.getItem('token')
     if (token) {
-      fetch(`/api/citizen/threads/${thread.id}/read`, {
+      fetch(`/api/admin/threads/${thread.id}/read`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
       }).catch(err => console.error('[AdminMessaging] Mark read error:', err))

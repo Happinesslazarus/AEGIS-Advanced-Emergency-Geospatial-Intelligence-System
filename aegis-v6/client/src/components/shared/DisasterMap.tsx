@@ -1,4 +1,4 @@
-/**
+﻿/**
  * DisasterMap.tsx — Production map with WMS layers, clustering,
  * tile switching, heatmap, shelters, and scale bar.
  *
@@ -20,6 +20,7 @@ import { useFloodData } from '../../hooks/useFloodData'
 import { createMarkerSvg, getSeverityClass } from '../../utils/helpers'
 import type { Report, SeverityLevel } from '../../types'
 import SpatialToolbar from './SpatialToolbar'
+import IncidentMapLayers from './IncidentMapLayers'
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Types & Config
@@ -815,6 +816,9 @@ export default function DisasterMap({
 
         {/* Spatial analysis tools */}
         {showSpatialTools && <SpatialToolbar reports={reports} />}
+
+        {/* Incident type layers */}
+        <IncidentMapLayers reports={reports} />
       </MapContainer>
 
       {/* Export GeoJSON button — top-left */}

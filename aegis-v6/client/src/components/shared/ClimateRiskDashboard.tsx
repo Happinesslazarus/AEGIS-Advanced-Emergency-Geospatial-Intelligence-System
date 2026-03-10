@@ -309,10 +309,10 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
                       className={`h-full rounded-full transition-all duration-500 ${
                         value > 20 ? 'bg-red-500' : value > 10 ? 'bg-amber-500' : 'bg-green-500'
                       }`}
-                      style={{ width: `${Math.min(100, value * 2.5)}%` }}
+                      style={{ width: `${Math.min(100, (value || 0) * 2.5)}%` }}
                     />
                   </div>
-                  <span className="text-[10px] font-mono text-gray-500 w-6 text-right">{value}</span>
+                  <span className="text-[10px] font-mono text-gray-500 w-6 text-right">{isNaN(value) ? '-' : value.toFixed(1)}</span>
                 </div>
               ))}
             </div>

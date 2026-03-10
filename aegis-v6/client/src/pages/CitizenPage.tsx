@@ -36,34 +36,34 @@ import LanguageSelector from '../components/shared/LanguageSelector'
 
 const PREP_RESOURCES_BY_REGION: Record<string, any[]> = {
   aberdeen: [
-    { title: 'Aberdeen Flood Risk Map', type: 'article', source: 'SEPA', url: 'https://www.sepa.org.uk/environment/water/flooding/', icon: Droplets },
-    { title: 'What To Do Before A Flood', type: 'video', source: 'UK Environment Agency', url: 'https://www.youtube.com/watch?v=43M5mZuzHF8', icon: Waves },
+    { title: 'Aberdeen Emergency Preparedness', type: 'article', source: 'Aberdeen City Council', url: 'https://www.aberdeencity.gov.uk/', icon: FileText },
+    { title: 'Emergency Planning Guide', type: 'video', source: 'UK Government', url: 'https://www.gov.uk/government/publications/preparing-for-emergencies', icon: Video },
     { title: 'Aberdeen Emergency Contacts', type: 'article', source: 'Aberdeen City Council', url: 'https://www.aberdeencity.gov.uk/', icon: Phone },
-    { title: 'Storm Surge & Coastal Flooding', type: 'video', source: 'Met Office', url: 'https://www.youtube.com/watch?v=pcCCfQDK3cI', icon: CloudLightning },
+    { title: 'Weather Warnings & Alerts', type: 'article', source: 'Met Office', url: 'https://www.metoffice.gov.uk/', icon: CloudLightning },
   ],
   edinburgh: [
-    { title: 'Edinburgh Flood Risk', type: 'article', source: 'SEPA', url: 'https://www.sepa.org.uk/environment/water/flooding/', icon: Droplets },
-    { title: 'City of Edinburgh Council Emergency Guide', type: 'article', source: 'Edinburgh Council', url: 'https://www.edinburgh.gov.uk/', icon: FileText },
-    { title: 'What To Do Before A Flood', type: 'video', source: 'UK Environment Agency', url: 'https://www.youtube.com/watch?v=43M5mZuzHF8', icon: Waves },
-    { title: 'Scottish Flood Forum', type: 'article', source: 'Scottish Flood Forum', url: 'https://scottishfloodforum.org/', icon: Users },
+    { title: 'Edinburgh Emergency Services', type: 'article', source: 'Edinburgh Council', url: 'https://www.edinburgh.gov.uk/', icon: FileText },
+    { title: 'Community Emergency Planning', type: 'article', source: 'Edinburgh Council', url: 'https://www.edinburgh.gov.uk/', icon: Users },
+    { title: 'Emergency Preparedness', type: 'video', source: 'UK Government', url: 'https://www.gov.uk/government/publications/preparing-for-emergencies', icon: Video },
+    { title: 'Weather Warnings', type: 'article', source: 'Met Office', url: 'https://www.metoffice.gov.uk/', icon: CloudLightning },
   ],
   glasgow: [
-    { title: 'Glasgow Flood Warnings', type: 'article', source: 'SEPA', url: 'https://www.sepa.org.uk/environment/water/flooding/', icon: Droplets },
-    { title: 'Glasgow City Council Emergency', type: 'article', source: 'Glasgow Council', url: 'https://www.glasgow.gov.uk/', icon: FileText },
-    { title: 'River Clyde Flood Risk', type: 'article', source: 'Scottish Government', url: 'https://www.floodscotland.org.uk/', icon: Waves },
-    { title: 'How to Make an Emergency Kit', type: 'video', source: 'British Red Cross', url: 'https://www.youtube.com/watch?v=pFh-eEVadJU', icon: Video },
+    { title: 'Glasgow Emergency Response', type: 'article', source: 'Glasgow Council', url: 'https://www.glasgow.gov.uk/', icon: FileText },
+    { title: 'Community Resilience Hub', type: 'article', source: 'Glasgow Council', url: 'https://www.glasgow.gov.uk/', icon: Users },
+    { title: 'Emergency Kit Checklist', type: 'video', source: 'British Red Cross', url: 'https://www.youtube.com/watch?v=pFh-eEVadJU', icon: Video },
+    { title: 'Weather & Safety Alerts', type: 'article', source: 'Met Office', url: 'https://www.metoffice.gov.uk/', icon: CloudLightning },
   ],
   dundee: [
-    { title: 'Dundee Flood Risk', type: 'article', source: 'SEPA', url: 'https://www.sepa.org.uk/environment/water/flooding/', icon: Droplets },
-    { title: 'Tay Estuary Flooding', type: 'article', source: 'Scottish Government', url: 'https://www.floodscotland.org.uk/', icon: Waves },
-    { title: 'Dundee City Council Emergency', type: 'article', source: 'Dundee Council', url: 'https://www.dundeecity.gov.uk/', icon: FileText },
-    { title: 'Coastal Flooding Safety', type: 'video', source: 'Met Office', url: 'https://www.metoffice.gov.uk/', icon: CloudLightning },
+    { title: 'Dundee Emergency Planning', type: 'article', source: 'Dundee Council', url: 'https://www.dundeecity.gov.uk/', icon: FileText },
+    { title: 'Community Safety', type: 'article', source: 'Dundee Council', url: 'https://www.dundeecity.gov.uk/', icon: Users },
+    { title: 'Emergency Preparedness', type: 'video', source: 'UK Government', url: 'https://www.gov.uk/government/publications/preparing-for-emergencies', icon: Video },
+    { title: 'Weather Warnings', type: 'article', source: 'Met Office', url: 'https://www.metoffice.gov.uk/', icon: CloudLightning },
   ],
   scotland: [
-    { title: 'Flood Preparation Guide', type: 'article', source: 'Scottish Government', url: 'https://www.floodscotland.org.uk/prepare-yourself/', icon: FileText },
-    { title: 'SEPA Flood Warning System', type: 'article', source: 'SEPA', url: 'https://www.sepa.org.uk/environment/water/flooding/', icon: Droplets },
-    { title: 'What To Do Before A Flood', type: 'video', source: 'UK Environment Agency', url: 'https://www.youtube.com/watch?v=43M5mZuzHF8', icon: Waves },
-    { title: 'Storm Surge & Coastal Flooding', type: 'video', source: 'Met Office', url: 'https://www.youtube.com/watch?v=pcCCfQDK3cI', icon: CloudLightning },
+    { title: 'Emergency Planning Guide', type: 'article', source: 'Scottish Government', url: 'https://www.gov.scot/policies/civil-contingencies/', icon: FileText },
+    { title: 'Weather Warning Service', type: 'article', source: 'Met Office', url: 'https://www.metoffice.gov.uk/', icon: CloudLightning },
+    { title: 'Preparing for Emergencies', type: 'video', source: 'UK Government', url: 'https://www.gov.uk/government/publications/preparing-for-emergencies', icon: Video },
+    { title: 'Community Resilience', type: 'article', source: 'Scottish Government', url: 'https://www.gov.scot/', icon: Users },
   ],
 }
 
@@ -731,10 +731,10 @@ export default function CitizenPage(): JSX.Element {
                 {t('admin.resources', lang)}
               </h4>
               <div className="space-y-1.5">
-                <a href="https://www.sepa.org.uk" target="_blank" rel="noopener noreferrer" className="block hover:text-aegis-600 transition-colors">SEPA</a>
-                <a href="https://www.metoffice.gov.uk" target="_blank" rel="noopener noreferrer" className="block hover:text-aegis-600 transition-colors">Met Office</a>
                 <a href="https://www.gov.scot" target="_blank" rel="noopener noreferrer" className="block hover:text-aegis-600 transition-colors">Scottish Government</a>
+                <a href="https://www.metoffice.gov.uk" target="_blank" rel="noopener noreferrer" className="block hover:text-aegis-600 transition-colors">Met Office</a>
                 <a href="https://www.redcross.org.uk" target="_blank" rel="noopener noreferrer" className="block hover:text-aegis-600 transition-colors">British Red Cross</a>
+                <a href="https://www.gov.uk/browse/justice/emergencies" target="_blank" rel="noopener noreferrer" className="block hover:text-aegis-600 transition-colors">UK Emergencies</a>
               </div>
             </div>
             <div>
