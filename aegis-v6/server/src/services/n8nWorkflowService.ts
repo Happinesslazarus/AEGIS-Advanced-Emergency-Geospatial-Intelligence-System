@@ -83,8 +83,21 @@ async function getExistingWorkflows(baseUrl: string): Promise<Map<string, string
  */
 async function createWorkflow(baseUrl: string, def: WorkflowDef): Promise<string | null> {
   try {
-    // n8n API rejects `active` in the POST body — strip it and use /activate after creation
-    const { active: _active, ...payload } = def
+    // n8n API rejects read-only fields in POST body: active, tags, id, createdAt, updatedAt, versionId
+    // It also requires `settings` — inject default if missing
+    const {
+      active: _active,
+      tags: _tags,
+      id: _id,
+      createdAt: _createdAt,
+      updatedAt: _updatedAt,
+      versionId: _versionId,
+      ...rest
+    } = def as any
+    const payload = {
+      ...rest,
+      settings: rest.settings ?? { executionOrder: 'v1' },
+    }
     const res = await fetch(`${baseUrl}/api/v1/workflows`, {
       method: 'POST',
       headers: n8nHeaders(),
