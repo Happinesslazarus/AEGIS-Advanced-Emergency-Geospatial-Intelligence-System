@@ -575,7 +575,7 @@ router.post('/notifications/subscribe', async (req: Request, res: Response) => {
     if (authHeader?.startsWith('Bearer ')) {
       try {
         const jwt = await import('jsonwebtoken')
-        const decoded = jwt.default.verify(authHeader.slice(7), process.env.JWT_SECRET || 'dev-secret') as any
+        const decoded = jwt.default.verify(authHeader.slice(7), process.env.JWT_SECRET!) as any
         user_id = decoded.userId || decoded.id || null
       } catch { /* anonymous subscription */ }
     }

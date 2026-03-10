@@ -122,6 +122,7 @@ import floodRoutes from './routes/floodRoutes.js'
 import distressRoutes from './routes/distressRoutes.js'
 import internalRoutes from './routes/internalRoutes.js'
 import adminCommunityRoutes from './routes/adminCommunityRoutes.js'
+import adminMessagingRoutes from './routes/adminMessagingRoutes.js'
 import translationRoutes from './routes/translationRoutes.js'
 import spatialRoutes from './routes/spatialRoutes.js'
 import oauthRoutes from './routes/oauthRoutes.js'
@@ -132,6 +133,7 @@ import { requestLogger } from './services/logger.js'
 import { startCronJobs } from './services/cronJobs.js'
 import { setIOInstance as setRiverIO } from './services/riverLevelService.js'
 import { setThreatIO } from './services/threatLevelService.js'
+import { setCommunityRealtimeIo } from './services/communityRealtime.js'
 import { startN8nHealthMonitor } from './services/n8nHealthCheck.js'
 
 const app = express()
@@ -149,6 +151,9 @@ setRiverIO(io)
 
 // Share io instance with threat level service for level-change broadcasts
 setThreatIO(io)
+
+// Share io instance with community realtime service for moderation events
+setCommunityRealtimeIo(io)
 
 /* Security middleware */
 // Helmet sets various HTTP security headers (#80 MIME sniff prevention)
@@ -171,8 +176,10 @@ app.use(cors({
     ].filter(Boolean)
     if (!origin || allowed.includes(origin)) {
       callback(null, true)
-    } else {
+    } else if (process.env.NODE_ENV !== 'production') {
       callback(null, true) // Allow all origins in dev
+    } else {
+      callback(new Error(`CORS: origin '${origin}' not allowed`))
     }
   },
   credentials: true,
@@ -232,6 +239,7 @@ app.use('/api/ai', aiRoutes)                         // AI prediction engine int
 app.use('/api/chat', chatRoutes)                     // LLM chatbot with RAG
 app.use('/api/community', communityRoutes)            // Community posts, comments, likes
 app.use('/api/admin/community', adminCommunityRoutes)
+app.use('/api/admin/messages', adminMessagingRoutes)
 app.use('/api/rivers', riverRoutes)                   // Live river level monitoring
 app.use('/api', floodRoutes)                              // Flood prediction, evacuation, threat
 app.use('/api/distress', distressRoutes)                   // SOS / distress beacon

@@ -13,8 +13,12 @@
 
 import { Router, Request, Response } from 'express'
 import pool from '../models/db.js'
+import { authMiddleware, operatorOnly, AuthRequest } from '../middleware/auth.js'
 
 const router = Router()
+
+// All distress endpoints require authentication
+router.use(authMiddleware)
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Citizen: Activate SOS
@@ -142,7 +146,7 @@ router.post('/cancel', async (req: Request, res: Response) => {
 // Operator: List Active Distress Calls
 // ═══════════════════════════════════════════════════════════════════════════════
 
-router.get('/active', async (_req: Request, res: Response) => {
+router.get('/active', operatorOnly, async (_req: Request, res: Response) => {
   try {
     const result = await pool.query(
       `SELECT dc.*, c.phone, c.email, c.avatar_url, c.is_vulnerable
@@ -184,7 +188,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 // Operator: Acknowledge
 // ═══════════════════════════════════════════════════════════════════════════════
 
-router.post('/:id/acknowledge', async (req: Request, res: Response) => {
+router.post('/:id/acknowledge', operatorOnly, async (req: Request, res: Response) => {
   try {
     const { operatorId, operatorName, triageLevel } = req.body
 
@@ -211,7 +215,7 @@ router.post('/:id/acknowledge', async (req: Request, res: Response) => {
 // Operator: Resolve
 // ═══════════════════════════════════════════════════════════════════════════════
 
-router.post('/:id/resolve', async (req: Request, res: Response) => {
+router.post('/:id/resolve', operatorOnly, async (req: Request, res: Response) => {
   try {
     const { operatorId, resolution } = req.body
 
@@ -238,7 +242,7 @@ router.post('/:id/resolve', async (req: Request, res: Response) => {
 // Historical Distress Calls
 // ═══════════════════════════════════════════════════════════════════════════════
 
-router.get('/history', async (req: Request, res: Response) => {
+router.get('/history', operatorOnly, async (req: Request, res: Response) => {
   try {
     const limit = Math.min(parseInt(req.query.limit as string) || 50, 200)
     const result = await pool.query(
