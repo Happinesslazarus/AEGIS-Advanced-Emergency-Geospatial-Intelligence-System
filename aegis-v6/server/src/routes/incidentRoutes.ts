@@ -1,5 +1,5 @@
 /**
- * routes/incidentRoutes.ts — Unified v1 incident API
+ * routes/incidentRoutes.ts â€” Unified v1 incident API
  *
  * Dynamically mounts routes for all registered incident modules.
  *
@@ -29,12 +29,12 @@ import {
 
 const router = Router()
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // Cross-incident endpoints
-// ═══════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 /**
- * GET /api/v1/incidents/registry — List all registered incident types with metadata
+ * GET /api/v1/incidents/registry â€” List all registered incident types with metadata
  */
 router.get('/registry', (_req: Request, res: Response) => {
   const registries = getAllIncidentRegistries()
@@ -46,9 +46,9 @@ router.get('/registry', (_req: Request, res: Response) => {
 })
 
 /**
- * GET /api/v1/incidents/all/dashboard — Cross-incident dashboard summary
+ * GET /api/v1/incidents/all/dashboard â€” Cross-incident dashboard summary
  */
-router.get('/all/dashboard', async (req: Request, res: Response) => {
+router.get('/all/dashboard', authMiddleware, async (req: Request, res: Response) => {
   try {
     const region = String(req.query.region || process.env.REGION_ID || 'aberdeen_scotland_uk')
     const summary = await getDashboardSummary(region)
@@ -59,7 +59,7 @@ router.get('/all/dashboard', async (req: Request, res: Response) => {
 })
 
 /**
- * GET /api/v1/incidents/all/predictions — All predictions across incident types
+ * GET /api/v1/incidents/all/predictions â€” All predictions across incident types
  */
 router.get('/all/predictions', authMiddleware, async (req: Request, res: Response) => {
   try {
@@ -83,7 +83,7 @@ router.get('/all/predictions', authMiddleware, async (req: Request, res: Respons
 })
 
 /**
- * GET /api/v1/incidents/all/alerts — All alerts across incident types
+ * GET /api/v1/incidents/all/alerts â€” All alerts across incident types
  */
 router.get('/all/alerts', async (req: Request, res: Response) => {
   try {
@@ -106,7 +106,7 @@ router.get('/all/alerts', async (req: Request, res: Response) => {
 })
 
 /**
- * GET /api/v1/incidents/all/map-data — Combined map data for all incidents
+ * GET /api/v1/incidents/all/map-data â€” Combined map data for all incidents
  */
 router.get('/all/map-data', async (req: Request, res: Response) => {
   try {
@@ -128,10 +128,14 @@ router.get('/all/map-data', async (req: Request, res: Response) => {
   }
 })
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// Dynamic per-incident routing — mounts each module's router
-// ═══════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// Dynamic per-incident routing â€” mounts each module's router
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
+
+router.post('/:type/report', authMiddleware, (_req: Request, _res: Response, next) => next())
+router.get('/:type/predictions', authMiddleware, (_req: Request, _res: Response, next) => next())
+router.get('/:type/history', authMiddleware, (_req: Request, _res: Response, next) => next())
 // Mount each incident module's router at /api/v1/incidents/{incidentId}/
 for (const mod of getAllIncidentModules()) {
   router.use(`/${mod.id}`, mod.router)

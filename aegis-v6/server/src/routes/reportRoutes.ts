@@ -765,7 +765,7 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
  * Accepts multipart form data to allow evidence photo/video upload.
  * Automatically runs AI confidence scoring based on available data.
  */
-router.post('/', uploadEvidence, async (req: Request, res: Response): Promise<void> => {
+router.post('/', authMiddleware, uploadEvidence, async (req: Request, res: Response): Promise<void> => {
   try {
     const {
       incidentCategory, incidentSubtype, displayType,
