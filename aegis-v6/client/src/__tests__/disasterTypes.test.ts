@@ -25,11 +25,11 @@ describe('Disaster Types Configuration', () => {
     expect(keys).toContain('landslide')
   })
 
-  test('all 10 core incident subtypes are marked as implemented', () => {
+  test('all 11 core incident subtypes are marked as implemented', () => {
     const coreIds = [
       'flood', 'severe_storm', 'heatwave', 'wildfire', 'landslide',
       'power_outage', 'water_supply_disruption', 'infrastructure_damage',
-      'public_safety_incident', 'environmental_hazard',
+      'public_safety_incident', 'environmental_hazard', 'drought',
     ]
     const allSubtypes = Object.values(DISASTER_SUBTYPES).flat()
     for (const id of coreIds) {

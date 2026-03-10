@@ -16,7 +16,8 @@
     "water_supply_disruption": "Wasserversorgungsstörung",
     "infrastructure_damage": "Infrastrukturschaden",
     "public_safety_incident": "Öffentliche Sicherheit",
-    "environmental_hazard": "Umweltgefahr"
+    "environmental_hazard": "Umweltgefahr",
+    "drought": "Dürre"
   },
   "categories": {
     "natural_disaster": "Naturkatastrophe",
@@ -71,7 +72,10 @@
     "policeRequired": "Polizei erforderlich",
     "hazardMaterial": "Gefahrstoff",
     "airOrWaterImpact": "Luft-/Wasserauswirkung",
-    "containmentNeeded": "Eindämmung erforderlich"
+    "containmentNeeded": "Eindämmung erforderlich",
+    "cropDamageReported": "Ernteschäden gemeldet",
+    "waterRestrictions": "Wasserrestriktionen in Kraft",
+    "riverLevelLow": "Pegelstand kritisch niedrig"
   },
   "report": {
     "selectType": "Vorfalltyp auswählen",

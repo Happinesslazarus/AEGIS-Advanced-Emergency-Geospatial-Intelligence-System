@@ -463,6 +463,49 @@
     }
   },
   {
+    "id": "drought",
+    "name": "Drought",
+    "category": "natural_disaster",
+    "enabled": true,
+    "severityLevels": [
+      "Low",
+      "Medium",
+      "High",
+      "Critical"
+    ],
+    "fieldSchema": [
+      {
+        "key": "cropDamageReported",
+        "label": "Crop Damage Reported",
+        "type": "boolean",
+        "required": false
+      },
+      {
+        "key": "waterRestrictions",
+        "label": "Water Restrictions in Place",
+        "type": "boolean",
+        "required": false
+      },
+      {
+        "key": "riverLevelLow",
+        "label": "River Level Critically Low",
+        "type": "boolean",
+        "required": false
+      }
+    ],
+    "widgets": [
+      "weather_panel",
+      "preparedness",
+      "resource_advisory"
+    ],
+    "aiModel": "drought_uk-default_v2026.03.03",
+    "alertThresholds": {
+      "advisory": 30,
+      "warning": 55,
+      "critical": 75
+    }
+  },
+  {
     "id": "test_hazard",
     "name": "Test Hazard",
     "category": "public_safety",

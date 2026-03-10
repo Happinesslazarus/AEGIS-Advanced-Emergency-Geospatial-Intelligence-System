@@ -2,7 +2,7 @@
  * IncidentCommandConsole.tsx — Multi-incident operations command view
  *
  * Real-time dashboard panel for the Admin UI that shows:
- * - Live status of all 10 incident types with prediction/alert counts
+ * - Live status of all 11 incident types with prediction/alert counts
  * - Per-incident AI tier badge (rule_based / statistical / ml)
  * - Quick filter to drill into a single incident type
  * - Cross-incident correlation warnings (compound events)
@@ -14,7 +14,7 @@ import { useTranslation } from 'react-i18next'
 import {
   AlertTriangle, Activity, Zap, Thermometer, Flame, CloudLightning,
   Mountain, Droplets, ZapOff, Shield, Biohazard, RefreshCw, Circle,
-  TrendingUp, CheckCircle2, Clock, Cpu, Workflow
+  TrendingUp, CheckCircle2, Clock, Cpu, Workflow, Sun
 } from 'lucide-react'
 import { useIncidents } from '../../contexts/IncidentContext'
 import {
@@ -35,6 +35,7 @@ const INCIDENT_ICONS: Record<string, React.ElementType> = {
   infrastructure_damage: AlertTriangle,
   public_safety_incident: Shield,
   environmental_hazard: Biohazard,
+  drought: Sun,
 }
 
 const AI_TIER_BADGE: Record<string, { label: string; color: string }> = {

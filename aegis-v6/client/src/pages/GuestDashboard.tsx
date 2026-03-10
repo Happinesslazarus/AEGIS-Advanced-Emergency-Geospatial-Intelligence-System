@@ -16,7 +16,7 @@ import { Link } from 'react-router-dom'
 import {
   AlertTriangle, Activity, MapPin, Shield, Bell, Clock,
   ChevronRight, Globe, RefreshCw, Droplets, CloudLightning,
-  Thermometer, Flame, Mountain, ZapOff, Biohazard, Eye
+  Thermometer, Flame, Mountain, ZapOff, Biohazard, Eye, Sun
 } from 'lucide-react'
 import { useIncidents } from '../contexts/IncidentContext'
 import {
@@ -41,6 +41,7 @@ const INCIDENT_ICONS: Record<string, React.ElementType> = {
   infrastructure_damage: AlertTriangle,
   public_safety_incident: Shield,
   environmental_hazard: Biohazard,
+  drought: Sun,
 }
 
 const SEVERITY_COLORS: Record<string, string> = {

@@ -21,7 +21,7 @@ export const DISASTER_SUBTYPES: Record<IncidentCategoryKey, DisasterSubtype[]> =
     { key: 'tornado', label: 'Tornado', icon: 'Wind', implemented: false },
     { key: 'tsunami', label: 'Tsunami', icon: 'Waves', implemented: false },
     { key: 'volcanic', label: 'Volcanic Eruption', icon: 'Mountain', implemented: false },
-    { key: 'drought', label: 'Drought', icon: 'Sun', implemented: false },
+    { key: 'drought', label: 'Drought', icon: 'Sun', implemented: true },
     { key: 'avalanche', label: 'Avalanche', icon: 'Snowflake', implemented: false },
     { key: 'other', label: 'Other (Please specify)', icon: 'HelpCircle', implemented: false },
   ],

@@ -20,6 +20,7 @@ import { getActiveRegion } from '../config/regions.js'
 import { fetchAndBroadcastLevels } from './riverLevelService.js'
 import { calculateThreatLevel } from './threatLevelService.js'
 import { aiClient } from './aiClient.js'
+import { broadcastIncidentAlert, broadcastPredictionUpdate } from './socket.js'
 
 const region = getActiveRegion()
 
@@ -863,7 +864,72 @@ export function activateFallbackJobs(): void {
     ),
   )
 
-  console.log(`[Cron/Fallback] ${fallbackTasks.length} fallback jobs activated (covering all 10 incident types)`)
+  // ─── WF16 Fallback: Drought — precipitation deficit every 6 hours ─────────
+  fallbackTasks.push(
+    cron.schedule('0 */6 * * *', () =>
+      runJob('fallback_drought_monitor', async () => {
+        try {
+          const { getIncidentModule } = await import('../incidents/index.js')
+          const mod = getIncidentModule('drought')
+          if (!mod) return 0
+          const predictions = await mod.getPredictions(process.env.REGION_ID || 'aberdeen_scotland_uk')
+          return predictions.length
+        } catch (e: any) {
+          console.warn(`[Fallback/WF16] ${e.message}`)
+          return 0
+        }
+      }),
+    ),
+  )
+
+  // ─── Real-time broadcast: push all active predictions to Socket.IO clients ──
+  // Runs every 5 minutes so dashboards stay live without polling.
+  fallbackTasks.push(
+    cron.schedule('*/5 * * * *', () =>
+      runJob('fallback_broadcast_predictions', async () => {
+        try {
+          const { getIncidentModule } = await import('../incidents/index.js')
+          const regionId = process.env.REGION_ID || 'aberdeen_scotland_uk'
+          const incidentTypes = [
+            'flood', 'severe_storm', 'heatwave', 'wildfire', 'landslide',
+            'drought', 'environmental_hazard',
+          ]
+          const allPredictions: unknown[] = []
+          for (const type of incidentTypes) {
+            try {
+              const mod = getIncidentModule(type)
+              if (!mod) continue
+              const preds = await mod.getPredictions(regionId)
+              allPredictions.push(...preds)
+              // Broadcast individual high/critical alerts immediately
+              for (const p of preds as any[]) {
+                if (p.riskLevel === 'High' || p.riskLevel === 'Critical') {
+                  broadcastIncidentAlert({
+                    incidentType: type,
+                    regionId,
+                    riskLevel: p.riskLevel,
+                    probability: p.probability ?? 0,
+                    confidence: p.confidence ?? 0,
+                    title: `${type.replace(/_/g, ' ')} alert`,
+                    description: p.summary ?? `${p.riskLevel} risk detected`,
+                    timestamp: new Date().toISOString(),
+                    sourceModel: p.modelVersion,
+                  })
+                }
+              }
+            } catch (_) { /* skip failed modules */ }
+          }
+          broadcastPredictionUpdate(regionId, allPredictions)
+          return allPredictions.length
+        } catch (e: any) {
+          console.warn(`[Fallback/broadcast] ${e.message}`)
+          return 0
+        }
+      }),
+    ),
+  )
+
+  console.log(`[Cron/Fallback] ${fallbackTasks.length} fallback jobs activated (covering all 11 incident types)`)
 }
 
 /**

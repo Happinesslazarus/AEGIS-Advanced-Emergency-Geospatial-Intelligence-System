@@ -11,6 +11,7 @@ const I = {
   GRIEF: 'grief', MENTAL: 'mental', CHILD_SUPPORT: 'child_support',
   TSUNAMI: 'tsunami', VOLCANO: 'volcano', LANDSLIDE: 'landslide',
   NUCLEAR: 'nuclear', TERROR: 'terror', PANDEMIC: 'pandemic',
+  HEATWAVE: 'heatwave', DROUGHT: 'drought',
   THANKS: 'thanks', UNK: 'unknown',
 } as const
 
@@ -26,6 +27,8 @@ const KW: { kw: string[]; i: Intent }[] = [
   { kw: ['nuclear','radiation','chemical','hazmat','biohazard','contamination'], i: I.NUCLEAR },
   { kw: ['attack','terrorism','shooting','bomb','explosion','suspicious','active shooter'], i: I.TERROR },
   { kw: ['pandemic','epidemic','virus','outbreak','quarantine','covid','infection'], i: I.PANDEMIC },
+  { kw: ['heatwave','heat wave','extreme heat','hot weather','heat stroke','heat exhaustion','temperature','sweltering','too hot','canicule','ola de calor','موجة حر','热浪','लू','onda de calor'], i: I.HEATWAVE },
+  { kw: ['drought','dry','no rain','water shortage','crop failure','water scarcity','sécheresse','sequía','جفاف','干旱','सूखा','seca','ukame'], i: I.DROUGHT },
   { kw: ['evacuate','evacuation','leave','escape','route','way out','evacuar','évacuer'], i: I.EVAC },
   { kw: ['first aid','injured','hurt','bleeding','cpr','wound','broken','fracture'], i: I.AID },
   { kw: ['emergency number','call','phone','999','911','112','ambulance','police','fire brigade'], i: I.CONTACTS },
@@ -79,8 +82,10 @@ const R: Record<Intent, string> = {
   [I.GRIEF]: "💙 **I'm sorry for your loss.** Whether home, belongings, safety, or someone you love — grief is grief.\n\n• No right way to grieve\n• Waves are normal\n• Accepting help isn't weakness\n\n**Support:**\n• **Samaritans:** 116 123\n• **Cruse Bereavement:** 0808 808 1677\n• **Red Cross:** 0800 068 4141\n• **GP** for counselling\n\nNeed practical help with insurance or shelter?",
   [I.MENTAL]: "💙 **Your mental health matters.**\n\nCommon after disasters: sleep issues, irritability, replaying events, worry, physical symptoms (headaches, fatigue).\n\n**What helps:**\n• Stay connected with people\n• Keep basic routines\n• Be kind to yourself\n• Limit distressing news\n• Accept help\n\n**24/7 Support:**\n• **Samaritans:** 116 123\n• **Crisis text:** SHOUT to 85258\n• **NHS 111** press 2 for mental health\n• **Mind:** 0300 123 3393\n\n**You don't have to cope alone.**",
   [I.CHILD_SUPPORT]: "💙 **Helping a scared child:**\n\n• Stay calm — they mirror your emotions\n• Simple honest explanations: \"There's been flooding. We're safe. Adults are fixing it.\"\n• Physical comfort — hugs, holding, favourite toy\n• Let them express through talking, drawing, play\n• Maintain routines where possible\n• Limit their exposure to news\n\n**Normal reactions:** clinginess, bedwetting, nightmares, appetite changes\n\n**If worried:**\n• **Childline:** 0800 1111\n• **NSPCC:** 0808 800 5000\n• **GP** for specialist referral\n\nChildren are resilient with a caring adult beside them.",
+  [I.HEATWAVE]: "☀ **Extreme Heat / Heatwave**\n\n**Stay cool:**\n• Stay indoors during peak heat (11am–3pm)\n• Close blinds/curtains on sun-facing windows\n• Open windows at night for cool air\n• Use fans + damp towels\n\n**Stay hydrated:**\n• Drink water regularly — don't wait until thirsty\n• Avoid alcohol, caffeine, and sugary drinks\n\n**Signs of heat stroke (emergency — call 999):**\n• High body temp (above 40°C), confusion, no sweating\n• Cool person immediately: ice packs to neck/armpits/groin, fan them\n\n**Heat exhaustion (not emergency but serious):**\n• Heavy sweating, pale skin, fast weak pulse, nausea\n• Move to cool place, lie down, sip water\n\n**Protect others:**\n• Check on elderly, young children, pets\n• Never leave anyone in a parked car",
+  [I.DROUGHT]: "🌵 **Drought — Water Scarcity**\n\n**Conserve water:**\n• Fix any leaks immediately\n• Short showers (4 min), not baths\n• Only run dishwasher/washing machine when full\n• Collect grey water to water plants\n• Water garden in early morning or evening\n\n**Food and farming:**\n• Check crop damage reports via AEGIS\n• Water restrictions may be in effect — follow local authority guidance\n• Avoid burning (fire risk is elevated during drought)\n\n**Health and safety:**\n• Drink sufficient water — dehydration risk is higher\n• Watch for dust and reduced air quality\n• Rivers and reservoirs may be lower — drowning risk at edges\n\n**Report:** Use AEGIS to report water supply disruptions or critically low river levels.",
   [I.THANKS]: "You're welcome! Stay safe. I'm here anytime you need guidance. 💙\n\nRemember: **999 for emergencies** | **AEGIS for reporting**",
-  [I.UNK]: "I can help with:\n\n• **Any disaster** — flood, earthquake, fire, storm, tsunami, volcano, landslide, nuclear, pandemic\n• **Evacuation, shelter, supplies**\n• **Emergency contacts** (UK, US, EU, Australia, India)\n• **Mental health** support\n• **First aid** basics\n• **How to report** incidents\n\nI understand **multiple languages** — ask in yours!\n\nTry: \"What do I do in a flood?\" or \"I'm feeling overwhelmed\" or \"emergency numbers\"",
+  [I.UNK]: "I can help with:\n\n• **Any disaster** — flood, earthquake, fire, storm, tsunami, volcano, landslide, heatwave, drought, nuclear, pandemic\n• **Evacuation, shelter, supplies**\n• **Emergency contacts** (UK, US, EU, Australia, India)\n• **Mental health** support\n• **First aid** basics\n• **How to report** incidents\n\nI understand **multiple languages** — ask in yours!\n\nTry: \"What do I do in a flood?\", \"Heatwave safety\", \"Drought water tips\", or \"emergency numbers\"",
 }
 
 function detect(msg: string): { intent: Intent; conf: number } {
@@ -101,12 +106,15 @@ export function generateChatResponse(message: string): ChatResponse {
 
 export function getSuggestions(lang: string = 'en'): string[] {
   const s: Record<string, string[]> = {
-    en: ['What do I do in a flood?', 'I feel overwhelmed', 'Emergency contacts', 'How to report', 'Earthquake safety', 'My child is scared', 'Emergency kit list'],
-    es: ['¿Qué hago en una inundación?', 'Contactos de emergencia', 'Me siento abrumado'],
-    fr: ["Que faire en cas d'inondation?", "Contacts d'urgence", 'Je suis dépassé'],
-    ar: ['ماذا أفعل في الفيضان؟', 'جهات اتصال الطوارئ', 'أشعر بالقلق'],
-    zh: ['洪水中该怎么办？', '紧急联系方式', '我很焦虑'],
-    hi: ['बाढ़ में क्या करें?', 'आपातकालीन संपर्क', 'मुझे चिंता हो रही है'],
+    en: ['What do I do in a flood?', 'Heatwave safety tips', 'Drought water conservation', 'I feel overwhelmed', 'Emergency contacts', 'How to report', 'Earthquake safety', 'My child is scared', 'Emergency kit list'],
+    es: ['¿Qué hago en una inundación?', 'Consejos para ola de calor', 'Contactos de emergencia', 'Me siento abrumado'],
+    fr: ["Que faire en cas d'inondation?", 'Conseils canicule', "Contacts d'urgence", 'Je suis dépassé'],
+    ar: ['ماذا أفعل في الفيضان؟', 'نصائح موجة الحر', 'جهات اتصال الطوارئ', 'أشعر بالقلق'],
+    zh: ['洪水中该怎么办？', '热浪安全提示', '干旱节水建议', '紧急联系方式', '我很焦虑'],
+    hi: ['बाढ़ में क्या करें?', 'लू से बचाव', 'सूखे में पानी बचाएं', 'आपातकालीन संपर्क', 'मुझे चिंता हो रही है'],
+    de: ['Was tun bei einer Überschwemmung?', 'Hitzewell-Sicherheitstipps', 'Notrufnummern', 'Ich fühle mich überfordert'],
+    pt: ['O que fazer em uma inundação?', 'Dicas para onda de calor', 'Contactos de emergência', 'Estou me sentindo sobrecarregado'],
+    sw: ['Nifanye nini wakati wa mafuriko?', 'Vidokezo vya wimbi la joto', 'Nambari za dharura', 'Ninahisi kuzidiwa'],
   }
   return s[lang] || s.en
 }

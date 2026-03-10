@@ -1,7 +1,7 @@
 {
   "title": "Incidents",
   "filter": { "all": "Tous", "active": "Actifs", "resolved": "Résolus", "byType": "Par type" },
-  "types": { "flood": "Inondation", "severe_storm": "Tempête violente", "heatwave": "Canicule", "wildfire": "Feu de forêt", "landslide": "Glissement de terrain", "power_outage": "Panne de courant", "water_supply_disruption": "Coupure d'eau", "infrastructure_damage": "Dommage infrastructure", "public_safety_incident": "Incident sécurité publique", "environmental_hazard": "Risque environnemental" },
+  "types": { "flood": "Inondation", "severe_storm": "Tempête violente", "heatwave": "Canicule", "wildfire": "Feu de forêt", "landslide": "Glissement de terrain", "power_outage": "Panne de courant", "water_supply_disruption": "Coupure d'eau", "infrastructure_damage": "Dommage infrastructure", "public_safety_incident": "Incident sécurité publique", "environmental_hazard": "Risque environnemental", "drought": "Sécheresse" },
   "categories": { "natural_disaster": "Catastrophe naturelle", "community_safety": "Sécurité communautaire", "infrastructure": "Infrastructure", "public_safety": "Sécurité publique", "environmental": "Environnement" },
   "status": { "fully_operational": "Opérationnel", "partial": "Partiellement opérationnel", "configured_only": "Configuré uniquement", "disabled": "Désactivé" },
   "predictions": { "title": "Prédictions", "noPredictions": "Aucune prédiction", "confidence": "Confiance", "probability": "Probabilité", "source": "Source", "ruleBasedNote": "Analyse basée sur règles.", "statisticalNote": "Modèle statistique.", "mlNote": "Apprentissage automatique." },

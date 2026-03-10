@@ -70,6 +70,49 @@ const communityOnlineUsers = new Map<string, {
 // Per-user message rate limiting (in-memory, clears on restart)
 const messageRateLimits = new Map<string, { count: number; resetAt: number }>()
 
+// ─── Incident Alert Broadcast API ────────────────────────────────────────────
+// Allows server-side services (cronJobs, incident modules, n8n webhooks) to
+// push real-time incident predictions and alerts to all connected clients.
+
+let _io: Server | null = null
+
+export interface IncidentAlertPayload {
+  incidentType: string
+  regionId: string
+  riskLevel: 'Low' | 'Medium' | 'High' | 'Critical'
+  probability: number
+  confidence: number
+  title: string
+  description: string
+  affectedArea?: { lat: number; lng: number; radiusKm: number }
+  timestamp: string
+  sourceModel?: string
+}
+
+/**
+ * Broadcast a new incident prediction alert to all connected clients.
+ * Called by cronJobs, incident modules, and n8n webhook handlers.
+ */
+export function broadcastIncidentAlert(payload: IncidentAlertPayload): void {
+  if (!_io) return
+  _io.emit('incident:alert', payload)
+  // Also target the admins room for high/critical alerts
+  if (payload.riskLevel === 'High' || payload.riskLevel === 'Critical') {
+    _io.to('admins').emit('incident:alert:priority', payload)
+  }
+  devLog(`[Socket] broadcast incident:alert ${payload.incidentType}@${payload.regionId} risk=${payload.riskLevel}`)
+}
+
+/**
+ * Broadcast a batch prediction update (e.g. periodic refresh of all active predictions).
+ * Clients use this to update their dashboards without polling.
+ */
+export function broadcastPredictionUpdate(regionId: string, predictions: unknown[]): void {
+  if (!_io) return
+  _io.emit('incident:predictions_updated', { regionId, predictions, timestamp: new Date().toISOString() })
+  devLog(`[Socket] broadcast incident:predictions_updated region=${regionId} count=${predictions.length}`)
+}
+
 export function initSocketServer(httpServer: HttpServer): Server {
   const io = new Server(httpServer, {
     cors: {
@@ -86,6 +129,9 @@ export function initSocketServer(httpServer: HttpServer): Server {
     },
     transports: ['websocket', 'polling'],
   })
+
+  // Store io reference so broadcastIncidentAlert / broadcastPredictionUpdate work
+  _io = io
 
   // ─── Initialize Database Tables on Startup ───────────────────────────────────
   initDb().catch(err => console.error('[Socket] Database initialization error:', err.message))

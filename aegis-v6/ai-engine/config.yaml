@@ -128,7 +128,7 @@ hazards:
       critical: 0.90
 
   wildfire:
-    enabled: false
+    enabled: true
     priority: 4
     models:
       - name: "ignition_risk"
@@ -138,6 +138,104 @@ hazards:
     thresholds:
       low: 0.20
       medium: 0.45
+      high: 0.70
+      critical: 0.85
+
+  severe_storm:
+    enabled: true
+    priority: 5
+    models:
+      - name: "storm_xgboost"
+        type: "gradient_boosting"
+        architecture: "XGBoost"
+
+    thresholds:
+      low: 0.25
+      medium: 0.50
+      high: 0.72
+      critical: 0.88
+
+  landslide:
+    enabled: true
+    priority: 6
+    models:
+      - name: "slope_failure_rf"
+        type: "ensemble"
+        architecture: "RandomForest"
+
+    thresholds:
+      low: 0.20
+      medium: 0.45
+      high: 0.68
+      critical: 0.85
+
+  power_outage:
+    enabled: true
+    priority: 7
+    models:
+      - name: "outage_predictor"
+        type: "gradient_boosting"
+        architecture: "LightGBM"
+
+    thresholds:
+      low: 0.30
+      medium: 0.55
+      high: 0.75
+      critical: 0.90
+
+  water_supply_disruption:
+    enabled: true
+    priority: 8
+    models:
+      - name: "supply_risk_lgbm"
+        type: "gradient_boosting"
+        architecture: "LightGBM"
+
+    thresholds:
+      low: 0.25
+      medium: 0.50
+      high: 0.72
+      critical: 0.88
+
+  infrastructure_damage:
+    enabled: true
+    priority: 9
+    models:
+      - name: "structural_risk_rf"
+        type: "ensemble"
+        architecture: "RandomForest"
+
+    thresholds:
+      low: 0.25
+      medium: 0.50
+      high: 0.72
+      critical: 0.88
+
+  public_safety_incident:
+    enabled: true
+    priority: 10
+    models:
+      - name: "safety_classifier"
+        type: "gradient_boosting"
+        architecture: "XGBoost"
+
+    thresholds:
+      low: 0.30
+      medium: 0.55
+      high: 0.75
+      critical: 0.90
+
+  environmental_hazard:
+    enabled: true
+    priority: 11
+    models:
+      - name: "hazard_detector"
+        type: "gradient_boosting"
+        architecture: "LightGBM"
+
+    thresholds:
+      low: 0.25
+      medium: 0.50
       high: 0.70
       critical: 0.85
 
@@ -154,13 +252,40 @@ model_registry:
         - flood
         - drought
         - heatwave
+        - wildfire
+        - severe_storm
+        - landslide
+        - power_outage
+        - water_supply_disruption
+        - infrastructure_damage
+        - public_safety_incident
+        - environmental_hazard
     - region: "uk"
       hazards:
         - flood
         - drought
+        - heatwave
+        - wildfire
+        - severe_storm
+        - landslide
+        - power_outage
+        - water_supply_disruption
+        - infrastructure_damage
+        - public_safety_incident
+        - environmental_hazard
     - region: "global"
       hazards:
         - flood
+        - drought
+        - heatwave
+        - wildfire
+        - severe_storm
+        - landslide
+        - power_outage
+        - water_supply_disruption
+        - infrastructure_damage
+        - public_safety_incident
+        - environmental_hazard
 
 # ────────────────────────────────────────────────────────────────────────────────
 # TRAINING PIPELINE CONFIGURATION

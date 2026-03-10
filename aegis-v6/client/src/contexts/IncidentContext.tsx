@@ -22,7 +22,7 @@ import {
 export type IncidentTypeId =
   | 'flood' | 'severe_storm' | 'heatwave' | 'wildfire' | 'landslide'
   | 'power_outage' | 'water_supply' | 'infrastructure_damage'
-  | 'public_safety' | 'environmental_hazard'
+  | 'public_safety' | 'environmental_hazard' | 'drought'
 
 export interface IncidentFilter {
   types: IncidentTypeId[]       // empty = all types

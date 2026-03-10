@@ -16,7 +16,8 @@
     "water_supply_disruption": "Water Supply Disruption",
     "infrastructure_damage": "Infrastructure Damage",
     "public_safety_incident": "Public Safety Incident",
-    "environmental_hazard": "Environmental Hazard"
+    "environmental_hazard": "Environmental Hazard",
+    "drought": "Drought"
   },
   "categories": {
     "natural_disaster": "Natural Disaster",
@@ -71,7 +72,10 @@
     "policeRequired": "Police Required",
     "hazardMaterial": "Hazard Material",
     "airOrWaterImpact": "Air/Water Impact",
-    "containmentNeeded": "Containment Needed"
+    "containmentNeeded": "Containment Needed",
+    "cropDamageReported": "Crop Damage Reported",
+    "waterRestrictions": "Water Restrictions in Place",
+    "riverLevelLow": "River Level Critically Low"
   },
   "report": {
     "selectType": "Select Incident Type",

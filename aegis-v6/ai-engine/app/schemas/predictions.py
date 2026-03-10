@@ -23,6 +23,7 @@ class HazardType(str, Enum):
     INFRASTRUCTURE = "infrastructure_damage"
     PUBLIC_SAFETY = "public_safety_incident"
     ENVIRONMENTAL = "environmental_hazard"
+    DROUGHT = "drought"
     # Training-specific types
     ALL = "all"
     SEVERITY = "severity"

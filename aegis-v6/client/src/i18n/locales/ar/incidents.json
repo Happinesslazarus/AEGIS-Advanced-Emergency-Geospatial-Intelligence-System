@@ -9,7 +9,8 @@
     "water_supply": { "name": "إمدادات المياه", "description": "تلوث المياه أو انقطاعها", "icon": "droplet-off" },
     "infrastructure_damage": { "name": "أضرار البنية التحتية", "description": "أضرار في الطرق والجسور والمباني", "icon": "hard-hat" },
     "public_safety": { "name": "السلامة العامة", "description": "حوادث السلامة وحالات الطوارئ الجماعية", "icon": "shield-alert" },
-    "environmental_hazard": { "name": "مخاطر بيئية", "description": "تلوث الهواء والتسربات الكيميائية", "icon": "biohazard" }
+    "environmental_hazard": { "name": "مخاطر بيئية", "description": "تلوث الهواء والتسربات الكيميائية", "icon": "biohazard" },
+    "drought": { "name": "جفاف", "description": "نقص هطول الأمطار وشح المياه", "icon": "sun" }
   },
   "severity": { "low": "منخفض", "medium": "متوسط", "high": "مرتفع", "critical": "حرج" },
   "status": { "active": "نشط", "monitoring": "قيد المراقبة", "resolved": "تم الحل", "predicted": "متوقع", "confirmed": "مؤكد", "declined": "متراجع" },
@@ -23,7 +24,8 @@
     "contaminationType": "نوع التلوث", "areaAffected": "المنطقة المتأثرة", "alternativeSupply": "إمداد بديل",
     "structureType": "نوع الهيكل", "damageLevel": "مستوى الضرر", "isOccupied": "مأهول بالسكان",
     "injuriesReported": "إصابات مُبلغ عنها", "crowdSize": "حجم الحشد", "hazmatInvolved": "مواد خطرة",
-    "pollutantType": "نوع الملوث", "aqi": "مؤشر جودة الهواء", "concentration": "التركيز (ميكروغرام/م³)"
+    "pollutantType": "نوع الملوث", "aqi": "مؤشر جودة الهواء", "concentration": "التركيز (ميكروغرام/م³)",
+    "cropDamageReported": "أضرار المحاصيل مُبلَّغ عنها", "waterRestrictions": "قيود على المياه", "riverLevelLow": "منسوب النهر منخفض جداً"
   },
   "aiTier": { "rule_based": "قائم على القواعد", "statistical": "تحليل إحصائي", "ml": "تعلم آلي" },
   "operationalStatus": { "fully_operational": "يعمل بالكامل", "partial": "جزئي", "configured_only": "مُعد فقط", "disabled": "معطل" },

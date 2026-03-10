@@ -16,7 +16,8 @@
     "water_supply_disruption": "供水中断",
     "infrastructure_damage": "基础设施损毁",
     "public_safety_incident": "公共安全事件",
-    "environmental_hazard": "环境危害"
+    "environmental_hazard": "环境危害",
+    "drought": "干旱"
   },
   "categories": {
     "natural_disaster": "自然灾害",
@@ -71,7 +72,10 @@
     "policeRequired": "需要警察",
     "hazardMaterial": "危险物质",
     "airOrWaterImpact": "空气/水体影响",
-    "containmentNeeded": "需要控制"
+    "containmentNeeded": "需要控制",
+    "cropDamageReported": "农作物损失已报告",
+    "waterRestrictions": "限水令已生效",
+    "riverLevelLow": "河流水位严重偏低"
   },
   "report": {
     "selectType": "选择事件类型",

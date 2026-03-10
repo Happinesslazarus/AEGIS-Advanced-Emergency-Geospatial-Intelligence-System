@@ -16,7 +16,8 @@
     "water_supply_disruption": "Usumbufu wa Maji",
     "infrastructure_damage": "Uharibifu wa Miundombinu",
     "public_safety_incident": "Tukio la Usalama wa Umma",
-    "environmental_hazard": "Hatari ya Kimazingira"
+    "environmental_hazard": "Hatari ya Kimazingira",
+    "drought": "Ukame"
   },
   "categories": {
     "natural_disaster": "Msiba wa Asili",
@@ -71,7 +72,10 @@
     "policeRequired": "Polisi inahitajika",
     "hazardMaterial": "Nyenzo hatari",
     "airOrWaterImpact": "Athari kwa hewa/maji",
-    "containmentNeeded": "Kizuizi kinahitajika"
+    "containmentNeeded": "Kizuizi kinahitajika",
+    "cropDamageReported": "Uharibifu wa mazao umeripotiwa",
+    "waterRestrictions": "Vikwazo vya maji vipo",
+    "riverLevelLow": "Kiwango cha mto kiko chini sana"
   },
   "report": {
     "selectType": "Chagua aina ya tukio",

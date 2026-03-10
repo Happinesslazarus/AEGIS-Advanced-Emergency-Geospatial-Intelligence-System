@@ -26,6 +26,7 @@ const INCIDENT_COLORS: Record<string, string> = {
   infrastructure_damage: '#78716C',
   public_safety: '#EF4444',
   environmental_hazard: '#16A34A',
+  drought: '#D97706',
 }
 
 const INCIDENT_ICONS: Record<string, string> = {
@@ -39,6 +40,7 @@ const INCIDENT_ICONS: Record<string, string> = {
   infrastructure_damage: '🏗️',
   public_safety: '🛡️',
   environmental_hazard: '☣️',
+  drought: '🌵',
 }
 
 const SEVERITY_OPACITY: Record<string, number> = {

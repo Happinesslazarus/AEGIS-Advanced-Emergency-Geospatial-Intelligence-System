@@ -5,7 +5,8 @@
     "flood": "Inundación", "severe_storm": "Tormenta Severa", "heatwave": "Ola de Calor",
     "wildfire": "Incendio Forestal", "landslide": "Deslizamiento", "power_outage": "Apagón",
     "water_supply_disruption": "Interrupción de Agua", "infrastructure_damage": "Daño a Infraestructura",
-    "public_safety_incident": "Incidente de Seguridad Pública", "environmental_hazard": "Peligro Ambiental"
+    "public_safety_incident": "Incidente de Seguridad Pública", "environmental_hazard": "Peligro Ambiental",
+    "drought": "Sequía"
   },
   "categories": {
     "natural_disaster": "Desastre Natural", "community_safety": "Seguridad Comunitaria",

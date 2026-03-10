@@ -55,7 +55,7 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
     setLoading(true)
     try {
       const token = localStorage.getItem('aegis-token')
-      const authHeaders = token ? { Authorization: `Bearer ${token}` } : {}
+      const authHeaders: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {}
       const [threatRes, riverRes, distressRes] = await Promise.all([
         fetch(`${API}/api/incidents/flood/threat`).catch(() => null),
         fetch(`${API}/api/rivers/levels`).catch(() => null),
