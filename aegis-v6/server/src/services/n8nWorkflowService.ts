@@ -83,10 +83,12 @@ async function getExistingWorkflows(baseUrl: string): Promise<Map<string, string
  */
 async function createWorkflow(baseUrl: string, def: WorkflowDef): Promise<string | null> {
   try {
+    // n8n API rejects `active` in the POST body — strip it and use /activate after creation
+    const { active: _active, ...payload } = def
     const res = await fetch(`${baseUrl}/api/v1/workflows`, {
       method: 'POST',
       headers: n8nHeaders(),
-      body: JSON.stringify(def),
+      body: JSON.stringify(payload),
       signal: AbortSignal.timeout(15000),
     })
     if (!res.ok) {
