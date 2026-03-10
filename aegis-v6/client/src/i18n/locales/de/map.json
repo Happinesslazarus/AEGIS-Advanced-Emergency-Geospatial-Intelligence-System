@@ -1,0 +1,43 @@
+{
+  "title": "Karte",
+  "layers": {
+    "title": "Kartenebenen",
+    "base": "Basiskarte",
+    "flood": "Hochwasserschicht",
+    "wildfire": "Waldbrandschicht",
+    "heatwave": "Hitzewellenschicht",
+    "storm": "Sturmschicht",
+    "infrastructure": "Infrastrukturschicht",
+    "reports": "Bürgerberichte",
+    "evacuation": "Evakuierungsrouten",
+    "shelters": "Notunterkünfte",
+    "sensors": "Sensoren",
+    "satellite": "Satellitenbilder"
+  },
+  "controls": {
+    "zoomIn": "Vergrößern",
+    "zoomOut": "Verkleinern",
+    "myLocation": "Mein Standort",
+    "fullscreen": "Vollbild",
+    "layerControl": "Ebenensteuerung",
+    "measure": "Entfernung messen",
+    "draw": "Bereich zeichnen"
+  },
+  "legend": {
+    "title": "Legende",
+    "low": "Niedriges Risiko",
+    "medium": "Mittleres Risiko",
+    "high": "Hohes Risiko",
+    "critical": "Kritisches Risiko",
+    "activeIncident": "Aktiver Vorfall",
+    "resolvedIncident": "Gelöst"
+  },
+  "popup": {
+    "incidentType": "Vorfalltyp",
+    "severity": "Schweregrad",
+    "reportedAt": "Gemeldet am",
+    "lastUpdate": "Letzte Aktualisierung",
+    "viewDetails": "Details anzeigen",
+    "navigate": "Hierhin navigieren"
+  }
+}

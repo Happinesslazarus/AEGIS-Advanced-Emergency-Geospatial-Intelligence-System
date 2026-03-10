@@ -1,0 +1,70 @@
+{
+  "name": "AEGIS WF14 — Public Safety Incident Monitor",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "minutes", "minutesInterval": 3 }] } },
+      "name": "Schedule (3 min)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [200, 300],
+      "id": "wf14-trigger"
+    },
+    {
+      "parameters": {
+        "url": "={{$env.AEGIS_BACKEND_URL || 'http://localhost:3001'}}/api/v1/incidents/public_safety_incident/active",
+        "options": { "timeout": 10000 },
+        "headerParametersJson": "{ \"User-Agent\": \"AEGIS-n8n/1.0\" }"
+      },
+      "name": "Fetch Public Safety Reports",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [420, 300],
+      "id": "wf14-active"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst reports = data.reports || [];\n\n// Time-weighted density: recent reports count more\nconst now = Date.now();\nconst recentReports = reports.filter(r => {\n  const age = now - new Date(r.created_at || Date.now()).getTime();\n  return age < 30 * 60 * 1000; // Last 30 minutes\n});\n\nconst injuries = reports.filter(r => r.custom_fields?.injuriesReported === true);\nconst largeCrowd = reports.filter(r => r.custom_fields?.crowdSize === 'large');\nconst policeRequired = reports.filter(r => r.custom_fields?.policeRequired === true);\nconst critical = reports.filter(r => r.severity === 'Critical');\n\nlet severity = 'Low';\nlet probability = 0.05;\nlet shouldAlert = false;\nlet message = '';\n\nif ((injuries.length >= 2) || (injuries.length >= 1 && largeCrowd.length >= 1)) {\n  severity = 'Critical';\n  probability = 0.92;\n  shouldAlert = true;\n  message = `MAJOR PUBLIC SAFETY INCIDENT: ${injuries.length} injury report(s). Large crowd involvement: ${largeCrowd.length > 0}. Emergency services required.`;\n} else if (critical.length >= 1 || (policeRequired.length >= 2)) {\n  severity = 'High';\n  probability = 0.75;\n  shouldAlert = true;\n  message = `${reports.length} public safety reports. ${critical.length} critical. Police required: ${policeRequired.length} reports.`;\n} else if (recentReports.length >= 5 || reports.length >= 8) {\n  severity = 'Medium';\n  probability = 0.50;\n  shouldAlert = true;\n  message = `Elevated public safety reports: ${reports.length} total, ${recentReports.length} in last 30 minutes.`;\n} else if (recentReports.length >= 2) {\n  severity = 'Low';\n  probability = 0.20;\n  shouldAlert = false;\n}\n\nreturn [{ json: {\n  incidentType: 'public_safety_incident',\n  severity,\n  probability,\n  reportCount: reports.length,\n  recentReports: recentReports.length,\n  injuryReports: injuries.length,\n  largeCrowdReports: largeCrowd.length,\n  policeRequired: policeRequired.length,\n  message,\n  shouldAlert,\n  timestamp: new Date().toISOString()\n}}];"
+      },
+      "name": "Evaluate Public Safety Risk",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [640, 300],
+      "id": "wf14-eval"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [{ "value1": "={{$json.shouldAlert}}", "operation": "equal", "value2": true }]
+        }
+      },
+      "name": "Should Alert?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [860, 300],
+      "id": "wf14-if"
+    },
+    {
+      "parameters": {
+        "url": "={{$env.AEGIS_BACKEND_URL || 'http://localhost:3001'}}/api/internal/incident-alert",
+        "method": "POST",
+        "bodyParametersJson": "={{ JSON.stringify({ incidentType: 'public_safety_incident', severity: $json.severity, probability: $json.probability, message: $json.message, source: 'n8n_public_safety_monitor', metadata: { reportCount: $json.reportCount, injuries: $json.injuryReports, recentReports: $json.recentReports } }) }}",
+        "options": { "timeout": 10000 },
+        "headerParametersJson": "{ \"Content-Type\": \"application/json\", \"User-Agent\": \"AEGIS-n8n/1.0\" }"
+      },
+      "name": "Post Alert to AEGIS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1080, 200],
+      "id": "wf14-post"
+    }
+  ],
+  "connections": {
+    "Schedule (3 min)": { "main": [[{ "node": "Fetch Public Safety Reports", "type": "main", "index": 0 }]] },
+    "Fetch Public Safety Reports": { "main": [[{ "node": "Evaluate Public Safety Risk", "type": "main", "index": 0 }]] },
+    "Evaluate Public Safety Risk": { "main": [[{ "node": "Should Alert?", "type": "main", "index": 0 }]] },
+    "Should Alert?": { "main": [[{ "node": "Post Alert to AEGIS", "type": "main", "index": 0 }], []] }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "aegis" }, { "name": "public_safety" }, { "name": "tier1" }]
+}

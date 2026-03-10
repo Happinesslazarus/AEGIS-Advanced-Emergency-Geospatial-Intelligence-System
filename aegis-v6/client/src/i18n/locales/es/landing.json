@@ -1,0 +1,4 @@
+{
+  "hero": { "title": "AEGIS", "subtitle": "Sistema Avanzado de Inteligencia Geoespacial de Emergencias", "description": "Plataforma de respuesta ante desastres impulsada por IA multimodal." },
+  "cta": { "citizen": "Interfaz Ciudadana", "operator": "Consola del Operador" }
+}

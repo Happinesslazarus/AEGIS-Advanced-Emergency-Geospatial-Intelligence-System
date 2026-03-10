@@ -102,7 +102,12 @@ export default function IncidentMapLayers({
     setLoading(true)
     try {
       const data = await apiGetAllIncidentMapData(region)
-      setMapDataByType(data.mapData || {})
+      // Server returns { layers: IncidentMapData[] } — index by incidentType
+      const byType: Record<string, IncidentMapData> = {}
+      for (const layer of (data.layers || [])) {
+        byType[layer.incidentType] = layer
+      }
+      setMapDataByType(byType)
     } catch (err) {
       console.error('[IncidentMapLayers] Failed to fetch map data:', err)
     } finally {

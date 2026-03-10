@@ -1,0 +1,70 @@
+{
+  "name": "AEGIS WF10 — Landslide Risk Monitor",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "hours", "hoursInterval": 3 }] } },
+      "name": "Schedule (3h)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [200, 300],
+      "id": "wf10-trigger"
+    },
+    {
+      "parameters": {
+        "url": "https://api.open-meteo.com/v1/forecast?latitude=57.15&longitude=-2.09&daily=precipitation_sum,soil_moisture_0_to_7cm_mean,soil_moisture_7_to_28cm_mean&hourly=precipitation,soil_moisture_0_to_7cm&timezone=auto&past_days=7&forecast_days=5",
+        "options": { "timeout": 15000 },
+        "headerParametersJson": "{ \"User-Agent\": \"AEGIS-Landslide/1.0\" }"
+      },
+      "name": "Fetch Rainfall & Soil Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [420, 300],
+      "id": "wf10-data"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst dailyPrecip = data.daily?.precipitation_sum || [];\nconst soilMoisture = data.daily?.soil_moisture_0_to_7cm_mean || [];\nconst deepSoil = data.daily?.soil_moisture_7_to_28cm_mean || [];\n\n// Landslide Susceptibility Index\n// Based on: cumulative 7-day rainfall + current soil saturation\nconst past7DayRain = dailyPrecip.slice(0, 7).reduce((s, v) => s + (v || 0), 0);\nconst next3DayRain = dailyPrecip.slice(7, 10).reduce((s, v) => s + (v || 0), 0);\nconst avgSoilMoisture = soilMoisture.length\n  ? soilMoisture.slice(0, 5).reduce((s, v) => s + (v || 0), 0) / Math.max(1, soilMoisture.slice(0, 5).length)\n  : 0.3;\nconst avgDeepSoil = deepSoil.length\n  ? deepSoil.slice(0, 5).reduce((s, v) => s + (v || 0), 0) / Math.max(1, deepSoil.slice(0, 5).length)\n  : 0.3;\n\n// LSI score (0-100)\nconst rainScore = Math.min(50, past7DayRain * 0.8);\nconst futureRainBoost = Math.min(20, next3DayRain * 1.5);\nconst soilScore = (avgSoilMoisture + avgDeepSoil) * 25; // 0-50 range\nconst lsi = rainScore + soilScore + futureRainBoost;\n\nlet severity = 'Low';\nlet probability = 0.05;\nlet action = 'monitor';\n\nif (lsi >= 80 || (past7DayRain >= 80 && avgSoilMoisture >= 0.7)) {\n  severity = 'Critical'; probability = 0.80; action = 'close_at_risk_roads';\n} else if (lsi >= 60 || (past7DayRain >= 50 && avgSoilMoisture >= 0.5)) {\n  severity = 'High'; probability = 0.60; action = 'issue_landslide_warning';\n} else if (lsi >= 40 || past7DayRain >= 30) {\n  severity = 'Medium'; probability = 0.35; action = 'issue_landslide_advisory';\n}\n\nreturn [{ json: {\n  incidentType: 'landslide',\n  severity,\n  probability,\n  lsi: Math.round(lsi * 10) / 10,\n  past7DayRainMm: Math.round(past7DayRain * 10) / 10,\n  next3DayRainMm: Math.round(next3DayRain * 10) / 10,\n  avgSoilMoisture: Math.round(avgSoilMoisture * 1000) / 1000,\n  action,\n  shouldAlert: severity !== 'Low',\n  timestamp: new Date().toISOString()\n}}];"
+      },
+      "name": "Calculate Landslide Risk",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [640, 300],
+      "id": "wf10-analyse"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [{ "value1": "={{$json.shouldAlert}}", "operation": "equal", "value2": true }]
+        }
+      },
+      "name": "Should Alert?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [860, 300],
+      "id": "wf10-if"
+    },
+    {
+      "parameters": {
+        "url": "={{$env.AEGIS_BACKEND_URL || 'http://localhost:3001'}}/api/internal/incident-alert",
+        "method": "POST",
+        "bodyParametersJson": "={{ JSON.stringify({ incidentType: 'landslide', severity: $json.severity, probability: $json.probability, message: 'Landslide Susceptibility Index: ' + $json.lsi + '. 7-day rainfall: ' + $json.past7DayRainMm + 'mm. Soil saturation: ' + Math.round($json.avgSoilMoisture * 100) + '%.', source: 'n8n_landslide_monitor', metadata: { lsi: $json.lsi, rainfall7d: $json.past7DayRainMm, soilMoisture: $json.avgSoilMoisture } }) }}",
+        "options": { "timeout": 10000 },
+        "headerParametersJson": "{ \"Content-Type\": \"application/json\", \"User-Agent\": \"AEGIS-n8n/1.0\" }"
+      },
+      "name": "Post Alert to AEGIS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1080, 200],
+      "id": "wf10-post"
+    }
+  ],
+  "connections": {
+    "Schedule (3h)": { "main": [[{ "node": "Fetch Rainfall & Soil Data", "type": "main", "index": 0 }]] },
+    "Fetch Rainfall & Soil Data": { "main": [[{ "node": "Calculate Landslide Risk", "type": "main", "index": 0 }]] },
+    "Calculate Landslide Risk": { "main": [[{ "node": "Should Alert?", "type": "main", "index": 0 }]] },
+    "Should Alert?": { "main": [[{ "node": "Post Alert to AEGIS", "type": "main", "index": 0 }], []] }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "aegis" }, { "name": "landslide" }, { "name": "tier2" }]
+}

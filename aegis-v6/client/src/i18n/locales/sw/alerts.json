@@ -1,0 +1,39 @@
+{
+  "title": "Tahadhari",
+  "activeAlerts": "Tahadhari Zinazofanya Kazi",
+  "noAlerts": "Hakuna tahadhari zinazofanya kazi",
+  "severity": {
+    "advisory": "Ushauri",
+    "warning": "Onyo",
+    "critical": "Dharura Kali"
+  },
+  "actions": {
+    "acknowledge": "Kubali",
+    "dismiss": "Funga",
+    "viewDetails": "Ona Maelezo",
+    "subscribeAlerts": "Jiandikishe kwa Tahadhari",
+    "unsubscribe": "Jitoe"
+  },
+  "channels": {
+    "push": "Arifa za Push",
+    "email": "Barua pepe",
+    "sms": "SMS",
+    "telegram": "Telegram",
+    "whatsapp": "WhatsApp"
+  },
+  "messages": {
+    "criticalAlert": "MBAYA SANA: {{incident}} — {{description}}",
+    "warningAlert": "ONYO: {{incident}} — {{description}}",
+    "advisoryAlert": "USHAURI: {{incident}} — {{description}}",
+    "newAlert": "Tahadhari mpya imepokelewa",
+    "alertExpired": "Tahadhari imeisha",
+    "alertAcknowledged": "Tahadhari imekubaliwa"
+  },
+  "subscribe": {
+    "title": "Usajili wa Tahadhari",
+    "description": "Chagua jinsi unavyotaka kupokea tahadhari za dharura",
+    "selectIncidents": "Chagua aina za matukio",
+    "selectSeverity": "Kiwango cha chini cha ukali",
+    "savePreferences": "Hifadhi Mapendeleo"
+  }
+}

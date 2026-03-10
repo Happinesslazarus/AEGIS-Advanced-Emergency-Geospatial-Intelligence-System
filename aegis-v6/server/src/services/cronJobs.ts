@@ -747,7 +747,123 @@ export function activateFallbackJobs(): void {
     cron.schedule('*/15 * * * *', () => runJob('fallback_sepa_alerts', ingestSEPAWarnings)),
   )
 
-  console.log(`[Cron/Fallback] ${fallbackTasks.length} fallback jobs activated`)
+  // ─── WF7 Fallback: Wildfire — Fire Danger Index every 15 min ──────────────
+  fallbackTasks.push(
+    cron.schedule('*/15 * * * *', () =>
+      runJob('fallback_wildfire_fdi', async () => {
+        try {
+          const { getIncidentModule } = await import('../incidents/index.js')
+          const mod = getIncidentModule('wildfire')
+          if (!mod) return 0
+          const predictions = await mod.getPredictions(process.env.REGION_ID || 'aberdeen_scotland_uk')
+          return predictions.length
+        } catch (e: any) {
+          console.warn(`[Fallback/WF7] ${e.message}`)
+          return 0
+        }
+      }),
+    ),
+  )
+
+  // ─── WF8 Fallback: Heatwave — temperature check hourly ────────────────────
+  fallbackTasks.push(
+    cron.schedule('0 * * * *', () =>
+      runJob('fallback_heatwave_check', async () => {
+        try {
+          const { getIncidentModule } = await import('../incidents/index.js')
+          const mod = getIncidentModule('heatwave')
+          if (!mod) return 0
+          const predictions = await mod.getPredictions(process.env.REGION_ID || 'aberdeen_scotland_uk')
+          return predictions.length
+        } catch (e: any) {
+          console.warn(`[Fallback/WF8] ${e.message}`)
+          return 0
+        }
+      }),
+    ),
+  )
+
+  // ─── WF9 Fallback: Severe Storm — weather data every 10 min ───────────────
+  fallbackTasks.push(
+    cron.schedule('*/10 * * * *', () =>
+      runJob('fallback_severe_storm', async () => {
+        try {
+          const { getIncidentModule } = await import('../incidents/index.js')
+          const mod = getIncidentModule('severe_storm')
+          if (!mod) return 0
+          const predictions = await mod.getPredictions(process.env.REGION_ID || 'aberdeen_scotland_uk')
+          return predictions.length
+        } catch (e: any) {
+          console.warn(`[Fallback/WF9] ${e.message}`)
+          return 0
+        }
+      }),
+    ),
+  )
+
+  // ─── WF10 Fallback: Landslide — rainfall + soil every 3h ──────────────────
+  fallbackTasks.push(
+    cron.schedule('0 */3 * * *', () =>
+      runJob('fallback_landslide_risk', async () => {
+        try {
+          const { getIncidentModule } = await import('../incidents/index.js')
+          const mod = getIncidentModule('landslide')
+          if (!mod) return 0
+          const predictions = await mod.getPredictions(process.env.REGION_ID || 'aberdeen_scotland_uk')
+          return predictions.length
+        } catch (e: any) {
+          console.warn(`[Fallback/WF10] ${e.message}`)
+          return 0
+        }
+      }),
+    ),
+  )
+
+  // ─── WF11-14 Fallback: Rule-based incidents — evaluate every 5 min ────────
+  const ruleBasedIncidents = [
+    'power_outage',
+    'water_supply_disruption',
+    'infrastructure_damage',
+    'public_safety_incident',
+  ]
+  for (const incidentId of ruleBasedIncidents) {
+    fallbackTasks.push(
+      cron.schedule('*/5 * * * *', () =>
+        runJob(`fallback_${incidentId}_eval`, async () => {
+          try {
+            const { getIncidentModule } = await import('../incidents/index.js')
+            const mod = getIncidentModule(incidentId)
+            if (!mod) return 0
+            const alerts = await mod.getAlerts(process.env.REGION_ID || 'aberdeen_scotland_uk')
+            return alerts.length
+          } catch (e: any) {
+            console.warn(`[Fallback/${incidentId}] ${e.message}`)
+            return 0
+          }
+        }),
+      ),
+    )
+  }
+
+  // ─── WF15 Fallback: Environmental Hazard — air quality every 20 min ───────
+  fallbackTasks.push(
+    cron.schedule('*/20 * * * *', () =>
+      runJob('fallback_environmental_aqi', async () => {
+        try {
+          const { getIncidentModule } = await import('../incidents/index.js')
+          const mod = getIncidentModule('environmental_hazard')
+          if (!mod) return 0
+          const predictions = await mod.getPredictions(process.env.REGION_ID || 'aberdeen_scotland_uk')
+          return predictions.length
+        } catch (e: any) {
+          console.warn(`[Fallback/WF15] ${e.message}`)
+          return 0
+        }
+      }),
+    ),
+  )
+
+  console.log(`[Cron/Fallback] ${fallbackTasks.length} fallback jobs activated (covering all 10 incident types)`)
 }
 
 /**

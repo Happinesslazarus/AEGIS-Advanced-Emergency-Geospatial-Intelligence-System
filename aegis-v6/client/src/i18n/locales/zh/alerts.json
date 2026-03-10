@@ -1,0 +1,39 @@
+{
+  "title": "警报",
+  "activeAlerts": "活跃警报",
+  "noAlerts": "无活跃警报",
+  "severity": {
+    "advisory": "通告",
+    "warning": "警告",
+    "critical": "紧急危机"
+  },
+  "actions": {
+    "acknowledge": "确认",
+    "dismiss": "忽略",
+    "viewDetails": "查看详情",
+    "subscribeAlerts": "订阅警报",
+    "unsubscribe": "取消订阅"
+  },
+  "channels": {
+    "push": "推送通知",
+    "email": "电子邮件",
+    "sms": "短信",
+    "telegram": "Telegram",
+    "whatsapp": "WhatsApp"
+  },
+  "messages": {
+    "criticalAlert": "危急：{{incident}} — {{description}}",
+    "warningAlert": "警告：{{incident}} — {{description}}",
+    "advisoryAlert": "通告：{{incident}} — {{description}}",
+    "newAlert": "收到新警报",
+    "alertExpired": "警报已过期",
+    "alertAcknowledged": "警报已确认"
+  },
+  "subscribe": {
+    "title": "警报订阅",
+    "description": "选择您希望如何接收紧急警报",
+    "selectIncidents": "选择事件类型",
+    "selectSeverity": "最低严重程度",
+    "savePreferences": "保存偏好设置"
+  }
+}

@@ -42,6 +42,7 @@ import SystemHealthPanel from '../components/admin/SystemHealthPanel'
 import ClimateRiskDashboard from '../components/shared/ClimateRiskDashboard'
 import LanguageSelector from '../components/shared/LanguageSelector'
 import IncidentFilterPanel from '../components/shared/IncidentFilterPanel'
+import IncidentCommandConsole from '../components/admin/IncidentCommandConsole'
 import type { Report, Operator } from '../types'
 import { t } from '../utils/i18n'
 import { useLanguage } from '../hooks/useLanguage'
@@ -932,7 +933,18 @@ export default function AdminPage(): JSX.Element {
               </div>
             </div>
 
-            {/* ── Row 5 — Status Pipeline + Climate Risk ── */}
+            {/* ── Row 5 — Multi-Incident Command Console ── */}
+            <div className="bg-white dark:bg-gray-900/80 backdrop-blur rounded-2xl ring-1 ring-gray-200 dark:ring-gray-800 p-5 shadow-sm">
+              <IncidentCommandConsole
+                onSelectIncident={(id) => {
+                  if (id) setFilterType(id)
+                  else setFilterType('all')
+                }}
+                selectedIncidentId={filterType !== 'all' ? filterType : null}
+              />
+            </div>
+
+            {/* ── Row 6 — Status Pipeline + Climate Risk ── */}
             <div className="bg-white dark:bg-gray-900/80 backdrop-blur rounded-2xl ring-1 ring-gray-200 dark:ring-gray-800 p-5 shadow-sm">
               <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Report Pipeline</span>
               <div className="flex items-center gap-2 mt-4">

@@ -1,0 +1,70 @@
+{
+  "name": "AEGIS WF13 — Infrastructure Damage Monitor",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "minutes", "minutesInterval": 15 }] } },
+      "name": "Schedule (15 min)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [200, 300],
+      "id": "wf13-trigger"
+    },
+    {
+      "parameters": {
+        "url": "={{$env.AEGIS_BACKEND_URL || 'http://localhost:3001'}}/api/v1/incidents/infrastructure_damage/active",
+        "options": { "timeout": 10000 },
+        "headerParametersJson": "{ \"User-Agent\": \"AEGIS-n8n/1.0\" }"
+      },
+      "name": "Fetch Infrastructure Reports",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [420, 300],
+      "id": "wf13-active"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst reports = data.reports || [];\n\nconst bridgeBuilding = reports.filter(r => ['bridge', 'building'].includes(r.custom_fields?.assetType));\nconst serviceDisruption = reports.filter(r => r.custom_fields?.serviceDisruption === true);\nconst accessRestricted = reports.filter(r => r.custom_fields?.accessRestricted === true);\nconst critical = reports.filter(r => r.severity === 'Critical');\nconst high = reports.filter(r => r.severity === 'High');\n\nlet severity = 'Low';\nlet probability = 0.05;\nlet shouldAlert = false;\nlet message = '';\n\nif (bridgeBuilding.length >= 1 && (critical.length >= 1 || serviceDisruption.length >= 1)) {\n  severity = 'Critical';\n  probability = 0.90;\n  shouldAlert = true;\n  message = `CRITICAL INFRASTRUCTURE FAILURE: ${bridgeBuilding.length} bridge/building report(s). Immediate inspection required.`;\n} else if (critical.length >= 2 || serviceDisruption.length >= 3) {\n  severity = 'High';\n  probability = 0.75;\n  shouldAlert = true;\n  message = `${critical.length} critical infrastructure reports. ${serviceDisruption.length} service disruptions.`;\n} else if (reports.length >= 5 || high.length >= 2) {\n  severity = 'Medium';\n  probability = 0.50;\n  shouldAlert = true;\n  message = `${reports.length} infrastructure damage reports. ${accessRestricted.length} access restrictions.`;\n} else if (reports.length >= 2) {\n  severity = 'Low';\n  probability = 0.25;\n  shouldAlert = false;\n  message = `${reports.length} infrastructure reports. Monitoring.`;\n}\n\nreturn [{ json: {\n  incidentType: 'infrastructure_damage',\n  severity,\n  probability,\n  reportCount: reports.length,\n  criticalAssets: bridgeBuilding.length,\n  serviceDisruptions: serviceDisruption.length,\n  accessRestrictions: accessRestricted.length,\n  message,\n  shouldAlert,\n  timestamp: new Date().toISOString()\n}}];"
+      },
+      "name": "Evaluate Infrastructure Risk",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [640, 300],
+      "id": "wf13-eval"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [{ "value1": "={{$json.shouldAlert}}", "operation": "equal", "value2": true }]
+        }
+      },
+      "name": "Should Alert?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [860, 300],
+      "id": "wf13-if"
+    },
+    {
+      "parameters": {
+        "url": "={{$env.AEGIS_BACKEND_URL || 'http://localhost:3001'}}/api/internal/incident-alert",
+        "method": "POST",
+        "bodyParametersJson": "={{ JSON.stringify({ incidentType: 'infrastructure_damage', severity: $json.severity, probability: $json.probability, message: $json.message, source: 'n8n_infrastructure_monitor', metadata: { reportCount: $json.reportCount, criticalAssets: $json.criticalAssets, serviceDisruptions: $json.serviceDisruptions } }) }}",
+        "options": { "timeout": 10000 },
+        "headerParametersJson": "{ \"Content-Type\": \"application/json\", \"User-Agent\": \"AEGIS-n8n/1.0\" }"
+      },
+      "name": "Post Alert to AEGIS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1080, 200],
+      "id": "wf13-post"
+    }
+  ],
+  "connections": {
+    "Schedule (15 min)": { "main": [[{ "node": "Fetch Infrastructure Reports", "type": "main", "index": 0 }]] },
+    "Fetch Infrastructure Reports": { "main": [[{ "node": "Evaluate Infrastructure Risk", "type": "main", "index": 0 }]] },
+    "Evaluate Infrastructure Risk": { "main": [[{ "node": "Should Alert?", "type": "main", "index": 0 }]] },
+    "Should Alert?": { "main": [[{ "node": "Post Alert to AEGIS", "type": "main", "index": 0 }], []] }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "aegis" }, { "name": "infrastructure_damage" }, { "name": "tier1" }]
+}

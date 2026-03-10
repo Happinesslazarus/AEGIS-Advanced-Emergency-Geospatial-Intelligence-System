@@ -1,0 +1,96 @@
+{
+  "name": "AEGIS WF11 — Power Outage Report Density Monitor",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "minutes", "minutesInterval": 5 }] } },
+      "name": "Schedule (5 min)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [200, 300],
+      "id": "wf11-trigger"
+    },
+    {
+      "parameters": {
+        "url": "={{$env.AEGIS_BACKEND_URL || 'http://localhost:3001'}}/api/v1/incidents/power_outage/active",
+        "options": { "timeout": 10000 },
+        "headerParametersJson": "{ \"User-Agent\": \"AEGIS-n8n/1.0\" }"
+      },
+      "name": "Fetch Active Power Reports",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [420, 200],
+      "id": "wf11-active"
+    },
+    {
+      "parameters": {
+        "url": "={{$env.AEGIS_BACKEND_URL || 'http://localhost:3001'}}/api/v1/incidents/power_outage/predictions",
+        "options": { "timeout": 10000 },
+        "headerParametersJson": "{ \"User-Agent\": \"AEGIS-n8n/1.0\" }"
+      },
+      "name": "Fetch Predictions",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [420, 400],
+      "id": "wf11-preds"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "mergeByPosition": true,
+        "options": {}
+      },
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2,
+      "position": [640, 300],
+      "id": "wf11-merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst activeData = items[0]?.json || {};\nconst predData = items[1]?.json || {};\n\nconst reports = activeData.reports || [];\nconst predictions = predData.predictions || [];\nconst count = reports.length;\n\nconst criticalReports = reports.filter(r => r.severity === 'Critical' || (r.custom_fields && r.custom_fields.criticalServicesImpacted));\nconst longOutages = reports.filter(r => r.custom_fields && (r.custom_fields.outageDurationHours || 0) >= 4);\nconst areaWide = reports.filter(r => r.custom_fields && r.custom_fields.areaWide === true);\n\n// Priority escalation rules\nlet severity = 'Low';\nlet probability = 0.1;\nlet shouldAlert = false;\n\nif (criticalReports.length >= 1) {\n  severity = 'Critical'; probability = 0.92; shouldAlert = true;\n} else if (areaWide.length >= 1 || count >= 15) {\n  severity = 'High'; probability = 0.75; shouldAlert = true;\n} else if (longOutages.length >= 3 || count >= 8) {\n  severity = 'High'; probability = 0.65; shouldAlert = true;\n} else if (count >= 3) {\n  severity = 'Medium'; probability = 0.40; shouldAlert = true;\n}\n\n// Also escalate from AI predictions\nconst criticalPred = predictions.find(p => p.severity === 'Critical');\nif (criticalPred && !shouldAlert) {\n  severity = 'High'; probability = criticalPred.probability || 0.7; shouldAlert = true;\n}\n\nreturn [{ json: {\n  incidentType: 'power_outage',\n  severity,\n  probability,\n  reportCount: count,\n  criticalReports: criticalReports.length,\n  areaWideReports: areaWide.length,\n  longOutages: longOutages.length,\n  shouldAlert,\n  timestamp: new Date().toISOString()\n}}];"
+      },
+      "name": "Evaluate Power Outage Risk",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [860, 300],
+      "id": "wf11-eval"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [{ "value1": "={{$json.shouldAlert}}", "operation": "equal", "value2": true }]
+        }
+      },
+      "name": "Should Alert?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1080, 300],
+      "id": "wf11-if"
+    },
+    {
+      "parameters": {
+        "url": "={{$env.AEGIS_BACKEND_URL || 'http://localhost:3001'}}/api/internal/incident-alert",
+        "method": "POST",
+        "bodyParametersJson": "={{ JSON.stringify({ incidentType: 'power_outage', severity: $json.severity, probability: $json.probability, message: $json.reportCount + ' power outage reports. ' + $json.criticalReports + ' critical (infrastructure/hospitals). ' + $json.areaWideReports + ' area-wide.', source: 'n8n_power_outage_monitor', metadata: { reportCount: $json.reportCount, criticalReports: $json.criticalReports } }) }}",
+        "options": { "timeout": 10000 },
+        "headerParametersJson": "{ \"Content-Type\": \"application/json\", \"User-Agent\": \"AEGIS-n8n/1.0\" }"
+      },
+      "name": "Post Alert to AEGIS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1300, 200],
+      "id": "wf11-post"
+    }
+  ],
+  "connections": {
+    "Schedule (5 min)": { "main": [[{ "node": "Fetch Active Power Reports", "type": "main", "index": 0 }, { "node": "Fetch Predictions", "type": "main", "index": 0 }]] },
+    "Fetch Active Power Reports": { "main": [[{ "node": "Merge", "type": "main", "index": 0 }]] },
+    "Fetch Predictions": { "main": [[{ "node": "Merge", "type": "main", "index": 1 }]] },
+    "Merge": { "main": [[{ "node": "Evaluate Power Outage Risk", "type": "main", "index": 0 }]] },
+    "Evaluate Power Outage Risk": { "main": [[{ "node": "Should Alert?", "type": "main", "index": 0 }]] },
+    "Should Alert?": { "main": [[{ "node": "Post Alert to AEGIS", "type": "main", "index": 0 }], []] }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "aegis" }, { "name": "power_outage" }, { "name": "tier1" }]
+}

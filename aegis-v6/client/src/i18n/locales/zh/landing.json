@@ -1,0 +1,4 @@
+{
+  "hero": { "title": "AEGIS", "subtitle": "先进应急地理空间情报系统", "description": "多模态AI驱动的灾害响应平台。" },
+  "cta": { "citizen": "市民界面", "operator": "操作员控制台" }
+}

@@ -1,0 +1,95 @@
+{
+  "name": "AEGIS WF7 — Wildfire Fire Danger Monitor",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "minutes", "minutesInterval": 15 }] } },
+      "name": "Schedule (15 min)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [200, 300],
+      "id": "wf7-trigger"
+    },
+    {
+      "parameters": {
+        "url": "https://air-quality-api.open-meteo.com/v1/air-quality?latitude=57.15&longitude=-2.09&current=pm2_5,pm10,european_aqi&hourly=pm2_5",
+        "options": { "timeout": 15000 },
+        "headerParametersJson": "{ \"User-Agent\": \"AEGIS-Wildfire/1.0\" }"
+      },
+      "name": "Fetch Air Quality",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [420, 200],
+      "id": "wf7-aqi"
+    },
+    {
+      "parameters": {
+        "url": "https://api.open-meteo.com/v1/forecast?latitude=57.15&longitude=-2.09&current=temperature_2m,relative_humidity_2m,wind_speed_10m,precipitation&daily=precipitation_sum&timezone=auto&forecast_days=5",
+        "options": { "timeout": 15000 }
+      },
+      "name": "Fetch Weather FDI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [420, 400],
+      "id": "wf7-weather"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "mergeByPosition": true,
+        "options": {}
+      },
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2,
+      "position": [640, 300],
+      "id": "wf7-merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "const aq = $input.all()[0]?.json || {};\nconst wx = $input.all()[1]?.json || {};\n\nconst temp = wx.current?.temperature_2m || 15;\nconst humidity = wx.current?.relative_humidity_2m || 60;\nconst wind = wx.current?.wind_speed_10m || 10;\nconst precip = wx.current?.precipitation || 0;\nconst aqi = aq.current?.european_aqi || 0;\nconst pm25 = aq.current?.pm2_5 || 0;\n\n// Fire Danger Index (simplified McArthur)\nconst recentRain = (wx.daily?.precipitation_sum || []).slice(0, 3).reduce((s, v) => s + (v || 0), 0);\nconst fdi = (temp * 0.3) + ((100 - humidity) * 0.3) + (wind * 0.2) - (recentRain * 2);\n\nlet severity = 'Low';\nlet probability = 0.05;\nlet action = 'monitor';\nif (fdi > 50 || aqi > 100) { severity = 'Critical'; probability = 0.90; action = 'issue_critical_alert'; }\nelse if (fdi > 35 || aqi > 75) { severity = 'High'; probability = 0.65; action = 'issue_warning'; }\nelse if (fdi > 20 || aqi > 50) { severity = 'Medium'; probability = 0.35; action = 'issue_advisory'; }\n\nreturn [{ json: {\n  incidentType: 'wildfire',\n  severity,\n  probability,\n  fdi: Math.round(fdi * 10) / 10,\n  aqi,\n  pm25,\n  temp,\n  humidity,\n  wind,\n  recentRainMm: Math.round(recentRain * 10) / 10,\n  action,\n  shouldAlert: severity !== 'Low',\n  timestamp: new Date().toISOString()\n}}];"
+      },
+      "name": "Calculate Fire Danger",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [860, 300],
+      "id": "wf7-fdi"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [{ "value1": "={{$json.shouldAlert}}", "operation": "equal", "value2": true }]
+        }
+      },
+      "name": "Should Alert?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1080, 300],
+      "id": "wf7-if"
+    },
+    {
+      "parameters": {
+        "url": "={{$env.AEGIS_BACKEND_URL || 'http://localhost:3001'}}/api/internal/incident-alert",
+        "method": "POST",
+        "bodyParametersJson": "={{ JSON.stringify({ incidentType: $json.incidentType, severity: $json.severity, probability: $json.probability, message: 'Fire Danger Index: ' + $json.fdi + '. AQI: ' + $json.aqi + '. Action: ' + $json.action, source: 'n8n_wildfire_monitor', metadata: { fdi: $json.fdi, aqi: $json.aqi, temp: $json.temp, humidity: $json.humidity } }) }}",
+        "options": { "timeout": 10000 },
+        "headerParametersJson": "{ \"Content-Type\": \"application/json\", \"User-Agent\": \"AEGIS-n8n/1.0\" }"
+      },
+      "name": "Post Alert to AEGIS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1300, 200],
+      "id": "wf7-post"
+    }
+  ],
+  "connections": {
+    "Schedule (15 min)": { "main": [[{ "node": "Fetch Air Quality", "type": "main", "index": 0 }, { "node": "Fetch Weather FDI", "type": "main", "index": 0 }]] },
+    "Fetch Air Quality": { "main": [[{ "node": "Merge", "type": "main", "index": 0 }]] },
+    "Fetch Weather FDI": { "main": [[{ "node": "Merge", "type": "main", "index": 1 }]] },
+    "Merge": { "main": [[{ "node": "Calculate Fire Danger", "type": "main", "index": 0 }]] },
+    "Calculate Fire Danger": { "main": [[{ "node": "Should Alert?", "type": "main", "index": 0 }]] },
+    "Should Alert?": { "main": [[{ "node": "Post Alert to AEGIS", "type": "main", "index": 0 }], []] }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "aegis" }, { "name": "wildfire" }, { "name": "tier3" }]
+}

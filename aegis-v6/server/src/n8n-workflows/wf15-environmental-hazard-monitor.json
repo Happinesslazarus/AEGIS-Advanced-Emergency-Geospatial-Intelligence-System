@@ -1,0 +1,96 @@
+{
+  "name": "AEGIS WF15 — Environmental Hazard Monitor",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "minutes", "minutesInterval": 20 }] } },
+      "name": "Schedule (20 min)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [200, 300],
+      "id": "wf15-trigger"
+    },
+    {
+      "parameters": {
+        "url": "https://air-quality-api.open-meteo.com/v1/air-quality?latitude=57.15&longitude=-2.09&current=pm2_5,pm10,nitrogen_dioxide,sulphur_dioxide,ozone,european_aqi,carbon_monoxide&hourly=pm2_5,european_aqi",
+        "options": { "timeout": 15000 },
+        "headerParametersJson": "{ \"User-Agent\": \"AEGIS-EnvHazard/1.0\" }"
+      },
+      "name": "Fetch Air Quality",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [420, 200],
+      "id": "wf15-aqi"
+    },
+    {
+      "parameters": {
+        "url": "={{$env.AEGIS_BACKEND_URL || 'http://localhost:3001'}}/api/v1/incidents/environmental_hazard/active",
+        "options": { "timeout": 10000 },
+        "headerParametersJson": "{ \"User-Agent\": \"AEGIS-n8n/1.0\" }"
+      },
+      "name": "Fetch Env Reports",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [420, 400],
+      "id": "wf15-reports"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "mergeByPosition": true,
+        "options": {}
+      },
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2,
+      "position": [640, 300],
+      "id": "wf15-merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst aq = items[0]?.json || {};\nconst reportData = items[1]?.json || {};\n\nconst aqi = aq.current?.european_aqi || 0;\nconst pm25 = aq.current?.pm2_5 || 0;\nconst pm10 = aq.current?.pm10 || 0;\nconst no2 = aq.current?.nitrogen_dioxide || 0;\nconst so2 = aq.current?.sulphur_dioxide || 0;\nconst o3 = aq.current?.ozone || 0;\nconst co = aq.current?.carbon_monoxide || 0;\n\nconst reports = reportData.reports || [];\nconst containmentReports = reports.filter(r => r.custom_fields?.containmentNeeded === true);\nconst airImpact = reports.filter(r => r.custom_fields?.airOrWaterImpact === 'air' || r.custom_fields?.airOrWaterImpact === 'mixed');\n\n// EU AQI thresholds: 0-20 Good, 20-40 Fair, 40-60 Moderate, 60-80 Poor, 80-100 Very Poor, >100 Extremely Poor\nlet severity = 'Low';\nlet probability = 0.05;\nlet shouldAlert = false;\nlet primaryConcern = 'none';\n\nif (aqi > 100 || so2 > 350 || co > 10000) {\n  severity = 'Critical'; probability = 0.92; shouldAlert = true; primaryConcern = 'extreme_pollution';\n} else if (aqi > 80 || pm25 > 25 || so2 > 200 || containmentReports.length >= 1) {\n  severity = 'High'; probability = 0.70; shouldAlert = true; primaryConcern = 'poor_air_quality';\n} else if (aqi > 60 || pm25 > 15 || no2 > 200 || reports.length >= 3) {\n  severity = 'Medium'; probability = 0.40; shouldAlert = true; primaryConcern = 'moderate_pollution';\n} else if (aqi > 40 || pm25 > 10) {\n  severity = 'Low'; probability = 0.20; shouldAlert = false; primaryConcern = 'fair_air_quality';\n}\n\nreturn [{ json: {\n  incidentType: 'environmental_hazard',\n  severity,\n  probability,\n  aqi,\n  pm25: Math.round(pm25 * 10) / 10,\n  pm10: Math.round(pm10 * 10) / 10,\n  no2: Math.round(no2 * 10) / 10,\n  so2: Math.round(so2 * 10) / 10,\n  o3: Math.round(o3 * 10) / 10,\n  reportCount: reports.length,\n  containmentRequired: containmentReports.length,\n  primaryConcern,\n  shouldAlert,\n  timestamp: new Date().toISOString()\n}}];"
+      },
+      "name": "Evaluate Environmental Risk",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [860, 300],
+      "id": "wf15-eval"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [{ "value1": "={{$json.shouldAlert}}", "operation": "equal", "value2": true }]
+        }
+      },
+      "name": "Should Alert?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1080, 300],
+      "id": "wf15-if"
+    },
+    {
+      "parameters": {
+        "url": "={{$env.AEGIS_BACKEND_URL || 'http://localhost:3001'}}/api/internal/incident-alert",
+        "method": "POST",
+        "bodyParametersJson": "={{ JSON.stringify({ incidentType: 'environmental_hazard', severity: $json.severity, probability: $json.probability, message: 'EU AQI: ' + $json.aqi + ' (' + $json.primaryConcern + '). PM2.5: ' + $json.pm25 + ' μg/m³. SO2: ' + $json.so2 + ' μg/m³.', source: 'n8n_environmental_monitor', metadata: { aqi: $json.aqi, pm25: $json.pm25, pm10: $json.pm10, no2: $json.no2, so2: $json.so2 } }) }}",
+        "options": { "timeout": 10000 },
+        "headerParametersJson": "{ \"Content-Type\": \"application/json\", \"User-Agent\": \"AEGIS-n8n/1.0\" }"
+      },
+      "name": "Post Alert to AEGIS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1300, 200],
+      "id": "wf15-post"
+    }
+  ],
+  "connections": {
+    "Schedule (20 min)": { "main": [[{ "node": "Fetch Air Quality", "type": "main", "index": 0 }, { "node": "Fetch Env Reports", "type": "main", "index": 0 }]] },
+    "Fetch Air Quality": { "main": [[{ "node": "Merge", "type": "main", "index": 0 }]] },
+    "Fetch Env Reports": { "main": [[{ "node": "Merge", "type": "main", "index": 1 }]] },
+    "Merge": { "main": [[{ "node": "Evaluate Environmental Risk", "type": "main", "index": 0 }]] },
+    "Evaluate Environmental Risk": { "main": [[{ "node": "Should Alert?", "type": "main", "index": 0 }]] },
+    "Should Alert?": { "main": [[{ "node": "Post Alert to AEGIS", "type": "main", "index": 0 }], []] }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "aegis" }, { "name": "environmental_hazard" }, { "name": "tier3" }]
+}

@@ -1,0 +1,11 @@
+{
+  "reports": {
+    "filters": {
+      "severity": { "all": "جميع مستويات الخطورة", "high": "عالية", "medium": "متوسطة", "low": "منخفضة" },
+      "status": { "all": "جميع الحالات", "urgent": "عاجل", "unverified": "غير موثق", "verified": "موثق", "flagged": "مُبلَّغ عنه", "resolved": "تم الحل" },
+      "type": { "all": "جميع الأنواع", "natural_disaster": "كارثة طبيعية", "infrastructure": "حادث بنية تحتية", "public_safety": "سلامة عامة", "community_safety": "سلامة مجتمعية", "environmental": "خطر بيئي", "medical": "طوارئ طبية" }
+    },
+    "actions": { "view": "عرض تفاصيل التقرير", "openMedia": "فتح الوسائط", "share": "مشاركة التقرير", "print": "طباعة التقرير" }
+  },
+  "analytics": { "title": "لوحة التحليلات" }
+}

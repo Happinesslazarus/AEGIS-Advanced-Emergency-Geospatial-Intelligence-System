@@ -1,4 +1,4 @@
-﻿"""
+"""
 ═══════════════════════════════════════════════════════════════════════════════
  AEGIS AI ENGINE — Strict API Schemas
  Enforces the API contract that MUST NOT change after implementation

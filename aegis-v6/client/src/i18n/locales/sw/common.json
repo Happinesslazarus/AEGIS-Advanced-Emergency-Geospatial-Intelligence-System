@@ -1,0 +1,148 @@
+{
+  "app": {
+    "name": "AEGIS",
+    "fullName": "Mfumo wa Ujasusi wa Kijiografia wa Dharura wa Hali ya Juu",
+    "tagline": "Kulinda jamii kupitia mwitikio wa msiba wenye akili"
+  },
+  "nav": {
+    "home": "Nyumbani",
+    "dashboard": "Dashibodi",
+    "admin": "Utawala",
+    "citizen": "Lango la Raia",
+    "about": "Kuhusu",
+    "login": "Ingia",
+    "logout": "Toka",
+    "register": "Jisajili",
+    "settings": "Mipangilio",
+    "profile": "Wasifu",
+    "language": "Lugha"
+  },
+  "actions": {
+    "submit": "Wasilisha",
+    "cancel": "Ghairi",
+    "save": "Hifadhi",
+    "delete": "Futa",
+    "edit": "Hariri",
+    "close": "Funga",
+    "confirm": "Thibitisha",
+    "refresh": "Onyesha upya",
+    "search": "Tafuta",
+    "filter": "Chuja",
+    "export": "Hamisha",
+    "import": "Ingiza",
+    "back": "Rudi",
+    "next": "Ijayo",
+    "loading": "Inapakia...",
+    "retry": "Jaribu tena",
+    "viewAll": "Angalia zote",
+    "viewDetails": "Angalia maelezo",
+    "reportIncident": "Ripoti tukio",
+    "sendAlert": "Tuma onyo",
+    "acknowledge": "Kubali",
+    "resolve": "Suluhisha",
+    "dismiss": "Ondoa"
+  },
+  "status": {
+    "active": "Hai",
+    "inactive": "Haifanyi kazi",
+    "pending": "Inasubiri",
+    "resolved": "Imesuluhishwa",
+    "closed": "Imefungwa",
+    "critical": "Hatari",
+    "warning": "Onyo",
+    "advisory": "Ushauri",
+    "normal": "Kawaida",
+    "online": "Mtandaoni",
+    "offline": "Nje ya mtandao"
+  },
+  "severity": {
+    "low": "Chini",
+    "medium": "Wastani",
+    "high": "Juu",
+    "critical": "Hatari"
+  },
+  "time": {
+    "now": "Sasa",
+    "minutesAgo": "dakika {{count}} zilizopita",
+    "hoursAgo": "masaa {{count}} yaliyopita",
+    "daysAgo": "siku {{count}} zilizopita",
+    "today": "Leo",
+    "yesterday": "Jana",
+    "lastWeek": "Wiki iliyopita",
+    "lastMonth": "Mwezi uliopita"
+  },
+  "errors": {
+    "general": "Kuna hitilafu. Tafadhali jaribu tena.",
+    "network": "Haiwezi kuungana na seva. Angalia muunganisho wako.",
+    "unauthorized": "Tafadhali ingia ili kuendelea.",
+    "forbidden": "Huna ruhusa ya kufanya hili.",
+    "notFound": "Haikupatikana.",
+    "serverError": "Hitilafu ya seva. Timu yetu imearifiwa.",
+    "validation": "Tafadhali angalia maingizo yako na ujaribu tena.",
+    "timeout": "Ombi lilichelewa. Tafadhali jaribu tena."
+  },
+  "auth": {
+    "email": "Barua pepe",
+    "password": "Nenosiri",
+    "confirmPassword": "Thibitisha nenosiri",
+    "loginTitle": "Ingia",
+    "registerTitle": "Fungua akaunti",
+    "forgotPassword": "Umesahau nenosiri?",
+    "resetPassword": "Weka nenosiri upya",
+    "loginButton": "Ingia",
+    "registerButton": "Fungua akaunti",
+    "logoutButton": "Toka",
+    "rememberMe": "Nikusimbukie",
+    "orContinueWith": "Au endelea na",
+    "noAccount": "Huna akaunti?",
+    "hasAccount": "Una akaunti tayari?"
+  },
+  "safety": {
+    "stayInformed": "Endelea kupata habari",
+    "takeAction": "Chukua hatua",
+    "seekShelter": "Tafuta makazi",
+    "evacuate": "Hamia",
+    "callEmergency": "Piga simu huduma za dharura",
+    "emergencyNumber": "Dharura: {{number}}",
+    "safetyGuidance": "Mwongozo wa usalama",
+    "preparedness": "Utayari",
+    "emergencyKit": "Kifaa cha dharura",
+    "evacuationRoutes": "Njia za uhamaji",
+    "shelters": "Makazi"
+  },
+  "report": {
+    "title": "Kichwa cha ripoti",
+    "description": "Maelezo",
+    "location": "Mahali",
+    "severity": "Ukali",
+    "category": "Kategoria",
+    "photos": "Picha",
+    "submitReport": "Wasilisha ripoti",
+    "reportSubmitted": "Ripoti imewasilishwa kwa mafanikio",
+    "myReports": "Ripoti zangu",
+    "recentReports": "Ripoti za hivi karibuni",
+    "noReports": "Hakuna ripoti bado"
+  },
+  "community": {
+    "chat": "Mazungumzo ya jamii",
+    "help": "Msaada wa jamii",
+    "guidelines": "Mwongozo",
+    "offers": "Ofa za msaada",
+    "requests": "Maombi ya msaada",
+    "volunteers": "Wajitoleaji"
+  },
+  "accessibility": {
+    "title": "Upatikanaji",
+    "highContrast": "Tofauti nyingi za rangi",
+    "largeText": "Maandishi makubwa",
+    "reduceMotion": "Punguza mwendo",
+    "screenReader": "Imeboreshwa kwa kisomaji skrini"
+  },
+  "footer": {
+    "privacy": "Sera ya faragha",
+    "terms": "Masharti ya huduma",
+    "contact": "Wasiliana",
+    "about": "Kuhusu AEGIS",
+    "accessibility": "Upatikanaji"
+  }
+}

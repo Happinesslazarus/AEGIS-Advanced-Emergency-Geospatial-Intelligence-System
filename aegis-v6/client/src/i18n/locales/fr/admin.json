@@ -1,0 +1,11 @@
+{
+  "reports": {
+    "filters": {
+      "severity": { "all": "Toutes les Sévérités", "high": "Élevée", "medium": "Moyenne", "low": "Faible" },
+      "status": { "all": "Tous les Statuts", "urgent": "Urgent", "unverified": "Non vérifié", "verified": "Vérifié", "flagged": "Signalé", "resolved": "Résolu" },
+      "type": { "all": "Tous les Types", "natural_disaster": "Catastrophe Naturelle", "infrastructure": "Accident d'Infrastructure", "public_safety": "Sécurité Publique", "community_safety": "Sécurité Communautaire", "environmental": "Risque Environnemental", "medical": "Urgence Médicale" }
+    },
+    "actions": { "view": "Voir le détail du rapport", "openMedia": "Ouvrir le média", "share": "Partager le rapport", "print": "Imprimer le rapport" }
+  },
+  "analytics": { "title": "Tableau de Bord Analytique" }
+}

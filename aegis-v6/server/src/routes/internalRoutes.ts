@@ -1,5 +1,5 @@
 /**
- * routes/internalRoutes.ts — Internal API endpoints
+ * routes/internalRoutes.ts ï¿½ Internal API endpoints
  *
  * These endpoints are NOT meant for direct citizen/operator use.
  * They enable:
@@ -22,7 +22,7 @@ const router = Router()
 const activeRegion = getActiveCityRegion()
 
 // -------------------------------------------------------------------------------
-// §1  n8n ? WebSocket bridge
+// ï¿½1  n8n ? WebSocket bridge
 // -------------------------------------------------------------------------------
 //
 // n8n workflows call POST /api/internal/ws-broadcast with:
@@ -47,7 +47,7 @@ router.post('/ws-broadcast', (req: Request, res: Response) => {
 })
 
 // -------------------------------------------------------------------------------
-// §2  Frontend error logging
+// ï¿½2  Frontend error logging
 // -------------------------------------------------------------------------------
 
 router.post('/errors/frontend', async (req: Request, res: Response) => {
@@ -82,13 +82,13 @@ router.post('/errors/frontend', async (req: Request, res: Response) => {
     res.json({ ok: true })
   } catch (err: any) {
     console.error('[ErrorLog] Failed to store frontend error:', err.message)
-    // Still 200 — we don't want error logging failures to cascade
+    // Still 200 ï¿½ we don't want error logging failures to cascade
     res.json({ ok: false, reason: 'storage_failed' })
   }
 })
 
 // -------------------------------------------------------------------------------
-// §3  System health dashboard
+// ï¿½3  System health dashboard
 // -------------------------------------------------------------------------------
 
 router.get('/health/system', async (_req: Request, res: Response) => {
@@ -173,7 +173,7 @@ router.get('/health/system', async (_req: Request, res: Response) => {
 })
 
 // -------------------------------------------------------------------------------
-// §4  n8n Webhook Callbacks
+// ï¿½4  n8n Webhook Callbacks
 // -------------------------------------------------------------------------------
 //
 // These endpoints are called by n8n workflows to push data back into AEGIS.
@@ -390,6 +390,90 @@ router.post('/n8n-webhook/escalation', async (req: Request, res: Response) => {
     res.json({ ok: true, source: 'n8n_wf6', escalation_type, severity })
   } catch (err: any) {
     console.error(`[n8n-webhook/escalation] Error: ${err.message}`)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// -------------------------------------------------------------------------------
+// Â§6  Generic Incident Alert Endpoint (WF7-WF15)
+// -------------------------------------------------------------------------------
+//
+// All new per-incident n8n workflows post to this single endpoint.
+// Body: { incidentType, severity, probability, message, source, metadata }
+
+router.post('/incident-alert', async (req: Request, res: Response) => {
+  try {
+    const { incidentType, severity, probability, message, source, metadata } = req.body
+
+    if (!incidentType || !severity) {
+      return res.status(400).json({ error: 'Missing incidentType or severity' })
+    }
+
+    // Normalise severity to DB enum values
+    const severityMap: Record<string, string> = {
+      critical: 'Critical',
+      high: 'High',
+      medium: 'Medium',
+      low: 'Low',
+      Critical: 'Critical',
+      High: 'High',
+      Medium: 'Medium',
+      Low: 'Low',
+    }
+    const normSeverity = severityMap[severity] || 'Medium'
+
+    // Deduplicate: skip if identical alert was inserted in last 15 minutes
+    let inserted = false
+    try {
+      const { rowCount } = await pool.query(
+        `SELECT 1 FROM alerts
+         WHERE incident_type = $1 AND severity::text ILIKE $2
+           AND created_at > NOW() - INTERVAL '15 minutes'
+           AND source = $3
+         LIMIT 1`,
+        [incidentType, normSeverity, source || 'n8n']
+      )
+      if (!rowCount || rowCount === 0) {
+        await pool.query(
+          `INSERT INTO alerts
+             (incident_type, alert_type, severity, title, message, location_text, source, is_active, metadata, created_at)
+           VALUES ($1, $2, $3::alert_severity, $4, $5, $6, $7, true, $8, NOW())`,
+          [
+            incidentType,
+            incidentType,
+            normSeverity,
+            `${incidentType.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())} Alert`,
+            message || `${incidentType} alert â€” ${normSeverity} severity`,
+            activeRegion.name,
+            source || 'n8n',
+            JSON.stringify(metadata || {}),
+          ]
+        )
+        inserted = true
+      }
+    } catch (dbErr: any) {
+      // Alert table might have different schema â€” fall through to socket broadcast
+      console.warn(`[incident-alert] DB insert warning: ${dbErr.message}`)
+    }
+
+    // Always broadcast via Socket.IO regardless of DB outcome
+    const io = req.app.get('io')
+    if (io) {
+      io.emit('incident:alert', {
+        incidentType,
+        severity: normSeverity,
+        probability: probability || null,
+        message,
+        source: source || 'n8n',
+        metadata: metadata || {},
+        timestamp: new Date().toISOString(),
+      })
+    }
+
+    devLog(`[incident-alert] ${incidentType} (${normSeverity}) from ${source || 'n8n'} â€” inserted:${inserted}`)
+    res.json({ ok: true, incidentType, severity: normSeverity, inserted, source: source || 'n8n' })
+  } catch (err: any) {
+    console.error(`[incident-alert] Error: ${err.message}`)
     res.status(500).json({ error: err.message })
   }
 })

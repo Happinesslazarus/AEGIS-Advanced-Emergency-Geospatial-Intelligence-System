@@ -1,0 +1,70 @@
+{
+  "name": "AEGIS WF12 — Water Supply Disruption Monitor",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "minutes", "minutesInterval": 10 }] } },
+      "name": "Schedule (10 min)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [200, 300],
+      "id": "wf12-trigger"
+    },
+    {
+      "parameters": {
+        "url": "={{$env.AEGIS_BACKEND_URL || 'http://localhost:3001'}}/api/v1/incidents/water_supply_disruption/active",
+        "options": { "timeout": 10000 },
+        "headerParametersJson": "{ \"User-Agent\": \"AEGIS-n8n/1.0\" }"
+      },
+      "name": "Fetch Water Reports",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [420, 300],
+      "id": "wf12-active"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst reports = data.reports || [];\n\n// Rule-based evaluation\nconst contamination = reports.filter(r => r.custom_fields?.contaminationSuspected === true);\nconst noWater = reports.filter(r => r.custom_fields?.waterUnavailable === true);\nconst longDisruption = reports.filter(r => (r.custom_fields?.durationHours || 0) >= 6);\nconst criticalSeverity = reports.filter(r => r.severity === 'Critical');\n\nlet severity = 'Low';\nlet probability = 0.05;\nlet shouldAlert = false;\nlet message = '';\n\nif (contamination.length >= 1) {\n  severity = 'Critical';\n  probability = 0.95;\n  shouldAlert = true;\n  message = `CONTAMINATION ALERT: ${contamination.length} reports of suspected water contamination. Do not drink tap water.`;\n} else if (criticalSeverity.length >= 2 || reports.length >= 12) {\n  severity = 'Critical';\n  probability = 0.85;\n  shouldAlert = true;\n  message = `${reports.length} water supply disruption reports. Mass outage detected.`;\n} else if (noWater.length >= 5 || reports.length >= 6) {\n  severity = 'High';\n  probability = 0.70;\n  shouldAlert = true;\n  message = `${noWater.length} areas without running water. ${reports.length} total reports.`;\n} else if (longDisruption.length >= 2 || reports.length >= 3) {\n  severity = 'Medium';\n  probability = 0.45;\n  shouldAlert = true;\n  message = `${reports.length} water disruption reports. Some extended outages reported.`;\n}\n\nreturn [{ json: {\n  incidentType: 'water_supply_disruption',\n  severity,\n  probability,\n  reportCount: reports.length,\n  contaminationReports: contamination.length,\n  noWaterReports: noWater.length,\n  longDisruptionReports: longDisruption.length,\n  message,\n  shouldAlert,\n  timestamp: new Date().toISOString()\n}}];"
+      },
+      "name": "Evaluate Water Risk",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [640, 300],
+      "id": "wf12-eval"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [{ "value1": "={{$json.shouldAlert}}", "operation": "equal", "value2": true }]
+        }
+      },
+      "name": "Should Alert?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [860, 300],
+      "id": "wf12-if"
+    },
+    {
+      "parameters": {
+        "url": "={{$env.AEGIS_BACKEND_URL || 'http://localhost:3001'}}/api/internal/incident-alert",
+        "method": "POST",
+        "bodyParametersJson": "={{ JSON.stringify({ incidentType: 'water_supply_disruption', severity: $json.severity, probability: $json.probability, message: $json.message, source: 'n8n_water_supply_monitor', metadata: { reportCount: $json.reportCount, contaminationReports: $json.contaminationReports, noWaterReports: $json.noWaterReports } }) }}",
+        "options": { "timeout": 10000 },
+        "headerParametersJson": "{ \"Content-Type\": \"application/json\", \"User-Agent\": \"AEGIS-n8n/1.0\" }"
+      },
+      "name": "Post Alert to AEGIS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1080, 200],
+      "id": "wf12-post"
+    }
+  ],
+  "connections": {
+    "Schedule (10 min)": { "main": [[{ "node": "Fetch Water Reports", "type": "main", "index": 0 }]] },
+    "Fetch Water Reports": { "main": [[{ "node": "Evaluate Water Risk", "type": "main", "index": 0 }]] },
+    "Evaluate Water Risk": { "main": [[{ "node": "Should Alert?", "type": "main", "index": 0 }]] },
+    "Should Alert?": { "main": [[{ "node": "Post Alert to AEGIS", "type": "main", "index": 0 }], []] }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "aegis" }, { "name": "water_supply" }, { "name": "tier1" }]
+}

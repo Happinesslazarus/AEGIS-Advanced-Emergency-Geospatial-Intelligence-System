@@ -1,0 +1,39 @@
+{
+  "title": "Alarme",
+  "activeAlerts": "Aktive Alarme",
+  "noAlerts": "Keine aktiven Alarme",
+  "severity": {
+    "advisory": "Hinweis",
+    "warning": "Warnung",
+    "critical": "Kritischer Notfall"
+  },
+  "actions": {
+    "acknowledge": "Bestätigen",
+    "dismiss": "Verwerfen",
+    "viewDetails": "Details anzeigen",
+    "subscribeAlerts": "Alarme abonnieren",
+    "unsubscribe": "Abbestellen"
+  },
+  "channels": {
+    "push": "Push-Benachrichtigungen",
+    "email": "E-Mail",
+    "sms": "SMS",
+    "telegram": "Telegram",
+    "whatsapp": "WhatsApp"
+  },
+  "messages": {
+    "criticalAlert": "KRITISCH: {{incident}} — {{description}}",
+    "warningAlert": "WARNUNG: {{incident}} — {{description}}",
+    "advisoryAlert": "HINWEIS: {{incident}} — {{description}}",
+    "newAlert": "Neuer Alarm empfangen",
+    "alertExpired": "Alarm ist abgelaufen",
+    "alertAcknowledged": "Alarm bestätigt"
+  },
+  "subscribe": {
+    "title": "Alarm-Abonnements",
+    "description": "Wählen Sie, wie Sie Notfallalarme erhalten möchten",
+    "selectIncidents": "Vorfalltypen auswählen",
+    "selectSeverity": "Minimaler Schweregrad",
+    "savePreferences": "Einstellungen speichern"
+  }
+}

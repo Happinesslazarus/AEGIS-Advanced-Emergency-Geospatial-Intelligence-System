@@ -96,14 +96,24 @@ export interface IncidentMapData {
   }>
 }
 
+export interface IncidentDashboardIncident {
+  id: string
+  name: string
+  icon: string
+  color: string
+  status: string
+  aiTier: string
+  activePredictions: number
+  activeAlerts: number
+  activeReports: number
+}
+
 export interface IncidentDashboardSummary {
   region: string
-  generatedAt: string
-  incidents: Record<string, {
-    predictions: IncidentPrediction[]
-    alerts: IncidentAlert[]
-    error?: string
-  }>
+  generatedAt?: string
+  incidents: IncidentDashboardIncident[]
+  totalAlerts: number
+  totalPredictions: number
 }
 
 // ─── Cross-incident endpoints ───────────────────────────────────────────
@@ -121,7 +131,9 @@ export async function apiGetIncidentDashboard(region?: string): Promise<Incident
 
 /** Get all predictions across all incident types */
 export async function apiGetAllIncidentPredictions(region?: string): Promise<{
-  predictions: Record<string, IncidentPrediction[]>
+  predictions: IncidentPrediction[]
+  count: number
+  region: string
 }> {
   const q = region ? `?region=${encodeURIComponent(region)}` : ''
   return v1Fetch(`/all/predictions${q}`)
@@ -129,14 +141,17 @@ export async function apiGetAllIncidentPredictions(region?: string): Promise<{
 
 /** Get all alerts across all incident types */
 export async function apiGetAllIncidentAlerts(): Promise<{
-  alerts: Record<string, IncidentAlert[]>
+  alerts: IncidentAlert[]
+  count: number
+  region: string
 }> {
   return v1Fetch('/all/alerts')
 }
 
 /** Get all map data across all incident types */
 export async function apiGetAllIncidentMapData(region?: string): Promise<{
-  mapData: Record<string, IncidentMapData>
+  layers: IncidentMapData[]
+  region: string
 }> {
   const q = region ? `?region=${encodeURIComponent(region)}` : ''
   return v1Fetch(`/all/map-data${q}`)

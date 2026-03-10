@@ -1,0 +1,11 @@
+{
+  "reports": {
+    "filters": {
+      "severity": { "all": "Ukali Wote", "high": "Juu", "medium": "Wastani", "low": "Chini" },
+      "status": { "all": "Hali Zote", "urgent": "Ya Haraka", "unverified": "Haijathibitishwa", "verified": "Imethibitishwa", "flagged": "Imewekwa Alama", "resolved": "Imetatuliwa" },
+      "type": { "all": "Aina Zote", "natural_disaster": "Maafa ya Asili", "infrastructure": "Ajali ya Miundombinu", "public_safety": "Usalama wa Umma", "community_safety": "Usalama wa Jamii", "environmental": "Hatari ya Mazingira", "medical": "Dharura ya Kimatibabu" }
+    },
+    "actions": { "view": "Angalia maelezo ya ripoti", "openMedia": "Fungua media", "share": "Shiriki ripoti", "print": "Chapisha ripoti" }
+  },
+  "analytics": { "title": "Dashibodi ya Uchambuzi" }
+}

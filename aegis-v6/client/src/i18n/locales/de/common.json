@@ -1,0 +1,148 @@
+{
+  "app": {
+    "name": "AEGIS",
+    "fullName": "Fortgeschrittenes Notfall-Geospatiales Geheimdienstsystem",
+    "tagline": "Gemeinschaften durch intelligente Katastrophenhilfe schützen"
+  },
+  "nav": {
+    "home": "Startseite",
+    "dashboard": "Dashboard",
+    "admin": "Verwaltung",
+    "citizen": "Bürgerportal",
+    "about": "Über uns",
+    "login": "Anmelden",
+    "logout": "Abmelden",
+    "register": "Registrieren",
+    "settings": "Einstellungen",
+    "profile": "Profil",
+    "language": "Sprache"
+  },
+  "actions": {
+    "submit": "Absenden",
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "close": "Schließen",
+    "confirm": "Bestätigen",
+    "refresh": "Aktualisieren",
+    "search": "Suchen",
+    "filter": "Filtern",
+    "export": "Exportieren",
+    "import": "Importieren",
+    "back": "Zurück",
+    "next": "Weiter",
+    "loading": "Wird geladen...",
+    "retry": "Erneut versuchen",
+    "viewAll": "Alle anzeigen",
+    "viewDetails": "Details anzeigen",
+    "reportIncident": "Vorfall melden",
+    "sendAlert": "Alarm senden",
+    "acknowledge": "Bestätigen",
+    "resolve": "Lösen",
+    "dismiss": "Verwerfen"
+  },
+  "status": {
+    "active": "Aktiv",
+    "inactive": "Inaktiv",
+    "pending": "Ausstehend",
+    "resolved": "Gelöst",
+    "closed": "Geschlossen",
+    "critical": "Kritisch",
+    "warning": "Warnung",
+    "advisory": "Hinweis",
+    "normal": "Normal",
+    "online": "Online",
+    "offline": "Offline"
+  },
+  "severity": {
+    "low": "Niedrig",
+    "medium": "Mittel",
+    "high": "Hoch",
+    "critical": "Kritisch"
+  },
+  "time": {
+    "now": "Jetzt",
+    "minutesAgo": "vor {{count}} Min.",
+    "hoursAgo": "vor {{count}} Std.",
+    "daysAgo": "vor {{count}} T.",
+    "today": "Heute",
+    "yesterday": "Gestern",
+    "lastWeek": "Letzte Woche",
+    "lastMonth": "Letzten Monat"
+  },
+  "errors": {
+    "general": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
+    "network": "Keine Verbindung zum Server. Überprüfen Sie Ihre Verbindung.",
+    "unauthorized": "Bitte melden Sie sich an, um fortzufahren.",
+    "forbidden": "Sie haben keine Berechtigung, dies zu tun.",
+    "notFound": "Nicht gefunden.",
+    "serverError": "Serverfehler. Unser Team wurde benachrichtigt.",
+    "validation": "Bitte überprüfen Sie Ihre Eingabe und versuchen Sie es erneut.",
+    "timeout": "Zeitüberschreitung der Anfrage. Bitte versuchen Sie es erneut."
+  },
+  "auth": {
+    "email": "E-Mail",
+    "password": "Passwort",
+    "confirmPassword": "Passwort bestätigen",
+    "loginTitle": "Anmelden",
+    "registerTitle": "Konto erstellen",
+    "forgotPassword": "Passwort vergessen?",
+    "resetPassword": "Passwort zurücksetzen",
+    "loginButton": "Anmelden",
+    "registerButton": "Konto erstellen",
+    "logoutButton": "Abmelden",
+    "rememberMe": "Angemeldet bleiben",
+    "orContinueWith": "Oder weiter mit",
+    "noAccount": "Noch kein Konto?",
+    "hasAccount": "Bereits ein Konto vorhanden?"
+  },
+  "safety": {
+    "stayInformed": "Informiert bleiben",
+    "takeAction": "Handeln",
+    "seekShelter": "Schutz suchen",
+    "evacuate": "Evakuieren",
+    "callEmergency": "Notdienste rufen",
+    "emergencyNumber": "Notruf: {{number}}",
+    "safetyGuidance": "Sicherheitshinweise",
+    "preparedness": "Vorsorge",
+    "emergencyKit": "Notfallkoffer",
+    "evacuationRoutes": "Evakuierungsrouten",
+    "shelters": "Notunterkünfte"
+  },
+  "report": {
+    "title": "Berichtstitel",
+    "description": "Beschreibung",
+    "location": "Standort",
+    "severity": "Schweregrad",
+    "category": "Kategorie",
+    "photos": "Fotos",
+    "submitReport": "Bericht absenden",
+    "reportSubmitted": "Bericht erfolgreich eingereicht",
+    "myReports": "Meine Berichte",
+    "recentReports": "Aktuelle Berichte",
+    "noReports": "Noch keine Berichte"
+  },
+  "community": {
+    "chat": "Community-Chat",
+    "help": "Community-Hilfe",
+    "guidelines": "Richtlinien",
+    "offers": "Hilfsangebote",
+    "requests": "Hilfeanfragen",
+    "volunteers": "Freiwillige"
+  },
+  "accessibility": {
+    "title": "Barrierefreiheit",
+    "highContrast": "Hoher Kontrast",
+    "largeText": "Großer Text",
+    "reduceMotion": "Bewegung reduzieren",
+    "screenReader": "Screenreader-optimiert"
+  },
+  "footer": {
+    "privacy": "Datenschutzrichtlinie",
+    "terms": "Nutzungsbedingungen",
+    "contact": "Kontakt",
+    "about": "Über AEGIS",
+    "accessibility": "Barrierefreiheit"
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "title": "Ramani",
+  "layers": {
+    "title": "Tabaka za Ramani",
+    "base": "Ramani ya Msingi",
+    "flood": "Tabaka la Mafuriko",
+    "wildfire": "Tabaka la Moto wa Msitu",
+    "heatwave": "Tabaka la Wimbi la Joto",
+    "storm": "Tabaka la Dhoruba",
+    "infrastructure": "Tabaka la Miundombinu",
+    "reports": "Ripoti za Raia",
+    "evacuation": "Njia za Uhamishaji",
+    "shelters": "Makazi",
+    "sensors": "Sensea",
+    "satellite": "Picha za Setilaiti"
+  },
+  "controls": {
+    "zoomIn": "Kuza",
+    "zoomOut": "Punguza",
+    "myLocation": "Mahali Pangu",
+    "fullscreen": "Skrini Nzima",
+    "layerControl": "Udhibiti wa Tabaka",
+    "measure": "Pima Umbali",
+    "draw": "Chora Eneo"
+  },
+  "legend": {
+    "title": "Mwongozo",
+    "low": "Hatari Ndogo",
+    "medium": "Hatari ya Wastani",
+    "high": "Hatari Kubwa",
+    "critical": "Hatari Kali Sana",
+    "activeIncident": "Tukio Linalofanya Kazi",
+    "resolvedIncident": "Imesuluhiwa"
+  },
+  "popup": {
+    "incidentType": "Aina ya Tukio",
+    "severity": "Ukali",
+    "reportedAt": "Iliripotiwa",
+    "lastUpdate": "Masasisho ya Mwisho",
+    "viewDetails": "Ona Maelezo",
+    "navigate": "Nenda Hapa"
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "name": "AEGIS WF9 — Severe Storm Monitor",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "minutes", "minutesInterval": 10 }] } },
+      "name": "Schedule (10 min)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [200, 300],
+      "id": "wf9-trigger"
+    },
+    {
+      "parameters": {
+        "url": "https://api.open-meteo.com/v1/forecast?latitude=57.15&longitude=-2.09&current=wind_speed_10m,wind_gusts_10m,precipitation,weather_code&hourly=wind_gusts_10m,precipitation&daily=wind_gusts_10m_max,precipitation_sum&timezone=auto&forecast_days=3",
+        "options": { "timeout": 15000 },
+        "headerParametersJson": "{ \"User-Agent\": \"AEGIS-Storm/1.0\" }"
+      },
+      "name": "Fetch Storm Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [420, 300],
+      "id": "wf9-weather"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst windSpeed = data.current?.wind_speed_10m || 0;\nconst gusts = data.current?.wind_gusts_10m || 0;\nconst precipitation = data.current?.precipitation || 0;\nconst code = data.current?.weather_code || 0;\nconst forecastGusts = data.daily?.wind_gusts_10m_max || [];\nconst forecastRain = data.daily?.precipitation_sum || [];\n\n// Beaufort scale mapping\n// Storm force = Beaufort 10 (89-102 km/h), Violent storm = 11 (103-117), Hurricane = 12 (>117)\nconst maxForecastGusts = Math.max(...forecastGusts.map(g => g || 0));\nconst totalRain = forecastRain.slice(0, 2).reduce((s, v) => s + (v || 0), 0);\n\n// Severe weather codes: 80-99 thunderstorms/hail/violent rain\nconst isSevereCode = code >= 80;\n\nlet severity = 'Low';\nlet probability = 0.05;\nlet action = 'monitor';\n\nif (gusts >= 103 || maxForecastGusts >= 103 || (gusts >= 75 && isSevereCode)) {\n  severity = 'Critical'; probability = 0.90; action = 'issue_storm_emergency';\n} else if (gusts >= 75 || maxForecastGusts >= 89 || (totalRain >= 40 && gusts >= 50)) {\n  severity = 'High'; probability = 0.70; action = 'issue_storm_warning';\n} else if (gusts >= 50 || maxForecastGusts >= 62 || totalRain >= 25) {\n  severity = 'Medium'; probability = 0.45; action = 'issue_storm_advisory';\n} else if (gusts >= 30 || windSpeed >= 25) {\n  severity = 'Low'; probability = 0.20; action = 'monitor_elevated';\n}\n\nreturn [{ json: {\n  incidentType: 'severe_storm',\n  severity,\n  probability,\n  windSpeedKmh: windSpeed,\n  gustsKmh: gusts,\n  precipitationMm: precipitation,\n  weatherCode: code,\n  maxForecastGusts,\n  totalForecastRainMm: Math.round(totalRain * 10) / 10,\n  isSevereCode,\n  action,\n  shouldAlert: severity !== 'Low' || action === 'monitor_elevated',\n  timestamp: new Date().toISOString()\n}}];"
+      },
+      "name": "Analyse Storm Severity",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [640, 300],
+      "id": "wf9-analyse"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [{ "value1": "={{$json.shouldAlert}}", "operation": "equal", "value2": true }]
+        }
+      },
+      "name": "Should Alert?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [860, 300],
+      "id": "wf9-if"
+    },
+    {
+      "parameters": {
+        "url": "={{$env.AEGIS_BACKEND_URL || 'http://localhost:3001'}}/api/internal/incident-alert",
+        "method": "POST",
+        "bodyParametersJson": "={{ JSON.stringify({ incidentType: 'severe_storm', severity: $json.severity, probability: $json.probability, message: 'Wind gusts: ' + $json.gustsKmh + ' km/h. Forecast max: ' + $json.maxForecastGusts + ' km/h. Rain: ' + $json.totalForecastRainMm + 'mm forecast.', source: 'n8n_severe_storm_monitor', metadata: { windSpeed: $json.windSpeedKmh, gusts: $json.gustsKmh, forecastGusts: $json.maxForecastGusts } }) }}",
+        "options": { "timeout": 10000 },
+        "headerParametersJson": "{ \"Content-Type\": \"application/json\", \"User-Agent\": \"AEGIS-n8n/1.0\" }"
+      },
+      "name": "Post Alert to AEGIS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1080, 200],
+      "id": "wf9-post"
+    }
+  ],
+  "connections": {
+    "Schedule (10 min)": { "main": [[{ "node": "Fetch Storm Data", "type": "main", "index": 0 }]] },
+    "Fetch Storm Data": { "main": [[{ "node": "Analyse Storm Severity", "type": "main", "index": 0 }]] },
+    "Analyse Storm Severity": { "main": [[{ "node": "Should Alert?", "type": "main", "index": 0 }]] },
+    "Should Alert?": { "main": [[{ "node": "Post Alert to AEGIS", "type": "main", "index": 0 }], []] }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "aegis" }, { "name": "severe_storm" }, { "name": "tier2" }]
+}

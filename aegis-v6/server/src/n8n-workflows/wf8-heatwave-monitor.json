@@ -1,0 +1,70 @@
+{
+  "name": "AEGIS WF8 — Heatwave Health Risk Monitor",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "hours", "hoursInterval": 1 }] } },
+      "name": "Schedule (Hourly)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [200, 300],
+      "id": "wf8-trigger"
+    },
+    {
+      "parameters": {
+        "url": "https://api.open-meteo.com/v1/forecast?latitude=57.15&longitude=-2.09&current=temperature_2m,relative_humidity_2m,apparent_temperature,wind_speed_10m&daily=temperature_2m_max,apparent_temperature_max,precipitation_sum&timezone=auto&forecast_days=5",
+        "options": { "timeout": 15000 },
+        "headerParametersJson": "{ \"User-Agent\": \"AEGIS-Heatwave/1.0\" }"
+      },
+      "name": "Fetch Temperature Forecast",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [420, 300],
+      "id": "wf8-weather"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst temp = data.current?.temperature_2m || 15;\nconst apparent = data.current?.apparent_temperature || temp;\nconst humidity = data.current?.relative_humidity_2m || 50;\nconst forecastMaxTemps = data.daily?.temperature_2m_max || [];\nconst forecastApparent = data.daily?.apparent_temperature_max || [];\n\n// UK Met Office heatwave thresholds\n// Heatwave: 3+ consecutive days >= 25°C (Scotland: 28°C threshold for alert)\nconst highTempDays = forecastMaxTemps.filter(t => t >= 25).length;\nconst veryHighDays = forecastMaxTemps.filter(t => t >= 28).length;\nconst maxForecastTemp = Math.max(...forecastMaxTemps.map(t => t || 0));\nconst maxApparent = Math.max(...forecastApparent.map(t => t || 0));\n\n// Heat index calculation\nconst heatIndex = apparent > 27 ? apparent + (humidity - 40) * 0.1 : apparent;\n\nlet severity = 'Low';\nlet probability = 0.05;\nlet action = 'monitor';\nlet healthRisk = 'minimal';\n\nif (veryHighDays >= 3 || maxApparent >= 35) {\n  severity = 'Critical'; probability = 0.85; action = 'issue_critical_heat_alert'; healthRisk = 'extreme';\n} else if (highTempDays >= 3 || maxApparent >= 30) {\n  severity = 'High'; probability = 0.65; action = 'issue_heat_warning'; healthRisk = 'high';\n} else if (highTempDays >= 1 || maxForecastTemp >= 25) {\n  severity = 'Medium'; probability = 0.40; action = 'issue_heat_advisory'; healthRisk = 'moderate';\n}\n\nreturn [{ json: {\n  incidentType: 'heatwave',\n  severity,\n  probability,\n  currentTemp: temp,\n  apparentTemp: apparent,\n  humidity,\n  heatIndex: Math.round(heatIndex * 10) / 10,\n  forecastMaxTemp: maxForecastTemp,\n  highTempDays,\n  veryHighDays,\n  healthRisk,\n  action,\n  shouldAlert: severity !== 'Low',\n  vulnerableGroupsAtRisk: severity === 'Critical' || severity === 'High',\n  timestamp: new Date().toISOString()\n}}];"
+      },
+      "name": "Analyse Heatwave Risk",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [640, 300],
+      "id": "wf8-analyse"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [{ "value1": "={{$json.shouldAlert}}", "operation": "equal", "value2": true }]
+        }
+      },
+      "name": "Should Alert?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [860, 300],
+      "id": "wf8-if"
+    },
+    {
+      "parameters": {
+        "url": "={{$env.AEGIS_BACKEND_URL || 'http://localhost:3001'}}/api/internal/incident-alert",
+        "method": "POST",
+        "bodyParametersJson": "={{ JSON.stringify({ incidentType: 'heatwave', severity: $json.severity, probability: $json.probability, message: 'Heat risk: ' + $json.healthRisk + '. Forecast max: ' + $json.forecastMaxTemp + '°C over ' + $json.highTempDays + ' days. ' + ($json.vulnerableGroupsAtRisk ? 'Vulnerable groups at risk.' : ''), source: 'n8n_heatwave_monitor', metadata: { currentTemp: $json.currentTemp, heatIndex: $json.heatIndex, forecastMaxTemp: $json.forecastMaxTemp, highTempDays: $json.highTempDays } }) }}",
+        "options": { "timeout": 10000 },
+        "headerParametersJson": "{ \"Content-Type\": \"application/json\", \"User-Agent\": \"AEGIS-n8n/1.0\" }"
+      },
+      "name": "Post Alert to AEGIS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1080, 200],
+      "id": "wf8-post"
+    }
+  ],
+  "connections": {
+    "Schedule (Hourly)": { "main": [[{ "node": "Fetch Temperature Forecast", "type": "main", "index": 0 }]] },
+    "Fetch Temperature Forecast": { "main": [[{ "node": "Analyse Heatwave Risk", "type": "main", "index": 0 }]] },
+    "Analyse Heatwave Risk": { "main": [[{ "node": "Should Alert?", "type": "main", "index": 0 }]] },
+    "Should Alert?": { "main": [[{ "node": "Post Alert to AEGIS", "type": "main", "index": 0 }], []] }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "aegis" }, { "name": "heatwave" }, { "name": "tier2" }]
+}

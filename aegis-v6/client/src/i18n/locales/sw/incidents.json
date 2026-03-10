@@ -1,0 +1,99 @@
+{
+  "title": "Matukio",
+  "filter": {
+    "all": "Matukio yote",
+    "active": "Yanayoendelea",
+    "resolved": "Yaliyosuluhishwa",
+    "byType": "Chuja kwa aina"
+  },
+  "types": {
+    "flood": "Mafuriko",
+    "severe_storm": "Dhoruba Kali",
+    "heatwave": "Wimbi la Joto",
+    "wildfire": "Moto wa Msitu",
+    "landslide": "Maporomoko ya Ardhi",
+    "power_outage": "Kukatika kwa Umeme",
+    "water_supply_disruption": "Usumbufu wa Maji",
+    "infrastructure_damage": "Uharibifu wa Miundombinu",
+    "public_safety_incident": "Tukio la Usalama wa Umma",
+    "environmental_hazard": "Hatari ya Kimazingira"
+  },
+  "categories": {
+    "natural_disaster": "Msiba wa Asili",
+    "community_safety": "Usalama wa Jamii",
+    "infrastructure": "Miundombinu",
+    "public_safety": "Usalama wa Umma",
+    "environmental": "Mazingira"
+  },
+  "status": {
+    "fully_operational": "Inafanya kazi kikamilifu",
+    "partial": "Inafanya kazi kwa sehemu",
+    "configured_only": "Imewekwa tu",
+    "disabled": "Imezimwa"
+  },
+  "predictions": {
+    "title": "Utabiri",
+    "noPredictions": "Hakuna utabiri hai",
+    "confidence": "Uhakika",
+    "probability": "Uwezekano",
+    "source": "Chanzo cha data",
+    "ruleBasedNote": "Kulingana na uchambuzi wa kanuni. Uhakika unaonyesha ubora wa data inayopatikana.",
+    "statisticalNote": "Kulingana na uchambuzi wa modeli ya takwimu.",
+    "mlNote": "Kulingana na utabiri wa modeli ya kujifunza mashine."
+  },
+  "fields": {
+    "waterDepthCm": "Kina cha maji kilichokadiriwa (sm)",
+    "waterSpeed": "Kasi ya maji",
+    "blockedRoutes": "Njia zilizozuiwa",
+    "windDamage": "Uharibifu wa upepo uliozingatiwa",
+    "hailPresent": "Mvua ya mawe ipo",
+    "powerLinesDown": "Nyaya za umeme zimeanguka",
+    "temperatureC": "Joto lililopimwa (°C)",
+    "vulnerablePeopleAffected": "Watu walio hatarini walioathiriwa",
+    "waterAccessIssues": "Matatizo ya upatikanaji wa maji",
+    "smokeIntensity": "Ukali wa moshi",
+    "flameVisible": "Moto unaoonekana",
+    "evacuationNeeded": "Uhamaji unahitajika",
+    "roadBlocked": "Barabara imezuiwa",
+    "slopeFailureExtent": "Kiwango cha kuanguka kwa mteremko",
+    "ongoingMovement": "Mwendo unaoendelea wa ardhi",
+    "outageDurationHours": "Muda wa kukatika (masaa)",
+    "criticalServicesImpacted": "Huduma muhimu zilizoathiriwa",
+    "areaWide": "Kwa eneo zima",
+    "waterUnavailable": "Hakuna maji ya bomba",
+    "contaminationSuspected": "Uchafuzi unashukiwa",
+    "durationHours": "Muda (masaa)",
+    "assetType": "Aina ya mali",
+    "serviceDisruption": "Usumbufu wa huduma",
+    "accessRestricted": "Upatikanaji umezuiwa",
+    "injuriesReported": "Majeraha yaliyoripotiwa",
+    "crowdSize": "Ukubwa wa umati",
+    "policeRequired": "Polisi inahitajika",
+    "hazardMaterial": "Nyenzo hatari",
+    "airOrWaterImpact": "Athari kwa hewa/maji",
+    "containmentNeeded": "Kizuizi kinahitajika"
+  },
+  "report": {
+    "selectType": "Chagua aina ya tukio",
+    "whatHappened": "Nini kilitokea?",
+    "whereHappened": "Kilitokea wapi?",
+    "howSevere": "Ni kali kiasi gani?",
+    "additionalDetails": "Maelezo ya ziada",
+    "attachPhotos": "Ambatanisha picha",
+    "submitReport": "Wasilisha ripoti ya tukio",
+    "reportSuccess": "Ripoti yako imewasilishwa. Huduma za dharura zimearifiwa.",
+    "reportFailed": "Imeshindwa kuwasilisha ripoti. Tafadhali jaribu tena au piga simu huduma za dharura."
+  },
+  "ai": {
+    "tier": {
+      "rule_based": "Uchambuzi wa Kanuni",
+      "statistical": "Modeli ya Takwimu",
+      "ml": "Kujifunza Mashine"
+    },
+    "confidence": {
+      "high": "Uhakika wa juu — Modeli ya ML na data iliyothibitishwa",
+      "medium": "Uhakika wa wastani — Uchambuzi wa takwimu",
+      "low": "Uhakika wa chini — Tathmini ya kanuni"
+    }
+  }
+}
