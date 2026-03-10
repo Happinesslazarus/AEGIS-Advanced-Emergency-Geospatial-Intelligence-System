@@ -17,6 +17,7 @@
  */
 
 import { Router, Request, Response } from 'express'
+import { authMiddleware } from '../middleware/auth.js'
 import {
   getAllIncidentModules,
   getAllIncidentRegistries,
@@ -60,7 +61,7 @@ router.get('/all/dashboard', async (req: Request, res: Response) => {
 /**
  * GET /api/v1/incidents/all/predictions — All predictions across incident types
  */
-router.get('/all/predictions', async (req: Request, res: Response) => {
+router.get('/all/predictions', authMiddleware, async (req: Request, res: Response) => {
   try {
     const region = String(req.query.region || process.env.REGION_ID || 'aberdeen_scotland_uk')
     const modules = getOperationalModules()

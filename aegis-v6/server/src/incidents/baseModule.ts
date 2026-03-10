@@ -8,6 +8,7 @@
 
 import { Router, Request, Response } from 'express'
 import pool from '../models/db.js'
+import { authMiddleware, type AuthRequest } from '../middleware/auth.js'
 import type {
   IncidentModule,
   IncidentRegistryEntry,
@@ -46,7 +47,8 @@ export abstract class BaseIncidentModule implements IncidentModule {
     })
 
     // GET /predictions — predictions for this incident type
-    this.router.get('/predictions', async (req: Request, res: Response) => {
+    // GET /predictions — predictions for this incident type (auth required)
+    this.router.get('/predictions', authMiddleware, async (req: Request, res: Response) => {
       try {
         const region = String(req.query.region || process.env.REGION_ID || 'aberdeen_scotland_uk')
         const predictions = await this.getPredictions(region)
@@ -57,7 +59,8 @@ export abstract class BaseIncidentModule implements IncidentModule {
     })
 
     // POST /report — submit a report for this incident type
-    this.router.post('/report', async (req: Request, res: Response) => {
+    // POST /report — submit a report for this incident type (auth required)
+    this.router.post('/report', authMiddleware, async (req: Request, res: Response) => {
       try {
         const report = await this.submitReport(req.body)
         res.status(201).json({ incidentType: this.id, report, success: true })
@@ -67,7 +70,8 @@ export abstract class BaseIncidentModule implements IncidentModule {
     })
 
     // GET /history — historical data
-    this.router.get('/history', async (req: Request, res: Response) => {
+    // GET /history — historical data (auth required)
+    this.router.get('/history', authMiddleware, async (req: Request, res: Response) => {
       try {
         const region = String(req.query.region || process.env.REGION_ID || 'aberdeen_scotland_uk')
         const days = parseInt(String(req.query.days || '30'))
