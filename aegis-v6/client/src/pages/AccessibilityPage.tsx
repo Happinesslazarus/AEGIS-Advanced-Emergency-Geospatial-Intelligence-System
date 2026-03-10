@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Eye, ArrowLeft, CheckCircle, AlertTriangle, Globe, Volume2, Monitor, Smartphone } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 const Section = ({ title, icon: Icon, children }: { title: string; icon: React.ElementType; children: React.ReactNode }) => (
   <section className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-800">
@@ -9,12 +10,13 @@ const Section = ({ title, icon: Icon, children }: { title: string; icon: React.E
 )
 
 export default function AccessibilityPage(): JSX.Element {
+  const { t } = useTranslation('common')
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <div className="bg-gradient-to-r from-aegis-800 to-blue-800 text-white py-12 px-6">
         <div className="max-w-3xl mx-auto">
           <Link to="/citizen" className="inline-flex items-center gap-2 text-aegis-200 hover:text-white text-sm mb-6 transition-colors"><ArrowLeft className="w-4 h-4" /> Back to AEGIS</Link>
-          <div className="flex items-center gap-3 mb-3"><Eye className="w-7 h-7 text-blue-300" /><h1 className="text-2xl font-bold">Accessibility Statement</h1></div>
+          <div className="flex items-center gap-3 mb-3"><Eye className="w-7 h-7 text-blue-300" /><h1 className="text-2xl font-bold">{t('accessibility.title', 'Accessibility Statement')}</h1></div>
           <p className="text-aegis-200 text-sm">AEGIS Emergency Platform · Last reviewed: March 2026</p>
           <p className="text-white/80 text-sm mt-2">AEGIS is committed to ensuring digital accessibility for people with disabilities and diverse needs — especially during the high-stress context of emergencies.</p>
         </div>

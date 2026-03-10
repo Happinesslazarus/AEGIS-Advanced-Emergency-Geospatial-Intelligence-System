@@ -818,7 +818,7 @@ export default function DisasterMap({
         {showSpatialTools && <SpatialToolbar reports={reports} />}
 
         {/* Incident type layers */}
-        <IncidentMapLayers reports={reports} />
+        <IncidentMapLayers />
       </MapContainer>
 
       {/* Export GeoJSON button — top-left */}

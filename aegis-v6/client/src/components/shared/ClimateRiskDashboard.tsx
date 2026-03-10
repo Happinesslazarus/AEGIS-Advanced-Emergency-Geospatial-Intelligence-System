@@ -328,8 +328,8 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
           icon={Activity}
           color="text-blue-600 bg-blue-50 dark:bg-blue-950/30"
           sub={predictions.length > 0 ? `Highest: ${Math.round(
-            Math.max(...predictions.map(p => (typeof p.probability === 'string' ? parseFloat(p.probability) : p.probability) * 100))
-          )}%` : 'None'}
+            Math.max(...predictions.map(p => { const v = typeof p.probability === 'string' ? parseFloat(p.probability) : p.probability; return (isNaN(v) ? 0 : v) * 100 }))
+          ) || 0}%` : 'None'}
         />
         <StatCard
           label="Active Alerts"
@@ -366,8 +366,9 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
           <div className="divide-y divide-gray-100 dark:divide-gray-800">
             {predictions.map((p, i) => {
               const prob = typeof p.probability === 'string' ? parseFloat(p.probability) : p.probability
-              const pct = Math.round(prob * 100)
+              const pct = Math.round(prob * 100) || 0
               const conf = typeof p.confidence === 'string' ? parseFloat(p.confidence) : p.confidence
+              const confSafe = isNaN(conf) ? 0 : conf
               const color = pct >= 75 ? 'text-red-600' : pct >= 50 ? 'text-orange-600' : pct >= 25 ? 'text-amber-600' : 'text-green-600'
               return (
                 <div key={i} className="px-4 py-3 flex items-center gap-3">
@@ -375,7 +376,7 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
                     <p className="text-sm font-semibold text-gray-900 dark:text-white">{p.area}</p>
                     <div className="flex items-center gap-3 text-[10px] text-gray-500 mt-0.5">
                       <span>Severity: {p.severity}</span>
-                      <span>Confidence: {Math.round(conf)}%</span>
+                      <span>Confidence: {Math.round(confSafe)}%</span>
                       {p.time_to_flood && <span>ETA: {p.time_to_flood}</span>}
                       {p.model_version && <span className="font-mono">{p.model_version}</span>}
                     </div>
@@ -406,10 +407,10 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
                 <p className="text-xs font-medium text-gray-900 dark:text-white truncate">{f.factor}</p>
                 <div className="flex items-end justify-between mt-1">
                   <span className="text-lg font-bold text-gray-700 dark:text-gray-300">
-                    {f.value.toFixed(1)}{f.unit ? ` ${f.unit}` : ''}
+                    {isNaN(f.value) ? '—' : f.value.toFixed(1)}{f.unit ? ` ${f.unit}` : ''}
                   </span>
                   <span className="text-[10px] text-gray-500">
-                    imp: {(f.importance * 100).toFixed(0)}%
+                    imp: {isNaN(f.importance) ? '—' : (f.importance * 100).toFixed(0)}%
                   </span>
                 </div>
                 <div className="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-full mt-1.5 overflow-hidden">

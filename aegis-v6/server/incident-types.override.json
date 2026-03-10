@@ -1,0 +1,487 @@
+[
+  {
+    "id": "flood",
+    "name": "Flood",
+    "category": "natural_disaster",
+    "enabled": true,
+    "severityLevels": [
+      "Low",
+      "Medium",
+      "High",
+      "Critical"
+    ],
+    "fieldSchema": [
+      {
+        "key": "waterDepthCm",
+        "label": "Estimated Water Depth (cm)",
+        "type": "number",
+        "required": false
+      },
+      {
+        "key": "waterSpeed",
+        "label": "Water Speed",
+        "type": "select",
+        "required": false,
+        "options": [
+          "slow",
+          "moderate",
+          "fast"
+        ]
+      },
+      {
+        "key": "blockedRoutes",
+        "label": "Blocked Routes",
+        "type": "boolean",
+        "required": false
+      }
+    ],
+    "widgets": [
+      "live_map",
+      "river_gauges",
+      "rainfall_trend",
+      "threat_level"
+    ],
+    "aiModel": "flood_uk-default_v2026.03.03.093011",
+    "alertThresholds": {
+      "advisory": 30,
+      "warning": 55,
+      "critical": 75
+    }
+  },
+  {
+    "id": "severe_storm",
+    "name": "Severe Storm",
+    "category": "natural_disaster",
+    "enabled": true,
+    "severityLevels": [
+      "Low",
+      "Medium",
+      "High",
+      "Critical"
+    ],
+    "fieldSchema": [
+      {
+        "key": "windDamage",
+        "label": "Wind Damage Observed",
+        "type": "boolean",
+        "required": false
+      },
+      {
+        "key": "hailPresent",
+        "label": "Hail Present",
+        "type": "boolean",
+        "required": false
+      },
+      {
+        "key": "powerLinesDown",
+        "label": "Power Lines Down",
+        "type": "boolean",
+        "required": false
+      }
+    ],
+    "widgets": [
+      "weather_panel",
+      "live_map",
+      "incident_timeline"
+    ],
+    "aiModel": "severity",
+    "alertThresholds": {
+      "advisory": 28,
+      "warning": 52,
+      "critical": 74
+    }
+  },
+  {
+    "id": "heatwave",
+    "name": "Heatwave",
+    "category": "natural_disaster",
+    "enabled": true,
+    "severityLevels": [
+      "Low",
+      "Medium",
+      "High",
+      "Critical"
+    ],
+    "fieldSchema": [
+      {
+        "key": "temperatureC",
+        "label": "Observed Temperature (°C)",
+        "type": "number",
+        "required": false
+      },
+      {
+        "key": "vulnerablePeopleAffected",
+        "label": "Vulnerable People Affected",
+        "type": "boolean",
+        "required": false
+      },
+      {
+        "key": "waterAccessIssues",
+        "label": "Water Access Issues",
+        "type": "boolean",
+        "required": false
+      }
+    ],
+    "widgets": [
+      "weather_panel",
+      "preparedness",
+      "health_advisory"
+    ],
+    "aiModel": "heatwave_uk-default_v2026.03.03.080725",
+    "alertThresholds": {
+      "advisory": 35,
+      "warning": 58,
+      "critical": 78
+    }
+  },
+  {
+    "id": "wildfire",
+    "name": "Wildfire",
+    "category": "natural_disaster",
+    "enabled": true,
+    "severityLevels": [
+      "Low",
+      "Medium",
+      "High",
+      "Critical"
+    ],
+    "fieldSchema": [
+      {
+        "key": "smokeIntensity",
+        "label": "Smoke Intensity",
+        "type": "select",
+        "required": false,
+        "options": [
+          "light",
+          "moderate",
+          "heavy"
+        ]
+      },
+      {
+        "key": "flameVisible",
+        "label": "Visible Flames",
+        "type": "boolean",
+        "required": false
+      },
+      {
+        "key": "evacuationNeeded",
+        "label": "Evacuation Needed",
+        "type": "boolean",
+        "required": false
+      }
+    ],
+    "widgets": [
+      "live_map",
+      "air_quality",
+      "evacuation_routes"
+    ],
+    "aiModel": "severity",
+    "alertThresholds": {
+      "advisory": 33,
+      "warning": 56,
+      "critical": 80
+    }
+  },
+  {
+    "id": "landslide",
+    "name": "Landslide",
+    "category": "natural_disaster",
+    "enabled": true,
+    "severityLevels": [
+      "Low",
+      "Medium",
+      "High",
+      "Critical"
+    ],
+    "fieldSchema": [
+      {
+        "key": "roadBlocked",
+        "label": "Road Blocked",
+        "type": "boolean",
+        "required": false
+      },
+      {
+        "key": "slopeFailureExtent",
+        "label": "Slope Failure Extent",
+        "type": "select",
+        "required": false,
+        "options": [
+          "small",
+          "moderate",
+          "large"
+        ]
+      },
+      {
+        "key": "ongoingMovement",
+        "label": "Ongoing Ground Movement",
+        "type": "boolean",
+        "required": false
+      }
+    ],
+    "widgets": [
+      "live_map",
+      "terrain_risk",
+      "road_closures"
+    ],
+    "aiModel": "severity",
+    "alertThresholds": {
+      "advisory": 31,
+      "warning": 54,
+      "critical": 76
+    }
+  },
+  {
+    "id": "power_outage",
+    "name": "Power Outage",
+    "category": "community_safety",
+    "enabled": true,
+    "severityLevels": [
+      "Low",
+      "Medium",
+      "High",
+      "Critical"
+    ],
+    "fieldSchema": [
+      {
+        "key": "outageDurationHours",
+        "label": "Outage Duration (hours)",
+        "type": "number",
+        "required": false
+      },
+      {
+        "key": "criticalServicesImpacted",
+        "label": "Critical Services Impacted",
+        "type": "boolean",
+        "required": false
+      },
+      {
+        "key": "areaWide",
+        "label": "Area-wide Outage",
+        "type": "boolean",
+        "required": false
+      }
+    ],
+    "widgets": [
+      "incident_timeline",
+      "resource_allocation",
+      "community_help"
+    ],
+    "aiModel": "severity",
+    "alertThresholds": {
+      "advisory": 26,
+      "warning": 50,
+      "critical": 70
+    }
+  },
+  {
+    "id": "water_supply_disruption",
+    "name": "Water Supply Disruption",
+    "category": "community_safety",
+    "enabled": true,
+    "severityLevels": [
+      "Low",
+      "Medium",
+      "High",
+      "Critical"
+    ],
+    "fieldSchema": [
+      {
+        "key": "waterUnavailable",
+        "label": "No Running Water",
+        "type": "boolean",
+        "required": false
+      },
+      {
+        "key": "contaminationSuspected",
+        "label": "Contamination Suspected",
+        "type": "boolean",
+        "required": false
+      },
+      {
+        "key": "durationHours",
+        "label": "Duration (hours)",
+        "type": "number",
+        "required": false
+      }
+    ],
+    "widgets": [
+      "incident_timeline",
+      "community_help",
+      "alerts"
+    ],
+    "aiModel": "severity",
+    "alertThresholds": {
+      "advisory": 27,
+      "warning": 48,
+      "critical": 72
+    }
+  },
+  {
+    "id": "infrastructure_damage",
+    "name": "Infrastructure Damage",
+    "category": "infrastructure",
+    "enabled": true,
+    "severityLevels": [
+      "Low",
+      "Medium",
+      "High",
+      "Critical"
+    ],
+    "fieldSchema": [
+      {
+        "key": "assetType",
+        "label": "Asset Type",
+        "type": "select",
+        "required": true,
+        "options": [
+          "road",
+          "bridge",
+          "building",
+          "utility"
+        ]
+      },
+      {
+        "key": "serviceDisruption",
+        "label": "Service Disruption",
+        "type": "boolean",
+        "required": false
+      },
+      {
+        "key": "accessRestricted",
+        "label": "Access Restricted",
+        "type": "boolean",
+        "required": false
+      }
+    ],
+    "widgets": [
+      "live_map",
+      "resource_allocation",
+      "repair_queue"
+    ],
+    "aiModel": "severity",
+    "alertThresholds": {
+      "advisory": 25,
+      "warning": 47,
+      "critical": 71
+    }
+  },
+  {
+    "id": "public_safety_incident",
+    "name": "Public Safety Incident",
+    "category": "public_safety",
+    "enabled": true,
+    "severityLevels": [
+      "Low",
+      "Medium",
+      "High",
+      "Critical"
+    ],
+    "fieldSchema": [
+      {
+        "key": "injuriesReported",
+        "label": "Injuries Reported",
+        "type": "boolean",
+        "required": false
+      },
+      {
+        "key": "crowdSize",
+        "label": "Crowd Size",
+        "type": "select",
+        "required": false,
+        "options": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "key": "policeRequired",
+        "label": "Police Required",
+        "type": "boolean",
+        "required": false
+      }
+    ],
+    "widgets": [
+      "incident_timeline",
+      "live_map",
+      "operator_assignments"
+    ],
+    "aiModel": "severity",
+    "alertThresholds": {
+      "advisory": 30,
+      "warning": 53,
+      "critical": 77
+    }
+  },
+  {
+    "id": "environmental_hazard",
+    "name": "Environmental Hazard",
+    "category": "environmental",
+    "enabled": true,
+    "severityLevels": [
+      "Low",
+      "Medium",
+      "High",
+      "Critical"
+    ],
+    "fieldSchema": [
+      {
+        "key": "hazardMaterial",
+        "label": "Hazard Material",
+        "type": "text",
+        "required": false
+      },
+      {
+        "key": "airOrWaterImpact",
+        "label": "Air/Water Impact",
+        "type": "select",
+        "required": false,
+        "options": [
+          "air",
+          "water",
+          "soil",
+          "mixed"
+        ]
+      },
+      {
+        "key": "containmentNeeded",
+        "label": "Containment Needed",
+        "type": "boolean",
+        "required": false
+      }
+    ],
+    "widgets": [
+      "live_map",
+      "environmental_monitor",
+      "alerts"
+    ],
+    "aiModel": "severity",
+    "alertThresholds": {
+      "advisory": 29,
+      "warning": 51,
+      "critical": 75
+    }
+  },
+  {
+    "id": "test_hazard",
+    "name": "Test Hazard",
+    "category": "public_safety",
+    "enabled": true,
+    "severityLevels": [
+      "Low",
+      "Medium",
+      "High",
+      "Critical"
+    ],
+    "fieldSchema": [],
+    "widgets": [
+      "incident_timeline"
+    ],
+    "aiModel": "severity",
+    "alertThresholds": {
+      "advisory": 30,
+      "warning": 55,
+      "critical": 75
+    }
+  }
+]

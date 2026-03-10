@@ -25,6 +25,7 @@ const API = ''
 // Aberdeen
 const DEFAULT_CENTER: [number, number] = [57.1497, -2.0943]
 const DEFAULT_ZOOM = 13
+const EMPTY_REPORTS: Report[] = []
 
 const SEV_COLOURS: Record<string, string> = {
   High: '#ef4444',

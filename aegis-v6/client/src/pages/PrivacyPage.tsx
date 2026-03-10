@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Lock, ArrowLeft } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <section className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-800">
@@ -9,12 +10,13 @@ const Section = ({ title, children }: { title: string; children: React.ReactNode
 )
 
 export default function PrivacyPage(): JSX.Element {
+  const { t } = useTranslation('common')
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <div className="bg-gradient-to-r from-gray-900 to-gray-800 text-white py-12 px-6">
         <div className="max-w-3xl mx-auto">
           <Link to="/citizen" className="inline-flex items-center gap-2 text-gray-400 hover:text-white text-sm mb-6 transition-colors"><ArrowLeft className="w-4 h-4" /> Back to AEGIS</Link>
-          <div className="flex items-center gap-3 mb-3"><Lock className="w-7 h-7 text-blue-400" /><h1 className="text-2xl font-bold">Privacy Policy</h1></div>
+          <div className="flex items-center gap-3 mb-3"><Lock className="w-7 h-7 text-blue-400" /><h1 className="text-2xl font-bold">{t('footer.privacy', 'Privacy Policy')}</h1></div>
           <p className="text-gray-400 text-sm">Last updated: March 2026 · AEGIS Emergency Platform</p>
         </div>
       </div>

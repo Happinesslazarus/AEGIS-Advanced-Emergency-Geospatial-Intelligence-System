@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom'
 import { Shield, Globe, Users, BookOpen, Heart, Award, ArrowLeft, Zap, Bell, Map } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 export default function AboutPage(): JSX.Element {
+  const { t } = useTranslation('common')
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* Hero */}
@@ -15,8 +17,8 @@ export default function AboutPage(): JSX.Element {
               <Shield className="w-8 h-8 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold">About AEGIS</h1>
-              <p className="text-aegis-200 text-sm mt-0.5">Adaptive Emergency & Geospatial Intelligence System</p>
+              <h1 className="text-3xl font-bold">{t('footer.about', 'About AEGIS')}</h1>
+              <p className="text-aegis-200 text-sm mt-0.5">{t('app.fullName', 'Adaptive Emergency & Geospatial Intelligence System')}</p>
             </div>
           </div>
           <p className="text-lg text-white/90 max-w-2xl leading-relaxed">
