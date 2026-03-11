@@ -93,7 +93,7 @@ class Settings(BaseSettings):
     ENABLE_FLOOD_MODULE: bool = Field(default=True, env="ENABLE_FLOOD_MODULE")
     ENABLE_DROUGHT_MODULE: bool = Field(default=True, env="ENABLE_DROUGHT_MODULE")
     ENABLE_HEATWAVE_MODULE: bool = Field(default=True, env="ENABLE_HEATWAVE_MODULE")
-    ENABLE_WILDFIRE_MODULE: bool = Field(default=False, env="ENABLE_WILDFIRE_MODULE")
+    ENABLE_WILDFIRE_MODULE: bool = Field(default=True, env="ENABLE_WILDFIRE_MODULE")
     ENABLE_COMPOUND_RISK: bool = Field(default=False, env="ENABLE_COMPOUND_RISK")
     
     class Config:

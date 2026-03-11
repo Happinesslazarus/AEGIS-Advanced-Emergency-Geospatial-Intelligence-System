@@ -20,7 +20,8 @@ import {
   Zap, Bell, CircleDot, FileText, Users, Image as ImageIcon, Languages,
   Sparkles, Pin, Star, Timer, Inbox, Archive, MailOpen, Reply, Bookmark, Hash
 } from 'lucide-react'
-import { useSocket, ChatThread, ChatMessage } from '../../hooks/useSocket'
+import { type ChatThread, type ChatMessage } from '../../hooks/useSocket'
+import { useSharedSocket } from '../../contexts/SocketContext'
 import { getSession } from '../../utils/auth'
 import { translateText, TRANSLATION_LANGUAGES, clearTranslationCache } from '../../utils/translateService'
 import { getLanguage } from '../../utils/i18n'
@@ -47,7 +48,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function AdminMessaging(): JSX.Element {
-  const socket = useSocket()
+  const socket = useSharedSocket()
   const user = getSession()
   const [filter, setFilter] = useState<FilterMode>('all')
   const [searchTerm, setSearchTerm] = useState('')

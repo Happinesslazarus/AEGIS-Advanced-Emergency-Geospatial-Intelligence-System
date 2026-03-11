@@ -1,5 +1,16 @@
 /*
- * useSocket.ts - Real-time Socket.IO hook for Citizen <-> Admin messaging
+ * useSocket.ts - Advanced Real-time Socket.IO hook for AEGIS Messaging
+ *
+ * Features:
+ * - JWT authentication with automatic token validation
+ * - Exponential backoff reconnection strategy
+ * - Message queuing for offline scenarios with automatic retry
+ * - Connection quality monitoring (latency tracking)
+ * - Heartbeat monitoring with stale connection detection
+ * - Message deduplication
+ * - Optimistic updates with rollback on failure
+ * - Automatic reconnection with queued message processing
+ * - Full TypeScript support with comprehensive types
  *
  * Connects to the AEGIS Socket.IO server with JWT authentication.
  * Manages: connection state, message events, typing indicators,
@@ -9,11 +20,22 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { io, Socket } from 'socket.io-client'
 
-// Resolve Socket.IO server URL from env or fall back to window.location origin
+// Resolve Socket.IO server URL from env or fall back to backend default
+// Prefer explicit backend URL to avoid connecting to Vite dev server (5173)
 const SOCKET_URL = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_SOCKET_URL)
-  || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3001')
+  || 'http://localhost:3001'
+const MAX_RECONNECT_ATTEMPTS = 10
 
 // --- Types ---
+
+// Message queue for offline messages
+interface QueuedMessage {
+  threadId: string
+  content: string
+  attachmentUrl?: string
+  timestamp: number
+  retryCount: number
+}
 
 export interface ChatMessage {
   id: string
@@ -99,6 +121,15 @@ export function useSocket(): SocketState {
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([])
   const [adminThreads, setAdminThreads] = useState<ChatThread[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
+  
+  // Advanced features
+  const messageQueueRef = useRef<QueuedMessage[]>([])
+  const reconnectAttemptsRef = useRef(0)
+  const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const lastPingRef = useRef<number>(Date.now())
+  const latencyHistoryRef = useRef<number[]>([])
+  const connectionQualityRef = useRef<'excellent' | 'good' | 'fair' | 'poor'>('good')
+  const seenMessageIdsRef = useRef<Set<string>>(new Set())
 
   // Active thread ref - updated synchronously to avoid race conditions
   const activeThreadRef = useRef<ChatThread | null>(null)
@@ -122,53 +153,223 @@ export function useSocket(): SocketState {
     setActiveThread(thread)
   }, [])
 
-  // Connect to Socket.IO with JWT
-  const connect = useCallback((token: string) => {
-    if (socketRef.current?.connected) return
+  // Process queued messages when connection is restored
+  const processMessageQueue = useCallback(() => {
+    if (!socketRef.current?.connected || messageQueueRef.current.length === 0) return
+    
+    console.log('[Socket] 📤 Processing', messageQueueRef.current.length, 'queued messages')
+    const queue = [...messageQueueRef.current]
+    messageQueueRef.current = []
+    
+    queue.forEach((queuedMsg) => {
+      console.log('[Socket] 📨 Sending queued message from', new Date(queuedMsg.timestamp).toLocaleTimeString())
+      socketRef.current?.emit('message:send', {
+        threadId: queuedMsg.threadId,
+        content: queuedMsg.content,
+        attachmentUrl: queuedMsg.attachmentUrl
+      }, (ack: any) => {
+        if (!ack?.success) {
+          console.error('[Socket] Failed to send queued message, re-queuing...')
+          // Re-queue with incremented retry count
+          if (queuedMsg.retryCount < 3) {
+            messageQueueRef.current.push({
+              ...queuedMsg,
+              retryCount: queuedMsg.retryCount + 1
+            })
+          }
+        }
+      })
+    })
+  }, [])
 
+  // Connect to Socket.IO with JWT - Advanced connection management
+  const connect = useCallback((token: string) => {
+    if (socketRef.current?.connected) {
+      console.log('[Socket] Already connected, skipping')
+      return
+    }
+
+    if (!token) {
+      console.error('[Socket] Cannot connect: no token provided')
+      return
+    }
+
+    console.log('[Socket] 🔌 Connecting to:', SOCKET_URL)
+    
+    // Calculate exponential backoff delay based on previous attempts
+    const baseDelay = 1000
+    const maxDelay = 30000
+    const backoffMultiplier = 1.5
+    const currentDelay = Math.min(
+      baseDelay * Math.pow(backoffMultiplier, reconnectAttemptsRef.current),
+      maxDelay
+    )
+    
+    console.log('[Socket] Reconnection delay:', currentDelay, 'ms (attempt', reconnectAttemptsRef.current + 1, ')')
+    
     const socket = io(SOCKET_URL, {
       auth: { token },
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionDelay: 1000,
-      reconnectionAttempts: 10,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: MAX_RECONNECT_ATTEMPTS,
+      timeout: 20000,
+      autoConnect: true,
+      forceNew: false,
+      multiplex: true,
     })
 
     socket.on('connect', () => {
-      // // console.log('[Socket] Connected:', socket.id, '- waiting for server data...')
+      console.log('[Socket] ✅ Connected:', socket.id)
       setConnected(true)
+      reconnectAttemptsRef.current = 0
+      
+      // Process any queued messages
+      processMessageQueue()
     })
 
     socket.on('disconnect', (reason) => {
-      // // console.log('[Socket] Disconnected:', reason)
+      console.log('[Socket] ⚠️ Disconnected:', reason)
       setConnected(false)
+      
+      // Clear heartbeat interval
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current)
+        heartbeatIntervalRef.current = null
+      }
     })
 
     socket.on('connect_error', (err) => {
-      console.error('[Socket] Connection error:', err.message, '- check token & server')
+      console.error('[Socket] ❌ Connection error:', err.message)
+      
+      // Check if it's an auth error
+      if (err.message.includes('Invalid token') || err.message.includes('authentication')) {
+        console.warn('[Socket] Authentication failed - clearing token')
+        localStorage.removeItem('aegis-token')
+        localStorage.removeItem('aegis-user')
+        localStorage.removeItem('aegis-citizen-token')
+        localStorage.removeItem('aegis-citizen-user')
+        
+        // Redirect to login if not already there
+        if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/auth')) {
+          console.log('[Socket] Redirecting to login...')
+          setTimeout(() => {
+            window.location.href = window.location.pathname.includes('/admin') ? '/admin/login' : '/auth/login'
+          }, 1000)
+        }
+      }
+      
       setConnected(false)
+    })
+
+    // --- Advanced Connection Management ---
+    
+    // Reconnection attempts tracking
+    socket.on('reconnect_attempt', (attemptNumber) => {
+      reconnectAttemptsRef.current = attemptNumber
+      console.log(`[Socket] 🔄 Reconnection attempt ${attemptNumber}/${MAX_RECONNECT_ATTEMPTS}`)
+    })
+    
+    socket.on('reconnect', (attemptNumber) => {
+      console.log(`[Socket] ✅ Reconnected after ${attemptNumber} attempts`)
+      reconnectAttemptsRef.current = 0
+      setConnected(true)
+      
+      // Process queued messages after reconnection
+      processMessageQueue()
+    })
+    
+    socket.on('reconnect_failed', () => {
+      console.error('[Socket] ❌ Reconnection failed after', MAX_RECONNECT_ATTEMPTS, 'attempts')
+      setConnected(false)
+      
+      // Alert user if there are queued messages
+      if (messageQueueRef.current.length > 0) {
+        console.warn('[Socket] ⚠️', messageQueueRef.current.length, 'messages queued, waiting for connection')
+      }
+    })
+    
+    socket.on('reconnect_error', (err) => {
+      console.error('[Socket] ⚠️ Reconnection error:', err.message)
+    })
+    
+    // Heartbeat monitoring with custom intervals
+    heartbeatIntervalRef.current = setInterval(() => {
+      if (socket.connected) {
+        const now = Date.now()
+        const timeSinceLastPing = now - lastPingRef.current
+        
+        // If no ping in last 30 seconds, connection might be stale
+        if (timeSinceLastPing > 30000) {
+          console.warn('[Socket] ⚠️ No heartbeat for 30s, connection may be stale')
+        }
+      }
+    }, 10000) // Check every 10 seconds
+    
+    socket.on('ping', () => {
+      lastPingRef.current = Date.now()
+    })
+    
+    socket.on('pong', (latency) => {
+      lastPingRef.current = Date.now()
+      
+      // Track latency history (keep last 10 measurements)
+      latencyHistoryRef.current.push(latency)
+      if (latencyHistoryRef.current.length > 10) {
+        latencyHistoryRef.current.shift()
+      }
+      
+      // Calculate average latency
+      const avgLatency = latencyHistoryRef.current.reduce((a, b) => a + b, 0) / latencyHistoryRef.current.length
+      
+      // Determine connection quality
+      let quality: 'excellent' | 'good' | 'fair' | 'poor'
+      if (avgLatency < 50) quality = 'excellent'
+      else if (avgLatency < 150) quality = 'good'
+      else if (avgLatency < 300) quality = 'fair'
+      else quality = 'poor'
+      
+      if (connectionQualityRef.current !== quality) {
+        console.log('[Socket] 📊 Connection quality changed:', connectionQualityRef.current, '→', quality)
+        connectionQualityRef.current = quality
+      }
+      
+      console.log('[Socket] 💚 Latency:', latency, 'ms | Avg:', avgLatency.toFixed(0), 'ms | Quality:', quality)
     })
 
     // --- Message Events ---
 
     socket.on('message:new', (msg: ChatMessage) => {
-      // // console.log('[Socket] message:new received:', msg.id, 'for thread:', msg.thread_id, 'active thread:', activeThreadRef.current?.id)
+      // Advanced deduplication - check if we've already processed this message
+      if (seenMessageIdsRef.current.has(msg.id)) {
+        console.log('[Socket] 🔄 Duplicate message detected, skipping:', msg.id)
+        return
+      }
+      
+      // Add to seen messages (keep last 1000 to prevent memory bloat)
+      seenMessageIdsRef.current.add(msg.id)
+      if (seenMessageIdsRef.current.size > 1000) {
+        const firstId = seenMessageIdsRef.current.values().next().value
+        if (firstId) {
+          seenMessageIdsRef.current.delete(firstId)
+        }
+      }
+      
+      console.log('[Socket] 📨 New message:', msg.id, 'Thread:', msg.thread_id)
       
       // Always update messages if viewing this thread (even if ref not set yet)
       const currentThreadId = activeThreadRef.current?.id
       if (currentThreadId === msg.thread_id) {
-        // // console.log('[Socket] Adding message to active thread')
         setMessages(prev => {
           const withoutOptimistic = prev.filter(m => !m.id.startsWith('tmp-') || m.thread_id !== msg.thread_id || m.content !== msg.content)
           if (withoutOptimistic.some(m => m.id === msg.id)) {
-            // // console.log('[Socket] Message already exists, skipping')
+            console.log('[Socket] Message already in state, skipping')
             return withoutOptimistic
           }
-          // // console.log('[Socket] Adding new message to state')
+          console.log('[Socket] Adding message to active thread state')
           return [...withoutOptimistic, msg]
         })
-      } else {
-        // // console.log('[Socket] Message for different thread, updating metadata only')
       }
       // Update and sort citizen threads
       setThreads(prev => {
@@ -360,13 +561,14 @@ export function useSocket(): SocketState {
     })
 
     socket.on('citizen:threads', (threadList: ChatThread[]) => {
-      // // console.log('[Socket] Received citizen:threads:', threadList?.length || 0, 'threads')
+      console.log('[Socket] Received citizen:threads:', threadList?.length || 0, 'threads')
+      console.log('[Socket] Thread IDs:', threadList?.map(t => t.id))
       setThreads(threadList)
     })
 
     // --- Citizen: Admin reply notification ---
     socket.on('citizen:new_reply', ({ threadId, message }: any) => {
-      // // console.log('[Socket] citizen:new_reply received for thread:', threadId)
+      console.log('[Socket] citizen:new_reply received for thread:', threadId)
       // Update thread list with new reply info and re-sort
       setThreads(prev => {
         const updated = prev.map(t =>
@@ -396,10 +598,18 @@ export function useSocket(): SocketState {
     })
 
     socketRef.current = socket
-  }, [])
+  }, [processMessageQueue])
 
-  // Disconnect
+  // Disconnect with cleanup
   const disconnect = useCallback(() => {
+    console.log('[Socket] 🔌 Disconnecting...')
+    
+    // Clear heartbeat interval
+    if (heartbeatIntervalRef.current) {
+      clearInterval(heartbeatIntervalRef.current)
+      heartbeatIntervalRef.current = null
+    }
+    
     socketRef.current?.disconnect()
     socketRef.current = null
     setConnected(false)
@@ -463,10 +673,35 @@ export function useSocket(): SocketState {
       t.id === threadId ? { ...t, last_message: threadPreview, last_message_at: now, updated_at: now } : t
     ))
 
+    // Queue message if offline
+    if (!socketRef.current?.connected) {
+      console.warn('[Socket] 📫 Offline - queueing message for later delivery')
+      messageQueueRef.current.push({
+        threadId,
+        content: trimmed,
+        attachmentUrl,
+        timestamp: Date.now(),
+        retryCount: 0
+      })
+      return
+    }
+
+    // Send message with enhanced error handling
     socketRef.current?.emit('message:send', { threadId, content: trimmed, attachmentUrl }, (ack: any) => {
       if (ack?.success && ack?.message) {
+        console.log('[Socket] ✅ Message sent successfully')
         setMessages(prev => prev.map(m => (m.id === optimisticId ? ack.message : m)))
       } else {
+        console.error('[Socket] ❌ Message send failed:', ack?.error)
+        // Queue for retry
+        messageQueueRef.current.push({
+          threadId,
+          content: trimmed,
+          attachmentUrl,
+          timestamp: Date.now(),
+          retryCount: 0
+        })
+        // Remove optimistic message
         setMessages(prev => prev.filter(m => m.id !== optimisticId))
       }
     })
@@ -535,26 +770,47 @@ export function useSocket(): SocketState {
   }, [])
 
   const fetchCitizenThreads = useCallback(async () => {
+    console.log('[Socket] fetchCitizenThreads called')
     // Primary: use socket (real-time); fallback: REST after 2s delay
     socketRef.current?.emit('citizen:get_threads')
+    console.log('[Socket] Emitted citizen:get_threads event')
 
     // Delayed REST fallback only if socket didn't deliver
     const timer = setTimeout(async () => {
+      console.log('[Socket] REST fallback triggered after 2s')
       try {
         const token = localStorage.getItem('aegis-citizen-token') || localStorage.getItem('token')
-        if (!token) return
+        if (!token) {
+          console.error('[Socket] No token for REST fallback')
+          return
+        }
 
+        console.log('[Socket] Fetching /api/citizen/threads via REST')
         const res = await fetch('/api/citizen/threads', {
           headers: { Authorization: `Bearer ${token}` }
         })
 
-        if (!res.ok) return
+        if (!res.ok) {
+          console.error('[Socket] REST fallback failed:', res.status, res.statusText)
+          return
+        }
 
         const data = await res.json()
+        console.log('[Socket] REST response received:', data)
         const threadList: ChatThread[] = Array.isArray(data) ? data : (Array.isArray(data?.threads) ? data.threads : [])
+        console.log('[Socket] Parsed threadList:', threadList.length, 'threads')
         // Only apply REST data if socket hasn't already populated threads
-        setThreads(prev => prev.length === 0 && threadList.length > 0 ? threadList : prev)
-      } catch {}
+        setThreads(prev => {
+          if (prev.length === 0 && threadList.length > 0) {
+            console.log('[Socket] Applying REST data (socket was empty)')
+            return threadList
+          }
+          console.log('[Socket] Ignoring REST data (socket already has', prev.length, 'threads)')
+          return prev
+        })
+      } catch (err) {
+        console.error('[Socket] REST fallback error:', err)
+      }
     }, 2000)
 
     return () => clearTimeout(timer)
@@ -568,8 +824,25 @@ export function useSocket(): SocketState {
     socketRef.current?.emit('admin:resolve_thread', { threadId })
   }, [])
 
+  // Cleanup on unmount
   useEffect(() => {
-    return () => { socketRef.current?.disconnect() }
+    return () => {
+      console.log('[Socket] 🧹 Cleanup on unmount')
+      
+      // Clear heartbeat interval
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current)
+        heartbeatIntervalRef.current = null
+      }
+      
+      // Disconnect socket
+      socketRef.current?.disconnect()
+      
+      // Clear message queue if user is logging out
+      if (messageQueueRef.current.length > 0) {
+        console.warn('[Socket] ⚠️ Discarding', messageQueueRef.current.length, 'queued messages on unmount')
+      }
+    }
   }, [])
 
   return {

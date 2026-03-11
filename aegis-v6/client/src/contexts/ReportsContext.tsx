@@ -1,6 +1,6 @@
-import { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react'
 import { apiGetReports, apiUpdateReportStatus, apiSubmitReport } from '../utils/api'
-import { io, Socket } from 'socket.io-client'
+import { useSharedSocket } from './SocketContext'
 import type { Report, NewReportInput } from '../types'
 
 interface ReportStats {
@@ -24,6 +24,7 @@ interface ReportsContextType {
 const ReportsContext = createContext<ReportsContextType | null>(null)
 
 export function ReportsProvider({ children }: { children: ReactNode }): JSX.Element {
+  const sharedSocket = useSharedSocket()
   const [reports, setReports] = useState<Report[]>([])
   const [loading, setLoading] = useState(true)
   const [filterSeverity, setFilterSeverity] = useState('all')
@@ -55,6 +56,7 @@ export function ReportsProvider({ children }: { children: ReactNode }): JSX.Elem
           reporter: r.reporter || 'Anonymous Citizen',
           confidence: r.confidence || r.aiConfidence || null,
           aiAnalysis: r.aiAnalysis || null,
+          locationMetadata: r.locationMetadata || null,
           timestamp: r.timestamp || r.createdAt || new Date().toISOString(),
           displayTime: formatTimeAgo(r.timestamp || r.createdAt),
           operatorNotes: r.operatorNotes || null,
@@ -71,19 +73,9 @@ export function ReportsProvider({ children }: { children: ReactNode }): JSX.Elem
   useEffect(() => { fetchReports() }, [fetchReports])
 
   // WebSocket listener for real-time report updates (no manual refresh needed)
-  const socketRef = useRef<Socket | null>(null)
   useEffect(() => {
-    const token = localStorage.getItem('aegis-token') || localStorage.getItem('token') || sessionStorage.getItem('token') || ''
-    const socket = io('http://localhost:3001', {
-      auth: { token },
-      transports: ['websocket', 'polling'],
-      autoConnect: true,
-      reconnection: true,
-      reconnectionAttempts: Infinity,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 30000,
-    })
-    socketRef.current = socket
+    const socket = sharedSocket.socket
+    if (!socket) return
 
     // New report submitted by a citizen — add to list in real time
     socket.on('report:new', (report: any) => {
@@ -107,6 +99,7 @@ export function ReportsProvider({ children }: { children: ReactNode }): JSX.Elem
         reporter: report.reporter || 'Anonymous Citizen',
         confidence: report.confidence || report.aiConfidence || null,
         aiAnalysis: report.aiAnalysis || null,
+        locationMetadata: report.locationMetadata || null,
         timestamp: report.timestamp || report.createdAt || new Date().toISOString(),
         displayTime: 'Just now',
         operatorNotes: report.operatorNotes || null,
@@ -140,10 +133,8 @@ export function ReportsProvider({ children }: { children: ReactNode }): JSX.Elem
       socket.off('report:new')
       socket.off('report:updated')
       socket.off('report:bulk-updated')
-      socket.disconnect()
-      socketRef.current = null
     }
-  }, [])
+  }, [sharedSocket.socket])
 
   const addReport = useCallback(async (input: NewReportInput, files: File[] = []): Promise<Report | null> => {
     const fd = new FormData()
@@ -156,6 +147,13 @@ export function ReportsProvider({ children }: { children: ReactNode }): JSX.Elem
     fd.append('locationText', input.location)
     fd.append('lat', String(input.coordinates?.[0] ?? 57.15))
     fd.append('lng', String(input.coordinates?.[1] ?? -2.09))
+    if (input.locationMetadata) {
+      fd.append('locationMetadata', JSON.stringify(input.locationMetadata))
+    }
+
+    if (input.customFields && Object.keys(input.customFields).length > 0) {
+      fd.append('customFields', JSON.stringify(input.customFields))
+    }
 
     if (files.length > 0) {
       for (const file of files) {
@@ -176,6 +174,7 @@ export function ReportsProvider({ children }: { children: ReactNode }): JSX.Elem
       reporter: 'Anonymous Citizen',
       confidence: created?.aiConfidence ?? null,
       aiAnalysis: null,
+      locationMetadata: input.locationMetadata || null,
     } as Report
   }, [fetchReports])
 

@@ -8,7 +8,7 @@
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Query, Body
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 from loguru import logger
 
 from app.schemas.predictions import (
@@ -19,13 +19,21 @@ from app.schemas.predictions import (
     HazardTypeInfo,
     RetrainRequest,
     RetrainResponse,
-    HazardType
+    HazardType,
+    RiskLevel,
 )
 from app.core.model_registry import ModelRegistry
 from app.core.feature_store import FeatureStore
 from app.hazards.flood import FloodPredictor
 from app.hazards.drought import DroughtPredictor
 from app.hazards.heatwave import HeatwavePredictor
+from app.hazards.severe_storm import SevereStormPredictor
+from app.hazards.landslide import LandslidePredictor
+from app.hazards.power_outage import PowerOutagePredictor
+from app.hazards.water_supply_disruption import WaterSupplyPredictor
+from app.hazards.infrastructure_damage import InfrastructureDamagePredictor
+from app.hazards.public_safety_incident import PublicSafetyPredictor
+from app.hazards.environmental_hazard import EnvironmentalHazardPredictor
 from app.models.ml_wrappers import ReportClassifierML, SeverityPredictorML, TrainedModelLoader
 from app.models.report_classifier_ml import ReportClassifierTrainable
 from app.models.fake_detector_ml import FakeDetectorTrainable
@@ -131,28 +139,39 @@ async def predict_hazard(
             predictor = WildfirePredictor(model_registry, feature_store)
         elif request.hazard_type == HazardType.DROUGHT:
             predictor = DroughtPredictor(model_registry, feature_store)
+        elif request.hazard_type == HazardType.SEVERE_STORM:
+            predictor = SevereStormPredictor(model_registry, feature_store)
+        elif request.hazard_type == HazardType.LANDSLIDE:
+            predictor = LandslidePredictor(model_registry, feature_store)
+        elif request.hazard_type == HazardType.POWER_OUTAGE:
+            predictor = PowerOutagePredictor(model_registry, feature_store)
+        elif request.hazard_type == HazardType.WATER_SUPPLY:
+            predictor = WaterSupplyPredictor(model_registry, feature_store)
+        elif request.hazard_type == HazardType.INFRASTRUCTURE:
+            predictor = InfrastructureDamagePredictor(model_registry, feature_store)
+        elif request.hazard_type == HazardType.PUBLIC_SAFETY:
+            predictor = PublicSafetyPredictor(model_registry, feature_store)
+        elif request.hazard_type == HazardType.ENVIRONMENTAL:
+            predictor = EnvironmentalHazardPredictor(model_registry, feature_store)
         else:
-            # Generic fallback for storm, landslide, power_outage, etc.
-            logger.warning(f"No specialized predictor for {request.hazard_type.value}, using generic fallback")
-            from app.schemas.predictions import PredictionResponse, ContributingFactor, RiskLevel
+            logger.warning(f"No predictor for {request.hazard_type.value} — returning safe LOW")
+            from app.schemas.predictions import ContributingFactor
             return PredictionResponse(
+                model_version="rule-v1.0.0",
                 hazard_type=request.hazard_type,
-                risk_level=RiskLevel.LOW,
-                probability=0.15,
-                confidence_interval=(0.05, 0.25),
-                forecast_horizon=request.forecast_horizon,
                 region_id=request.region_id,
-                timestamp=datetime.utcnow().isoformat(),
+                probability=0.05,
+                risk_level=RiskLevel.LOW,
+                confidence=0.50,
+                predicted_peak_time=None,
+                geo_polygon=None,
                 contributing_factors=[
-                    ContributingFactor(factor="generic_risk", value=0.15, importance=0.5, unit="probability")
-                ] if request.include_contributing_factors else None,
-                affected_area=None,
-                model_metadata={
-                    "model_name": "generic_fallback",
-                    "model_version": "1.0.0",
-                    "training_date": "2026-03-01",
-                    "prediction_id": f"pred_{int(datetime.utcnow().timestamp())}"
-                }
+                    ContributingFactor(factor="baseline_risk", value=0.05, importance=1.0, unit="probability")
+                ] if request.include_contributing_factors else [],
+                generated_at=datetime.utcnow(),
+                expires_at=datetime.utcnow() + timedelta(hours=6),
+                data_sources=["rule_based"],
+                warnings=[]
             )
         
         # Generate prediction

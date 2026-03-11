@@ -5,10 +5,12 @@
  * - Incident registry (types, status, AI tiers)
  * - Active incident filtering for dashboards
  * - Cross-incident dashboard summary
+ * - Real-time socket.io integration for incident:alert events
  * - Loading/error state
  */
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
+import { io, type Socket } from 'socket.io-client'
 import {
   apiGetIncidentRegistry,
   apiGetIncidentDashboard,
@@ -31,32 +33,39 @@ export interface IncidentFilter {
   region: string | null
 }
 
+
+export interface LiveIncidentAlert {
+  incidentType: string
+  regionId: string
+  riskLevel: 'Low' | 'Medium' | 'High' | 'Critical'
+  probability: number
+  confidence: number
+  title: string
+  description: string
+  affectedArea?: { lat: number; lng: number; radiusKm: number }
+  timestamp: string
+  sourceModel?: string
+}
+
 interface IncidentContextType {
-  // Registry
   registry: IncidentRegistryEntry[]
   registryLoading: boolean
-
-  // Dashboard summary
   dashboard: IncidentDashboardSummary | null
   dashboardLoading: boolean
-
-  // Filtering
   filter: IncidentFilter
   setFilter: (f: Partial<IncidentFilter>) => void
   resetFilter: () => void
   selectedIncidentType: IncidentTypeId | null
   setSelectedIncidentType: (t: IncidentTypeId | null) => void
-
-  // Actions
   refreshRegistry: () => Promise<void>
   refreshDashboard: () => Promise<void>
   refreshAll: () => Promise<void>
-
-  // Derived state
   activeIncidentCount: number
   enabledTypes: IncidentTypeId[]
   operationalTypes: IncidentTypeId[]
   getModuleByType: (type: IncidentTypeId) => IncidentRegistryEntry | undefined
+  liveAlerts: LiveIncidentAlert[]
+  clearLiveAlerts: () => void
 }
 
 const DEFAULT_FILTER: IncidentFilter = {
@@ -68,7 +77,9 @@ const DEFAULT_FILTER: IncidentFilter = {
 
 const IncidentContext = createContext<IncidentContextType | null>(null)
 
-// ─── Provider ───────────────────────────────────────────────────────────
+// Use same origin so Vite's /socket.io proxy forwards WebSocket to port 3001
+const API_BASE = import.meta.env.VITE_API_URL ?? ''
+
 export function IncidentProvider({ children }: { children: ReactNode }): JSX.Element {
   const [registry, setRegistry] = useState<IncidentRegistryEntry[]>([])
   const [registryLoading, setRegistryLoading] = useState(true)
@@ -76,6 +87,7 @@ export function IncidentProvider({ children }: { children: ReactNode }): JSX.Ele
   const [dashboardLoading, setDashboardLoading] = useState(false)
   const [filter, setFilterState] = useState<IncidentFilter>(DEFAULT_FILTER)
   const [selectedIncidentType, setSelectedIncidentType] = useState<IncidentTypeId | null>(null)
+  const [liveAlerts, setLiveAlerts] = useState<LiveIncidentAlert[]>([])
 
   const refreshRegistry = useCallback(async () => {
     setRegistryLoading(true)
@@ -114,7 +126,27 @@ export function IncidentProvider({ children }: { children: ReactNode }): JSX.Ele
     setSelectedIncidentType(null)
   }, [])
 
-  // Derived state
+  const clearLiveAlerts = useCallback(() => {
+    setLiveAlerts([])
+  }, [])
+
+  useEffect(() => {
+    const socket: Socket = io(API_BASE, {
+      transports: ['websocket', 'polling'],
+      path: '/socket.io',
+    })
+    socket.on('incident:alert', (data: LiveIncidentAlert) => {
+      setLiveAlerts(prev => [...prev, data])
+    })
+    socket.on('incident:alert:priority', (data: LiveIncidentAlert) => {
+      setLiveAlerts(prev => [data, ...prev].slice(0, 50))
+    })
+    socket.on('incident:predictions_updated', () => {
+      refreshDashboard()
+    })
+    return () => { socket.disconnect() }
+  }, [])
+
   const enabledTypes = registry
     .filter(m => m.operationalStatus !== 'disabled')
     .map(m => m.id as IncidentTypeId)
@@ -135,7 +167,6 @@ export function IncidentProvider({ children }: { children: ReactNode }): JSX.Ele
     [registry],
   )
 
-  // Load registry on mount
   useEffect(() => {
     refreshRegistry()
   }, [refreshRegistry])
@@ -159,6 +190,8 @@ export function IncidentProvider({ children }: { children: ReactNode }): JSX.Ele
         enabledTypes,
         operationalTypes,
         getModuleByType,
+        liveAlerts,
+        clearLiveAlerts,
       }}
     >
       {children}
@@ -166,7 +199,6 @@ export function IncidentProvider({ children }: { children: ReactNode }): JSX.Ele
   )
 }
 
-// ─── Hook ───────────────────────────────────────────────────────────────
 export function useIncidents(): IncidentContextType {
   const ctx = useContext(IncidentContext)
   if (!ctx) throw new Error('useIncidents must be used within IncidentProvider')

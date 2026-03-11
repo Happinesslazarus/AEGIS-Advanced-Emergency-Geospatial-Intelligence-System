@@ -51,6 +51,8 @@ const glasgow: CityRegionConfig = {
   ],
   floodDataProvider: 'SEPA',
   weatherProvider: 'OpenWeatherMap',
+  riverAuthority: 'SEPA',
+  satelliteSource: 'NASA FIRMS',
   alertingAuthority: 'Glasgow City Council',
   emergencyNumber: '999',
   coordinateSystem: 'WGS84',

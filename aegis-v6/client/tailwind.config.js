@@ -33,6 +33,7 @@ export default {
         shimmer: { '0%':{backgroundPosition:'-200% 0'},'100%':{backgroundPosition:'200% 0'} },
         float: { '0%,100%':{transform:'translateY(0)'},'50%':{transform:'translateY(-6px)'} },
         glowPulse: { '0%,100%':{boxShadow:'0 0 5px rgba(26,109,245,0.3)'},'50%':{boxShadow:'0 0 20px rgba(26,109,245,0.5)'} },
+        ring: { '0%,100%':{transform:'rotate(0deg)'},'10%,30%':{transform:'rotate(-10deg)'},'20%,40%':{transform:'rotate(10deg)'},'50%':{transform:'rotate(0deg)'} },
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',

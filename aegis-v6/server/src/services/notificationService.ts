@@ -137,6 +137,31 @@ export interface DeliveryResult {
   timestamp: Date
 }
 
+// Simple E.164 validator
+function isValidE164Number(v: string | undefined) {
+  if (!v) return false
+  return /^\+[1-9]\d{1,14}$/.test(v)
+}
+
+// Simple retry helper for transient failures
+async function retry<T>(fn: () => Promise<T>, attempts?: number, baseDelayMs?: number): Promise<T> {
+  const maxAttempts = attempts ?? parseInt(process.env.NOTIFICATION_RETRY_ATTEMPTS || '3')
+  const baseDelay = baseDelayMs ?? parseInt(process.env.NOTIFICATION_RETRY_BASE_MS || '500')
+  let lastErr: any
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      return await fn()
+    } catch (err: any) {
+      lastErr = err
+      if (i < maxAttempts - 1) {
+        const delay = Math.round(baseDelay * Math.pow(2, i))
+        await new Promise(r => setTimeout(r, delay))
+      }
+    }
+  }
+  throw lastErr
+}
+
 // ═══════════════════════════════════════════════════════════
 // Email Delivery
 // ═══════════════════════════════════════════════════════════
@@ -298,13 +323,24 @@ export async function sendSMSAlert(
   }
 
   try {
+    if (!isValidE164Number(recipient)) {
+      return {
+        channel: 'sms',
+        success: false,
+        error: 'Invalid phone number format (expected E.164)',
+        timestamp: new Date(),
+      }
+    }
+
     const smsBody = generateSMSText(alert)
 
-    const message = await twilioClient.messages.create({
-      body: smsBody,
-      from: TWILIO_CONFIG.phoneNumber,
-      to: recipient,
-    })
+    const message = await retry(async () => {
+      return await twilioClient!.messages.create({
+        body: smsBody,
+        from: TWILIO_CONFIG.phoneNumber,
+        to: recipient,
+      })
+    }, 2, 300)
 
     console.log(`✅ SMS sent to ${recipient} in ${Date.now() - startTime}ms (${message.sid})`)
 
@@ -315,11 +351,13 @@ export async function sendSMSAlert(
       timestamp: new Date(),
     }
   } catch (error: any) {
-    console.error(`❌ SMS delivery failed to ${recipient}:`, error.message)
+    console.error(`❌ SMS delivery failed to ${recipient}:`, error?.message || error)
+    // Helpful hint for Twilio trial accounts
+    const hint = (error?.message || '').includes('Invalid') ? ' (check E.164 format or Twilio trial restrictions)' : ''
     return {
       channel: 'sms',
       success: false,
-      error: error.message,
+      error: `${error?.message || 'sms_delivery_failed'}${hint}`,
       timestamp: new Date(),
     }
   }
@@ -351,14 +389,26 @@ export async function sendWhatsAppAlert(
 
   try {
     // WhatsApp requires recipient in whatsapp:+E164 format
-    const whatsappRecipient = recipient.startsWith('whatsapp:') ? recipient : `whatsapp:${recipient}`
+    const rawRecipient = recipient.startsWith('whatsapp:') ? recipient.replace('whatsapp:', '') : recipient
+    if (!isValidE164Number(rawRecipient)) {
+      return {
+        channel: 'whatsapp',
+        success: false,
+        error: 'Invalid WhatsApp/phone number format (expected E.164)',
+        timestamp: new Date(),
+      }
+    }
+
+    const whatsappRecipient = rawRecipient.startsWith('whatsapp:') ? rawRecipient : `whatsapp:${rawRecipient}`
     const whatsappBody = generateWhatsAppText(alert)
 
-    const message = await twilioClient.messages.create({
-      body: whatsappBody,
-      from: TWILIO_CONFIG.whatsappNumber,
-      to: whatsappRecipient,
-    })
+    const message = await retry(async () => {
+      return await twilioClient!.messages.create({
+        body: whatsappBody,
+        from: TWILIO_CONFIG.whatsappNumber,
+        to: whatsappRecipient,
+      })
+    }, 2, 300)
 
     console.log(`✅ WhatsApp sent to ${recipient} in ${Date.now() - startTime}ms (${message.sid})`)
 
@@ -369,11 +419,11 @@ export async function sendWhatsAppAlert(
       timestamp: new Date(),
     }
   } catch (error: any) {
-    console.error(`❌ WhatsApp delivery failed to ${recipient}:`, error.message)
+    console.error(`❌ WhatsApp delivery failed to ${recipient}:`, error?.message || error)
     return {
       channel: 'whatsapp',
       success: false,
-      error: error.message,
+      error: error?.message || 'whatsapp_delivery_failed',
       timestamp: new Date(),
     }
   }
@@ -414,13 +464,54 @@ export async function sendTelegramAlert(
   try {
     const telegramText = generateTelegramText(alert)
 
+    // If a username (@name) is provided, attempt to resolve it to a numeric id first
+    let sendTo: string | number = chatId
+    if (typeof chatId === 'string' && chatId.startsWith('@')) {
+      const username = chatId.slice(1).toLowerCase()
+      let resolved = false
+
+      // Method 1: Try getChat (works for public channels/groups)
+      try {
+        const g = await fetch(`${TELEGRAM_API_BASE}/getChat?chat_id=${encodeURIComponent(chatId)}`)
+        const gd = await g.json()
+        if (gd?.ok && gd.result?.id) {
+          sendTo = gd.result.id
+          resolved = true
+        }
+      } catch { /* continue to fallback */ }
+
+      // Method 2: Scan recent bot updates for a matching username (works for private chats)
+      if (!resolved) {
+        try {
+          const u = await fetch(`${TELEGRAM_API_BASE}/getUpdates?limit=100`)
+          const ud = await u.json()
+          if (ud?.ok && Array.isArray(ud.result)) {
+            for (const upd of ud.result) {
+              const from = upd.message?.from
+              if (from?.username?.toLowerCase() === username && from.id) {
+                sendTo = from.id
+                resolved = true
+                console.log(`📡 Resolved @${username} → ${from.id} via getUpdates`)
+                break
+              }
+            }
+          }
+        } catch { /* best effort */ }
+      }
+
+      if (!resolved) {
+        // keep username; sendMessage will fail but error message will be clear
+        sendTo = chatId
+      }
+    }
+
     const response = await fetch(`${TELEGRAM_API_BASE}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        chat_id: chatId,
+        chat_id: sendTo,
         text: telegramText,
-        parse_mode: 'Markdown',
+        parse_mode: 'MarkdownV2',
       }),
     })
 
@@ -439,27 +530,45 @@ export async function sendTelegramAlert(
       timestamp: new Date(),
     }
   } catch (error: any) {
-    console.error(`❌ Telegram delivery failed to ${chatId}:`, error.message)
+    console.error(`❌ Telegram delivery failed to ${chatId}:`, error?.message || error)
+    const desc = (error?.message || '').toString()
+    let hint = ''
+    if (desc.includes('bot is not a member')) {
+      hint = ' (bot must be added to the channel/group or use a numeric chat_id for private chats)'
+    } else if (desc.includes('chat not found') || desc.includes('Bad Request')) {
+      hint = ' (user must /start the bot or use a valid chat_id)'
+    }
     return {
       channel: 'telegram',
       success: false,
-      error: error.message,
+      error: `${desc}${hint}`,
       timestamp: new Date(),
     }
   }
 }
 
+function escapeMdV2(text: string): string {
+  return text.replace(/([_*\[\]()~`>#+\-=|{}.!\\])/g, '\\$1')
+}
+
 function generateTelegramText(alert: Alert): string {
   const emoji = alert.severity === 'critical' ? '🚨' : alert.severity === 'warning' ? '⚠️' : 'ℹ️'
-  return `${emoji} *AEGIS ALERT* \\[${alert.severity.toUpperCase()}\\]
+  const title = escapeMdV2(alert.title)
+  const area = escapeMdV2(alert.area)
+  const message = escapeMdV2(alert.message)
+  const severity = escapeMdV2(alert.severity.toUpperCase())
 
-*${alert.title}*
-📍 ${alert.area}
+  let text = `${emoji} *AEGIS ALERT* \\[${severity}\\]\n\n*${title}*\n📍 ${area}\n\n${message}`
 
-${alert.message}
+  if (alert.actionRequired) {
+    text += `\n\n⚡ *ACTION REQUIRED:*\n${escapeMdV2(alert.actionRequired)}`
+  }
+  if (alert.expiresAt) {
+    text += `\n\n⏰ Expires: ${escapeMdV2(new Date(alert.expiresAt).toLocaleString('en-GB'))}`
+  }
 
-${alert.actionRequired ? `⚡ *ACTION REQUIRED:*\n${alert.actionRequired}\n\n` : ''}${alert.expiresAt ? `⏰ Expires: ${new Date(alert.expiresAt).toLocaleString('en-GB')}\n\n` : ''}───────────────────────────
-_This is an automated alert from the AEGIS Emergency Management System\\._`
+  text += `\n\n───────────────────────────\n_This is an automated alert from the AEGIS Emergency Management System\\._`
+  return text
 }
 
 // ═══════════════════════════════════════════════════════════

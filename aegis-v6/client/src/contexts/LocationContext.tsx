@@ -373,12 +373,49 @@ export function LocationProvider({ children }: { children: ReactNode }): JSX.Ele
   const [userPosition, setUserPosition] = useState<[number, number] | null>(null)
 
   const detectUserLocation = (): void => {
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => setUserPosition([pos.coords.latitude, pos.coords.longitude]),
-        (err) => console.warn('Geolocation unavailable:', err.message)
-      )
+    if (!('geolocation' in navigator)) return
+
+    let best: GeolocationPosition | null = null
+    let watchId: number | null = null
+
+    const finish = (): void => {
+      if (watchId !== null) navigator.geolocation.clearWatch(watchId)
+      if (best) {
+        setUserPosition([best.coords.latitude, best.coords.longitude])
+      }
     }
+
+    const timer = setTimeout(() => {
+      finish()
+    }, 12000)
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        best = pos
+        if (pos.coords.accuracy <= 30) {
+          clearTimeout(timer)
+          finish()
+        }
+      },
+      (err) => console.warn('Geolocation unavailable:', err.message),
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    )
+
+    watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        if (!best || pos.coords.accuracy < best.coords.accuracy) {
+          best = pos
+        }
+        if (best.coords.accuracy <= 20) {
+          clearTimeout(timer)
+          finish()
+        }
+      },
+      () => {
+        // Ignore watch errors while timer is active.
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+    )
   }
 
   return (

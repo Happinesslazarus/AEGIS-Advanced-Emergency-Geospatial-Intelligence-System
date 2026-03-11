@@ -401,7 +401,11 @@ export default function LiveMap({
   // ── Fetch & render distress beacons ──
   const fetchDistress = useCallback(async () => {
     try {
-      const token = localStorage.getItem('aegis-token')
+      const token = localStorage.getItem('aegis-token') || localStorage.getItem('aegis-citizen-token')
+      const rawUser = localStorage.getItem('aegis-user') || localStorage.getItem('aegis-citizen-user')
+      let role = ''
+      try { role = String(rawUser ? JSON.parse(rawUser)?.role || '' : '').toLowerCase() } catch {}
+      if (!token || !['admin', 'operator', 'manager'].includes(role)) return
       const res = await fetch(`${API}/api/distress/active`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       })

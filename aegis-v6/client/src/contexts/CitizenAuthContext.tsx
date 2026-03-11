@@ -359,6 +359,13 @@ export function CitizenAuthProvider({ children }: { children: ReactNode }): JSX.
     clearAuth()
   }, [clearAuth])
 
+  // Listen for global logout events (from shared logout util) and clear auth state
+  useEffect(() => {
+    const handler = () => clearAuth()
+    window.addEventListener('ae:logout', handler)
+    return () => window.removeEventListener('ae:logout', handler)
+  }, [clearAuth])
+
   // Update profile
   const updateProfile = useCallback(async (data: Partial<CitizenUser>) => {
     try {

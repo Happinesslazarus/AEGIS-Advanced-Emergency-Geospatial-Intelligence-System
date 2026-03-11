@@ -16,6 +16,8 @@ import { Router, Request, Response } from 'express'
 import { authMiddleware, AuthRequest } from '../middleware/auth.js'
 import pool from '../models/db.js'
 import crypto from 'crypto'
+import fs from 'fs/promises'
+import path from 'path'
 import * as notificationService from '../services/notificationService.js'
 import { devLog } from '../utils/logger.js'
 import { aiClient } from '../services/aiClient.js'
@@ -91,18 +93,25 @@ router.post('/subscriptions', async (req: Request, res: Response) => {
       ? topic_filter.map((t: string) => t.toLowerCase().trim()).filter(Boolean)
       : ['flood', 'fire', 'storm', 'earthquake', 'heatwave', 'tsunami', 'general']
 
+    // Auto-verify all subscriptions immediately so alerts work right away.
+    // Email verification is a nice-to-have but must not block other channels.
+    // Use UPSERT on email to avoid duplicate subscriptions.
     const { rows } = await pool.query(
-      `INSERT INTO alert_subscriptions (email, phone, telegram_id, whatsapp, channels, location_lat, location_lng, radius_km, severity_filter, topic_filter, verification_token, consent_given, consent_timestamp)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11, true, NOW())
+      `INSERT INTO alert_subscriptions (email, phone, telegram_id, whatsapp, channels, location_lat, location_lng, radius_km, severity_filter, topic_filter, verification_token, verified, consent_given, consent_timestamp)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11, true, true, NOW())
+       ON CONFLICT (email) WHERE email IS NOT NULL
+       DO UPDATE SET phone = EXCLUDED.phone, telegram_id = EXCLUDED.telegram_id, whatsapp = EXCLUDED.whatsapp, channels = EXCLUDED.channels, location_lat = EXCLUDED.location_lat, location_lng = EXCLUDED.location_lng, radius_km = EXCLUDED.radius_km, severity_filter = EXCLUDED.severity_filter, topic_filter = EXCLUDED.topic_filter, updated_at = NOW()
        RETURNING id, channels, verified, topic_filter`,
       [email || null, phone || null, telegram_id || null, whatsapp || phone || null, normalizedChannels, location_lat || null, location_lng || null, radius_km || 50, severity_filter || ['critical', 'warning', 'info'], normalizedTopics, verificationToken]
     )
 
-    // Send verification email if email channel is selected
-    if (normalizedChannels.includes('email') && email) {
+    // Send verification email if email channel is selected (optional, subscription already verified)
+    const needsEmailVerification = normalizedChannels.includes('email') && !!email
+    if (needsEmailVerification) {
+      let emailVerified = false
       try {
         const verificationUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/verify-subscription?token=${verificationToken}`
-        
+
         const verificationAlert: notificationService.Alert = {
           id: 'verify-' + rows[0].id,
           type: 'general',
@@ -113,11 +122,25 @@ router.post('/subscriptions', async (req: Request, res: Response) => {
           actionRequired: 'Click the verification link to activate your subscription.',
         }
 
-        await notificationService.sendEmailAlert(email, verificationAlert)
-        devLog(`Verification email sent to ${email}`)
+        const emailResult = await notificationService.sendEmailAlert(email, verificationAlert)
+        if (emailResult.success) {
+          emailVerified = true
+          devLog(`Verification email sent to ${email}`)
+        } else {
+          devLog(`Email send failed (${emailResult.error}), auto-verifying subscription`)
+        }
       } catch (emailError: any) {
         console.error('Failed to send verification email:', emailError.message)
-        // Don't fail the subscription if email fails
+      }
+
+      // If email couldn't be sent (SMTP not configured), auto-verify so the subscriber
+      // still receives alerts via their other channels (SMS, WhatsApp, etc.)
+      if (!emailVerified) {
+        await pool.query(
+          `UPDATE alert_subscriptions SET verified = true, verification_token = NULL WHERE id = $1`,
+          [rows[0].id]
+        )
+        rows[0].verified = true
       }
     }
 
@@ -619,9 +642,9 @@ router.post('/notifications/subscribe', async (req: Request, res: Response) => {
 
     // Store push subscription in database
     const { rows } = await pool.query(
-      `INSERT INTO push_subscriptions (user_id, email, endpoint, p256dh, auth, active)
-       VALUES ($1, $2, $3, $4, $5, true)
-       ON CONFLICT (endpoint) DO UPDATE SET active = true, updated_at = NOW()
+      `INSERT INTO push_subscriptions (user_id, email, endpoint, p256dh, auth, subscription_data, active)
+       VALUES ($1, $2, $3, $4, $5, $6, true)
+       ON CONFLICT (endpoint) DO UPDATE SET active = true, subscription_data = EXCLUDED.subscription_data, updated_at = NOW()
        RETURNING id, endpoint, active`,
       [
         user_id || null,
@@ -629,6 +652,7 @@ router.post('/notifications/subscribe', async (req: Request, res: Response) => {
         subscription.endpoint,
         subscription.keys?.p256dh || null,
         subscription.keys?.auth || null,
+        JSON.stringify(subscription),
       ]
     )
 
@@ -714,8 +738,32 @@ router.post('/alerts/broadcast', async (req: Request, res: Response) => {
       return
     }
 
-    // Build alert object
-    const alertId = `broadcast-${Date.now()}`
+    // Persist alert to `alerts` table so delivery logs can reference a valid UUID
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    const safeOperatorId = operator_id && UUID_RE.test(operator_id) ? operator_id : null
+    let alertId: string
+    try {
+      const { rows: alertRows } = await pool.query(
+        `INSERT INTO alerts (title, message, severity, alert_type, location_text, expires_at, created_by)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         RETURNING id`,
+        [
+          title,
+          message,
+          severity,
+          alert_type || 'general',
+          area,
+          expires_at ? new Date(expires_at) : null,
+          safeOperatorId,
+        ]
+      )
+      alertId = alertRows[0].id
+    } catch (err: any) {
+      console.error('Failed to persist broadcast alert:', err.message)
+      res.status(500).json({ error: 'Failed to create alert record' })
+      return
+    }
+
     const alert: notificationService.Alert = {
       id: alertId,
       type: alert_type || 'general',
@@ -731,11 +779,43 @@ router.post('/alerts/broadcast', async (req: Request, res: Response) => {
       },
     }
 
-    // Send to all matching subscribers
+    // Send to all matching subscribers (email, SMS, WhatsApp, Telegram)
     const deliveryResults = await notificationService.sendAlertToSubscribers(
       alert,
       subscriptions.rows
     )
+
+    // Also send Web Push to all active push subscriptions
+    try {
+      const pushSubs = await pool.query(
+        `SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE active = true`
+      )
+      for (const ps of pushSubs.rows) {
+        if (ps.endpoint && ps.p256dh && ps.auth) {
+          const pushResult = await notificationService.sendWebPushAlert(
+            { endpoint: ps.endpoint, keys: { p256dh: ps.p256dh, auth: ps.auth } },
+            alert
+          )
+          deliveryResults.results.push(pushResult)
+          deliveryResults.total++
+          if (pushResult.success) deliveryResults.successful++
+          else deliveryResults.failed++
+        }
+      }
+    } catch (pushErr: any) {
+      console.warn('Web Push broadcast error:', pushErr.message)
+    }
+
+    // Log each delivery result to alert_delivery_log
+    for (const dr of deliveryResults.results) {
+      try {
+        await pool.query(
+          `INSERT INTO alert_delivery_log (alert_id, channel, recipient, status, error_message, sent_at)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [alertId, dr.channel, dr.messageId || dr.channel, dr.success ? 'sent' : 'failed', dr.error || null, dr.success ? dr.timestamp : null]
+        )
+      } catch { /* best effort logging */ }
+    }
 
     // Log audit trail
     await pool.query(
@@ -775,6 +855,207 @@ router.post('/alerts/broadcast', async (req: Request, res: Response) => {
       error: 'Failed to broadcast alert',
       message: error.message 
     })
+  }
+})
+
+/* ══════════════════════════════════════════════════════════════
+   ALERT DELIVERY LOG — Advanced multi-channel delivery tracking
+   ══════════════════════════════════════════════════════════════ */
+
+function buildDeliveryWhere(q: Record<string, any>): { where: string; params: any[]; nextIdx: number } {
+  const clauses: string[] = []
+  const params: any[] = []
+  let idx = 1
+  const ch = q.channel ? (String(q.channel) === 'webpush' ? 'web' : String(q.channel)) : null
+  if (ch)         { clauses.push(`adl.channel = $${idx++}`);            params.push(ch) }
+  if (q.status)   { clauses.push(`adl.status = $${idx++}`);             params.push(String(q.status)) }
+  if (q.alert_id) { clauses.push(`adl.alert_id = $${idx++}`);           params.push(String(q.alert_id)) }
+  if (q.start)    { clauses.push(`adl.created_at >= $${idx++}`);        params.push(new Date(String(q.start))) }
+  if (q.end)      { clauses.push(`adl.created_at <= $${idx++}`);        params.push(new Date(String(q.end))) }
+  if (q.severity) { clauses.push(`a.severity = $${idx++}`);             params.push(String(q.severity)) }
+  if (q.search)   { clauses.push(`(adl.recipient ILIKE $${idx} OR a.title ILIKE $${idx})`); params.push(`%${String(q.search)}%`); idx++ }
+  return { where: clauses.length ? 'WHERE ' + clauses.join(' AND ') : '', params, nextIdx: idx }
+}
+
+// GET /api/alerts/delivery — paginated, filtered, joined with alert title
+router.get('/alerts/delivery', authMiddleware, async (req: AuthRequest, res: Response) => {
+  if (!['admin', 'operator'].includes(req.user?.role || '')) { res.status(403).json({ error: 'Insufficient permissions.' }); return }
+  try {
+    const limit  = Math.min(parseInt(String(req.query.limit  || '100')), 1000)
+    const offset = parseInt(String(req.query.offset || '0'))
+    const { where, params, nextIdx } = buildDeliveryWhere(req.query as any)
+
+    const [countRes, dataRes] = await Promise.all([
+      pool.query(`SELECT COUNT(*) FROM alert_delivery_log adl LEFT JOIN alerts a ON a.id=adl.alert_id ${where}`, params),
+      pool.query(`
+        SELECT adl.id, adl.alert_id, adl.channel, adl.recipient, adl.provider_id,
+               adl.status, adl.error_message, adl.sent_at, adl.delivered_at, adl.created_at,
+               COALESCE(adl.retry_count,0) AS retry_count, adl.last_retry_at,
+               a.title AS alert_title, a.severity AS alert_severity, a.alert_type
+        FROM alert_delivery_log adl LEFT JOIN alerts a ON a.id=adl.alert_id
+        ${where} ORDER BY adl.created_at DESC LIMIT $${nextIdx} OFFSET $${nextIdx+1}`,
+        [...params, limit, offset]),
+    ])
+    res.json({ rows: dataRes.rows, total: parseInt(countRes.rows[0].count), limit, offset })
+  } catch (err: any) {
+    console.error('[Delivery] Load failed:', err)
+    res.status(500).json({ error: 'Failed to load delivery logs.' })
+  }
+})
+
+// GET /api/alerts/delivery/stats — analytics dashboard data
+router.get('/alerts/delivery/stats', authMiddleware, async (req: AuthRequest, res: Response) => {
+  if (!['admin', 'operator'].includes(req.user?.role || '')) { res.status(403).json({ error: 'Insufficient permissions.' }); return }
+  try {
+    const [overall, byChannel, hourly, topFailing, recentErrors] = await Promise.all([
+      pool.query(`SELECT COUNT(*) AS total,
+        COUNT(*) FILTER (WHERE status IN ('sent','delivered')) AS sent,
+        COUNT(*) FILTER (WHERE status='delivered') AS delivered,
+        COUNT(*) FILTER (WHERE status='failed') AS failed,
+        COUNT(*) FILTER (WHERE status='pending') AS pending,
+        ROUND(100.0*COUNT(*) FILTER (WHERE status IN ('sent','delivered'))/NULLIF(COUNT(*),0),1) AS success_rate
+        FROM alert_delivery_log`),
+      pool.query(`SELECT channel,
+        COUNT(*) AS total,
+        COUNT(*) FILTER (WHERE status IN ('sent','delivered')) AS sent,
+        COUNT(*) FILTER (WHERE status='failed') AS failed,
+        COUNT(*) FILTER (WHERE status='pending') AS pending,
+        ROUND(100.0*COUNT(*) FILTER (WHERE status IN ('sent','delivered'))/NULLIF(COUNT(*),0),1) AS success_rate
+        FROM alert_delivery_log GROUP BY channel ORDER BY total DESC`),
+      pool.query(`SELECT date_trunc('hour',created_at) AS hour,
+        COUNT(*) AS total, COUNT(*) FILTER (WHERE status IN ('sent','delivered')) AS sent,
+        COUNT(*) FILTER (WHERE status='failed') AS failed
+        FROM alert_delivery_log WHERE created_at>=NOW()-INTERVAL '24 hours' GROUP BY 1 ORDER BY 1`),
+      pool.query(`SELECT adl.alert_id, a.title AS alert_title, a.severity,
+        COUNT(*) AS fail_count, MAX(adl.created_at) AS last_attempt
+        FROM alert_delivery_log adl LEFT JOIN alerts a ON a.id=adl.alert_id
+        WHERE adl.status='failed' GROUP BY adl.alert_id,a.title,a.severity ORDER BY fail_count DESC LIMIT 5`),
+      pool.query(`SELECT channel, error_message, COUNT(*) AS count
+        FROM alert_delivery_log WHERE status='failed' AND error_message IS NOT NULL
+        AND created_at>=NOW()-INTERVAL '7 days'
+        GROUP BY channel,error_message ORDER BY count DESC LIMIT 10`),
+    ])
+    res.json({ overall: overall.rows[0], by_channel: byChannel.rows, hourly_trend: hourly.rows, top_failing: topFailing.rows, recent_errors: recentErrors.rows })
+  } catch (err: any) {
+    console.error('[Delivery/Stats] Failed:', err)
+    res.status(500).json({ error: 'Failed to load delivery stats.' })
+  }
+})
+
+// GET /api/alerts/delivery/grouped — per-alert summary with all channel deliveries
+router.get('/alerts/delivery/grouped', authMiddleware, async (req: AuthRequest, res: Response) => {
+  if (!['admin', 'operator'].includes(req.user?.role || '')) { res.status(403).json({ error: 'Insufficient permissions.' }); return }
+  try {
+    const limit  = Math.min(parseInt(String(req.query.limit  || '50')), 200)
+    const offset = parseInt(String(req.query.offset || '0'))
+    const clauses: string[] = []
+    const params: any[] = []
+    let idx = 1
+    if (req.query.search)   { clauses.push(`a.title ILIKE $${idx++}`);  params.push(`%${String(req.query.search)}%`) }
+    if (req.query.severity) { clauses.push(`a.severity = $${idx++}`);   params.push(String(req.query.severity)) }
+    const whereStr = clauses.length ? 'WHERE ' + clauses.join(' AND ') : ''
+
+    const [dataRes, countRes] = await Promise.all([
+      pool.query(`
+        SELECT adl.alert_id, a.title AS alert_title, a.severity AS alert_severity, a.alert_type,
+          MAX(adl.created_at) AS last_attempt,
+          COUNT(*) AS total,
+          COUNT(*) FILTER (WHERE adl.status IN ('sent','delivered')) AS sent,
+          COUNT(*) FILTER (WHERE adl.status='failed') AS failed,
+          COUNT(*) FILTER (WHERE adl.status='pending') AS pending,
+          JSON_AGG(DISTINCT adl.channel) AS channels,
+          JSON_AGG(JSON_BUILD_OBJECT(
+            'id',adl.id,'channel',adl.channel,'status',adl.status,'recipient',adl.recipient,
+            'error_message',adl.error_message,'sent_at',adl.sent_at,'retry_count',COALESCE(adl.retry_count,0)
+          ) ORDER BY adl.channel) AS deliveries
+        FROM alert_delivery_log adl LEFT JOIN alerts a ON a.id=adl.alert_id
+        ${whereStr} GROUP BY adl.alert_id,a.title,a.severity,a.alert_type
+        ORDER BY last_attempt DESC LIMIT $${idx} OFFSET $${idx+1}`,
+        [...params, limit, offset]),
+      pool.query(`SELECT COUNT(DISTINCT adl.alert_id) FROM alert_delivery_log adl LEFT JOIN alerts a ON a.id=adl.alert_id ${whereStr}`, params),
+    ])
+    res.json({ groups: dataRes.rows, total: parseInt(countRes.rows[0].count), limit, offset })
+  } catch (err: any) {
+    console.error('[Delivery/Grouped] Failed:', err)
+    res.status(500).json({ error: 'Failed to load grouped delivery logs.' })
+  }
+})
+
+// POST /api/alerts/delivery/:id/retry — retry a single failed delivery
+router.post('/alerts/delivery/:id/retry', authMiddleware, async (req: AuthRequest, res: Response) => {
+  if (!['admin', 'operator'].includes(req.user?.role || '')) { res.status(403).json({ error: 'Insufficient permissions.' }); return }
+  try {
+    const { rows } = await pool.query(
+      `SELECT adl.*, a.title, a.message, a.severity, a.alert_type
+       FROM alert_delivery_log adl LEFT JOIN alerts a ON a.id=adl.alert_id WHERE adl.id=$1`, [req.params.id])
+    if (!rows.length) { res.status(404).json({ error: 'Not found.' }); return }
+    const e = rows[0]
+    const ap: notificationService.Alert = { id: e.alert_id, type: e.alert_type||'general', severity: e.severity||'warning', title: e.title||'AEGIS Alert', message: e.message||'', area: 'AEGIS Coverage Area' }
+    let r: any = { success: false, error: 'Unknown channel' }
+    if (e.channel==='email')     r = await notificationService.sendEmailAlert(e.recipient, ap)
+    else if (e.channel==='sms')      r = await notificationService.sendSMSAlert(e.recipient, ap)
+    else if (e.channel==='telegram') r = await notificationService.sendTelegramAlert(e.recipient, ap)
+    else if (e.channel==='whatsapp') r = await notificationService.sendWhatsAppAlert(e.recipient, ap)
+    const newStatus = r.success ? 'sent' : 'failed'
+    await pool.query(`UPDATE alert_delivery_log SET status=$1,error_message=$2,sent_at=$3,retry_count=COALESCE(retry_count,0)+1,last_retry_at=NOW() WHERE id=$4`,
+      [newStatus, r.error||null, r.success?new Date():null, req.params.id])
+    res.json({ success: r.success, status: newStatus, error: r.error||null })
+  } catch (err: any) {
+    res.status(500).json({ error: 'Retry failed.', message: err.message })
+  }
+})
+
+// POST /api/alerts/delivery/retry-failed — bulk retry failed deliveries
+router.post('/alerts/delivery/retry-failed', authMiddleware, async (req: AuthRequest, res: Response) => {
+  if (!['admin', 'operator'].includes(req.user?.role || '')) { res.status(403).json({ error: 'Insufficient permissions.' }); return }
+  try {
+    const { alert_id, channel } = req.body
+    const clauses = [`adl.status='failed'`, `COALESCE(adl.retry_count,0)<3`]
+    const params: any[] = []
+    let idx = 1
+    if (alert_id) { clauses.push(`adl.alert_id=$${idx++}`); params.push(alert_id) }
+    if (channel)  { clauses.push(`adl.channel=$${idx++}`);  params.push(channel) }
+    const { rows: failed } = await pool.query(
+      `SELECT adl.*,a.title,a.message,a.severity,a.alert_type FROM alert_delivery_log adl LEFT JOIN alerts a ON a.id=adl.alert_id WHERE ${clauses.join(' AND ')} LIMIT 50`, params)
+    let succeeded=0, failedCount=0
+    for (const e of failed) {
+      const ap: notificationService.Alert = { id:e.alert_id,type:e.alert_type||'general',severity:e.severity||'warning',title:e.title||'AEGIS Alert',message:e.message||'',area:'AEGIS Coverage Area' }
+      let r:any={success:false}
+      try {
+        if (e.channel==='email') r=await notificationService.sendEmailAlert(e.recipient,ap)
+        else if(e.channel==='sms') r=await notificationService.sendSMSAlert(e.recipient,ap)
+        else if(e.channel==='telegram') r=await notificationService.sendTelegramAlert(e.recipient,ap)
+        else if(e.channel==='whatsapp') r=await notificationService.sendWhatsAppAlert(e.recipient,ap)
+      } catch { r={success:false} }
+      if(r.success) succeeded++; else failedCount++
+      await pool.query(`UPDATE alert_delivery_log SET status=$1,error_message=$2,sent_at=$3,retry_count=COALESCE(retry_count,0)+1,last_retry_at=NOW() WHERE id=$4`,
+        [r.success?'sent':'failed', r.error||null, r.success?new Date():null, e.id])
+    }
+    res.json({ attempted: failed.length, succeeded, failed: failedCount })
+  } catch (err: any) {
+    res.status(500).json({ error: 'Bulk retry failed.' })
+  }
+})
+
+// GET /api/alerts/delivery/export.csv — stream CSV download to browser
+router.get('/alerts/delivery/export.csv', authMiddleware, async (req: AuthRequest, res: Response) => {
+  if (!['admin', 'operator'].includes(req.user?.role || '')) { res.status(403).json({ error: 'Insufficient permissions.' }); return }
+  try {
+    const { where, params, nextIdx } = buildDeliveryWhere(req.query as any)
+    const { rows } = await pool.query(`
+      SELECT adl.id, adl.alert_id, a.title AS alert_title, a.severity AS alert_severity,
+             adl.channel, adl.recipient, adl.status, adl.error_message, adl.provider_id,
+             adl.sent_at, adl.delivered_at, adl.created_at, COALESCE(adl.retry_count,0) AS retry_count
+      FROM alert_delivery_log adl LEFT JOIN alerts a ON a.id=adl.alert_id
+      ${where} ORDER BY adl.created_at DESC LIMIT $${nextIdx}`, [...params, 10000])
+    const esc = (v:any) => v==null?'':(`"${String(v).replace(/"/g,'""')}"`)
+    const headers = ['id','alert_id','alert_title','alert_severity','channel','recipient','status','error_message','provider_id','sent_at','delivered_at','created_at','retry_count']
+    const csv = [headers.join(','), ...rows.map((r:any)=>headers.map(h=>esc(r[h])).join(','))].join('\n')
+    res.setHeader('Content-Type','text/csv')
+    res.setHeader('Content-Disposition',`attachment; filename="delivery_log_${Date.now()}.csv"`)
+    res.send(csv)
+  } catch (err: any) {
+    res.status(500).json({ error: 'CSV export failed.' })
   }
 })
 

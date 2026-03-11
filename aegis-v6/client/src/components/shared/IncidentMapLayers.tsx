@@ -9,6 +9,7 @@
  */
 
 import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Marker, Popup, Circle, GeoJSON, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { useIncidents, type IncidentTypeId } from '../../contexts/IncidentContext'
@@ -92,6 +93,7 @@ export default function IncidentMapLayers({
   showLayerControl = false,
   refreshInterval = 60000,
 }: Props): JSX.Element | null {
+  const { t } = useTranslation(['map', 'incidents'])
   const { operationalTypes } = useIncidents()
   const [mapDataByType, setMapDataByType] = useState<Record<string, IncidentMapData>>({})
   const [enabledLayers, setEnabledLayers] = useState<Set<string>>(new Set(operationalTypes))
@@ -149,7 +151,7 @@ export default function IncidentMapLayers({
       {showLayerControl && (
         <div className="absolute top-2 right-2 z-[1000] bg-white dark:bg-gray-800 rounded-lg shadow-lg p-3 max-w-[200px]">
           <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
-            Incident Layers
+            {t('map:layers.title', 'Incident Layers')}
           </h4>
           {typesToFetch.map(type => (
             <label key={type} className="flex items-center gap-2 text-sm cursor-pointer mb-1">
@@ -164,7 +166,7 @@ export default function IncidentMapLayers({
                 style={{ backgroundColor: INCIDENT_COLORS[type] }}
               />
               <span className="capitalize text-gray-700 dark:text-gray-300">
-                {type.replace(/_/g, ' ')}
+                {t(`incidents:types.${type}`, { defaultValue: type.replace(/_/g, ' ') })}
               </span>
             </label>
           ))}
@@ -186,7 +188,7 @@ export default function IncidentMapLayers({
                   className="px-2 py-0.5 rounded text-xs text-white font-medium"
                   style={{ backgroundColor: INCIDENT_COLORS[marker.incidentType] }}
                 >
-                  {marker.incidentType.replace(/_/g, ' ')}
+                  {t(`incidents:types.${marker.incidentType}`, { defaultValue: marker.incidentType.replace(/_/g, ' ') })}
                 </span>
                 <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                   marker.severity === 'critical' ? 'bg-red-100 text-red-800' :

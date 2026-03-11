@@ -1,11 +1,13 @@
 /* LoginPage.tsx — Operator authentication with login, register, and password reset forms. */
 
 import { useState, useEffect, useMemo } from 'react'
-import { Shield, Lock, Mail, Camera, User, Building2, Phone, LogIn, UserPlus, CheckCircle, Eye, EyeOff, X as XIcon, Check } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Shield, Lock, Mail, Camera, User, Building2, Phone, LogIn, UserPlus, CheckCircle, Eye, EyeOff, X as XIcon, Check, Sun, Moon, ArrowLeft, Home } from 'lucide-react'
 import { apiLogin, apiRegister, apiGetDepartments, apiForgotPassword, setToken, setUser } from '../../utils/api'
 import type { Operator } from '../../types'
 import LanguageSelector from '../shared/LanguageSelector'
 import { useLanguage } from '../../hooks/useLanguage'
+import { useTheme } from '../../contexts/ThemeContext'
 import { t } from '../../utils/i18n'
 
 const DEFAULT_DEPARTMENTS = [
@@ -18,6 +20,7 @@ interface Props { onLogin: (user: Operator) => void }
 
 export default function LoginPage({ onLogin }: Props): JSX.Element {
   const lang = useLanguage()
+  const { dark, toggle } = useTheme()
   const [mode, setMode] = useState<'login'|'register'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -102,17 +105,46 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
   )
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-aegis-950 via-gray-900 to-aegis-900 flex items-center justify-center p-4">
-      <div className="fixed top-4 right-4 z-40">
-        <LanguageSelector />
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-100 via-amber-50/30 to-gray-100 dark:from-[#08080f] dark:via-[#0a0a15] dark:to-[#08080f] flex flex-col">
+      {/* Navigation */}
+      <nav className="relative bg-[#09090f] backdrop-blur-2xl text-white px-4 h-14 flex items-center justify-between shadow-2xl shadow-black/70 border-b border-amber-500/15">
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-amber-400/60 to-transparent pointer-events-none" />
+        <Link to="/" className="flex items-center gap-2.5 group">
+          <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/40 group-hover:shadow-amber-400/60 transition-all group-hover:scale-105">
+            <Shield className="w-5 h-5 text-white drop-shadow-sm" />
+            <div className="absolute inset-0 rounded-xl bg-gradient-to-tr from-white/25 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          </div>
+          <div className="hidden sm:block leading-none">
+            <span className="font-black text-sm tracking-wide">
+              <span className="bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-300 bg-clip-text text-transparent">AEGIS</span>
+              {' '}<span className="text-white/80">OPS</span>
+            </span>
+            <span className="block text-[9px] text-amber-500/50 tracking-widest uppercase">Operator Portal</span>
+          </div>
+        </Link>
+        <div className="flex items-center gap-1.5">
+          <LanguageSelector darkNav />
+          <button onClick={toggle} className="p-2 hover:bg-amber-500/10 rounded-xl transition-all active:scale-95 group" aria-label="Toggle theme">
+            {dark ? <Sun className="w-4 h-4 text-amber-300 group-hover:text-amber-200 transition-colors" /> : <Moon className="w-4 h-4 text-white/50 group-hover:text-white/80 transition-colors" />}
+          </button>
+          <Link to="/citizen" className="text-xs text-white/50 hover:text-amber-300 bg-white/5 hover:bg-amber-500/10 border border-white/8 hover:border-amber-500/25 px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5">
+            <Home className="w-3.5 h-3.5" /> {t('admin.citizenPage', lang)}
+          </Link>
+          <Link to="/citizen/auth" className="relative text-xs font-bold px-3.5 py-1.5 rounded-xl overflow-hidden group bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-black shadow-lg shadow-amber-500/30 hover:shadow-amber-400/50 transition-all hover:scale-[1.03] active:scale-[0.97]">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out" />
+            <span className="relative z-10">{t('auth.login', lang)}</span>
+          </Link>
+        </div>
+      </nav>
+
+      <div className="flex-1 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-6">
-          <div className="w-16 h-16 bg-aegis-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-aegis-600/30">
+          <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-amber-500/40">
             <Shield className="w-9 h-9 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-white">{t('admin.portal.title', lang)}</h1>
-          <p className="text-sm text-aegis-200 mt-1">{mode === 'login' ? t('admin.portal.signin', lang) : t('admin.portal.register', lang)}</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('admin.portal.title', lang)}</h1>
+          <p className="text-sm text-gray-500 dark:text-amber-200/60 mt-1">{mode === 'login' ? t('admin.portal.signin', lang) : t('admin.portal.register', lang)}</p>
         </div>
 
         <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-6">
@@ -244,6 +276,7 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
             <span className="text-[10px] text-gray-400">Rate limited</span>
           </div>
         </div>
+      </div>
       </div>
     </div>
   )

@@ -516,10 +516,7 @@ function sanitizeChannels(channels: unknown): string[] {
 
 async function getSubscribersForChannels(channels: string[], severity: string): Promise<any[]> {
   try {
-    const queryChannels = Array.from(new Set([
-      ...channels,
-      ...(channels.includes('web') ? ['webpush'] : []),
-    ]))
+    const queryChannels = Array.from(new Set(channels))
 
     const query = `
       SELECT id, email, phone, telegram_id, whatsapp, channels, severity_filter, verified
@@ -560,10 +557,13 @@ async function dispatchAlertDeliveries(
   let webPushSubs: { rows: any[] } = { rows: [] }
   if (channels.includes('web')) {
     try {
+      // subscription_data is JSONB containing the full PushSubscription object
+      // with nested keys: { endpoint, keys: { p256dh, auth } }
       webPushSubs = await pool.query(
         `SELECT endpoint, p256dh, auth
          FROM push_subscriptions
-         WHERE endpoint IS NOT NULL
+         WHERE active = true
+           AND endpoint IS NOT NULL
            AND p256dh IS NOT NULL
            AND auth IS NOT NULL`
       )
@@ -818,10 +818,10 @@ router.post('/notifications/subscribe', async (req: Request, res: Response): Pro
     // Try to insert into existing table (with flexible schema handling)
     try {
       await pool.query(
-        `INSERT INTO push_subscriptions (endpoint, p256dh, auth)
-         VALUES ($1, $2, $3)
-         ON CONFLICT (endpoint) DO UPDATE SET p256dh = EXCLUDED.p256dh, auth = EXCLUDED.auth`,
-        [subscription.endpoint, subscription.keys.p256dh, subscription.keys.auth]
+        `INSERT INTO push_subscriptions (endpoint, p256dh, auth, subscription_data)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (endpoint) DO UPDATE SET p256dh = EXCLUDED.p256dh, auth = EXCLUDED.auth, subscription_data = EXCLUDED.subscription_data`,
+        [subscription.endpoint, subscription.keys.p256dh, subscription.keys.auth, JSON.stringify(subscription)]
       )
     } catch (err: any) {
       if (err.message?.includes('does not exist')) {
@@ -833,16 +833,17 @@ router.post('/notifications/subscribe', async (req: Request, res: Response): Pro
             endpoint TEXT UNIQUE NOT NULL,
             p256dh TEXT,
             auth TEXT,
+            subscription_data JSONB,
             is_active BOOLEAN NOT NULL DEFAULT true,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
           )
         `)
         // Retry the insert  
         await pool.query(
-          `INSERT INTO push_subscriptions (endpoint, p256dh, auth)
-           VALUES ($1, $2, $3)
-           ON CONFLICT (endpoint) DO UPDATE SET p256dh = EXCLUDED.p256dh, auth = EXCLUDED.auth`,
-          [subscription.endpoint, subscription.keys.p256dh, subscription.keys.auth]
+          `INSERT INTO push_subscriptions (endpoint, p256dh, auth, subscription_data)
+           VALUES ($1, $2, $3, $4)
+           ON CONFLICT (endpoint) DO UPDATE SET p256dh = EXCLUDED.p256dh, auth = EXCLUDED.auth, subscription_data = EXCLUDED.subscription_data`,
+          [subscription.endpoint, subscription.keys.p256dh, subscription.keys.auth, JSON.stringify(subscription)]
         )
       } else {
         throw err

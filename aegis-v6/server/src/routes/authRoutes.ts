@@ -16,7 +16,7 @@ import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import rateLimit from 'express-rate-limit'
 import pool from '../models/db.js'
-import { authMiddleware, generateToken, AuthRequest } from '../middleware/auth.js'
+import { authMiddleware, generateToken, generateRefreshToken, verifyRefreshToken, AuthRequest } from '../middleware/auth.js'
 import { uploadAvatar } from '../middleware/upload.js'
 
 const router = Router()
@@ -179,11 +179,21 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response): Pro
       ['Logged in to AEGIS Admin', 'login', user.id, user.display_name]
     )
 
-    // Generate and return JWT
+    // Generate access token (8h) + refresh token (30d)
     const token = generateToken({
       id: user.id, email: user.email,
       role: user.role, displayName: user.display_name,
       department: user.department,
+    })
+    const refreshToken = generateRefreshToken({ id: user.id, role: user.role })
+
+    // Refresh token lives in an httpOnly cookie — JS cannot read or steal it
+    res.cookie('aegis_refresh', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      path: '/api/auth',
     })
 
     res.json({
@@ -387,6 +397,70 @@ router.put('/profile', authMiddleware, uploadAvatar, async (req: AuthRequest, re
     console.error('[Auth] Profile update error:', err.message)
     res.status(500).json({ error: 'Failed to update profile.' })
   }
+})
+
+/*
+ * POST /api/auth/refresh
+ * Issues a new 8h access token using the httpOnly refresh cookie.
+ * Also rotates the refresh token (new 30d cookie) to extend the session.
+ */
+router.post('/refresh', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const refreshToken = req.cookies?.aegis_refresh
+    if (!refreshToken) {
+      res.status(401).json({ error: 'No refresh token.' })
+      return
+    }
+
+    let payload: { id: string; role: string }
+    try {
+      payload = verifyRefreshToken(refreshToken) as { id: string; role: string }
+    } catch {
+      res.status(401).json({ error: 'Invalid or expired refresh token. Please log in again.' })
+      return
+    }
+
+    // Fetch fresh user data
+    const result = await pool.query(
+      `SELECT id, email, display_name, role, avatar_url, department, is_active, is_suspended
+       FROM operators WHERE id = $1 AND deleted_at IS NULL`,
+      [payload.id]
+    )
+    if (result.rows.length === 0 || !result.rows[0].is_active || result.rows[0].is_suspended) {
+      res.status(401).json({ error: 'Account is inactive or suspended.' })
+      return
+    }
+
+    const user = result.rows[0]
+    const newAccessToken = generateToken({
+      id: user.id, email: user.email,
+      role: user.role, displayName: user.display_name,
+      department: user.department,
+    })
+    // Rotate refresh token
+    const newRefreshToken = generateRefreshToken({ id: user.id, role: user.role })
+    res.cookie('aegis_refresh', newRefreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+      path: '/api/auth',
+    })
+
+    res.json({ token: newAccessToken })
+  } catch (err: any) {
+    console.error('[Auth] Refresh error:', err.message)
+    res.status(500).json({ error: 'Token refresh failed.' })
+  }
+})
+
+/*
+ * POST /api/auth/logout
+ * Clears the refresh token cookie.
+ */
+router.post('/logout', (_req, res: Response) => {
+  res.clearCookie('aegis_refresh', { path: '/api/auth' })
+  res.json({ ok: true })
 })
 
 export default router

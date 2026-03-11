@@ -505,6 +505,10 @@ router.get('/chat/messages', authMiddleware, async (req: AuthRequest, res: Respo
     const before = req.query.before as string | undefined
     const search = typeof req.query.search === 'string' ? req.query.search.trim() : undefined
     const senderType = typeof req.query.senderType === 'string' ? req.query.senderType.trim() : undefined
+    const userId = req.user?.id
+    const userName = req.user?.displayName || req.user?.display_name || 'Unknown'
+    
+    console.log('[Community] GET /chat/messages from:', userName, 'Limit:', limit, 'Before:', before)
 
     let query = `
       SELECT cm.id, cm.sender_id, cm.sender_type, cm.content, cm.image_url, cm.reply_to_id, cm.created_at, cm.deleted_at, cm.read_by,
@@ -555,6 +559,7 @@ router.get('/chat/messages', authMiddleware, async (req: AuthRequest, res: Respo
     params.push(Math.min(limit, 100))
 
     const result = await pool.query(query, params)
+    console.log('[Community] ✅ Loaded', result.rows.length, 'messages for', userName)
     res.json(result.rows.reverse())
   } catch (err: any) {
     console.error('[Community] GET /chat/messages error:', err.message)

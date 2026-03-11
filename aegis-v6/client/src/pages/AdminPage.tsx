@@ -9,7 +9,7 @@ import {
   Calendar, MapPin, Layers, RefreshCw, User, Settings, ThumbsUp, ThumbsDown,
   Flame, Droplets, Building2, ShieldAlert, HeartPulse, Radiation, ChevronRight,
   Camera, Truck, Anchor, Navigation, Zap, Package, Edit2, Ban, CheckCircle2, Trash2, Key, MessageSquare, Waves, Maximize2, Minimize2,
-  Archive, XCircle, ChevronLeft, ZoomIn, Share2, ExternalLink, Globe, Hash, CircleDot
+  Archive, XCircle, ChevronLeft, ZoomIn, Share2, ExternalLink, Globe, Hash, CircleDot, Home
 } from 'lucide-react'
 import { io, Socket } from 'socket.io-client'
 import { useReports } from '../contexts/ReportsContext'
@@ -17,7 +17,7 @@ import { useAlerts } from '../contexts/AlertsContext'
 import { useTheme } from '../contexts/ThemeContext'
 import { useLocation } from '../contexts/LocationContext'
 import { LOCATIONS } from '../contexts/LocationContext'
-import { getSession, logout } from '../utils/auth'
+import { getSession, logout, validateTokenOrRedirect } from '../utils/auth'
 import { exportReportsCSV, exportReportJSON as exportReportsJSON } from '../utils/exportData'
 import { apiLogActivity, apiCreateAlert, apiGetAuditLog, apiAuditLog, apiGetPredictions, apiSendPreAlert, apiGetDeployments, apiDeployResources, apiRecallResources, apiRunPrediction, apiGetHeatmapData, apiGetUsers, apiUpdateUser, apiSuspendUser, apiActivateUser, apiResetUserPassword, apiDeleteUser, apiGetCommandCenterAnalytics, apiBulkUpdateReportStatus, apiUpdateProfile } from '../utils/api'
 import { HISTORICAL_EVENTS, SEASONAL_TRENDS } from '../data/historical'
@@ -27,6 +27,7 @@ import LoginPage from '../components/admin/LoginPage'
 import AnalyticsDashboard from '../components/admin/AnalyticsDashboard'
 import AITransparencyDashboard from '../components/admin/AITransparencyDashboard'
 import AdminMessaging from '../components/admin/AdminMessaging'
+import DeliveryDashboard from '../components/admin/DeliveryDashboard'
 import CommunityChat from '../components/citizen/CommunityChat'
 import CommunityChatRoom from '../components/citizen/CommunityChatRoom'
 import Chatbot from '../components/citizen/Chatbot'
@@ -52,7 +53,7 @@ const SEV_COLORS: Record<string, string> = { High: 'bg-red-500', Medium: 'bg-amb
 const STA_COLORS: Record<string, string> = { Urgent: 'bg-red-600', Unverified: 'bg-gray-400', Verified: 'bg-green-500', Flagged: 'bg-amber-500', Resolved: 'bg-gray-300', Archived: 'bg-slate-500', False_Report: 'bg-rose-700' }
 const CATEGORY_ICONS: Record<string, any> = { natural_disaster: Droplets, infrastructure: Building2, public_safety: ShieldAlert, community_safety: Users, environmental: Flame, medical: HeartPulse }
 
-type View = 'dashboard'|'reports'|'map'|'analytics'|'ai_models'|'history'|'audit'|'alert_send'|'resources'|'predictions'|'users'|'messaging'|'community'|'system_health'
+type View = 'dashboard'|'reports'|'map'|'analytics'|'ai_models'|'history'|'audit'|'alert_send'|'resources'|'predictions'|'users'|'messaging'|'community'|'system_health'|'delivery'
 
 export default function AdminPage(): JSX.Element {
   const lang = useLanguage()
@@ -80,7 +81,7 @@ export default function AdminPage(): JSX.Element {
   const [deployReason, setDeployReason] = useState('')
   const deployReasonRef = useRef('')
   useEffect(() => { deployReasonRef.current = deployReason }, [deployReason])
-  const [alertChannels, setAlertChannels] = useState<{web:boolean,telegram:boolean,email:boolean,sms:boolean,whatsapp:boolean}>({web:true,telegram:false,email:false,sms:false,whatsapp:false})
+  const [alertChannels, setAlertChannels] = useState<{web:boolean,telegram:boolean,email:boolean,sms:boolean,whatsapp:boolean}>({web:true,telegram:true,email:true,sms:true,whatsapp:true})
   const [profileEditing, setProfileEditing] = useState(false)
   const [profileForm, setProfileForm] = useState({displayName:'',email:'',phone:'',department:''})
   const [predictions, setPredictions] = useState<any[]>([])
@@ -95,6 +96,12 @@ export default function AdminPage(): JSX.Element {
   const [suspendForm, setSuspendForm] = useState({ until: '', reason: '' })
   const [communityUnread, setCommunityUnread] = useState(0)
   const [showChatbot, setShowChatbot] = useState(false)
+  // Listen for global logout events and clear stored user
+  React.useEffect(() => {
+    const handler = () => setUser(null)
+    window.addEventListener('ae:logout', handler)
+    return () => window.removeEventListener('ae:logout', handler)
+  }, [])
   // History section state (top-level to satisfy React hooks rules)
   const [histSearch, setHistSearch] = useState('')
   const [histSort, setHistSort] = useState<'date-desc'|'date-asc'|'severity'|'affected'>('date-desc')
@@ -161,6 +168,16 @@ export default function AdminPage(): JSX.Element {
       setCommandCenter(null)
     }
   }, [user])
+
+  // Validate token on mount - redirect to login if invalid/expired
+  useEffect(() => {
+    console.log('[AdminPage] Validating token...')
+    if (!validateTokenOrRedirect()) {
+      console.warn('[AdminPage] Token validation failed')
+      return
+    }
+    console.log('[AdminPage] Token valid')
+  }, [])
 
   // Lightweight socket for receiving community chat notifications (global broadcast)
   useEffect(() => {
@@ -409,7 +426,14 @@ export default function AdminPage(): JSX.Element {
       setAuditLog(prev=>[{id:Date.now(),operator_name:user?.displayName,action:`Sent alert: ${alertForm.title} — ${channels.join(', ')}`,action_type:'alert_send',created_at:new Date().toISOString()},...prev])
       const delivered=response?.delivery?.sent??0
       const attempted=response?.delivery?.attempted??0
-      pushNotification(`Alert sent via ${channels.join(', ')} (${delivered}/${attempted} delivered)`,'success')
+      const failed=response?.delivery?.failed??0
+      if(attempted===0){
+        pushNotification(`Alert saved — but no subscribers found. Go to the Citizen Portal and subscribe first.`,'warning')
+      } else if(failed>0){
+        pushNotification(`Alert sent: ${delivered}/${attempted} delivered, ${failed} failed. Check Delivery Log.`,'warning')
+      } else {
+        pushNotification(`Alert broadcast: ${delivered}/${attempted} delivered via ${channels.join(', ')}`,'success')
+      }
       setAlertForm({title:'',message:'',severity:'warning',location:''})
       setView('dashboard')
     }catch(err:any){
@@ -447,7 +471,7 @@ export default function AdminPage(): JSX.Element {
     }
   }
 
-  const handleLogout=()=>{logout();setUser(null)}
+  const handleLogout = () => { logout() }
 
   function exportData(payload: object, format: 'csv' | 'json', filename: string): void {
     let content: string
@@ -483,6 +507,19 @@ export default function AdminPage(): JSX.Element {
     }, format, `aegis-command-center-${new Date().toISOString().slice(0, 10)}`)
   }
 
+  // Keyboard shortcut: Ctrl+K / ⌘K focuses global search (must be before early return)
+  const globalSearchRef = useRef<HTMLInputElement>(null)
+  React.useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault()
+        globalSearchRef.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
+
   if(!user) return <LoginPage onLogin={u=>setUser(u)}/>
 
   const NAV: {id:View;label:string;icon:any}[] = [
@@ -493,69 +530,191 @@ export default function AdminPage(): JSX.Element {
     {id:'community' as View,label:t('admin.community', lang),icon:Users},
     {id:'history',label:t('admin.history', lang),icon:History},{id:'audit',label:t('admin.audit', lang),icon:Clock},{id:'alert_send',label:t('admin.sendAlert', lang),icon:Bell},
     {id:'system_health' as View,label:t('admin.systemHealth', lang),icon:Activity},
+    {id:'delivery' as View,label:'Delivery',icon:Archive},
   ]
+
+  const urgentCount   = reports.filter(r => r.status === 'Urgent').length
+  const unverifiedCount = reports.filter(r => r.status === 'Unverified').length
+
+  // Badge counts per nav item
+  const NAV_BADGES: Record<string, number> = {
+    reports:   urgentCount,
+    community: communityUnread,
+    alert_send: notifications.length,
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
-      {/* Top bar */}
-      <nav className="bg-gray-900 text-white sticky top-0 z-40 shadow-lg">
-        <div className="max-w-[1400px] mx-auto px-4 py-2.5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link to="/" className="flex items-center gap-2 hover:opacity-80"><Shield className="w-6 h-6 text-aegis-400"/><span className="font-bold text-sm">AEGIS <span className="text-aegis-400">OPS</span></span></Link>
-            <span className="text-[10px] text-gray-500 hidden md:inline">{t('admin.operatorDashboard', lang)}</span>
-            <Link to="/citizen" className="text-[10px] bg-gray-800 hover:bg-gray-700 px-2.5 py-1 rounded-md border border-gray-700">← {t('admin.citizenPage', lang)}</Link>
+
+      {/* ══════════════════════════════════════════════════════════
+          TOP NAVIGATION BAR
+          ══════════════════════════════════════════════════════════ */}
+      <nav className="relative bg-[#080810] backdrop-blur-2xl text-white sticky top-0 z-40 shadow-2xl shadow-black/80 border-b border-amber-500/15">
+        {/* Gold shimmer accent line */}
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-amber-400/60 to-transparent pointer-events-none" />
+        <div className="max-w-[1400px] mx-auto px-4 h-14 flex items-center gap-3">
+
+          {/* ── LEFT: Logo + nav links ── */}
+          <div className="flex items-center gap-2.5 flex-shrink-0">
+            <Link to="/" className="flex items-center gap-2 group">
+              <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/40 group-hover:shadow-amber-400/60 transition-all group-hover:scale-105">
+                <Shield className="w-5 h-5 text-white drop-shadow-sm"/>
+                <div className="absolute inset-0 rounded-xl bg-gradient-to-tr from-white/25 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              </div>
+              <div className="hidden sm:block leading-none">
+                <span className="font-black text-sm tracking-wide">
+                  <span className="bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-300 bg-clip-text text-transparent">AEGIS</span>
+                  {' '}<span className="text-white/80">OPS</span>
+                </span>
+                <span className="block text-[9px] text-amber-500/50 tracking-widest uppercase">{t('admin.operatorDashboard', lang)}</span>
+              </div>
+            </Link>
+
+            {/* Citizen page link */}
+            <Link to="/citizen"
+              className="hidden sm:flex items-center gap-1 text-[10px] text-white/40 hover:text-amber-300 bg-white/4 hover:bg-amber-500/10 border border-white/6 hover:border-amber-500/20 px-2.5 py-1.5 rounded-lg transition-all">
+              <Home className="w-3 h-3"/>
+              <span>{t('admin.citizenPage', lang)}</span>
+            </Link>
+
+            {/* Online status */}
+            <div className="hidden md:flex items-center gap-1.5 bg-emerald-500/8 border border-emerald-500/20 px-2.5 py-1 rounded-full">
+              <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"/>
+              <span className="text-[10px] text-emerald-400 font-semibold">{t('admin.online', lang)}</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="hidden sm:flex items-center gap-1 text-[10px] text-green-400 bg-green-900/30 px-2 py-1 rounded-full"><span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"/> {t('admin.online', lang)}</span>
-            <button onClick={()=>setShowProfile(!showProfile)} className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-lg text-xs transition-colors">
-              {user.avatarUrl?<img src={user.avatarUrl} alt="" className="w-6 h-6 rounded-full object-cover border-2 border-aegis-400"/>:<div className="w-6 h-6 rounded-full bg-aegis-600 flex items-center justify-center text-white text-[10px] font-bold">{user.displayName?.charAt(0)||'A'}</div>}
-              <span className="truncate max-w-[120px] hidden sm:inline">{user.displayName}</span><ChevronDown className="w-3 h-3"/>
+
+          {/* ── CENTER: Global Search ── */}
+          <div className="flex-1 max-w-xl mx-3 hidden md:block">
+            <div className="relative group">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/25 group-focus-within:text-amber-400 transition-colors"/>
+              <input
+                ref={globalSearchRef}
+                type="text"
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                placeholder="Search reports, alerts, operators…"
+                onFocus={() => view !== 'reports' && setView('reports')}
+                className="w-full pl-9 pr-16 py-2 text-xs bg-white/5 hover:bg-white/8 focus:bg-amber-500/6 border border-white/8 focus:border-amber-500/35 rounded-xl text-white placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-amber-500/25 transition-all"
+              />
+              <kbd className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] text-white/15 bg-white/5 border border-white/8 px-1.5 py-0.5 rounded font-mono hidden lg:inline">⌘K</kbd>
+            </div>
+          </div>
+
+          {/* ── RIGHT: Controls ── */}
+          <div className="flex items-center gap-1.5 ml-auto">
+            {/* Urgent reports badge */}
+            {urgentCount > 0 && (
+              <button onClick={() => setView('reports')}
+                className="hidden sm:flex items-center gap-1.5 bg-red-500/12 hover:bg-red-500/20 border border-red-500/20 px-2.5 py-1 rounded-lg transition-all">
+                <Siren className="w-3.5 h-3.5 text-red-400 animate-pulse"/>
+                <span className="text-[10px] font-bold text-red-300">{urgentCount} urgent</span>
+              </button>
+            )}
+
+            {/* Send Alert */}
+            <button onClick={() => setView('alert_send')}
+              className="hidden sm:flex items-center gap-1.5 bg-red-600 hover:bg-red-500 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-lg shadow-red-600/30 hover:shadow-red-500/40 active:scale-95">
+              <AlertTriangle className="w-3.5 h-3.5"/>
+              {t('admin.sendAlert', lang)}
             </button>
-            <LanguageSelector darkNav className="hidden sm:flex" />
-            <button onClick={toggle} className="p-2 hover:bg-gray-700 rounded-lg transition-colors">{dark?<Sun className="w-4 h-4"/>:<Moon className="w-4 h-4"/>}</button>
-            <button onClick={()=>setView('alert_send')} className="hidden sm:flex items-center gap-1.5 bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"><AlertTriangle className="w-3.5 h-3.5"/> {t('admin.sendAlert', lang)}</button>
-            <button onClick={handleLogout} className="bg-gray-800 hover:bg-red-700 p-2 rounded-lg transition-colors" title={t('auth.logout', lang)}><LogOut className="w-4 h-4"/></button>
+
+            {/* Theme */}
+            <button onClick={toggle} className="p-2 hover:bg-amber-500/10 rounded-xl transition-all active:scale-95">
+              {dark ? <Sun className="w-4 h-4 text-amber-300"/> : <Moon className="w-4 h-4 text-white/50"/>}
+            </button>
+
+            {/* Language */}
+            <LanguageSelector darkNav className="hidden sm:flex"/>
+
+            {/* Profile */}
+            <button onClick={() => setShowProfile(!showProfile)}
+              className="flex items-center gap-2 bg-white/5 hover:bg-amber-500/10 border border-white/8 hover:border-amber-500/25 px-2.5 py-1.5 rounded-xl text-xs transition-all group">
+              {user.avatarUrl
+                ? <img src={user.avatarUrl} alt="" className="w-6 h-6 rounded-full object-cover ring-2 ring-amber-500/40 group-hover:ring-amber-400/70 transition-all"/>
+                : <div className="w-6 h-6 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-black text-[10px] font-extrabold ring-1 ring-amber-400/30">{user.displayName?.charAt(0) || 'A'}</div>
+              }
+              <span className="hidden lg:inline truncate max-w-[100px] font-medium text-white/70 group-hover:text-white transition-colors">{user.displayName}</span>
+              <ChevronDown className={`w-3 h-3 text-white/30 group-hover:text-amber-400 transition-all ${showProfile ? 'rotate-180' : ''}`}/>
+            </button>
+
+            {/* Logout */}
+            <button onClick={handleLogout}
+              className="p-2 bg-white/5 hover:bg-red-600/80 border border-white/6 hover:border-red-500/50 rounded-xl transition-all active:scale-95 group" title={t('auth.logout', lang)}>
+              <LogOut className="w-4 h-4 text-white/40 group-hover:text-white transition-colors"/>
+            </button>
           </div>
         </div>
       </nav>
 
-      {/* Profile dropdown with edit */}
-      {showProfile&&(
-        <div className="fixed top-14 right-4 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 w-72 z-50 p-4">
-          <div className="flex items-center gap-3 mb-3">
-            {user.avatarUrl?<img src={user.avatarUrl} alt="" className="w-12 h-12 rounded-full object-cover border-2 border-aegis-400"/>:<div className="w-12 h-12 rounded-full bg-aegis-600 flex items-center justify-center text-white font-bold">{user.displayName?.charAt(0)}</div>}
-            <div className="flex-1 min-w-0"><p className="font-bold text-sm truncate">{user.displayName}</p><p className="text-[10px] text-gray-500 truncate">{user.email}</p><p className="text-[10px] text-aegis-600">{user.department||user.role}</p></div>
-          </div>
-          {profileEditing ? (
-            <div className="space-y-2 pt-2 border-t border-gray-100 dark:border-gray-800">
-              <input className="w-full px-2.5 py-1.5 text-xs bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700" placeholder={t('citizen.auth.displayName', lang)} value={profileForm.displayName} onChange={e=>setProfileForm(f=>({...f,displayName:e.target.value}))}/>
-              <input className="w-full px-2.5 py-1.5 text-xs bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700" placeholder="Email" value={profileForm.email} onChange={e=>setProfileForm(f=>({...f,email:e.target.value}))}/>
-              <input className="w-full px-2.5 py-1.5 text-xs bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700" placeholder="Phone" value={profileForm.phone} onChange={e=>setProfileForm(f=>({...f,phone:e.target.value}))}/>
-              <div className="flex gap-2">
-                <button onClick={()=>setProfileEditing(false)} className="flex-1 text-xs text-gray-500 hover:text-gray-700 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800">{t('general.cancel', lang)}</button>
-                <button onClick={()=>{apiUpdateProfile(user!.id,profileForm).then(()=>{pushNotification(t('admin.profileUpdated', lang),'success');setProfileEditing(false);apiAuditLog({operator_name:user?.displayName,action:'Updated profile',action_type:'profile_edit',target_type:'operator',target_id:user?.id}).catch(()=>{})}).catch(()=>pushNotification('Failed to update profile','error'))}} className="flex-1 text-xs text-white py-1.5 rounded-lg bg-aegis-600 hover:bg-aegis-700">{t('admin.save', lang)}</button>
+      {/* Profile dropdown */}
+      {showProfile && (
+        <div className="fixed top-16 right-4 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700/60 w-72 z-50 overflow-hidden">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-amber-600 to-amber-800 px-4 pt-4 pb-6 relative">
+            <button onClick={() => setShowProfile(false)} className="absolute top-3 right-3 p-1 rounded-lg bg-white/15 hover:bg-white/25 transition-colors">
+              <X className="w-3.5 h-3.5 text-white"/>
+            </button>
+            <div className="flex items-center gap-3">
+              {user.avatarUrl
+                ? <img src={user.avatarUrl} alt="" className="w-12 h-12 rounded-xl object-cover border-2 border-white/40 shadow-lg"/>
+                : <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center text-white text-lg font-extrabold border-2 border-white/30">{user.displayName?.charAt(0)}</div>
+              }
+              <div className="text-white">
+                <p className="font-bold text-sm leading-tight">{user.displayName}</p>
+                <p className="text-[10px] text-white/70 mt-0.5">{user.email}</p>
+                <span className="inline-flex mt-1 items-center bg-white/15 text-white text-[9px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide">{user.department || user.role}</span>
               </div>
             </div>
-          ) : (
-            <div className="flex gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
-              <button onClick={()=>{setProfileForm({displayName:user.displayName||'',email:user.email||'',phone:user.phone||'',department:user.department||''});setProfileEditing(true)}} className="flex-1 text-xs text-aegis-600 hover:text-aegis-700 py-1.5 rounded-lg bg-aegis-50 dark:bg-aegis-950/20 font-medium">{t('admin.editProfile', lang)}</button>
-              <button onClick={()=>setShowProfile(false)} className="flex-1 text-xs text-gray-500 hover:text-gray-700 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-800">{t('general.close', lang)}</button>
-            </div>
-          )}
+          </div>
+          <div className="p-4 -mt-2">
+            {profileEditing ? (
+              <div className="space-y-2">
+                <input className="w-full px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-500/30" placeholder={t('citizen.auth.displayName', lang)} value={profileForm.displayName} onChange={e => setProfileForm(f => ({...f, displayName: e.target.value}))}/>
+                <input className="w-full px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-500/30" placeholder="Email" value={profileForm.email} onChange={e => setProfileForm(f => ({...f, email: e.target.value}))}/>
+                <input className="w-full px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-500/30" placeholder="Phone" value={profileForm.phone} onChange={e => setProfileForm(f => ({...f, phone: e.target.value}))}/>
+                <div className="flex gap-2 pt-1">
+                  <button onClick={() => setProfileEditing(false)} className="flex-1 text-xs text-gray-500 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">{t('general.cancel', lang)}</button>
+                  <button onClick={() => { apiUpdateProfile(user!.id, profileForm).then(() => { pushNotification(t('admin.profileUpdated', lang), 'success'); setProfileEditing(false); apiAuditLog({operator_name: user?.displayName, action: 'Updated profile', action_type: 'profile_edit', target_type: 'operator', target_id: user?.id}).catch(() => {}) }).catch(() => pushNotification('Failed to update profile', 'error')) }} className="flex-1 text-xs text-white py-2 rounded-xl bg-amber-600 hover:bg-amber-700 transition-colors font-semibold">{t('admin.save', lang)}</button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <button onClick={() => { setProfileForm({displayName: user.displayName || '', email: user.email || '', phone: user.phone || '', department: user.department || ''}); setProfileEditing(true) }} className="flex-1 text-xs font-semibold text-amber-600 dark:text-amber-400 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/20 hover:bg-amber-100 dark:hover:bg-amber-950/40 transition-colors">{t('admin.editProfile', lang)}</button>
+                <button onClick={() => setShowProfile(false)} className="flex-1 text-xs text-gray-500 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">{t('general.close', lang)}</button>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
-      {/* Sub-nav */}
-      <div className="bg-gray-800 dark:bg-gray-900/80 text-white overflow-x-auto border-b border-gray-700">
-        <div className="max-w-[1400px] mx-auto px-4 flex gap-0.5">
-          {NAV.map(n=>(
-            <button key={n.id} onClick={()=>setView(n.id)} className={`relative px-3.5 py-2.5 text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap border-b-2 transition-all ${view===n.id?'border-aegis-400 text-aegis-300':'border-transparent text-gray-400 hover:text-white'}`}>
-              <n.icon className="w-3.5 h-3.5"/> {n.label}
-              {n.id === 'community' && communityUnread > 0 && (
-                <span className="ml-1 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">{communityUnread > 9 ? '9+' : communityUnread}</span>
-              )}
-            </button>
-          ))}
+      {/* ── Sub-navigation tabs ── */}
+      <div className="relative bg-[#060608] backdrop-blur-sm text-white border-b border-amber-500/8">
+        <div className="max-w-[1400px] mx-auto px-2 overflow-x-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-amber-500/10">
+          <div className="flex gap-0.5 min-w-max">
+            {NAV.map(n => {
+              const badge = NAV_BADGES[n.id] || 0
+              const isActive = view === n.id
+              return (
+                <button key={n.id} onClick={() => setView(n.id)}
+                  className={`relative flex items-center gap-1.5 px-3.5 py-2.5 text-[11px] font-semibold whitespace-nowrap border-b-2 transition-all group ${
+                    isActive
+                      ? 'border-amber-400 text-amber-300 bg-amber-500/8'
+                      : 'border-transparent text-gray-500 hover:text-gray-300 hover:bg-white/3'
+                  }`}>
+                  <n.icon className={`w-3.5 h-3.5 transition-colors ${isActive ? 'text-amber-400' : 'text-gray-600 group-hover:text-gray-400'}`}/>
+                  {n.label}
+                  {badge > 0 && (
+                    <span className={`ml-0.5 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none ${
+                      n.id === 'alert_send' ? 'bg-amber-500' : 'bg-red-500'
+                    }`}>
+                      {badge > 99 ? '99+' : badge}
+                    </span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
         </div>
       </div>
 
@@ -1829,6 +1988,13 @@ export default function AdminPage(): JSX.Element {
         {view==='system_health'&&(
           <div className="animate-fade-in">
             <SystemHealthPanel />
+          </div>
+        )}
+
+        {/* ═══ DELIVERY LOGS ═══ */}
+        {view==='delivery'&&(
+          <div className="animate-fade-in">
+            <DeliveryDashboard />
           </div>
         )}
 

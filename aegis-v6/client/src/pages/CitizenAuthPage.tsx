@@ -309,17 +309,22 @@ export default function CitizenAuthPage(): JSX.Element {
   return (
     <div className="min-h-screen bg-gradient-to-br from-aegis-50 via-blue-50 to-cyan-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 flex flex-col">
       {/* Navigation */}
-      <nav className="bg-aegis-700 dark:bg-gray-900 text-white px-4 py-3 flex items-center justify-between shadow-lg">
-        <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-          <Shield className="w-7 h-7" />
-          <span className="font-bold">AEGIS</span>
+      <nav className="glass-nav bg-gradient-to-r from-aegis-700/95 via-aegis-800/95 to-aegis-700/95 dark:from-gray-900/95 dark:via-gray-900/95 dark:to-gray-900/95 text-white px-4 py-3 flex items-center justify-between shadow-lg border-b border-white/5">
+        <Link to="/" className="flex items-center gap-2.5 hover:opacity-90 transition-opacity group">
+          <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center group-hover:bg-white/25 transition-all">
+            <Shield className="w-5 h-5" />
+          </div>
+          <span className="font-bold text-sm hidden sm:inline">AEGIS</span>
         </Link>
         <div className="flex items-center gap-2">
           <LanguageSelector darkNav />
           <button onClick={toggle} className="p-2 hover:bg-white/10 rounded-lg transition-colors" aria-label="Toggle theme">
             {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
-          <Link to="/citizen" className="text-xs bg-white/10 hover:bg-white/20 border border-white/20 px-3 py-1.5 rounded-lg transition-colors">
+          <Link to="/admin" className="text-xs bg-white/10 hover:bg-white/20 border border-white/20 px-2.5 sm:px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1">
+            <Shield className="w-3.5 h-3.5 sm:hidden" /><span className="hidden sm:inline">{t('auth.title', lang)}</span>
+          </Link>
+          <Link to="/citizen" className="text-xs bg-emerald-500/90 hover:bg-emerald-500 border border-emerald-400/30 px-3 py-1.5 rounded-lg transition-colors font-semibold">
             {t('citizen.auth.guestContinue', lang)}
           </Link>
         </div>

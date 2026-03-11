@@ -46,6 +46,8 @@ const aberdeen: CityRegionConfig = {
   ],
   floodDataProvider: 'SEPA',
   weatherProvider: 'OpenWeatherMap',
+  riverAuthority: 'SEPA',
+  satelliteSource: 'NASA FIRMS',
   alertingAuthority: 'Aberdeen City Council',
   emergencyNumber: '999',
   coordinateSystem: 'WGS84',

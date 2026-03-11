@@ -106,6 +106,7 @@ validateStartupConfig()
 
 import authRoutes from './routes/authRoutes.js'
 import citizenAuthRoutes from './routes/citizenAuthRoutes.js'
+import telegramRoutes from './routes/telegramRoutes.js'
 import citizenRoutes from './routes/citizenRoutes.js'
 import reportRoutes from './routes/reportRoutes.js'
 import dataRoutes from './routes/dataRoutes.js'
@@ -127,6 +128,7 @@ import translationRoutes from './routes/translationRoutes.js'
 import spatialRoutes from './routes/spatialRoutes.js'
 import oauthRoutes from './routes/oauthRoutes.js'
 import incidentRoutes from './routes/incidentRoutes.js'
+import mapTileRoutes from './routes/mapTileRoutes.js'
 import pool from './models/db.js'
 import { initSocketServer } from './services/socket.js'
 import { requestLogger } from './services/logger.js'
@@ -194,6 +196,7 @@ app.use(rateLimit({
   message: { error: 'Too many requests. Please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => req.path.startsWith('/api/map-tiles/'),
 }))
 
 // Stricter rate limiting for LOGIN ONLY (brute-force protection against wrong passwords)
@@ -250,6 +253,8 @@ app.use('/api/internal', internalRoutes)              // n8n ws-bridge, error lo
 app.use('/api/translate', translationRoutes)           // Translation service (MyMemory / LibreTranslate)
 app.use('/api/spatial', spatialRoutes)                  // PostGIS spatial analysis tools
 app.use('/api/v1/incidents', incidentRoutes)            // Multi-incident plugin system (v1 API)
+app.use('/api/map-tiles', mapTileRoutes)                // Same-origin map tile proxy (adblock/network resilient)
+app.use('/api/telegram', telegramRoutes)               // Telegram bot webhook & chat-id capture
 
 // Health check endpoint for monitoring
 app.get('/api/health', async (_req, res) => {

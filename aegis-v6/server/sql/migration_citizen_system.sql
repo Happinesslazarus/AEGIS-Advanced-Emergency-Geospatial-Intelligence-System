@@ -60,13 +60,24 @@ CREATE TABLE IF NOT EXISTS citizens (
     otp_secret          VARCHAR(255),
     two_factor_enabled  BOOLEAN         NOT NULL DEFAULT false,
 
+    -- Profile details
+    is_vulnerable       BOOLEAN         NOT NULL DEFAULT false,
+    vulnerability_details TEXT,
+    country             VARCHAR(100)    DEFAULT 'United Kingdom',
+    city                VARCHAR(100),
+    date_of_birth       DATE,
+    bio                 VARCHAR(500),
+    address_line        VARCHAR(200),
+
     -- Account state
     is_active           BOOLEAN         NOT NULL DEFAULT true,
     last_login          TIMESTAMPTZ,
     login_count         INTEGER         NOT NULL DEFAULT 0,
 
-    -- Soft-delete
+    -- Soft-delete / account deletion
     deleted_at          TIMESTAMPTZ,
+    deletion_requested_at TIMESTAMPTZ,
+    deletion_scheduled_at TIMESTAMPTZ,
     created_at          TIMESTAMPTZ     NOT NULL DEFAULT now(),
     updated_at          TIMESTAMPTZ     NOT NULL DEFAULT now()
 );

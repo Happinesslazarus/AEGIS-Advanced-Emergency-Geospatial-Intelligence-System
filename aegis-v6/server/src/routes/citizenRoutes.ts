@@ -323,10 +323,10 @@ router.get('/threads/:id', async (req: AuthRequest, res: Response): Promise<void
     const hasMore = messagesResult.rows.length > limit
     const messages = messagesResult.rows.slice(0, limit).reverse() // chronological order
 
-    // Mark citizen messages as read
+    // Mark operator messages as read by citizen
     await pool.query(
-      `UPDATE messages SET read_at = NOW() 
-       WHERE thread_id = $1 AND sender_type = 'operator' AND read_at IS NULL`,
+      `UPDATE messages SET status = 'read', read_at = NOW() 
+       WHERE thread_id = $1 AND sender_type = 'operator' AND (read_at IS NULL OR status != 'read')`,
       [req.params.id]
     )
     await pool.query(

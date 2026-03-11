@@ -512,13 +512,25 @@ export function initSocketServer(httpServer: HttpServer): Server {
         }
 
         // Mark as delivered if recipient is online
-        const recipientId = isAdmin ? thread.citizen_id : null
-        if (recipientId) {
+        if (isAdmin) {
+          // Admin sent → check if citizen is online
           const presence = await pool.query(
             'SELECT is_online FROM user_presence WHERE user_id = $1',
-            [recipientId]
+            [thread.citizen_id]
           )
           if (presence.rows[0]?.is_online) {
+            await pool.query(
+              `UPDATE messages SET status = 'delivered', delivered_at = NOW() WHERE id = $1`,
+              [msg.id]
+            )
+            io.to(`thread:${threadId}`).emit('message:status', {
+              messageId: msg.id, status: 'delivered',
+            })
+          }
+        } else {
+          // Citizen sent → check if any admin is online (in the admins room)
+          const adminRoom = io.sockets.adapter.rooms.get('admins')
+          if (adminRoom && adminRoom.size > 0) {
             await pool.query(
               `UPDATE messages SET status = 'delivered', delivered_at = NOW() WHERE id = $1`,
               [msg.id]
@@ -737,7 +749,11 @@ export function initSocketServer(httpServer: HttpServer): Server {
 
     // ── Citizen: Get my threads ────────────────────────────────────────
     socket.on('citizen:get_threads', async (ack?: Function) => {
-      if (isAdmin) return
+      if (isAdmin) {
+        console.log('[Socket] citizen:get_threads called by admin, ignoring')
+        return
+      }
+      console.log('[Socket] citizen:get_threads called by:', user.displayName, 'ID:', user.id)
       try {
         const threads = await pool.query(
           `SELECT t.*,
@@ -748,9 +764,12 @@ export function initSocketServer(httpServer: HttpServer): Server {
            ORDER BY t.updated_at DESC`,
           [user.id]
         )
+        console.log('[Socket] citizen:get_threads found', threads.rows.length, 'threads for user', user.id)
         socket.emit('citizen:threads', threads.rows)
         if (ack) ack(threads.rows)
-      } catch {}
+      } catch (err: any) {
+        console.error('[Socket] citizen:get_threads error:', err.message)
+      }
     })
 
     // ── Admin: Get all threads ─────────────────────────────────────────
@@ -844,6 +863,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
 
     socket.on('community:chat:join', async (ack?: Function) => {
       devLog(`[CommunityChat] JOIN REQUEST from ${user.displayName} (socket ${socket.id}) isAdmin: ${isAdmin}`)
+      console.log('[CommunityChat] 🔔 Join request from:', user.displayName, 'Socket:', socket.id, 'Admin:', isAdmin)
 
       // Check if user is banned
       try {
@@ -854,6 +874,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
         if (banCheck.rows.length > 0) {
           const ban = banCheck.rows[0]
           devLog(`[CommunityChat] ${user.displayName} is banned from community chat`)
+          console.log('[CommunityChat] ❌ User banned:', user.displayName)
           if (ack) ack({
             success: false,
             banned: true,
@@ -889,6 +910,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
       // Broadcast updated online list to ALL users in room
       io.to('community-chat').emit('community:chat:online_update', { users: onlineList })
 
+      console.log('[CommunityChat] ✅ Join successful for:', user.displayName, 'Total online:', onlineList.length)
       if (ack) ack({ success: true, users: onlineList })
     })
 
@@ -903,6 +925,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
       try {
         const limit = Math.min(Math.max(parseInt(data?.limit) || 50, 1), 200) // Cap at 200
         const before = data?.before // optional ISO timestamp for pagination
+        console.log('[CommunityChat] 📜 History request from:', user.displayName, 'Limit:', limit, 'Before:', before)
         let query = `
           SELECT cm.id, cm.sender_id, cm.sender_type, cm.content, cm.image_url, cm.reply_to_id, cm.created_at, cm.deleted_at, cm.read_by,
                  COALESCE(
@@ -940,6 +963,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
         params.push(limit)
 
         const result = await pool.query(query, params)
+        console.log('[CommunityChat] ✅ Loaded', result.rows.length, 'messages for', user.displayName)
         // Return in chronological order
         if (ack) ack({ success: true, messages: result.rows.reverse() })
       } catch (err: any) {

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { X, Bell, MessageCircle, Mail, Phone, Globe, CheckCircle } from 'lucide-react'
 import { useAlerts } from '../../contexts/AlertsContext'
 import { useLocation } from '../../contexts/LocationContext'
+import { useWebPush } from '../../hooks/useWebPush'
 import { t } from '../../utils/i18n'
 import { apiSubscribe } from '../../utils/api'
 
@@ -12,6 +13,7 @@ interface ChannelState { enabled: boolean; value: string }
 export default function AlertSubscribe({ onClose, lang = 'en' }: Props): JSX.Element {
   const { pushNotification } = useAlerts()
   const { location } = useLocation()
+  const { subscribe: subscribeToWebPush } = useWebPush()
   const [channels, setChannels] = useState<Record<string, ChannelState>>({
     telegram: { enabled: false, value: '' }, email: { enabled: false, value: '' },
     sms: { enabled: false, value: '' }, whatsapp: { enabled: false, value: '' }, web: { enabled: true, value: 'enabled' },
@@ -45,6 +47,16 @@ export default function AlertSubscribe({ onClose, lang = 'en' }: Props): JSX.Ele
     }
 
     try {
+      // If Web Push is enabled, register the browser push subscription first
+      if (channels.web.enabled) {
+        try {
+          await subscribeToWebPush(channels.email.enabled ? channels.email.value : undefined)
+          pushNotification('Web Push enabled successfully', 'success')
+        } catch (err: any) {
+          pushNotification(`Web Push setup failed: ${err.message}`, 'warning')
+        }
+      }
+
       const payload = {
         email: channels.email.enabled ? channels.email.value : null,
         phone: channels.sms.enabled ? channels.sms.value : null,

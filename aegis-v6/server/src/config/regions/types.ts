@@ -76,6 +76,8 @@ export interface CityRegionConfig {
   rivers: RiverStation[]
   floodDataProvider: string
   weatherProvider: string
+  riverAuthority?: string
+  satelliteSource?: string
   alertingAuthority: string
   emergencyNumber: string
   coordinateSystem: string

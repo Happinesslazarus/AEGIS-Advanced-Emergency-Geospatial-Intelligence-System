@@ -16,7 +16,12 @@ const AI_ENGINE_URL = process.env.AI_ENGINE_URL || 'http://localhost:8000'
 const AI_ENGINE_TIMEOUT = parseInt(process.env.AI_ENGINE_TIMEOUT || '30000', 10)
 
 interface PredictionRequest {
-  hazard_type: 'flood' | 'drought' | 'heatwave' | 'wildfire'
+  hazard_type:
+    | 'flood' | 'drought' | 'heatwave' | 'wildfire'
+    | 'severe_storm' | 'landslide' | 'power_outage'
+    | 'water_supply_disruption' | 'infrastructure_damage'
+    | 'public_safety_incident' | 'environmental_hazard'
+    | string  // allow future hazard types without breaking compile
   region_id: string
   latitude: number
   longitude: number

@@ -16,7 +16,7 @@ import {
 import { Socket } from 'socket.io-client'
 import { useLocation } from 'react-router-dom'
 import { useCitizenAuth } from '../../contexts/CitizenAuthContext'
-import { useSocket } from '../../hooks/useSocket'
+import { useSharedSocket } from '../../contexts/SocketContext'
 import { translateText, TRANSLATION_LANGUAGES } from '../../utils/translateService'
 import { getLanguage } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
@@ -309,7 +309,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
   const userRole = user?.role || 'citizen'
 
   // ── Use shared socket from existing useSocket hook (only for admin, when no parentSocket) ──
-  const { socket: hookSocket, connected: hookConnected, connect: hookConnect } = useSocket()
+  const { socket: hookSocket, connected: hookConnected, connect: hookConnect } = useSharedSocket()
   const [socket, setSocket] = useState<Socket | null>(null)
   const [connected, setConnected] = useState(false)
 
@@ -424,21 +424,32 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
 
   // Helper: fetch and merge missed messages from REST (for reconnection sync)
   const fetchAndMergeMissedMessages = useCallback(async () => {
-    if (!activeToken) return
+    if (!activeToken) {
+      console.log('[CommunityChat] No token for fetching missed messages')
+      return
+    }
+    console.log('[CommunityChat] 📥 Fetching missed messages...')
     try {
       const res = await fetch('/api/community/chat/messages?limit=50', {
         headers: { Authorization: `Bearer ${activeToken}` }
       })
-      if (!res.ok) return
+      if (!res.ok) {
+        console.error('[CommunityChat] Fetch missed messages failed:', res.status, res.statusText)
+        return
+      }
       const freshMsgs: ChatMsg[] = await res.json()
+      console.log('[CommunityChat] Received', freshMsgs?.length || 0, 'messages from API')
       if (!Array.isArray(freshMsgs) || freshMsgs.length === 0) return
 
       setMessages((prev: ChatMsg[]) => {
         // Build a Set of existing real message IDs (skip tmp-)
         const existingIds = new Set(prev.filter((m: ChatMsg) => !m.id.startsWith('tmp-')).map((m: ChatMsg) => m.id))
         const newMsgs = freshMsgs.filter((m: ChatMsg) => !existingIds.has(m.id))
-        if (newMsgs.length === 0) return prev
-        // // console.log('[CommunityChat] Merged', newMsgs.length, 'missed messages after reconnect')
+        if (newMsgs.length === 0) {
+          console.log('[CommunityChat] No new messages to merge')
+          return prev
+        }
+        console.log('[CommunityChat] Merged', newMsgs.length, 'missed messages after reconnect')
         // Merge & sort chronologically
         const merged = [...prev.filter((m: ChatMsg) => !m.id.startsWith('tmp-')), ...newMsgs]
         merged.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
@@ -676,13 +687,14 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     }
 
     // // console.log('[CommunityChat] Socket connected:', socket.id, 'for user:', user?.displayName, 'isAdmin:', isAdmin, 'socket.connected:', socket.connected)
+    console.log('[CommunityChat] ✅ Socket connected:', socket.id, 'User:', user?.displayName, 'Admin:', isAdmin)
     setLoading(false)
     setError('')
 
     // ── Named handler functions for precise cleanup (avoids removing other components' handlers) ──
 
     const handleMessage = (msg: ChatMsg) => {
-      // // console.log('[CommunityChat] 📨 BROADCAST RECEIVED: Message from', msg.sender_name, 'id:', msg.id, 'my socket:', socket.id)
+      console.log('[CommunityChat] 📨 Message received:', msg.sender_name, 'ID:', msg.id)
       setMessages((prev: ChatMsg[]) => {
         // If message has tempId and sender is current user, replace optimistic message
         if (msg.sender_id === userRef.current?.id) {
@@ -698,10 +710,10 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
         }
         // Skip if message already exists
         if (prev.some((m: ChatMsg) => m.id === msg.id)) {
-          // // console.log('[CommunityChat] Message already exists, skipping duplicate')
+          console.log('[CommunityChat] Duplicate message, skipping')
           return prev
         }
-        // // console.log('[CommunityChat] Adding new message, total will be:', prev.length + 1)
+        console.log('[CommunityChat] Adding new message, total:', prev.length + 1)
         return [...prev, msg]
       })
       // Mark new messages as read if not from current user
@@ -741,14 +753,19 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
       setOnlineUsers((prev: OnlineUser[]) => prev.some((p: OnlineUser) => p.userId === u.userId) ? prev : [...prev, u])
       // System message: user joined
       if (u.userId !== userRef.current?.id) {
-        setMessages((prev: ChatMsg[]) => [...prev, {
-          id: `sys-join-${u.userId}-${Date.now()}`,
-          sender_id: 'system',
-          sender_type: 'citizen' as const,
-          sender_name: 'System',
-          content: `${u.displayName || 'A user'} joined the chat`,
-          created_at: new Date().toISOString(),
-        }])
+        setMessages((prev: ChatMsg[]) => {
+          // Dedup: skip if a join message for same user appeared in the last 5 seconds
+          const recent = prev.filter(m => m.id.startsWith(`sys-join-${u.userId}`) && Date.now() - new Date(m.created_at).getTime() < 5000)
+          if (recent.length > 0) return prev
+          return [...prev, {
+            id: `sys-join-${u.userId}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            sender_id: 'system',
+            sender_type: 'citizen' as const,
+            sender_name: 'System',
+            content: `${u.displayName || 'A user'} joined the chat`,
+            created_at: new Date().toISOString(),
+          }]
+        })
       }
     }
 
@@ -759,14 +776,19 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
         // System message: user left (outside the updater to avoid batching issues)
         if (userId !== userRef.current?.id) {
           setTimeout(() => {
-            setMessages((prevMsgs: ChatMsg[]) => [...prevMsgs, {
-              id: `sys-leave-${userId}-${Date.now()}`,
-              sender_id: 'system',
-              sender_type: 'citizen' as const,
-              sender_name: 'System',
-              content: `${name} left the chat`,
-              created_at: new Date().toISOString(),
-            }])
+            setMessages((prevMsgs: ChatMsg[]) => {
+              // Dedup: skip if a leave message for same user appeared in the last 5 seconds
+              const recent = prevMsgs.filter(m => m.id.startsWith(`sys-leave-${userId}`) && Date.now() - new Date(m.created_at).getTime() < 5000)
+              if (recent.length > 0) return prevMsgs
+              return [...prevMsgs, {
+                id: `sys-leave-${userId}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                sender_id: 'system',
+                sender_type: 'citizen' as const,
+                sender_name: 'System',
+                content: `${name} left the chat`,
+                created_at: new Date().toISOString(),
+              }]
+            })
           }, 0)
         }
         return prev.filter((p: OnlineUser) => p.userId !== userId)
@@ -774,6 +796,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     }
 
     const handleOnlineUpdate = ({ users }: { users: OnlineUser[] }) => {
+      console.log('[CommunityChat] 👥 Online users update:', users?.length || 0, 'users')
       setOnlineUsers(Array.isArray(users) ? users : [])
     }
 
@@ -857,13 +880,13 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
 
     // Join room (only once per connection)
     if (!hasJoinedRef.current) {
-      // // console.log('[CommunityChat] 🔔 EMITTING JOIN REQUEST, socket:', socket.id, 'connected:', socket.connected)
+      console.log('[CommunityChat] 🔔 EMITTING JOIN REQUEST, socket:', socket.id, 'connected:', socket.connected)
       socket.emit('community:chat:join', (ack: any) => {
-        // // console.log('[CommunityChat] ✅ join ack received:', ack)
+        console.log('[CommunityChat] ✅ join ack received:', ack)
         if (ack?.success) {
           setJoined(true)
           hasJoinedRef.current = true
-          // // console.log('[CommunityChat] Joined community-chat room, initial users:', ack.users?.length || 0, ack.users)
+          console.log('[CommunityChat] Joined community-chat room, initial users:', ack.users?.length || 0)
           if (ack.users && Array.isArray(ack.users)) {
             setOnlineUsers(ack.users)
           }
@@ -873,7 +896,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
           setIsBanned(true)
           setBanReason(ack.reason || 'You are banned from community chat')
           setIsMember(false)
-          // // console.log('[CommunityChat] Banned from chat')
+          console.log('[CommunityChat] ⛔ Banned from chat')
         } else {
           console.error('[CommunityChat] ❌ join ack failed:', ack)
         }
@@ -884,7 +907,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     // Handle socket reconnection — rejoin room and resync messages
     // Handle socket disconnect — track state for admin socket
     const handleDisconnect = () => {
-      // // console.log('[CommunityChat] Socket disconnected')
+      console.log('[CommunityChat] ⚠️ Socket disconnected')
       setConnected(false)
       setJoined(false)
       hasJoinedRef.current = false
@@ -893,11 +916,12 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     socket.on('disconnect', handleDisconnect)
 
     const handleReconnect = () => {
-      // // console.log('[CommunityChat] 🔄 Socket reconnected, re-joining room and syncing messages')
+      console.log('[CommunityChat] 🔄 Socket reconnected, re-joining room and syncing messages')
       setConnected(true)
       hasJoinedRef.current = false
       socket.emit('community:chat:join', (ack: any) => {
         if (ack?.success) {
+          console.log('[CommunityChat] ✅ Rejoined successfully')
           setJoined(true)
           hasJoinedRef.current = true
           if (ack.users && Array.isArray(ack.users)) {
@@ -920,10 +944,11 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
           if (hasJoinedRef.current && ack.users.length > 0) {
             const isInList = ack.users.some((u: any) => u.userId === userRef.current?.id)
             if (!isInList) {
-              // // console.log('[CommunityChat] ⚠️ Not in online list despite joined — re-joining room')
+              console.log('[CommunityChat] ⚠️ Not in online list despite joined — re-joining room')
               hasJoinedRef.current = false
               socket.emit('community:chat:join', (joinAck: any) => {
                 if (joinAck?.success) {
+                  console.log('[CommunityChat] ✅ Re-joined successfully')
                   hasJoinedRef.current = true
                   setJoined(true)
                   if (joinAck.users) setOnlineUsers(joinAck.users)
@@ -1779,8 +1804,8 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                                   </span>
                                   {/* Read receipt ticks (only for own messages) */}
                                   {msg.sender_id === userId && (
-                                    <span className="text-[10px] text-gray-400" title={msg.read_by && msg.read_by.length > 0 ? 'Read' : 'Sent'}>
-                                      {msg.read_by && msg.read_by.length > 0 ? '✓✓' : '✓'}
+                                    <span className={`text-[10px] ${msg.read_by && msg.read_by.some((r: any) => r.user_id !== userId) ? 'text-blue-500' : 'text-gray-400'}`} title={msg.read_by && msg.read_by.some((r: any) => r.user_id !== userId) ? 'Read' : 'Sent'}>
+                                      {msg.read_by && msg.read_by.some((r: any) => r.user_id !== userId) ? '✓✓' : '✓'}
                                     </span>
                                   )}
                                 </div>

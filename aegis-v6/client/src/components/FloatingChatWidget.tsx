@@ -21,7 +21,8 @@ import {
   AlertTriangle, Check, CheckCheck, ChevronDown
 } from 'lucide-react'
 import { useCitizenAuth } from '../contexts/CitizenAuthContext'
-import { useSocket, ChatThread, ChatMessage } from '../hooks/useSocket'
+import { type ChatThread, type ChatMessage } from '../hooks/useSocket'
+import { useSharedSocket } from '../contexts/SocketContext'
 import { API_BASE, timeAgoCompact } from '../utils/helpers'
 import MessageStatusIcon from './ui/MessageStatusIcon'
 
@@ -40,7 +41,7 @@ const THREAD_CATEGORIES = [
 export default function FloatingChatWidget(): JSX.Element | null {
   const { user, token, isAuthenticated } = useCitizenAuth()
   const location = useLocation()
-  const socket = useSocket()
+  const socket = useSharedSocket()
 
   const [isOpen, setIsOpen] = useState(false)
   const [view, setView] = useState<'threads' | 'chat' | 'new'>('threads')

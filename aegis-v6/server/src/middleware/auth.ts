@@ -87,7 +87,7 @@ export const operatorOnly = requireRole('admin', 'operator', 'manager')
  * Access tokens have short expiry (15 min); refresh tokens last 7 days.
  */
 export function generateToken(user: { id: string; email: string; role: string; displayName: string; department?: string | null }): string {
-  return jwt.sign(user, JWT_SECRET, { expiresIn: '15m' })
+  return jwt.sign(user, JWT_SECRET, { expiresIn: '8h' })
 }
 
 /** Generate a long-lived refresh token (7 days) containing only the user id + role */

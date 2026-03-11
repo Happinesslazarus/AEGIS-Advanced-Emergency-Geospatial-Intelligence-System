@@ -26,11 +26,13 @@ import { analyseReport } from '../services/aiAnalysisPipeline.js'
 import { classify } from '../services/classifierRouter.js'
 import { aiClient } from '../services/aiClient.js'
 import { getActiveCityRegion } from '../config/regions/index.js'
+import { IncidentIntelligenceCore } from '../services/incidentIntelligenceCore.js'
 
 const router = Router()
 const activeRegion = getActiveCityRegion()
 const regionLat = activeRegion.centre.lat
 const regionLng = activeRegion.centre.lng
+const intelligenceCore = new IncidentIntelligenceCore(activeRegion)
 const regionRadiusDeg = Math.max(
   0.1,
   Math.max(
@@ -46,6 +48,59 @@ function isWithinActiveRegion(lat: number, lng: number): boolean {
     lng >= regionLng - regionRadiusDeg &&
     lng <= regionLng + regionRadiusDeg
   )
+}
+
+type SignalFetchResult = {
+  rows: Array<any>
+  warnings: string[]
+}
+
+async function fetchRecentSignals(minutes: number): Promise<SignalFetchResult> {
+  const modernQuery = `SELECT id,
+                              COALESCE(NULLIF(incident_subtype, ''), incident_category) AS signal_type,
+                              severity,
+                              COALESCE(ai_confidence, 50) AS ai_confidence,
+                              ST_Y(coordinates::geometry) AS lat,
+                              ST_X(coordinates::geometry) AS lng,
+                              created_at
+                       FROM reports
+                       WHERE coordinates IS NOT NULL
+                         AND deleted_at IS NULL
+                         AND status NOT IN ('resolved', 'archived', 'false_report')
+                         AND created_at >= now() - ($1::text || ' minutes')::interval
+                       ORDER BY created_at DESC`
+
+  const legacyQuery = `SELECT id,
+                              COALESCE(NULLIF(incident_subtype, ''), incident_category) AS signal_type,
+                              severity,
+                              COALESCE(ai_confidence, 50) AS ai_confidence,
+                              ST_Y(coordinates::geometry) AS lat,
+                              ST_X(coordinates::geometry) AS lng,
+                              created_at
+                       FROM reports
+                       WHERE coordinates IS NOT NULL
+                         AND created_at >= now() - ($1::text || ' minutes')::interval
+                       ORDER BY created_at DESC`
+
+  try {
+    const result = await pool.query(modernQuery, [String(minutes)])
+    return { rows: result.rows, warnings: [] }
+  } catch (err: any) {
+    if (err?.code === '42703' || /deleted_at|false_report|archived|status/i.test(String(err?.message || ''))) {
+      const fallback = await pool.query(legacyQuery, [String(minutes)])
+      return {
+        rows: fallback.rows,
+        warnings: ['legacy schema fallback: reports table missing modern status/deleted columns'],
+      }
+    }
+    if (err?.code === '42P01' || /relation .*reports.* does not exist/i.test(String(err?.message || ''))) {
+      return {
+        rows: [],
+        warnings: ['legacy schema: missing reports table'],
+      }
+    }
+    throw err
+  }
 }
 
 /*
@@ -148,6 +203,247 @@ router.get('/stats', async (_req: Request, res: Response): Promise<void> => {
   } catch (err: any) {
     console.error('[Reports] Stats error:', err.message)
     res.status(500).json({ error: 'Failed to load statistics.' })
+  }
+})
+
+/*
+ * GET /api/reports/clusters
+ * Spatiotemporal clustering of recent reports for incident intelligence.
+ * Query params: minutes, radiusMeters, minReports
+ */
+router.get('/clusters', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const minutes = Math.min(24 * 60, Math.max(10, parseInt(String(req.query.minutes || '120'), 10) || 120))
+    const radiusMeters = Math.min(5000, Math.max(100, parseInt(String(req.query.radiusMeters || '1000'), 10) || 1000))
+    const minReports = Math.min(20, Math.max(2, parseInt(String(req.query.minReports || '3'), 10) || 3))
+
+    const { rows, warnings } = await fetchRecentSignals(minutes)
+    const evidence = intelligenceCore.buildEvidenceEvents(rows)
+    if (evidence.length === 0) {
+      res.json({
+        ok: true,
+        data: [],
+        clusters: [],
+        warnings,
+        params: { minutes, radiusMeters, minReports },
+      })
+      return
+    }
+
+    const clusters = intelligenceCore.clusterEvidence(evidence, {
+      radiusMeters,
+      minReports,
+    })
+
+    res.json({
+      ok: true,
+      data: clusters,
+      clusters,
+      warnings,
+      params: { minutes, radiusMeters, minReports },
+    })
+  } catch (err: any) {
+    console.error('[Reports] Clusters error:', err.message)
+    res.json({ ok: true, data: [], clusters: [], warnings: ['clusters unavailable: ' + String(err.message || 'unknown error')] })
+  }
+})
+
+/*
+ * GET /api/reports/cascading-insights
+ * Detect likely cascading disaster chains from recent incident signals.
+ */
+router.get('/cascading-insights', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const windowMinutes = Math.min(24 * 60, Math.max(30, parseInt(String(req.query.windowMinutes || '180'), 10) || 180))
+
+    const { rows, warnings } = await fetchRecentSignals(windowMinutes)
+    const evidence = intelligenceCore.buildEvidenceEvents(rows)
+    const cascade = intelligenceCore.inferCascades(evidence)
+
+    res.json({
+      ok: true,
+      data: cascade.inferred,
+      window_minutes: windowMinutes,
+      active_signals: cascade.activeSignals,
+      inferred_cascades: cascade.inferred,
+      warnings,
+    })
+  } catch (err: any) {
+    console.error('[Reports] Cascading insights error:', err.message)
+    res.json({ ok: true, data: [], inferred_cascades: [], warnings: ['cascading insights unavailable: ' + String(err.message || 'unknown error')] })
+  }
+})
+
+/*
+ * GET /api/reports/incident-objects
+ * Promote clustered evidence into incident objects with confidence lifecycle state.
+ */
+router.get('/incident-objects', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const minutes = Math.min(24 * 60, Math.max(10, parseInt(String(req.query.minutes || '180'), 10) || 180))
+    const radiusMeters = Math.min(5000, Math.max(100, parseInt(String(req.query.radiusMeters || '1000'), 10) || 1000))
+    const minReports = Math.min(20, Math.max(2, parseInt(String(req.query.minReports || '3'), 10) || 3))
+
+    const { rows, warnings } = await fetchRecentSignals(minutes)
+    const evidence = intelligenceCore.buildEvidenceEvents(rows)
+    const incidents = intelligenceCore.promoteIncidentObjects(evidence, {
+      radiusMeters,
+      minReports,
+    })
+
+    res.json({
+      ok: true,
+      data: incidents,
+      incidents,
+      warnings,
+      params: { minutes, radiusMeters, minReports },
+    })
+  } catch (err: any) {
+    console.error('[Reports] Incident objects error:', err.message)
+    res.json({ ok: true, data: [], incidents: [], warnings: ['incident objects unavailable: ' + String(err.message || 'unknown error')] })
+  }
+})
+
+/*
+ * GET /api/reports/incident-objects/:id/explanation
+ * Returns confidence trace and drivers for one promoted incident object.
+ */
+router.get('/incident-objects/:id/explanation', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const minutes = 180
+    const radiusMeters = 1000
+    const minReports = 3
+    const incidentId = String(req.params.id || '')
+
+    const { rows, warnings } = await fetchRecentSignals(minutes)
+    const evidence = intelligenceCore.buildEvidenceEvents(rows)
+    const incidents = intelligenceCore.promoteIncidentObjects(evidence, {
+      radiusMeters,
+      minReports,
+    })
+
+    const incident = incidents.find((item) => item.incident_id === incidentId)
+    if (!incident) {
+      res.status(404).json({ error: 'Incident object not found.' })
+      return
+    }
+
+    res.json({
+      ok: true,
+      incident_id: incident.incident_id,
+      incident_type: incident.incident_type,
+      lifecycle_state: incident.lifecycle_state,
+      confidence: incident.confidence,
+      explanation: intelligenceCore.explainIncidentObject(incident),
+      warnings,
+    })
+  } catch (err: any) {
+    console.error('[Reports] Incident explanation error:', err.message)
+    res.json({ ok: true, data: null, warnings: ['incident explanation unavailable: ' + String(err.message || 'unknown error')] })
+  }
+})
+
+/*
+ * GET /api/reports/incident-objects/changes
+ * Diff incident objects between current and previous windows.
+ */
+router.get('/incident-objects/changes', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const minutes = Math.min(120, Math.max(5, parseInt(String(req.query.minutes || '15'), 10) || 15))
+    const baselineMinutes = Math.min(120, Math.max(5, parseInt(String(req.query.baselineMinutes || String(minutes)), 10) || minutes))
+    const radiusMeters = Math.min(5000, Math.max(100, parseInt(String(req.query.radiusMeters || '1000'), 10) || 1000))
+    const minReports = Math.min(20, Math.max(2, parseInt(String(req.query.minReports || '3'), 10) || 3))
+
+    const totalWindow = minutes + baselineMinutes
+    const { rows, warnings } = await fetchRecentSignals(totalWindow)
+    const now = Date.now()
+    const currentCutoff = now - minutes * 60 * 1000
+    const baselineCutoff = now - totalWindow * 60 * 1000
+
+    const currentRows = rows.filter((r) => new Date(r.created_at).getTime() >= currentCutoff)
+    const previousRows = rows.filter((r) => {
+      const ts = new Date(r.created_at).getTime()
+      return ts >= baselineCutoff && ts < currentCutoff
+    })
+
+    const currentIncidents = intelligenceCore.promoteIncidentObjects(
+      intelligenceCore.buildEvidenceEvents(currentRows),
+      { radiusMeters, minReports },
+    )
+    const previousIncidents = intelligenceCore.promoteIncidentObjects(
+      intelligenceCore.buildEvidenceEvents(previousRows),
+      { radiusMeters, minReports },
+    )
+
+    const stateRank: Record<string, number> = {
+      weak: 1,
+      possible: 2,
+      probable: 3,
+      high: 4,
+      confirmed: 5,
+    }
+
+    const keyFor = (i: any): string => `${i.incident_type}:${i.center.lat.toFixed(3)}:${i.center.lng.toFixed(3)}`
+    const currentMap = new Map(currentIncidents.map((i) => [keyFor(i), i]))
+    const previousMap = new Map(previousIncidents.map((i) => [keyFor(i), i]))
+
+    const newIncidents = Array.from(currentMap.entries())
+      .filter(([k]) => !previousMap.has(k))
+      .map(([, v]) => v)
+
+    const resolvedIncidents = Array.from(previousMap.entries())
+      .filter(([k]) => !currentMap.has(k))
+      .map(([, v]) => v)
+
+    const escalated = Array.from(currentMap.entries())
+      .filter(([k, cur]) => {
+        const prev = previousMap.get(k)
+        return prev && stateRank[cur.lifecycle_state] > stateRank[prev.lifecycle_state]
+      })
+      .map(([, v]) => v)
+
+    const downgraded = Array.from(currentMap.entries())
+      .filter(([k, cur]) => {
+        const prev = previousMap.get(k)
+        return prev && stateRank[cur.lifecycle_state] < stateRank[prev.lifecycle_state]
+      })
+      .map(([, v]) => v)
+
+    const lifecycleCounts = currentIncidents.reduce((acc, i) => {
+      acc[i.lifecycle_state] = (acc[i.lifecycle_state] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+
+    res.json({
+      ok: true,
+      data: {
+        new_incidents: newIncidents,
+        escalated,
+        downgraded,
+        resolved: resolvedIncidents,
+      },
+      window_minutes: minutes,
+      baseline_minutes: baselineMinutes,
+      current_count: currentIncidents.length,
+      previous_count: previousIncidents.length,
+      lifecycle_counts: lifecycleCounts,
+      changes: {
+        new_incidents: newIncidents,
+        escalated,
+        downgraded,
+        resolved: resolvedIncidents,
+      },
+      totals: {
+        new_count: newIncidents.length,
+        escalated_count: escalated.length,
+        downgraded_count: downgraded.length,
+        resolved_count: resolvedIncidents.length,
+      },
+      warnings,
+    })
+  } catch (err: any) {
+    console.error('[Reports] Incident object changes error:', err.message)
+    res.json({ ok: true, data: { new_incidents: [], escalated: [], downgraded: [], resolved: [] }, warnings: ['incident object changes unavailable: ' + String(err.message || 'unknown error')] })
   }
 })
 
@@ -765,13 +1061,68 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
  * Accepts multipart form data to allow evidence photo/video upload.
  * Automatically runs AI confidence scoring based on available data.
  */
-router.post('/', authMiddleware, uploadEvidence, async (req: Request, res: Response): Promise<void> => {
+router.post('/', uploadEvidence, async (req: Request, res: Response): Promise<void> => {
   try {
     const {
       incidentCategory, incidentSubtype, displayType,
       description, severity, trappedPersons,
       locationText, lat, lng,
+      locationMetadata: rawLocationMetadata,
+      customFields: rawCustomFields,
     } = req.body
+
+    // Safely parse customFields — sent as JSON string from FormData
+    let customFields: Record<string, unknown> = {}
+    if (rawCustomFields) {
+      try {
+        const parsed = typeof rawCustomFields === 'string' ? JSON.parse(rawCustomFields) : rawCustomFields
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          // Whitelist: only allow boolean, number, string values (no nested objects)
+          customFields = Object.fromEntries(
+            Object.entries(parsed).filter(([, v]) => typeof v === 'boolean' || typeof v === 'number' || typeof v === 'string')
+          )
+        }
+      } catch { /* malformed JSON — ignore, proceed with empty customFields */ }
+    }
+
+    let locationMetadata: any = null
+    if (rawLocationMetadata) {
+      try {
+        const parsed = typeof rawLocationMetadata === 'string' ? JSON.parse(rawLocationMetadata) : rawLocationMetadata
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          const parsedLatMeta = Number(parsed.lat)
+          const parsedLngMeta = Number(parsed.lng)
+          const parsedConfidence = Number(parsed.confidence)
+          const parsedAccuracy = parsed.accuracy === null || parsed.accuracy === undefined ? null : Number(parsed.accuracy)
+          const source = String(parsed.source || 'manual_text')
+
+          if (
+            Number.isFinite(parsedLatMeta) && parsedLatMeta >= -90 && parsedLatMeta <= 90
+            && Number.isFinite(parsedLngMeta) && parsedLngMeta >= -180 && parsedLngMeta <= 180
+            && Number.isFinite(parsedConfidence) && parsedConfidence >= 0 && parsedConfidence <= 1
+            && (parsedAccuracy === null || (Number.isFinite(parsedAccuracy) && parsedAccuracy >= 0 && parsedAccuracy <= 10000))
+          ) {
+            locationMetadata = {
+              lat: parsedLatMeta,
+              lng: parsedLngMeta,
+              accuracy: parsedAccuracy,
+              source,
+              confidence: parsedConfidence,
+              user_corrected: Boolean(parsed.user_corrected),
+            }
+          }
+        }
+      } catch {
+        // Ignore malformed metadata and continue.
+      }
+    }
+
+    if (locationMetadata) {
+      customFields = {
+        ...customFields,
+        location_metadata: locationMetadata,
+      }
+    }
 
     // Validate required fields
     if (
@@ -820,24 +1171,53 @@ router.post('/', authMiddleware, uploadEvidence, async (req: Request, res: Respo
     const dbSeverity = toDbSeverity(severity)
     const reportNumber = await generateReportNumberSafe()
 
-    const result = await pool.query(
-      `INSERT INTO reports
-       (report_number, incident_category, incident_subtype, display_type,
-        description, severity, trapped_persons, location_text, coordinates,
-        has_media, media_type, media_url, ai_confidence, ai_analysis)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8,
-               ST_SetSRID(ST_MakePoint($10, $9), 4326),
-               $11, $12, $13, $14, $15)
-       RETURNING id, report_number, created_at`,
-      [
-        reportNumber,
-        incidentCategory, incidentSubtype || '', displayType || '',
-        description, dbSeverity, trappedPersons || 'no', locationText,
-        parseFloat(lat), parseFloat(lng),
-        hasMedia, mediaType, mediaUrl,
-        aiResult.confidence, JSON.stringify(aiResult.analysis),
-      ]
-    )
+    // Attempt INSERT with custom_fields; fall back without it if column doesn't exist yet
+    let result: any
+    try {
+      result = await pool.query(
+        `INSERT INTO reports
+         (report_number, incident_category, incident_subtype, display_type,
+          description, severity, trapped_persons, location_text, coordinates,
+          has_media, media_type, media_url, ai_confidence, ai_analysis, custom_fields)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8,
+                 ST_SetSRID(ST_MakePoint($10, $9), 4326),
+                 $11, $12, $13, $14, $15, $16)
+         RETURNING id, report_number, created_at`,
+        [
+          reportNumber,
+          incidentCategory, incidentSubtype || '', displayType || '',
+          description, dbSeverity, trappedPersons || 'no', locationText,
+          parseFloat(lat), parseFloat(lng),
+          hasMedia, mediaType, mediaUrl,
+          aiResult.confidence, JSON.stringify(aiResult.analysis),
+          JSON.stringify(customFields),
+        ]
+      )
+    } catch (colErr: any) {
+      // Fallback: custom_fields column may not exist on un-migrated DBs
+      if (colErr.message?.includes('custom_fields') || colErr.code === '42703') {
+        result = await pool.query(
+          `INSERT INTO reports
+           (report_number, incident_category, incident_subtype, display_type,
+            description, severity, trapped_persons, location_text, coordinates,
+            has_media, media_type, media_url, ai_confidence, ai_analysis)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8,
+                   ST_SetSRID(ST_MakePoint($10, $9), 4326),
+                   $11, $12, $13, $14, $15)
+           RETURNING id, report_number, created_at`,
+          [
+            reportNumber,
+            incidentCategory, incidentSubtype || '', displayType || '',
+            description, dbSeverity, trappedPersons || 'no', locationText,
+            parseFloat(lat), parseFloat(lng),
+            hasMedia, mediaType, mediaUrl,
+            aiResult.confidence, JSON.stringify(aiResult.analysis),
+          ]
+        )
+      } else {
+        throw colErr
+      }
+    }
 
     const report = result.rows[0]
 
@@ -874,6 +1254,7 @@ router.post('/', authMiddleware, uploadEvidence, async (req: Request, res: Respo
             reporter_name: null,
             ai_confidence: aiResult.confidence,
             ai_analysis: aiResult.analysis,
+            location_metadata: locationMetadata,
             operator_notes: null,
             updated_at: null,
             verified_at: null,
@@ -911,6 +1292,7 @@ router.post('/', authMiddleware, uploadEvidence, async (req: Request, res: Respo
       reportNumber: report.report_number,
       createdAt: report.created_at,
       aiConfidence: aiResult.confidence,
+      locationMetadata,
     })
   } catch (err: any) {
     console.error('[Reports] Create error:', err.message)
@@ -1363,6 +1745,10 @@ function computeAIScoreFallback(
  * Converts PostGIS coordinate columns into a simple coordinates array.
  */
 function formatReport(row: any): any {
+  const customFields = typeof row.custom_fields === 'string'
+    ? JSON.parse(row.custom_fields)
+    : row.custom_fields
+
   return {
     id: row.id,
     reportNumber: row.report_number,
@@ -1381,6 +1767,7 @@ function formatReport(row: any): any {
     reporter: row.reporter_name,
     confidence: row.ai_confidence,
     aiAnalysis: typeof row.ai_analysis === 'string' ? JSON.parse(row.ai_analysis) : row.ai_analysis,
+    locationMetadata: row.location_metadata || customFields?.location_metadata || null,
     operatorNotes: row.operator_notes,
     timestamp: row.created_at,
     updatedAt: row.updated_at,

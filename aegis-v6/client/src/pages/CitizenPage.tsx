@@ -397,29 +397,42 @@ export default function CitizenPage(): JSX.Element {
   return (
     <div className={`min-h-screen bg-gradient-to-br from-gray-50 via-white to-aegis-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 text-gray-900 dark:text-gray-100 ${isRtl(lang)?'rtl':'ltr'}`} dir={isRtl(lang)?'rtl':'ltr'}>
       {/* ═══ NAVIGATION ═══ */}
-      <nav className="glass-nav bg-gradient-to-r from-aegis-700 via-aegis-600 to-aegis-700 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 text-white sticky top-0 z-40 shadow-xl border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link to="/" className="flex items-center gap-2.5 hover:opacity-90 transition-opacity group">
-              <div className="w-9 h-9 rounded-xl bg-white/15 backdrop-blur-sm flex items-center justify-center group-hover:bg-white/25 transition-all">
-                <Shield className="w-5 h-5" />
+      <nav className="relative bg-[#09090f] backdrop-blur-2xl text-white sticky top-0 z-40 border-b border-amber-500/15 shadow-2xl shadow-black/70">
+        {/* Gold shimmer accent line */}
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-amber-400/70 to-transparent pointer-events-none" />
+        <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
+          {/* LEFT: Logo + Location */}
+          <div className="flex items-center gap-2.5">
+            <Link to="/" className="flex items-center gap-2.5 group">
+              <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/40 group-hover:shadow-amber-400/60 transition-all group-hover:scale-105">
+                <Shield className="w-5 h-5 text-white drop-shadow-sm" />
+                <div className="absolute inset-0 rounded-xl bg-gradient-to-tr from-white/25 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </div>
               <div className="hidden sm:block">
-                <span className="font-bold text-sm block leading-tight">{t('app.title', lang)}</span>
-                <span className="text-[9px] text-white/60 leading-none">{t('app.subtitle', lang)}</span>
+                <span className="font-black text-sm block leading-tight bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-300 bg-clip-text text-transparent tracking-wide">{t('app.title', lang)}</span>
+                <span className="text-[9px] text-amber-500/60 leading-none tracking-widest uppercase">{t('app.subtitle', lang)}</span>
               </div>
             </Link>
-            <select value={activeLocation} onChange={e=>setActiveLocation(e.target.value)} className="bg-white/10 backdrop-blur-sm text-white text-xs px-3 py-2 rounded-xl border border-white/20 ml-2 hover:bg-white/20 transition-colors cursor-pointer">
-              {availableLocations.map(l=><option key={l.key} value={l.key} className="text-gray-900">{l.name}</option>)}
+            <div className="w-px h-6 bg-amber-500/15 hidden sm:block" />
+            <select value={activeLocation} onChange={e=>setActiveLocation(e.target.value)} className="bg-white/5 hover:bg-amber-500/10 text-white/70 hover:text-white text-xs px-3 py-2 rounded-xl border border-white/8 hover:border-amber-500/30 transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-amber-500/40 focus:border-amber-500/40">
+              {availableLocations.map(l=><option key={l.key} value={l.key} className="text-gray-900 bg-white">{l.name}</option>)}
             </select>
           </div>
-          <div className="flex items-center gap-2">
+          {/* RIGHT: Actions */}
+          <div className="flex items-center gap-1.5">
             <LanguageSelector darkNav />
-            <button onClick={toggle} className="p-2.5 hover:bg-white/15 rounded-xl transition-all active:scale-95" aria-label="Toggle theme">
-              {dark ? <Sun className="w-4 h-4"/> : <Moon className="w-4 h-4"/>}
+            <button onClick={toggle} className="p-2 hover:bg-amber-500/10 rounded-xl transition-all active:scale-95 group" aria-label="Toggle theme">
+              {dark ? <Sun className="w-4 h-4 text-amber-300 group-hover:text-amber-200 transition-colors"/> : <Moon className="w-4 h-4 text-white/50 group-hover:text-white/80 transition-colors"/>}
             </button>
-            <Link to="/admin" className="text-xs bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 px-3.5 py-2 rounded-xl hidden sm:block transition-all hover:scale-[1.02] font-medium">{t('auth.title', lang)}</Link>
-            <Link to="/citizen/login" className="text-xs bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 border border-emerald-400/30 px-4 py-2 rounded-xl hidden sm:flex items-center gap-1.5 transition-all hover:scale-[1.02] font-bold shadow-lg shadow-emerald-600/20"><User className="w-3.5 h-3.5"/>{t('citizen.auth.signIn', lang)}</Link>
+            <Link to="/admin" className="text-xs text-white/50 hover:text-amber-300 bg-white/5 hover:bg-amber-500/10 border border-white/8 hover:border-amber-500/25 px-2.5 sm:px-3.5 py-2 rounded-xl transition-all font-medium flex items-center gap-1.5">
+              <Shield className="w-3.5 h-3.5 sm:hidden" />
+              <span className="hidden sm:inline">{t('auth.title', lang)}</span>
+            </Link>
+            <Link to="/citizen/login" className="relative text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 overflow-hidden group bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-black shadow-lg shadow-amber-500/35 hover:shadow-amber-400/55 transition-all hover:scale-[1.03] active:scale-[0.97]">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/35 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out" />
+              <User className="w-3.5 h-3.5 relative z-10"/>
+              <span className="hidden sm:inline relative z-10">{t('citizen.auth.signIn', lang)}</span>
+            </Link>
           </div>
         </div>
       </nav>
@@ -511,10 +524,10 @@ export default function CitizenPage(): JSX.Element {
         {/* ═══ ACTION BUTTONS ═══ */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { onClick: ()=>setShowReport(true), icon: AlertTriangle, label: t('report.title', lang), desc: t('citizen.action.reportDesc', lang) || 'Report an incident', gradient: 'from-red-500 to-rose-600', shadow: 'shadow-red-500/25' },
-            { onClick: ()=>setShowSubscribe(true), icon: Bell, label: t('subscribe.title', lang) || 'Alerts', desc: t('citizen.action.alertDesc', lang) || 'Get notified instantly', gradient: 'from-blue-500 to-indigo-600', shadow: 'shadow-blue-500/25' },
-            { onClick: ()=>setShowCommunity(true), icon: Users, label: t('community.title', lang), desc: t('citizen.action.communityDesc', lang) || 'Help your neighbors', gradient: 'from-emerald-500 to-green-600', shadow: 'shadow-emerald-500/25' },
-            { onClick: ()=>{ window.location.href='/admin' }, icon: Shield, label: t('auth.title', lang) || 'Operator Login', desc: t('citizen.action.operatorDesc', lang) || 'Emergency operators', gradient: 'from-aegis-500 to-aegis-700', shadow: 'shadow-aegis-500/25' },
+            { onClick: ()=>setShowReport(true), icon: AlertTriangle, label: t('report.title', lang), desc: t('citizen.quickAction.reportEmergencyDesc', lang) || 'Report an incident', gradient: 'from-red-500 to-rose-600', shadow: 'shadow-red-500/25' },
+            { onClick: ()=>setShowSubscribe(true), icon: Bell, label: t('subscribe.title', lang) || 'Alerts', desc: t('citizen.subscribe.subscribeTo', lang) || 'Get notified instantly', gradient: 'from-blue-500 to-indigo-600', shadow: 'shadow-blue-500/25' },
+            { onClick: ()=>setShowCommunity(true), icon: Users, label: (lang === 'en' ? 'Community Support' : t('community.title', lang)), desc: t('citizen.quickAction.communityHelpDesc', lang) || 'Help your neighbors', gradient: 'from-emerald-500 to-green-600', shadow: 'shadow-emerald-500/25' },
+            { onClick: ()=>{ window.location.href='/admin' }, icon: Shield, label: t('auth.title', lang) || 'Operator Login', desc: t('admin.portal.signin', lang) || 'Emergency operators', gradient: 'from-aegis-500 to-aegis-700', shadow: 'shadow-aegis-500/25' },
           ].map((action, i) => (
             <button key={i} onClick={action.onClick} className={`bg-gradient-to-br ${action.gradient} text-white rounded-2xl p-5 text-center transition-all duration-300 shadow-xl ${action.shadow} group hover:scale-[1.03] hover:shadow-2xl active:scale-[0.98]`}>
               <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm mx-auto mb-2.5 flex items-center justify-center group-hover:bg-white/30 transition-all group-hover:scale-110">

@@ -14,9 +14,9 @@ import {
 } from 'react-leaflet'
 import L from 'leaflet'
 import MarkerClusterGroup from 'react-leaflet-cluster'
-import { io, Socket } from 'socket.io-client'
 import { useLocation } from '../../contexts/LocationContext'
 import { useFloodData } from '../../hooks/useFloodData'
+import { useSharedSocket } from '../../contexts/SocketContext'
 import { createMarkerSvg, getSeverityClass } from '../../utils/helpers'
 import type { Report, SeverityLevel } from '../../types'
 import SpatialToolbar from './SpatialToolbar'
@@ -61,6 +61,33 @@ interface DeploymentZone {
   ai_recommendation?: string
   lat?: number | null
   lng?: number | null
+}
+
+interface IncidentCluster {
+  cluster_id: string
+  incident_type: string
+  reports: number
+  confidence: number
+  center: { lat: number; lng: number }
+  radius_m: number
+  time_window_minutes: number
+}
+
+interface CascadingInsight {
+  chain: string[]
+  confidence: number
+  recommended_actions: string[]
+}
+
+interface IncidentObject {
+  incident_id: string
+  incident_type: string
+  center: { lat: number; lng: number }
+  radius_m: number
+  confidence: number
+  lifecycle_state: 'weak' | 'possible' | 'probable' | 'high' | 'confirmed'
+  evidence_count: number
+  time_window_minutes: number
 }
 
 interface Props {
@@ -242,9 +269,29 @@ export default function DisasterMap({
   const [predictions, setPredictions] = useState<any[]>([])
   const [riskLayerData, setRiskLayerData] = useState<any>(null)
   const [realHeatmapData, setRealHeatmapData] = useState<[number, number, number][]>([])
+  const [incidentClusters, setIncidentClusters] = useState<IncidentCluster[]>([])
+  const [cascadingInsights, setCascadingInsights] = useState<CascadingInsight[]>([])
+  const [incidentObjects, setIncidentObjects] = useState<IncidentObject[]>([])
+  const sharedSocket = useSharedSocket()
 
   const [mapReady, setMapReady] = useState(false)
-  const distressSocketRef = useRef<Socket | null>(null)
+
+  const getAuthContext = useCallback((): { token: string | null; role: string | null } => {
+    const token = localStorage.getItem('aegis-token') || localStorage.getItem('aegis-citizen-token')
+    const rawUser = localStorage.getItem('aegis-user') || localStorage.getItem('aegis-citizen-user')
+    let role: string | null = null
+    try {
+      role = rawUser ? String(JSON.parse(rawUser)?.role || '').toLowerCase() : null
+    } catch {
+      role = null
+    }
+    return { token, role }
+  }, [])
+
+  const canReadDistress = useMemo(() => {
+    const { role } = getAuthContext()
+    return ['admin', 'operator', 'manager'].includes(String(role || ''))
+  }, [getAuthContext])
 
   // Interactive layer toggle state (user can enable/disable layers on the map)
   const [layerToggles, setLayerToggles] = useState({
@@ -256,6 +303,8 @@ export default function DisasterMap({
     heatmap: showHeatmap,
     riskLayer: showRiskLayer,
     floodMonitoring: showFloodMonitoring,
+    confidenceHalos: true,
+    clusters: true,
   })
   const [overlayPanelOpen, setOverlayPanelOpen] = useState(false)
 
@@ -265,17 +314,8 @@ export default function DisasterMap({
 
   // Socket.io — listen for distress:new / distress:updated in real-time
   useEffect(() => {
-    if (!showDistress) return
-    const token = localStorage.getItem('aegis-token')
-    if (!token) return
-
-    const socket = io('http://localhost:3001', {
-      auth: { token },
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionDelay: 2000,
-    })
-    distressSocketRef.current = socket
+    if (!showDistress || !canReadDistress || !sharedSocket.socket) return
+    const socket = sharedSocket.socket
 
     socket.on('distress:new', (beacon: any) => {
       if (!beacon) return
@@ -292,10 +332,10 @@ export default function DisasterMap({
     })
 
     return () => {
-      socket.disconnect()
-      distressSocketRef.current = null
+      socket.off('distress:new')
+      socket.off('distress:updated')
     }
-  }, [showDistress])
+  }, [canReadDistress, sharedSocket.socket, showDistress])
 
   // Export visible report markers as GeoJSON FeatureCollection
   const exportGeoJSON = useCallback(() => {
@@ -368,9 +408,9 @@ export default function DisasterMap({
 
   // Fetch distress beacons (real-time SOS signals)
   useEffect(() => {
-    if (!showDistress) return
+    if (!showDistress || !canReadDistress) return
     const load = () => {
-      const token = localStorage.getItem('aegis-token')
+      const { token } = getAuthContext()
       return fetch('/api/distress/active', {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       })
@@ -381,7 +421,7 @@ export default function DisasterMap({
     load()
     const interval = setInterval(load, 30000)
     return () => clearInterval(interval)
-  }, [showDistress])
+  }, [canReadDistress, getAuthContext, showDistress])
 
   // Fetch evacuation routes
   useEffect(() => {
@@ -423,6 +463,49 @@ export default function DisasterMap({
       .catch(() => {})
   }, [showHeatmap])
 
+  // Fetch spatiotemporal incident clusters
+  useEffect(() => {
+    const load = () => fetch('/api/reports/clusters?minutes=180&radiusMeters=1000&minReports=3')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (Array.isArray(data?.clusters)) setIncidentClusters(data.clusters)
+      })
+      .catch(() => {})
+    load()
+    const interval = setInterval(load, 60000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // Fetch cascading disaster insights
+  useEffect(() => {
+    const load = () => fetch('/api/reports/cascading-insights?windowMinutes=180')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (Array.isArray(data?.inferred_cascades)) {
+          setCascadingInsights(data.inferred_cascades)
+        }
+      })
+      .catch(() => {})
+    load()
+    const interval = setInterval(load, 90000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // Fetch promoted incident objects from unified Incident Intelligence Core
+  useEffect(() => {
+    const load = () => fetch('/api/reports/incident-objects?minutes=180&radiusMeters=1000&minReports=3')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (Array.isArray(data?.incidents)) {
+          setIncidentObjects(data.incidents)
+        }
+      })
+      .catch(() => {})
+    load()
+    const interval = setInterval(load, 60000)
+    return () => clearInterval(interval)
+  }, [])
+
   // Toggle WMS layer visibility
   const toggleWMS = useCallback((idx: string) => {
     setActiveWMS((prev) => {
@@ -456,6 +539,115 @@ export default function DisasterMap({
       </Marker>
     ))
   }, [reports, showReports, onReportClick])
+
+  // Confidence halos around reports: high = solid, medium = dashed, low = translucent
+  const confidenceHalos = useMemo(() => {
+    if (!showReports || !layerToggles.confidenceHalos) return null
+
+    if (incidentObjects.length > 0) {
+      return incidentObjects.map((incident) => {
+        const confidence = Number(incident.confidence || 0)
+        const lifecycle = incident.lifecycle_state
+        const radius = Math.max(90, Number(incident.radius_m || 120))
+
+        let color = '#9ca3af'
+        let dashArray: string | undefined = '8 6'
+        let fillOpacity = 0.04
+
+        if (lifecycle === 'confirmed') {
+          color = '#16a34a'
+          dashArray = undefined
+          fillOpacity = 0.14
+        } else if (lifecycle === 'high') {
+          color = '#10b981'
+          dashArray = undefined
+          fillOpacity = 0.11
+        } else if (lifecycle === 'probable') {
+          color = '#f59e0b'
+          dashArray = '7 6'
+          fillOpacity = 0.09
+        } else if (lifecycle === 'possible') {
+          color = '#f97316'
+          dashArray = '6 6'
+          fillOpacity = 0.07
+        }
+
+        return (
+          <Circle
+            key={`incident-halo-${incident.incident_id}`}
+            center={[incident.center.lat, incident.center.lng]}
+            radius={radius}
+            pathOptions={{ color, weight: 2, fillColor: color, fillOpacity, dashArray }}
+          >
+            <Popup>
+              <div className="min-w-[220px]">
+                <p className="font-semibold text-sm">{incident.incident_type.replace(/_/g, ' ')} Incident</p>
+                <p className="text-xs text-gray-600">State: {incident.lifecycle_state.toUpperCase()}</p>
+                <p className="text-xs text-gray-600">Confidence: {Math.round(confidence * 100)}%</p>
+                <p className="text-xs text-gray-600">Evidence: {incident.evidence_count} · Window: {incident.time_window_minutes} min</p>
+              </div>
+            </Popup>
+          </Circle>
+        )
+      })
+    }
+
+    return reports
+      .filter((r) => r.coordinates?.length === 2)
+      .map((r) => {
+        const raw = Number(r.confidence ?? 50)
+        const confidence = raw > 1 ? raw / 100 : raw
+        const radius = Math.max(80, Math.round(120 + (1 - confidence) * 320))
+
+        let color = '#10b981'
+        let dashArray: string | undefined
+        let fillOpacity = 0.08
+
+        if (confidence < 0.5) {
+          color = '#9ca3af'
+          fillOpacity = 0.04
+        } else if (confidence < 0.75) {
+          color = '#f59e0b'
+          dashArray = '7 6'
+          fillOpacity = 0.07
+        }
+
+        return (
+          <Circle
+            key={`halo-${r.id}`}
+            center={r.coordinates}
+            radius={radius}
+            pathOptions={{ color, weight: 1.5, fillColor: color, fillOpacity, dashArray }}
+          />
+        )
+      })
+  }, [reports, incidentObjects, showReports, layerToggles.confidenceHalos])
+
+  // Spatiotemporal incident cluster visualisation
+  const clusterCircles = useMemo(() => {
+    if (!layerToggles.clusters || incidentClusters.length === 0) return null
+    return incidentClusters.map((cluster) => {
+      const confidence = Number(cluster.confidence || 0)
+      const stroke = confidence >= 0.8 ? '#16a34a' : confidence >= 0.6 ? '#d97706' : '#dc2626'
+      return (
+        <Circle
+          key={cluster.cluster_id}
+          center={[cluster.center.lat, cluster.center.lng]}
+          radius={Math.max(80, cluster.radius_m)}
+          pathOptions={{ color: stroke, weight: 2.5, fillColor: stroke, fillOpacity: 0.12, dashArray: confidence >= 0.75 ? undefined : '8 6' }}
+        >
+          <Popup>
+            <div className="min-w-[220px]">
+              <p className="font-semibold text-sm">{cluster.incident_type} Cluster</p>
+              <p className="text-xs text-gray-600">Reports: {cluster.reports} · Radius: {cluster.radius_m}m</p>
+              <p className="text-xs text-gray-600">Time Window: {cluster.time_window_minutes} min</p>
+              <p className="text-xs text-gray-600">Confidence: {Math.round(confidence * 100)}%</p>
+            </div>
+          </Popup>
+        </Circle>
+      )
+    })
+  }, [incidentClusters, layerToggles.clusters])
 
   // Flood zones
   const zones = useMemo(() => {
@@ -804,6 +996,10 @@ export default function DisasterMap({
         {/* Evacuation routes */}
         {evacuationLines}
 
+        {/* Confidence halos and incident clusters */}
+        {confidenceHalos}
+        {clusterCircles}
+
         {/* Report markers with clustering */}
         {markers && markers.length > 0 ? (
           <MarkerClusterGroup chunkedLoading maxClusterRadius={60}>
@@ -894,6 +1090,8 @@ export default function DisasterMap({
               { key: 'evacuation' as const, label: 'Evacuation Routes', color: 'bg-green-400', enabled: showEvacuation },
               { key: 'distress' as const, label: 'SOS Beacons', color: 'bg-red-600', enabled: showDistress },
               { key: 'heatmap' as const, label: 'Density Heatmap', color: 'bg-gradient-to-r from-blue-400 to-red-400', enabled: showHeatmap },
+              { key: 'confidenceHalos' as const, label: 'Confidence Halos', color: 'bg-emerald-400', enabled: true },
+              { key: 'clusters' as const, label: 'Incident Clusters', color: 'bg-lime-500', enabled: true },
             ]).filter(l => l.enabled).map(layer => (
               <label key={layer.key} className="flex items-center gap-2 text-xs py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 rounded px-2 -mx-1 transition-colors">
                 <input
@@ -978,6 +1176,20 @@ export default function DisasterMap({
                   <span className="text-gray-600 dark:text-gray-400">AI Prediction ({predictions.length})</span>
                 </div>
               )}
+              {layerToggles.confidenceHalos && (
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/60 border border-emerald-500 flex-shrink-0" />
+                  <span className="text-gray-600 dark:text-gray-400">
+                    {incidentObjects.length > 0 ? `Confidence lifecycle (${incidentObjects.length})` : 'Confidence halo'}
+                  </span>
+                </div>
+              )}
+              {layerToggles.clusters && incidentClusters.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-lime-500/70 border border-lime-600 flex-shrink-0" />
+                  <span className="text-gray-600 dark:text-gray-400">Clusters ({incidentClusters.length})</span>
+                </div>
+              )}
               {showRiskLayer && layerToggles.riskLayer && riskLayerData?.features?.length > 0 && (
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded bg-orange-200 border border-orange-400 flex-shrink-0" />
@@ -1016,6 +1228,27 @@ export default function DisasterMap({
           </div>
         )}
       </div>
+
+      {/* Cascading disaster intelligence card */}
+      {cascadingInsights.length > 0 && (
+        <div className="absolute bottom-3 right-3 z-[800] max-w-[320px]">
+          <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur rounded-lg border border-gray-200 dark:border-gray-700 shadow-xl p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-2">Cascading Insights</p>
+            <div className="space-y-2 max-h-[180px] overflow-y-auto">
+              {cascadingInsights.slice(0, 3).map((insight, idx) => (
+                <div key={`cascade-${idx}`} className="rounded-md border border-gray-200 dark:border-gray-700 p-2">
+                  <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                    {insight.chain.join(' -> ')}
+                  </p>
+                  <p className="text-[11px] text-gray-600 dark:text-gray-400">
+                    Confidence: {Math.round(insight.confidence * 100)}%
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

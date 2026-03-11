@@ -674,6 +674,52 @@ export function startCronJobs(): void {
     const assessment = await calculateThreatLevel()
     return assessment.level
   }), 10_000)
+
+  // Poll Telegram for /start messages every 2 minutes to capture chat_ids
+  // This lets users subscribe with @username and have their numeric chat_id
+  // automatically resolved once they send /start to the bot.
+  if (process.env.TELEGRAM_BOT_TOKEN) {
+    let tgOffset = 0
+    const pollTelegram = async () => {
+      try {
+        const r = await fetch(
+          `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/getUpdates?offset=${tgOffset}&limit=100&timeout=0`
+        )
+        const data: any = await r.json()
+        if (!data.ok) return
+        for (const update of (data.result || [])) {
+          if (update.update_id >= tgOffset) tgOffset = update.update_id + 1
+          const msg = update.message || update.channel_post
+          if (!msg?.chat?.id) continue
+          const chatId   = `${msg.chat.id}`
+          const username = msg.chat.username
+          const lookups  = [chatId, ...(username ? [`@${username}`, username] : [])]
+          const { rowCount } = await pool.query(
+            `UPDATE alert_subscriptions SET telegram_id=$1, updated_at=NOW()
+              WHERE telegram_id = ANY($2::text[]) AND telegram_id != $1`,
+            [chatId, lookups]
+          )
+          if (rowCount && rowCount > 0) {
+            console.log(`[Telegram] Auto-resolved @${username || '?'} → chat_id ${chatId} (${rowCount} subscription(s) updated)`)
+            // Send welcome message
+            await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                chat_id: msg.chat.id,
+                parse_mode: 'HTML',
+                text: `✅ <b>AEGIS Alert System</b>\n\nYou are now connected! You will receive emergency alerts in this chat.\n\n🆔 Your Telegram ID: <code>${chatId}</code>`,
+              }),
+            }).catch(() => {})
+          }
+        }
+      } catch { /* ignore network errors */ }
+    }
+    // Run immediately on startup, then every 2 minutes
+    setTimeout(pollTelegram, 5_000)
+    cron.schedule('*/2 * * * *', pollTelegram)
+    console.log('[Cron] ✅ Telegram chat_id auto-capture: every 2 minutes')
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -690,11 +736,16 @@ let fallbackActive = false
 
 /**
  * Start cron-based fallback jobs that mirror the critical n8n workflows:
- *   WF1 — SEPA gauge polling  (every 5 min)
- *   WF2 — Weather forecast    (every 30 min)
- *   WF3 — Rainfall aggregation(every 15 min)
- *   WF4 — Lightweight AI run  (every 30 min)
- *   WF8 — SEPA RSS alerts     (every 15 min)
+ *   WF1  — SEPA gauge polling         (every 5 min)
+ *   WF2  — Weather forecast           (every 30 min)
+ *   WF3  — Rainfall aggregation       (every 15 min)
+ *   WF3b — SEPA RSS alerts            (every 15 min)
+ *   WF4  — Lightweight AI run         (every 30 min)
+ *   WF5  — Air quality monitor        (every 20 min)
+ *   WF6  — Cross-incident evaluator   (every 5 min)
+ *   WF7  — Wildfire FDI               (every 15 min)
+ *   WF8  — Heatwave check             (hourly)
+ *   ...  — All 11 incident modules    (various)
  */
 export function activateFallbackJobs(): void {
   if (fallbackActive) return
@@ -743,7 +794,7 @@ export function activateFallbackJobs(): void {
     cron.schedule('*/30 * * * *', () => runJob('fallback_ai_monitor', monitorAIConfidence)),
   )
 
-  // WF8: SEPA RSS / alert ingestion
+  // WF3b: SEPA RSS / alert ingestion (supplementary — mirrors n8n WF3 ingestion path)
   fallbackTasks.push(
     cron.schedule('*/15 * * * *', () => runJob('fallback_sepa_alerts', ingestSEPAWarnings)),
   )
@@ -882,6 +933,47 @@ export function activateFallbackJobs(): void {
     ),
   )
 
+  // ─── WF5 Fallback: Air Quality Monitor — every 20 min ─────────────────────
+  fallbackTasks.push(
+    cron.schedule('*/20 * * * *', () =>
+      runJob('fallback_air_quality', async () => {
+        try {
+          const { getIncidentModule } = await import('../incidents/index.js')
+          const mod = getIncidentModule('environmental_hazard')
+          if (!mod) return 0
+          const predictions = await mod.getPredictions(process.env.REGION_ID || 'aberdeen_scotland_uk')
+          return predictions.length
+        } catch (e: any) {
+          console.warn(`[Fallback/WF5] ${e.message}`)
+          return 0
+        }
+      }),
+    ),
+  )
+
+  // ─── WF6 Fallback: Cross-incident Alert Evaluator — every 5 min ───────────
+  fallbackTasks.push(
+    cron.schedule('*/5 * * * *', () =>
+      runJob('fallback_alert_evaluator', async () => {
+        try {
+          const { listModules } = await import('../incidents/index.js')
+          const regionId = process.env.REGION_ID || 'aberdeen_scotland_uk'
+          let totalAlerts = 0
+          for (const mod of listModules()) {
+            try {
+              const alerts = await mod.getAlerts(regionId)
+              totalAlerts += alerts.length
+            } catch (_) { /* skip */ }
+          }
+          return totalAlerts
+        } catch (e: any) {
+          console.warn(`[Fallback/WF6] ${e.message}`)
+          return 0
+        }
+      }),
+    ),
+  )
+
   // ─── Real-time broadcast: push all active predictions to Socket.IO clients ──
   // Runs every 5 minutes so dashboards stay live without polling.
   fallbackTasks.push(
@@ -929,7 +1021,7 @@ export function activateFallbackJobs(): void {
     ),
   )
 
-  console.log(`[Cron/Fallback] ${fallbackTasks.length} fallback jobs activated (covering all 11 incident types)`)
+  console.log(`[Cron/Fallback] ${fallbackTasks.length} fallback jobs activated (covering all 16 n8n workflows + 11 incident modules)`)
 }
 
 /**

@@ -15,7 +15,8 @@ import {
   User, ChevronLeft, Loader2, Check, CheckCheck, Image as ImageIcon,
   Phone, AlertCircle
 } from 'lucide-react'
-import { useSocket, ChatThread, ChatMessage } from '../../hooks/useSocket'
+import { type ChatThread, type ChatMessage } from '../../hooks/useSocket'
+import { useSharedSocket } from '../../contexts/SocketContext'
 import { getSession } from '../../utils/auth'
 import { timeAgo } from '../../utils/helpers'
 import MessageStatusIcon from '../ui/MessageStatusIcon'
@@ -29,7 +30,7 @@ interface LocalMessage extends ChatMessage {
 }
 
 export default function CitizenMessaging(): JSX.Element {
-  const socket = useSocket()
+  const socket = useSharedSocket()
   const user = getSession()
   const [view, setView] = useState<View>('list')
   const [searchTerm, setSearchTerm] = useState('')
@@ -52,16 +53,22 @@ export default function CitizenMessaging(): JSX.Element {
   // Connect on mount
   useEffect(() => {
     const token = localStorage.getItem('aegis-citizen-token') || localStorage.getItem('token')
+    console.log('[CitizenMessaging] Mount - Token exists:', !!token, 'Connected:', connected)
     if (token && !connected) {
-      // // console.log('[CitizenMessaging] Connecting socket')
+      console.log('[CitizenMessaging] Connecting socket with token')
       connect(token)
+    } else if (!token) {
+      console.error('[CitizenMessaging] No auth token found!')
     }
   }, [])
 
   // Always fetch citizen threads once connected (prevents blank list on first load)
   useEffect(() => {
     if (connected) {
+      console.log('[CitizenMessaging] Socket connected, fetching threads...')
       fetchCitizenThreads()
+    } else {
+      console.log('[CitizenMessaging] Socket not connected yet, waiting...')
     }
   }, [connected, fetchCitizenThreads])
 
@@ -76,10 +83,10 @@ export default function CitizenMessaging(): JSX.Element {
     if (storedThreadId) {
       const thread = threads.find(t => t.id === storedThreadId)
       if (thread) {
-        // // console.log('[CitizenMessaging] Restoring thread from session:', storedThreadId)
+        console.log('[CitizenMessaging] Restoring thread from session:', storedThreadId)
         selectedThread = thread
       } else {
-        // // console.log('[CitizenMessaging] Stored thread not found, falling back to latest thread:', storedThreadId)
+        console.log('[CitizenMessaging] Stored thread not found, falling back to latest thread:', storedThreadId)
       }
       sessionStorage.removeItem('aegis-active-thread-id')
     }
@@ -93,9 +100,11 @@ export default function CitizenMessaging(): JSX.Element {
     }
 
     if (selectedThread) {
-      // // console.log('[CitizenMessaging] Auto-selecting thread:', selectedThread.id)
+      console.log('[CitizenMessaging] Auto-selecting thread:', selectedThread.id)
       handleSelectThread(selectedThread)
       hasAutoSelectedRef.current = true
+    } else {
+      console.log('[CitizenMessaging] No threads available to auto-select. Threads count:', threads.length)
     }
   }, [connected, threads])
 
@@ -108,7 +117,7 @@ export default function CitizenMessaging(): JSX.Element {
 
   // Scroll to bottom
   useEffect(() => {
-    // // console.log('[CitizenMessaging] Messages updated, count:', messages.length)
+    console.log('[CitizenMessaging] Messages updated, count:', messages.length)
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
@@ -140,7 +149,7 @@ export default function CitizenMessaging(): JSX.Element {
   }, [threads, searchTerm])
 
   const handleSelectThread = (thread: ChatThread) => {
-    // // console.log('[CitizenMessaging] Selecting thread:', thread.id)
+    console.log('[CitizenMessaging] Selecting thread:', thread.id)
     setActiveThread(thread)
     joinThread(thread.id)
     loadThreadMessages(thread.id)

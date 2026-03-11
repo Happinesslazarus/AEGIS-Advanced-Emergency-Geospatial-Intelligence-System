@@ -1,8 +1,68 @@
 const BASE = String(import.meta.env.VITE_API_BASE_URL || '')
 const DEFAULT_REGION = String(import.meta.env.VITE_DEFAULT_REGION || 'scotland')
-function getToken(): string | null { return localStorage.getItem('aegis-token') }
-export function setToken(t: string): void { localStorage.setItem('aegis-token', t) }
-export function clearToken(): void { localStorage.removeItem('aegis-token'); localStorage.removeItem('aegis-user') }
+
+// ─── Silent token refresh ──────────────────────────────────────────────────────
+// Reads the JWT exp, schedules a silent /api/auth/refresh call 5 min before it
+// expires, then reschedules itself. This keeps the session alive indefinitely
+// as long as the browser is open and the 30-day refresh cookie is valid.
+
+let _refreshTimer: ReturnType<typeof setTimeout> | null = null
+
+export function scheduleTokenRefresh(token?: string): void {
+  if (_refreshTimer) { clearTimeout(_refreshTimer); _refreshTimer = null }
+  const t = token || localStorage.getItem('aegis-token')
+  if (!t) return
+  try {
+    const parts = t.split('.')
+    if (parts.length !== 3) return
+    const { exp } = JSON.parse(atob(parts[1]))
+    if (!exp) return
+    const msUntilRefresh = exp * 1000 - Date.now() - 5 * 60 * 1000 // 5 min before expiry
+    if (msUntilRefresh <= 0) { _doRefresh(); return }
+    console.log(`[API] Token refresh scheduled in ${Math.round(msUntilRefresh / 60000)} min`)
+    _refreshTimer = setTimeout(_doRefresh, msUntilRefresh)
+  } catch { /* ignore */ }
+}
+
+async function _doRefresh(): Promise<void> {
+  try {
+    const res = await fetch(`${BASE}/api/auth/refresh`, { method: 'POST', credentials: 'include' })
+    if (!res.ok) { console.warn('[API] Silent refresh failed — user will need to log in again'); return }
+    const { token } = await res.json()
+    if (token) {
+      localStorage.setItem('aegis-token', token)
+      console.log('[API] Token silently refreshed ✓')
+      scheduleTokenRefresh(token)
+    }
+  } catch (err) { console.warn('[API] Silent refresh error:', err) }
+}
+
+// Kick off refresh scheduling on page load if a token already exists
+scheduleTokenRefresh()
+
+function getToken(): string | null { 
+  const token = localStorage.getItem('aegis-token')
+  if (token) {
+    console.log('[API] Token found in localStorage')
+  } else {
+    console.warn('[API] No token in localStorage')
+  }
+  return token
+}
+
+export function setToken(t: string): void {
+  console.log('[API] Setting new token')
+  localStorage.setItem('aegis-token', t)
+  scheduleTokenRefresh(t)
+}
+
+export function clearToken(): void { 
+  console.log('[API] Clearing token and user data')
+  localStorage.removeItem('aegis-token')
+  localStorage.removeItem('aegis-user')
+  localStorage.removeItem('aegis-citizen-token')
+  localStorage.removeItem('aegis-citizen-user')
+}
 export function setUser(u: any): void { localStorage.setItem('aegis-user', JSON.stringify(u)) }
 export function getUser(): any { const d = localStorage.getItem('aegis-user'); return d ? JSON.parse(d) : null }
 export function isAuthenticated(): boolean { return !!getToken() }
@@ -14,9 +74,32 @@ async function apiFetch<T = unknown>(path: string, opts: RequestInit = {}): Prom
   if (token) h['Authorization'] = `Bearer ${token}`
   if (!(opts.body instanceof FormData)) h['Content-Type'] = 'application/json'
   let res: Response
-  try { res = await fetch(`${BASE}${path}`, { ...opts, headers: h }) }
-  catch { throw new Error('Cannot connect to server. Ensure backend API is running and VITE_API_BASE_URL is configured if needed.') }
-  if (!res.ok) { const e = await res.json().catch(()=>({error:`HTTP ${res.status}`})); throw new Error(e.error || `HTTP ${res.status}`) }
+  try { 
+    res = await fetch(`${BASE}${path}`, { ...opts, headers: h }) 
+  }
+  catch (err) { 
+    console.error('[API] Network error:', err)
+    throw new Error('Cannot connect to server. Ensure backend API is running and VITE_API_BASE_URL is configured if needed.') 
+  }
+  
+  // Handle 401 Unauthorized - clear invalid token
+  if (res.status === 401) {
+    console.warn('[API] 401 Unauthorized - clearing invalid token')
+    clearToken()
+    // Redirect to admin login, avoiding redirect loop
+    if (!window.location.pathname.startsWith('/admin') || window.location.search.includes('loggedout')) {
+      window.location.href = '/admin'
+    } else if (!window.location.search.includes('session=expired')) {
+      window.location.href = '/admin?session=expired'
+    }
+    throw new Error('Invalid or expired token. Please log in again.')
+  }
+  
+  if (!res.ok) { 
+    const e = await res.json().catch(()=>({error:`HTTP ${res.status}`}))
+    console.error('[API] Request failed:', res.status, e)
+    throw new Error(e.error || `HTTP ${res.status}`) 
+  }
   return res.json() as Promise<T>
 }
 

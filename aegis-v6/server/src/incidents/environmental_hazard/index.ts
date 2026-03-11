@@ -19,7 +19,7 @@ class EnvironmentalHazardModule extends BaseIncidentModule {
     severityLevels: ['Low', 'Medium', 'High', 'Critical'],
     dataSources: ['air_quality_api', 'water_quality', 'citizen_reports', 'satellite'],
     aiEndpoint: '/api/predict',
-    aiTier: 'ml',
+    aiTier: 'statistical',
     enabledRegions: 'all',
     operationalStatus: 'fully_operational',
     fieldSchema: [

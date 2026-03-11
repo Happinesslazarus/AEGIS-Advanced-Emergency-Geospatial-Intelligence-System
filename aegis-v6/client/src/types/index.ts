@@ -42,6 +42,17 @@ export interface AIAnalysis {
   sources?: string; reasoning?: string
 }
 
+export type LocationSource = 'gps' | 'map_pin' | 'address_search' | 'manual_coordinates' | 'manual_text'
+
+export interface LocationMetadata {
+  lat: number
+  lng: number
+  accuracy: number | null
+  source: LocationSource
+  confidence: number
+  user_corrected: boolean
+}
+
 export interface Report {
   id: string; incidentCategory: IncidentCategoryKey; incidentSubtype: string; type: string
   location: string; coordinates: [number, number]; severity: SeverityLevel; status: ReportStatus
@@ -50,6 +61,7 @@ export interface Report {
   confidence: number | null; aiAnalysis: AIAnalysis | null
   reportNumber?: string; mediaUrl?: string; media?: any[]
   operatorNotes?: string | null; updatedAt?: string; verifiedAt?: string; resolvedAt?: string
+  locationMetadata?: LocationMetadata | null
 }
 
 export interface ReportFormData {
@@ -63,6 +75,8 @@ export interface NewReportInput {
   description: string; severity: SeverityLevel; trappedPersons: TrappedOption
   location: string; coordinates: [number, number]; hasMedia: boolean
   mediaType?: 'photo' | 'video' | 'both'
+  customFields?: Record<string, boolean | number | string>
+  locationMetadata?: LocationMetadata
 }
 
 export interface Alert {

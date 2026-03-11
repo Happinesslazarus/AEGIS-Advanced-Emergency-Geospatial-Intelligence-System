@@ -35,7 +35,8 @@ import {
   CloudLightning, ShieldCheck, Languages
 } from 'lucide-react'
 import { useCitizenAuth } from '../contexts/CitizenAuthContext'
-import { useSocket, ChatThread, ChatMessage } from '../hooks/useSocket'
+import { type ChatThread, type ChatMessage } from '../hooks/useSocket'
+import { useSharedSocket } from '../contexts/SocketContext'
 import type { Socket } from 'socket.io-client'
 import { useReports } from '../contexts/ReportsContext'
 import { useAlerts } from '../contexts/AlertsContext'
@@ -116,7 +117,7 @@ export default function CitizenDashboard(): JSX.Element {
     updatePreferences, submitSafetyCheckIn, refreshProfile, addEmergencyContact, removeEmergencyContact
   } = useCitizenAuth()
 
-  const socket = useSocket()
+  const socket = useSharedSocket()
   const navigate = useNavigate()
   const lang = useLanguage()
   const { reports, loading: reportsLoading, refreshReports } = useReports()
@@ -130,6 +131,7 @@ export default function CitizenDashboard(): JSX.Element {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [statusColor, setStatusColor] = useState<'green' | 'yellow' | 'red'>('green')
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false)
+  const [showAlertPanel, setShowAlertPanel] = useState(false)
   const [showAssistant, setShowAssistant] = useState(false)
   const [communityUnread, setCommunityUnread] = useState(0)
 
@@ -397,16 +399,18 @@ export default function CitizenDashboard(): JSX.Element {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col">
       {/* Top Nav — Glassmorphism */}
-      <nav className="glass-nav bg-gradient-to-r from-aegis-700/95 via-aegis-800/95 to-aegis-700/95 dark:from-gray-900/95 dark:via-gray-900/95 dark:to-gray-900/95 text-white px-3 sm:px-5 py-2.5 flex items-center justify-between shadow-lg shadow-aegis-900/10 dark:shadow-black/20 z-30 sticky top-0 border-b border-white/5">
+      <nav className="relative bg-[#09090f] backdrop-blur-2xl text-white px-3 sm:px-5 flex items-center justify-between z-30 sticky top-0 border-b border-amber-500/15 shadow-2xl shadow-black/70" style={{height:'52px'}}>
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-amber-400/60 to-transparent pointer-events-none" />
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-          <Link to="/citizen" className="flex items-center gap-2 hover:opacity-90 transition-opacity group flex-shrink-0">
-            <div className="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center group-hover:bg-white/20 transition-colors">
-              <Shield className="w-4.5 h-4.5" />
+          <Link to="/citizen" className="flex items-center gap-2.5 group flex-shrink-0">
+            <div className="relative w-8 h-8 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-md shadow-amber-500/35 group-hover:shadow-amber-400/55 transition-all group-hover:scale-105">
+              <Shield className="w-4 h-4 text-white drop-shadow-sm" />
+              <div className="absolute inset-0 rounded-xl bg-gradient-to-tr from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             </div>
-            <span className="font-bold text-sm tracking-wide hidden sm:inline">AEGIS</span>
+            <span className="font-black text-sm tracking-wide hidden sm:inline bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-300 bg-clip-text text-transparent">AEGIS</span>
           </Link>
           {/* Location selector */}
-          <select value={activeLocation} onChange={e => setActiveLocation(e.target.value)} className="bg-white/10 hover:bg-white/15 text-white text-[11px] px-2 py-1.5 rounded-lg border border-white/10 hidden md:block cursor-pointer transition-colors focus:outline-none focus:ring-1 focus:ring-white/30">
+          <select value={activeLocation} onChange={e => setActiveLocation(e.target.value)} className="bg-white/5 hover:bg-amber-500/10 text-white/70 hover:text-white text-[11px] px-2 py-1.5 rounded-lg border border-white/8 hover:border-amber-500/25 hidden md:block cursor-pointer transition-all focus:outline-none focus:ring-1 focus:ring-amber-500/35">
             {availableLocations.map(l => <option key={l.key} value={l.key} className="text-black">{l.name}</option>)}
           </select>
         </div>
@@ -414,53 +418,107 @@ export default function CitizenDashboard(): JSX.Element {
         {/* Center — Quick Search */}
         <div className="hidden lg:flex items-center mx-4 flex-1 max-w-md">
           <div className="relative w-full group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/40 group-focus-within:text-white/70 transition-colors" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/25 group-focus-within:text-amber-400 transition-colors" />
             <input
               type="text"
               placeholder="Search reports, messages, alerts..."
-              className="w-full pl-9 pr-4 py-2 text-xs bg-white/8 hover:bg-white/12 focus:bg-white/15 border border-white/10 focus:border-white/25 rounded-xl text-white placeholder-white/35 focus:outline-none focus:ring-1 focus:ring-white/20 transition-all"
+              className="w-full pl-9 pr-4 py-2 text-xs bg-white/5 hover:bg-white/8 focus:bg-amber-500/6 border border-white/8 focus:border-amber-500/35 rounded-xl text-white placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-amber-500/25 transition-all"
               onFocus={e => { e.target.placeholder = 'Type to search...' }}
               onBlur={e => { e.target.placeholder = 'Search reports, messages, alerts...' }}
             />
-            <kbd className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] text-white/25 bg-white/8 px-1.5 py-0.5 rounded font-mono hidden xl:inline">⌘K</kbd>
+            <kbd className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] text-white/15 bg-white/5 px-1.5 py-0.5 rounded font-mono hidden xl:inline">⌘K</kbd>
           </div>
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Connection indicator */}
           {socket.connected && (
-            <div className="flex items-center gap-1.5 bg-green-500/15 px-2 py-1 rounded-lg mr-1 hidden sm:flex">
-              <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-              <span className="text-[10px] text-green-300 font-medium">Live</span>
+            <div className="flex items-center gap-1.5 bg-emerald-500/8 border border-emerald-500/20 px-2 py-1 rounded-full mr-1 hidden sm:flex">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[10px] text-emerald-400 font-semibold">Live</span>
             </div>
           )}
 
           {/* Report Emergency */}
-          <button onClick={() => setShowReportForm(true)} className="flex items-center gap-1.5 bg-red-500/90 hover:bg-red-500 text-white text-[11px] font-semibold px-2.5 py-1.5 rounded-xl transition-all hover:scale-[1.02] shadow-sm shadow-red-500/20 active:scale-[0.98]">
+          <button onClick={() => setShowReportForm(true)} className="flex items-center gap-1.5 bg-red-600 hover:bg-red-500 text-white text-[11px] font-semibold px-2.5 py-1.5 rounded-xl transition-all hover:scale-[1.02] shadow-md shadow-red-600/30 hover:shadow-red-500/40 active:scale-[0.97]">
             <AlertTriangle className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">{t('citizen.action.report', lang)}</span>
           </button>
 
-          {/* Alerts/Subscribe */}
-          <button onClick={() => setShowSubscribe(true)} className="flex items-center gap-1.5 bg-white/10 hover:bg-white/15 text-white text-[11px] font-semibold px-2.5 py-1.5 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]">
-            <Bell className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{t('citizen.action.alerts', lang)}</span>
-            {notifications.length > 0 && (
-              <span className="w-4 h-4 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center -ml-0.5">{notifications.length > 9 ? '9+' : notifications.length}</span>
+          {/* Alerts / Notification Panel */}
+          <div className="relative">
+            <button
+              onClick={() => alerts.length > 0 ? setShowAlertPanel(v => !v) : setShowSubscribe(true)}
+              className={`flex items-center gap-1.5 text-white text-[11px] font-semibold px-2.5 py-1.5 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] ${showAlertPanel ? 'bg-amber-500/15 ring-1 ring-amber-500/30' : 'bg-white/5 hover:bg-amber-500/10 border border-white/8 hover:border-amber-500/20'}`}>
+              <Bell className={`w-3.5 h-3.5 ${alerts.length > 0 ? 'animate-[ring_2s_ease-in-out_infinite]' : ''}`} />
+              <span className="hidden sm:inline">{t('citizen.action.alerts', lang)}</span>
+              {alerts.length > 0 && (
+                <span className="w-4 h-4 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center -ml-0.5 animate-pulse">
+                  {alerts.length > 9 ? '9+' : alerts.length}
+                </span>
+              )}
+            </button>
+
+            {/* Alert notification panel */}
+            {showAlertPanel && (
+              <div className="absolute right-0 top-full mt-2 w-80 bg-white/95 dark:bg-gray-900/98 backdrop-blur-xl border border-white/20 dark:border-white/8 rounded-2xl shadow-2xl shadow-black/30 z-50 overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-white/8">
+                  <div className="flex items-center gap-2">
+                    <Bell className="w-4 h-4 text-amber-500" />
+                    <span className="text-sm font-bold text-gray-900 dark:text-white">Active Alerts</span>
+                    <span className="bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">{alerts.length}</span>
+                  </div>
+                  <button onClick={() => setShowAlertPanel(false)} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-white/8 transition-colors">
+                    <X className="w-3.5 h-3.5 text-gray-400" />
+                  </button>
+                </div>
+                <div className="max-h-72 overflow-y-auto divide-y divide-gray-100 dark:divide-white/5">
+                  {alerts.slice(0, 8).map((alert: any, i: number) => (
+                    <div key={alert.id || i} className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-white/4 transition-colors">
+                      <div className="flex items-start gap-2.5">
+                        <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
+                          alert.severity === 'critical' ? 'bg-red-500 animate-pulse' :
+                          alert.severity === 'warning' ? 'bg-amber-500' : 'bg-blue-500'
+                        }`} />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-semibold text-gray-900 dark:text-white leading-tight truncate">{alert.title}</p>
+                          {alert.message && <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{alert.message}</p>}
+                          {alert.location && <p className="text-[10px] text-amber-500 dark:text-amber-400 mt-1 flex items-center gap-1"><MapPin className="w-2.5 h-2.5"/>{alert.location}</p>}
+                        </div>
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md flex-shrink-0 ${
+                          alert.severity === 'critical' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' :
+                          alert.severity === 'warning' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' :
+                          'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                        }`}>{alert.severity}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="px-4 py-3 border-t border-gray-100 dark:border-white/8 flex gap-2">
+                  <button onClick={() => { setShowAlertPanel(false); setShowSubscribe(true) }}
+                    className="flex-1 text-xs font-semibold text-amber-600 dark:text-amber-400 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/20 hover:bg-amber-100 dark:hover:bg-amber-950/40 transition-colors">
+                    Manage Subscriptions
+                  </button>
+                  <button onClick={() => setShowAlertPanel(false)}
+                    className="text-xs text-gray-400 py-1.5 px-3 rounded-xl hover:bg-gray-100 dark:hover:bg-white/8 transition-colors">
+                    Close
+                  </button>
+                </div>
+              </div>
             )}
-          </button>
+          </div>
 
           <LanguageSelector darkNav className="hidden sm:flex" />
 
           {/* Theme toggle */}
-          <button onClick={toggleTheme} className="p-1.5 hover:bg-white/10 rounded-xl transition-all active:scale-95" aria-label="Toggle theme">
-            {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          <button onClick={toggleTheme} className="p-1.5 hover:bg-amber-500/10 rounded-xl transition-all active:scale-95 group" aria-label="Toggle theme">
+            {dark ? <Sun className="w-4 h-4 text-amber-300 group-hover:text-amber-200 transition-colors" /> : <Moon className="w-4 h-4 text-white/50 group-hover:text-white/80 transition-colors" />}
           </button>
 
           {/* Status Color Picker */}
           <div className="relative hidden sm:block">
             <button onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
-              className="flex items-center gap-1.5 bg-white/8 hover:bg-white/12 px-2 py-1.5 rounded-xl transition-all"
+              className="flex items-center gap-1.5 bg-white/5 hover:bg-amber-500/10 border border-white/8 hover:border-amber-500/20 px-2 py-1.5 rounded-xl transition-all"
               title="Your status">
               <div className={`w-2.5 h-2.5 rounded-full ${statusColor === 'green' ? 'bg-green-400' : statusColor === 'yellow' ? 'bg-amber-400' : 'bg-red-400'} ring-2 ring-white/20`} />
               <ChevronDown className={`w-3 h-3 opacity-50 transition-transform ${statusDropdownOpen ? 'rotate-180' : ''}`} />
@@ -476,7 +534,7 @@ export default function CitizenDashboard(): JSX.Element {
                     className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium transition-colors ${s.hover} ${statusColor === s.val ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'}`}>
                     <div className={`w-3 h-3 rounded-full ${s.color} ${statusColor === s.val ? 'ring-2 ring-offset-1 ring-gray-400' : ''}`} />
                     {s.label}
-                    {statusColor === s.val && <Check className="w-3 h-3 ml-auto text-aegis-600" />}
+                    {statusColor === s.val && <Check className="w-3 h-3 ml-auto text-amber-500" />}
                   </button>
                 ))}
               </div>
@@ -489,17 +547,17 @@ export default function CitizenDashboard(): JSX.Element {
               {user.avatarUrl ? (
                 <img src={`${API_BASE}${user.avatarUrl}`} className="w-8 h-8 rounded-xl object-cover border-2 border-white/20 shadow-sm" alt="" />
               ) : (
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-white/20 to-white/5 flex items-center justify-center text-xs font-bold shadow-sm border border-white/10">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-500/30 to-amber-700/20 flex items-center justify-center text-xs font-bold shadow-sm border border-amber-500/20 text-amber-200">
                   {user.displayName?.[0]?.toUpperCase()}
                 </div>
               )}
               {/* Status dot on avatar */}
-              <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-aegis-700 dark:border-gray-900 ${statusColor === 'green' ? 'bg-green-400' : statusColor === 'yellow' ? 'bg-amber-400' : 'bg-red-400'}`} />
+              <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#09090f] ${statusColor === 'green' ? 'bg-green-400' : statusColor === 'yellow' ? 'bg-amber-400' : 'bg-red-400'}`} />
             </div>
             <span className="text-xs font-medium hidden md:inline max-w-[80px] truncate">{user.displayName}</span>
           </div>
-          <button onClick={() => { logout(); navigate('/citizen/login') }} className="text-xs bg-white/8 hover:bg-white/15 p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl transition-all active:scale-95" title="Logout">
-            <LogOut className="w-3.5 h-3.5" />
+            <button onClick={() => { logout() }} className="text-xs bg-white/5 hover:bg-red-600/80 border border-white/6 hover:border-red-500/50 p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl transition-all active:scale-95 group" title="Logout">
+            <LogOut className="w-3.5 h-3.5 text-white/40 group-hover:text-white transition-colors" />
           </button>
         </div>
       </nav>
@@ -533,19 +591,19 @@ export default function CitizenDashboard(): JSX.Element {
 
       <div className="flex flex-1">
         {/* Sidebar (desktop) — Grouped sections with elegant hierarchy */}
-        <aside className="hidden md:flex flex-col w-60 glass-card border-r border-gray-200/80 dark:border-gray-800/80 py-4 sticky top-[52px] h-[calc(100vh-52px)] custom-scrollbar overflow-y-auto">
+        <aside className="hidden md:flex flex-col w-60 bg-white dark:bg-[#0a0a12] border-r border-gray-200 dark:border-amber-500/8 py-4 sticky top-[52px] h-[calc(100vh-52px)] custom-scrollbar overflow-y-auto">
           <div className="px-4 mb-5">
             <div className="flex items-center gap-3">
               {user.avatarUrl ? (
-                <img src={`${API_BASE}${user.avatarUrl}`} className="w-11 h-11 rounded-xl object-cover ring-2 ring-aegis-100 dark:ring-aegis-900 shadow-sm" alt="" />
+                <img src={`${API_BASE}${user.avatarUrl}`} className="w-11 h-11 rounded-xl object-cover ring-2 ring-amber-200 dark:ring-amber-500/20 shadow-sm" alt="" />
               ) : (
-                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-aegis-500 to-aegis-700 flex items-center justify-center text-white font-bold shadow-sm text-sm">
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center text-black font-bold shadow-sm shadow-amber-500/30 text-sm">
                   {user.displayName?.[0]?.toUpperCase()}
                 </div>
               )}
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{user.displayName}</p>
-                <p className="text-[10px] text-gray-400 dark:text-gray-500 truncate">{user.email}</p>
+                <p className="text-[10px] text-amber-700/50 dark:text-amber-500/60 truncate">{user.email}</p>
               </div>
             </div>
             {user.isVulnerable && (
@@ -558,7 +616,7 @@ export default function CitizenDashboard(): JSX.Element {
 
           {/* Main Navigation */}
           <div className="px-3 mb-1">
-            <p className="px-2 text-[9px] font-bold text-gray-400 dark:text-gray-600 uppercase tracking-[0.15em] mb-1.5">Main</p>
+            <p className="px-2 text-[9px] font-bold text-amber-700/50 dark:text-amber-500/50 uppercase tracking-[0.15em] mb-1.5">Main</p>
           </div>
           <nav className="px-2 space-y-0.5">
             {TABS.slice(0, 3).map(tab => (
@@ -567,12 +625,12 @@ export default function CitizenDashboard(): JSX.Element {
                 onClick={() => handleTabChange(tab.key)}
                 className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 ${
                   activeTab === tab.key
-                    ? 'bg-aegis-50 dark:bg-aegis-950/60 text-aegis-700 dark:text-aegis-300 shadow-sm shadow-aegis-100/50 dark:shadow-none'
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/60 hover:text-gray-900 dark:hover:text-gray-200'
+                    ? 'bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 shadow-sm shadow-amber-200/50 dark:shadow-amber-500/10'
+                    : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-gray-200'
                 }`}
               >
                 <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
-                  activeTab === tab.key ? 'bg-aegis-100 dark:bg-aegis-900/60 text-aegis-600' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'
+                  activeTab === tab.key ? 'bg-amber-200 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400' : 'bg-gray-100 dark:bg-white/5 text-gray-400 dark:text-gray-500'
                 }`}>
                   <tab.icon className="w-3.5 h-3.5" />
                 </div>
@@ -586,7 +644,7 @@ export default function CitizenDashboard(): JSX.Element {
 
           {/* Communication */}
           <div className="px-3 mt-4 mb-1">
-            <p className="px-2 text-[9px] font-bold text-gray-400 dark:text-gray-600 uppercase tracking-[0.15em] mb-1.5">Communication</p>
+            <p className="px-2 text-[9px] font-bold text-amber-700/50 dark:text-amber-500/50 uppercase tracking-[0.15em] mb-1.5">Communication</p>
           </div>
           <nav className="px-2 space-y-0.5">
             {TABS.slice(3, 5).map(tab => (
@@ -595,12 +653,12 @@ export default function CitizenDashboard(): JSX.Element {
                 onClick={() => handleTabChange(tab.key)}
                 className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 ${
                   activeTab === tab.key
-                    ? 'bg-aegis-50 dark:bg-aegis-950/60 text-aegis-700 dark:text-aegis-300 shadow-sm shadow-aegis-100/50 dark:shadow-none'
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/60 hover:text-gray-900 dark:hover:text-gray-200'
+                    ? 'bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 shadow-sm shadow-amber-200/50 dark:shadow-amber-500/10'
+                    : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-gray-200'
                 }`}
               >
                 <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
-                  activeTab === tab.key ? 'bg-aegis-100 dark:bg-aegis-900/60 text-aegis-600' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'
+                  activeTab === tab.key ? 'bg-amber-200 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400' : 'bg-gray-100 dark:bg-white/5 text-gray-400 dark:text-gray-500'
                 }`}>
                   <tab.icon className="w-3.5 h-3.5" />
                 </div>
@@ -609,7 +667,7 @@ export default function CitizenDashboard(): JSX.Element {
                   <span className="ml-auto bg-red-500 text-white text-[9px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full">{totalUnread}</span>
                 )}
                 {tab.key === 'community' && communityUnread > 0 && (
-                  <span className="ml-auto bg-aegis-600 text-white text-[9px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full">{communityUnread}</span>
+                  <span className="ml-auto bg-amber-500 text-black text-[9px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full">{communityUnread}</span>
                 )}
               </button>
             ))}
@@ -617,7 +675,7 @@ export default function CitizenDashboard(): JSX.Element {
 
           {/* Resources */}
           <div className="px-3 mt-4 mb-1">
-            <p className="px-2 text-[9px] font-bold text-gray-400 dark:text-gray-600 uppercase tracking-[0.15em] mb-1.5">Resources</p>
+            <p className="px-2 text-[9px] font-bold text-amber-700/50 dark:text-amber-500/50 uppercase tracking-[0.15em] mb-1.5">Resources</p>
           </div>
           <nav className="px-2 space-y-0.5">
             {TABS.slice(5, 8).map(tab => (
@@ -626,12 +684,12 @@ export default function CitizenDashboard(): JSX.Element {
                 onClick={() => handleTabChange(tab.key)}
                 className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 ${
                   activeTab === tab.key
-                    ? 'bg-aegis-50 dark:bg-aegis-950/60 text-aegis-700 dark:text-aegis-300 shadow-sm shadow-aegis-100/50 dark:shadow-none'
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/60 hover:text-gray-900 dark:hover:text-gray-200'
+                    ? 'bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 shadow-sm shadow-amber-200/50 dark:shadow-amber-500/10'
+                    : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-gray-200'
                 }`}
               >
                 <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
-                  activeTab === tab.key ? 'bg-aegis-100 dark:bg-aegis-900/60 text-aegis-600' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'
+                  activeTab === tab.key ? 'bg-amber-200 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400' : 'bg-gray-100 dark:bg-white/5 text-gray-400 dark:text-gray-500'
                 }`}>
                   <tab.icon className="w-3.5 h-3.5" />
                 </div>
@@ -642,7 +700,7 @@ export default function CitizenDashboard(): JSX.Element {
 
           {/* Account */}
           <div className="px-3 mt-4 mb-1">
-            <p className="px-2 text-[9px] font-bold text-gray-400 dark:text-gray-600 uppercase tracking-[0.15em] mb-1.5">Account</p>
+            <p className="px-2 text-[9px] font-bold text-amber-700/50 dark:text-amber-500/50 uppercase tracking-[0.15em] mb-1.5">Account</p>
           </div>
           <nav className="px-2 space-y-0.5 mb-4">
             {TABS.slice(8).map(tab => (
@@ -651,12 +709,12 @@ export default function CitizenDashboard(): JSX.Element {
                 onClick={() => handleTabChange(tab.key)}
                 className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 ${
                   activeTab === tab.key
-                    ? 'bg-aegis-50 dark:bg-aegis-950/60 text-aegis-700 dark:text-aegis-300 shadow-sm shadow-aegis-100/50 dark:shadow-none'
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/60 hover:text-gray-900 dark:hover:text-gray-200'
+                    ? 'bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 shadow-sm shadow-amber-200/50 dark:shadow-amber-500/10'
+                    : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-gray-200'
                 }`}
               >
                 <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
-                  activeTab === tab.key ? 'bg-aegis-100 dark:bg-aegis-900/60 text-aegis-600' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'
+                  activeTab === tab.key ? 'bg-amber-200 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400' : 'bg-gray-100 dark:bg-white/5 text-gray-400 dark:text-gray-500'
                 }`}>
                   <tab.icon className="w-3.5 h-3.5" />
                 </div>
@@ -667,17 +725,17 @@ export default function CitizenDashboard(): JSX.Element {
         </aside>
 
         {/* Mobile tab bar — glassmorphism with active indicator */}
-        <div className="md:hidden fixed bottom-0 left-0 right-0 glass-nav border-t border-gray-200/50 dark:border-gray-800/50 flex z-30 safe-area-bottom">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-[#09090f] border-t border-gray-200 dark:border-amber-500/12 flex z-30 safe-area-bottom backdrop-blur-2xl">
           {TABS.slice(0, 5).map(tab => (
             <button
               key={tab.key}
               onClick={() => handleTabChange(tab.key)}
               className={`flex-1 py-2.5 flex flex-col items-center gap-0.5 transition-all duration-200 relative ${
-                activeTab === tab.key ? 'text-aegis-600 dark:text-aegis-400' : 'text-gray-400 dark:text-gray-500'
+                activeTab === tab.key ? 'text-amber-600 dark:text-amber-400' : 'text-gray-400 dark:text-gray-600'
               }`}
             >
               {activeTab === tab.key && (
-                <div className="absolute -top-px left-1/2 -translate-x-1/2 w-8 h-0.5 bg-gradient-to-r from-aegis-500 to-aegis-600 rounded-full transition-all" />
+                <div className="absolute -top-px left-1/2 -translate-x-1/2 w-8 h-0.5 bg-gradient-to-r from-amber-400 to-yellow-400 rounded-full transition-all shadow-sm shadow-amber-400/50" />
               )}
               <div className={`relative transition-transform duration-200 ${activeTab === tab.key ? 'scale-110' : ''}`}>
                 <tab.icon className="w-5 h-5" />
@@ -685,7 +743,7 @@ export default function CitizenDashboard(): JSX.Element {
                   <span className="absolute -top-1.5 -right-2.5 bg-red-500 text-white text-[7px] font-bold min-w-[14px] h-3.5 rounded-full flex items-center justify-center px-0.5 shadow-sm">{totalUnread > 99 ? '99+' : totalUnread}</span>
                 )}
                 {tab.key === 'community' && communityUnread > 0 && (
-                  <span className="absolute -top-1.5 -right-2.5 bg-aegis-600 text-white text-[7px] font-bold min-w-[14px] h-3.5 rounded-full flex items-center justify-center px-0.5 shadow-sm">{communityUnread > 9 ? '9+' : communityUnread}</span>
+                  <span className="absolute -top-1.5 -right-2.5 bg-amber-500 text-black text-[7px] font-bold min-w-[14px] h-3.5 rounded-full flex items-center justify-center px-0.5 shadow-sm">{communityUnread > 9 ? '9+' : communityUnread}</span>
                 )}
               </div>
               <span className={`text-[9px] font-semibold ${activeTab === tab.key ? '' : 'font-medium'}`}>{t(tab.labelKey, lang)}</span>
@@ -696,29 +754,29 @@ export default function CitizenDashboard(): JSX.Element {
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className={`w-full py-2.5 flex flex-col items-center gap-0.5 transition-all duration-200 relative ${
-                TABS.slice(5).some(t => t.key === activeTab) ? 'text-aegis-600 dark:text-aegis-400' : 'text-gray-400 dark:text-gray-500'
+                TABS.slice(5).some(t => t.key === activeTab) ? 'text-amber-600 dark:text-amber-400' : 'text-gray-400 dark:text-gray-600'
               }`}
             >
               {TABS.slice(5).some(t => t.key === activeTab) && (
-                <div className="absolute -top-px left-1/2 -translate-x-1/2 w-8 h-0.5 bg-gradient-to-r from-aegis-500 to-aegis-600 rounded-full" />
+                <div className="absolute -top-px left-1/2 -translate-x-1/2 w-8 h-0.5 bg-gradient-to-r from-amber-400 to-yellow-300 rounded-full shadow-sm shadow-amber-400/50" />
               )}
               <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${mobileMenuOpen ? 'rotate-180' : ''}`} />
               <span className="text-[9px] font-medium">{t('citizen.tab.more', lang) || 'More'}</span>
             </button>
             {mobileMenuOpen && (
-              <div className="absolute bottom-full right-0 mb-2 glass-card rounded-2xl shadow-2xl py-2 min-w-[180px] animate-scale-in border border-gray-200/80 dark:border-gray-700/50">
+              <div className="absolute bottom-full right-0 mb-2 bg-white dark:bg-[#0d0d1a] rounded-2xl shadow-2xl py-2 min-w-[180px] animate-scale-in border border-gray-200 dark:border-amber-500/15">
                 {TABS.slice(5).map(tab => (
                   <button
                     key={tab.key}
                     onClick={() => { handleTabChange(tab.key); setMobileMenuOpen(false) }}
                     className={`w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-medium transition-all ${
                       activeTab === tab.key
-                        ? 'text-aegis-600 dark:text-aegis-400 bg-aegis-50 dark:bg-aegis-950/30'
-                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/60'
+                        ? 'text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-500/10'
+                        : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-gray-200'
                     }`}
                   >
                     <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${
-                      activeTab === tab.key ? 'bg-aegis-100 dark:bg-aegis-900/60 text-aegis-600' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'
+                      activeTab === tab.key ? 'bg-amber-200 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400' : 'bg-gray-100 dark:bg-white/5 text-gray-400 dark:text-gray-500'
                     }`}>
                       <tab.icon className="w-3.5 h-3.5" />
                     </div>
@@ -1512,14 +1570,15 @@ function MessagesTab({ socket, user }: { socket: any; user: any }) {
     setActiveThread(thread)
     joinThread(thread.id)
     loadThreadMessages(thread.id)
+    markRead(thread.id, [])
     
-    // Mark thread as read to clear unread badge
-    const token = localStorage.getItem('aegis-token') || localStorage.getItem('citizen-token') || localStorage.getItem('token')
+    // Also mark via REST to ensure server-side sync
+    const token = localStorage.getItem('aegis-citizen-token') || localStorage.getItem('token')
     if (token) {
       fetch(`/api/citizen/threads/${thread.id}/read`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
-      }).catch(err => console.error('[CitizenDashboard] Mark read error:', err))
+      }).catch(() => {})
     }
   }
 
@@ -1712,13 +1771,13 @@ function MessagesTab({ socket, user }: { socket: any; user: any }) {
             {activeThread.status === 'resolved' ? t('citizen.messages.resolved', lang) : activeThread.assigned_operator_name ? `${t('citizen.messages.assignedTo', lang)} ${activeThread.assigned_operator_name}` : t('citizen.messages.waitingOperator', lang)}
           </p>
         </div>
-        <div className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+        <div className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase flex-shrink-0 hidden sm:block ${
           activeThread.status === 'resolved' ? 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300' :
           activeThread.status === 'in_progress' ? 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300' :
           'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300'
         }`}>{activeThread.status?.replace('_', ' ')}</div>
         {/* Translation controls */}
-        <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700">
+        <div className="hidden sm:flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 flex-shrink-0">
           <Languages className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
           <select
             value={targetLang}

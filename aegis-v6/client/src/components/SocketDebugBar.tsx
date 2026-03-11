@@ -11,7 +11,7 @@
  */
 
 import { useCallback } from 'react'
-import { useSocket } from '../hooks/useSocket'
+import { useSharedSocket } from '../contexts/SocketContext'
 import { useCitizenAuth } from '../contexts/CitizenAuthContext'
 import { getSession } from '../utils/auth'
 
@@ -33,7 +33,7 @@ function getSocketUrl(): string {
 }
 
 export default function SocketDebugBar(): JSX.Element {
-  const socket = useSocket()
+  const socket = useSharedSocket()
   const { user: citizenUser } = useCitizenAuth()
   const adminUser = getSession()
   

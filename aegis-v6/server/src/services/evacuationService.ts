@@ -10,6 +10,9 @@ import { getActiveCityRegion } from '../config/regions/index.js'
 import pool from '../models/db.js'
 import fs from 'fs'
 import path from 'path'
+import { IncidentIntelligenceCore } from './incidentIntelligenceCore.js'
+
+const intelligenceCore = new IncidentIntelligenceCore(getActiveCityRegion())
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Types
@@ -204,6 +207,8 @@ async function calculateWithORS(
   destinationType: string,
   apiKey: string,
 ): Promise<EvacuationResult> {
+  const dynamicHazardAvoidance = await buildDynamicAvoidPolygons(startLat, startLng)
+
   // Get nearest shelters from DB
   const { rows: shelters } = await pool.query(`
     SELECT id, name, address, capacity, current_occupancy,
@@ -221,9 +226,10 @@ async function calculateWithORS(
       coordinates: [[startLng, startLat], [parseFloat(shelter.lng), parseFloat(shelter.lat)]],
     }
 
-    // Add flood avoidance polygon if provided
-    if (floodExtentGeoJSON) {
-      body.options = { avoid_polygons: floodExtentGeoJSON }
+    // Add hazard avoidance polygons (dynamic incidents + optional flood extent)
+    const avoidPolygons = dynamicHazardAvoidance || floodExtentGeoJSON
+    if (avoidPolygons) {
+      body.options = { avoid_polygons: avoidPolygons }
     }
 
     try {
@@ -269,6 +275,48 @@ async function calculateWithORS(
     nearestShelter: routes[0] || null,
     calculatedAt: new Date().toISOString(),
     usingFallback: false,
+  }
+}
+
+async function buildDynamicAvoidPolygons(lat: number, lng: number): Promise<any | null> {
+  try {
+    const { rows } = await pool.query(
+      `SELECT ST_Y(coordinates::geometry) AS lat,
+              ST_X(coordinates::geometry) AS lng,
+              COALESCE(ai_confidence, 50) AS ai_confidence,
+              severity
+       FROM reports
+       WHERE coordinates IS NOT NULL
+         AND deleted_at IS NULL
+         AND status NOT IN ('resolved', 'archived', 'false_report')
+         AND created_at >= NOW() - INTERVAL '4 hours'
+         AND ST_DWithin(coordinates, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography, 10000)
+         AND (severity IN ('high', 'critical') OR COALESCE(ai_confidence, 0) >= 70)
+       LIMIT 20`,
+      [lng, lat],
+    )
+
+    if (!rows.length) return null
+
+    const evidence = intelligenceCore.buildEvidenceEvents(
+      rows.map((r: any, idx: number) => ({
+        id: `route-risk-${idx}`,
+        signal_type: 'route_hazard',
+        created_at: new Date().toISOString(),
+        ai_confidence: Number(r.ai_confidence || 50),
+        severity: r.severity,
+        lat: Number(r.lat),
+        lng: Number(r.lng),
+      })),
+    )
+
+    return intelligenceCore.buildRouteRiskMask(evidence, {
+      maxDistanceMeters: 10000,
+      maxEvents: 20,
+      lookbackHours: 4,
+    })
+  } catch {
+    return null
   }
 }
 

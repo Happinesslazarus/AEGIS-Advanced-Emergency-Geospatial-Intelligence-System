@@ -35,10 +35,11 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
         mt.updated_at,
         mt.citizen_unread,
         mt.operator_unread,
-        c.first_name || ' ' || c.last_name AS citizen_name,
+        c.display_name AS citizen_name,
         c.email AS citizen_email,
         c.phone AS citizen_phone,
         c.is_vulnerable,
+        c.avatar_url AS citizen_avatar,
         (SELECT content FROM messages WHERE thread_id = mt.id ORDER BY created_at DESC LIMIT 1) AS last_message,
         (SELECT created_at FROM messages WHERE thread_id = mt.id ORDER BY created_at DESC LIMIT 1) AS last_message_at
       FROM message_threads mt
@@ -62,10 +63,11 @@ router.get('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
     const threadResult = await pool.query(`
       SELECT 
         mt.*,
-        c.first_name || ' ' || c.last_name AS citizen_name,
+        c.display_name AS citizen_name,
         c.email AS citizen_email,
         c.phone AS citizen_phone,
-        c.is_vulnerable
+        c.is_vulnerable,
+        c.avatar_url AS citizen_avatar
       FROM message_threads mt
       JOIN citizens c ON c.id = mt.citizen_id
       WHERE mt.id = $1
@@ -80,12 +82,26 @@ router.get('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
     const messagesResult = await pool.query(`
       SELECT 
         m.*,
-        o.name AS operator_name
+        CASE WHEN m.sender_type = 'operator' THEN o.display_name
+             WHEN m.sender_type = 'citizen' THEN c2.display_name
+             ELSE 'Unknown' END AS sender_name
       FROM messages m
-      LEFT JOIN users o ON o.id = m.operator_id AND m.sender_type = 'operator'
+      LEFT JOIN operators o ON o.id = m.sender_id AND m.sender_type = 'operator'
+      LEFT JOIN citizens c2 ON c2.id = m.sender_id AND m.sender_type = 'citizen'
       WHERE m.thread_id = $1
       ORDER BY m.created_at ASC
     `, [req.params.id])
+
+    // Mark citizen messages as read by operator
+    await pool.query(
+      `UPDATE messages SET status = 'read', read_at = NOW()
+       WHERE thread_id = $1 AND sender_type = 'citizen' AND (read_at IS NULL OR status != 'read')`,
+      [req.params.id]
+    )
+    await pool.query(
+      `UPDATE message_threads SET operator_unread = 0 WHERE id = $1`,
+      [req.params.id]
+    )
 
     res.json({
       thread: threadResult.rows[0],

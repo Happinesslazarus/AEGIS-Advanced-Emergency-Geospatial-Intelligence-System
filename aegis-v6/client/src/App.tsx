@@ -7,6 +7,7 @@ import { ReportsProvider } from './contexts/ReportsContext'
 import { AlertsProvider } from './contexts/AlertsContext'
 import { CitizenAuthProvider } from './contexts/CitizenAuthContext'
 import { IncidentProvider } from './contexts/IncidentContext'
+import { SocketProvider } from './contexts/SocketContext'
 import ErrorBoundary from './components/shared/ErrorBoundary'
 import CitizenPage from './pages/CitizenPage'
 import CitizenAuthPage from './pages/CitizenAuthPage'
@@ -41,17 +42,19 @@ export default function App(): JSX.Element {
     <ErrorBoundary name="App">
       <RtlEnforcer />
       <ThemeProvider>
-        <LocationProvider>
-          <ReportsProvider>
-            <AlertsProvider>
-              <CitizenAuthProvider>
-                <IncidentProvider>
+        <SocketProvider>
+          <LocationProvider>
+            <ReportsProvider>
+              <AlertsProvider>
+                <CitizenAuthProvider>
+                  <IncidentProvider>
                   <Routes>
                     <Route path="/" element={<LandingPage />} />
                     <Route path="/citizen/login" element={<CitizenAuthPage />} />
                     <Route path="/citizen/dashboard" element={<CitizenDashboard />} />
                     <Route path="/citizen/*" element={<CitizenPage />} />
                     <Route path="/admin/*" element={<AdminPage />} />
+                    <Route path="/guest" element={<GuestDashboard />} />
                     <Route path="/about" element={<AboutPage />} />
                     <Route path="/privacy" element={<PrivacyPage />} />
                     <Route path="/terms" element={<TermsPage />} />
@@ -62,11 +65,12 @@ export default function App(): JSX.Element {
                   <AccessibilityPanel />
                   <FloatingChatWidget />
                   <OfflineIndicator />
-                </IncidentProvider>
-              </CitizenAuthProvider>
-            </AlertsProvider>
-          </ReportsProvider>
-        </LocationProvider>
+                  </IncidentProvider>
+                </CitizenAuthProvider>
+              </AlertsProvider>
+            </ReportsProvider>
+          </LocationProvider>
+        </SocketProvider>
       </ThemeProvider>
     </ErrorBoundary>
   )

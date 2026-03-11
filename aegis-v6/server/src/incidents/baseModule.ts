@@ -7,6 +7,7 @@
  */
 
 import { Router, Request, Response } from 'express'
+import rateLimit from 'express-rate-limit'
 import pool from '../models/db.js'
 import { authMiddleware, type AuthRequest } from '../middleware/auth.js'
 import type {
@@ -19,6 +20,16 @@ import type {
   AlertRuleContext,
   AlertRuleResult,
 } from './types.js'
+
+/** 30 reports per hour per IP — prevents bulk automated submissions */
+const reportLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many reports submitted. Please wait before submitting again.' },
+  skipSuccessfulRequests: false,
+})
 
 export abstract class BaseIncidentModule implements IncidentModule {
   abstract id: string
@@ -60,7 +71,7 @@ export abstract class BaseIncidentModule implements IncidentModule {
 
     // POST /report — submit a report for this incident type
     // POST /report — submit a report for this incident type (auth required)
-    this.router.post('/report', authMiddleware, async (req: Request, res: Response) => {
+    this.router.post('/report', reportLimiter, authMiddleware, async (req: Request, res: Response) => {
       try {
         const report = await this.submitReport(req.body)
         res.status(201).json({ incidentType: this.id, report, success: true })
@@ -228,43 +239,81 @@ export abstract class BaseIncidentModule implements IncidentModule {
 
   protected async getActiveReports(region: string): Promise<any[]> {
     try {
+      // Filter by region_id if column exists; include rows with NULL region_id
+      // for backward compatibility with pre-region data.
       const result = await pool.query(
         `SELECT * FROM reports
          WHERE (incident_type = $1 OR category = $1)
            AND status NOT IN ('resolved', 'closed', 'rejected', 'archived')
+           AND (region_id = $2 OR region_id IS NULL OR $2 = '')
          ORDER BY created_at DESC
          LIMIT 100`,
-        [this.id]
+        [this.id, region]
       )
       return result.rows
     } catch {
-      return []
+      // Fallback: region_id column may not exist on older DBs
+      try {
+        const result = await pool.query(
+          `SELECT * FROM reports
+           WHERE (incident_type = $1 OR category = $1)
+             AND status NOT IN ('resolved', 'closed', 'rejected', 'archived')
+           ORDER BY created_at DESC
+           LIMIT 100`,
+          [this.id]
+        )
+        return result.rows
+      } catch {
+        return []
+      }
     }
   }
 
   protected async submitReport(body: any): Promise<any> {
     const {
       title, description, severity, latitude, longitude,
-      reporter_name, reporter_phone, customFields, photos,
+      reporter_name, reporter_phone, customFields, region_id,
     } = body
+
+    // Input validation
+    const VALID_SEVERITIES = ['Low', 'Medium', 'High', 'Critical']
+    const validatedSeverity = VALID_SEVERITIES.includes(severity) ? severity : 'Medium'
+    const validatedLat = latitude != null && isFinite(Number(latitude)) && Math.abs(Number(latitude)) <= 90
+      ? Number(latitude) : null
+    const validatedLng = longitude != null && isFinite(Number(longitude)) && Math.abs(Number(longitude)) <= 180
+      ? Number(longitude) : null
+    const validatedPhone = typeof reporter_phone === 'string' && reporter_phone.length <= 20
+      ? reporter_phone : null
+    const validatedTitle = typeof title === 'string'
+      ? title.slice(0, 200).trim() || `${this.registry.name} Report`
+      : `${this.registry.name} Report`
+    const validatedDescription = typeof description === 'string'
+      ? description.slice(0, 5000).trim()
+      : ''
+    const validatedName = typeof reporter_name === 'string'
+      ? reporter_name.slice(0, 100).trim() || 'Anonymous'
+      : 'Anonymous'
+    const validatedRegion = typeof region_id === 'string' ? region_id.slice(0, 100) : null
 
     try {
       const result = await pool.query(
         `INSERT INTO reports (title, description, severity, latitude, longitude,
-         reporter_name, reporter_phone, incident_type, category, custom_fields, status, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'pending', NOW())
+         reporter_name, reporter_phone, incident_type, category, custom_fields,
+         region_id, status, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'pending', NOW())
          RETURNING *`,
         [
-          title || `${this.registry.name} Report`,
-          description || '',
-          severity || 'Medium',
-          latitude || null,
-          longitude || null,
-          reporter_name || 'Anonymous',
-          reporter_phone || null,
+          validatedTitle,
+          validatedDescription,
+          validatedSeverity,
+          validatedLat,
+          validatedLng,
+          validatedName,
+          validatedPhone,
           this.id,
           this.registry.category,
           JSON.stringify(customFields || {}),
+          validatedRegion,
         ]
       )
       return result.rows[0]
