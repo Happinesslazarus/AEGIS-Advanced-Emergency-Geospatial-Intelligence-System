@@ -52,7 +52,7 @@ export function SkeletonMap({ height = '400px' }: { height?: string }): JSX.Elem
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="text-center space-y-2">
           <div className="w-10 h-10 border-3 border-gray-300 dark:border-gray-600 border-t-blue-500 rounded-full animate-spin mx-auto" />
-          <p className="text-xs text-gray-400">Loading map...</p>
+          <p className="text-xs text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">Loading map...</p>
         </div>
       </div>
       {/* Fake grid lines to indicate map area */}
@@ -99,3 +99,7 @@ export function SkeletonCardList({ count = 3 }: { count?: number }): JSX.Element
     </div>
   )
 }
+
+
+
+

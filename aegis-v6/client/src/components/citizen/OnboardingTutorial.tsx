@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { X, ChevronRight, Shield, AlertTriangle, MessageCircle, Users, BookOpen, MapPin, Accessibility } from 'lucide-react'
+import { t } from '../../utils/i18n'
+import { useLanguage } from '../../hooks/useLanguage'
 
 const STEPS = [
   { icon: Shield, title: 'Welcome to AEGIS', desc: 'Your emergency intelligence assistant. No login needed. Everything is anonymous and private.', color: 'bg-aegis-600' },
@@ -12,6 +14,7 @@ const STEPS = [
 ]
 
 export default function OnboardingTutorial(): JSX.Element | null {
+  const lang = useLanguage()
   const [show, setShow] = useState(false)
   const [step, setStep] = useState(0)
 
@@ -37,18 +40,18 @@ export default function OnboardingTutorial(): JSX.Element | null {
           <h2 className="text-lg font-bold text-center">{s.title}</h2>
         </div>
         <div className="p-5">
-          <p className="text-sm text-gray-600 dark:text-gray-400 text-center leading-relaxed">{s.desc}</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 text-center leading-relaxed">{s.desc}</p>
           <div className="flex items-center justify-center gap-1.5 my-4">
             {STEPS.map((_, i) => <div key={i} className={`w-2 h-2 rounded-full ${i === step ? 'bg-aegis-600' : 'bg-gray-300 dark:bg-gray-600'}`} />)}
           </div>
           <div className="flex gap-2">
             {step < STEPS.length - 1 ? (
               <>
-                <button onClick={dismiss} className="btn-ghost flex-1 text-xs">Skip</button>
+                <button onClick={dismiss} className="btn-ghost flex-1 text-xs">{t('common.skip', lang)}</button>
                 <button onClick={() => setStep(s => s + 1)} className="btn-primary flex-1 text-xs">Next <ChevronRight className="w-3.5 h-3.5" /></button>
               </>
             ) : (
-              <button onClick={dismiss} className="btn-primary w-full">Get Started</button>
+              <button onClick={dismiss} className="btn-primary w-full">{t('common.getStarted', lang)}</button>
             )}
           </div>
         </div>
@@ -56,3 +59,7 @@ export default function OnboardingTutorial(): JSX.Element | null {
     </div>
   )
 }
+
+
+
+

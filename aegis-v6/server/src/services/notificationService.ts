@@ -215,17 +215,27 @@ export async function sendEmailAlert(
 }
 
 function generateEmailHTML(alert: Alert): string {
-  const severityColors = {
+  const severityColors: Record<string, string> = {
     critical: '#dc2626',
     warning: '#f59e0b',
     info: '#3b82f6',
   }
 
-  const severityBg = {
+  const severityBg: Record<string, string> = {
     critical: '#fee2e2',
     warning: '#fef3c7',
     info: '#dbeafe',
   }
+
+  const severityIcon: Record<string, string> = {
+    critical: '&#9888;',  /* HTML warning sign */
+    warning: '&#9888;',
+    info: '&#8505;',      /* HTML info sign */
+  }
+
+  const color = severityColors[alert.severity] || '#3b82f6'
+  const bg = severityBg[alert.severity] || '#dbeafe'
+  const icon = severityIcon[alert.severity] || '&#8505;'
 
   return `
 <!DOCTYPE html>
@@ -235,42 +245,43 @@ function generateEmailHTML(alert: Alert): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1f2937; margin: 0; padding: 0; background-color: #f3f4f6;">
-  <div style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);">
-    
+  <div style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);">
+
     <!-- Header -->
-    <div style="background-color: ${severityColors[alert.severity]}; color: #ffffff; padding: 24px; text-align: center;">
-      <h1 style="margin: 0; font-size: 24px; font-weight: 600;">⚠️ ${alert.severity.toUpperCase()} ALERT</h1>
-      <p style="margin: 8px 0 0 0; font-size: 14px; opacity: 0.9;">AEGIS Emergency Management System</p>
+    <div style="background-color: ${color}; color: #ffffff; padding: 28px 24px; text-align: center;">
+      <div style="font-size: 28px; margin-bottom: 4px;">${icon}</div>
+      <h1 style="margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.3px;">${alert.severity.toUpperCase()} ALERT</h1>
+      <p style="margin: 6px 0 0 0; font-size: 13px; opacity: 0.85;">AEGIS Emergency Management System</p>
     </div>
 
     <!-- Alert Badge -->
-    <div style="background-color: ${severityBg[alert.severity]}; border-left: 4px solid ${severityColors[alert.severity]}; padding: 16px; margin: 24px;">
-      <h2 style="margin: 0 0 8px 0; font-size: 20px; color: ${severityColors[alert.severity]};">${alert.title}</h2>
-      <p style="margin: 0; font-size: 14px; color: #6b7280;">📍 ${alert.area}</p>
+    <div style="background-color: ${bg}; border-left: 4px solid ${color}; padding: 18px 20px; margin: 24px;">
+      <h2 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 700; color: ${color};">${alert.title}</h2>
+      <p style="margin: 0; font-size: 13px; color: #6b7280;">Location: ${alert.area}</p>
     </div>
 
     <!-- Message Body -->
     <div style="padding: 0 24px 24px 24px;">
-      <p style="font-size: 16px; color: #374151; margin: 0 0 16px 0;">${alert.message}</p>
-      
+      <p style="font-size: 15px; color: #374151; margin: 0 0 16px 0; line-height: 1.7;">${alert.message}</p>
+
       ${alert.actionRequired ? `
-      <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; margin: 16px 0;">
-        <p style="margin: 0; font-weight: 600; color: #92400e;">⚡ Action Required:</p>
-        <p style="margin: 8px 0 0 0; color: #78350f;">${alert.actionRequired}</p>
+      <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; margin: 16px 0; border-radius: 6px;">
+        <p style="margin: 0; font-weight: 700; color: #92400e; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Action Required</p>
+        <p style="margin: 8px 0 0 0; color: #78350f; font-size: 14px;">${alert.actionRequired}</p>
       </div>
       ` : ''}
 
       ${alert.expiresAt ? `
-      <p style="font-size: 13px; color: #6b7280; margin: 16px 0 0 0;">
-        ⏰ This alert expires: <strong>${new Date(alert.expiresAt).toLocaleString('en-GB')}</strong>
+      <p style="font-size: 12px; color: #6b7280; margin: 16px 0 0 0; padding: 8px 12px; background: #f9fafb; border-radius: 6px;">
+        Expires: <strong>${new Date(alert.expiresAt).toLocaleString('en-GB')}</strong>
       </p>
       ` : ''}
     </div>
 
     <!-- Footer -->
-    <div style="background-color: #f9fafb; padding: 16px 24px; border-top: 1px solid #e5e7eb;">
-      <p style="margin: 0; font-size: 12px; color: #6b7280; text-align: center;">
-        This is an automated alert from the AEGIS Emergency Management System.<br>
+    <div style="background-color: #f9fafb; padding: 18px 24px; border-top: 1px solid #e5e7eb;">
+      <p style="margin: 0; font-size: 11px; color: #9ca3af; text-align: center; line-height: 1.6;">
+        Automated alert from the AEGIS Emergency Management System.<br>
         For assistance, contact <strong>${SUPPORT_EMAIL}</strong> or your local emergency services.
       </p>
     </div>
@@ -283,9 +294,9 @@ function generateEmailHTML(alert: Alert): string {
 
 function generateEmailText(alert: Alert): string {
   return `
-═══════════════════════════════════════════════════════════
-${alert.severity.toUpperCase()} ALERT from AEGIS
-═══════════════════════════════════════════════════════════
+========================================================
+${alert.severity.toUpperCase()} ALERT — AEGIS Emergency Management
+========================================================
 
 ${alert.title}
 
@@ -293,12 +304,10 @@ Location: ${alert.area}
 
 ${alert.message}
 
-${alert.actionRequired ? `\n⚡ ACTION REQUIRED:\n${alert.actionRequired}\n` : ''}
-
-${alert.expiresAt ? `⏰ Alert expires: ${new Date(alert.expiresAt).toLocaleString('en-GB')}\n` : ''}
-
-───────────────────────────────────────────────────────────
-This is an automated alert from the AEGIS Emergency Management System.
+${alert.actionRequired ? `ACTION REQUIRED:\n${alert.actionRequired}\n` : ''}
+${alert.expiresAt ? `Alert expires: ${new Date(alert.expiresAt).toLocaleString('en-GB')}\n` : ''}
+--------------------------------------------------------
+Automated alert from the AEGIS Emergency Management System.
 For assistance, contact ${SUPPORT_EMAIL} or your local emergency services.
   `.trim()
 }
@@ -364,8 +373,7 @@ export async function sendSMSAlert(
 }
 
 function generateSMSText(alert: Alert): string {
-  const emoji = alert.severity === 'critical' ? '🚨' : alert.severity === 'warning' ? '⚠️' : 'ℹ️'
-  return `${emoji} AEGIS ALERT [${alert.severity.toUpperCase()}]\n\n${alert.title}\n📍 ${alert.area}\n\n${alert.message}${alert.actionRequired ? `\n\n⚡ ACTION: ${alert.actionRequired}` : ''}`
+  return `AEGIS ${alert.severity.toUpperCase()} ALERT\n\n${alert.title}\nArea: ${alert.area}\n\n${alert.message}${alert.actionRequired ? `\n\nACTION: ${alert.actionRequired}` : ''}`
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -430,16 +438,15 @@ export async function sendWhatsAppAlert(
 }
 
 function generateWhatsAppText(alert: Alert): string {
-  const emoji = alert.severity === 'critical' ? '🚨' : alert.severity === 'warning' ? '⚠️' : 'ℹ️'
-  return `${emoji} *AEGIS ALERT* [${alert.severity.toUpperCase()}]
+  return `*AEGIS ALERT* [${alert.severity.toUpperCase()}]
 
 *${alert.title}*
-📍 ${alert.area}
+Area: ${alert.area}
 
 ${alert.message}
 
-${alert.actionRequired ? `⚡ *ACTION REQUIRED:*\n${alert.actionRequired}\n\n` : ''}${alert.expiresAt ? `⏰ Expires: ${new Date(alert.expiresAt).toLocaleString('en-GB')}\n\n` : ''}───────────────────────────
-_This is an automated alert from the AEGIS Emergency Management System._`
+${alert.actionRequired ? `*ACTION REQUIRED:*\n${alert.actionRequired}\n\n` : ''}${alert.expiresAt ? `Expires: ${new Date(alert.expiresAt).toLocaleString('en-GB')}\n\n` : ''}---
+_Automated alert from the AEGIS Emergency Management System._`
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -552,22 +559,21 @@ function escapeMdV2(text: string): string {
 }
 
 function generateTelegramText(alert: Alert): string {
-  const emoji = alert.severity === 'critical' ? '🚨' : alert.severity === 'warning' ? '⚠️' : 'ℹ️'
   const title = escapeMdV2(alert.title)
   const area = escapeMdV2(alert.area)
   const message = escapeMdV2(alert.message)
   const severity = escapeMdV2(alert.severity.toUpperCase())
 
-  let text = `${emoji} *AEGIS ALERT* \\[${severity}\\]\n\n*${title}*\n📍 ${area}\n\n${message}`
+  let text = `*AEGIS ALERT* \\[${severity}\\]\n\n*${title}*\nArea: ${area}\n\n${message}`
 
   if (alert.actionRequired) {
-    text += `\n\n⚡ *ACTION REQUIRED:*\n${escapeMdV2(alert.actionRequired)}`
+    text += `\n\n*ACTION REQUIRED:*\n${escapeMdV2(alert.actionRequired)}`
   }
   if (alert.expiresAt) {
-    text += `\n\n⏰ Expires: ${escapeMdV2(new Date(alert.expiresAt).toLocaleString('en-GB'))}`
+    text += `\n\nExpires: ${escapeMdV2(new Date(alert.expiresAt).toLocaleString('en-GB'))}`
   }
 
-  text += `\n\n───────────────────────────\n_This is an automated alert from the AEGIS Emergency Management System\\._`
+  text += `\n\n\\-\\-\\-\n_Automated alert from the AEGIS Emergency Management System\\._`
   return text
 }
 

@@ -12,7 +12,7 @@
  *   - Vulnerability badges
  */
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
   MessageSquare, Send, Search, AlertTriangle, Heart, CheckCircle,
   Clock, User, ChevronRight, ArrowLeft, Loader2, Check, CheckCheck,
@@ -23,12 +23,42 @@ import {
 import { type ChatThread, type ChatMessage } from '../../hooks/useSocket'
 import { useSharedSocket } from '../../contexts/SocketContext'
 import { getSession } from '../../utils/auth'
-import { translateText, TRANSLATION_LANGUAGES, clearTranslationCache } from '../../utils/translateService'
-import { getLanguage } from '../../utils/i18n'
+import {
+  translateText,
+  buildTranslationMap,
+  TRANSLATION_LANGUAGES,
+  clearTranslationCache,
+} from '../../utils/translateService'
+import { t, getLanguage } from '../../utils/i18n'
 import { API_BASE, timeAgo } from '../../utils/helpers'
 import MessageStatusIcon from '../ui/MessageStatusIcon'
+import { useLanguage } from '../../hooks/useLanguage'
 
 type FilterMode = 'all' | 'emergency' | 'open' | 'in_progress' | 'resolved' | 'mine'
+
+// ── Message grouping helpers ──────────────────────────────────────────────────
+
+function formatDateSeparator(dateStr: string, lang: string): string {
+  const d = new Date(dateStr)
+  const today = new Date()
+  const yesterday = new Date(today)
+  yesterday.setDate(yesterday.getDate() - 1)
+  if (d.toDateString() === today.toDateString()) return t('common.today', lang)
+  if (d.toDateString() === yesterday.toDateString()) return t('common.yesterday', lang)
+  return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
+}
+
+function shouldShowDateSep(msgs: ChatMessage[], idx: number): boolean {
+  if (idx === 0) return true
+  return new Date(msgs[idx - 1].created_at).toDateString() !== new Date(msgs[idx].created_at).toDateString()
+}
+
+function isMsgConsecutive(msgs: ChatMessage[], idx: number): boolean {
+  if (idx === 0) return false
+  const prev = msgs[idx - 1], curr = msgs[idx]
+  if (prev.sender_id !== curr.sender_id || prev.sender_type !== curr.sender_type) return false
+  return new Date(curr.created_at).getTime() - new Date(prev.created_at).getTime() < 120000
+}
 
 // timeAgo, API_BASE, MessageStatusIcon imported from shared modules
 
@@ -37,7 +67,7 @@ function StatusBadge({ status }: { status: string }) {
     open: { bg: 'bg-green-100 dark:bg-green-950/30', text: 'text-green-700 dark:text-green-300' },
     in_progress: { bg: 'bg-blue-100 dark:bg-blue-950/30', text: 'text-blue-700 dark:text-blue-300' },
     resolved: { bg: 'bg-purple-100 dark:bg-purple-950/30', text: 'text-purple-700 dark:text-purple-300' },
-    closed: { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-500' },
+    closed: { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300' },
   }
   const s = map[status] || map.open
   return (
@@ -48,6 +78,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function AdminMessaging(): JSX.Element {
+  const lang = useLanguage()
   const socket = useSharedSocket()
   const user = getSession()
   const [filter, setFilter] = useState<FilterMode>('all')
@@ -154,25 +185,36 @@ export default function AdminMessaging(): JSX.Element {
   // Auto-translate incoming messages
   useEffect(() => {
     if (!autoTranslate) return
-    const untranslated = messages.filter(
-      (m: ChatMessage) => m.content && !translations[m.id]
-    )
+    const untranslated = messages.filter((m: ChatMessage) => m.content && !translations[m.id])
     if (untranslated.length === 0) return
-    const batch = untranslated.slice(0, 5)
+    const batch = untranslated.slice(0, 10)
     let cancelled = false
+
     ;(async () => {
-      for (const msg of batch) {
-        if (cancelled) break
-        try {
-          const result = await translateText(msg.content, 'auto', targetLang)
-          if (!cancelled && result.translatedText && result.translatedText !== msg.content) {
-            setTranslations(prev => ({ ...prev, [msg.id]: result.translatedText }))
-          }
-        } catch { /* skip */ }
+      try {
+        const translatedByText = await buildTranslationMap(
+          batch.map((msg) => msg.content),
+          'auto',
+          targetLang,
+        )
+
+        if (cancelled || Object.keys(translatedByText).length === 0) return
+
+        setTranslations((prev) => {
+          const next = { ...prev }
+          batch.forEach((msg) => {
+            const translated = translatedByText[msg.content]
+            if (translated) next[msg.id] = translated
+          })
+          return next
+        })
+      } catch {
+        // Skip batch failures.
       }
     })()
+
     return () => { cancelled = true }
-  }, [autoTranslate, targetLang, messages.length]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [autoTranslate, targetLang, messages, translations])
 
   // When target language changes, clear cached translations and re-translate
   const handleLangChange = (code: string) => {
@@ -182,6 +224,14 @@ export default function AdminMessaging(): JSX.Element {
     setShowLangPicker(false)
     setAutoTranslate(true)
   }
+
+  useEffect(() => {
+    setTargetLang(lang || 'en')
+    setTranslations({})
+    if (lang !== 'en') {
+      setAutoTranslate(true)
+    }
+  }, [lang])
 
   // Sort and filter threads
   const filteredThreads = useMemo(() => {
@@ -224,7 +274,7 @@ export default function AdminMessaging(): JSX.Element {
     // Mark thread as read to clear unread badge - use admin endpoint
     const token = localStorage.getItem('aegis-token') || localStorage.getItem('token')
     if (token) {
-      fetch(`/api/admin/threads/${thread.id}/read`, {
+      fetch(`/api/admin/messages/${thread.id}/read`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
       }).catch(err => console.error('[AdminMessaging] Mark read error:', err))
@@ -315,20 +365,20 @@ export default function AdminMessaging(): JSX.Element {
       {/* ══════ LEFT: Thread Inbox Panel ══════ */}
       <div className={`w-full md:w-[420px] flex flex-col bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 ${activeThread ? 'hidden md:flex' : 'flex'}`}>
         {/* Premium Header */}
-        <div className="p-4 bg-gradient-to-r from-aegis-600 via-aegis-700 to-indigo-700 text-white">
+        <div className="p-4 bg-gradient-to-r from-aegis-600 via-aegis-700 to-aegis-800 text-white">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl bg-white/15 backdrop-blur-sm flex items-center justify-center">
                 <Inbox className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-sm font-bold tracking-wide">Citizen Inbox</h2>
-                <p className="text-[10px] text-white/60">{totalThreads} total conversations</p>
+                <h2 className="text-sm font-bold tracking-wide">{t('messaging.citizenInbox', lang)}</h2>
+                <p className="text-[10px] text-white/60">{totalThreads} {t('messaging.totalConversations', lang)}</p>
               </div>
             </div>
             <div className="flex items-center gap-1.5">
-              {connected && <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse ring-2 ring-green-400/30" title="Live" />}
-              <button onClick={handleRefresh} className="p-1.5 hover:bg-white/10 rounded-lg transition" title="Refresh">
+              {connected && <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse ring-2 ring-green-400/30" title={t('common.live', lang)} />}
+              <button onClick={handleRefresh} className="p-1.5 hover:bg-white/10 rounded-lg transition" title={t('common.refresh', lang)}>
                 <RefreshCw className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -342,13 +392,13 @@ export default function AdminMessaging(): JSX.Element {
               </span>
             )}
             <span className="bg-white/10 backdrop-blur-sm text-white/90 text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
-              <MailOpen className="w-3 h-3" /> {openCount} Open
+              <MailOpen className="w-3 h-3" /> {openCount} {t('admin.messaging.open', lang)}
             </span>
             <span className="bg-white/10 backdrop-blur-sm text-white/90 text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
-              <Zap className="w-3 h-3" /> {inProgressCount} Active
+              <Zap className="w-3 h-3" /> {inProgressCount} {t('common.active', lang)}
             </span>
             <span className="bg-white/10 backdrop-blur-sm text-white/90 text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
-              <Archive className="w-3 h-3" /> {resolvedCount} Done
+              <Archive className="w-3 h-3" /> {resolvedCount} {t('common.resolved', lang)}
             </span>
           </div>
         </div>
@@ -356,33 +406,33 @@ export default function AdminMessaging(): JSX.Element {
         {/* Search + Filter */}
         <div className="p-3 space-y-2.5 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50">
           <div className="relative">
-            <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-gray-400" />
+            <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
             <input
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               className="w-full pl-9 pr-8 py-2.5 text-xs bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition shadow-sm"
-              placeholder="Search by name, subject, or message..."
+              placeholder={t('messaging.searchPlaceholder', lang)} 
             />
             {searchTerm && (
-              <button onClick={() => setSearchTerm('')} className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600">
+              <button onClick={() => setSearchTerm('')} className="absolute right-3 top-2.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-600">
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
           <div className="flex gap-1 overflow-x-auto pb-0.5 scrollbar-thin">
             {[
-              { key: 'all', label: 'All', icon: Hash, count: totalThreads },
+              { key: 'all', label: t('common.all', lang), icon: Hash, count: totalThreads },
               { key: 'emergency', label: 'SOS', icon: AlertTriangle, count: emergencyCount },
-              { key: 'open', label: 'Open', icon: MailOpen, count: openCount },
-              { key: 'in_progress', label: 'Active', icon: Zap, count: inProgressCount },
-              { key: 'mine', label: 'Mine', icon: UserCheck, count: null },
-              { key: 'resolved', label: 'Done', icon: CheckCircle, count: resolvedCount },
+              { key: 'open', label: t('admin.messaging.open', lang), icon: MailOpen, count: openCount },
+              { key: 'in_progress', label: t('common.active', lang), icon: Zap, count: inProgressCount },
+              { key: 'mine', label: t('messaging.mine', lang), icon: UserCheck, count: null },
+              { key: 'resolved', label: t('common.resolved', lang), icon: CheckCircle, count: resolvedCount },
             ].map(f => (
               <button key={f.key} onClick={() => setFilter(f.key as FilterMode)}
                 className={`text-[10px] font-bold px-3 py-1.5 rounded-lg whitespace-nowrap transition flex items-center gap-1 ${
                   filter === f.key
                     ? 'bg-aegis-600 text-white shadow-md shadow-aegis-600/25'
-                    : 'bg-white dark:bg-gray-800 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-aegis-300'
+                    : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-aegis-300'
                 }`}>
                 <f.icon className="w-3 h-3" />
                 {f.label}
@@ -399,10 +449,10 @@ export default function AdminMessaging(): JSX.Element {
           {filteredThreads.length === 0 ? (
             <div className="p-10 text-center">
               <div className="w-16 h-16 mx-auto mb-3 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                <MessageSquare className="w-8 h-8 text-gray-300 dark:text-gray-600" />
+                <MessageSquare className="w-8 h-8 text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-600" />
               </div>
-              <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">No conversations</p>
-              <p className="text-[11px] text-gray-400 mt-0.5">Matching threads will appear here</p>
+              <p className="text-sm font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('messaging.noConversations', lang)}</p>
+              <p className="text-[11px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-0.5">{t('messaging.matchingThreads', lang)}</p>
             </div>
           ) : filteredThreads.map(thread => {
             const isActive = activeThread?.id === thread.id
@@ -439,11 +489,11 @@ export default function AdminMessaging(): JSX.Element {
 
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5 mb-0.5">
-                      <span className="text-xs font-bold text-gray-900 dark:text-white truncate">{thread.citizen_name || 'Unknown Citizen'}</span>
+                      <span className="text-xs font-bold text-gray-900 dark:text-white truncate">{thread.citizen_name || `${t('common.unknown', lang)} ${t('messaging.citizen', lang)}`}</span>
                       {thread.is_vulnerable && <Heart className="w-3 h-3 text-amber-500 flex-shrink-0" />}
                     </div>
-                    <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300 truncate">{thread.subject}</p>
-                    <p className="text-[10px] text-gray-400 dark:text-gray-500 truncate mt-0.5 leading-relaxed">{thread.last_message || 'No messages yet'}</p>
+                    <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 truncate">{thread.subject}</p>
+                    <p className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 truncate mt-0.5 leading-relaxed">{thread.last_message || t('messaging.noMessages', lang)}</p>
                   </div>
 
                   <div className="flex flex-col items-end gap-1.5 flex-shrink-0 pt-0.5">
@@ -451,7 +501,7 @@ export default function AdminMessaging(): JSX.Element {
                     {thread.operator_unread > 0 && (
                       <span className="bg-red-500 text-white text-[9px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full shadow-sm shadow-red-500/30 animate-pulse">{thread.operator_unread}</span>
                     )}
-                    <span className="text-[9px] text-gray-400 flex items-center gap-0.5">
+                    <span className="text-[9px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex items-center gap-0.5">
                       <Clock className="w-2.5 h-2.5" />
                       {thread.updated_at ? timeAgo(thread.updated_at) : ''}
                     </span>
@@ -472,12 +522,12 @@ export default function AdminMessaging(): JSX.Element {
               <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-aegis-100 to-aegis-200 dark:from-aegis-950/30 dark:to-aegis-900/20 flex items-center justify-center shadow-lg shadow-aegis-500/10">
                 <MessageSquare className="w-10 h-10 text-aegis-500" />
               </div>
-              <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">Citizen Support Inbox</h3>
-              <p className="text-xs text-gray-500 max-w-xs">Select a conversation from the inbox to view messages, respond to citizens, and manage support threads.</p>
-              <div className="mt-4 flex items-center justify-center gap-4 text-[10px] text-gray-400">
-                <span className="flex items-center gap-1"><Sparkles className="w-3 h-3" /> Quick Replies</span>
-                <span className="flex items-center gap-1"><Languages className="w-3 h-3" /> Translation</span>
-                <span className="flex items-center gap-1"><Shield className="w-3 h-3" /> Priority</span>
+              <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">{t('messaging.supportInbox', lang)}</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 max-w-xs">{t('messaging.selectConversation', lang)}</p>
+              <div className="mt-4 flex items-center justify-center gap-4 text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+                <span className="flex items-center gap-1"><Sparkles className="w-3 h-3" /> {t('messaging.quickReplies', lang)}</span>
+                <span className="flex items-center gap-1"><Languages className="w-3 h-3" /> {t('messaging.translation', lang)}</span>
+                <span className="flex items-center gap-1"><Shield className="w-3 h-3" /> {t('common.priority', lang)}</span>
               </div>
             </div>
           </div>
@@ -485,7 +535,7 @@ export default function AdminMessaging(): JSX.Element {
           <>
             {/* Enhanced Chat Header */}
             <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center gap-3 bg-gradient-to-r from-white to-gray-50 dark:from-gray-900 dark:to-gray-900/80">
-              <button onClick={() => setActiveThread(null)} className="md:hidden p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition">
+              <button onClick={() => setActiveThread(null)} className="md:hidden p-1.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition">
                 <ArrowLeft className="w-5 h-5" />
               </button>
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 shadow-sm ${
@@ -504,14 +554,14 @@ export default function AdminMessaging(): JSX.Element {
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-2 text-[11px] text-gray-500">
+                <div className="flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
                   <span className="font-medium">{activeThread.citizen_name}</span>
                   {activeThread.is_vulnerable && (
                     <span className="flex items-center gap-0.5 text-amber-600 dark:text-amber-400"><Heart className="w-3 h-3" /> Vulnerable</span>
                   )}
-                  <span className="text-gray-300 dark:text-gray-600">|</span>
+                  <span className="text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-600">|</span>
                   <span className="capitalize">{activeThread.category || 'general'}</span>
-                  <span className="text-gray-300 dark:text-gray-600">|</span>
+                  <span className="text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-600">|</span>
                   <StatusBadge status={activeThread.status} />
                 </div>
               </div>
@@ -525,28 +575,28 @@ export default function AdminMessaging(): JSX.Element {
                     value={targetLang}
                     onChange={(e) => handleLangChange(e.target.value)}
                     className="text-[10px] bg-transparent text-gray-700 dark:text-gray-200 outline-none cursor-pointer"
-                    title="Translate to"
+                    title={t('admin.messaging.translate', lang)}
                   >
                     {TRANSLATION_LANGUAGES.map(lang => (
                       <option key={lang.code} value={lang.code}>{lang.name}</option>
                     ))}
                   </select>
-                  <label className="flex items-center gap-1 text-[10px] text-gray-500">
+                  <label className="flex items-center gap-1 text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
                     <input type="checkbox" checked={autoTranslate} onChange={() => setAutoTranslate(!autoTranslate)} className="w-3 h-3 rounded border-gray-300 text-aegis-600" />
-                    Auto
+                    {t('admin.messaging.autoTranslate', lang)}
                   </label>
                 </div>
                 {activeThread.status !== 'resolved' && activeThread.status !== 'closed' && (
                   <>
                     <button onClick={handleAssign}
                       className="text-[10px] font-bold px-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition flex items-center gap-1 border border-blue-200/50 dark:border-blue-800/30"
-                      title="Assign to me">
-                      <UserCheck className="w-3 h-3" /> Assign
+                      title={t('admin.messaging.assign', lang)}>
+                      <UserCheck className="w-3 h-3" /> {t('admin.messaging.assign', lang)}
                     </button>
                     <button onClick={handleResolve}
                       className="text-[10px] font-bold px-3 py-2 rounded-lg bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/40 transition flex items-center gap-1 border border-green-200/50 dark:border-green-800/30"
-                      title="Mark resolved">
-                      <CheckCircle className="w-3 h-3" /> Resolve
+                      title={t('admin.messaging.resolve', lang)}>
+                      <CheckCircle className="w-3 h-3" /> {t('admin.messaging.resolve', lang)}
                     </button>
                   </>
                 )}
@@ -560,8 +610,8 @@ export default function AdminMessaging(): JSX.Element {
                   <AlertTriangle className="w-4 h-4 text-red-600 animate-pulse" />
                 </div>
                 <div className="flex-1">
-                  <span className="text-xs font-bold text-red-700 dark:text-red-300">EMERGENCY THREAD</span>
-                  <span className="text-[10px] text-red-500 ml-2">Auto-escalated due to emergency keywords</span>
+                  <span className="text-xs font-bold text-red-700 dark:text-red-300">{t('messaging.emergencyThread', lang)}</span>
+                  <span className="text-[10px] text-red-500 ml-2">{t('messaging.autoEscalated', lang)}</span>
                 </div>
                 {activeThread.escalation_keywords && activeThread.escalation_keywords.length > 0 && (
                   <div className="flex gap-1">
@@ -579,8 +629,8 @@ export default function AdminMessaging(): JSX.Element {
                 <div className="w-7 h-7 rounded-lg bg-amber-500/20 flex items-center justify-center">
                   <Heart className="w-4 h-4 text-amber-600" />
                 </div>
-                <span className="text-xs font-bold text-amber-700 dark:text-amber-300">Priority Support</span>
-                <span className="text-[10px] text-amber-500">Vulnerable citizen — respond with care and urgency</span>
+                <span className="text-xs font-bold text-amber-700 dark:text-amber-300">{t('messaging.prioritySupport', lang)}</span>
+                <span className="text-[10px] text-amber-500">{t('messaging.vulnerableCitizen', lang)}</span>
               </div>
             )}
 
@@ -589,27 +639,38 @@ export default function AdminMessaging(): JSX.Element {
               {messages.length === 0 && (
                 <div className="text-center py-12">
                   <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                    <MessageSquare className="w-7 h-7 text-gray-300 dark:text-gray-600" />
+                    <MessageSquare className="w-7 h-7 text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-600" />
                   </div>
-                  <p className="text-sm font-semibold text-gray-500">No messages yet</p>
-                  <p className="text-[11px] text-gray-400 mt-0.5">Start the conversation by sending a message below</p>
+                  <p className="text-sm font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('messaging.noMessages', lang)}</p>
+                  <p className="text-[11px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-0.5">{t('messaging.startConversation', lang)}</p>
                 </div>
               )}
               {messages.map((msg: ChatMessage, idx: number) => {
                 const isMine = msg.sender_id === user?.id && msg.sender_type === 'operator'
                 const isCitizen = msg.sender_type === 'citizen'
-                const isConsecutive = idx > 0 && messages[idx - 1].sender_id === msg.sender_id && messages[idx - 1].sender_type === msg.sender_type
+                const consecutive = isMsgConsecutive(messages, idx)
+                const showDate = shouldShowDateSep(messages, idx)
                 return (
-                  <div key={msg.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'} ${isConsecutive ? '' : 'mt-1'} group`}>
-                    <div className={`max-w-[75%] ${isConsecutive ? '' : ''}`}>
+                  <React.Fragment key={msg.id}>
+                    {/* Date Separator */}
+                    {showDate && (
+                      <div className="flex items-center justify-center py-3">
+                        <div className="bg-white dark:bg-gray-800 text-[10px] font-bold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 px-3 py-1 rounded-full shadow-sm border border-gray-200 dark:border-gray-700">
+                          {formatDateSeparator(msg.created_at, lang)}
+                        </div>
+                      </div>
+                    )}
+
+                  <div className={`flex ${isMine ? 'justify-end' : 'justify-start'} ${consecutive ? '' : 'mt-3'} group`}>
+                    <div className="max-w-[75%]">
                       {/* Sender label */}
-                      {!isMine && !isConsecutive && (
+                      {!isMine && !consecutive && (
                         <div className="flex items-center gap-1.5 mb-1 ml-1">
                           <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-[9px] font-bold ${
                             isCitizen ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
                           }`}>{(msg.sender_name || '?')[0].toUpperCase()}</div>
                           <span className={`text-[10px] font-semibold ${isCitizen ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'}`}>
-                            {msg.sender_name || (isCitizen ? 'Citizen' : 'Operator')}
+                            {msg.sender_name || (isCitizen ? t('messaging.citizen', lang) : t('messaging.operator', lang))}
                           </span>
                           <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-full ${
                             isCitizen ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
@@ -629,7 +690,7 @@ export default function AdminMessaging(): JSX.Element {
                         {/* Translation */}
                         {translations[msg.id] && (
                           <div className={`mt-1.5 pt-1.5 border-t ${isMine ? 'border-white/20' : 'border-gray-200 dark:border-gray-600'}`}>
-                            <p className={`text-[9px] font-bold ${isMine ? 'text-white/50' : 'text-blue-500'} flex items-center gap-0.5`}><Languages className="w-2.5 h-2.5" /> Translated</p>
+                            <p className={`text-[9px] font-bold ${isMine ? 'text-white/50' : 'text-blue-500'} flex items-center gap-0.5`}><Languages className="w-2.5 h-2.5" /> {t('admin.messaging.translated', lang)}</p>
                             <p className="text-sm leading-relaxed whitespace-pre-wrap">{translations[msg.id]}</p>
                           </div>
                         )}
@@ -637,7 +698,7 @@ export default function AdminMessaging(): JSX.Element {
                           <img src={msg.attachment_url} alt="attachment" className="mt-2 max-w-full max-h-56 rounded-xl border border-white/20 object-contain" />
                         )}
                         <div className={`flex items-center gap-1.5 mt-1 ${isMine ? 'justify-end' : 'justify-start'}`}>
-                          <span className={`text-[10px] ${isMine ? 'text-white/50' : 'text-gray-400'}`}>
+                          <span className={`text-[10px] ${isMine ? 'text-white/50' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`}>
                             {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </span>
                           {isMine && <MessageStatusIcon status={msg.status} />}
@@ -647,9 +708,9 @@ export default function AdminMessaging(): JSX.Element {
                               className={`px-1 py-0.5 rounded transition-colors ${
                                 translations[msg.id]
                                   ? (isMine ? 'text-white/70 bg-white/10' : 'text-blue-500 bg-blue-50 dark:bg-blue-950/30')
-                                  : (isMine ? 'text-white/30 hover:text-white/60 hover:bg-white/10' : 'text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/30')
+                                  : (isMine ? 'text-white/30 hover:text-white/60 hover:bg-white/10' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/30')
                               } opacity-0 group-hover:opacity-100`}
-                              title={translations[msg.id] ? 'Remove translation' : 'Translate'}
+                              title={t('admin.messaging.translate', lang)}
                             >
                               {translatingId === msg.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Languages className="w-3 h-3" />}
                             </button>
@@ -658,6 +719,7 @@ export default function AdminMessaging(): JSX.Element {
                       </div>
                     </div>
                   </div>
+                  </React.Fragment>
                 )
               })}
 
@@ -671,7 +733,7 @@ export default function AdminMessaging(): JSX.Element {
                         <div className="w-2 h-2 bg-aegis-400 rounded-full animate-bounce" style={{ animationDelay: '200ms' }} />
                         <div className="w-2 h-2 bg-aegis-400 rounded-full animate-bounce" style={{ animationDelay: '400ms' }} />
                       </div>
-                      <span className="text-[10px] text-gray-400 font-medium">{threadTypers[0].userName} is typing...</span>
+                      <span className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-medium">{threadTypers[0].userName} {t('admin.messaging.isTyping', lang)}</span>
                     </div>
                   </div>
                 </div>
@@ -689,10 +751,10 @@ export default function AdminMessaging(): JSX.Element {
                     className={`text-[10px] font-bold px-2.5 py-1 rounded-lg transition flex items-center gap-1 ${
                       showQuickReplies
                         ? 'bg-aegis-100 dark:bg-aegis-950/30 text-aegis-600'
-                        : 'bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'
                     }`}
                   >
-                    <Sparkles className="w-3 h-3" /> Quick Replies
+                    <Sparkles className="w-3 h-3" /> {t('messaging.quickReplies', lang)}
                     <ChevronDown className={`w-3 h-3 transition-transform ${showQuickReplies ? 'rotate-180' : ''}`} />
                   </button>
                   {showQuickReplies && (
@@ -705,7 +767,7 @@ export default function AdminMessaging(): JSX.Element {
                           title={qr.text}
                         >
                           <span className="text-base">{qr.icon}</span>
-                          <span className="block text-gray-600 dark:text-gray-300 group-hover/qr:text-aegis-600 dark:group-hover/qr:text-aegis-400 truncate">{qr.label}</span>
+                          <span className="block text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 group-hover/qr:text-aegis-600 dark:group-hover/qr:text-aegis-400 truncate">{qr.label}</span>
                         </button>
                       ))}
                     </div>
@@ -734,8 +796,8 @@ export default function AdminMessaging(): JSX.Element {
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-400 hover:text-aegis-600 hover:border-aegis-300 hover:bg-aegis-50 dark:hover:bg-aegis-950/10 transition"
-                    title="Attach image"
+                    className="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-aegis-600 hover:border-aegis-300 hover:bg-aegis-50 dark:hover:bg-aegis-950/10 transition"
+                    title={t('citizen.messaging.attachFile', lang)}
                   >
                     <ImageIcon className="w-4 h-4" />
                   </button>
@@ -743,7 +805,7 @@ export default function AdminMessaging(): JSX.Element {
                     value={msgInput}
                     onChange={e => handleTyping(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage() } }}
-                    placeholder="Type a professional reply..."
+                    placeholder={t('messaging.replyPlaceholder', lang)} 
                     rows={1}
                     className="flex-1 px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition resize-none max-h-28"
                   />
@@ -755,9 +817,9 @@ export default function AdminMessaging(): JSX.Element {
               </div>
             ) : (
               <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-800 text-center bg-gray-50 dark:bg-gray-900">
-                <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
+                <div className="flex items-center justify-center gap-2 text-sm text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
                   <CheckCircle className="w-4 h-4 text-green-400" />
-                  This conversation has been <span className="font-semibold capitalize">{activeThread.status}</span>
+                  {t('admin.messaging.status', lang)}: <span className="font-semibold capitalize">{activeThread.status}</span>
                 </div>
               </div>
             )}
@@ -767,3 +829,8 @@ export default function AdminMessaging(): JSX.Element {
     </div>
   )
 }
+
+
+
+
+

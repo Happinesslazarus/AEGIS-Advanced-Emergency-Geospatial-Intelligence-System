@@ -4,8 +4,16 @@ import { useSocket, type SocketState } from '../hooks/useSocket'
 const SocketContext = createContext<SocketState | null>(null)
 
 function getPersistedToken(): string | null {
-  return localStorage.getItem('aegis-token')
-    || localStorage.getItem('aegis-citizen-token')
+  const path = window.location.pathname
+  // On citizen pages, prefer the citizen token; on admin pages, prefer the admin token
+  if (path.startsWith('/citizen')) {
+    return localStorage.getItem('aegis-citizen-token') || localStorage.getItem('token')
+  }
+  if (path.startsWith('/admin')) {
+    return localStorage.getItem('aegis-token') || localStorage.getItem('token')
+  }
+  return localStorage.getItem('aegis-citizen-token')
+    || localStorage.getItem('aegis-token')
     || localStorage.getItem('token')
 }
 

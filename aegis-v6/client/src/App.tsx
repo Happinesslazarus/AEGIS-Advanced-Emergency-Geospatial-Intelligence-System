@@ -1,5 +1,5 @@
 ﻿import { Routes, Route, Navigate } from 'react-router-dom'
-import { useEffect } from 'react'
+import { useEffect, lazy, Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { LocationProvider } from './contexts/LocationContext'
@@ -9,16 +9,16 @@ import { CitizenAuthProvider } from './contexts/CitizenAuthContext'
 import { IncidentProvider } from './contexts/IncidentContext'
 import { SocketProvider } from './contexts/SocketContext'
 import ErrorBoundary from './components/shared/ErrorBoundary'
-import CitizenPage from './pages/CitizenPage'
-import CitizenAuthPage from './pages/CitizenAuthPage'
-import CitizenDashboard from './pages/CitizenDashboard'
-import AdminPage from './pages/AdminPage'
-import LandingPage from './pages/LandingPage'
-import AboutPage from './pages/AboutPage'
-import PrivacyPage from './pages/PrivacyPage'
-import TermsPage from './pages/TermsPage'
-import AccessibilityPage from './pages/AccessibilityPage'
-import GuestDashboard from './pages/GuestDashboard'
+const CitizenPage = lazy(() => import('./pages/CitizenPage'))
+const CitizenAuthPage = lazy(() => import('./pages/CitizenAuthPage'))
+const CitizenDashboard = lazy(() => import('./pages/CitizenDashboard'))
+const AdminPage = lazy(() => import('./pages/AdminPage'))
+const LandingPage = lazy(() => import('./pages/LandingPage'))
+const AboutPage = lazy(() => import('./pages/AboutPage'))
+const PrivacyPage = lazy(() => import('./pages/PrivacyPage'))
+const TermsPage = lazy(() => import('./pages/TermsPage'))
+const AccessibilityPage = lazy(() => import('./pages/AccessibilityPage'))
+const GuestDashboard = lazy(() => import('./pages/GuestDashboard'))
 import AccessibilityPanel from './components/shared/AccessibilityPanel'
 import FloatingChatWidget from './components/FloatingChatWidget'
 import LanguagePreferenceDialog from './components/shared/LanguagePreferenceDialog'
@@ -48,19 +48,21 @@ export default function App(): JSX.Element {
               <AlertsProvider>
                 <CitizenAuthProvider>
                   <IncidentProvider>
-                  <Routes>
-                    <Route path="/" element={<LandingPage />} />
-                    <Route path="/citizen/login" element={<CitizenAuthPage />} />
-                    <Route path="/citizen/dashboard" element={<CitizenDashboard />} />
-                    <Route path="/citizen/*" element={<CitizenPage />} />
-                    <Route path="/admin/*" element={<AdminPage />} />
-                    <Route path="/guest" element={<GuestDashboard />} />
-                    <Route path="/about" element={<AboutPage />} />
-                    <Route path="/privacy" element={<PrivacyPage />} />
-                    <Route path="/terms" element={<TermsPage />} />
-                    <Route path="/accessibility" element={<AccessibilityPage />} />
-                    <Route path="*" element={<Navigate to="/" replace />} />
-                  </Routes>
+                    <Suspense fallback={<div className="min-h-screen bg-white dark:bg-gray-950" />}>
+                      <Routes>
+                        <Route path="/" element={<LandingPage />} />
+                        <Route path="/citizen/login" element={<CitizenAuthPage />} />
+                        <Route path="/citizen/dashboard" element={<CitizenDashboard />} />
+                        <Route path="/citizen/*" element={<CitizenPage />} />
+                        <Route path="/admin/*" element={<AdminPage />} />
+                        <Route path="/guest" element={<GuestDashboard />} />
+                        <Route path="/about" element={<AboutPage />} />
+                        <Route path="/privacy" element={<PrivacyPage />} />
+                        <Route path="/terms" element={<TermsPage />} />
+                        <Route path="/accessibility" element={<AccessibilityPage />} />
+                        <Route path="*" element={<Navigate to="/" replace />} />
+                      </Routes>
+                    </Suspense>
                   <LanguagePreferenceDialog />
                   <AccessibilityPanel />
                   <FloatingChatWidget />

@@ -178,6 +178,10 @@ export function initSocketServer(httpServer: HttpServer): Server {
       // Ensure direct-message attachment columns exist for older databases
       await pool.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS attachment_url TEXT`).catch(() => {})
       await pool.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS attachment_type VARCHAR(50)`).catch(() => {})
+      await pool.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'sent'`).catch(() => {})
+      await pool.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMPTZ`).catch(() => {})
+      await pool.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS operator_id UUID`).catch(() => {})
+      await pool.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS image_url TEXT`).catch(() => {})
       await pool.query(`ALTER TABLE messages ALTER COLUMN content DROP NOT NULL`).catch(() => {})
 
       // Ensure community_chat_messages table exists

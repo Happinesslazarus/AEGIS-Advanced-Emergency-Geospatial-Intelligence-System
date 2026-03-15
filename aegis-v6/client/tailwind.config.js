@@ -5,7 +5,19 @@ export default {
   theme: {
     extend: {
       colors: {
-        aegis: { 50:'#eef7ff',100:'#d9edff',200:'#bce0ff',300:'#8ecdff',400:'#59b0ff',500:'#338dff',600:'#1a6df5',700:'#1456e1',800:'#1746b6',900:'#193d8f',950:'#142757' },
+        aegis: {
+          50:  'rgb(var(--aegis-50)  / <alpha-value>)',
+          100: 'rgb(var(--aegis-100) / <alpha-value>)',
+          200: 'rgb(var(--aegis-200) / <alpha-value>)',
+          300: 'rgb(var(--aegis-300) / <alpha-value>)',
+          400: 'rgb(var(--aegis-400) / <alpha-value>)',
+          500: 'rgb(var(--aegis-500) / <alpha-value>)',
+          600: 'rgb(var(--aegis-600) / <alpha-value>)',
+          700: 'rgb(var(--aegis-700) / <alpha-value>)',
+          800: 'rgb(var(--aegis-800) / <alpha-value>)',
+          900: 'rgb(var(--aegis-900) / <alpha-value>)',
+          950: 'rgb(var(--aegis-950) / <alpha-value>)',
+        },
       },
       fontFamily: {
         display: ['"DM Sans"','system-ui','sans-serif'],
@@ -32,7 +44,7 @@ export default {
         slideInBottom: { '0%':{opacity:'0',transform:'translateY(16px)'},'100%':{opacity:'1',transform:'translateY(0)'} },
         shimmer: { '0%':{backgroundPosition:'-200% 0'},'100%':{backgroundPosition:'200% 0'} },
         float: { '0%,100%':{transform:'translateY(0)'},'50%':{transform:'translateY(-6px)'} },
-        glowPulse: { '0%,100%':{boxShadow:'0 0 5px rgba(26,109,245,0.3)'},'50%':{boxShadow:'0 0 20px rgba(26,109,245,0.5)'} },
+        glowPulse: { '0%,100%':{boxShadow:'0 0 5px rgba(var(--aegis-600),0.3)'},'50%':{boxShadow:'0 0 20px rgba(var(--aegis-600),0.5)'} },
         ring: { '0%,100%':{transform:'rotate(0deg)'},'10%,30%':{transform:'rotate(-10deg)'},'20%,40%':{transform:'rotate(10deg)'},'50%':{transform:'rotate(0deg)'} },
       },
       backgroundImage: {

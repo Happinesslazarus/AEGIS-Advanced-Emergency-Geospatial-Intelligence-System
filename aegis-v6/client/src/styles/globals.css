@@ -2,52 +2,547 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ══════════════════════════════════════════════════════════
+   AEGIS 8-THEME SYSTEM — CSS Variables
+   Each theme sets the aegis-* accent palette + surface colors
+   that guarantee readability in both light and dark modes.
+   ══════════════════════════════════════════════════════════ */
+
+/* HSU — Dark Blue (site default)
+   Default theme now uses the dark-blue aegis palette so the "HSU"
+   default appears with blue accents across the site. */
+[data-theme="default"] {
+  --aegis-50:  238 247 255;
+  --aegis-100: 217 237 255;
+  --aegis-200: 188 224 255;
+  --aegis-300: 142 205 255;
+  --aegis-400: 89 176 255;
+  --aegis-500: 51 141 255;
+  --aegis-600: 26 109 245;
+  --aegis-700: 20 86 225;
+  --aegis-800: 23 70 182;
+  --aegis-900: 25 61 143;
+  --aegis-950: 20 39 87;
+  --glow-color: 26 109 245;
+  --glow-gold: 251 191 36;
+}
+
+/* Blue (used by "dark" and "light" themes) */
+:root,
+[data-theme="dark"],
+[data-theme="light"] {
+  --aegis-50:  238 247 255;
+  --aegis-100: 217 237 255;
+  --aegis-200: 188 224 255;
+  --aegis-300: 142 205 255;
+  --aegis-400: 89 176 255;
+  --aegis-500: 51 141 255;
+  --aegis-600: 26 109 245;
+  --aegis-700: 20 86 225;
+  --aegis-800: 23 70 182;
+  --aegis-900: 25 61 143;
+  --aegis-950: 20 39 87;
+  --glow-color: 26 109 245;
+  --glow-gold: 251 191 36;
+}
+
+/* Midnight — Indigo / Purple */
+[data-theme="midnight"] {
+  --aegis-50:  238 242 255;
+  --aegis-100: 224 231 255;
+  --aegis-200: 199 210 254;
+  --aegis-300: 165 180 252;
+  --aegis-400: 129 140 248;
+  --aegis-500: 99 102 241;
+  --aegis-600: 79 70 229;
+  --aegis-700: 67 56 202;
+  --aegis-800: 55 48 163;
+  --aegis-900: 49 46 129;
+  --aegis-950: 30 27 75;
+  --glow-color: 99 102 241;
+  --glow-gold: 251 191 36;
+}
+
+/* Ocean — Cyan / Teal */
+[data-theme="ocean"] {
+  --aegis-50:  236 254 255;
+  --aegis-100: 207 250 254;
+  --aegis-200: 165 243 252;
+  --aegis-300: 103 232 249;
+  --aegis-400: 34 211 238;
+  --aegis-500: 6 182 212;
+  --aegis-600: 8 145 178;
+  --aegis-700: 14 116 144;
+  --aegis-800: 21 94 117;
+  --aegis-900: 22 78 99;
+  --aegis-950: 8 51 68;
+  --glow-color: 6 182 212;
+  --glow-gold: 251 191 36;
+}
+
+/* Forest — Emerald / Green */
+[data-theme="forest"] {
+  --aegis-50:  236 253 245;
+  --aegis-100: 209 250 229;
+  --aegis-200: 167 243 208;
+  --aegis-300: 110 231 183;
+  --aegis-400: 52 211 153;
+  --aegis-500: 16 185 129;
+  --aegis-600: 5 150 105;
+  --aegis-700: 4 120 87;
+  --aegis-800: 6 95 70;
+  --aegis-900: 6 78 59;
+  --aegis-950: 2 44 34;
+  --glow-color: 16 185 129;
+  --glow-gold: 251 191 36;
+}
+
+/* Sunset — Amber / Orange (warm gold glow) */
+[data-theme="sunset"] {
+  --aegis-50:  255 251 235;
+  --aegis-100: 254 243 199;
+  --aegis-200: 253 230 138;
+  --aegis-300: 252 211 77;
+  --aegis-400: 251 191 36;
+  --aegis-500: 245 158 11;
+  --aegis-600: 217 119 6;
+  --aegis-700: 180 83 9;
+  --aegis-800: 146 64 14;
+  --aegis-900: 120 53 15;
+  --aegis-950: 69 26 3;
+  --glow-color: 245 158 11;
+  --glow-gold: 251 191 36;
+}
+
+/* Rose — Pink / Red */
+[data-theme="rose"] {
+  --aegis-50:  255 241 242;
+  --aegis-100: 255 228 230;
+  --aegis-200: 254 205 211;
+  --aegis-300: 253 164 175;
+  --aegis-400: 251 113 133;
+  --aegis-500: 244 63 94;
+  --aegis-600: 225 29 72;
+  --aegis-700: 190 18 60;
+  --aegis-800: 159 18 57;
+  --aegis-900: 136 19 55;
+  --aegis-950: 76 5 25;
+  --glow-color: 244 63 94;
+  --glow-gold: 251 191 36;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SURFACE TOKENS  —  per-theme CSS variable assignments
+
+   CASCADE ORDER IS CRITICAL:
+     1. :root          → light-mode fallback (before JS sets data-theme)
+     2. Dark block     → explicit [data-theme] selectors; NO :root so it
+                         never overrides [data-theme="light/sunset"].
+     3. Light block    → comes AFTER dark block; wins for light themes
+                         because "light"/"sunset" don't match the dark
+                         selectors, and [attr] specificity equals :root so
+                         later position wins.
+
+   Bug that was here: :root was inside the dark block. Since :root and
+   [data-theme="light"] share the same CSS specificity [0,1,0], and the
+   dark block came last, dark tokens leaked into the light theme.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── :root fallback — light values, applied before JS sets data-theme ── */
+:root {
+  --surface-primary:   248 250 252;   /* slate-50   #f8fafc */
+  --surface-secondary: 255 255 255;   /* white      #ffffff */
+  --surface-muted:     241 245 249;   /* slate-100  #f1f5f9 */
+  --text-primary:      15  23  42;    /* slate-900  #0f172a */
+  --text-secondary:    51  65  85;    /* slate-700  #334155 */
+  --text-muted:        100 116 139;   /* slate-500  #64748b */
+  --border-default:    226 232 240;   /* slate-200  #e2e8f0 */
+  --border-strong:     203 213 225;   /* slate-300  #cbd5e1 */
+  --clr-nav-bg:        255 255 255;
+  --clr-nav-fg:        15  23  42;
+  --clr-nav-fg-muted:  100 116 139;
+  --clr-nav-border:    226 232 240;
+  --clr-card-bg:       255 255 255;
+  --clr-card-fg:       15  23  42;
+  --clr-card-fg-muted: 100 116 139;
+  --clr-card-border:   226 232 240;
+  --clr-input-bg:      255 255 255;
+  --clr-input-fg:      15  23  42;
+  --clr-input-border:  203 213 225;
+  --clr-modal-bg:      255 255 255;
+  --clr-modal-border:  226 232 240;
+  --clr-overlay:       0 0 0 / 0.4;
+  --clr-sidebar-bg:    248 250 252;
+  --clr-sidebar-fg:    15  23  42;
+  --clr-tag-bg:        241 245 249;
+  --clr-tag-fg:        51  65  85;
+  --icon-primary:      30  41  59;    /* slate-800  #1e293b */
+  --icon-muted:        100 116 139;
+  --icon-on-accent:    255 255 255;
+  --text-on-accent:    255 255 255;
+  --accent-success:    22 163 74;
+  --accent-warning:    217 119 6;
+  --accent-danger:     220 38 38;
+  --border-subtle:     226 232 240;
+}
+
+/* ── Dark-theme surface overrides ──
+   IMPORTANT: no :root here — prevents leaking dark tokens into light themes. */
+[data-theme="default"],
+[data-theme="dark"],
+[data-theme="midnight"],
+[data-theme="ocean"],
+[data-theme="forest"],
+[data-theme="rose"] {
+  --surface-primary:   2   8   23;    /* #020817              */
+  --surface-secondary: 15  23  42;    /* slate-900  #0f172a   */
+  --surface-muted:     17  24  39;    /* #111827              */
+  --text-primary:      248 250 252;   /* slate-50   #f8fafc   */
+  --text-secondary:    203 213 225;   /* slate-300  #cbd5e1   */
+  --text-muted:        148 163 184;   /* slate-400  #94a3b8   */
+  --border-default:    30  41  59;    /* slate-800  #1e293b   */
+  --border-strong:     51  65  85;    /* slate-700  #334155   */
+  /* ── Component-level tokens (dark) ── */
+  --clr-nav-bg:        9   9   15;
+  --clr-nav-fg:        248 250 252;
+  --clr-nav-fg-muted:  148 163 184;
+  --clr-nav-border:    30  41  59;
+  --clr-card-bg:       15  23  42;
+  --clr-card-fg:       248 250 252;
+  --clr-card-fg-muted: 148 163 184;
+  --clr-card-border:   30  41  59;
+  --clr-input-bg:      30  41  59;
+  --clr-input-fg:      248 250 252;
+  --clr-input-border:  51  65  85;
+  --clr-modal-bg:      15  23  42;
+  --clr-modal-border:  30  41  59;
+  --clr-overlay:       0 0 0 / 0.7;
+  --clr-sidebar-bg:    15  23  42;
+  --clr-sidebar-fg:    248 250 252;
+  --clr-tag-bg:        30  41  59;
+  --clr-tag-fg:        203 213 225;
+  /* ── Icon tokens (dark) ── */
+  --icon-primary:      248 250 252;   /* slate-50   #f8fafc   */
+  --icon-muted:        148 163 184;   /* slate-400  #94a3b8   */
+  --icon-on-accent:    255 255 255;
+  /* ── Semantic accent tokens ── */
+  --text-on-accent:    255 255 255;
+  --accent-success:    22 163 74;
+  --accent-warning:    217 119 6;
+  --accent-danger:     220 38 38;
+  --border-subtle:     30  41  59;
+}
+
+/* ── Light-theme surface overrides ──
+   Placed AFTER dark block so these theme-specific values win in the cascade.
+   (Themes "light" and "sunset" match no dark-block selectors, so there is
+    no conflict — this ordering just guarantees future-proofing.) */
+[data-theme="light"],
+[data-theme="sunset"] {
+  --surface-primary:   248 250 252;   /* slate-50   #f8fafc */
+  --surface-secondary: 255 255 255;   /* white      #ffffff */
+  --surface-muted:     241 245 249;   /* slate-100  #f1f5f9 */
+  --text-primary:      15  23  42;    /* slate-900  #0f172a */
+  --text-secondary:    51  65  85;    /* slate-700  #334155 */
+  --text-muted:        100 116 139;   /* slate-500  #64748b */
+  --border-default:    226 232 240;   /* slate-200  #e2e8f0 */
+  --border-strong:     203 213 225;   /* slate-300  #cbd5e1 */
+  /* ── Component-level tokens (light) ── */
+  --clr-nav-bg:        255 255 255;
+  --clr-nav-fg:        15  23  42;
+  --clr-nav-fg-muted:  100 116 139;
+  --clr-nav-border:    226 232 240;
+  --clr-card-bg:       255 255 255;
+  --clr-card-fg:       15  23  42;
+  --clr-card-fg-muted: 100 116 139;
+  --clr-card-border:   226 232 240;
+  --clr-input-bg:      255 255 255;
+  --clr-input-fg:      15  23  42;
+  --clr-input-border:  203 213 225;
+  --clr-modal-bg:      255 255 255;
+  --clr-modal-border:  226 232 240;
+  --clr-overlay:       0 0 0 / 0.4;
+  --clr-sidebar-bg:    248 250 252;
+  --clr-sidebar-fg:    15  23  42;
+  --clr-tag-bg:        241 245 249;
+  --clr-tag-fg:        51  65  85;
+  /* ── Icon tokens (light) ── */
+  --icon-primary:      30  41  59;    /* slate-800  #1e293b */
+  --icon-muted:        100 116 139;
+  --icon-on-accent:    255 255 255;
+  /* ── Semantic accent tokens ── */
+  --text-on-accent:    255 255 255;
+  --accent-success:    22 163 74;
+  --accent-warning:    217 119 6;
+  --accent-danger:     220 38 38;
+  --border-subtle:     226 232 240;
+}
+
 @layer base {
   html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
-  body { font-family: 'DM Sans', system-ui, sans-serif; @apply bg-gray-50 text-gray-900; }
+  body {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    color: rgb(var(--text-primary));
+    background: rgb(var(--surface-secondary));
+  }
   .dark body { @apply bg-gray-950 text-gray-100; }
+  :not(.dark) body { @apply bg-gray-50 text-primary; }
   :focus-visible { @apply outline-2 outline-offset-2 outline-aegis-600; }
   .skip-link { @apply absolute -top-10 left-4 bg-aegis-600 text-white px-4 py-2 rounded-b-lg z-[100] transition-all; }
   .skip-link:focus { @apply top-0; }
+
+  /* ── Option elements: explicit colors so every browser renders legibly ── */
+  option { color: #0f172a; background-color: #ffffff; }
+  .dark option { color: #f8fafc; background-color: #1e293b; }
+
+  /* ── Light theme global text fixes ── */
+  :not(.dark) h1,:not(.dark) h2,:not(.dark) h3,:not(.dark) h4,:not(.dark) h5,:not(.dark) h6 { color: #0f172a; }
+  :not(.dark) td,:not(.dark) th { color: #0f172a; }
+
+    /* Ensure headings are readable in dark mode (belt-and-suspenders).
+      Some components forget to add dark: variants — enforce bright
+      heading colors in dark and dark text in light mode. */
+    html.dark h1, html.dark h2, html.dark h3, html.dark h4 { color: #ffffff !important; }
+    html:not(.dark) h1, html:not(.dark) h2, html:not(.dark) h3, html:not(.dark) h4 { color: #0f172a; }
+
+  /* ── Input / select text safety ──
+     Only set background on elements that DON'T have an explicit Tailwind
+     bg-* utility class (utilities layer wins over base layer). This rule
+     acts as a fallback preventing transparent/dark inherited backgrounds
+     from leaking into light-theme form fields. */
+  :not(.dark) input:not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  :not(.dark) textarea {
+    color: rgb(var(--clr-input-fg));
+    background-color: rgb(var(--clr-input-bg));
+  }
+  /* Selects: always use light color-scheme so the browser never paints native
+     dark chrome (gray box / white text) over our CSS. The dropdown popup list
+     will always appear white-on-dark-text, which is universally readable.
+     Our CSS background-color and color properties control the trigger look. */
+  select {
+    color-scheme: light;
+  }
+
+  /* ── Semantic text utility tokens (use these in markup for important content) ──
+     These ensure primary/secondary/muted text follow theme tokens and cannot
+     be accidentally faded by parent opacity or muted rules. Use `text-primary`
+     on all important headings, nav labels, map titles, emergency contacts, and
+     footer/platform items. */
+  .text-primary { color: rgb(var(--text-primary)) !important; opacity: 1 !important; filter: none !important; }
+  .text-secondary { color: rgb(var(--text-secondary)) !important; }
+  .text-muted { color: rgb(var(--text-muted)) !important; }
+  .text-on-dark { color: rgb(var(--text-primary)) !important; }
+  .text-on-light { color: rgb(var(--text-primary)) !important; }
+  /* Icon semantic utilities — use these for nav/sidebar/control icons */
+  .icon-primary { color: rgb(var(--icon-primary)) !important; }
+  .icon-muted   { color: rgb(var(--icon-muted)) !important; }
+
+    /* ── Light-mode safety-net for Tailwind utilities that use `text-white` ──
+      Some components relied on `text-white` (and `text-white/<alpha>`) for
+      dark-theme designs; when the page is rendered in light mode these
+      classes produce unreadable pale text. Map them to accessible dark
+      colors in non-dark pages. */
+    :not(.dark) .text-white { color: #0f172a !important; }
+    :not(.dark) .text-white\/60 { color: #475569 !important; }
+    :not(.dark) .text-white\/70 { color: #334155 !important; }
+    :not(.dark) .text-white\/50 { color: #6b7280 !important; }
+    :not(.dark) .text-white\/80 { color: #0f172a !important; }
+
+    /* Nav safety-net: high-contrast nav text via token — scoped to direct text
+       nodes, NOT forced on child components that manage their own colors. */
+    nav { background-color: rgba(var(--clr-nav-bg), 1) !important; }
+    .dark nav { background-color: rgb(var(--clr-nav-bg)) !important; }
+    /* Scoped: only headings and direct anchors — NOT inner utility controls */
+    nav > .nav-brand, nav > .nav-links > a { color: rgb(var(--clr-nav-fg)); }
+
+    /* Ensure glass-card and header overlays do not reduce child text contrast */
+    .glass-card, .glass, .card { color: rgb(var(--clr-card-fg)) !important; }
+
+      /* footer uses theme tokens (no forced overrides) */
 }
 
 @layer components {
   .badge { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide; }
-  .badge-critical { @apply bg-red-100 text-red-800 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800; }
-  .badge-medium { @apply bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800; }
-  .badge-low { @apply bg-blue-100 text-blue-800 border border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800; }
+  .badge-critical {
+    background-color: rgba(220,38,38,0.32);
+    color: #ffffff;
+    border: 1px solid rgba(220,38,38,0.50);
+  }
+  .badge-medium {
+    background-color: rgba(217,119,6,0.28);
+    color: #ffffff;
+    border: 1px solid rgba(217,119,6,0.45);
+  }
+  .badge-low {
+    background-color: rgba(22,163,74,0.28);
+    color: #ffffff;
+    border: 1px solid rgba(22,163,74,0.45);
+  }
   .badge-info { @apply bg-gray-100 text-gray-800 border border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700; }
   .badge-verified { @apply bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300; }
   .badge-pending { @apply bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300; }
   .badge-urgent { @apply bg-red-600 text-white; }
   .badge-flagged { @apply bg-orange-600 text-white; }
-  .card { @apply bg-white rounded-xl border border-gray-200 shadow-sm dark:bg-gray-900 dark:border-gray-800; }
+
+  /* Cards — theme-aware with glow support.
+     `color` is set explicitly so inherited text in child elements
+     always has correct contrast without requiring per-element classes. */
+  .card {
+    @apply bg-white rounded-xl border border-gray-200 shadow-sm dark:bg-gray-900 dark:border-gray-800;
+    color: rgb(var(--clr-card-fg));
+  }
   .card-hover { @apply card transition-all duration-200 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-700; }
+  .card-glow {
+    @apply card;
+    color: rgb(var(--clr-card-fg));
+    box-shadow: 0 0 0 1px rgba(var(--glow-color), 0.08), 0 4px 24px rgba(var(--glow-color), 0.06);
+  }
+  .dark .card-glow {
+    box-shadow: 0 0 0 1px rgba(var(--glow-color), 0.15), 0 4px 30px rgba(var(--glow-color), 0.1);
+  }
+  .card-gold {
+    @apply bg-white dark:bg-gray-900 rounded-xl;
+    color: rgb(var(--clr-card-fg));
+    border: 1px solid rgba(var(--glow-gold), 0.2);
+    box-shadow: 0 0 0 1px rgba(var(--glow-gold), 0.05), 0 4px 20px rgba(var(--glow-gold), 0.08);
+  }
+  .dark .card-gold {
+    border-color: rgba(var(--glow-gold), 0.25);
+    box-shadow: 0 0 0 1px rgba(var(--glow-gold), 0.1), 0 4px 30px rgba(var(--glow-gold), 0.12);
+  }
+  /* ── Light-mode low-contrast safety-net ──
+     Some components intentionally use muted utility classes for subtle UI
+     elements. When the app is in the light theme these can become too faint
+     (e.g., `text-gray-300`). Enforce a stronger color for those utilities in
+     light mode so text remains readable without changing every component.
+  */
+  :not(.dark) .text-gray-300,
+  :not(.dark) .text-gray-400,
+  :not(.dark) .text-gray-500 {
+    color: #0f172a !important;
+  }
+
+  /* ── Dark-mode utility safety-net ──
+     Ensure common muted utility classes (`text-gray-300/400/500`) map to
+     accessible colors in dark themes even if components forget `dark:`
+     variants. These use theme tokens so different themes remain consistent.
+  */
+  html.dark .text-gray-300,
+  html.dark .text-gray-400 {
+    color: rgb(var(--text-secondary)) !important;
+  }
+  html.dark .text-gray-500 {
+    color: rgb(var(--text-muted)) !important;
+  }
+
+  /* Buttons — theme-aware */
   .btn { @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed; }
   .btn-xs { @apply btn px-2.5 py-1.5 text-xs gap-1 rounded-md; }
   .btn-sm { @apply btn px-3 py-2 text-xs gap-1.5; }
   .btn-lg { @apply btn px-6 py-3 text-base gap-2.5 rounded-xl; }
-  .btn-primary { @apply btn bg-aegis-600 text-white hover:bg-aegis-700 active:bg-aegis-800 shadow-sm shadow-aegis-600/20; }
+  .btn-primary {
+    @apply btn bg-aegis-600 hover:bg-aegis-700 active:bg-aegis-800;
+    color: #ffffff;
+    letter-spacing: 0.01em;
+    box-shadow: 0 2px 8px rgba(var(--glow-color), 0.25), 0 0 0 0 rgba(var(--glow-color), 0);
+  }
+  .btn-primary:hover {
+    color: #ffffff;
+    box-shadow: 0 4px 16px rgba(var(--glow-color), 0.35), 0 0 20px rgba(var(--glow-color), 0.15);
+  }
   .btn-danger { @apply btn bg-red-600 text-white hover:bg-red-700 active:bg-red-800 shadow-sm shadow-red-600/20; }
   .btn-success { @apply btn bg-green-600 text-white hover:bg-green-700 active:bg-green-800 shadow-sm shadow-green-600/20; }
   .btn-warning { @apply btn bg-amber-600 text-white hover:bg-amber-700 active:bg-amber-800 shadow-sm shadow-amber-600/20; }
   .btn-info { @apply btn bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 shadow-sm shadow-blue-600/20; }
-  .btn-ghost { @apply btn bg-transparent text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800; }
-  .btn-outline { @apply btn border-2 border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800; }
+  .btn-ghost { @apply btn bg-transparent text-muted hover:bg-gray-100 dark:hover:bg-gray-800; }
+  .btn-outline { @apply btn border-2 border-gray-300 text-secondary hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800; }
   .btn-outline-primary { @apply btn border-2 border-aegis-500 text-aegis-600 hover:bg-aegis-50 dark:border-aegis-600 dark:text-aegis-400 dark:hover:bg-aegis-950/20; }
   .btn-outline-danger { @apply btn border-2 border-red-400 text-red-600 hover:bg-red-50 dark:border-red-600 dark:text-red-400 dark:hover:bg-red-950/20; }
   .btn-icon { @apply inline-flex items-center justify-center p-2 rounded-lg transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed; }
   .btn-icon-sm { @apply btn-icon p-1.5; }
   .btn-pill { @apply btn rounded-full; }
-  .input { @apply w-full px-4 py-3 rounded-lg border-2 border-gray-200 bg-white text-gray-900 placeholder-gray-400 transition-colors duration-200 focus:border-aegis-500 focus:outline-none dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100; }
+
+  /* Gold-glow button */
+  .btn-gold {
+    @apply btn font-bold;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: #fff;
+    box-shadow: 0 2px 10px rgba(245, 158, 11, 0.3), inset 0 1px 0 rgba(255,255,255,0.2);
+  }
+  .btn-gold:hover {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    box-shadow: 0 4px 20px rgba(251, 191, 36, 0.45), inset 0 1px 0 rgba(255,255,255,0.3);
+  }
+
+  /* Inputs */
+  .input { @apply w-full px-4 py-3 rounded-lg border-2 border-gray-200 bg-white text-primary placeholder-gray-400 transition-colors duration-200 focus:border-aegis-500 focus:outline-none dark:bg-gray-900 dark:border-gray-700; }
   .input-error { @apply border-red-500 focus:border-red-500; }
-  /* CRITICAL: Map must stay below all modals */
+
+  /* ── Theme-adaptive utility classes ──
+     Use these on container/wrapper elements to get automatic
+     light/dark switching via CSS variables. */
+  .text-adaptive         { color: rgb(var(--text-primary)); }
+  .text-adaptive-muted   { color: rgb(var(--text-secondary)); }
+  .text-adaptive-faint   { color: rgb(var(--text-muted)); }
+  .bg-adaptive           { background-color: rgb(var(--surface-primary)); }
+  .bg-adaptive-secondary { background-color: rgb(var(--surface-secondary)); }
+  .bg-adaptive-muted     { background-color: rgb(var(--surface-muted)); }
+  .border-adaptive       { border-color: rgb(var(--border-default)); }
+  .border-adaptive-strong { border-color: rgb(var(--border-strong)); }
+
+  /* ── Card adaptive shorthand ── */
+  .card-adaptive {
+    background-color: rgb(var(--clr-card-bg));
+    color:            rgb(var(--clr-card-fg));
+    border:           1px solid rgb(var(--clr-card-border));
+    border-radius:    1rem;
+  }
+  /* ── Input adaptive shorthand ── */
+  .input-adaptive {
+    background-color: rgb(var(--clr-input-bg));
+    color:            rgb(var(--clr-input-fg));
+    border:           1px solid rgb(var(--clr-input-border));
+  }
+
+  /* CRITICAL: Map must stay below all modals and dropdowns */
   .leaflet-container { @apply rounded-xl; font-family: 'DM Sans', system-ui, sans-serif; }
-  .map-wrapper { position: relative; z-index: 0; }
+  .map-wrapper { position: relative; z-index: 0; isolation: isolate; }
   .map-wrapper .leaflet-container { z-index: 0 !important; }
   .map-wrapper .leaflet-pane { z-index: 0 !important; }
   .map-wrapper .leaflet-top, .map-wrapper .leaflet-bottom { z-index: 1 !important; }
   .map-legend { z-index: 2 !important; }
+
+  /* ── Map layer controls: prevent overlap with modals/nav ── */
+  .map-wrapper .leaflet-control-layers { z-index: 3 !important; max-height: 60vh; overflow-y: auto; }
+  .map-wrapper .leaflet-popup { z-index: 5 !important; }
+  .map-wrapper .leaflet-tooltip { z-index: 4 !important; }
+
+  /* Force maps to never exceed their container height */
+  .map-wrapper .leaflet-container { max-height: 100%; }
+
+  /* ── Nav tab strip (admin/shared) ── */
+  .nav-tab-strip {
+    @apply flex gap-0.5 min-w-max;
+  }
+  .nav-tab {
+    @apply relative flex items-center gap-2 px-4 py-2.5 text-xs font-semibold whitespace-nowrap rounded-t-lg transition-all duration-200;
+    border-bottom: 2px solid transparent;
+  }
+  .nav-tab:hover:not(.nav-tab-active) {
+    @apply bg-gray-100 dark:bg-white/5;
+    border-bottom-color: rgba(var(--glow-color), 0.3);
+  }
+  .nav-tab-active {
+    color: rgb(var(--aegis-500));
+    border-bottom: 2px solid rgb(var(--aegis-500));
+    background: rgba(var(--aegis-500), 0.06);
+  }
+  .dark .nav-tab-active {
+    color: rgb(var(--aegis-400));
+    border-bottom-color: rgb(var(--aegis-400));
+    background: rgba(var(--aegis-500), 0.08);
+    box-shadow: 0 2px 12px rgba(var(--glow-color), 0.15);
+  }
 }
 
 /* Accessibility modes */
@@ -138,33 +633,54 @@
 }
 
 @keyframes glow-pulse {
-  0%, 100% { box-shadow: 0 0 5px rgba(26, 109, 245, 0.3); }
-  50% { box-shadow: 0 0 20px rgba(26, 109, 245, 0.5); }
+  0%, 100% { box-shadow: 0 0 8px rgba(var(--glow-color), 0.3), 0 0 0 rgba(var(--glow-gold), 0); }
+  50% { box-shadow: 0 0 24px rgba(var(--glow-color), 0.5), 0 0 4px rgba(var(--glow-gold), 0.15); }
 }
 
-/* Glassmorphism */
+@keyframes gold-glow {
+  0%, 100% { box-shadow: 0 0 8px rgba(251, 191, 36, 0.2); }
+  50% { box-shadow: 0 0 25px rgba(251, 191, 36, 0.45), 0 0 10px rgba(251, 191, 36, 0.2); }
+}
+
+@keyframes gold-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes accent-glow {
+  0%, 100% { box-shadow: 0 0 6px rgba(var(--glow-color), 0.25); }
+  50% { box-shadow: 0 0 20px rgba(var(--glow-color), 0.4), 0 0 6px rgba(var(--glow-gold), 0.1); }
+}
+
+/* ══ GLASSMORPHISM — theme-aware with explicit text inheritance anchoring ══
+   Setting `color` here ensures all child text without an explicit color
+   class correctly inherits the theme-appropriate foreground color.
+   Elements with explicit Tailwind color classes (.text-white, etc.) are
+   unaffected — CSS specificity keeps their own color intact. */
 .glass {
   backdrop-filter: blur(12px) saturate(150%);
   -webkit-backdrop-filter: blur(12px) saturate(150%);
   background: rgba(255, 255, 255, 0.72);
   border: 1px solid rgba(255, 255, 255, 0.3);
+  color: rgb(var(--text-primary));
 }
 .dark .glass {
   background: rgba(17, 24, 39, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(var(--glow-color), 0.08);
 }
 
 .glass-card {
   backdrop-filter: blur(16px) saturate(180%);
   -webkit-backdrop-filter: blur(16px) saturate(180%);
-  background: rgba(255, 255, 255, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+  background: #ffffff;
+  border: 1px solid rgba(209, 213, 219, 0.9);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 4px 24px rgba(0, 0, 0, 0.06);
+  color: rgb(var(--clr-card-fg));
 }
 .dark .glass-card {
   background: rgba(17, 24, 39, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(var(--glow-color), 0.08);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(var(--glow-color), 0.04);
 }
 
 .glass-nav {
@@ -172,11 +688,32 @@
   -webkit-backdrop-filter: blur(20px) saturate(200%);
 }
 
+/* ── Gold glass card — add text anchor ── */
+.glass-gold {
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  box-shadow: 0 4px 20px rgba(251, 191, 36, 0.06);
+  color: rgb(var(--text-primary));
+}
+.dark .glass-gold {
+  background: rgba(17, 24, 39, 0.8);
+  border: 1px solid rgba(251, 191, 36, 0.15);
+  box-shadow: 0 0 25px rgba(251, 191, 36, 0.08), 0 4px 30px rgba(0, 0, 0, 0.3);
+}
+
 /* Animation utilities */
 .animate-shimmer {
   background: linear-gradient(90deg, transparent 25%, rgba(255,255,255,0.1) 50%, transparent 75%);
   background-size: 200% 100%;
   animation: shimmer 2s infinite;
+}
+
+.animate-gold-shimmer {
+  background: linear-gradient(90deg, transparent 25%, rgba(251,191,36,0.15) 50%, transparent 75%);
+  background-size: 200% 100%;
+  animation: gold-shimmer 3s infinite;
 }
 
 .animate-float { animation: float 3s ease-in-out infinite; }
@@ -191,6 +728,8 @@
 .animate-slide-in-left { animation: slide-in-left 0.4s ease-out forwards; }
 .animate-bounce-subtle { animation: bounce-subtle 2s ease-in-out infinite; }
 .animate-glow-pulse { animation: glow-pulse 2s ease-in-out infinite; }
+.animate-gold-glow { animation: gold-glow 2.5s ease-in-out infinite; }
+.animate-accent-glow { animation: accent-glow 2s ease-in-out infinite; }
 
 /* Staggered children animation */
 .stagger-children > * { opacity: 0; animation: count-up 0.4s ease-out forwards; }
@@ -203,13 +742,50 @@
 .stagger-children > *:nth-child(7) { animation-delay: 0.35s; }
 .stagger-children > *:nth-child(8) { animation-delay: 0.4s; }
 
-/* Gradient text utility */
+/* Gradient text utility — theme-aware */
 .gradient-text {
-  background: linear-gradient(135deg, #1a6df5, #59b0ff, #338dff);
+  background: linear-gradient(135deg, rgb(var(--aegis-600)), rgb(var(--aegis-400)), rgb(var(--aegis-500)));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+
+.gradient-text-gold {
+  background: linear-gradient(135deg, #f59e0b, #fbbf24, #d97706);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Marquee for alert tickers ── */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.animate-marquee { animation: marquee 30s linear infinite; }
+
+/* ── Report detail modal — prevent photo cramping ── */
+.report-detail-modal { max-height: 90vh; overflow-y: auto; }
+.report-detail-modal .media-gallery { max-height: 300px; overflow: hidden; border-radius: 0.75rem; }
+.report-detail-modal .media-gallery img { object-fit: contain; max-height: 280px; width: auto; margin: 0 auto; }
+
+/* Ensure evidence gallery images in modals are properly sized */
+.fixed .grid img[alt^="Evidence"] {
+  object-fit: cover;
+  min-height: 120px;
+}
+.fixed .grid-cols-1 img[alt^="Evidence"] {
+  object-fit: contain;
+  max-height: 280px;
+  min-height: 160px;
+  width: 100%;
+}
+
+/* ── Map control spacing fix ── */
+.leaflet-top.leaflet-right { right: 10px !important; }
+.leaflet-top.leaflet-right .leaflet-control { margin-bottom: 6px !important; }
+.map-wrapper .spatial-toolbar { z-index: 6 !important; }
+.map-wrapper .flood-layer-control { z-index: 6 !important; max-height: 50vh; overflow-y: auto; }
 
 /* Card hover lift effect */
 .hover-lift {
@@ -247,3 +823,178 @@
   .safe-top { padding-top: env(safe-area-inset-top); }
   .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   CRITICAL CONTRAST SAFETY NET (unlayered — highest cascade tier)
+   ══════════════════════════════════════════════════════════════════
+
+   CSS Cascade Level 5: unlayered rules beat rules in any @layer block,
+   regardless of specificity. This section fixes the most common contrast
+   failures where components assume a dark background but are used on
+   light themes (no .dark class).
+
+   SCOPE: Only targets STRUCTURAL/CONTAINER elements that should adapt.
+   Intentional decorative white text (buttons, badges, icons on colored
+   bg) is protected by the fact that those elements have their OWN
+   explicit Tailwind color class, which wins over inheritance.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* 1. Ensure all native form fields use theme-appropriate colors */
+html:not(.dark) input:not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+html:not(.dark) select,
+html:not(.dark) textarea {
+  color: #111827;
+}
+
+/* 2. Select option text is always readable regardless of browser */
+select option { color: #111827; background-color: #ffffff; }
+html.dark select option { color: #f9fafb; background-color: #1f2937; }
+
+/* 3. Stat card big numbers — explicit override for unlabelled big values */
+html:not(.dark) .glass-card .text-2xl,
+html:not(.dark) .glass-card .text-3xl,
+html:not(.dark) .glass-card .text-4xl,
+html:not(.dark) .card .text-2xl,
+html:not(.dark) .card .text-3xl,
+html:not(.dark) .card .text-4xl {
+  color: #111827;
+}
+
+/* 4. Ensure nav links that only have dark:text-* get visible fallback */
+html:not(.dark) nav .nav-tab:not(.nav-tab-active) {
+  color: #6b7280; /* gray-500 */
+}
+html:not(.dark) nav .nav-tab-active {
+  color: rgb(var(--aegis-600));
+}
+
+/* 5. Table cells without explicit color classes */
+html:not(.dark) table td,
+html:not(.dark) table th {
+  color: #111827;
+}
+
+/* 6. Headings inside glass/card containers (belt-and-suspenders) */
+html:not(.dark) .glass-card h1,
+html:not(.dark) .glass-card h2,
+html:not(.dark) .glass-card h3,
+html:not(.dark) .glass-card h4,
+html:not(.dark) .card h1,
+html:not(.dark) .card h2,
+html:not(.dark) .card h3,
+html:not(.dark) .card h4 {
+  color: #111827;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+   WCAG AA CONTRAST SAFETY NET — TWO-PHASE APPROACH
+   ══════════════════════════════════════════════════════════════════
+   PHASE 1: Boost ALL gray/slate text in dark mode unconditionally.
+   These rules are unlayered + !important so they beat every Tailwind
+   @layer utilities rule regardless of specificity.
+
+   PHASE 2 (comes AFTER phase 1 in this file): Explicitly restore the
+   proper color for elements that DO carry a correct dark:text-* class.
+   Since Phase 1 and Phase 2 share the same CSS specificity and Phase 2
+   appears LATER in the file, Phase 2 wins for those elements.
+
+   Result:
+     • Elements with only text-gray-* → boosted by Phase 1 ✓
+     • Elements with text-gray-* + dark:text-white → white (Phase 2) ✓
+     • Elements with text-gray-* + dark:text-gray-300 → slate-300 (Phase 2) ✓
+     • dim dark:text-gray-400/500 → boosted by Phase 2 upgrade ✓
+
+   Contrast on #0f172a (slate-900):
+     slate-400 #94a3b8 → 6.0:1 ✓ AA   slate-300 #cbd5e1 → 10:1 ✓ AAA
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── PHASE 1: Boost all dim gray/slate text in dark mode ── */
+html.dark .text-gray-300 { color: #94a3b8 !important; }
+html.dark .text-gray-400 { color: #94a3b8 !important; }
+html.dark .text-gray-500 { color: #94a3b8 !important; }
+html.dark .text-gray-600 { color: #94a3b8 !important; }
+html.dark .text-gray-700 { color: #94a3b8 !important; }
+html.dark .text-gray-800 { color: #cbd5e1 !important; }
+html.dark .text-gray-900 { color: #e2e8f0 !important; }
+html.dark .text-slate-400 { color: #94a3b8 !important; }
+html.dark .text-slate-500 { color: #94a3b8 !important; }
+html.dark .text-slate-600 { color: #94a3b8 !important; }
+
+/* ── LIGHT MODE: gray-400/300 on white fails WCAG — boost to gray-600 ── */
+html:not(.dark) .text-gray-400 { color: #6b7280 !important; }
+html:not(.dark) .text-gray-300 { color: #6b7280 !important; }
+
+/* ══════════════════════════════════════════════════════════════════
+   PHASE 2: Restore proper colors for correctly-specified dark variants.
+   These come AFTER Phase 1; equal specificity means later wins.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── White & near-white (intentionally bright text) ── */
+html.dark .dark\:text-white      { color: #ffffff !important; }
+html.dark .dark\:text-gray-50    { color: #f9fafb !important; }
+html.dark .dark\:text-gray-100   { color: #f3f4f6 !important; }
+html.dark .dark\:text-gray-200   { color: #e5e7eb !important; }
+html.dark .dark\:text-gray-300   { color: #d1d5db !important; }
+html.dark .dark\:text-slate-100  { color: #f1f5f9 !important; }
+html.dark .dark\:text-slate-200  { color: #e2e8f0 !important; }
+html.dark .dark\:text-slate-300  { color: #cbd5e1 !important; }
+
+/* ── Gray variants — upgrade dim ones, keep bright ones ── */
+html.dark .dark\:text-gray-400   { color: #94a3b8 !important; }  /* upgrade: was #9ca3af */
+html.dark .dark\:text-gray-500   { color: #94a3b8 !important; }  /* upgrade: was #6b7280 */
+html.dark .dark\:text-gray-600   { color: #94a3b8 !important; }  /* upgrade: was #4b5563 */
+html.dark .dark\:text-slate-400  { color: #94a3b8 !important; }
+html.dark .dark\:text-slate-500  { color: #94a3b8 !important; }
+
+/* ── Aegis accent colors (must be preserved exactly) ── */
+html.dark .dark\:text-aegis-200  { color: rgb(var(--aegis-200)) !important; }
+html.dark .dark\:text-aegis-300  { color: rgb(var(--aegis-300)) !important; }
+html.dark .dark\:text-aegis-400  { color: rgb(var(--aegis-400)) !important; }
+html.dark .dark\:text-aegis-500  { color: rgb(var(--aegis-500)) !important; }
+
+/* ── Semantic / status colors (must stay their own hue) ── */
+html.dark .dark\:text-red-300    { color: #fca5a5 !important; }
+html.dark .dark\:text-red-400    { color: #f87171 !important; }
+html.dark .dark\:text-red-500    { color: #ef4444 !important; }
+html.dark .dark\:text-orange-300 { color: #fdba74 !important; }
+html.dark .dark\:text-orange-400 { color: #fb923c !important; }
+html.dark .dark\:text-amber-300  { color: #fcd34d !important; }
+html.dark .dark\:text-amber-400  { color: #fbbf24 !important; }
+html.dark .dark\:text-yellow-300 { color: #fde047 !important; }
+html.dark .dark\:text-yellow-400 { color: #facc15 !important; }
+html.dark .dark\:text-green-300  { color: #86efac !important; }
+html.dark .dark\:text-green-400  { color: #4ade80 !important; }
+html.dark .dark\:text-emerald-300 { color: #6ee7b7 !important; }
+html.dark .dark\:text-emerald-400 { color: #34d399 !important; }
+html.dark .dark\:text-teal-300   { color: #5eead4 !important; }
+html.dark .dark\:text-teal-400   { color: #2dd4bf !important; }
+html.dark .dark\:text-cyan-300   { color: #67e8f9 !important; }
+html.dark .dark\:text-cyan-400   { color: #22d3ee !important; }
+html.dark .dark\:text-sky-300    { color: #7dd3fc !important; }
+html.dark .dark\:text-sky-400    { color: #38bdf8 !important; }
+html.dark .dark\:text-blue-300   { color: #93c5fd !important; }
+html.dark .dark\:text-blue-400   { color: #60a5fa !important; }
+html.dark .dark\:text-indigo-300 { color: #a5b4fc !important; }
+html.dark .dark\:text-indigo-400 { color: #818cf8 !important; }
+html.dark .dark\:text-violet-300 { color: #c4b5fd !important; }
+html.dark .dark\:text-violet-400 { color: #a78bfa !important; }
+html.dark .dark\:text-purple-300 { color: #d8b4fe !important; }
+html.dark .dark\:text-purple-400 { color: #c084fc !important; }
+html.dark .dark\:text-rose-300   { color: #fda4af !important; }
+html.dark .dark\:text-rose-400   { color: #fb7185 !important; }
+
+/* ── Opacity-modified white variants (semi-transparent) ── */
+html.dark .dark\:text-white\/40  { color: rgba(255,255,255,0.55) !important; }
+html.dark .dark\:text-white\/50  { color: rgba(255,255,255,0.65) !important; }
+html.dark .dark\:text-white\/60  { color: rgba(255,255,255,0.72) !important; }
+html.dark .dark\:text-white\/70  { color: rgba(255,255,255,0.80) !important; }
+html.dark .dark\:text-white\/80  { color: rgba(255,255,255,0.88) !important; }
+html.dark .dark\:text-white\/90  { color: rgba(255,255,255,0.94) !important; }
+
+/* ── Fix placeholder text contrast in dark mode ── */
+html.dark ::placeholder           { color: rgba(148,163,184,0.7) !important; }
+
+/* ── Fix opacity modifiers that reduce marginal text contrast ── */
+html.dark .opacity-70 .text-gray-400,
+html.dark .opacity-70 .text-gray-500 { opacity: 1 !important; }

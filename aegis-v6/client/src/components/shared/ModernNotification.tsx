@@ -5,6 +5,8 @@
 
 import { useState, useEffect } from 'react'
 import { AlertCircle, CheckCircle, Info, AlertTriangle, Bell, X } from 'lucide-react'
+import { t } from '../../utils/i18n'
+import { useLanguage } from '../../hooks/useLanguage'
 
 export type NotificationType = 'success' | 'error' | 'warning' | 'info'
 
@@ -59,6 +61,7 @@ export function ModernNotification({
   duration = 5000,
   onClose = () => {},
 }: ModernNotificationProps) {
+  const lang = useLanguage()
   const [progress, setProgress] = useState(100)
   const Icon = ICONS[type]
   const colors = COLORS[type]

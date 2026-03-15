@@ -5,10 +5,25 @@ import { X, Heart, HelpCircle, MapPin, Clock, Phone, ExternalLink, Navigation, S
 import { COMMUNITY_HELP_TYPES } from '../../data/disasterTypes'
 import { useAlerts } from '../../contexts/AlertsContext'
 import { useLocation } from '../../contexts/LocationContext'
+import { useCitizenAuth } from '../../contexts/CitizenAuthContext'
+import { getLanguage, t } from '../../utils/i18n'
+import { useLanguage } from '../../hooks/useLanguage'
+import { buildTranslationMap } from '../../utils/translateService'
 
 interface Props { onClose: () => void }
 interface Resource { name: string; type: string; address: string; phone: string; hours: string; dist: string; url: string }
-interface Post { id: number; type: string; name: string; description: string; location: string; time: string; verified?: boolean; rating?: number; safe_meeting?: string }
+interface Post {
+  id: number
+  type: string
+  name: string
+  description: string
+  location: string
+  time: string
+  verified?: boolean
+  rating?: number
+  safe_meeting?: string
+  translationEligible?: boolean
+}
 
 const TYPE_ICONS: Record<string, any> = { shelter: Home, food: Droplets, transport: Car, medical: HeartPulse, clothing: Shirt }
 
@@ -187,40 +202,42 @@ const SAFE_MEETING_PLACES = [
 ]
 
 const INITIAL_POSTS: Post[] = [
-  { id: 1, type: 'shelter', name: 'Verified Helper', description: 'Spare room for 2 adults. Warm, dry, WiFi. Verified through council scheme.', location: 'Old Aberdeen', time: '20 mins ago', verified: true, rating: 5, safe_meeting: 'Aberdeen Central Library' },
-  { id: 2, type: 'transport', name: 'Verified Helper', description: '4x4 available for evacuation. Can carry 4 passengers + luggage. Enhanced DBS checked.', location: 'Bridge of Don', time: '45 mins ago', verified: true, rating: 4, safe_meeting: 'Tesco Portlethen car park' },
-  { id: 3, type: 'food', name: 'Community Kitchen', description: 'Hot meals for 20+ people. Halal, vegetarian and gluten-free options. Free.', location: 'City Centre', time: '1 hour ago', verified: true, rating: 5, safe_meeting: 'City Square (public)' },
-  { id: 4, type: 'clothing', name: 'Donation Hub', description: 'Dry clothes, blankets, coats, shoes — all sizes including children.', location: 'Rosemount', time: '1.5 hours ago', verified: false, rating: 4, safe_meeting: 'Salvation Army Aberdeen' },
-  { id: 5, type: 'medical', name: 'Volunteer First Aider', description: 'Qualified first aider with kit. Can attend nearby locations during daytime.', location: 'Torry', time: '2 hours ago', verified: true, rating: 5, safe_meeting: 'Aberdeen Community Health Centre' },
+  { id: 1, type: 'shelter', name: 'Verified Helper', description: 'Spare room for 2 adults. Warm, dry, WiFi. Verified through council scheme.', location: 'City Centre', time: '20 mins ago', verified: true, rating: 5, safe_meeting: 'Central Library' },
+  { id: 2, type: 'transport', name: 'Verified Helper', description: '4x4 available for evacuation. Can carry 4 passengers + luggage. Background checked.', location: 'North District', time: '45 mins ago', verified: true, rating: 4, safe_meeting: 'Supermarket car park' },
+  { id: 3, type: 'food', name: 'Community Kitchen', description: 'Hot meals for 20+ people. Halal, vegetarian and gluten-free options. Free.', location: 'City Centre', time: '1 hour ago', verified: true, rating: 5, safe_meeting: 'Town Square (public)' },
+  { id: 4, type: 'clothing', name: 'Donation Hub', description: 'Dry clothes, blankets, coats, shoes — all sizes including children.', location: 'West Side', time: '1.5 hours ago', verified: false, rating: 4, safe_meeting: 'Community Centre' },
+  { id: 5, type: 'medical', name: 'Volunteer First Aider', description: 'Qualified first aider with kit. Can attend nearby locations during daytime.', location: 'South District', time: '2 hours ago', verified: true, rating: 5, safe_meeting: 'Local Health Centre' },
 ]
 
-const CITY_CENTERS: Record<string, { lat: number; lng: number }> = {
-  aberdeen:   { lat: 57.1497, lng: -2.0943 },
-  edinburgh:  { lat: 55.9533, lng: -3.1883 },
-  glasgow:    { lat: 55.8617, lng: -4.2583 },
-  dundee:     { lat: 56.4620, lng: -2.9707 },
-  inverness:  { lat: 57.4778, lng: -4.2247 },
-  london:     { lat: 51.5074, lng: -0.1278 },
-  manchester: { lat: 53.4808, lng: -2.2426 },
-  birmingham: { lat: 52.4862, lng: -1.8904 },
-  leeds:      { lat: 53.8008, lng: -1.5491 },
-  cardiff:    { lat: 51.4816, lng: -3.1791 },
-  belfast:    { lat: 54.5973, lng: -5.9301 },
-}
-
-function getNearestCity(lat: number, lng: number): string {
-  let nearest = 'generic'
-  let minDist = Infinity
-  for (const [city, center] of Object.entries(CITY_CENTERS)) {
-    const d = Math.sqrt((lat - center.lat) ** 2 + (lng - center.lng) ** 2)
-    if (d < minDist) { minDist = d; nearest = city }
+/** Reverse geocode to get city name, then match against known RESOURCES keys */
+async function detectCityFromCoords(lat: number, lng: number): Promise<string> {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1&zoom=10`,
+      { headers: { 'Accept-Language': 'en' } }
+    )
+    if (!res.ok) return 'generic'
+    const data = await res.json()
+    const addr = data.address || {}
+    // Try city, town, or county in that order
+    const cityName = (addr.city || addr.town || addr.county || addr.state || '').toLowerCase().trim()
+    // Check if we have specific resources for this city
+    if (cityName && RESOURCES[cityName]) return cityName
+    // Partial match (e.g. "City of Edinburgh" → "edinburgh")
+    for (const key of Object.keys(RESOURCES)) {
+      if (key !== 'generic' && cityName.includes(key)) return key
+    }
+    return 'generic'
+  } catch {
+    return 'generic'
   }
-  return minDist < 1.5 ? nearest : 'generic' // ~110km radius
 }
 
 export default function CommunityHelp({ onClose }: Props): JSX.Element {
+  const lang = useLanguage()
   const { pushNotification } = useAlerts()
   const { location: loc, activeLocation } = useLocation()
+  const { isAuthenticated } = useCitizenAuth()
 
   const [tab, setTab] = useState<'resources' | 'offer' | 'request' | 'network'>('resources')
   const [posts, setPosts] = useState<Post[]>(INITIAL_POSTS)
@@ -231,13 +248,15 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
   const [reported, setReported] = useState<Set<number>>(new Set())
   const [locationMode, setLocationMode] = useState<'auto' | 'manual' | null>(null)
   const [userCoords, setUserCoords] = useState<{lat: number; lng: number} | null>(null)
+  const [detectedCity, setDetectedCity] = useState<string>('generic')
   const [nearbyRadius, setNearbyRadius] = useState(5)
   const [submitting, setSubmitting] = useState(false)
   const [loadingPosts, setLoadingPosts] = useState(false)
+  const [postTranslations, setPostTranslations] = useState<Record<string, string>>({})
 
   // Helper to fetch with auth token
   const authFetch = useCallback(async (path: string, options: RequestInit = {}) => {
-    const token = localStorage.getItem('citizen_token')
+    const token = localStorage.getItem('aegis-citizen-token')
     const headers: Record<string, string> = { ...(options.headers as Record<string,string> || {}) }
     if (token) headers['Authorization'] = `Bearer ${token}`
     if (!(options.body instanceof FormData)) headers['Content-Type'] = 'application/json'
@@ -260,13 +279,14 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
           const apiPosts: Post[] = data.map((item: any) => ({
             id: item.id || Date.now(),
             type: item.category || 'shelter',
-            name: item.citizen_id ? 'Community Member' : 'Anonymous',
+            name: item.citizen_id ? t('communityHelp.communityMember', lang) : t('communityHelp.anonymous', lang),
             description: item.description || item.title,
             location: item.location_text || 'Unknown',
             time: item.created_at ? new Date(item.created_at).toLocaleString() : 'Recently',
             verified: false,
             rating: undefined,
             safe_meeting: undefined,
+            translationEligible: true,
           }))
           // Merge with initial seed posts for demo, API posts first
           setPosts([...apiPosts, ...INITIAL_POSTS])
@@ -279,7 +299,38 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
     }
     loadPosts()
     return () => { cancelled = true }
-  }, [authFetch])
+  }, [authFetch, lang])
+
+  useEffect(() => {
+    setPostTranslations({})
+  }, [lang])
+
+  useEffect(() => {
+    if (lang === 'en') return
+
+    const untranslated = posts
+      .filter((post) => post.translationEligible && post.description && !postTranslations[post.description])
+      .map((post) => post.description)
+
+    if (untranslated.length === 0) return
+
+    const batch = untranslated.slice(0, 20)
+    let cancelled = false
+
+    ;(async () => {
+      try {
+        const translatedByText = await buildTranslationMap(batch, 'auto', lang)
+        if (cancelled || Object.keys(translatedByText).length === 0) return
+        setPostTranslations((prev) => ({ ...prev, ...translatedByText }))
+      } catch {
+        // Keep original content if translation fails.
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [lang, posts, postTranslations])
 
   // Offer/request form state
   const [oType, setOType] = useState('')
@@ -306,13 +357,13 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
   const [contactMsg, setContactMsg] = useState('')
   const [contactSent, setContactSent] = useState(false)
 
-  const locationKey = userCoords ? getNearestCity(userCoords.lat, userCoords.lng) : (activeLocation || 'generic')
+  const locationKey = detectedCity || 'generic'
   const resources = RESOURCES[locationKey] || RESOURCES.generic
   const filtered = (filter === 'all' ? resources : resources.filter(r => r.type === filter))
     .filter(r => !searchTerm || r.name.toLowerCase().includes(searchTerm.toLowerCase()) || r.address.toLowerCase().includes(searchTerm.toLowerCase()))
 
   const filteredPosts = (filter === 'all' ? posts : posts.filter(p => p.type === filter))
-    .filter(p => !searchTerm || p.description.toLowerCase().includes(searchTerm.toLowerCase()))
+    .filter((p) => !searchTerm || (postTranslations[p.description] || p.description).toLowerCase().includes(searchTerm.toLowerCase()))
 
   const GPS_OPTS: PositionOptions = { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
 
@@ -322,6 +373,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
         p => {
           set(`${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`)
           setUserCoords({ lat: p.coords.latitude, lng: p.coords.longitude })
+          detectCityFromCoords(p.coords.latitude, p.coords.longitude).then(setDetectedCity)
           pushNotification('Location detected — showing approximate area only', 'success')
         },
         (err) => {
@@ -343,10 +395,11 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
     if ('geolocation' in navigator) {
       pushNotification('Detecting your location…', 'info')
       navigator.geolocation.getCurrentPosition(
-        p => {
+        async (p) => {
           setUserCoords({ lat: p.coords.latitude, lng: p.coords.longitude })
           setLocationMode('auto')
-          const city = getNearestCity(p.coords.latitude, p.coords.longitude)
+          const city = await detectCityFromCoords(p.coords.latitude, p.coords.longitude)
+          setDetectedCity(city)
           const cityName = city === 'generic' ? 'your location' : city.charAt(0).toUpperCase() + city.slice(1)
           pushNotification(`Location detected — showing resources near ${cityName}`, 'success')
         },
@@ -390,9 +443,9 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
 
       // Add to local list immediately for responsiveness
       setPosts(p => [{
-        id: result?.id || Date.now(), type: oType, name: oVerify ? 'Verified Helper (ID Checked)' : 'Anonymous Helper',
+        id: result?.id || Date.now(), type: oType, name: oVerify ? t('communityHelp.verifiedHelperChecked', lang) : t('communityHelp.anonymousHelper', lang),
         description: oDesc, location: oLoc || loc.name, time: 'Just now',
-        verified: oVerify, rating: undefined, safe_meeting: oSafeMeeting
+        verified: oVerify, rating: undefined, safe_meeting: oSafeMeeting, translationEligible: true
       }, ...p])
       pushNotification('Offer posted successfully! It will be visible to the community.', 'success')
       setOType(''); setODesc(''); setOLoc(''); setOSafeMeeting(''); setOVerify(false)
@@ -443,7 +496,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
 
   const Stars = ({ n }: { n?: number }) => n ? (
     <span className="flex items-center gap-0.5">
-      {[1,2,3,4,5].map(i => <Star key={i} className={`w-2.5 h-2.5 ${i <= n ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />)}
+      {[1,2,3,4,5].map(i => <Star key={i} className={`w-2.5 h-2.5 ${i <= n ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`} />)}
     </span>
   ) : null
 
@@ -456,24 +509,24 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
             <div className="w-14 h-14 bg-green-100 dark:bg-green-900/30 rounded-2xl flex items-center justify-center mx-auto mb-3">
               <Heart className="w-7 h-7 text-green-600" />
             </div>
-            <h2 className="text-lg font-bold">Community Help Network</h2>
-            <p className="text-xs text-gray-500 mt-1">Safe, verified mutual aid for your area</p>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">{t('communityHelp.title', lang)} {t('communityHelp.network', lang)}</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-1">{t('communityHelp.subtitle', lang)}</p>
           </div>
           <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-xl p-3.5 mb-4">
             <div className="flex items-start gap-2 mb-2">
               <Shield className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-              <h4 className="font-semibold text-sm">Safety First</h4>
+              <h4 className="font-semibold text-sm">{t('communityHelp.safetyFirst', lang)}</h4>
             </div>
             <div className="text-[11px] text-amber-800 dark:text-amber-300 space-y-1">
-              {['All interactions are anonymous by default', 'Offers are reviewed before being shown publicly', 'Location sharing is optional — only approximate area', 'Never share personal addresses publicly', 'Always meet helpers in well-lit public places', 'Report suspicious listings — our team reviews them', 'For life emergencies always call 999 / 112 first'].map(t => (
-                <p key={t} className="flex items-center gap-1.5"><CheckIcon /> {t}</p>
+              {['communityHelp.safetyAnonymous', 'communityHelp.safetyReviewed', 'communityHelp.safetyLocation', 'communityHelp.safetyNoAddress', 'communityHelp.safetyMeetPublic', 'communityHelp.safetyReport', 'communityHelp.safetyCall999'].map(key => (
+                <p key={key} className="flex items-center gap-1.5"><CheckIcon /> {t(key, lang)}</p>
               ))}
             </div>
           </div>
           <div className="flex flex-col gap-2">
-            <button onClick={onClose} className="order-last text-xs text-gray-400 hover:text-gray-600 text-center py-1">Cancel</button>
+            <button onClick={onClose} className="order-last text-xs text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 text-center py-1">{t('common.cancel', lang)}</button>
             <button onClick={() => setConsent(true)} className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2">
-              <Shield className="w-4 h-4" /> I Understand — Continue Safely
+              <Shield className="w-4 h-4" /> {t('communityHelp.understand', lang)}
             </button>
           </div>
         </div>
@@ -488,39 +541,45 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
         {/* Header */}
         <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white p-4 rounded-t-2xl flex items-center justify-between sticky top-0 z-10">
           <div>
-            <h2 className="text-base font-bold flex items-center gap-2"><Heart className="w-4 h-4" /> Community Help</h2>
+            <h2 className="text-base font-bold flex items-center gap-2"><Heart className="w-4 h-4" /> {t('communityHelp.title', lang)}</h2>
             <p className="text-[10px] text-green-100 mt-0.5 flex items-center gap-1">
               <MapPin className="w-2.5 h-2.5" /> {loc.name}
-              {userCoords && <span className="bg-green-500/50 px-1.5 py-0.5 rounded-full ml-1 flex items-center gap-0.5"><MapPin className="w-2.5 h-2.5" /> GPS Active</span>}
+              {userCoords && <span className="bg-green-500/50 px-1.5 py-0.5 rounded-full ml-1 flex items-center gap-0.5"><MapPin className="w-2.5 h-2.5" /> {t('communityHelp.gpsActive', lang)}</span>}
             </p>
           </div>
-          <button onClick={onClose} className="hover:bg-white/20 p-2 rounded-lg transition-colors" aria-label="Close"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="hover:bg-white/20 p-2 rounded-lg transition-colors" aria-label={t('common.close', lang)}><X className="w-5 h-5" /></button>
         </div>
 
         <div className="p-4">
           {/* Tabs */}
           <div className="grid grid-cols-4 gap-1 mb-3">
             {([
-              ['resources', 'Resources', Navigation, 'bg-blue-600'],
-              ['offer',     'Offer',     Heart,       'bg-green-600'],
-              ['request',  'Need Help',  HelpCircle,  'bg-red-600'],
-              ['network',  'Network',    Globe,       'bg-amber-600'],
-            ] as const).map(([id, label, Icon, color]) => (
-              <button key={id} onClick={() => setTab(id as any)}
-                className={`py-2 rounded-xl flex flex-col items-center justify-center gap-0.5 text-[9px] sm:text-[10px] font-semibold transition-all ${tab === id ? `${color} text-white shadow-md` : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200'}`}>
-                <Icon className="w-3.5 h-3.5" />
-                <span className="leading-tight text-center">{label}</span>
-              </button>
-            ))}
+              ['resources', t('communityHelp.resources', lang), Navigation, 'bg-blue-600'],
+              ['offer',     t('communityHelp.offer', lang),     Heart,       'bg-green-600'],
+              ['request',  t('communityHelp.needHelp', lang),  HelpCircle,  'bg-red-600'],
+              ['network',  t('communityHelp.network', lang),    Globe,       'bg-amber-600'],
+            ] as const).map(([id, label, Icon, color]) => {
+              const locked = !isAuthenticated && id !== 'resources'
+              return (
+                <button key={id} onClick={() => setTab(id as any)}
+                  className={`py-2 rounded-xl flex flex-col items-center justify-center gap-0.5 text-[9px] sm:text-[10px] font-semibold transition-all relative ${tab === id ? (locked ? 'bg-gray-500 text-white shadow-md' : `${color} text-white shadow-md`) : locked ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:bg-gray-200' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:bg-gray-200'}`}>
+                  <div className="relative">
+                    <Icon className="w-3.5 h-3.5" />
+                    {locked && <Lock className="w-2 h-2 absolute -top-1 -right-1.5 text-current opacity-80" />}
+                  </div>
+                  <span className="leading-tight text-center">{label}</span>
+                </button>
+              )
+            })}
           </div>
 
           {/* Search + filter row */}
           <div className="flex gap-1.5 mb-3 overflow-x-auto pb-1">
             <div className="flex-1 min-w-[130px] flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded-xl text-sm">
-              <Search className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-              <input className="flex-1 bg-transparent text-xs outline-none placeholder-gray-400 min-w-0" placeholder="Search..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+              <Search className="w-3.5 h-3.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex-shrink-0" />
+              <input className="flex-1 bg-transparent text-xs outline-none placeholder-gray-400 min-w-0" placeholder={t('communityHelp.searchPlaceholder', lang)} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
             </div>
-            <button onClick={() => setFilter('all')} className={`px-2.5 py-1.5 rounded-xl text-[10px] font-medium flex-shrink-0 transition-colors ${filter === 'all' ? 'bg-green-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600'}`}>All</button>
+            <button onClick={() => setFilter('all')} className={`px-2.5 py-1.5 rounded-xl text-[10px] font-medium flex-shrink-0 transition-colors ${filter === 'all' ? 'bg-green-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600'}`}>{t('communityHelp.all', lang)}</button>
             {COMMUNITY_HELP_TYPES.map(t => (
               <button key={t.key} onClick={() => setFilter(t.key)}
                 className={`px-2.5 py-1.5 rounded-xl text-[10px] font-medium flex-shrink-0 flex items-center gap-0.5 transition-colors ${filter === t.key ? 'bg-green-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600'}`}>
@@ -529,17 +588,91 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
             ))}
           </div>
 
+          {/* ── GUEST LOCKED TAB CTAs ── */}
+          {!isAuthenticated && tab === 'offer' && (
+            <div className="space-y-4 py-4">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                  <Heart className="w-8 h-8 text-green-600" />
+                </div>
+                <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">{t('communityHelp.offerHelpTitle', lang)}</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 max-w-sm mx-auto">{t('communityHelp.offerHelpDesc', lang)}</p>
+              </div>
+              <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-xl p-4">
+                <div className="space-y-2 text-[11px] text-green-800 dark:text-green-300">
+                  {['communityHelp.offerBullet1', 'communityHelp.offerBullet2', 'communityHelp.offerBullet3', 'communityHelp.offerBullet4', 'communityHelp.offerBullet5'].map(key => (
+                    <p key={key} className="flex items-center gap-2"><CheckIcon /> {t(key, lang)}</p>
+                  ))}
+                </div>
+              </div>
+              <a href="/citizen/login" className="block w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-semibold text-sm text-center transition-colors shadow-md">
+                {t('communityHelp.signInOffer', lang)}
+              </a>
+              <p className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 text-center">{t('communityHelp.noAccount', lang)} <a href="/citizen/login" className="text-green-600 hover:underline font-medium">{t('communityHelp.registerFree', lang)}</a></p>
+            </div>
+          )}
+
+          {!isAuthenticated && tab === 'request' && (
+            <div className="space-y-4 py-4">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                  <HelpCircle className="w-8 h-8 text-red-600" />
+                </div>
+                <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">{t('communityHelp.requestTitle', lang)}</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 max-w-sm mx-auto">{t('communityHelp.requestDesc', lang)}</p>
+              </div>
+              <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
+                <div className="space-y-2 text-[11px] text-red-900 dark:text-red-300">
+                  {['communityHelp.requestBullet1', 'communityHelp.requestBullet2', 'communityHelp.requestBullet3', 'communityHelp.requestBullet4', 'communityHelp.requestBullet5'].map(key => (
+                    <p key={key} className="flex items-center gap-2"><CheckIcon /> {t(key, lang)}</p>
+                  ))}
+                </div>
+              </div>
+              <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-xl p-3 flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                <p className="text-[10px] text-amber-800 dark:text-amber-300">{t('communityHelp.emergencyBoardWarning', lang)}</p>
+              </div>
+              <a href="/citizen/login" className="block w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-semibold text-sm text-center transition-colors shadow-md">
+                {t('communityHelp.signInRequest', lang)}
+              </a>
+              <p className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 text-center">{t('communityHelp.noAccount', lang)} <a href="/citizen/login" className="text-red-600 hover:underline font-medium">{t('communityHelp.registerFree', lang)}</a></p>
+            </div>
+          )}
+
+          {!isAuthenticated && tab === 'network' && (
+            <div className="space-y-4 py-4">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                  <Globe className="w-8 h-8 text-amber-600" />
+                </div>
+                <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">{t('communityHelp.joinNetworkTitle', lang)}</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 max-w-sm mx-auto">{t('communityHelp.joinNetworkDesc', lang)}</p>
+              </div>
+              <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-700 rounded-xl p-4">
+                <div className="space-y-2 text-[11px] text-amber-800 dark:text-amber-300">
+                  {['communityHelp.networkBullet1', 'communityHelp.networkBullet2', 'communityHelp.networkBullet3', 'communityHelp.networkBullet4', 'communityHelp.networkBullet5'].map(key => (
+                    <p key={key} className="flex items-center gap-2"><CheckIcon /> {t(key, lang)}</p>
+                  ))}
+                </div>
+              </div>
+              <a href="/citizen/login" className="block w-full bg-amber-600 hover:bg-amber-700 text-white py-3 rounded-xl font-semibold text-sm text-center transition-colors shadow-md">
+                {t('communityHelp.signInNetwork', lang)}
+              </a>
+              <p className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 text-center">{t('communityHelp.noAccount', lang)} <a href="/citizen/login" className="text-amber-600 hover:underline font-medium">{t('communityHelp.registerFree', lang)}</a></p>
+            </div>
+          )}
+
           {/* ── RESOURCES TAB ── */}
           {tab === 'resources' && (
             <div className="space-y-2">
               <div className="flex items-center justify-between flex-wrap gap-1">
-                <p className="text-[10px] text-gray-500">{filtered.length} resources near <strong>{userCoords ? getNearestCity(userCoords.lat, userCoords.lng) : loc.name}</strong></p>
+                <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{filtered.length} {t('communityHelp.resourcesNear', lang)} <strong>{detectedCity !== 'generic' ? detectedCity.charAt(0).toUpperCase() + detectedCity.slice(1) : loc.name}</strong></p>
                 <button onClick={autoDetect} className="text-[10px] text-blue-500 flex items-center gap-1 hover:underline">
-                  <Crosshair className="w-3 h-3" /> Use my GPS
+                  <Crosshair className="w-3 h-3" /> {t('communityHelp.useMyGPS', lang)}
                 </button>
               </div>
               <div className="max-h-[58vh] overflow-y-auto space-y-2 pr-1">
-                {filtered.length === 0 && <p className="text-xs text-gray-400 text-center py-6">No resources match "{searchTerm || filter}"</p>}
+                {filtered.length === 0 && <p className="text-xs text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 text-center py-6">{t('communityHelp.noResourcesMatch', lang)} "{searchTerm || filter}"</p>}
                 {filtered.map((r, i) => (
                   <div key={i} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 hover:shadow-md transition-all group">
                     <div className="flex items-start justify-between gap-2">
@@ -549,19 +682,19 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
                             <TypeIcon type={r.type} className="w-2.5 h-2.5" />
                             {COMMUNITY_HELP_TYPES.find(t => t.key === r.type)?.label}
                           </span>
-                          <span className="text-[10px] text-gray-500">{r.dist}</span>
+                          <span className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{r.dist}</span>
                         </div>
-                        <h4 className="font-semibold text-xs group-hover:text-green-600 transition-colors">{r.name}</h4>
-                        <p className="text-[10px] text-gray-600 dark:text-gray-400 flex items-center gap-1 mt-0.5"><MapPin className="w-2.5 h-2.5 flex-shrink-0" /> {r.address}</p>
-                        <div className="flex items-center gap-3 mt-1 text-[10px] text-gray-500">
+                        <h4 className="font-semibold text-xs text-gray-900 dark:text-white group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors">{r.name}</h4>
+                        <p className="text-[10px] text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex items-center gap-1 mt-0.5"><MapPin className="w-2.5 h-2.5 flex-shrink-0" /> {r.address}</p>
+                        <div className="flex items-center gap-3 mt-1 text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
                           <span className="flex items-center gap-0.5"><Phone className="w-2.5 h-2.5" /> {r.phone}</span>
                           <span className="flex items-center gap-0.5"><Clock className="w-2.5 h-2.5" /> {r.hours}</span>
                         </div>
                       </div>
                       {r.url && (
                         <a href={r.url} target="_blank" rel="noopener noreferrer"
-                          className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg transition-colors flex-shrink-0" title="Visit website">
-                          <ExternalLink className="w-3.5 h-3.5 text-gray-500 hover:text-green-600" />
+                          className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg transition-colors flex-shrink-0" title={t('communityHelp.visitWebsite', lang)}>
+                          <ExternalLink className="w-3.5 h-3.5 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400" />
                         </a>
                       )}
                     </div>
@@ -572,35 +705,35 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
           )}
 
           {/* ── OFFER HELP TAB ── */}
-          {tab === 'offer' && (
+          {isAuthenticated && tab === 'offer' && (
             <div className="space-y-3">
               {!actionConsent ? (
                 <div className="p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-xl">
-                  <h4 className="text-sm font-bold mb-2 flex items-center gap-1.5"><Shield className="w-4 h-4 text-green-600" /> Offer Agreement</h4>
+                  <h4 className="text-sm font-bold mb-2 flex items-center gap-1.5"><Shield className="w-4 h-4 text-green-600" /> {t('communityHelp.offerAgreement', lang)}</h4>
                   <div className="text-[11px] text-green-800 dark:text-green-300 space-y-1 mb-3">
-                    {['Your offer is reviewed before being shown', 'Never include personal address or phone publicly', 'Specify a public safe meeting location', 'Only meet helpers in well-lit public places', 'You can remove your offer at any time', 'False offerings may result in account action'].map(t => (
-                      <p key={t} className="flex items-center gap-1.5"><CheckIcon /> {t}</p>
+                    {['communityHelp.agreeOffer1', 'communityHelp.agreeOffer2', 'communityHelp.agreeOffer3', 'communityHelp.agreeOffer4', 'communityHelp.agreeOffer5', 'communityHelp.agreeOffer6'].map(key => (
+                      <p key={key} className="flex items-center gap-1.5"><CheckIcon /> {t(key, lang)}</p>
                     ))}
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => setActionConsent(true)} className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-xl text-xs font-semibold transition-colors">I Agree — Post Offer</button>
-                    <button onClick={() => setTab('resources')} className="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-xl text-xs font-semibold transition-colors">Back</button>
+                    <button onClick={() => setActionConsent(true)} className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-xl text-xs font-semibold transition-colors">{t('communityHelp.agreePostOffer', lang)}</button>
+                    <button onClick={() => setTab('resources')} className="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-xl text-xs font-semibold transition-colors">{t('common.back', lang)}</button>
                   </div>
                 </div>
               ) : (
                 <>
                   <div className="p-2.5 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-xl">
-                    <p className="text-[10px] text-green-800 dark:text-green-300 flex items-center gap-1"><Lock className="w-3 h-3" /> <strong>Private:</strong> Contact details never shown publicly. All offers reviewed before going live.</p>
+                    <p className="text-[10px] text-green-800 dark:text-green-300 flex items-center gap-1"><Lock className="w-3 h-3" /> <strong>{t('communityHelp.privateNotice', lang)}</strong></p>
                   </div>
 
                   {/* Type selector */}
                   <div>
-                    <label className="text-xs font-semibold">What can you offer?</label>
+                    <label className="text-xs font-semibold">{t('communityHelp.whatCanYouOffer', lang)}</label>
                     <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5 mt-1.5">
                       {COMMUNITY_HELP_TYPES.map(t => (
                         <button key={t.key} onClick={() => setOType(t.key)}
                           className={`p-2 border-2 rounded-xl text-center transition-all ${oType === t.key ? 'border-green-500 bg-green-50 dark:bg-green-950/20 scale-105' : 'border-gray-200 dark:border-gray-700 hover:border-green-300'}`}>
-                          <TypeIcon type={t.key} className={`w-5 h-5 mx-auto ${oType === t.key ? 'text-green-600' : 'text-gray-400'}`} />
+                          <TypeIcon type={t.key} className={`w-5 h-5 mx-auto ${oType === t.key ? 'text-green-600' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`} />
                           <p className="text-[9px] font-medium mt-0.5 truncate">{t.label}</p>
                         </button>
                       ))}
@@ -609,16 +742,16 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
 
                   {/* Description */}
                   <div>
-                    <label className="text-xs font-semibold">Description <span className="text-gray-400 font-normal">(be specific — no personal info)</span></label>
-                    <textarea className="w-full mt-1 px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 min-h-[80px] resize-none" placeholder="e.g. Spare room for up to 2 adults, warm and dry, local area only..." value={oDesc} onChange={e => setODesc(e.target.value)} />
-                    <p className="text-[9px] text-gray-400 mt-0.5">{oDesc.length}/200 chars</p>
+                    <label className="text-xs font-semibold">{t('common.description', lang)} <span className="text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-normal">{t('communityHelp.descriptionSublabel', lang)}</span></label>
+                    <textarea className="w-full mt-1 px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 min-h-[80px] resize-none" placeholder={t('communityHelp.descriptionPlaceholder', lang)} value={oDesc} onChange={e => setODesc(e.target.value)} />
+                    <p className="text-[9px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-0.5">{oDesc.length}/200 {t('communityHelp.charsCount', lang)}</p>
                   </div>
 
                   {/* Approximate area */}
                   <div>
-                    <label className="text-xs font-semibold">Approximate area <span className="text-gray-400 font-normal">(not exact address)</span></label>
+                    <label className="text-xs font-semibold">{t('communityHelp.approximateArea', lang)} <span className="text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-normal">{t('communityHelp.notExactAddress', lang)}</span></label>
                     <div className="flex gap-1.5 mt-1">
-                      <input className="flex-1 px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700" placeholder="e.g. Old Aberdeen, North side of city..." value={oLoc} onChange={e => setOLoc(e.target.value)} />
+                      <input className="flex-1 px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700" placeholder={t('communityHelp.areaPlaceholder', lang)} value={oLoc} onChange={e => setOLoc(e.target.value)} />
                       <button onClick={() => gps(setOLoc)} className="px-3 py-2 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-700 rounded-xl text-[10px] font-medium flex items-center gap-1 transition-colors hover:bg-blue-100">
                         <Crosshair className="w-3.5 h-3.5 text-blue-500" /> GPS
                       </button>
@@ -627,14 +760,14 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
 
                   {/* Safe meeting place */}
                   <div>
-                    <label className="text-xs font-semibold flex items-center gap-1.5"><Lock className="w-3 h-3 text-green-600" /> Safe public meeting place</label>
+                    <label className="text-xs font-semibold flex items-center gap-1.5"><Lock className="w-3 h-3 text-green-600" /> {t('communityHelp.safeMeetingPlace', lang)}</label>
                     <select className="w-full mt-1 px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700" value={oSafeMeeting} onChange={e => setOSafeMeeting(e.target.value)}>
-                      <option value="">Select a public meeting place...</option>
+                      <option value="">{t('communityHelp.selectMeetingPlace', lang)}</option>
                       {SAFE_MEETING_PLACES.map(p => <option key={p} value={p}>{p}</option>)}
-                      <option value="other">Other (type below)</option>
+                      <option value="other">{t('communityHelp.otherTypeBelow', lang)}</option>
                     </select>
                     {oSafeMeeting === 'other' && (
-                      <input className="w-full mt-1.5 px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700" placeholder="Specify public location..." onChange={e => setOSafeMeeting(e.target.value === 'other' ? '' : e.target.value)} />
+                      <input className="w-full mt-1.5 px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700" placeholder={t('communityHelp.specifyLocation', lang)} onChange={e => setOSafeMeeting(e.target.value === 'other' ? '' : e.target.value)} />
                     )}
                   </div>
 
@@ -642,55 +775,55 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
                   <label className="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-700 rounded-xl cursor-pointer">
                     <input type="checkbox" checked={oVerify} onChange={e => setOVerify(e.target.checked)} className="w-4 h-4 rounded border-blue-300 text-blue-600" />
                     <div>
-                      <p className="text-xs font-semibold text-blue-800 dark:text-blue-300 flex items-center gap-1"><UserCheck className="w-3.5 h-3.5" /> Request Verified Badge</p>
-                      <p className="text-[10px] text-blue-700 dark:text-blue-400 mt-0.5">I confirm I am who I say I am. My listing will show a verified badge and may require ID check.</p>
+                      <p className="text-xs font-semibold text-blue-800 dark:text-blue-300 flex items-center gap-1"><UserCheck className="w-3.5 h-3.5" /> {t('communityHelp.requestVerifiedBadge', lang)}</p>
+                      <p className="text-[10px] text-blue-700 dark:text-blue-400 mt-0.5">{t('communityHelp.verifiedBadgeDesc', lang)}</p>
                     </div>
                   </label>
 
                   <button onClick={doOffer} disabled={submitting} className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-colors shadow-md">
-                    {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Heart className="w-4 h-4" />} {submitting ? 'Posting...' : 'Post Offer (Anonymous · Moderated)'}
+                    {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Heart className="w-4 h-4" />} {submitting ? t('communityHelp.posting', lang) : t('communityHelp.postOfferBtn', lang)}
                   </button>
                 </>
               )}
 
               {/* Existing posts */}
               <div className="border-t border-gray-200 dark:border-gray-700 pt-3 mt-2">
-                <h4 className="font-semibold text-xs mb-2 flex items-center gap-1.5"><CheckCircle className="w-3.5 h-3.5 text-green-500" /> Community Offers ({filteredPosts.length})</h4>
-                <PostList posts={filteredPosts} reported={reported} setReported={setReported} pushNotification={pushNotification} TypeIcon={TypeIcon} Stars={Stars} />
+                <h4 className="font-semibold text-xs mb-2 flex items-center gap-1.5"><CheckCircle className="w-3.5 h-3.5 text-green-500" /> {t('communityHelp.communityOffers', lang)} ({filteredPosts.length})</h4>
+                <PostList posts={filteredPosts} postTranslations={postTranslations} reported={reported} setReported={setReported} pushNotification={pushNotification} TypeIcon={TypeIcon} Stars={Stars} />
               </div>
             </div>
           )}
 
           {/* ── REQUEST HELP TAB ── */}
-          {tab === 'request' && (
+          {isAuthenticated && tab === 'request' && (
             <div className="space-y-3">
               {!actionConsent ? (
                 <div className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-xl">
-                  <h4 className="text-sm font-bold mb-2 flex items-center gap-1.5"><Shield className="w-4 h-4 text-red-600" /> Request Agreement</h4>
+                  <h4 className="text-sm font-bold mb-2 flex items-center gap-1.5"><Shield className="w-4 h-4 text-red-600" /> {t('communityHelp.requestAgreement', lang)}</h4>
                   <div className="text-[11px] text-red-900 dark:text-red-300 space-y-1 mb-3">
-                    {['Your request is completely anonymous', 'Only share approximate area — not exact address', 'Only meet helpers in well-lit public places', 'Call 999 for life-threatening emergencies', 'Do not disclose financial details to helpers', 'False requests may block future access'].map(t => (
-                      <p key={t} className="flex items-center gap-1.5"><CheckIcon /> {t}</p>
+                    {['communityHelp.agreeReq1', 'communityHelp.agreeReq2', 'communityHelp.agreeReq3', 'communityHelp.agreeReq4', 'communityHelp.agreeReq5', 'communityHelp.agreeReq6'].map(key => (
+                      <p key={key} className="flex items-center gap-1.5"><CheckIcon /> {t(key, lang)}</p>
                     ))}
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => setActionConsent(true)} className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded-xl text-xs font-semibold transition-colors">I Agree — Request Help</button>
-                    <button onClick={() => setTab('resources')} className="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-xl text-xs font-semibold transition-colors">Back</button>
+                    <button onClick={() => setActionConsent(true)} className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded-xl text-xs font-semibold transition-colors">{t('communityHelp.agreeRequestHelp', lang)}</button>
+                    <button onClick={() => setTab('resources')} className="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-xl text-xs font-semibold transition-colors">{t('common.back', lang)}</button>
                   </div>
                 </div>
               ) : (
                 <>
                   <div className="p-2.5 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-xl flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0" />
-                    <p className="text-[10px] text-red-800 dark:text-red-300"><strong>Emergency?</strong> Call <strong>999</strong> (UK) or <strong>112</strong> (EU) first. This is for non-emergency community assistance.</p>
+                    <p className="text-[10px] text-red-800 dark:text-red-300"><strong>{t('communityHelp.emergencyCall', lang)}</strong></p>
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold">What do you need?</label>
+                    <label className="text-xs font-semibold">{t('communityHelp.whatDoYouNeed', lang)}</label>
                     <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5 mt-1.5">
                       {COMMUNITY_HELP_TYPES.map(t => (
                         <button key={t.key} onClick={() => setRType(t.key)}
                           className={`p-2 border-2 rounded-xl text-center transition-all ${rType === t.key ? 'border-red-500 bg-red-50 dark:bg-red-950/20 scale-105' : 'border-gray-200 dark:border-gray-700 hover:border-red-300'}`}>
-                          <TypeIcon type={t.key} className={`w-5 h-5 mx-auto ${rType === t.key ? 'text-red-600' : 'text-gray-400'}`} />
+                          <TypeIcon type={t.key} className={`w-5 h-5 mx-auto ${rType === t.key ? 'text-red-600' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`} />
                           <p className="text-[9px] font-medium mt-0.5 truncate">{t.label}</p>
                         </button>
                       ))}
@@ -698,21 +831,21 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold">Details <span className="text-gray-400 font-normal">(no personal info)</span></label>
-                    <textarea className="w-full mt-1 px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 min-h-[70px] resize-none" placeholder={`Number of people, specific needs, accessibility requirements...`} value={rDesc} onChange={e => setRDesc(e.target.value)} />
+                    <label className="text-xs font-semibold">{t('common.details', lang)} <span className="text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-normal">{t('communityHelp.detailsSublabel', lang)}</span></label>
+                    <textarea className="w-full mt-1 px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 min-h-[70px] resize-none" placeholder={t('communityHelp.detailsPlaceholder', lang)} value={rDesc} onChange={e => setRDesc(e.target.value)} />
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-xs font-semibold">No. of people</label>
+                      <label className="text-xs font-semibold">{t('communityHelp.numPeople', lang)}</label>
                       <select className="w-full mt-1 px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700" value={rPeople} onChange={e => setRPeople(e.target.value)}>
                         {['1','2','3','4','5','6+'].map(n => <option key={n} value={n}>{n} {n === '1' ? 'person' : 'people'}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label className="text-xs font-semibold">Approximate area</label>
+                      <label className="text-xs font-semibold">{t('communityHelp.approximateArea', lang)}</label>
                       <div className="flex gap-1 mt-1">
-                        <input className="flex-1 px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700" placeholder="Area or postcode" value={rLoc} onChange={e => setRLoc(e.target.value)} />
+                        <input className="flex-1 px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700" placeholder={t('communityHelp.areaOrPostcode', lang)} value={rLoc} onChange={e => setRLoc(e.target.value)} />
                         <button onClick={() => gps(setRLoc)} className="px-2 py-2 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-700 rounded-xl hover:bg-blue-100 transition-colors">
                           <Crosshair className="w-3 h-3 text-blue-500" />
                         </button>
@@ -723,13 +856,13 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
                   <label className="flex items-center gap-3 p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-700 rounded-xl cursor-pointer">
                     <input type="checkbox" checked={rUrgent} onChange={e => setRUrgent(e.target.checked)} className="w-4 h-4 rounded border-red-300 text-red-600" />
                     <div>
-                      <p className="text-xs font-semibold text-red-700 dark:text-red-300 flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> Mark as Urgent</p>
-                      <p className="text-[10px] text-red-600 dark:text-red-400">Immediately alerts nearest available verified volunteers</p>
+                      <p className="text-xs font-semibold text-red-700 dark:text-red-300 flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> {t('communityHelp.markUrgent', lang)}</p>
+                      <p className="text-[10px] text-red-600 dark:text-red-400">{t('communityHelp.urgentDesc', lang)}</p>
                     </div>
                   </label>
 
                   <button onClick={doRequest} disabled={submitting} className={`w-full ${rUrgent ? 'bg-red-700 hover:bg-red-800' : 'bg-red-600 hover:bg-red-700'} disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-colors shadow-md`}>
-                    {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : rUrgent ? <AlertTriangle className="w-4 h-4" /> : <HelpCircle className="w-4 h-4" />} {submitting ? 'Submitting...' : rUrgent ? 'Send Urgent Request' : 'Submit Request (Anonymous)'}
+                    {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : rUrgent ? <AlertTriangle className="w-4 h-4" /> : <HelpCircle className="w-4 h-4" />} {submitting ? t('common.submitting', lang) : rUrgent ? t('communityHelp.sendUrgent', lang) : t('communityHelp.submitRequest', lang)}
                   </button>
                 </>
               )}
@@ -737,11 +870,11 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
           )}
 
           {/* ── NETWORK TAB ── */}
-          {tab === 'network' && (
+          {isAuthenticated && tab === 'network' && (
             <div className="space-y-3">
               <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 border border-amber-200 dark:border-amber-700 rounded-xl p-3.5">
-                <h4 className="font-bold text-sm flex items-center gap-2 mb-2"><UserCheck className="w-4 h-4 text-amber-600" /> Verified Community Network</h4>
-                <p className="text-[11px] text-amber-800 dark:text-amber-300">These helpers have been verified through official channels. Higher trust, always use public meeting places.</p>
+                <h4 className="font-bold text-sm flex items-center gap-2 mb-2"><UserCheck className="w-4 h-4 text-amber-600" /> {t('communityHelp.verifiedNetwork', lang)}</h4>
+                <p className="text-[11px] text-amber-800 dark:text-amber-300">{t('communityHelp.verifiedNetworkDesc', lang)}</p>
               </div>
               <div className="max-h-[55vh] overflow-y-auto space-y-2 pr-1">
                 {filteredPosts.filter(p => p.verified).map(p => (
@@ -752,43 +885,43 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
                           <span className="inline-flex items-center gap-1 text-[10px] bg-green-100 dark:bg-green-900/30 text-green-700 px-1.5 py-0.5 rounded-full font-medium">
                             <TypeIcon type={p.type} className="w-2.5 h-2.5" /> {COMMUNITY_HELP_TYPES.find(t => t.key === p.type)?.label}
                           </span>
-                          {p.verified && <span className="text-[10px] bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded-full font-semibold flex items-center gap-0.5"><UserCheck className="w-2.5 h-2.5" /> Verified</span>}
+                          {p.verified && <span className="text-[10px] bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded-full font-semibold flex items-center gap-0.5"><UserCheck className="w-2.5 h-2.5" /> {t('communityHelp.verified', lang)}</span>}
                           <Stars n={p.rating} />
                         </div>
-                        <p className="text-xs">{p.description}</p>
-                        <p className="text-[10px] text-gray-500 mt-1 flex items-center gap-1"><MapPin className="w-2.5 h-2.5" /> {p.location}</p>
+                        <p className="text-xs">{postTranslations[p.description] || p.description}</p>
+                        <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-1 flex items-center gap-1"><MapPin className="w-2.5 h-2.5" /> {p.location}</p>
                         {p.safe_meeting && (
-                          <p className="text-[10px] text-green-700 dark:text-green-400 mt-0.5 flex items-center gap-1"><Lock className="w-2.5 h-2.5" /> Meet at: {p.safe_meeting}</p>
+                          <p className="text-[10px] text-green-700 dark:text-green-400 mt-0.5 flex items-center gap-1"><Lock className="w-2.5 h-2.5" /> {t('communityHelp.meetLabel', lang)} {p.safe_meeting}</p>
                         )}
                       </div>
-                      <button onClick={() => { setReported(s => new Set([...s, p.id])); pushNotification('Report received. Our team will review this listing.', 'info') }} disabled={reported.has(p.id)} className="text-gray-300 hover:text-red-500 p-1 transition-colors flex-shrink-0" title="Report listing">
+                      <button onClick={() => { setReported(s => new Set([...s, p.id])); pushNotification('Report received. Our team will review this listing.', 'info') }} disabled={reported.has(p.id)} className="text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400 p-1 transition-colors flex-shrink-0" title={t('communityHelp.reportListing', lang)}>
                         <Flag className="w-3.5 h-3.5" />
                       </button>
                     </div>
                     <div className="flex gap-2">
                       <button onClick={() => { setContactSent(false); setContactMsg(''); setContactPost(p) }} className="flex-1 bg-green-50 dark:bg-green-950/20 hover:bg-green-100 border border-green-200 dark:border-green-700 text-green-700 dark:text-green-300 py-1.5 rounded-lg text-[10px] font-semibold transition-colors flex items-center justify-center gap-1">
-                        <Lock className="w-3 h-3" /> Request Secure Contact
+                        <Lock className="w-3 h-3" /> {t('communityHelp.requestSecureContact', lang)}
                       </button>
                       <button onClick={() => setInfoPost(p)} className="flex-1 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 border border-gray-200 dark:border-gray-600 py-1.5 rounded-lg text-[10px] font-semibold transition-colors flex items-center justify-center gap-1">
-                        <Info className="w-3 h-3" /> More Info
+                        <Info className="w-3 h-3" /> {t('communityHelp.moreInfo', lang)}
                       </button>
                     </div>
                   </div>
                 ))}
                 {filteredPosts.filter(p => p.verified).length === 0 && (
                   <div className="text-center py-8">
-                    <UserCheck className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
-                    <p className="text-xs text-gray-500">No verified helpers in this category yet</p>
-                    <p className="text-[10px] text-gray-400 mt-1">Check back soon or view all community offers</p>
+                    <UserCheck className="w-10 h-10 text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                    <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('communityHelp.noVerifiedHelpers', lang)}</p>
+                    <p className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-1">{t('communityHelp.checkBackSoon', lang)}</p>
                   </div>
                 )}
               </div>
 
               {/* Become verified */}
               <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-700 rounded-xl p-3">
-                <h4 className="font-semibold text-xs flex items-center gap-1.5 mb-1"><UserCheck className="w-3.5 h-3.5 text-blue-600" /> Become a Verified Helper</h4>
-                <p className="text-[10px] text-blue-800 dark:text-blue-300 mb-2">Verified helpers receive more requests. Requires identity confirmation through our local authority partner scheme.</p>
-                <button onClick={() => { setVerifySubmitted(false); setShowVerifyModal(true) }} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-xl text-xs font-semibold transition-colors">Apply for Verification</button>
+                <h4 className="font-semibold text-xs flex items-center gap-1.5 mb-1"><UserCheck className="w-3.5 h-3.5 text-blue-600" /> {t('communityHelp.becomeVerified', lang)}</h4>
+                <p className="text-[10px] text-blue-800 dark:text-blue-300 mb-2">{t('communityHelp.becomeVerifiedDesc', lang)}</p>
+                <button onClick={() => { setVerifySubmitted(false); setShowVerifyModal(true) }} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-xl text-xs font-semibold transition-colors">{t('communityHelp.applyVerification', lang)}</button>
               </div>
             </div>
           )}
@@ -801,7 +934,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[60]" role="dialog" aria-modal="true">
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md p-5 animate-fade-in">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-base flex items-center gap-2"><UserCheck className="w-5 h-5 text-blue-600" /> Apply for Verified Helper Status</h3>
+              <h3 className="font-bold text-base flex items-center gap-2"><UserCheck className="w-5 h-5 text-blue-600" /> {t('communityHelp.applyVerifiedTitle', lang)}</h3>
               <button onClick={() => setShowVerifyModal(false)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"><X className="w-4 h-4" /></button>
             </div>
             {verifySubmitted ? (
@@ -809,51 +942,51 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
                 <div className="w-14 h-14 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-3">
                   <UserCheck className="w-7 h-7 text-green-600" />
                 </div>
-                <h4 className="font-bold text-sm mb-1">Application Received!</h4>
-                <p className="text-xs text-gray-500 mb-4">We'll review your details within 2–3 working days and contact you at the email provided.</p>
-                <button onClick={() => setShowVerifyModal(false)} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl text-sm font-semibold">Close</button>
+                <h4 className="font-bold text-sm mb-1">{t('communityHelp.applicationReceived', lang)}</h4>
+                <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-4">{t('communityHelp.applicationReviewMsg', lang)}</p>
+                <button onClick={() => setShowVerifyModal(false)} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl text-sm font-semibold">{t('common.close', lang)}</button>
               </div>
             ) : (
               <div className="space-y-3">
                 <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-700 rounded-xl text-[11px] text-blue-800 dark:text-blue-300">
-                  Verification is free and processed through our local authority partner scheme. You will receive a badge visible to people requesting help.
+                  {t('communityHelp.verificationInfo', lang)}
                 </div>
                 <div>
-                  <label className="text-xs font-semibold">Full Name</label>
-                  <input className="w-full mt-1 px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700" placeholder="Your legal full name" value={verifyName} onChange={e => setVerifyName(e.target.value)} />
+                  <label className="text-xs font-semibold">{t('communityHelp.fullName', lang)}</label>
+                  <input className="w-full mt-1 px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700" placeholder={t('communityHelp.fullNamePlaceholder', lang)} value={verifyName} onChange={e => setVerifyName(e.target.value)} />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold">Email Address</label>
-                  <input type="email" className="w-full mt-1 px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700" placeholder="your@email.com" value={verifyEmail} onChange={e => setVerifyEmail(e.target.value)} />
+                  <label className="text-xs font-semibold">{t('communityHelp.emailAddress', lang)}</label>
+                  <input type="email" className="w-full mt-1 px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700" placeholder={t('communityHelp.emailPlaceholder', lang)} value={verifyEmail} onChange={e => setVerifyEmail(e.target.value)} />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold">Area / City</label>
-                  <input className="w-full mt-1 px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700" placeholder="e.g. Aberdeen, Edinburgh, Glasgow…" value={verifyArea} onChange={e => setVerifyArea(e.target.value)} />
+                  <label className="text-xs font-semibold">{t('communityHelp.areaCity', lang)}</label>
+                  <input className="w-full mt-1 px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700" placeholder={t('communityHelp.areaCityPlaceholder', lang)} value={verifyArea} onChange={e => setVerifyArea(e.target.value)} />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold">What can you offer?</label>
+                  <label className="text-xs font-semibold">{t('communityHelp.whatCanYouOffer', lang)}</label>
                   <select className="w-full mt-1 px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700" value={verifyRole} onChange={e => setVerifyRole(e.target.value)}>
-                    <option value="">Select…</option>
-                    <option>Emergency shelter / spare room</option>
-                    <option>Food / meals provision</option>
-                    <option>Transport / evacuation</option>
-                    <option>Medical / first aid support</option>
-                    <option>Clothing / supplies</option>
-                    <option>Multiple types</option>
+                    <option value="">{t('communityHelp.selectOffer', lang)}</option>
+                    <option>{t('communityHelp.offerShelter', lang)}</option>
+                      <option>{t('communityHelp.offerFoodMeals', lang)}</option>
+                      <option>{t('communityHelp.offerTransportEvacuation', lang)}</option>
+                      <option>{t('communityHelp.offerMedicalSupport', lang)}</option>
+                      <option>{t('communityHelp.offerClothingSupplies', lang)}</option>
+                      <option>{t('communityHelp.offerMultipleTypes', lang)}</option>
                   </select>
                 </div>
-                <label className="flex items-start gap-2 mt-1 text-[10px] text-gray-500">
+                <label className="flex items-start gap-2 mt-1 text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
                   <input type="checkbox" className="mt-0.5 w-3.5 h-3.5 rounded" required />
-                  I confirm all information is accurate and I consent to identity verification by our moderation team.
+                  {t('communityHelp.confirmAccuracy', lang)}
                 </label>
                 <button
                   onClick={() => {
-                    if (!verifyName || !verifyEmail || !verifyArea || !verifyRole) { pushNotification('Please fill in all fields', 'warning'); return }
+                    if (!verifyName || !verifyEmail || !verifyArea || !verifyRole) { pushNotification(t('communityHelp.fillAllFields', lang), 'warning'); return }
                     setVerifySubmitted(true)
-                    pushNotification('Application submitted — we\'ll review within 2–3 working days', 'success')
+                    pushNotification(t('communityHelp.applicationSubmitted', lang), 'success')
                   }}
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-2">
-                  <UserCheck className="w-4 h-4" /> Submit Application
+                  <UserCheck className="w-4 h-4" /> {t('communityHelp.submitApplication', lang)}
                 </button>
               </div>
             )}
@@ -866,7 +999,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[60]" role="dialog" aria-modal="true">
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md p-5 animate-fade-in">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-bold text-base flex items-center gap-2"><Info className="w-5 h-5 text-blue-500" /> Helper Details</h3>
+              <h3 className="font-bold text-base flex items-center gap-2"><Info className="w-5 h-5 text-blue-500" /> {t('communityHelp.helperDetails', lang)}</h3>
               <button onClick={() => setInfoPost(null)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"><X className="w-4 h-4" /></button>
             </div>
             <div className="space-y-3">
@@ -875,31 +1008,31 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
                   <TypeIcon type={infoPost.type} className="w-3 h-3" />
                   {COMMUNITY_HELP_TYPES.find(t => t.key === infoPost.type)?.label}
                 </span>
-                {infoPost.verified && <span className="text-[11px] bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full font-semibold flex items-center gap-1"><UserCheck className="w-3 h-3" /> Verified Helper</span>}
+                {infoPost.verified && <span className="text-[11px] bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full font-semibold flex items-center gap-1"><UserCheck className="w-3 h-3" /> {t('communityHelp.verifiedHelper', lang)}</span>}
               </div>
-              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{infoPost.description}</p>
+              <p className="text-sm text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 leading-relaxed">{postTranslations[infoPost.description] || infoPost.description}</p>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-2.5">
-                  <p className="text-gray-500 text-[10px] mb-0.5">Location</p>
+                  <p className="text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 text-[10px] mb-0.5">{t('communityHelp.locationLabel', lang)}</p>
                   <p className="font-semibold flex items-center gap-1"><MapPin className="w-3 h-3" /> {infoPost.location}</p>
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-2.5">
-                  <p className="text-gray-500 text-[10px] mb-0.5">Posted</p>
+                  <p className="text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 text-[10px] mb-0.5">{t('communityHelp.postedLabel', lang)}</p>
                   <p className="font-semibold flex items-center gap-1"><Clock className="w-3 h-3" /> {infoPost.time}</p>
                 </div>
               </div>
               {infoPost.safe_meeting && (
                 <div className="p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-700 rounded-xl">
-                  <p className="text-[11px] text-green-700 dark:text-green-300 font-semibold flex items-center gap-1 mb-0.5"><Lock className="w-3 h-3" /> Safe Public Meeting Place</p>
+                  <p className="text-[11px] text-green-700 dark:text-green-300 font-semibold flex items-center gap-1 mb-0.5"><Lock className="w-3 h-3" /> {t('communityHelp.safeMeetingPlaceLabel', lang)}</p>
                   <p className="text-xs text-green-800 dark:text-green-300">{infoPost.safe_meeting}</p>
                 </div>
               )}
               <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-700 rounded-xl text-[10px] text-amber-800 dark:text-amber-300">
-                Contact is routed through our anonymous secure system. The helper never sees your personal details until you choose to share them at the agreed public meeting point.
+                {t('communityHelp.contactRoutedNotice', lang)}
               </div>
               <button onClick={() => { setInfoPost(null); setContactSent(false); setContactMsg(''); setContactPost(infoPost) }}
                 className="w-full bg-green-600 hover:bg-green-700 text-white py-2.5 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-2">
-                <Lock className="w-4 h-4" /> Request Secure Contact
+                <Lock className="w-4 h-4" /> {t('communityHelp.requestSecureContact', lang)}
               </button>
             </div>
           </div>
@@ -911,7 +1044,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[60]" role="dialog" aria-modal="true">
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md p-5 animate-fade-in">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-bold text-base flex items-center gap-2"><Lock className="w-5 h-5 text-green-600" /> Request Secure Contact</h3>
+              <h3 className="font-bold text-base flex items-center gap-2"><Lock className="w-5 h-5 text-green-600" /> {t('communityHelp.requestSecureContact', lang)}</h3>
               <button onClick={() => setContactPost(null)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"><X className="w-4 h-4" /></button>
             </div>
             {contactSent ? (
@@ -919,28 +1052,28 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
                 <div className="w-14 h-14 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-3">
                   <Lock className="w-7 h-7 text-green-600" />
                 </div>
-                <h4 className="font-bold text-sm mb-1">Secure Request Sent</h4>
-                <p className="text-xs text-gray-500 mb-1">Your anonymous request has been forwarded to the helper.</p>
-                <p className="text-[10px] text-gray-400 mb-4">If they accept, you'll receive a notification to arrange a meeting at the agreed public location.</p>
-                <button onClick={() => setContactPost(null)} className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-xl text-sm font-semibold">Done</button>
+                <h4 className="font-bold text-sm mb-1">{t('communityHelp.secureRequestSent', lang)}</h4>
+                <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-1">{t('communityHelp.requestForwarded', lang)}</p>
+                <p className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-4">{t('communityHelp.ifTheyAccept', lang)}</p>
+                <button onClick={() => setContactPost(null)} className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-xl text-sm font-semibold">{t('communityHelp.done', lang)}</button>
               </div>
             ) : (
               <div className="space-y-3">
                 <div className="p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-700 rounded-xl">
-                  <p className="text-[11px] text-green-800 dark:text-green-300 font-semibold mb-1">About: {contactPost.description.substring(0, 60)}{contactPost.description.length > 60 ? '...' : ''}</p>
-                  {contactPost.safe_meeting && <p className="text-[10px] text-green-700 dark:text-green-400 flex items-center gap-1"><Lock className="w-2.5 h-2.5" /> Meeting: {contactPost.safe_meeting}</p>}
+                  <p className="text-[11px] text-green-800 dark:text-green-300 font-semibold mb-1">{t('communityHelp.aboutLabel', lang)} {(postTranslations[contactPost.description] || contactPost.description).substring(0, 60)}{(postTranslations[contactPost.description] || contactPost.description).length > 60 ? '...' : ''}</p>
+                  {contactPost.safe_meeting && <p className="text-[10px] text-green-700 dark:text-green-400 flex items-center gap-1"><Lock className="w-2.5 h-2.5" /> {t('communityHelp.meetLabel', lang)} {contactPost.safe_meeting}</p>}
                 </div>
                 <div className="p-2.5 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 rounded-xl text-[10px] text-amber-800 dark:text-amber-300">
-                  Your identity is fully anonymous. The helper will only know your approximate area and what you need.
+                  {t('communityHelp.identityAnonymous', lang)}
                 </div>
                 <div>
-                  <label className="text-xs font-semibold">Your message <span className="font-normal text-gray-400">(optional)</span></label>
-                  <textarea className="w-full mt-1 px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 min-h-[80px] resize-none" placeholder="e.g. I need shelter for 2 adults and a child, dog-friendly if possible. I can travel to the meeting point." value={contactMsg} onChange={e => setContactMsg(e.target.value)} />
+                  <label className="text-xs font-semibold">{t('communityHelp.yourMessage', lang)} <span className="font-normal text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('communityHelp.optional', lang)}</span></label>
+                  <textarea className="w-full mt-1 px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 min-h-[80px] resize-none" placeholder={t('communityHelp.messagePlaceholder', lang)} value={contactMsg} onChange={e => setContactMsg(e.target.value)} />
                 </div>
                 <button
-                  onClick={() => { setContactSent(true); pushNotification('Secure contact request sent — the helper will respond if available', 'success') }}
+                  onClick={() => { setContactSent(true); pushNotification(t('communityHelp.secureContactSentToast', lang), 'success') }}
                   className="w-full bg-green-600 hover:bg-green-700 text-white py-2.5 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-2">
-                  <Lock className="w-4 h-4" /> Send Anonymous Request
+                  <Lock className="w-4 h-4" /> {t('communityHelp.sendAnonymousRequest', lang)}
                 </button>
               </div>
             )}
@@ -951,8 +1084,9 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
   )
 }
 
-function PostList({ posts, reported, setReported, pushNotification, TypeIcon, Stars }: any) {
-  if (posts.length === 0) return <p className="text-xs text-gray-400 text-center py-4">No posts match your filter</p>
+function PostList({ posts, postTranslations, reported, setReported, pushNotification, TypeIcon, Stars }: any) {
+  const lang = getLanguage()
+  if (posts.length === 0) return <p className="text-xs text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 text-center py-4">{t('communityHelp.noPostsMatchFilter', lang)}</p>
   return (
     <div className="space-y-2 max-h-[32vh] overflow-y-auto">
       {posts.map((p: any) => (
@@ -963,18 +1097,18 @@ function PostList({ posts, reported, setReported, pushNotification, TypeIcon, St
                 <span className="inline-flex items-center gap-1 text-[10px] bg-green-100 dark:bg-green-900/30 text-green-700 px-1.5 py-0.5 rounded-full font-medium">
                   <TypeIcon type={p.type} className="w-2.5 h-2.5" /> {COMMUNITY_HELP_TYPES.find((t: any) => t.key === p.type)?.label}
                 </span>
-                {p.verified && <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-semibold flex items-center gap-0.5"><UserCheck className="w-2.5 h-2.5" /> Verified</span>}
+                {p.verified && <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-semibold flex items-center gap-0.5"><UserCheck className="w-2.5 h-2.5" /> {t('communityHelp.verified', lang)}</span>}
                 <Stars n={p.rating} />
-                <span className="text-[10px] text-gray-500 ml-auto">{p.time}</span>
+                <span className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 ml-auto">{p.time}</span>
               </div>
-              <p className="text-xs">{p.description}</p>
-              <p className="text-[10px] text-gray-500 mt-0.5 flex items-center gap-1"><MapPin className="w-2.5 h-2.5" /> {p.location}</p>
+              <p className="text-xs">{postTranslations[p.description] || p.description}</p>
+              <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-0.5 flex items-center gap-1"><MapPin className="w-2.5 h-2.5" /> {p.location}</p>
               {p.safe_meeting && (
-                <p className="text-[10px] text-green-700 dark:text-green-400 mt-0.5 flex items-center gap-1"><Lock className="w-2.5 h-2.5" /> Meet: {p.safe_meeting}</p>
+                <p className="text-[10px] text-green-700 dark:text-green-400 mt-0.5 flex items-center gap-1"><Lock className="w-2.5 h-2.5" /> {t('communityHelp.meetLabel', lang)} {p.safe_meeting}</p>
               )}
             </div>
-            <button onClick={() => { setReported((s: any) => new Set([...s, p.id])); pushNotification('Report received. Our team will review.', 'info') }}
-              disabled={reported.has(p.id)} className={`flex-shrink-0 p-1 transition-colors ${reported.has(p.id) ? 'text-gray-300' : 'text-gray-400 hover:text-red-500'}`} title="Report suspicious">
+            <button onClick={() => { setReported((s: any) => new Set([...s, p.id])); pushNotification(t('communityHelp.reportReceived', lang), 'info') }}
+              disabled={reported.has(p.id)} className={`flex-shrink-0 p-1 transition-colors ${reported.has(p.id) ? 'text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400'}`} title={t('communityHelp.reportSuspicious', lang)}>
               <Flag className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -993,9 +1127,6 @@ function CheckIcon() {
     </span>
   )
 }
-
-
-
 
 
 

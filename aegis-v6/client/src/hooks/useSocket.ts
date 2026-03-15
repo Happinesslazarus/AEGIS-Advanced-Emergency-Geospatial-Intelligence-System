@@ -182,11 +182,22 @@ export function useSocket(): SocketState {
     })
   }, [])
 
+  // Track which token the socket is authenticated with
+  const currentTokenRef = useRef<string | null>(null)
+
   // Connect to Socket.IO with JWT - Advanced connection management
   const connect = useCallback((token: string) => {
     if (socketRef.current?.connected) {
-      console.log('[Socket] Already connected, skipping')
-      return
+      // If already connected with the same token, skip
+      if (currentTokenRef.current === token) {
+        console.log('[Socket] Already connected with same token, skipping')
+        return
+      }
+      // Different token — reconnect with the new identity
+      console.log('[Socket] Reconnecting with different token...')
+      socketRef.current.disconnect()
+      socketRef.current = null
+      setConnected(false)
     }
 
     if (!token) {
@@ -207,6 +218,7 @@ export function useSocket(): SocketState {
     
     console.log('[Socket] Reconnection delay:', currentDelay, 'ms (attempt', reconnectAttemptsRef.current + 1, ')')
     
+    currentTokenRef.current = token
     const socket = io(SOCKET_URL, {
       auth: { token },
       transports: ['websocket', 'polling'],
@@ -216,8 +228,8 @@ export function useSocket(): SocketState {
       reconnectionAttempts: MAX_RECONNECT_ATTEMPTS,
       timeout: 20000,
       autoConnect: true,
-      forceNew: false,
-      multiplex: true,
+      forceNew: true,
+      multiplex: false,
     })
 
     socket.on('connect', () => {
@@ -735,7 +747,7 @@ export function useSocket(): SocketState {
       
       // Use admin endpoint if operator token, citizen endpoint if citizen token
       const endpoint = operatorToken && !citizenToken 
-        ? `/api/admin/threads/${threadId}`
+        ? `/api/admin/messages/${threadId}`
         : `/api/citizen/threads/${threadId}`
       
       const res = await fetch(endpoint, {

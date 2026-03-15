@@ -1,30 +1,135 @@
-import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react'
 import { apiGetReports, apiUpdateReportStatus, apiSubmitReport } from '../utils/api'
+import { translateTexts } from '../utils/translateService'
+import { useLanguage } from '../hooks/useLanguage'
 import { useSharedSocket } from './SocketContext'
 import type { Report, NewReportInput } from '../types'
 
 interface ReportStats {
-  total: number; unverified: number; verified: number; urgent: number
-  flagged: number; high: number; medium: number; low: number
+  total: number
+  unverified: number
+  verified: number
+  urgent: number
+  flagged: number
+  high: number
+  medium: number
+  low: number
 }
 
 interface ReportsContextType {
-  reports: Report[]; filteredReports: Report[]; stats: ReportStats
+  reports: Report[]
+  filteredReports: Report[]
+  stats: ReportStats
   addReport: (input: NewReportInput, files?: File[]) => Promise<Report | null>
-  verifyReport: (id: string) => void; flagReport: (id: string) => void; markUrgent: (id: string) => void
-  resolveReport: (id: string) => void; archiveReport: (id: string) => void; markFalseReport: (id: string) => void
+  verifyReport: (id: string) => void
+  flagReport: (id: string) => void
+  markUrgent: (id: string) => void
+  resolveReport: (id: string) => void
+  archiveReport: (id: string) => void
+  markFalseReport: (id: string) => void
   refreshReports: () => void
   loading: boolean
-  filterSeverity: string; setFilterSeverity: (v: string) => void
-  filterStatus: string; setFilterStatus: (v: string) => void
-  filterType: string; setFilterType: (v: string) => void
-  searchQuery: string; setSearchQuery: (v: string) => void
+  filterSeverity: string
+  setFilterSeverity: (value: string) => void
+  filterStatus: string
+  setFilterStatus: (value: string) => void
+  filterType: string
+  setFilterType: (value: string) => void
+  searchQuery: string
+  setSearchQuery: (value: string) => void
 }
 
 const ReportsContext = createContext<ReportsContextType | null>(null)
 
+function formatTimeAgo(dateStr?: string): string {
+  if (!dateStr) return 'Unknown'
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return 'Just now'
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  const days = Math.floor(hrs / 24)
+  return `${days}d ago`
+}
+
+function normalizeServerReport(report: any): Report {
+  return {
+    id: report.id || report.reportNumber,
+    reportNumber: report.reportNumber,
+    incidentCategory: report.incidentCategory || 'Flood',
+    incidentSubtype: report.incidentSubtype || '',
+    type: report.type || report.incidentCategory || 'Flood',
+    description: report.description || '',
+    severity: report.severity || 'Medium',
+    status: report.status || 'Unverified',
+    trappedPersons: report.trappedPersons || 'no',
+    location: report.location || report.locationText || 'Unknown',
+    coordinates: report.coordinates || [57.15, -2.09],
+    hasMedia: report.hasMedia || false,
+    mediaType: report.mediaType || null,
+    mediaUrl: report.mediaUrl || null,
+    media: report.media || [],
+    reporter: report.reporter || 'Anonymous Citizen',
+    confidence: report.confidence || report.aiConfidence || null,
+    aiAnalysis: report.aiAnalysis || null,
+    locationMetadata: report.locationMetadata || null,
+    timestamp: report.timestamp || report.createdAt || new Date().toISOString(),
+    displayTime: formatTimeAgo(report.timestamp || report.createdAt),
+    operatorNotes: report.operatorNotes || null,
+  }
+}
+
+async function translateReportFields(reports: Report[], language: string): Promise<Report[]> {
+  if (language === 'en' || reports.length === 0) return reports
+
+  const textQueue: string[] = []
+  for (const report of reports) {
+    if (report.description?.trim()) textQueue.push(report.description)
+    const reasoning = report.aiAnalysis?.reasoning?.trim()
+    if (reasoning) textQueue.push(reasoning)
+    const operatorNotes = report.operatorNotes?.trim()
+    if (operatorNotes) textQueue.push(operatorNotes)
+  }
+
+  if (textQueue.length === 0) return reports
+
+  const uniqueTexts = [...new Set(textQueue)]
+  const translationResults = await translateTexts(uniqueTexts, 'auto', language)
+  const translations = new Map<string, string>()
+
+  translationResults.forEach((result, index) => {
+    const sourceText = uniqueTexts[index]
+    if (!sourceText) return
+    if (result.available && result.translatedText && result.translatedText !== sourceText) {
+      translations.set(sourceText, result.translatedText)
+    }
+  })
+
+  return reports.map((report) => {
+    const translatedDescription = translations.get(report.description) || report.description
+    const translatedReasoning = report.aiAnalysis?.reasoning
+      ? translations.get(report.aiAnalysis.reasoning) || report.aiAnalysis.reasoning
+      : report.aiAnalysis?.reasoning
+    const translatedOperatorNotes = report.operatorNotes
+      ? translations.get(report.operatorNotes) || report.operatorNotes
+      : report.operatorNotes
+
+    return {
+      ...report,
+      description: translatedDescription,
+      operatorNotes: translatedOperatorNotes,
+      aiAnalysis: report.aiAnalysis
+        ? { ...report.aiAnalysis, reasoning: translatedReasoning }
+        : report.aiAnalysis,
+    }
+  })
+}
+
 export function ReportsProvider({ children }: { children: ReactNode }): JSX.Element {
   const sharedSocket = useSharedSocket()
+  const language = useLanguage()
+  const [rawReports, setRawReports] = useState<Report[]>([])
   const [reports, setReports] = useState<Report[]>([])
   const [loading, setLoading] = useState(true)
   const [filterSeverity, setFilterSeverity] = useState('all')
@@ -32,101 +137,69 @@ export function ReportsProvider({ children }: { children: ReactNode }): JSX.Elem
   const [filterType, setFilterType] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
 
-  // Fetch real reports from the server API
   const fetchReports = useCallback(() => {
     setLoading(true)
     apiGetReports()
       .then((data: any) => {
-        const serverReports: Report[] = (Array.isArray(data) ? data : []).map((r: any) => ({
-          id: r.id || r.reportNumber,
-          reportNumber: r.reportNumber,
-          incidentCategory: r.incidentCategory || 'Flood',
-          incidentSubtype: r.incidentSubtype || '',
-          type: r.type || r.incidentCategory || 'Flood',
-          description: r.description || '',
-          severity: r.severity || 'Medium',
-          status: r.status || 'Unverified',
-          trappedPersons: r.trappedPersons || 'no',
-          location: r.location || r.locationText || 'Unknown',
-          coordinates: r.coordinates || [57.15, -2.09],
-          hasMedia: r.hasMedia || false,
-          mediaType: r.mediaType || null,
-          mediaUrl: r.mediaUrl || null,
-          media: r.media || [],
-          reporter: r.reporter || 'Anonymous Citizen',
-          confidence: r.confidence || r.aiConfidence || null,
-          aiAnalysis: r.aiAnalysis || null,
-          locationMetadata: r.locationMetadata || null,
-          timestamp: r.timestamp || r.createdAt || new Date().toISOString(),
-          displayTime: formatTimeAgo(r.timestamp || r.createdAt),
-          operatorNotes: r.operatorNotes || null,
-        }))
-        setReports(serverReports)
+        const serverReports = (Array.isArray(data) ? data : []).map((report: any) => normalizeServerReport(report))
+        setRawReports(serverReports)
       })
-      .catch((err: any) => {
-        console.warn('[ReportsContext] Failed to fetch from server, starting with empty list:', err.message)
-        setReports([])
+      .catch((error: any) => {
+        console.warn('[ReportsContext] Failed to fetch from server, starting with empty list:', error.message)
+        setRawReports([])
       })
       .finally(() => setLoading(false))
   }, [])
 
-  useEffect(() => { fetchReports() }, [fetchReports])
+  useEffect(() => {
+    fetchReports()
+  }, [fetchReports])
 
-  // WebSocket listener for real-time report updates (no manual refresh needed)
+  useEffect(() => {
+    let cancelled = false
+
+    ;(async () => {
+      const translated = await translateReportFields(rawReports, language)
+      if (!cancelled) setReports(translated)
+    })().catch(() => {
+      if (!cancelled) setReports(rawReports)
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [rawReports, language])
+
   useEffect(() => {
     const socket = sharedSocket.socket
     if (!socket) return
 
-    // New report submitted by a citizen — add to list in real time
     socket.on('report:new', (report: any) => {
-      // // console.log('[ReportsContext] Real-time report:new received', report?.reportNumber)
-      const newReport: Report = {
-        id: report.id || report.reportNumber,
-        reportNumber: report.reportNumber,
-        incidentCategory: report.incidentCategory || 'Flood',
-        incidentSubtype: report.incidentSubtype || '',
-        type: report.type || report.incidentCategory || 'Flood',
-        description: report.description || '',
-        severity: report.severity || 'Medium',
-        status: report.status || 'Unverified',
-        trappedPersons: report.trappedPersons || 'no',
-        location: report.location || report.locationText || 'Unknown',
-        coordinates: report.coordinates || [57.15, -2.09],
-        hasMedia: report.hasMedia || false,
-        mediaType: report.mediaType || null,
-        mediaUrl: report.mediaUrl || null,
-        media: report.media || [],
-        reporter: report.reporter || 'Anonymous Citizen',
-        confidence: report.confidence || report.aiConfidence || null,
-        aiAnalysis: report.aiAnalysis || null,
-        locationMetadata: report.locationMetadata || null,
+      const newReport = normalizeServerReport({
+        ...report,
         timestamp: report.timestamp || report.createdAt || new Date().toISOString(),
-        displayTime: 'Just now',
-        operatorNotes: report.operatorNotes || null,
-      }
-      setReports(prev => {
-        // Deduplicate — check if already in list
-        if (prev.some(r => r.id === newReport.id)) return prev
+      })
+
+      setRawReports((prev) => {
+        if (prev.some((existing) => existing.id === newReport.id)) return prev
         return [newReport, ...prev]
       })
     })
 
-    // Report status updated — update in list
     socket.on('report:updated', (update: any) => {
-      if (update?.id && update?.status) {
-        setReports(prev => prev.map(r =>
-          r.id === update.id ? { ...r, status: update.status } : r
-        ))
-      }
+      if (!update?.id || !update?.status) return
+      setRawReports((prev) =>
+        prev.map((report) => (report.id === update.id ? { ...report, status: update.status } : report)),
+      )
     })
 
-    // Bulk status update — refresh the full list
     socket.on('report:bulk-updated', (update: any) => {
-      if (Array.isArray(update?.reportIds) && update?.status) {
-        setReports(prev => prev.map(r =>
-          update.reportIds.includes(r.id) ? { ...r, status: update.status } : r
-        ))
-      }
+      if (!Array.isArray(update?.reportIds) || !update?.status) return
+      setRawReports((prev) =>
+        prev.map((report) =>
+          update.reportIds.includes(report.id) ? { ...report, status: update.status } : report,
+        ),
+      )
     })
 
     return () => {
@@ -137,31 +210,32 @@ export function ReportsProvider({ children }: { children: ReactNode }): JSX.Elem
   }, [sharedSocket.socket])
 
   const addReport = useCallback(async (input: NewReportInput, files: File[] = []): Promise<Report | null> => {
-    const fd = new FormData()
-    fd.append('incidentCategory', input.incidentCategory)
-    fd.append('incidentSubtype', input.incidentSubtype || '')
-    fd.append('displayType', input.type || '')
-    fd.append('description', input.description)
-    fd.append('severity', input.severity)
-    fd.append('trappedPersons', input.trappedPersons)
-    fd.append('locationText', input.location)
-    fd.append('lat', String(input.coordinates?.[0] ?? 57.15))
-    fd.append('lng', String(input.coordinates?.[1] ?? -2.09))
+    const formData = new FormData()
+    formData.append('incidentCategory', input.incidentCategory)
+    formData.append('incidentSubtype', input.incidentSubtype || '')
+    formData.append('displayType', input.type || '')
+    formData.append('description', input.description)
+    formData.append('severity', input.severity)
+    formData.append('trappedPersons', input.trappedPersons)
+    formData.append('locationText', input.location)
+    formData.append('lat', String(input.coordinates?.[0] ?? 57.15))
+    formData.append('lng', String(input.coordinates?.[1] ?? -2.09))
+
     if (input.locationMetadata) {
-      fd.append('locationMetadata', JSON.stringify(input.locationMetadata))
+      formData.append('locationMetadata', JSON.stringify(input.locationMetadata))
     }
 
     if (input.customFields && Object.keys(input.customFields).length > 0) {
-      fd.append('customFields', JSON.stringify(input.customFields))
+      formData.append('customFields', JSON.stringify(input.customFields))
     }
 
     if (files.length > 0) {
       for (const file of files) {
-        fd.append('evidence', file)
+        formData.append('evidence', file)
       }
     }
 
-    const created: any = await apiSubmitReport(fd)
+    const created: any = await apiSubmitReport(formData)
     await fetchReports()
 
     return {
@@ -180,70 +254,96 @@ export function ReportsProvider({ children }: { children: ReactNode }): JSX.Elem
 
   const verifyReport = useCallback((id: string) => {
     apiUpdateReportStatus(id, 'Verified').catch(() => {})
-    setReports(p => p.map(r => r.id === id ? { ...r, status: 'Verified' as const } : r))
-  }, [])
-  const flagReport = useCallback((id: string) => {
-    apiUpdateReportStatus(id, 'Flagged').catch(() => {})
-    setReports(p => p.map(r => r.id === id ? { ...r, status: 'Flagged' as const } : r))
-  }, [])
-  const markUrgent = useCallback((id: string) => {
-    apiUpdateReportStatus(id, 'Urgent').catch(() => {})
-    setReports(p => p.map(r => r.id === id ? { ...r, status: 'Urgent' as const } : r))
+    setRawReports((prev) => prev.map((report) => (report.id === id ? { ...report, status: 'Verified' as const } : report)))
   }, [])
 
-  const filteredReports = reports.filter(r => {
-    if (filterSeverity !== 'all' && r.severity !== filterSeverity) return false
-    if (filterStatus !== 'all' && r.status !== filterStatus) return false
-    if (filterType !== 'all' && r.incidentCategory !== filterType) return false
+  const flagReport = useCallback((id: string) => {
+    apiUpdateReportStatus(id, 'Flagged').catch(() => {})
+    setRawReports((prev) => prev.map((report) => (report.id === id ? { ...report, status: 'Flagged' as const } : report)))
+  }, [])
+
+  const markUrgent = useCallback((id: string) => {
+    apiUpdateReportStatus(id, 'Urgent').catch(() => {})
+    setRawReports((prev) => prev.map((report) => (report.id === id ? { ...report, status: 'Urgent' as const } : report)))
+  }, [])
+
+  const resolveReport = useCallback((id: string) => {
+    apiUpdateReportStatus(id, 'Resolved').catch(() => {})
+    setRawReports((prev) => prev.map((report) => (report.id === id ? { ...report, status: 'Resolved' as const } : report)))
+  }, [])
+
+  const archiveReport = useCallback((id: string) => {
+    apiUpdateReportStatus(id, 'Archived').catch(() => {})
+    setRawReports((prev) => prev.map((report) => (report.id === id ? { ...report, status: 'Archived' as const } : report)))
+  }, [])
+
+  const markFalseReport = useCallback((id: string) => {
+    apiUpdateReportStatus(id, 'False_Report').catch(() => {})
+    setRawReports((prev) => prev.map((report) => (report.id === id ? { ...report, status: 'False_Report' as const } : report)))
+  }, [])
+
+  const refreshReports = useCallback(() => {
+    fetchReports()
+  }, [fetchReports])
+
+  const filteredReports = reports.filter((report) => {
+    if (filterSeverity !== 'all' && report.severity !== filterSeverity) return false
+    if (filterStatus !== 'all' && report.status !== filterStatus) return false
+    if (filterType !== 'all' && report.incidentCategory !== filterType) return false
     if (searchQuery) {
-      const q = searchQuery.toLowerCase()
-      return r.description.toLowerCase().includes(q) || r.location.toLowerCase().includes(q) || r.id.toLowerCase().includes(q)
+      const query = searchQuery.toLowerCase()
+      return (
+        report.description.toLowerCase().includes(query) ||
+        report.location.toLowerCase().includes(query) ||
+        report.id.toLowerCase().includes(query)
+      )
     }
     return true
   })
 
   const stats: ReportStats = {
-    total: reports.length, unverified: reports.filter(r => r.status === 'Unverified').length,
-    verified: reports.filter(r => r.status === 'Verified').length, urgent: reports.filter(r => r.status === 'Urgent').length,
-    flagged: reports.filter(r => r.status === 'Flagged').length, high: reports.filter(r => r.severity === 'High').length,
-    medium: reports.filter(r => r.severity === 'Medium').length, low: reports.filter(r => r.severity === 'Low').length,
+    total: reports.length,
+    unverified: reports.filter((report) => report.status === 'Unverified').length,
+    verified: reports.filter((report) => report.status === 'Verified').length,
+    urgent: reports.filter((report) => report.status === 'Urgent').length,
+    flagged: reports.filter((report) => report.status === 'Flagged').length,
+    high: reports.filter((report) => report.severity === 'High').length,
+    medium: reports.filter((report) => report.severity === 'Medium').length,
+    low: reports.filter((report) => report.severity === 'Low').length,
   }
 
-  const resolveReport = useCallback((id: string) => {
-    apiUpdateReportStatus(id, 'Resolved').catch(() => {})
-    setReports(p => p.map(r => r.id === id ? { ...r, status: 'Resolved' as const } : r))
-  }, [])
-  const archiveReport = useCallback((id: string) => {
-    apiUpdateReportStatus(id, 'Archived').catch(() => {})
-    setReports(p => p.map(r => r.id === id ? { ...r, status: 'Archived' as const } : r))
-  }, [])
-  const markFalseReport = useCallback((id: string) => {
-    apiUpdateReportStatus(id, 'False_Report').catch(() => {})
-    setReports(p => p.map(r => r.id === id ? { ...r, status: 'False_Report' as const } : r))
-  }, [])
-  const refreshReports = useCallback(() => { fetchReports() }, [fetchReports])
-
   return (
-    <ReportsContext.Provider value={{ reports, filteredReports, stats, addReport, verifyReport, flagReport, markUrgent, resolveReport, archiveReport, markFalseReport, loading, refreshReports, filterSeverity, setFilterSeverity, filterStatus, setFilterStatus, filterType, setFilterType, searchQuery, setSearchQuery }}>
+    <ReportsContext.Provider
+      value={{
+        reports,
+        filteredReports,
+        stats,
+        addReport,
+        verifyReport,
+        flagReport,
+        markUrgent,
+        resolveReport,
+        archiveReport,
+        markFalseReport,
+        loading,
+        refreshReports,
+        filterSeverity,
+        setFilterSeverity,
+        filterStatus,
+        setFilterStatus,
+        filterType,
+        setFilterType,
+        searchQuery,
+        setSearchQuery,
+      }}
+    >
       {children}
     </ReportsContext.Provider>
   )
 }
 
 export function useReports(): ReportsContextType {
-  const ctx = useContext(ReportsContext)
-  if (!ctx) throw new Error('useReports must be within ReportsProvider')
-  return ctx
-}
-
-function formatTimeAgo(dateStr?: string): string {
-  if (!dateStr) return 'Unknown'
-  const diff = Date.now() - new Date(dateStr).getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'Just now'
-  if (mins < 60) return `${mins}m ago`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h ago`
-  const days = Math.floor(hrs / 24)
-  return `${days}d ago`
+  const context = useContext(ReportsContext)
+  if (!context) throw new Error('useReports must be within ReportsProvider')
+  return context
 }

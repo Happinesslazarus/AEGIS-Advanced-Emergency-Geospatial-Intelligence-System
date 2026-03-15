@@ -138,6 +138,92 @@
     "reduceMotion": "Reducir Movimiento",
     "screenReader": "Optimizado para Lector de Pantalla"
   },
+  "alertSub": {
+    "smsValidation": "El SMS debe estar en formato internacional, p. ej. +447700900123",
+    "whatsappValidation": "WhatsApp debe estar en formato internacional, p. ej. +447700900123",
+    "webPushEnabled": "Las notificaciones web se activaron correctamente",
+    "webPushFailed": "Fall? la configuraci?n de las notificaciones web",
+    "subscriptionFailed": "La suscripci?n fall?",
+    "successDescription": "Recibir?s alertas por los canales seleccionados cuando se confirmen emergencias en tus zonas.",
+    "info": "Las alertas se env?an cuando los operadores confirman una emergencia. Puedes darte de baja en cualquier momento. Tus datos de contacto est?n cifrados y nunca se comparten.",
+    "subscribeToAlerts": "Suscribirse a alertas",
+    "area": {
+      "cityCentre": "Centro de la ciudad",
+      "northDistrict": "Distrito norte",
+      "southDistrict": "Distrito sur",
+      "eastDistrict": "Distrito este",
+      "westDistrict": "Distrito oeste",
+      "coastalRiverside": "Costa / Ribera",
+      "suburbanOutskirts": "Suburbios / Afueras",
+      "allAreas": "Todas las zonas"
+    }
+  },
+  "floatingChat": {
+    "messages": "Mensajes",
+    "newConversation": "Nueva conversaci?n",
+    "newMessage": "Nuevo mensaje",
+    "chat": "Chat",
+    "noConversations": "A?n no hay conversaciones",
+    "startConversation": "Inicia una nueva conversaci?n con nuestro equipo",
+    "noMessages": "Sin mensajes",
+    "noMessagesYet": "A?n no hay mensajes",
+    "typeMessage": "Escribe un mensaje...",
+    "subject": "Asunto",
+    "subjectPlaceholder": "Describe tu problema brevemente",
+    "message": "Mensaje",
+    "messagePlaceholder": "Describe tu pregunta o inquietud...",
+    "emergencyThread": "Hilo de emergencia",
+    "immediateAttention": "Esto se marcar? para atenci?n inmediata.",
+    "sending": "Enviando...",
+    "categories": {
+      "general": "Consulta general",
+      "emergency": "Ayuda de emergencia",
+      "report": "Reportar problema",
+      "feedback": "Comentarios",
+      "account": "Ayuda con la cuenta"
+    }
+  },
+  "layout": {
+    "adminNavbar": {
+      "systemsNormal": "Sistemas normales",
+      "searchPlaceholder": "Buscar reportes, alertas y operadores...",
+      "newMessage": "mensaje nuevo",
+      "newMessages": "mensajes nuevos",
+      "directMessages": "Mensajes directos",
+      "unreadConversation": "conversaci?n sin leer",
+      "unreadConversations": "conversaciones sin leer",
+      "noRecentNotifications": "No hay notificaciones recientes",
+      "viewAllAlerts": "Ver todas las alertas",
+      "portals": "Portales"
+    },
+    "portals": {
+      "guestPortal": "Portal de invitados",
+      "guestPortalDescription": "Informaci?n de seguridad p?blica",
+      "citizenPortalDescription": "Panel ciudadano con sesi?n iniciada",
+      "operatorPortal": "Portal del operador",
+      "operatorPortalDescription": "Operaciones de emergencia",
+      "currentlyActive": "Activo actualmente"
+    },
+    "sidebar": {
+      "communitySupport": "Apoyo comunitario",
+      "safetyCheckIn": "Registro de seguridad",
+      "myProfile": "Mi perfil",
+      "navigation": "Navegaci?n",
+      "expandSidebar": "Expandir barra lateral",
+      "collapseSidebar": "Contraer barra lateral",
+      "myAccount": "Mi cuenta",
+      "unlockFullFeatures": "Desbloquea todas las funciones",
+      "openNavigation": "Abrir navegaci?n",
+      "menu": "Men?",
+      "closeMenu": "Cerrar men?"
+    },
+    "topNavbar": {
+      "riskElevated": "Elevado",
+      "riskNormal": "Normal",
+      "toggleNavigation": "Alternar men? de navegaci?n",
+      "citizenFallback": "Ciudadano"
+    }
+  },
   "footer": {
     "privacy": "Política de Privacidad",
     "terms": "Términos de Servicio",

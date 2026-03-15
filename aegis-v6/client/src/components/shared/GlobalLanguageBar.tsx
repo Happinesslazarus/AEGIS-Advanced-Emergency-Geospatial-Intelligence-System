@@ -1,12 +1,14 @@
 import { Globe } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { LANGUAGES } from '../../data/disasterTypes'
-import { setLanguage } from '../../utils/i18n'
+import { setLanguage, t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 import { clearTranslationCache } from '../../utils/translateService'
 
 export default function GlobalLanguageBar(): JSX.Element | null {
   const lang = useLanguage()
+  const { i18n } = useTranslation()
   const location = useLocation()
 
   if (location.pathname.startsWith('/admin')) {
@@ -22,12 +24,14 @@ export default function GlobalLanguageBar(): JSX.Element | null {
           onChange={(e) => {
             const next = e.target.value
             setLanguage(next)
+            try { i18n.changeLanguage(next) } catch {}
             localStorage.setItem('aegis_lang_chosen', next)
+            localStorage.setItem('aegis-language', next)
             clearTranslationCache()
           }}
           className="bg-transparent text-gray-800 dark:text-gray-100 text-xs font-medium border-none outline-none cursor-pointer"
-          aria-label="Global language selector"
-          title="Language"
+          aria-label={t('langBar.ariaLabel', lang)}
+          title={t('langBar.title', lang)}
         >
           {LANGUAGES.map((item) => (
             <option key={item.code} value={item.code} className="text-black">

@@ -1,5 +1,5 @@
-﻿/**
- * DisasterMap.tsx — Production map with WMS layers, clustering,
+/**
+ * DisasterMap.tsx � Production map with WMS layers, clustering,
  * tile switching, heatmap, shelters, and scale bar.
  *
  * All map features are configurable via props. The component fetches
@@ -21,10 +21,12 @@ import { createMarkerSvg, getSeverityClass } from '../../utils/helpers'
 import type { Report, SeverityLevel } from '../../types'
 import SpatialToolbar from './SpatialToolbar'
 import IncidentMapLayers from './IncidentMapLayers'
+import { t } from '../../utils/i18n'
+import { useLanguage } from '../../hooks/useLanguage'
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// -------------------------------------------------------------------------------
 // Types & Config
-// ═══════════════════════════════════════════════════════════════════════════════
+// -------------------------------------------------------------------------------
 
 interface WMSLayer {
   name: string
@@ -130,9 +132,9 @@ const TILE_LAYERS = {
   },
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// -------------------------------------------------------------------------------
 // Sub-components
-// ═══════════════════════════════════════════════════════════════════════════════
+// -------------------------------------------------------------------------------
 
 function MapUpdater({ center, zoom }: { center: [number, number]; zoom: number }) {
   const map = useMap()
@@ -164,7 +166,7 @@ function HeatmapLayer({ points }: { points: [number, number, number][] }) {
         }).addTo(map)
       }
     } catch {
-      // leaflet.heat not available — silently skip
+      // leaflet.heat not available � silently skip
     }
 
     return () => { if (layer) map.removeLayer(layer) }
@@ -173,9 +175,9 @@ function HeatmapLayer({ points }: { points: [number, number, number][] }) {
   return null
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// -------------------------------------------------------------------------------
 // Helpers
-// ═══════════════════════════════════════════════════════════════════════════════
+// -------------------------------------------------------------------------------
 
 function icon(color: string, size = 28): L.DivIcon {
   return L.divIcon({
@@ -229,9 +231,9 @@ const stationPointToLayer = (feature: any, latlng: L.LatLng): L.CircleMarker => 
   })
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// -------------------------------------------------------------------------------
 // Main Component
-// ═══════════════════════════════════════════════════════════════════════════════
+// -------------------------------------------------------------------------------
 
 export default function DisasterMap({
   reports = [],
@@ -253,6 +255,8 @@ export default function DisasterMap({
   center: centerProp,
   zoom: zoomProp,
 }: Props): JSX.Element {
+  const lang = useLanguage()
+
   const { location } = useLocation()
   const mapCenter = centerProp || location.center
   const mapZoom = zoomProp || location.zoom
@@ -307,12 +311,30 @@ export default function DisasterMap({
     clusters: true,
   })
   const [overlayPanelOpen, setOverlayPanelOpen] = useState(false)
+  const [focusMode, setFocusMode] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [displayToolsOpen, setDisplayToolsOpen] = useState(false)
+  const mapWrapperRef = useRef<HTMLDivElement>(null)
 
   const toggleLayer = useCallback((key: keyof typeof layerToggles) => {
     setLayerToggles(prev => ({ ...prev, [key]: !prev[key] }))
   }, [])
 
-  // Socket.io — listen for distress:new / distress:updated in real-time
+  const toggleFullscreen = useCallback(() => {
+    if (!document.fullscreenElement) {
+      mapWrapperRef.current?.requestFullscreen()
+    } else {
+      document.exitFullscreen()
+    }
+  }, [])
+
+  useEffect(() => {
+    const onFSChange = () => setIsFullscreen(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', onFSChange)
+    return () => document.removeEventListener('fullscreenchange', onFSChange)
+  }, [])
+
+  // Socket.io � listen for distress:new / distress:updated in real-time
   useEffect(() => {
     if (!showDistress || !canReadDistress || !sharedSocket.socket) return
     const socket = sharedSocket.socket
@@ -529,11 +551,11 @@ export default function DisasterMap({
           <div className="min-w-[200px]">
             <div className="flex items-center gap-2 mb-1">
               <span className={`badge ${getSeverityClass(r.severity)}`}>{r.severity}</span>
-              <span className="text-xs font-mono text-gray-500">{r.id.slice(0, 8)}</span>
+              <span className="text-xs font-mono text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{r.id.slice(0, 8)}</span>
             </div>
             <p className="font-semibold text-sm text-gray-900 mb-1">{r.type}</p>
             <p className="text-xs text-gray-600 mb-1 line-clamp-2">{r.description}</p>
-            <p className="text-xs text-gray-400">{r.location}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{r.location}</p>
           </div>
         </Popup>
       </Marker>
@@ -584,7 +606,7 @@ export default function DisasterMap({
                 <p className="font-semibold text-sm">{incident.incident_type.replace(/_/g, ' ')} Incident</p>
                 <p className="text-xs text-gray-600">State: {incident.lifecycle_state.toUpperCase()}</p>
                 <p className="text-xs text-gray-600">Confidence: {Math.round(confidence * 100)}%</p>
-                <p className="text-xs text-gray-600">Evidence: {incident.evidence_count} · Window: {incident.time_window_minutes} min</p>
+                <p className="text-xs text-gray-600">Evidence: {incident.evidence_count} � Window: {incident.time_window_minutes} min</p>
               </div>
             </Popup>
           </Circle>
@@ -639,7 +661,7 @@ export default function DisasterMap({
           <Popup>
             <div className="min-w-[220px]">
               <p className="font-semibold text-sm">{cluster.incident_type} Cluster</p>
-              <p className="text-xs text-gray-600">Reports: {cluster.reports} · Radius: {cluster.radius_m}m</p>
+              <p className="text-xs text-gray-600">Reports: {cluster.reports} � Radius: {cluster.radius_m}m</p>
               <p className="text-xs text-gray-600">Time Window: {cluster.time_window_minutes} min</p>
               <p className="text-xs text-gray-600">Confidence: {Math.round(confidence * 100)}%</p>
             </div>
@@ -656,7 +678,7 @@ export default function DisasterMap({
       <Circle key={i} center={z.coords} radius={500} pathOptions={ZS[z.risk] || ZS.low}>
         <Popup>
           <p className="font-semibold text-sm">{z.name}</p>
-          <p className="text-xs">Risk: {z.risk.toUpperCase()}</p>
+          <p className="text-xs">{t('dmap.risk', lang)}: {z.risk.toUpperCase()}</p>
         </Popup>
       </Circle>
     ))
@@ -672,9 +694,9 @@ export default function DisasterMap({
         style={floodAreaStyle}
         onEachFeature={(feature: any, layer: any) => {
           const props = feature.properties || {}
-          const name = props.ta_name || props.fws_taname || 'Flood Area'
+          const name = props.ta_name || props.fws_taname || t('dmap.floodArea', lang)
           const severity = props.severity || 'watch'
-          layer.bindPopup(`<strong>${name}</strong><br/><span style="font-size:11px">Severity: ${severity.toUpperCase()}</span>`)
+          layer.bindPopup(`<strong>${name}</strong><br/><span style="font-size:11px">${t('dmap.severity', lang)}: ${severity.toUpperCase()}</span>`)
         }}
       />
     )
@@ -689,13 +711,13 @@ export default function DisasterMap({
         pointToLayer={stationPointToLayer}
         onEachFeature={(feature: any, layer: any) => {
           const props = feature.properties || {}
-          const name = props.station_name || 'Unknown Station'
-          const level = props.level_m ? `${props.level_m.toFixed(2)}m` : 'N/A'
+          const name = props.station_name || t('dmap.unknownStation', lang)
+          const level = props.level_m ? `${props.level_m.toFixed(2)}m` : t('common.na', lang)
           const status = props.level_status || 'normal'
           layer.bindPopup(
             `<strong>${name}</strong><br/>` +
-            `<span style="font-size:11px">Level: ${level}</span><br/>` +
-            `<span style="font-size:11px">Status: ${status.toUpperCase()}</span>`,
+            `<span style="font-size:11px">${t('dmap.level', lang)}: ${level}</span><br/>` +
+            `<span style="font-size:11px">${t('dmap.status', lang)}: ${status.toUpperCase()}</span>`,
           )
         }}
       />
@@ -712,12 +734,12 @@ export default function DisasterMap({
             <p className="font-semibold text-sm">{s.name}</p>
             <p className="text-xs text-gray-600 mb-1">{s.address}</p>
             <p className="text-xs">
-              Capacity: {s.current_occupancy}/{s.capacity} |
-              Type: {s.shelter_type}
+              {t('dmap.capacity', lang)}: {s.current_occupancy}/{s.capacity} |
+              {t('dmap.type', lang)}: {s.shelter_type}
             </p>
             {s.amenities.length > 0 && (
-              <p className="text-xs text-gray-500 mt-1">
-                Amenities: {s.amenities.join(', ')}
+              <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-1">
+                {t('dmap.amenities', lang)}: {s.amenities.join(', ')}
               </p>
             )}
             {s.phone && (
@@ -765,10 +787,10 @@ export default function DisasterMap({
         <Marker key={`distress-${b.id || i}`} position={[lat, lng]} icon={dIcon}>
           <Popup>
             <div className="min-w-[180px]">
-              <p className="font-bold text-red-600 text-sm mb-1">⚠ DISTRESS BEACON</p>
-              <p className="text-xs font-semibold">{b.citizenName || b.citizen_name || 'Citizen'}</p>
-              <p className="text-xs text-gray-600">{b.message || 'Emergency assistance requested'}</p>
-              {b.isVulnerable && <p className="text-xs text-orange-600 mt-1">⚠ Vulnerable person</p>}
+              <p className="font-bold text-red-600 text-sm mb-1">? {t('dmap.distressBeacon', lang)}</p>
+              <p className="text-xs font-semibold">{b.citizenName || b.citizen_name || t('dmap.citizen', lang)}</p>
+              <p className="text-xs text-gray-600">{b.message || t('dmap.emergencyAssistance', lang)}</p>
+              {b.isVulnerable && <p className="text-xs text-orange-600 mt-1">? {t('dmap.vulnerablePerson', lang)}</p>}
             </div>
           </Popup>
         </Marker>
@@ -787,7 +809,7 @@ export default function DisasterMap({
       return (
         <Polyline key={`evac-${i}`} positions={latlngs} pathOptions={{ color: '#22c55e', weight: 4, opacity: 0.8, dashArray: '10 6' }}>
           <Popup>
-            <p className="font-semibold text-sm">{route.name || 'Evacuation Route'}</p>
+            <p className="font-semibold text-sm">{route.name || t('dmap.evacuationRoute', lang)}</p>
             <p className="text-xs text-gray-600">{route.description || ''}</p>
           </Popup>
         </Polyline>
@@ -795,7 +817,7 @@ export default function DisasterMap({
     }).filter(Boolean)
   }, [showEvacuation, layerToggles.evacuation, evacuationRoutes])
 
-  // AI Flood prediction risk circles — dynamic coords from location context + prediction data
+  // AI Flood prediction risk circles � dynamic coords from location context + prediction data
   const predictionCircles = useMemo(() => {
     if (!showPredictions || !layerToggles.predictions || !predictions.length) return null
     // Build coordinate lookup from location floodZones + prediction lat/lng
@@ -817,10 +839,10 @@ export default function DisasterMap({
           <Popup>
             <div className="min-w-[200px]">
               <p className="font-bold text-sm">{p.area}</p>
-              <p className="text-xs">Flood probability: <span className="font-bold" style={{ color: colour }}>{Math.round(prob * 100)}%</span></p>
-              <p className="text-xs text-gray-500">Severity: {p.severity} · Confidence: {p.confidence}%</p>
-              {p.time_to_flood && <p className="text-xs text-gray-500">Time to flood: {p.time_to_flood}</p>}
-              <p className="text-xs text-gray-400 mt-1">{p.model_version}</p>
+              <p className="text-xs">{t('dmap.floodProbability', lang)}: <span className="font-bold" style={{ color: colour }}>{Math.round(prob * 100)}%</span></p>
+              <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('dmap.severity', lang)}: {p.severity} — {t('dmap.confidence', lang)}: {p.confidence}%</p>
+              {p.time_to_flood && <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('dmap.timeToFlood', lang)}: {p.time_to_flood}</p>}
+              <p className="text-xs text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-1">{p.model_version}</p>
             </div>
           </Popup>
         </Circle>
@@ -828,7 +850,7 @@ export default function DisasterMap({
     }).filter(Boolean)
   }, [showPredictions, layerToggles.predictions, predictions])
 
-  // Deployment zone markers — resolve coords from DB, floodZones lookup, or offset from center
+  // Deployment zone markers � resolve coords from DB, floodZones lookup, or offset from center
   const deploymentMarkers = useMemo(() => {
     if (!deployments || !deployments.length) return null
     // Build coordinate lookup from location floodZones
@@ -852,7 +874,7 @@ export default function DisasterMap({
         const zoneLower = d.zone.toLowerCase()
         for (const [name, c] of Object.entries(zoneCoords)) {
           if (zoneLower.includes(name) || name.includes(zoneLower) ||
-              zoneLower.replace(/zone\s*[a-z]\s*[—–-]\s*/i, '').trim() === name) {
+              zoneLower.replace(/zone\s*[a-z]\s*[��-]\s*/i, '').trim() === name) {
             coords = c
             break
           }
@@ -894,14 +916,14 @@ export default function DisasterMap({
                   color: '#fff', backgroundColor: '#16a34a',
                 }}>DEPLOYED</span>}
               </div>
-              <p style={{ fontSize: 11, margin: '2px 0' }}>Active Reports: <strong>{d.active_reports}</strong></p>
-              {d.estimated_affected && <p style={{ fontSize: 11, margin: '2px 0', color: '#dc2626' }}>Affected: {d.estimated_affected}</p>}
+              <p style={{ fontSize: 11, margin: '2px 0' }}>{t('dmap.activeReports', lang)}: <strong>{d.active_reports}</strong></p>
+              {d.estimated_affected && <p style={{ fontSize: 11, margin: '2px 0', color: '#dc2626' }}>{t('dmap.affected', lang)}: {d.estimated_affected}</p>}
               <div style={{ display: 'flex', gap: 8, fontSize: 11, marginTop: 4 }}>
-                {(d.ambulances ?? 0) > 0 && <span>🚑 {d.ambulances}</span>}
-                {(d.fire_engines ?? 0) > 0 && <span>🚒 {d.fire_engines}</span>}
-                {(d.rescue_boats ?? 0) > 0 && <span>🚤 {d.rescue_boats}</span>}
+                {(d.ambulances ?? 0) > 0 && <span>?? {d.ambulances}</span>}
+                {(d.fire_engines ?? 0) > 0 && <span>?? {d.fire_engines}</span>}
+                {(d.rescue_boats ?? 0) > 0 && <span>?? {d.rescue_boats}</span>}
               </div>
-              {d.ai_recommendation && <p style={{ fontSize: 10, color: '#6b7280', marginTop: 4, fontStyle: 'italic' }}>AI: {d.ai_recommendation}</p>}
+              {d.ai_recommendation && <p style={{ fontSize: 10, color: '#6b7280', marginTop: 4, fontStyle: 'italic' }}>{t('dmap.ai', lang)}: {d.ai_recommendation}</p>}
             </div>
           </Popup>
         </Circle>
@@ -928,27 +950,309 @@ export default function DisasterMap({
         style={riskStyle}
         onEachFeature={(feature: any, layer: any) => {
           const p = feature.properties || {}
-          const name = p.name || p.area_name || 'Risk Zone'
+          const name = p.name || p.area_name || t('dmap.riskZone', lang)
           const risk = p.risk_level || p.severity || 'medium'
-          layer.bindPopup(`<strong>${name}</strong><br/><span style="font-size:11px;">Risk: ${risk.toUpperCase()}</span>${p.description ? `<br/><span style="font-size:10px;">${p.description}</span>` : ''}`)
+          layer.bindPopup(`<strong>${name}</strong><br/><span style="font-size:11px;">${t('dmap.risk', lang)}: ${risk.toUpperCase()}</span>${p.description ? `<br/><span style="font-size:10px;">${p.description}</span>` : ''}`)
         }}
       />
     )
   }, [showRiskLayer, layerToggles.riskLayer, riskLayerData])
 
   return (
-    <div className={`map-wrapper relative rounded-xl overflow-hidden ${className}`} style={{ height }}>
-      {/* Loading overlay while map initializes */}
-      {!mapReady && (
-        <div className="absolute inset-0 z-[1000] flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-900 rounded-xl gap-3">
-          <div className="w-10 h-10 rounded-xl bg-aegis-600 flex items-center justify-center animate-pulse">
-            <svg viewBox="0 0 24 24" fill="white" className="w-5 h-5"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/></svg>
+    <div
+      ref={mapWrapperRef}
+      className={`map-wrapper flex flex-col rounded-xl overflow-hidden ${className}`}
+      style={isFullscreen ? { height: '100dvh' } : { height }}
+    >
+      {/* -- Unified map toolbar (hidden in focus mode) -- */}
+      {!focusMode && (
+        <div className="flex-shrink-0 flex items-center gap-1 px-2 py-1.5 bg-gray-900/85 backdrop-blur-md border-b border-white/10 z-[750]">
+          {/* Left control group */}
+          <div className="flex items-center gap-1 flex-1 min-w-0">
+
+            {/* Overlay Layers dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => { setOverlayPanelOpen(p => !p); setLayerPanelOpen(false); setLegendOpen(false) }}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-white/90 hover:bg-white/10 transition-colors"
+              >
+                <svg viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5 flex-shrink-0">
+                  <path d="M8 1l6 3.5L8 8 2 4.5 8 1zm0 4.5L2 9l6 3.5L14 9 8 5.5zm0 4.5L2 13.5 8 17l6-3.5L8 10z"/>
+                </svg>
+                <span className="hidden sm:inline">{t('dmap.layers', lang)}</span>
+                <svg viewBox="0 0 10 6" fill="currentColor" className="w-2 h-2 flex-shrink-0 opacity-60">
+                  <path d={overlayPanelOpen ? 'M5 0L0 6h10z' : 'M5 6L0 0h10z'} />
+                </svg>
+              </button>
+              {overlayPanelOpen && (
+                <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 shadow-xl rounded-lg p-3 w-56 max-h-[50vh] overflow-y-auto border border-gray-200 dark:border-gray-700 z-[760]">
+                  <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-2 uppercase tracking-wider">{t('dmap.toggleOverlays', lang)}</p>
+                  {([
+                    { key: 'floodZones' as const, label: t('dmap.overlay.floodZones', lang), color: 'bg-red-300', enabled: showFloodZones },
+                    { key: 'floodMonitoring' as const, label: t('dmap.overlay.floodMonitoring', lang), color: 'bg-amber-500', enabled: showFloodMonitoring },
+                    { key: 'predictions' as const, label: t('dmap.overlay.aiPredictions', lang), color: 'bg-yellow-500', enabled: showPredictions },
+                    { key: 'riskLayer' as const, label: t('dmap.overlay.riskZones', lang), color: 'bg-orange-400', enabled: showRiskLayer },
+                    { key: 'shelters' as const, label: t('dmap.overlay.shelters', lang), color: 'bg-green-500', enabled: showShelters },
+                    { key: 'evacuation' as const, label: t('dmap.overlay.evacuation', lang), color: 'bg-green-400', enabled: showEvacuation },
+                    { key: 'distress' as const, label: t('dmap.overlay.sosBeacons', lang), color: 'bg-red-600', enabled: showDistress },
+                    { key: 'heatmap' as const, label: t('dmap.overlay.densityHeatmap', lang), color: 'bg-gradient-to-r from-blue-400 to-red-400', enabled: showHeatmap },
+                    { key: 'confidenceHalos' as const, label: t('dmap.overlay.confidenceHalos', lang), color: 'bg-emerald-400', enabled: true },
+                    { key: 'clusters' as const, label: t('dmap.overlay.incidentClusters', lang), color: 'bg-lime-500', enabled: true },
+                  ]).filter(l => l.enabled).map(layer => (
+                    <label key={layer.key} className="flex items-center gap-2 text-xs py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 rounded px-2 -mx-1 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={layerToggles[layer.key]}
+                        onChange={() => toggleLayer(layer.key)}
+                        className="rounded border-gray-300 text-blue-500 w-4 h-4"
+                      />
+                      <span className={`w-3 h-3 rounded-full ${layer.color} flex-shrink-0`} />
+                      <span className="text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{layer.label}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Flood / WMS layers dropdown */}
+            {showWMSLayers && (
+              <div className="relative">
+                <button
+                  onClick={() => { setLayerPanelOpen(p => !p); setOverlayPanelOpen(false); setLegendOpen(false) }}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-white/90 hover:bg-white/10 transition-colors"
+                >
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 flex-shrink-0">
+                    <path d="M12 3.5c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9-4.03-9-9-9zm4 10h-3v3h-2v-3H8v-2h3v-3h2v3h3v2z"/>
+                  </svg>
+                  <span className="hidden sm:inline">{t('dmap.floodData', lang)}</span>
+                  <svg viewBox="0 0 10 6" fill="currentColor" className="w-2 h-2 flex-shrink-0 opacity-60">
+                    <path d={layerPanelOpen ? 'M5 0L0 6h10z' : 'M5 6L0 0h10z'} />
+                  </svg>
+                </button>
+                {layerPanelOpen && (
+                  <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 shadow-xl rounded-lg p-3 w-56 border border-gray-200 dark:border-gray-700 z-[760]">
+                    {wmsLayers.length === 0 ? (
+                      <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 py-2 text-center italic">
+                        {t('dmap.noWmsLayers', lang)}
+                      </p>
+                    ) : wmsLayers.map((wms, idx) => (
+                      <label key={idx} className="flex items-center gap-2 text-xs py-1.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 rounded px-1 -mx-1 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={activeWMS.has(String(idx))}
+                          onChange={() => toggleWMS(String(idx))}
+                          className="rounded border-gray-300"
+                        />
+                        <span className="text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{wms.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Legend toggle */}
+            <div className="relative">
+              <button
+                onClick={() => { setLegendOpen(p => !p); setOverlayPanelOpen(false); setLayerPanelOpen(false) }}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-white/90 hover:bg-white/10 transition-colors"
+              >
+                <span className="flex gap-0.5 items-center">
+                  <span className="w-2 h-2 rounded-full bg-red-400 flex-shrink-0" />
+                  <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
+                  <span className="w-2 h-2 rounded-full bg-blue-400 flex-shrink-0" />
+                </span>
+                <span className="hidden sm:inline">{t('dmap.legend', lang)}</span>
+              </button>
+              {legendOpen && (
+                <div className="absolute top-full left-0 mt-1 bg-white/95 dark:bg-gray-900/95 backdrop-blur rounded-lg p-3 shadow-xl text-xs max-h-[40vh] overflow-y-auto w-48 border border-gray-200 dark:border-gray-700 z-[760]">
+                  <div className="space-y-1.5">
+                    {([['bg-red-500', t('dmap.legend.high', lang)], ['bg-amber-500', t('dmap.legend.medium', lang)], ['bg-blue-500', t('dmap.legend.low', lang)]] as [string, string][]).map(([c, l]) => (
+                      <div key={l} className="flex items-center gap-2">
+                        <span className={`w-2.5 h-2.5 rounded-full ${c} flex-shrink-0`} />
+                        <span className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{l}</span>
+                      </div>
+                    ))}
+                    {showFloodZones && layerToggles.floodZones && (
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-red-300/50 border border-red-400 flex-shrink-0" />
+                        <span className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('dmap.legend.floodZone', lang)}</span>
+                      </div>
+                    )}
+                    {showShelters && layerToggles.shelters && (
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-green-500 flex-shrink-0" />
+                        <span className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('dmap.legend.shelter', lang)}</span>
+                      </div>
+                    )}
+                    {showFloodMonitoring && layerToggles.floodMonitoring && (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-red-500 flex-shrink-0" />
+                          <span className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('dmap.legend.warning', lang)}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-amber-500 flex-shrink-0" />
+                          <span className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('dmap.legend.watch', lang)}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-green-500 flex-shrink-0" />
+                          <span className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('dmap.legend.station', lang)}</span>
+                        </div>
+                      </>
+                    )}
+                    {showHeatmap && layerToggles.heatmap && (
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-blue-500 to-red-500 flex-shrink-0" />
+                        <span className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('dmap.legend.density', lang)}</span>
+                      </div>
+                    )}
+                    {showDistress && layerToggles.distress && distressBeacons.length > 0 && (
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse flex-shrink-0" />
+                        <span className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">SOS ({distressBeacons.length})</span>
+                      </div>
+                    )}
+                    {showPredictions && layerToggles.predictions && predictions.length > 0 && (
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/60 border border-yellow-500 flex-shrink-0" />
+                        <span className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('dmap.legend.aiPrediction', lang)} ({predictions.length})</span>
+                      </div>
+                    )}
+                    {layerToggles.confidenceHalos && (
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/60 border border-emerald-500 flex-shrink-0" />
+                        <span className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+                          {incidentObjects.length > 0 ? `${t('dmap.legend.confidenceLifecycle', lang)} (${incidentObjects.length})` : t('dmap.legend.confidenceHalo', lang)}
+                        </span>
+                      </div>
+                    )}
+                    {layerToggles.clusters && incidentClusters.length > 0 && (
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-lime-500/70 border border-lime-600 flex-shrink-0" />
+                        <span className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('dmap.legend.clusters', lang)} ({incidentClusters.length})</span>
+                      </div>
+                    )}
+                    {showRiskLayer && layerToggles.riskLayer && riskLayerData?.features?.length > 0 && (
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded bg-orange-200 border border-orange-400 flex-shrink-0" />
+                        <span className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('dmap.legend.riskZone', lang)} ({riskLayerData.features.length})</span>
+                      </div>
+                    )}
+                    {showEvacuation && layerToggles.evacuation && evacuationRoutes.length > 0 && (
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded bg-green-500 flex-shrink-0" />
+                        <span className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('dmap.legend.evacuation', lang)}</span>
+                      </div>
+                    )}
+                    {deployments.length > 0 && (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full border-2 border-green-500 bg-green-100 flex-shrink-0" />
+                          <span className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('dmap.legend.deployed', lang)} ({deployments.filter(d => d.deployed).length})</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full border-2 border-red-500 bg-red-100 flex-shrink-0" style={{ borderStyle: 'dashed' }} />
+                          <span className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('dmap.legend.awaiting', lang)} ({deployments.filter(d => !d.deployed).length})</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  {showFloodMonitoring && floodData.loading && (
+                    <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                      <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('dmap.loadingFloodData', lang)}</p>
+                    </div>
+                  )}
+                  {showFloodMonitoring && floodData.error && (
+                    <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                      <p className="text-xs text-red-500">{t('dmap.dataUnavailable', lang)}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Export GeoJSON */}
+            {showReports && reports.some(r => r.coordinates?.length === 2) && (
+              <>
+                <div className="w-px h-4 bg-white/20 mx-0.5 flex-shrink-0" />
+                <button
+                  onClick={exportGeoJSON}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-white/90 hover:bg-white/10 transition-colors"
+                  title="Export report markers as GeoJSON"
+                >
+                  <svg viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5 flex-shrink-0">
+                    <path d="M8 1l6 3.5v7L8 15l-6-3.5v-7L8 1zm0 1.5L3.5 5.25v5.5L8 13.5l4.5-2.75v-5.5L8 2.5z"/>
+                  </svg>
+                  <span className="hidden sm:inline">{t('dmap.export', lang)}</span>
+                </button>
+              </>
+            )}
+
+            {/* Display Tools */}
+            {showSpatialTools && (
+              <>
+                <div className="w-px h-4 bg-white/20 mx-0.5 flex-shrink-0" />
+                <button
+                  onClick={() => { setDisplayToolsOpen(p => !p); setOverlayPanelOpen(false); setLayerPanelOpen(false); setLegendOpen(false) }}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors ${displayToolsOpen ? 'bg-white/20 text-white' : 'text-white/90 hover:bg-white/10'}`}
+                  title="Spatial analysis &amp; display tools"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 flex-shrink-0">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                  </svg>
+                  <span className="hidden sm:inline">{t('dmap.displayTools', lang)}</span>
+                </button>
+              </>
+            )}
           </div>
-          <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">Initialising map…</p>
+
+          {/* Right: Focus Mode + Fullscreen */}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <div className="w-px h-4 bg-white/20 mx-0.5" />
+            <button
+              onClick={() => setFocusMode(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+              title="Focus mode � hide controls"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 flex-shrink-0">
+                <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22"/>
+              </svg>
+              <span className="hidden sm:inline">{t('dmap.focus', lang)}</span>
+            </button>
+            <button
+              onClick={toggleFullscreen}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+              title={isFullscreen ? 'Exit fullscreen' : 'View fullscreen'}
+            >
+              {isFullscreen ? (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 flex-shrink-0">
+                  <path d="M8 3v3a2 2 0 01-2 2H3m18 0h-3a2 2 0 01-2-2V3m0 18v-3a2 2 0 012-2h3M3 16h3a2 2 0 012 2v3"/>
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 flex-shrink-0">
+                  <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
+                </svg>
+              )}
+              <span className="hidden sm:inline">{isFullscreen ? t('dmap.exit', lang) : t('dmap.full', lang)}</span>
+            </button>
+          </div>
         </div>
       )}
-      <MapContainer center={mapCenter} zoom={mapZoom} className="h-full w-full" scrollWheelZoom
-        whenReady={() => setMapReady(true)}>
+
+      {/* Map canvas area */}
+      <div className="relative flex-1 min-h-0">
+        {/* Loading overlay while map initializes */}
+        {!mapReady && (
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-900 gap-3">
+            <div className="w-10 h-10 rounded-xl bg-aegis-600 flex items-center justify-center animate-pulse">
+              <svg viewBox="0 0 24 24" fill="white" className="w-5 h-5"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/></svg>
+            </div>
+            <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">Initialising map�</p>
+          </div>
+        )}
+        <MapContainer center={mapCenter} zoom={mapZoom} className="h-full w-full" scrollWheelZoom
+          whenReady={() => setMapReady(true)}>
         <MapUpdater center={mapCenter} zoom={mapZoom} />
         <ScaleControl position="bottomright" imperial={false} />
 
@@ -1016,239 +1320,54 @@ export default function DisasterMap({
         )}
 
         {/* Spatial analysis tools */}
-        {showSpatialTools && <SpatialToolbar reports={reports} />}
+        {showSpatialTools && <SpatialToolbar reports={reports} open={displayToolsOpen} hideToggle />}
 
         {/* Incident type layers */}
         <IncidentMapLayers />
       </MapContainer>
 
-      {/* Export GeoJSON button — top-left */}
-      {showReports && reports.some(r => r.coordinates?.length === 2) && (
-        <div className="absolute top-3 left-3 z-[800]">
-          <button
-            onClick={exportGeoJSON}
-            className="bg-white dark:bg-gray-800 shadow-lg rounded-lg px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-1.5 min-h-[36px]"
-            title="Export report markers as GeoJSON"
-          >
-            <svg viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5"><path d="M8 1l6 3.5v7L8 15l-6-3.5v-7L8 1zm0 1.5L3.5 5.25v5.5L8 13.5l4.5-2.75v-5.5L8 2.5z"/></svg>
-            Export GeoJSON
-          </button>
-        </div>
-      )}
+        {/* Focus mode exit pill */}
+        {focusMode && (
+          <div className="absolute bottom-4 inset-x-0 flex justify-center z-[750] pointer-events-none">
+            <button
+              onClick={() => setFocusMode(false)}
+              className="pointer-events-auto bg-gray-900/90 text-white/90 text-xs font-medium px-5 py-2 rounded-full backdrop-blur-md shadow-xl hover:bg-gray-800 transition-colors flex items-center gap-2"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+              {t('dmap.exitFocusMode', lang)}
+            </button>
+          </div>
+        )}
 
-      {/* WMS Layer toggle panel — top-left below export button */}
-      {showWMSLayers && (
-        <div className="absolute top-14 left-3 z-[800]">
-          <button
-            onClick={() => setLayerPanelOpen(!layerPanelOpen)}
-            className="bg-white dark:bg-gray-800 shadow-lg rounded-lg px-3 py-2.5 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors min-h-[36px]"
-          >
-            Flood Layers {layerPanelOpen ? '▲' : '▼'}
-          </button>
-          {layerPanelOpen && (
-            <div className="mt-1 bg-white dark:bg-gray-800 shadow-xl rounded-lg p-3 w-56 border border-gray-200 dark:border-gray-700">
-              {wmsLayers.length === 0 ? (
-                <p className="text-xs text-gray-500 dark:text-gray-400 py-2 text-center italic">
-                  No WMS layers configured for this region
-                </p>
-              ) : wmsLayers.map((wms, idx) => (
-                <label key={idx} className="flex items-center gap-2 text-xs py-1.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 rounded px-1 -mx-1 transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={activeWMS.has(String(idx))}
-                    onChange={() => toggleWMS(String(idx))}
-                    className="rounded border-gray-300"
-                  />
-                  <span className="text-gray-700 dark:text-gray-300">{wms.name}</span>
-                </label>
-              ))}
+        {/* Cascading disaster intelligence card */}
+        {!focusMode && cascadingInsights.length > 0 && (
+          <div className="absolute bottom-3 right-3 z-[720] max-w-[320px]">
+            <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur rounded-lg border border-gray-200 dark:border-gray-700 shadow-xl p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-2">{t('dmap.cascadingInsights', lang)}</p>
+              <div className="space-y-2 max-h-[180px] overflow-y-auto">
+                {cascadingInsights.slice(0, 3).map((insight, idx) => (
+                  <div key={`cascade-${idx}`} className="rounded-md border border-gray-200 dark:border-gray-700 p-2">
+                    <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                      {insight.chain.join(' -> ')}
+                    </p>
+                    <p className="text-[11px] text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+                      {t('dmap.confidence', lang)}: {Math.round(insight.confidence * 100)}%
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
-          )}
-        </div>
-      )}
-
-      {/* Interactive Overlay Layer Controls — positioned below Leaflet LayersControl */}
-      <div className="absolute top-14 right-3 z-[800]">
-        <button
-          onClick={() => setOverlayPanelOpen(!overlayPanelOpen)}
-          className="bg-white dark:bg-gray-800 shadow-lg rounded-lg px-3 py-2.5 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-1.5 min-h-[36px]"
-        >
-          <span className="w-3.5 h-3.5 inline-block">
-            <svg viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M8 1l6 3.5v7L8 15l-6-3.5v-7L8 1zm0 1.5L3.5 5.25v5.5L8 13.5l4.5-2.75v-5.5L8 2.5z"/></svg>
-          </span>
-          Layers {overlayPanelOpen ? '▲' : '▼'}
-        </button>
-        {overlayPanelOpen && (
-          <div className="mt-1 bg-white dark:bg-gray-800 shadow-xl rounded-lg p-3 w-56 max-h-[50vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
-            <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">Toggle Map Overlays</p>
-            {([
-              { key: 'floodZones' as const, label: 'Flood Zones', color: 'bg-red-300', enabled: showFloodZones },
-              { key: 'floodMonitoring' as const, label: 'Flood Monitoring', color: 'bg-amber-500', enabled: showFloodMonitoring },
-              { key: 'predictions' as const, label: 'AI Predictions', color: 'bg-yellow-500', enabled: showPredictions },
-              { key: 'riskLayer' as const, label: 'Risk Zones', color: 'bg-orange-400', enabled: showRiskLayer },
-              { key: 'shelters' as const, label: 'Shelters', color: 'bg-green-500', enabled: showShelters },
-              { key: 'evacuation' as const, label: 'Evacuation Routes', color: 'bg-green-400', enabled: showEvacuation },
-              { key: 'distress' as const, label: 'SOS Beacons', color: 'bg-red-600', enabled: showDistress },
-              { key: 'heatmap' as const, label: 'Density Heatmap', color: 'bg-gradient-to-r from-blue-400 to-red-400', enabled: showHeatmap },
-              { key: 'confidenceHalos' as const, label: 'Confidence Halos', color: 'bg-emerald-400', enabled: true },
-              { key: 'clusters' as const, label: 'Incident Clusters', color: 'bg-lime-500', enabled: true },
-            ]).filter(l => l.enabled).map(layer => (
-              <label key={layer.key} className="flex items-center gap-2 text-xs py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 rounded px-2 -mx-1 transition-colors">
-                <input
-                  type="checkbox"
-                  checked={layerToggles[layer.key]}
-                  onChange={() => toggleLayer(layer.key)}
-                  className="rounded border-gray-300 text-blue-500 w-4 h-4"
-                />
-                <span className={`w-3 h-3 rounded-full ${layer.color} flex-shrink-0`} />
-                <span className="text-gray-700 dark:text-gray-300">{layer.label}</span>
-              </label>
-            ))}
           </div>
         )}
       </div>
-
-      {/* Collapsible Legend — bottom-left, compact */}
-      <div className="absolute bottom-3 left-3 z-[800]">
-        <button
-          onClick={() => setLegendOpen(!legendOpen)}
-          className="bg-white/95 dark:bg-gray-900/95 backdrop-blur shadow-lg rounded-lg px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-800 transition-colors flex items-center gap-1.5 min-h-[36px]"
-        >
-          <span className="flex gap-1">
-            <span className="w-2 h-2 rounded-full bg-red-500"/>
-            <span className="w-2 h-2 rounded-full bg-amber-500"/>
-            <span className="w-2 h-2 rounded-full bg-blue-500"/>
-          </span>
-          Legend {legendOpen ? '▲' : '▼'}
-        </button>
-        {legendOpen && (
-          <div className="mt-1 bg-white/95 dark:bg-gray-900/95 backdrop-blur rounded-lg p-3 shadow-xl text-xs max-h-[40vh] overflow-y-auto w-48 border border-gray-200 dark:border-gray-700">
-            <div className="space-y-1.5">
-              {([['bg-red-500', 'High'], ['bg-amber-500', 'Medium'], ['bg-blue-500', 'Low']] as const).map(([c, l]) => (
-                <div key={l} className="flex items-center gap-2">
-                  <span className={`w-2.5 h-2.5 rounded-full ${c} flex-shrink-0`} />
-                  <span className="text-gray-600 dark:text-gray-400">{l}</span>
-                </div>
-              ))}
-              {showFloodZones && layerToggles.floodZones && (
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-red-300/50 border border-red-400 flex-shrink-0" />
-                  <span className="text-gray-600 dark:text-gray-400">Flood zone</span>
-                </div>
-              )}
-              {showShelters && layerToggles.shelters && (
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-green-500 flex-shrink-0" />
-                  <span className="text-gray-600 dark:text-gray-400">Shelter</span>
-                </div>
-              )}
-              {showFloodMonitoring && layerToggles.floodMonitoring && (
-                <>
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-red-500 flex-shrink-0" />
-                    <span className="text-gray-600 dark:text-gray-400">Warning</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 flex-shrink-0" />
-                    <span className="text-gray-600 dark:text-gray-400">Watch</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-green-500 flex-shrink-0" />
-                    <span className="text-gray-600 dark:text-gray-400">Station</span>
-                  </div>
-                </>
-              )}
-              {showHeatmap && layerToggles.heatmap && (
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-blue-500 to-red-500 flex-shrink-0" />
-                  <span className="text-gray-600 dark:text-gray-400">Density</span>
-                </div>
-              )}
-              {showDistress && layerToggles.distress && distressBeacons.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse flex-shrink-0" />
-                  <span className="text-gray-600 dark:text-gray-400">SOS ({distressBeacons.length})</span>
-                </div>
-              )}
-              {showPredictions && layerToggles.predictions && predictions.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/60 border border-yellow-500 flex-shrink-0" />
-                  <span className="text-gray-600 dark:text-gray-400">AI Prediction ({predictions.length})</span>
-                </div>
-              )}
-              {layerToggles.confidenceHalos && (
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/60 border border-emerald-500 flex-shrink-0" />
-                  <span className="text-gray-600 dark:text-gray-400">
-                    {incidentObjects.length > 0 ? `Confidence lifecycle (${incidentObjects.length})` : 'Confidence halo'}
-                  </span>
-                </div>
-              )}
-              {layerToggles.clusters && incidentClusters.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-lime-500/70 border border-lime-600 flex-shrink-0" />
-                  <span className="text-gray-600 dark:text-gray-400">Clusters ({incidentClusters.length})</span>
-                </div>
-              )}
-              {showRiskLayer && layerToggles.riskLayer && riskLayerData?.features?.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded bg-orange-200 border border-orange-400 flex-shrink-0" />
-                  <span className="text-gray-600 dark:text-gray-400">Risk Zone ({riskLayerData.features.length})</span>
-                </div>
-              )}
-              {showEvacuation && layerToggles.evacuation && evacuationRoutes.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded bg-green-500 flex-shrink-0" />
-                  <span className="text-gray-600 dark:text-gray-400">Evacuation</span>
-                </div>
-              )}
-              {deployments.length > 0 && (
-                <>
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full border-2 border-green-500 bg-green-100 flex-shrink-0" />
-                    <span className="text-gray-600 dark:text-gray-400">Deployed ({deployments.filter(d => d.deployed).length})</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full border-2 border-red-500 bg-red-100 flex-shrink-0" style={{ borderStyle: 'dashed' }} />
-                    <span className="text-gray-600 dark:text-gray-400">Awaiting ({deployments.filter(d => !d.deployed).length})</span>
-                  </div>
-                </>
-              )}
-            </div>
-            {showFloodMonitoring && floodData.loading && (
-              <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-                <p className="text-xs text-gray-500 dark:text-gray-400">Loading flood data...</p>
-              </div>
-            )}
-            {showFloodMonitoring && floodData.error && (
-              <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-                <p className="text-xs text-red-500">Data unavailable</p>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Cascading disaster intelligence card */}
-      {cascadingInsights.length > 0 && (
-        <div className="absolute bottom-3 right-3 z-[800] max-w-[320px]">
-          <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur rounded-lg border border-gray-200 dark:border-gray-700 shadow-xl p-3">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-2">Cascading Insights</p>
-            <div className="space-y-2 max-h-[180px] overflow-y-auto">
-              {cascadingInsights.slice(0, 3).map((insight, idx) => (
-                <div key={`cascade-${idx}`} className="rounded-md border border-gray-200 dark:border-gray-700 p-2">
-                  <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">
-                    {insight.chain.join(' -> ')}
-                  </p>
-                  <p className="text-[11px] text-gray-600 dark:text-gray-400">
-                    Confidence: {Math.round(insight.confidence * 100)}%
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
+
+
+
+
+

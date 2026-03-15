@@ -13,6 +13,8 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { AlertTriangle, Info, ShieldAlert, X, Volume2 } from 'lucide-react'
+import { t } from '../../utils/i18n'
+import { useLanguage } from '../../hooks/useLanguage'
 
 interface CaptionItem {
   id: string
@@ -37,6 +39,8 @@ export default function AlertCaptionOverlay({
   autoHideMs = 12000,
   onSpeak,
 }: AlertCaptionOverlayProps): JSX.Element | null {
+  const lang = useLanguage()
+
   const [captions, setCaptions] = useState<CaptionItem[]>([])
   const [visible, setVisible] = useState(false)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -116,7 +120,7 @@ export default function AlertCaptionOverlay({
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <span className="font-bold text-sm uppercase tracking-wide">
-                  {cap.severity === 'critical' ? 'CRITICAL' : cap.severity === 'warning' ? 'WARNING' : 'INFO'}
+                  {cap.severity === 'critical' ? t('caption.critical', lang) : cap.severity === 'warning' ? t('caption.warning', lang) : t('caption.info', lang)}
                 </span>
                 <span className={`font-semibold ${fontSizeMap[fontSize]}`}>{cap.title}</span>
               </div>
@@ -127,7 +131,7 @@ export default function AlertCaptionOverlay({
                 <button
                   onClick={() => onSpeak(`${cap.title}. ${cap.text}`)}
                   className="p-1.5 hover:bg-white/20 rounded-lg transition-colors"
-                  aria-label="Read alert aloud"
+                  aria-label={t('caption.readAloud', lang)}
                 >
                   <Volume2 className="w-4 h-4" />
                 </button>
@@ -135,7 +139,7 @@ export default function AlertCaptionOverlay({
               <button
                 onClick={dismiss}
                 className="p-1.5 hover:bg-white/20 rounded-lg transition-colors"
-                aria-label="Dismiss caption"
+                aria-label={t('caption.dismiss', lang)}
               >
                 <X className="w-4 h-4" />
               </button>

@@ -134,6 +134,7 @@
     "executionOrder": "v1"
   },
   "staticData": null,
+  "active": true,
   "tags": ["aegis", "drought", "monitor", "climate"],
   "meta": {
     "description": "Monitors drought risk every 6 hours using precipitation deficit, evapotranspiration, and soil moisture data. Uses Palmer Drought Severity Index-inspired scoring. Triggers alerts when drought score exceeds advisory/warning/critical thresholds."

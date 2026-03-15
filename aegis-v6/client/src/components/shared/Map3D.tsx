@@ -23,6 +23,8 @@ import {
   Maximize2, Minimize2, Map, Satellite, Box, Square, Navigation,
   RotateCcw, ZoomIn, ZoomOut, Layers, AlertTriangle, Droplets
 } from 'lucide-react'
+import { t } from '../../utils/i18n'
+import { useLanguage } from '../../hooks/useLanguage'
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || ''
 const API = ''
@@ -84,6 +86,8 @@ export default function Map3D({
   height = '100%',
   onReportClick,
 }: Props): JSX.Element {
+  const lang = useLanguage()
+
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
   const markersRef = useRef<mapboxgl.Marker[]>([])
@@ -279,10 +283,10 @@ export default function Map3D({
           new mapboxgl.Popup({ offset: 20 })
             .setHTML(`
               <div style="padding:8px; font-family:system-ui;">
-                <h4 style="margin:0 0 4px; font-size:13px; font-weight:600; color:#dc2626;">🚨 DISTRESS BEACON</h4>
+                <h4 style="margin:0 0 4px; font-size:13px; font-weight:600; color:#dc2626;">🚨 ${t('map.distressBeacon', lang)}</h4>
                 <p style="margin:0; font-size:12px;">${dm.citizenName}</p>
-                <p style="margin:2px 0; font-size:10px; color:#aaa;">${dm.isVulnerable ? '⚠️ Vulnerable person' : ''}</p>
-                <p style="margin:2px 0; font-size:10px; color:#aaa;">Status: ${dm.status}</p>
+                <p style="margin:2px 0; font-size:10px; color:#aaa;">${dm.isVulnerable ? `⚠️ ${t('map.vulnerablePerson', lang)}` : ''}</p>
+                <p style="margin:2px 0; font-size:10px; color:#aaa;">${t('map.status', lang)}: ${dm.status}</p>
               </div>
             `)
         )
@@ -436,10 +440,10 @@ export default function Map3D({
   if (!MAPBOX_TOKEN) {
     return (
       <div className={`relative flex items-center justify-center bg-gray-900 ${className}`} style={{ height }}>
-        <div className="text-center text-gray-400">
+        <div className="text-center text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
           <Map className="w-12 h-12 mx-auto mb-3 opacity-50" />
-          <p className="text-sm">3D Map requires Mapbox token</p>
-          <p className="text-xs mt-1 opacity-60">Set VITE_MAPBOX_TOKEN in client/.env</p>
+          <p className="text-sm">{t('map3d.requiresToken', lang)}</p>
+          <p className="text-xs mt-1 opacity-60">{t('map3d.setTokenEnv', lang)}</p>
         </div>
       </div>
     )
@@ -467,8 +471,8 @@ export default function Map3D({
         {/* 3D/2D toggle */}
         <button
           onClick={toggle3D}
-          className="w-9 h-9 bg-gray-900/90 backdrop-blur-md border border-gray-700/60 rounded-lg flex items-center justify-center text-gray-300 hover:text-white hover:bg-gray-800/90 transition shadow-lg"
-          title={is3D ? 'Switch to 2D' : 'Switch to 3D'}
+          className="w-9 h-9 bg-gray-900/90 backdrop-blur-md border border-gray-700/60 rounded-lg flex items-center justify-center text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-white hover:bg-gray-800/90 transition shadow-lg"
+          title={is3D ? t('map3d.switchTo2D', lang) : t('map3d.switchTo3D', lang)}
         >
           {is3D ? <Square className="w-4 h-4" /> : <Box className="w-4 h-4" />}
         </button>
@@ -476,8 +480,8 @@ export default function Map3D({
         {/* Satellite/Street toggle */}
         <button
           onClick={toggleBasemap}
-          className="w-9 h-9 bg-gray-900/90 backdrop-blur-md border border-gray-700/60 rounded-lg flex items-center justify-center text-gray-300 hover:text-white hover:bg-gray-800/90 transition shadow-lg"
-          title={isSatellite ? 'Street Map' : 'Satellite'}
+          className="w-9 h-9 bg-gray-900/90 backdrop-blur-md border border-gray-700/60 rounded-lg flex items-center justify-center text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-white hover:bg-gray-800/90 transition shadow-lg"
+          title={isSatellite ? t('map3d.streetMap', lang) : t('map.satellite', lang)}
         >
           {isSatellite ? <Map className="w-4 h-4" /> : <Satellite className="w-4 h-4" />}
         </button>
@@ -485,8 +489,8 @@ export default function Map3D({
         {/* Reset view */}
         <button
           onClick={resetView}
-          className="w-9 h-9 bg-gray-900/90 backdrop-blur-md border border-gray-700/60 rounded-lg flex items-center justify-center text-gray-300 hover:text-white hover:bg-gray-800/90 transition shadow-lg"
-          title="Reset View"
+          className="w-9 h-9 bg-gray-900/90 backdrop-blur-md border border-gray-700/60 rounded-lg flex items-center justify-center text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-white hover:bg-gray-800/90 transition shadow-lg"
+          title={t('map.resetView', lang)}
         >
           <RotateCcw className="w-4 h-4" />
         </button>
@@ -497,20 +501,20 @@ export default function Map3D({
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-red-500" />
-            <span className="text-[10px] text-gray-300">High Severity</span>
+            <span className="text-[10px] text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('map.highSeverity', lang)}</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-amber-500" />
-            <span className="text-[10px] text-gray-300">Medium Severity</span>
+            <span className="text-[10px] text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('map.mediumSeverity', lang)}</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-blue-500" />
-            <span className="text-[10px] text-gray-300">Low Severity</span>
+            <span className="text-[10px] text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('map.lowSeverity', lang)}</span>
           </div>
           {distressMarkers.length > 0 && (
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-red-600 animate-pulse" />
-              <span className="text-[10px] text-red-300">SOS Distress</span>
+              <span className="text-[10px] text-red-300">{t('map.sosDistress', lang)}</span>
             </div>
           )}
         </div>
@@ -518,10 +522,14 @@ export default function Map3D({
 
       {/* 3D indicator badge */}
       <div className="absolute top-3 left-3 z-10">
-        <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${is3D ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300'}`}>
+        <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${is3D ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`}>
           {is3D ? '3D' : '2D'}
         </span>
       </div>
     </div>
   )
 }
+
+
+
+

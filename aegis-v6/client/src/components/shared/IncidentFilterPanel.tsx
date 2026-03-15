@@ -8,6 +8,7 @@
 import { useTranslation } from 'react-i18next'
 import { useIncidents, type IncidentTypeId } from '../../contexts/IncidentContext'
 import { INCIDENT_COLORS, INCIDENT_ICONS } from './IncidentMapLayers'
+import { useLanguage } from '../../hooks/useLanguage'
 
 const SEVERITY_OPTIONS = [
   { value: null, label: 'all' },
@@ -18,6 +19,7 @@ const SEVERITY_OPTIONS = [
 ]
 
 export default function IncidentFilterPanel(): JSX.Element {
+  const lang = useLanguage()
   const { t } = useTranslation(['dashboard', 'incidents', 'common'])
   const {
     registry,
@@ -52,11 +54,11 @@ export default function IncidentFilterPanel(): JSX.Element {
     <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
           {t('dashboard:incidentFilter.label')}
         </h3>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500 dark:text-gray-400">
+          <span className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
             {activeIncidentCount} {t('dashboard:stats.totalActive').toLowerCase()}
           </span>
           {filter.types.length > 0 && (
@@ -77,7 +79,7 @@ export default function IncidentFilterPanel(): JSX.Element {
           className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
             !selectedIncidentType
               ? 'bg-aegis-600 text-white shadow-sm'
-              : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+              : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
           }`}
         >
           {t('dashboard:incidentFilter.all')}
@@ -95,7 +97,7 @@ export default function IncidentFilterPanel(): JSX.Element {
               className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${
                 isSelected
                   ? 'text-white shadow-sm'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
               style={isSelected ? { backgroundColor: color } : {}}
               title={mod?.description || type}
@@ -109,7 +111,7 @@ export default function IncidentFilterPanel(): JSX.Element {
 
       {/* Severity Filter */}
       <div className="flex items-center gap-2">
-        <span className="text-xs text-gray-500 dark:text-gray-400">
+        <span className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
           {t('dashboard:incidentFilter.bySeverity')}:
         </span>
         <div className="flex gap-1">
@@ -124,7 +126,7 @@ export default function IncidentFilterPanel(): JSX.Element {
                     : opt.value === 'medium' ? 'bg-yellow-500 text-white'
                     : opt.value === 'low' ? 'bg-blue-500 text-white'
                     : 'bg-aegis-600 text-white'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:bg-gray-200'
               }`}
             >
               {t(`common:severity.${opt.label}`, opt.label)}
@@ -135,3 +137,7 @@ export default function IncidentFilterPanel(): JSX.Element {
     </div>
   )
 }
+
+
+
+

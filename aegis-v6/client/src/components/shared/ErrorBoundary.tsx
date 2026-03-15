@@ -8,6 +8,7 @@
 
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { AlertTriangle, RefreshCw } from 'lucide-react'
+import { t, getLanguage } from '../../utils/i18n'
 
 interface Props {
   children: ReactNode
@@ -81,17 +82,17 @@ export default class ErrorBoundary extends Component<Props, State> {
                 {this.props.name}
               </span>
             )}
-            {this.state.error?.message || 'An unexpected error occurred.'}
+            {this.state.error?.message || t('error.unexpected', getLanguage())}
           </p>
           <p className="text-xs text-red-400 dark:text-red-500 mb-4">
-            This section crashed. Other parts of the app should still work.
+            {t('error.sectionCrashed', getLanguage())}
           </p>
           <button
             onClick={this.handleRetry}
             className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
-            Try Again
+            {t('error.tryAgain', getLanguage())}
           </button>
         </div>
       </div>

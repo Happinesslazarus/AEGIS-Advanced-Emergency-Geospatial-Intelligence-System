@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { Clock, CheckCircle, AlertTriangle, Flag, Bell, Shield, Download, Printer } from 'lucide-react'
+import { t } from '../../utils/i18n'
+import { useLanguage } from '../../hooks/useLanguage'
 
 export interface ActivityEntry {
   id: number; action: string; reportId?: string; operator: string
@@ -37,31 +39,32 @@ const ICONS: Record<ActivityEntry['type'], typeof Clock> = {
 const COLORS: Record<ActivityEntry['type'], string> = {
   verify: 'text-green-500 bg-green-50', flag: 'text-orange-500 bg-orange-50',
   urgent: 'text-red-500 bg-red-50', alert: 'text-red-600 bg-red-50',
-  deploy: 'text-blue-500 bg-blue-50', login: 'text-gray-500 bg-gray-50',
+  deploy: 'text-blue-500 bg-blue-50', login: 'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 bg-gray-50',
   print: 'text-purple-500 bg-purple-50', export: 'text-cyan-500 bg-cyan-50',
 }
 
 export default function ActivityLog(): JSX.Element {
   const [log] = useActivityLog()
+  const lang = useLanguage()
   return (
     <div className="card p-4 animate-fade-in">
-      <h3 className="font-bold text-sm flex items-center gap-2 mb-3"><Clock className="w-4 h-4 text-aegis-600" /> Activity Log</h3>
+      <h3 className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2 mb-3"><Clock className="w-4 h-4 text-aegis-600" /> {t('admin.activityLog.title', lang)}</h3>
       <div className="space-y-1.5 max-h-96 overflow-y-auto">
         {log.map(entry => {
           const Icon = ICONS[entry.type] || Clock
-          const color = COLORS[entry.type] || 'text-gray-500 bg-gray-50'
+          const color = COLORS[entry.type] || 'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 bg-gray-50'
           const [textColor, bgColor] = color.split(' ')
           const time = new Date(entry.timestamp)
           const ago = Math.round((Date.now() - time.getTime()) / 60000)
-          const timeStr = ago < 60 ? `${ago}m ago` : ago < 1440 ? `${Math.round(ago / 60)}h ago` : time.toLocaleDateString()
+          const timeStr = ago < 60 ? `${ago}${t('time.mAgo', lang)}` : ago < 1440 ? `${Math.round(ago / 60)}${t('time.hAgo', lang)}` : time.toLocaleDateString()
           return (
             <div key={entry.id} className={`flex items-start gap-2.5 p-2 rounded-lg ${bgColor} dark:bg-opacity-10`}>
               <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${bgColor} dark:bg-opacity-20`}>
                 <Icon className={`w-3.5 h-3.5 ${textColor}`} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-gray-900 dark:text-gray-100">{entry.action}{entry.reportId && <span className="text-[10px] font-mono text-gray-500 ml-1">({entry.reportId})</span>}</p>
-                <p className="text-[10px] text-gray-500">{entry.operator} · {timeStr}</p>
+                <p className="text-xs font-medium text-gray-900 dark:text-gray-100">{entry.action}{entry.reportId && <span className="text-[10px] font-mono text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 ml-1">({entry.reportId})</span>}</p>
+                <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{entry.operator} · {timeStr}</p>
               </div>
             </div>
           )
@@ -70,3 +73,7 @@ export default function ActivityLog(): JSX.Element {
     </div>
   )
 }
+
+
+
+

@@ -10,8 +10,10 @@
 
 import { useState, useEffect } from 'react'
 import { Globe, Check, X } from 'lucide-react'
-import { setLanguage, getLanguage } from '../../utils/i18n'
+import { useTranslation } from 'react-i18next'
+import { setLanguage, getLanguage, t } from '../../utils/i18n'
 import { LANGUAGES } from '../../data/disasterTypes'
+import { useLanguage } from '../../hooks/useLanguage'
 
 const LANG_FLAGS: Record<string, string> = {
   en: '🇬🇧',
@@ -28,6 +30,8 @@ const LANG_FLAGS: Record<string, string> = {
 const LS_KEY = 'aegis_lang_chosen'
 
 export default function LanguagePreferenceDialog(): JSX.Element | null {
+  const lang = useLanguage()
+  const { i18n } = useTranslation()
   const [visible, setVisible] = useState(false)
   const [selected, setSelected] = useState(getLanguage())
 
@@ -43,7 +47,9 @@ export default function LanguagePreferenceDialog(): JSX.Element | null {
 
   const handleConfirm = () => {
     setLanguage(selected)
+    try { i18n.changeLanguage(selected) } catch {}
     localStorage.setItem(LS_KEY, selected)
+    localStorage.setItem('aegis-language', selected)
     setVisible(false)
   }
 
@@ -72,8 +78,8 @@ export default function LanguagePreferenceDialog(): JSX.Element | null {
               <Globe className="w-7 h-7" />
             </div>
             <div>
-              <h2 className="text-xl font-bold">Choose Your Language</h2>
-              <p className="text-sm text-white/80 mt-0.5">Select your preferred language for AEGIS</p>
+              <h2 className="text-xl font-bold">{t('langDialog.title', lang)}</h2>
+              <p className="text-sm text-white/80 mt-0.5">{t('langDialog.subtitle', lang)}</p>
             </div>
           </div>
         </div>
@@ -96,7 +102,7 @@ export default function LanguagePreferenceDialog(): JSX.Element | null {
                   <p className={`text-sm font-semibold truncate ${selected === lang.code ? 'text-aegis-700 dark:text-aegis-300' : 'text-gray-800 dark:text-gray-200'}`}>
                     {lang.label}
                   </p>
-                  <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{lang.code.toUpperCase()}</p>
+                  <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 truncate">{lang.code.toUpperCase()}</p>
                 </div>
                 {selected === lang.code && (
                   <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-aegis-500 flex items-center justify-center">
@@ -110,18 +116,22 @@ export default function LanguagePreferenceDialog(): JSX.Element | null {
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-between">
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            You can change this later in settings
+          <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+            {t('langDialog.changeLater', lang)}
           </p>
           <button
             onClick={handleConfirm}
             className="px-6 py-2.5 bg-aegis-600 hover:bg-aegis-700 text-white text-sm font-bold rounded-xl transition-colors flex items-center gap-2 shadow-lg shadow-aegis-600/30"
           >
             <Check className="w-4 h-4" />
-            Confirm
+            {t('langDialog.confirm', lang)}
           </button>
         </div>
       </div>
     </div>
   )
 }
+
+
+
+

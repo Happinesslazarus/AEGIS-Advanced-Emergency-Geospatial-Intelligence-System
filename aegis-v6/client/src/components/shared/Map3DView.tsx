@@ -25,6 +25,8 @@ import {
   RotateCcw, RefreshCw, Eye, EyeOff,
   Maximize2, CircleDot, Orbit
 } from 'lucide-react'
+import { t } from '../../utils/i18n'
+import { useLanguage } from '../../hooks/useLanguage'
 
 const RISK_COLORS: Record<string, string> = {
   critical: '#dc2626', high: '#f97316', medium: '#eab308', low: '#3b82f6',
@@ -35,9 +37,9 @@ const STATION_COLORS: Record<string, string> = {
 
 const API = ''
 
-// Aberdeen centre
-const DEFAULT_CENTER: [number, number] = [-2.0943, 57.1497] // [lng, lat] for MapLibre
-const DEFAULT_ZOOM = 13
+// Global fallback centre (only used when no center prop is provided)
+const DEFAULT_CENTER: [number, number] = [0, 0] // [lng, lat] for MapLibre
+const DEFAULT_ZOOM = 3
 const DEFAULT_PITCH = 55
 const DEFAULT_BEARING = -20
 
@@ -92,7 +94,8 @@ export default function Map3DView({
   className = '',
   height = '100%',
   onReportClick,
-}: Props): JSX.Element {
+}: Props): JSX.Element {  const lang = useLanguage()
+
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
   const deckRef = useRef<Deck | null>(null)
@@ -117,6 +120,28 @@ export default function Map3DView({
     if (center) return [center[1], center[0]]
     return DEFAULT_CENTER
   }, [center?.[0], center?.[1]])
+
+  const resolvePredictionCoords = useCallback((prediction: any, index: number): [number, number] => {
+    const directLat = Number(
+      prediction?.lat ?? prediction?.latitude ?? prediction?.coords?.[0] ?? prediction?.center?.lat
+    )
+    const directLng = Number(
+      prediction?.lng ?? prediction?.lon ?? prediction?.longitude ?? prediction?.coords?.[1] ?? prediction?.center?.lng
+    )
+
+    if (Number.isFinite(directLat) && Number.isFinite(directLng)) {
+      return [directLat, directLng]
+    }
+
+    const seed = String(prediction?.area || prediction?.id || index)
+    let hash = 0
+    for (let i = 0; i < seed.length; i += 1) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0
+    const baseLat = center?.[0] ?? mapCenter[1]
+    const baseLng = center?.[1] ?? mapCenter[0]
+    const latOffset = (((hash % 1000) / 1000) - 0.5) * 0.08
+    const lngOffset = ((((hash / 1000) % 1000) / 1000) - 0.5) * 0.12
+    return [baseLat + latOffset, baseLng + lngOffset]
+  }, [center, mapCenter])
 
   // ── Animation loop for pulsing effects ──
   useEffect(() => {
@@ -306,7 +331,18 @@ export default function Map3DView({
   // Fetch real monitoring stations — replaces static GLOBAL_STATIONS
   const fetchStations = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/api/flood-data/stations?region=scotland`)
+      const targetLat = center?.[0] ?? mapCenter[1]
+      const targetLng = center?.[1] ?? mapCenter[0]
+      const params = new URLSearchParams({
+        lat: String(targetLat),
+        lng: String(targetLng),
+        dist: '120',
+      })
+
+      let res = await fetch(`${API}/api/flood-data/stations?${params.toString()}`)
+      if (!res.ok) {
+        res = await fetch(`${API}/api/flood-data/stations?region=global&${params.toString()}`)
+      }
       if (!res.ok) return
       const data = await res.json()
       const features: any[] = data.features || []
@@ -330,7 +366,7 @@ export default function Map3DView({
         }
       }).filter(Boolean))
     } catch {}
-  }, [])
+  }, [center, mapCenter])
 
   // Fetch AI predictions — replaces hardcoded prediction columns
   const fetchPredictions = useCallback(async () => {
@@ -338,19 +374,17 @@ export default function Map3DView({
       const res = await fetch(`${API}/api/predictions`)
       if (!res.ok) return
       const data: any[] = await res.json()
-      const AREA_COORDS: Record<string, [number, number]> = {
-        'River Don Area': [57.1745, -2.105], 'Dee Valley': [57.1098, -2.22],
-        'Coastal Aberdeen': [57.148, -2.096], 'King Street': [57.155, -2.09],
-        'Bridge of Dee': [57.118, -2.12], 'Garthdee Road': [57.125, -2.14],
-        'Market Square': [57.1497, -2.0943], 'Stonehaven': [56.965, -2.21],
-      }
-      setPredictionsData(data.map(p => {
-        const coords = AREA_COORDS[p.area]
-        if (!coords) return null
-        return { ...p, coords, prob: parseFloat(p.probability) || 0 }
-      }).filter(Boolean))
+      setPredictionsData(
+        data
+          .map((p, idx) => ({
+            ...p,
+            coords: resolvePredictionCoords(p, idx),
+            prob: parseFloat(p.probability) || 0,
+          }))
+          .filter(Boolean)
+      )
     } catch {}
-  }, [])
+  }, [resolvePredictionCoords])
 
   useEffect(() => {
     fetchRivers()
@@ -767,30 +801,30 @@ export default function Map3DView({
       <div className="absolute bottom-16 right-3 z-[1000] flex flex-col gap-1 bg-gray-900/90 backdrop-blur-md rounded-lg border border-gray-700/50 p-1">
         <button
           onClick={() => setAutoRotate(!autoRotate)}
-          className={`p-1.5 rounded-md transition-all ${autoRotate ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800'}`}
+          className={`p-1.5 rounded-md transition-all ${autoRotate ? 'bg-blue-600 text-white' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-white hover:bg-gray-800'}`}
           title={autoRotate ? 'Stop Rotation' : 'Auto Rotate'}
         >
           <Orbit className="w-3.5 h-3.5" />
         </button>
         <button
           onClick={() => setShow3DBuildings(!show3DBuildings)}
-          className={`p-1.5 rounded-md transition-all ${show3DBuildings ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800'}`}
+          className={`p-1.5 rounded-md transition-all ${show3DBuildings ? 'bg-blue-600 text-white' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-white hover:bg-gray-800'}`}
           title={show3DBuildings ? 'Hide Buildings' : 'Show Buildings'}
         >
           <Maximize2 className="w-3.5 h-3.5" />
         </button>
         <button
           onClick={() => setShowHeatmap(!showHeatmap)}
-          className={`p-1.5 rounded-md transition-all ${showHeatmap ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800'}`}
+          className={`p-1.5 rounded-md transition-all ${showHeatmap ? 'bg-orange-600 text-white' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-white hover:bg-gray-800'}`}
           title={showHeatmap ? 'Hide Heatmap' : 'Show Heatmap'}
         >
           <CircleDot className="w-3.5 h-3.5" />
         </button>
         <div className="h-px bg-gray-700/50" />
-        <button onClick={resetView} className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-800 rounded-md transition" title="Reset View">
+        <button onClick={resetView} className="p-1.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition" title="Reset View">
           <RotateCcw className="w-3.5 h-3.5" />
         </button>
-        <button onClick={refreshAll} className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-800 rounded-md transition" title="Refresh Data">
+        <button onClick={refreshAll} className="p-1.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition" title="Refresh Data">
           <RefreshCw className="w-3.5 h-3.5" />
         </button>
       </div>
@@ -802,10 +836,14 @@ export default function Map3DView({
           <span className="text-[10px] font-semibold text-purple-400">3D MODE</span>
         </div>
         <div className="h-3 w-px bg-gray-700" />
-        <span className="text-[10px] text-gray-400">
+        <span className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
           {markerCount.reports} reports • {markerCount.rivers + markerCount.stations} stations • {markerCount.riskZones} zones • {markerCount.predictions} predictions • {markerCount.distress} SOS
         </span>
       </div>
     </div>
   )
 }
+
+
+
+

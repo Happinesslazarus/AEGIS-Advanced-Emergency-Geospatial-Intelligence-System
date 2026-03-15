@@ -250,7 +250,7 @@ app.use('/api', uploadRoutes)                         // Image/file uploads
 app.use('/api/config', configRoutes)                  // Region, hazard, shelter config
 app.use('/api/docs', docsRoutes)                      // Swagger API documentation
 app.use('/api/internal', internalRoutes)              // n8n ws-bridge, error log, system health
-app.use('/api/translate', translationRoutes)           // Translation service (MyMemory / LibreTranslate)
+app.use('/api/translate', translationRoutes)           // Translation service (Azure / DeepL / LibreTranslate)
 app.use('/api/spatial', spatialRoutes)                  // PostGIS spatial analysis tools
 app.use('/api/v1/incidents', incidentRoutes)            // Multi-incident plugin system (v1 API)
 app.use('/api/map-tiles', mapTileRoutes)                // Same-origin map tile proxy (adblock/network resilient)

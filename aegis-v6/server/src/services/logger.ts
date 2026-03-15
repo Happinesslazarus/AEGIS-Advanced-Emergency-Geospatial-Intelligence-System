@@ -45,6 +45,25 @@ export const logger = pino({
  * Express request logger middleware.
  * Logs method, url, status code, and response time for every request.
  */
+function sanitizeLoggedUrl(originalUrl?: string): string {
+  if (!originalUrl) return ''
+
+  try {
+    const url = new URL(originalUrl, 'http://localhost')
+    for (const key of ['text', 'texts', 'message', 'messages']) {
+      if (url.searchParams.has(key)) {
+        url.searchParams.set(key, '[redacted]')
+      }
+    }
+
+    const query = url.searchParams.toString()
+    return query ? `${url.pathname}?${query}` : url.pathname
+  } catch {
+    return originalUrl
+      .replace(/([?&](?:text|texts|message|messages)=)[^&]*/gi, '$1[redacted]')
+  }
+}
+
 export function requestLogger() {
   return (req: any, res: any, next: any) => {
     const start = Date.now()
@@ -52,15 +71,16 @@ export function requestLogger() {
     res.on('finish', () => {
       const duration = Date.now() - start
       const level = res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info'
+      const sanitizedUrl = sanitizeLoggedUrl(req.originalUrl)
 
       logger[level]({
         method: req.method,
-        url: req.originalUrl,
+        url: sanitizedUrl,
         status: res.statusCode,
         duration,
         ip: req.ip,
         userAgent: req.headers['user-agent']?.slice(0, 100),
-      }, `${req.method} ${req.originalUrl} ${res.statusCode} ${duration}ms`)
+      }, `${req.method} ${sanitizedUrl} ${res.statusCode} ${duration}ms`)
     })
 
     next()

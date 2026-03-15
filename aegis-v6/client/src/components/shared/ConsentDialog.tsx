@@ -1,11 +1,14 @@
 import { Shield, AlertTriangle } from 'lucide-react'
 import type { ConsentConfig } from '../../types'
+import { t } from '../../utils/i18n'
+import { useLanguage } from '../../hooks/useLanguage'
 
 interface Props {
   config: ConsentConfig; onAccept: () => void; onDecline: () => void
 }
 
 export default function ConsentDialog({ config, onAccept, onDecline }: Props): JSX.Element {
+  const lang = useLanguage()
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[60]" role="alertdialog" aria-modal="true">
       <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full animate-fade-in">
@@ -16,24 +19,28 @@ export default function ConsentDialog({ config, onAccept, onDecline }: Props): J
             </div>
             <div>
               <h3 className="font-bold text-gray-900 dark:text-gray-100">{config.title}</h3>
-              <p className="text-xs text-gray-500">Privacy & Consent</p>
+              <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('consent.privacyTitle', lang)}</p>
             </div>
           </div>
-          <p className="text-sm text-gray-700 dark:text-gray-300 mb-4 leading-relaxed">{config.description}</p>
+          <p className="text-sm text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-4 leading-relaxed">{config.description}</p>
           
           <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg mb-4 flex gap-2">
             <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
             <p className="text-xs text-amber-700 dark:text-amber-300">
-              {config.required ? 'This permission is required for the feature to work. Your data is processed locally and never shared.' : 'This is optional. The feature will work with limited functionality without this permission.'}
+              {config.required ? t('consent.requiredWarning', lang) : t('consent.optionalWarning', lang)}
             </p>
           </div>
 
           <div className="flex gap-3">
-            <button onClick={onAccept} className="btn-primary flex-1">Accept & Continue</button>
-            <button onClick={onDecline} className="btn-outline flex-1">{config.required ? 'Go Back' : 'Decline'}</button>
+            <button onClick={onAccept} className="btn-primary flex-1">{t('consent.accept', lang)}</button>
+            <button onClick={onDecline} className="btn-outline flex-1">{config.required ? t('consent.goBack', lang) : t('consent.decline', lang)}</button>
           </div>
         </div>
       </div>
     </div>
   )
 }
+
+
+
+

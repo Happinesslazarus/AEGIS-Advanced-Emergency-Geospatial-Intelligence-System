@@ -6,6 +6,8 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { AlertTriangle, Droplet, Flame, Wind, TrendingUp, Clock, MapPin, Eye, ChevronRight } from 'lucide-react'
+import { t } from '../../utils/i18n'
+import { useLanguage } from '../../hooks/useLanguage'
 
 export interface Alert {
   id: string
@@ -46,6 +48,7 @@ const SEVERITY_BADGES: Record<string, string> = {
 }
 
 export function IncomingAlertsWidget() {
+  const lang = useLanguage()
   const [alerts, setAlerts] = useState<Alert[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -68,7 +71,7 @@ export function IncomingAlertsWidget() {
         setAlerts(normalized)
       } catch (err: any) {
         console.error('Error fetching alerts:', err)
-        setError('Could not load alerts')
+        setError(t('alerts.loadError', lang))
       } finally {
         setLoading(false)
       }
@@ -81,18 +84,18 @@ export function IncomingAlertsWidget() {
 
   if (loading) {
     return (
-      <div className="p-6 text-center text-gray-500">
+      <div className="p-6 text-center text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
         <div className="animate-spin inline-block w-5 h-5 border-2 border-aegis-600 border-t-transparent rounded-full" />
-        <p className="mt-2 text-sm">Loading alerts...</p>
+        <p className="mt-2 text-sm">{t('alerts.loading', lang)}</p>
       </div>
     )
   }
 
   if (error || !alerts.length) {
     return (
-      <div className="p-6 text-center text-gray-500">
-        <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-        <p className="text-sm">No active alerts at this time</p>
+      <div className="p-6 text-center text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+        <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
+        <p className="text-sm">{t('alerts.noActive', lang)}</p>
       </div>
     )
   }
@@ -139,7 +142,7 @@ export function IncomingAlertsWidget() {
                   className="inline-flex items-center gap-1 text-xs font-semibold mt-2 px-3 py-1.5 rounded-lg bg-white/50 dark:bg-black/20 hover:bg-white/80 dark:hover:bg-black/40 border border-current/20 transition-all group"
                 >
                   <Eye className="w-3.5 h-3.5" />
-                  View Details
+                  {t('alerts.viewDetails', lang)}
                   <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
                 </Link>
               </div>
@@ -152,3 +155,7 @@ export function IncomingAlertsWidget() {
 }
 
 export default IncomingAlertsWidget
+
+
+
+

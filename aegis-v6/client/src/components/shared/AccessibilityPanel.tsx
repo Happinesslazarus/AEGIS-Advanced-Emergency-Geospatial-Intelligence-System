@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Accessibility, X, Eye, Type, Contrast, Monitor, MousePointer, Volume2 } from 'lucide-react'
+import { t } from '../../utils/i18n'
+import { useLanguage } from '../../hooks/useLanguage'
 
 interface A11y { screenReader: boolean; highContrast: boolean; largeText: boolean; dyslexiaFont: boolean; reducedMotion: boolean; colourBlind: string; focusHighlight: boolean }
 const DEF: A11y = { screenReader: false, highContrast: false, largeText: false, dyslexiaFont: false, reducedMotion: false, colourBlind: 'none', focusHighlight: false }
@@ -20,6 +22,7 @@ function speak(text: string, rate = 1.0): void {
 }
 
 export default function AccessibilityPanel(): JSX.Element {
+  const lang = useLanguage()
   const [open, setOpen] = useState(false)
   const [s, setS] = useState<A11y>(() => { try { const v = localStorage.getItem('aegis-a11y'); return v ? { ...DEF, ...JSON.parse(v) } : DEF } catch { return DEF } })
   const observerRef = useRef<MutationObserver | null>(null)
@@ -89,12 +92,12 @@ export default function AccessibilityPanel(): JSX.Element {
   const tog = (k: keyof A11y): void => setS(p => ({ ...p, [k]: !p[k] }))
   const cnt = Object.entries(s).filter(([k, v]) => k !== 'colourBlind' ? v === true : v !== 'none').length
   const items: { key: keyof A11y; icon: typeof Eye; title: string; desc: string }[] = [
-    { key: 'screenReader', icon: Volume2, title: 'Screen Reader', desc: 'Read aloud focused elements & alerts' },
-    { key: 'highContrast', icon: Contrast, title: 'High Contrast', desc: 'Stronger borders for low vision' },
-    { key: 'largeText', icon: Type, title: 'Large Text', desc: 'Increase text size 25%' },
-    { key: 'dyslexiaFont', icon: Monitor, title: 'Dyslexia-Friendly', desc: 'Wider spacing, heavier weight' },
-    { key: 'reducedMotion', icon: MousePointer, title: 'Reduced Motion', desc: 'Disable animations' },
-    { key: 'focusHighlight', icon: Eye, title: 'Focus Highlight', desc: 'Bold outlines for keyboard nav' },
+    { key: 'screenReader', icon: Volume2, title: t('a11y.screenReader', lang), desc: t('a11y.screenReaderDesc', lang) },
+    { key: 'highContrast', icon: Contrast, title: t('a11y.highContrast', lang), desc: t('a11y.highContrastDesc', lang) },
+    { key: 'largeText', icon: Type, title: t('a11y.largeText', lang), desc: t('a11y.largeTextDesc', lang) },
+    { key: 'dyslexiaFont', icon: Monitor, title: t('a11y.dyslexiaFriendly', lang), desc: t('a11y.dyslexiaFriendlyDesc', lang) },
+    { key: 'reducedMotion', icon: MousePointer, title: t('a11y.reducedMotion', lang), desc: t('a11y.reducedMotionDesc', lang) },
+    { key: 'focusHighlight', icon: Eye, title: t('a11y.focusHighlight', lang), desc: t('a11y.focusHighlightDesc', lang) },
   ]
 
   return (
@@ -109,25 +112,29 @@ export default function AccessibilityPanel(): JSX.Element {
       </button>
       {open && (
         <div className="fixed bottom-20 left-5 z-[9998] w-[calc(100vw-2.5rem)] max-w-xs bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 animate-slide-up" role="dialog" aria-label="Accessibility">
-          <div className="bg-aegis-700 text-white p-3 rounded-t-2xl flex items-center justify-between"><div className="flex items-center gap-2"><Accessibility className="w-4 h-4" /><h3 className="font-semibold text-sm">Accessibility</h3></div><button onClick={() => setOpen(false)} className="hover:bg-aegis-600 p-1 rounded" aria-label="Close"><X className="w-4 h-4" /></button></div>
+          <div className="bg-aegis-700 text-white p-3 rounded-t-2xl flex items-center justify-between"><div className="flex items-center gap-2"><Accessibility className="w-4 h-4" /><h3 className="font-semibold text-sm">{t('a11y.title', lang)}</h3></div><button onClick={() => setOpen(false)} className="hover:bg-aegis-600 p-1 rounded" aria-label="Close"><X className="w-4 h-4" /></button></div>
           <div className="p-3 space-y-2 max-h-[55vh] overflow-y-auto">
             {items.map(({ key, icon: Icon, title, desc }) => (
               <button key={key} onClick={() => tog(key)} className={`w-full flex items-center gap-2.5 p-2.5 rounded-xl border-2 text-left ${s[key] ? 'border-aegis-500 bg-aegis-50 dark:bg-aegis-950/30' : 'border-gray-200 dark:border-gray-700'}`}>
-                <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${s[key] ? 'bg-aegis-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'}`}><Icon className="w-4 h-4" /></div>
-                <div className="flex-1 min-w-0"><p className="font-semibold text-xs">{title}</p><p className="text-[10px] text-gray-500 truncate">{desc}</p></div>
+                <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${s[key] ? 'bg-aegis-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`}><Icon className="w-4 h-4" /></div>
+                <div className="flex-1 min-w-0"><p className="font-semibold text-xs">{title}</p><p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 truncate">{desc}</p></div>
                 <div className={`w-9 h-5 rounded-full flex-shrink-0 ${s[key] ? 'bg-aegis-600' : 'bg-gray-300'}`}><div className={`w-4 h-4 bg-white rounded-full shadow mt-0.5 transition-all ${s[key] ? 'ml-[18px]' : 'ml-0.5'}`} /></div>
               </button>
             ))}
             <div className="p-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700">
-              <p className="font-semibold text-xs mb-2 flex items-center gap-1"><Eye className="w-3.5 h-3.5" /> Colour Vision</p>
-              <div className="grid grid-cols-2 gap-1">{([['none','Default'],['protanopia','Protanopia'],['deuteranopia','Deuteranopia'],['tritanopia','Tritanopia']] as const).map(([k,l]) => (
+              <p className="font-semibold text-xs mb-2 flex items-center gap-1"><Eye className="w-3.5 h-3.5" /> {t('a11y.colourVision', lang)}</p>
+              <div className="grid grid-cols-2 gap-1">{([['none',t('a11y.default', lang)],['protanopia',t('a11y.protanopia', lang)],['deuteranopia',t('a11y.deuteranopia', lang)],['tritanopia',t('a11y.tritanopia', lang)]] as [string, string][]).map(([k,l]) => (
                 <button key={k} onClick={() => setS(p => ({...p, colourBlind: k}))} className={`px-2 py-1.5 rounded-lg text-[10px] font-medium ${s.colourBlind === k ? 'bg-aegis-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600'}`}>{l}</button>
               ))}</div>
             </div>
-            <button onClick={() => setS(DEF)} className="w-full btn-ghost text-xs py-1.5">Reset All</button>
+            <button onClick={() => setS(DEF)} className="w-full btn-ghost text-xs py-1.5">{t('a11y.resetAll', lang)}</button>
           </div>
         </div>
       )}
     </>
   )
 }
+
+
+
+

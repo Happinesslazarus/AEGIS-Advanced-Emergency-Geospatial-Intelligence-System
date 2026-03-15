@@ -13,21 +13,22 @@
  * - Direct redirect to dashboard on success
  */
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, lazy, Suspense } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import {
   Shield, Mail, Lock, User, Phone, MapPin, Eye, EyeOff,
   ArrowRight, ArrowLeft, AlertCircle, CheckCircle, Loader2,
   Globe, Calendar, Heart, Building2, Camera, FileText, Home,
-  ChevronRight, CircleDot, Sun, Moon
+  ChevronRight, CircleDot
 } from 'lucide-react'
 import { useCitizenAuth } from '../contexts/CitizenAuthContext'
-import { useTheme } from '../contexts/ThemeContext'
 import { t } from '../utils/i18n'
 import { useLanguage } from '../hooks/useLanguage'
 import IncomingAlertsWidget from '../components/shared/IncomingAlertsWidget'
 import { ModernNotification } from '../components/shared/ModernNotification'
 import LanguageSelector from '../components/shared/LanguageSelector'
+import ThemeSelector from '../components/ui/ThemeSelector'
+import { useTheme } from '../contexts/ThemeContext'
 
 // Use relative paths so Vite's proxy handles API requests (avoids CORS)
 import { API_BASE, getPasswordStrength } from '../utils/helpers'
@@ -45,7 +46,7 @@ const COUNTRIES = [
   'Greece', 'Czech Republic', 'Romania', 'Hungary', 'Colombia', 'Argentina',
   'Chile', 'Peru', 'Venezuela', 'Ecuador', 'China', 'Russia', 'Ukraine',
   'UAE', 'Saudi Arabia', 'Qatar', 'Israel', 'Jamaica', 'Trinidad and Tobago',
-]
+].sort()
 
 const REGION_MAP: Record<string, { value: string; label: string }[]> = {
   'United Kingdom': [
@@ -93,18 +94,23 @@ const REGION_MAP: Record<string, { value: string; label: string }[]> = {
 
 const STATUS_OPTIONS = [
   { value: 'green', labelKey: 'citizen.auth.status.available', descKey: 'citizen.auth.status.availableDesc', color: 'bg-green-500', ring: 'ring-green-300' },
-  { value: 'yellow', labelKey: 'citizen.auth.status.caution', descKey: 'citizen.auth.status.cautionDesc', color: 'bg-amber-500', ring: 'ring-amber-300' },
+  { value: 'yellow', labelKey: 'citizen.auth.status.caution', descKey: 'citizen.auth.status.cautionDesc', color: 'bg-aegis-500', ring: 'ring-aegis-300' },
   { value: 'red', labelKey: 'citizen.auth.status.needHelp', descKey: 'citizen.auth.status.needHelpDesc', color: 'bg-red-500', ring: 'ring-red-300' },
 ]
+
+const CrowdDensityHeatmap = lazy(() => import('../components/citizen/CrowdDensityHeatmap'))
+const ShelterFinder = lazy(() => import('../components/citizen/ShelterFinder'))
+const RiskAssessment = lazy(() => import('../components/citizen/RiskAssessment'))
+const OfflineEmergencyCard = lazy(() => import('../components/citizen/OfflineEmergencyCard'))
 
 // getPasswordStrength imported from ../utils/helpers
 
 export default function CitizenAuthPage(): JSX.Element {
   const { login, register, uploadAvatar, isAuthenticated, loading } = useCitizenAuth()
-  const { dark, toggle } = useTheme()
   const navigate = useNavigate()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const lang = useLanguage()
+  const { dark } = useTheme()
 
   const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login')
   const [regStep, setRegStep] = useState(1) // 1: Account, 2: Personal Info, 3: Profile & Preferences
@@ -114,6 +120,7 @@ export default function CitizenAuthPage(): JSX.Element {
   const [tosAccepted, setTosAccepted] = useState(false)
   const [forgotEmail, setForgotEmail] = useState('')
   const [forgotSent, setForgotSent] = useState(false)
+  const [authWidgetTab, setAuthWidgetTab] = useState<'crowd' | 'shelters' | 'risk' | 'emergency'>('crowd')
 
   // Form fields — Step 1 (Account)
   const [email, setEmail] = useState('')
@@ -150,10 +157,10 @@ export default function CitizenAuthPage(): JSX.Element {
   // Show nothing while checking auth status
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-aegis-50 via-blue-50 to-cyan-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-aegis-600 border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">{t('general.loading', lang)}</p>
+          <div className="w-12 h-12 border-4 border-aegis-500 border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="mt-3 text-sm text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('general.loading', lang)}</p>
         </div>
       </div>
     )
@@ -161,14 +168,14 @@ export default function CitizenAuthPage(): JSX.Element {
 
   if (isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-aegis-50 via-blue-50 to-cyan-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 bg-aegis-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-aegis-600/30">
+          <div className="w-16 h-16 bg-aegis-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-aegis-500/40">
             <Shield className="w-8 h-8 text-white" />
           </div>
           <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{t('citizen.auth.alreadySignedIn', lang)}</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{t('citizen.auth.redirectingDashboard', lang)}</p>
-          <div className="w-8 h-8 border-3 border-aegis-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-sm text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-4">{t('citizen.auth.redirectingDashboard', lang)}</p>
+          <div className="w-8 h-8 border-3 border-aegis-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <Link to="/citizen/dashboard" className="text-sm text-aegis-600 hover:text-aegis-700 font-semibold underline">
             {t('citizen.auth.goDashboard', lang)}
           </Link>
@@ -209,7 +216,7 @@ export default function CitizenAuthPage(): JSX.Element {
     }
     // Client-side email format validation (#50)
     if (!validateEmail(email.trim())) {
-      const msg = 'Please enter a valid email address (e.g. name@example.com)'
+      const msg = t('citizen.auth.error.invalidEmail', lang)
       setError(msg)
       setNotification({ message: msg, type: 'warning' })
       return false
@@ -240,8 +247,8 @@ export default function CitizenAuthPage(): JSX.Element {
         if (!validateStep1()) { setSubmitting(false); return }
         // Check ToS acceptance (#27)
         if (!tosAccepted) {
-          setError('You must accept the Terms of Service and Privacy Policy to register.')
-          setNotification({ message: 'Please accept the Terms of Service and Privacy Policy.', type: 'warning' })
+          setError(t('citizen.auth.error.tosRequired', lang))
+          setNotification({ message: t('citizen.auth.error.tosAccept', lang), type: 'warning' })
           setSubmitting(false)
           return
         }
@@ -270,7 +277,7 @@ export default function CitizenAuthPage(): JSX.Element {
               await uploadAvatar(avatarFile)
             } catch (avatarErr: any) {
               console.warn('[CitizenAuth] Avatar upload failed after registration:', avatarErr?.message)
-              setNotification({ message: 'Account created, but profile photo upload failed. You can update it in your profile.', type: 'warning' })
+              setNotification({ message: t('citizen.auth.error.avatarUploadFailed', lang), type: 'warning' })
             }
           }
           setTimeout(() => navigate('/citizen/dashboard', { replace: true }), 500)
@@ -307,25 +314,41 @@ export default function CitizenAuthPage(): JSX.Element {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-aegis-50 via-blue-50 to-cyan-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 flex flex-col relative overflow-hidden">
+      {/* Animated atmosphere */}
+      <style>{`
+        @keyframes aegis-float { 0%, 100% { transform: translate(0, 0) scale(1); } 33% { transform: translate(30px, -25px) scale(1.05); } 66% { transform: translate(-20px, 15px) scale(0.95); } }
+        @keyframes aegis-float-r { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(-35px, -20px) scale(1.08); } }
+        @keyframes aegis-shake { 0%, 100% { transform: translateX(0); } 10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); } 20%, 40%, 60%, 80% { transform: translateX(4px); } }
+        @keyframes aegis-fade-up { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+      `}</style>
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
+        <div className="absolute -top-32 -left-32 w-[500px] h-[500px] bg-aegis-400/8 dark:bg-aegis-500/5 rounded-full blur-3xl" style={{ animation: 'aegis-float 25s ease-in-out infinite' }} />
+        <div className="absolute top-1/3 -right-24 w-96 h-96 bg-blue-400/6 dark:bg-blue-500/4 rounded-full blur-3xl" style={{ animation: 'aegis-float-r 30s ease-in-out infinite' }} />
+        <div className="absolute -bottom-24 left-1/4 w-80 h-80 bg-amber-300/6 dark:bg-amber-500/4 rounded-full blur-3xl" style={{ animation: 'aegis-float 35s ease-in-out infinite 2s' }} />
+      </div>
       {/* Navigation */}
-      <nav className="glass-nav bg-gradient-to-r from-aegis-700/95 via-aegis-800/95 to-aegis-700/95 dark:from-gray-900/95 dark:via-gray-900/95 dark:to-gray-900/95 text-white px-4 py-3 flex items-center justify-between shadow-lg border-b border-white/5">
-        <Link to="/" className="flex items-center gap-2.5 hover:opacity-90 transition-opacity group">
-          <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center group-hover:bg-white/25 transition-all">
-            <Shield className="w-5 h-5" />
+      <nav className="relative bg-white/98 dark:bg-[#09090f] backdrop-blur-2xl text-gray-900 dark:text-white px-4 h-14 flex items-center justify-between shadow-md shadow-gray-200/50 dark:shadow-2xl dark:shadow-black/70 border-b border-gray-200 dark:border-aegis-500/15">
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-aegis-400/40 dark:via-aegis-400/60 to-transparent pointer-events-none" />
+        <Link to="/" className="flex items-center gap-2.5 group">
+          <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-aegis-500 to-aegis-700 flex items-center justify-center shadow-lg shadow-aegis-500/30 group-hover:shadow-aegis-400/60 transition-all group-hover:scale-105">
+            <Shield className="w-5 h-5 text-white drop-shadow-sm" />
+            <div className="absolute inset-0 rounded-xl bg-gradient-to-tr from-white/25 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           </div>
-          <span className="font-bold text-sm hidden sm:inline">AEGIS</span>
+          <div className="hidden sm:block leading-none">
+            <span className="font-black text-sm tracking-wide"><span className="text-aegis-600 dark:text-aegis-400">AEGIS</span></span>
+            <span className="block text-[9px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-aegis-300 tracking-widest uppercase">{t('citizen.auth.citizenPortal', lang)}</span>
+          </div>
         </Link>
-        <div className="flex items-center gap-2">
-          <LanguageSelector darkNav />
-          <button onClick={toggle} className="p-2 hover:bg-white/10 rounded-lg transition-colors" aria-label="Toggle theme">
-            {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-          </button>
-          <Link to="/admin" className="text-xs bg-white/10 hover:bg-white/20 border border-white/20 px-2.5 sm:px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
+          <LanguageSelector darkNav={dark} />
+          <ThemeSelector darkNav={dark} />
+          <Link to="/admin" className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-white/50 hover:text-aegis-600 dark:hover:text-aegis-300 bg-gray-100 dark:bg-white/5 hover:bg-aegis-50 dark:hover:bg-aegis-500/10 border border-gray-200 dark:border-white/8 hover:border-aegis-300 dark:hover:border-aegis-500/25 px-2.5 sm:px-3 py-1.5 rounded-xl transition-all flex items-center gap-1">
             <Shield className="w-3.5 h-3.5 sm:hidden" /><span className="hidden sm:inline">{t('auth.title', lang)}</span>
           </Link>
-          <Link to="/citizen" className="text-xs bg-emerald-500/90 hover:bg-emerald-500 border border-emerald-400/30 px-3 py-1.5 rounded-lg transition-colors font-semibold">
-            {t('citizen.auth.guestContinue', lang)}
+          <Link to="/citizen" className="relative text-xs font-bold px-3.5 py-1.5 rounded-xl overflow-hidden group bg-aegis-600 hover:bg-aegis-700 shadow-lg shadow-aegis-600/20 hover:shadow-aegis-400/40 transition-all hover:scale-[1.03] active:scale-[0.97] text-white">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out" />
+            <span className="relative z-10">{t('citizen.auth.guestContinue', lang)}</span>
           </Link>
         </div>
       </nav>
@@ -347,9 +370,9 @@ export default function CitizenAuthPage(): JSX.Element {
         <div className="w-full max-w-6xl flex gap-8 lg:flex-row flex-col">
           {/* Left Column - Incoming Alerts */}
           <div className="hidden lg:flex flex-col w-full lg:max-w-sm flex-1">
-            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 shadow-xl h-full flex flex-col">
+            <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/80 dark:border-gray-700/50 p-6 shadow-2xl shadow-gray-300/20 dark:shadow-black/40 h-full flex flex-col">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">{t('citizen.auth.alerts.title', lang)}</h2>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{t('citizen.auth.alerts.subtitle', lang)}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-4">{t('citizen.auth.alerts.subtitle', lang)}</p>
               <IncomingAlertsWidget />
             </div>
           </div>
@@ -358,13 +381,13 @@ export default function CitizenAuthPage(): JSX.Element {
           <div className="w-full lg:max-w-md flex-1">
           {/* Header */}
           <div className="text-center mb-6">
-            <div className="w-16 h-16 bg-aegis-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-aegis-600/30">
+            <div className="w-16 h-16 bg-gradient-to-br from-aegis-500 to-aegis-700 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-aegis-600/30">
               <Shield className="w-8 h-8 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
               {mode === 'login' ? t('auth.title', lang) : t('form.title', lang)}
             </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-sm text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-1">
               {mode === 'login'
                 ? t('citizen.auth.loginSubtitle', lang)
                 : t('citizen.auth.registerSubtitle', lang)}
@@ -378,7 +401,7 @@ export default function CitizenAuthPage(): JSX.Element {
               className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all ${
                 mode === 'login'
                   ? 'bg-white dark:bg-gray-700 text-aegis-700 dark:text-aegis-300 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                  : 'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'
               }`}
             >
               {t('auth.login', lang)}
@@ -388,7 +411,7 @@ export default function CitizenAuthPage(): JSX.Element {
               className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all ${
                 mode === 'register'
                   ? 'bg-white dark:bg-gray-700 text-aegis-700 dark:text-aegis-300 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                  : 'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'
               }`}
             >
               {t('citizen.auth.register', lang)}
@@ -397,17 +420,17 @@ export default function CitizenAuthPage(): JSX.Element {
 
           {/* Forgot Password Mode */}
           {mode === 'forgot' && (
-            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 shadow-xl space-y-4">
+            <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/80 dark:border-gray-700/50 p-6 shadow-2xl shadow-gray-300/20 dark:shadow-black/40 space-y-4" style={{ animation: 'aegis-fade-up 0.6s ease-out' }}>
               <div className="text-center">
                 <Mail className="w-10 h-10 text-aegis-600 mx-auto mb-2" />
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Reset Your Password</h3>
-                <p className="text-xs text-gray-500 mt-1">Enter your email address and we'll send you a reset link</p>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">{t('citizen.auth.forgot.title', lang)}</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-1">{t('citizen.auth.forgot.subtitle', lang)}</p>
               </div>
               {forgotSent ? (
                 <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-4 rounded-xl text-center">
                   <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-2" />
-                  <p className="text-sm font-semibold text-green-800 dark:text-green-300">Reset link sent!</p>
-                  <p className="text-xs text-green-600 dark:text-green-400 mt-1">If an account exists with that email, you'll receive reset instructions shortly.</p>
+                  <p className="text-sm font-semibold text-green-800 dark:text-green-300">{t('citizen.auth.forgot.sent', lang)}</p>
+                  <p className="text-xs text-green-600 dark:text-green-400 mt-1">{t('citizen.auth.forgot.sentDesc', lang)}</p>
                 </div>
               ) : (
                 <form onSubmit={async (e) => {
@@ -429,21 +452,21 @@ export default function CitizenAuthPage(): JSX.Element {
                   }
                 }} className="space-y-3">
                   <div className="relative">
-                    <Mail className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                    <Mail className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
                     <input type="email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)}
                       className="w-full pl-10 pr-3 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 transition"
                       placeholder="your@email.com" required autoComplete="email" />
                   </div>
                   <button type="submit" disabled={submitting}
-                    className="w-full bg-aegis-600 hover:bg-aegis-700 disabled:bg-gray-300 text-white py-3 rounded-xl font-semibold text-sm shadow flex items-center justify-center gap-2 transition-all">
+                    className="w-full bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 hover:from-amber-500 hover:via-yellow-400 hover:to-amber-500 text-black disabled:bg-gray-300 disabled:bg-none disabled:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 py-3 rounded-xl font-semibold text-sm shadow flex items-center justify-center gap-2 transition-all">
                     {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
-                    {submitting ? 'Sending...' : 'Send Reset Link'}
+                    {submitting ? t('citizen.auth.forgot.sending', lang) : t('citizen.auth.forgot.sendResetLink', lang)}
                   </button>
                 </form>
               )}
               <button onClick={() => { setMode('login'); setError(''); setForgotSent(false); setForgotEmail('') }}
                 className="w-full text-xs text-aegis-600 hover:text-aegis-700 font-semibold py-2">
-                ← Back to Login
+                ← {t('citizen.auth.forgot.backToLogin', lang)}
               </button>
             </div>
           )}
@@ -460,14 +483,14 @@ export default function CitizenAuthPage(): JSX.Element {
                         ? 'bg-aegis-600 text-white shadow-md'
                         : regStep > s.num
                         ? 'bg-green-100 dark:bg-green-950/30 text-green-700 dark:text-green-300'
-                        : 'bg-gray-100 dark:bg-gray-800 text-gray-400'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'
                     }`}
                   >
                     {regStep > s.num ? <CheckCircle className="w-3.5 h-3.5" /> : <s.icon className="w-3.5 h-3.5" />}
                     <span className="hidden sm:inline">{s.label}</span>
                     <span className="sm:hidden">{s.num}</span>
                   </button>
-                  {i < STEPS.length - 1 && <ChevronRight className="w-3.5 h-3.5 text-gray-300" />}
+                  {i < STEPS.length - 1 && <ChevronRight className="w-3.5 h-3.5 text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />}
                 </div>
               ))}
             </div>
@@ -475,41 +498,41 @@ export default function CitizenAuthPage(): JSX.Element {
 
           {/* Error */}
           {error && (
-            <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 p-3 rounded-xl flex items-center gap-2 mb-4 text-sm">
+            <div key={error} role="alert" aria-live="assertive" className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 p-3 rounded-xl flex items-center gap-2 mb-4 text-sm" style={{ animation: 'aegis-shake 0.5s ease-in-out' }}>
               <AlertCircle className="w-4 h-4 flex-shrink-0" />{error}
             </div>
           )}
 
           {/* Form — shown for login and register modes only */}
           {mode !== 'forgot' && (
-          <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 shadow-xl space-y-4">
+          <form onSubmit={handleSubmit} className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/80 dark:border-gray-700/50 p-6 shadow-2xl shadow-gray-300/20 dark:shadow-black/40 space-y-4" style={{ animation: 'aegis-fade-up 0.6s ease-out' }}>
 
             {/* ═══ LOGIN FORM ═══ */}
             {mode === 'login' && (
               <>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">{t('citizen.auth.emailAddress', lang)}</label>
+                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-1.5">{t('citizen.auth.emailAddress', lang)}</label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                    <Mail className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
                     <input type="email" value={email} onChange={e => setEmail(e.target.value)} disabled={submitting}
                       className="w-full pl-10 pr-3 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition disabled:opacity-50 disabled:cursor-not-allowed"
                       placeholder={t('subscribe.placeholder.email', lang)} required autoComplete="email" />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">{t('citizen.auth.passwordLabel', lang)}</label>
+                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-1.5">{t('citizen.auth.passwordLabel', lang)}</label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                    <Lock className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
                     <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} disabled={submitting}
                       className="w-full pl-10 pr-10 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition disabled:opacity-50 disabled:cursor-not-allowed"
                       placeholder={t('citizen.auth.passwordPlaceholder', lang)} required autoComplete="current-password" />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} disabled={submitting} className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 disabled:cursor-not-allowed">
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} disabled={submitting} className="absolute right-3 top-2.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-600 disabled:cursor-not-allowed" aria-label={showPassword ? 'Hide password' : 'Show password'}>
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
                 </div>
                 <button type="submit" disabled={submitting}
-                  className="w-full bg-aegis-600 hover:bg-aegis-700 active:bg-aegis-800 disabled:bg-gray-300 text-white py-3 rounded-xl font-semibold text-sm shadow-lg shadow-aegis-600/20 disabled:shadow-none flex items-center justify-center gap-2 transition-all duration-200 disabled:cursor-not-allowed">
+                  className="w-full bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 hover:from-amber-500 hover:via-yellow-400 hover:to-amber-500 text-black active:brightness-90 disabled:bg-gray-300 disabled:bg-none disabled:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 py-3 rounded-xl font-semibold text-sm shadow-lg shadow-amber-500/30 disabled:shadow-none flex items-center justify-center gap-2 transition-all duration-200 disabled:cursor-not-allowed">
                   {submitting ? (
                     <><Loader2 className="w-4 h-4 animate-spin" /> <span>{t('citizen.auth.signingIn', lang)}</span></>
                   ) : (
@@ -520,7 +543,7 @@ export default function CitizenAuthPage(): JSX.Element {
                 <div className="text-right">
                   <button type="button" onClick={() => { setMode('forgot'); setError(''); setForgotEmail(email); setForgotSent(false) }}
                     className="text-xs text-aegis-600 hover:text-aegis-700 font-semibold">
-                    Forgot your password?
+                    {t('citizen.auth.forgotPassword', lang)}
                   </button>
                 </div>
 
@@ -528,7 +551,7 @@ export default function CitizenAuthPage(): JSX.Element {
                 <div className="relative my-2">
                   <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200 dark:border-gray-700" /></div>
                   <div className="relative flex justify-center text-xs">
-                    <span className="px-3 bg-white dark:bg-gray-900 text-gray-400">{t('citizen.auth.orContinueWith', lang) || 'or continue with'}</span>
+                    <span className="px-3 bg-white dark:bg-gray-900 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('citizen.auth.orContinueWith', lang) || 'or continue with'}</span>
                   </div>
                 </div>
                 <a
@@ -551,31 +574,31 @@ export default function CitizenAuthPage(): JSX.Element {
                     onChange={e => { (e.target as any)._hp = e.target.value }} />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">{t('citizen.auth.displayName', lang)} *</label>
+                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-1.5">{t('citizen.auth.displayName', lang)} *</label>
                   <div className="relative">
-                    <User className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                    <User className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
                     <input type="text" value={displayName} onChange={e => setDisplayName(e.target.value)}
                       className="w-full pl-10 pr-3 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition"
                       placeholder={t('citizen.auth.displayName', lang)} required autoComplete="name" />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">{t('citizen.auth.emailAddress', lang)} *</label>
+                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-1.5">{t('citizen.auth.emailAddress', lang)} *</label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                    <Mail className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
                     <input type="email" value={email} onChange={e => setEmail(e.target.value)}
                       className="w-full pl-10 pr-3 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition"
                       placeholder={t('subscribe.placeholder.email', lang)} required autoComplete="email" />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">{t('citizen.auth.passwordLabel', lang)} *</label>
+                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-1.5">{t('citizen.auth.passwordLabel', lang)} *</label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                    <Lock className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
                     <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)}
                       className="w-full pl-10 pr-10 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition"
                       placeholder={t('citizen.auth.passwordMin', lang)} required autoComplete="new-password" />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600">
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-2.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-600" aria-label={showPassword ? 'Hide password' : 'Show password'}>
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
@@ -586,14 +609,14 @@ export default function CitizenAuthPage(): JSX.Element {
                           <div key={i} className={`h-1.5 flex-1 rounded-full transition-all ${i <= pwStrength.score ? pwStrength.color : 'bg-gray-200 dark:bg-gray-700'}`} />
                         ))}
                       </div>
-                      <p className="text-[10px] text-gray-500 mt-1">{pwStrength.label}</p>
+                      <p className="text-[10px] text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-1">{pwStrength.label}</p>
                     </div>
                   )}
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">{t('citizen.auth.confirmPassword', lang)} *</label>
+                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-1.5">{t('citizen.auth.confirmPassword', lang)} *</label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                    <Lock className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
                     <input type={showPassword ? 'text' : 'password'} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
                       className={`w-full pl-10 pr-10 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition ${
                         confirmPassword && confirmPassword !== password ? 'border-red-300 dark:border-red-700' :
@@ -604,7 +627,7 @@ export default function CitizenAuthPage(): JSX.Element {
                   </div>
                 </div>
                 <button type="button" onClick={() => { if (validateStep1()) setRegStep(2) }}
-                  className="w-full bg-aegis-600 hover:bg-aegis-700 text-white py-3 rounded-xl font-semibold text-sm shadow-lg shadow-aegis-600/20 flex items-center justify-center gap-2 transition-all">
+                  className="w-full bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 hover:from-amber-500 hover:via-yellow-400 hover:to-amber-500 text-black py-3 rounded-xl font-semibold text-sm shadow-lg shadow-amber-500/30 flex items-center justify-center gap-2 transition-all">
                   {t('citizen.auth.continue', lang)} <ArrowRight className="w-4 h-4" />
                 </button>
               </>
@@ -614,9 +637,9 @@ export default function CitizenAuthPage(): JSX.Element {
             {mode === 'register' && regStep === 2 && (
               <>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">{t('citizen.auth.phone', lang)} <span className="font-normal">({t('citizen.auth.optional', lang)})</span></label>
+                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-1.5">{t('citizen.auth.phone', lang)} <span className="font-normal">({t('citizen.auth.optional', lang)})</span></label>
                   <div className="relative">
-                    <Phone className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                    <Phone className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
                     <input type="tel" value={phone} onChange={e => setPhone(e.target.value)}
                       className="w-full pl-10 pr-3 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition"
                       placeholder={t('subscribe.placeholder.phone', lang)} autoComplete="tel" />
@@ -625,19 +648,19 @@ export default function CitizenAuthPage(): JSX.Element {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">{t('citizen.auth.country', lang)}</label>
+                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-1.5">{t('citizen.auth.country', lang)}</label>
                     <div className="relative">
-                      <Globe className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                      <Globe className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
                       <select value={country} onChange={e => { setCountry(e.target.value); setRegion('') }}
                         className="w-full pl-10 pr-3 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition appearance-none">
-                        {COUNTRIES.sort().map(c => <option key={c} value={c}>{c}</option>)}
+                        {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">{t('citizen.auth.city', lang)} <span className="font-normal">({t('citizen.auth.optional', lang)})</span></label>
+                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-1.5">{t('citizen.auth.city', lang)} <span className="font-normal">({t('citizen.auth.optional', lang)})</span></label>
                     <div className="relative">
-                      <Building2 className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                      <Building2 className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
                       <input type="text" value={city} onChange={e => setCity(e.target.value)}
                         className="w-full pl-10 pr-3 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition"
                         placeholder={t('citizen.auth.city', lang)} autoComplete="address-level2" />
@@ -647,9 +670,9 @@ export default function CitizenAuthPage(): JSX.Element {
 
                 {regions.length > 0 && (
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">{t('citizen.auth.region', lang)} <span className="font-normal">({t('citizen.auth.optional', lang)})</span></label>
+                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-1.5">{t('citizen.auth.region', lang)} <span className="font-normal">({t('citizen.auth.optional', lang)})</span></label>
                     <div className="relative">
-                      <MapPin className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                      <MapPin className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
                       <select value={region} onChange={e => setRegion(e.target.value)}
                         className="w-full pl-10 pr-3 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition appearance-none">
                         <option value="">{t('citizen.auth.selectRegion', lang)}</option>
@@ -660,9 +683,9 @@ export default function CitizenAuthPage(): JSX.Element {
                 )}
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">{t('citizen.auth.addressLine', lang)} <span className="font-normal">({t('citizen.auth.optional', lang)})</span></label>
+                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-1.5">{t('citizen.auth.addressLine', lang)} <span className="font-normal">({t('citizen.auth.optional', lang)})</span></label>
                   <div className="relative">
-                    <Home className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                    <Home className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
                     <input type="text" value={addressLine} onChange={e => setAddressLine(e.target.value)}
                       className="w-full pl-10 pr-3 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition"
                       placeholder={t('citizen.auth.addressLine', lang)} autoComplete="street-address" />
@@ -670,9 +693,9 @@ export default function CitizenAuthPage(): JSX.Element {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">{t('citizen.auth.dateOfBirth', lang)} <span className="font-normal">({t('citizen.auth.optional', lang)})</span></label>
+                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-1.5">{t('citizen.auth.dateOfBirth', lang)} <span className="font-normal">({t('citizen.auth.optional', lang)})</span></label>
                   <div className="relative">
-                    <Calendar className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                    <Calendar className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
                     <input type="date" value={dateOfBirth} onChange={e => setDateOfBirth(e.target.value)}
                       max={new Date().toISOString().split('T')[0]}
                       className="w-full pl-10 pr-3 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition" />
@@ -681,11 +704,11 @@ export default function CitizenAuthPage(): JSX.Element {
 
                 <div className="flex gap-3">
                   <button type="button" onClick={() => setRegStep(1)}
-                    className="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all">
+                    className="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all">
                     <ArrowLeft className="w-4 h-4" /> {t('citizen.auth.back', lang)}
                   </button>
                   <button type="button" onClick={() => { setError(''); setRegStep(3) }}
-                    className="flex-1 bg-aegis-600 hover:bg-aegis-700 text-white py-3 rounded-xl font-semibold text-sm shadow-lg shadow-aegis-600/20 flex items-center justify-center gap-2 transition-all">
+                    className="flex-1 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 hover:from-amber-500 hover:via-yellow-400 hover:to-amber-500 text-black py-3 rounded-xl font-semibold text-sm shadow-lg shadow-amber-500/30 flex items-center justify-center gap-2 transition-all">
                     {t('citizen.auth.continue', lang)} <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
@@ -697,12 +720,12 @@ export default function CitizenAuthPage(): JSX.Element {
               <>
                 {/* Profile Photo Upload */}
                 <div className="flex flex-col items-center gap-3">
-                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">{t('citizen.auth.profilePhoto', lang)} <span className="font-normal">({t('citizen.auth.optional', lang)})</span></p>
+                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('citizen.auth.profilePhoto', lang)} <span className="font-normal">({t('citizen.auth.optional', lang)})</span></p>
                   <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
                     {avatarPreview ? (
                       <img src={avatarPreview} className="w-24 h-24 rounded-full object-cover border-4 border-gray-100 dark:border-gray-800 shadow-lg" alt="Avatar preview" />
                     ) : (
-                      <div className="w-24 h-24 rounded-full bg-aegis-50 dark:bg-aegis-950/30 border-4 border-gray-100 dark:border-gray-800 flex items-center justify-center shadow-lg">
+                      <div className="w-24 h-24 rounded-full bg-aegis-50 dark:bg-amber-950/30 border-4 border-gray-100 dark:border-gray-800 flex items-center justify-center shadow-lg">
                         <Camera className="w-8 h-8 text-aegis-400" />
                       </div>
                     )}
@@ -711,14 +734,14 @@ export default function CitizenAuthPage(): JSX.Element {
                     </div>
                     <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarSelect} className="hidden" />
                   </div>
-                  <p className="text-[10px] text-gray-400">{t('citizen.auth.clickUpload', lang)}</p>
+                  <p className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('citizen.auth.clickUpload', lang)}</p>
                 </div>
 
                 {/* Bio */}
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">{t('citizen.auth.bio', lang)} <span className="font-normal">({t('citizen.auth.optional', lang)})</span></label>
+                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-1.5">{t('citizen.auth.bio', lang)} <span className="font-normal">({t('citizen.auth.optional', lang)})</span></label>
                   <div className="relative">
-                    <FileText className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                    <FileText className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
                     <textarea value={bio} onChange={e => setBio(e.target.value)}
                       className="w-full pl-10 pr-3 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition resize-none"
                       placeholder={t('citizen.auth.bioPlaceholder', lang)} rows={2} />
@@ -727,7 +750,7 @@ export default function CitizenAuthPage(): JSX.Element {
 
                 {/* Status Color */}
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">{t('citizen.auth.statusTitle', lang)}</label>
+                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-2">{t('citizen.auth.statusTitle', lang)}</label>
                   <div className="grid grid-cols-3 gap-2">
                     {STATUS_OPTIONS.map(s => (
                       <button key={s.value} type="button" onClick={() => setStatusColor(s.value)}
@@ -738,23 +761,23 @@ export default function CitizenAuthPage(): JSX.Element {
                         }`}>
                         <div className={`w-4 h-4 ${s.color} rounded-full mx-auto mb-1.5 ${statusColor === s.value ? 'animate-pulse' : ''}`} />
                         <p className="text-xs font-semibold text-gray-900 dark:text-white">{t(s.labelKey, lang)}</p>
-                        <p className="text-[9px] text-gray-500 mt-0.5">{t(s.descKey, lang)}</p>
+                        <p className="text-[9px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-0.5">{t(s.descKey, lang)}</p>
                       </button>
                     ))}
                   </div>
                 </div>
 
                 {/* Vulnerability Indicator */}
-                <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/50 rounded-xl p-4">
+                <div className="bg-aegis-50 dark:bg-amber-950/20 border border-aegis-200 dark:border-aegis-800/50 rounded-xl p-4">
                   <label className="flex items-start gap-3 cursor-pointer">
                     <input type="checkbox" checked={isVulnerable} onChange={e => setIsVulnerable(e.target.checked)}
-                      className="mt-0.5 w-4 h-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500" />
+                      className="mt-0.5 w-4 h-4 rounded border-aegis-300 text-aegis-600 focus:ring-aegis-500" />
                     <div className="flex-1">
                       <div className="flex items-center gap-1.5">
-                        <Heart className="w-4 h-4 text-amber-600" />
-                        <span className="text-sm font-semibold text-amber-800 dark:text-amber-300">{t('citizen.auth.vulnerabilityTitle', lang)}</span>
+                        <Heart className="w-4 h-4 text-aegis-600" />
+                        <span className="text-sm font-semibold text-aegis-800 dark:text-aegis-300">{t('citizen.auth.vulnerabilityTitle', lang)}</span>
                       </div>
-                      <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
+                      <p className="text-[11px] text-aegis-600 dark:text-aegis-400 mt-1">
                         {t('citizen.auth.vulnerabilityHint', lang)}
                       </p>
                     </div>
@@ -762,7 +785,7 @@ export default function CitizenAuthPage(): JSX.Element {
                   {isVulnerable && (
                     <textarea value={vulnerabilityDetails} onChange={e => setVulnerabilityDetails(e.target.value)}
                       placeholder={t('citizen.auth.vulnerabilityPlaceholder', lang)}
-                      className="w-full mt-3 p-2.5 text-sm bg-white dark:bg-gray-800 rounded-lg border border-amber-200 dark:border-amber-700 focus:ring-2 focus:ring-amber-500 focus:border-transparent transition resize-none" rows={2} />
+                      className="w-full mt-3 p-2.5 text-sm bg-white dark:bg-gray-800 rounded-lg border border-aegis-200 dark:border-aegis-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition resize-none" rows={2} />
                   )}
                 </div>
 
@@ -771,24 +794,24 @@ export default function CitizenAuthPage(): JSX.Element {
                   <input type="checkbox" checked={tosAccepted} onChange={e => setTosAccepted(e.target.checked)}
                     className="mt-0.5 w-4 h-4 rounded border-gray-300 text-aegis-600 focus:ring-aegis-500" />
                   <div className="flex-1">
-                    <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1">
-                      <Shield className="w-3.5 h-3.5 text-aegis-600" /> Terms of Service & Privacy Policy
+                    <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex items-center gap-1">
+                      <Shield className="w-3.5 h-3.5 text-aegis-600" /> {t('citizen.auth.tos.heading', lang)}
                     </p>
-                    <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
-                      I agree to the <a href="/terms" target="_blank" className="text-aegis-600 underline">Terms of Service</a> and{' '}
-                      <a href="/privacy" target="_blank" className="text-aegis-600 underline">Privacy Policy</a>. 
-                      I understand my data will be processed in accordance with GDPR regulations.
+                    <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-0.5">
+                      {t('citizen.auth.tos.iAgree', lang)} <a href="/terms" target="_blank" className="text-aegis-600 underline">{t('citizen.auth.tos.termsOfService', lang)}</a> {t('citizen.auth.tos.and', lang)}{' '}
+                      <a href="/privacy" target="_blank" className="text-aegis-600 underline">{t('citizen.auth.tos.privacyPolicy', lang)}</a>. 
+                      {t('citizen.auth.tos.gdpr', lang)}
                     </p>
                   </div>
                 </label>
 
                 <div className="flex gap-3">
                   <button type="button" onClick={() => setRegStep(2)}
-                    className="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all">
+                    className="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all">
                     <ArrowLeft className="w-4 h-4" /> {t('citizen.auth.back', lang)}
                   </button>
                   <button type="submit" disabled={submitting}
-                    className="flex-1 bg-aegis-600 hover:bg-aegis-700 disabled:bg-aegis-400 text-white py-3 rounded-xl font-semibold text-sm shadow-lg shadow-aegis-600/20 flex items-center justify-center gap-2 transition-all">
+                    className="flex-1 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 hover:from-amber-500 hover:via-yellow-400 hover:to-amber-500 text-black disabled:bg-amber-200 disabled:text-aegis-700 py-3 rounded-xl font-semibold text-sm shadow-lg shadow-amber-500/30 flex items-center justify-center gap-2 transition-all">
                     {submitting ? <><Loader2 className="w-4 h-4 animate-spin" /> {t('citizen.auth.creating', lang)}</> : <>{t('citizen.auth.createAccount', lang)} <CheckCircle className="w-4 h-4" /></>}
                   </button>
                 </div>
@@ -797,9 +820,39 @@ export default function CitizenAuthPage(): JSX.Element {
           </form>
           )}
 
+          {/* Location-aware safety widgets on auth screen */}
+          <div className="mt-5 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/80 dark:border-gray-700/50 p-3 shadow-2xl shadow-gray-300/20 dark:shadow-black/40">
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {[
+                { key: 'crowd' as const, label: t('citizen.auth.widget.crowdDensity', lang) },
+                { key: 'shelters' as const, label: t('citizen.auth.widget.safeZones', lang) },
+                { key: 'risk' as const, label: t('citizen.auth.widget.riskAssessment', lang) },
+                { key: 'emergency' as const, label: t('citizen.auth.widget.emergencyCard', lang) },
+              ].map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setAuthWidgetTab(tab.key)}
+                  className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
+                    authWidgetTab === tab.key
+                      ? 'bg-aegis-600 text-white'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+            <Suspense fallback={<div className="py-6 text-center text-xs text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('citizen.auth.widget.loading', lang)}</div>}>
+              {authWidgetTab === 'crowd' && <CrowdDensityHeatmap />}
+              {authWidgetTab === 'shelters' && <ShelterFinder />}
+              {authWidgetTab === 'risk' && <RiskAssessment />}
+              {authWidgetTab === 'emergency' && <OfflineEmergencyCard />}
+            </Suspense>
+          </div>
+
           {/* Footer links */}
           {mode !== 'forgot' && (
-          <div className="text-center mt-4 text-xs text-gray-500 dark:text-gray-400">
+          <div className="text-center mt-4 text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
             <p>
               {mode === 'login' ? t('citizen.auth.noAccount', lang) : t('citizen.auth.haveAccount', lang)}
               <button
@@ -810,7 +863,7 @@ export default function CitizenAuthPage(): JSX.Element {
               </button>
             </p>
             <p className="mt-2">
-              <Link to="/citizen" className="text-gray-400 hover:text-gray-600">{t('citizen.auth.continueWithout', lang)}</Link>
+              <Link to="/citizen" className="text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-600">{t('citizen.auth.continueWithout', lang)}</Link>
             </p>
           </div>
           )}
@@ -820,3 +873,7 @@ export default function CitizenAuthPage(): JSX.Element {
     </div>
   )
 }
+
+
+
+

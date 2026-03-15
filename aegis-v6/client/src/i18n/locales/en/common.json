@@ -138,6 +138,92 @@
     "reduceMotion": "Reduce Motion",
     "screenReader": "Screen Reader Optimized"
   },
+  "alertSub": {
+    "smsValidation": "SMS must be in international format, e.g. +447700900123",
+    "whatsappValidation": "WhatsApp must be in international format, e.g. +447700900123",
+    "webPushEnabled": "Web Push enabled successfully",
+    "webPushFailed": "Web Push setup failed",
+    "subscriptionFailed": "Subscription failed",
+    "successDescription": "You'll receive alerts via your selected channels when emergencies are confirmed in your areas.",
+    "info": "Alerts are sent when operators confirm an emergency. You can unsubscribe at any time. Your contact details are encrypted and never shared.",
+    "subscribeToAlerts": "Subscribe to Alerts",
+    "area": {
+      "cityCentre": "City Centre",
+      "northDistrict": "North District",
+      "southDistrict": "South District",
+      "eastDistrict": "East District",
+      "westDistrict": "West District",
+      "coastalRiverside": "Coastal / Riverside",
+      "suburbanOutskirts": "Suburban / Outskirts",
+      "allAreas": "All Areas"
+    }
+  },
+  "floatingChat": {
+    "messages": "Messages",
+    "newConversation": "New Conversation",
+    "newMessage": "New Message",
+    "chat": "Chat",
+    "noConversations": "No conversations yet",
+    "startConversation": "Start a new conversation with our team",
+    "noMessages": "No messages",
+    "noMessagesYet": "No messages yet",
+    "typeMessage": "Type a message...",
+    "subject": "Subject",
+    "subjectPlaceholder": "Describe your issue briefly",
+    "message": "Message",
+    "messagePlaceholder": "Describe your question or concern...",
+    "emergencyThread": "Emergency Thread",
+    "immediateAttention": "This will be flagged for immediate attention.",
+    "sending": "Sending...",
+    "categories": {
+      "general": "General Inquiry",
+      "emergency": "Emergency Help",
+      "report": "Report Issue",
+      "feedback": "Feedback",
+      "account": "Account Help"
+    }
+  },
+  "layout": {
+    "adminNavbar": {
+      "systemsNormal": "Systems Normal",
+      "searchPlaceholder": "Search reports, alerts, operators...",
+      "newMessage": "new message",
+      "newMessages": "new messages",
+      "directMessages": "Direct Messages",
+      "unreadConversation": "unread conversation",
+      "unreadConversations": "unread conversations",
+      "noRecentNotifications": "No recent notifications",
+      "viewAllAlerts": "View all alerts",
+      "portals": "Portals"
+    },
+    "portals": {
+      "guestPortal": "Guest Portal",
+      "guestPortalDescription": "Public safety information",
+      "citizenPortalDescription": "Signed-in citizen dashboard",
+      "operatorPortal": "Operator Portal",
+      "operatorPortalDescription": "Emergency operations",
+      "currentlyActive": "Currently active"
+    },
+    "sidebar": {
+      "communitySupport": "Community Support",
+      "safetyCheckIn": "Safety Check-in",
+      "myProfile": "My Profile",
+      "navigation": "Navigation",
+      "expandSidebar": "Expand sidebar",
+      "collapseSidebar": "Collapse sidebar",
+      "myAccount": "My Account",
+      "unlockFullFeatures": "Unlock full features",
+      "openNavigation": "Open navigation",
+      "menu": "Menu",
+      "closeMenu": "Close menu"
+    },
+    "topNavbar": {
+      "riskElevated": "Elevated",
+      "riskNormal": "Normal",
+      "toggleNavigation": "Toggle navigation menu",
+      "citizenFallback": "Citizen"
+    }
+  },
   "footer": {
     "privacy": "Privacy Policy",
     "terms": "Terms of Service",

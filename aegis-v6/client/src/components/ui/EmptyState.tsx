@@ -15,11 +15,11 @@ export default function EmptyState({ icon: Icon = Inbox, title, description, act
   return (
     <div className="flex flex-col items-center justify-center py-12 px-4 text-center" role="status">
       <div className="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
-        <Icon className="w-7 h-7 text-gray-400 dark:text-gray-500" />
+        <Icon className="w-7 h-7 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
       </div>
-      <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{title}</h3>
+      <h3 className="text-sm font-medium text-secondary mb-1">{title}</h3>
       {description && (
-        <p className="text-xs text-gray-500 dark:text-gray-400 max-w-xs">{description}</p>
+        <p className="text-xs text-muted max-w-xs">{description}</p>
       )}
       {action && (
         <button
@@ -49,3 +49,7 @@ export function EmptyCommunity() {
 export function EmptySafety() {
   return <EmptyState icon={Shield} title="No check-ins" description="Use safety check-ins to let responders and contacts know your status." />
 }
+
+
+
+

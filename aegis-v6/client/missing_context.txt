@@ -1,0 +1,231 @@
+﻿about.accessibility => <Link to="/accessibility" className="text-gray-500 dark:text-gray-400 hover:text-aegis-600 dark:hover:text-aegis-400">{t
+about.backToAegis => <ArrowLeft className="w-4 h-4" /> {t('about.backToAegis', lang)}
+about.backToDashboard => <Link to="/citizen" className="text-aegis-600 hover:underline">{t('about.backToDashboard', lang)}</Link>
+about.contact => <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">{t('about.contact', lang)}</h2>
+about.contactDesc => <p className="text-gray-700 dark:text-gray-300 mb-4">{t('about.contactDesc', lang)}</p>
+about.contactInstitution => <div className="flex gap-3"><dt className="font-semibold text-gray-500 w-24 flex-shrink-0">{t('about.institution', lang)
+about.contactLocation => <div className="flex gap-3"><dt className="font-semibold text-gray-500 w-24 flex-shrink-0">{t('about.location', lang)}</
+about.contactModule => <div className="flex gap-3"><dt className="font-semibold text-gray-500 w-24 flex-shrink-0">{t('about.module', lang)}</dt
+about.feat.aiAnalysis => { icon: Award, title: t('about.feat.aiAnalysis', lang), desc: t('about.feat.aiAnalysisDesc', lang), color: 'text-amber-5
+about.feat.aiAnalysisDesc => { icon: Award, title: t('about.feat.aiAnalysis', lang), desc: t('about.feat.aiAnalysisDesc', lang), color: 'text-amber-5
+about.feat.communityReporting => { icon: Users, title: t('about.feat.communityReporting', lang), desc: t('about.feat.communityReportingDesc', lang), colo
+about.feat.communityReportingDesc => { icon: Users, title: t('about.feat.communityReporting', lang), desc: t('about.feat.communityReportingDesc', lang), colo
+about.feat.floodMonitoring => { icon: Map, title: t('about.feat.floodMonitoring', lang), desc: t('about.feat.floodMonitoringDesc', lang), color: 'text
+about.feat.floodMonitoringDesc => { icon: Map, title: t('about.feat.floodMonitoring', lang), desc: t('about.feat.floodMonitoringDesc', lang), color: 'text
+about.feat.languages => { icon: Globe, title: t('about.feat.languages', lang), desc: t('about.feat.languagesDesc', lang), color: 'text-aegis-500
+about.feat.languagesDesc => { icon: Globe, title: t('about.feat.languages', lang), desc: t('about.feat.languagesDesc', lang), color: 'text-aegis-500
+about.feat.liveAlerts => { icon: Bell, title: t('about.feat.liveAlerts', lang), desc: t('about.feat.liveAlertsDesc', lang), color: 'text-red-500'
+about.feat.liveAlertsDesc => { icon: Bell, title: t('about.feat.liveAlerts', lang), desc: t('about.feat.liveAlertsDesc', lang), color: 'text-red-500'
+about.feat.preparedness => { icon: BookOpen, title: t('about.feat.preparedness', lang), desc: t('about.feat.preparednessDesc', lang), color: 'text-
+about.feat.preparednessDesc => { icon: BookOpen, title: t('about.feat.preparedness', lang), desc: t('about.feat.preparednessDesc', lang), color: 'text-
+about.fullName => <p className="text-aegis-200 text-sm mt-0.5">{t('about.fullName', lang)}</p>
+about.heroDesc => {t('about.heroDesc', lang)}
+about.institutionVal => { label: t('about.institution', lang), value: t('about.institutionVal', lang) },
+about.keyFeatures => <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2"><Zap className="w-6 h-6
+about.locationVal => { label: t('about.location', lang), value: t('about.locationVal', lang) },
+about.missionP1 => {t('about.missionP1', lang)}
+about.missionP2 => {t('about.missionP2', lang)}
+about.moduleVal => { label: t('about.module', lang), value: t('about.moduleVal', lang) },
+about.ourMission => <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2"><Heart className="w-6 h
+about.privacyPolicy => <Link to="/privacy" className="text-gray-500 dark:text-gray-400 hover:text-aegis-600 dark:hover:text-aegis-400">{t('abou
+about.researchBg => <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2"><BookOpen className="w-
+about.researchP1 => {t('about.researchP1', lang)}
+about.researchP2 => {t('about.researchP2', lang)}
+about.tech.aiEngine => { label: t('about.tech.aiEngine', lang), tech: 'Python + FastAPI + scikit-learn' },
+about.tech.backend => { label: t('about.tech.backend', lang), tech: 'Node.js + Express + PostgreSQL' },
+about.tech.frontend => { label: t('about.tech.frontend', lang), tech: 'React 18 + TypeScript + Vite' },
+about.tech.liveData => { label: t('about.tech.liveData', lang), tech: 'SEPA KiWIS, EA Flood API, Open-Meteo' },
+about.tech.mapping => { label: t('about.tech.mapping', lang), tech: 'Geospatial GeoJSON APIs' },
+about.tech.offline => { label: t('about.tech.offline', lang), tech: 'Service Worker + PWA' },
+about.tech.pushAlerts => { label: t('about.tech.pushAlerts', lang), tech: 'Web Push (VAPID)' },
+about.tech.styling => { label: t('about.tech.styling', lang), tech: 'Tailwind CSS + Custom Design System' },
+about.techStack => <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">{t('about.techStack', lang)}</h2>
+about.termsOfUse => <Link to="/terms" className="text-gray-500 dark:text-gray-400 hover:text-aegis-600 dark:hover:text-aegis-400">{t('about.
+admin.action.archive => <button onClick={()=>canAct&&doArchive(selReport.id)} disabled={!canAct} className="group text-[11px] bg-gray-50 dark:bg
+admin.action.falseReport => <button onClick={()=>canAct&&doFalseReport(selReport.id)} disabled={!canAct} className="group text-[11px] bg-rose-50 dar
+admin.action.flag => <button onClick={()=>canAct&&doFlag(selReport.id)} disabled={!canAct} className="group text-[11px] bg-aegis-50 dark:bg-a
+admin.action.resolve => <button onClick={()=>canAct&&doResolve(selReport.id)} disabled={!canAct} className="group text-[11px] bg-slate-50 dark:b
+admin.action.urgent => <button onClick={()=>canAct&&doUrgent(selReport.id)} disabled={!canAct} className="group text-[11px] bg-red-50 dark:bg-r
+admin.action.verify => <button onClick={()=>canAct&&doVerify(selReport.id)} disabled={!canAct} className="group text-[11px] bg-emerald-50 dark:
+admin.bulk.archiveMsg => const doBulkArchive=()=>askConfirm(t('admin.bulk.archiveTitle',lang),t('admin.bulk.archiveMsg',lang).replace('{n}',Strin
+admin.bulk.archiveSuccess => const doBulkArchive=()=>askConfirm(t('admin.bulk.archiveTitle',lang),t('admin.bulk.archiveMsg',lang).replace('{n}',Strin
+admin.bulk.archiveTitle => const doBulkArchive=()=>askConfirm(t('admin.bulk.archiveTitle',lang),t('admin.bulk.archiveMsg',lang).replace('{n}',Strin
+admin.bulk.falseMsg => const doBulkFalseReport=()=>askConfirm(t('admin.bulk.falseTitle',lang),t('admin.bulk.falseMsg',lang).replace('{n}',Strin
+admin.bulk.falseSuccess => const doBulkFalseReport=()=>askConfirm(t('admin.bulk.falseTitle',lang),t('admin.bulk.falseMsg',lang).replace('{n}',Strin
+admin.bulk.falseTitle => const doBulkFalseReport=()=>askConfirm(t('admin.bulk.falseTitle',lang),t('admin.bulk.falseMsg',lang).replace('{n}',Strin
+admin.bulk.flagMsg => const doBulkFlag=()=>askConfirm(t('admin.bulk.flagTitle',lang),t('admin.bulk.flagMsg',lang).replace('{n}',String(selecte
+admin.bulk.flagSuccess => const doBulkFlag=()=>askConfirm(t('admin.bulk.flagTitle',lang),t('admin.bulk.flagMsg',lang).replace('{n}',String(selecte
+admin.bulk.flagTitle => const doBulkFlag=()=>askConfirm(t('admin.bulk.flagTitle',lang),t('admin.bulk.flagMsg',lang).replace('{n}',String(selecte
+admin.bulk.resolveMsg => const doBulkResolve=()=>askConfirm(t('admin.bulk.resolveTitle',lang),t('admin.bulk.resolveMsg',lang).replace('{n}',Strin
+admin.bulk.resolveSuccess => const doBulkResolve=()=>askConfirm(t('admin.bulk.resolveTitle',lang),t('admin.bulk.resolveMsg',lang).replace('{n}',Strin
+admin.bulk.resolveTitle => const doBulkResolve=()=>askConfirm(t('admin.bulk.resolveTitle',lang),t('admin.bulk.resolveMsg',lang).replace('{n}',Strin
+admin.bulk.urgentMsg => const doBulkUrgent=()=>askConfirm(t('admin.bulk.urgentTitle',lang),t('admin.bulk.urgentMsg',lang).replace('{n}',String(s
+admin.bulk.urgentSuccess => const doBulkUrgent=()=>askConfirm(t('admin.bulk.urgentTitle',lang),t('admin.bulk.urgentMsg',lang).replace('{n}',String(s
+admin.bulk.urgentTitle => const doBulkUrgent=()=>askConfirm(t('admin.bulk.urgentTitle',lang),t('admin.bulk.urgentMsg',lang).replace('{n}',String(s
+admin.bulk.verifyMsg => const doBulkVerify=()=>askConfirm(t('admin.bulk.verifyTitle',lang),t('admin.bulk.verifyMsg',lang).replace('{n}',String(s
+admin.bulk.verifySuccess => const doBulkVerify=()=>askConfirm(t('admin.bulk.verifyTitle',lang),t('admin.bulk.verifyMsg',lang).replace('{n}',String(s
+admin.bulk.verifyTitle => const doBulkVerify=()=>askConfirm(t('admin.bulk.verifyTitle',lang),t('admin.bulk.verifyMsg',lang).replace('{n}',String(s
+admin.bulkFailed => pushNotification(err?.message || t('admin.bulkFailed', lang), 'error')
+admin.citizenMessages => <h2 className="font-bold text-xl flex items-center gap-2"><MessageSquare className="w-6 h-6 text-aegis-600"/> {t('admin.
+admin.confirm.archiveMsg => const doArchive=(id:string)=>askConfirm(t('admin.confirm.archiveTitle',lang),t('admin.confirm.archiveMsg',lang),'warning
+admin.confirm.archiveSuccess => const doArchive=(id:string)=>askConfirm(t('admin.confirm.archiveTitle',lang),t('admin.confirm.archiveMsg',lang),'warning
+admin.confirm.archiveTitle => const doArchive=(id:string)=>askConfirm(t('admin.confirm.archiveTitle',lang),t('admin.confirm.archiveMsg',lang),'warning
+admin.confirm.falseMsg => const doFalseReport=(id:string)=>askConfirm(t('admin.confirm.falseTitle',lang),t('admin.confirm.falseMsg',lang),'danger'
+admin.confirm.falseSuccess => const doFalseReport=(id:string)=>askConfirm(t('admin.confirm.falseTitle',lang),t('admin.confirm.falseMsg',lang),'danger'
+admin.confirm.falseTitle => const doFalseReport=(id:string)=>askConfirm(t('admin.confirm.falseTitle',lang),t('admin.confirm.falseMsg',lang),'danger'
+admin.confirm.justification => {(confirmModal.type==='warning'||confirmModal.type==='danger')&&!confirmModal.title.includes('Suspend')&&<textarea class
+admin.crowdDensity => {id:'crowd' as View,label:t('admin.crowdDensity',lang),icon:Users},
+admin.crowdDensityAnalysis => <h2 className="text-lg font-extrabold text-gray-900 dark:text-white">{t('admin.crowdDensityAnalysis',lang)}</h2>
+admin.delivery => {id:'delivery' as View,label:t('admin.delivery',lang),icon:Archive},
+admin.deploy.reasonLabel => {(confirmModal.title.includes('Deploy')||confirmModal.title.includes('Recall'))&&<div><label className="text-xs font-sem
+admin.deploy.reasonPlaceholder => {(confirmModal.title.includes('Deploy')||confirmModal.title.includes('Recall'))&&<div><label className="text-xs font-sem
+admin.detail.aiAnalysis => <h4 className="text-xs font-extrabold flex items-center gap-2 text-indigo-800 dark:text-indigo-200 mb-3"><Brain classNam
+admin.detail.aiConfidence => {label:t('admin.detail.aiConfidence',lang),value:`${selReport.confidence||0}%`,color:(selReport.confidence||0)>=80?'text
+admin.detail.aiDepth => {label:t('admin.detail.aiDepth',lang),value:selReport.aiAnalysis?.estimatedWaterDepth||selReport.aiAnalysis?.water_depth
+admin.detail.aiFakeRisk => {label:t('admin.detail.aiFakeRisk',lang),value:`${selReport.aiAnalysis?.fakeProbability||selReport.aiAnalysis?.fake_prob
+admin.detail.aiPanic => {label:t('admin.detail.aiPanic',lang),value:selReport.aiAnalysis?.panicLevel||selReport.aiAnalysis?.panic_level||'N/A',c
+admin.detail.aiPending => {label:t('admin.detail.aiPhoto',lang),value:selReport.aiAnalysis?.photoVerified||selReport.aiAnalysis?.photo_verified?t(
+admin.detail.aiPhoto => {label:t('admin.detail.aiPhoto',lang),value:selReport.aiAnalysis?.photoVerified||selReport.aiAnalysis?.photo_verified?t(
+admin.detail.aiReasoning => {selReport.aiAnalysis?.reasoning&&<div className="mt-2 bg-white/40 dark:bg-gray-900/30 rounded-lg p-2 border border-indi
+admin.detail.aiSentiment => {label:t('admin.detail.aiSentiment',lang),value:selReport.aiAnalysis?.sentimentScore?`${(selReport.aiAnalysis.sentimentS
+admin.detail.aiSources => <div className="mt-2 text-[10px] text-indigo-600 dark:text-indigo-300"><span className="font-bold">{t('admin.detail.aiSo
+admin.detail.aiVerified => {label:t('admin.detail.aiPhoto',lang),value:selReport.aiAnalysis?.photoVerified||selReport.aiAnalysis?.photo_verified?t(
+admin.detail.analyzed => <div className="absolute top-1.5 left-1.5 bg-indigo-600/80 backdrop-blur-sm text-white text-[8px] font-bold px-1.5 py-0.
+admin.detail.anonymousCitizen => {icon:User,label:t('admin.detail.reporter',lang),value:selReport.reporter||t('admin.detail.anonymousCitizen',lang)},
+admin.detail.description => <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><FileText classN
+admin.detail.detected => {selReport.aiAnalysis?.photoValidation&&<div className="mt-2 bg-blue-50/60 dark:bg-blue-950/20 rounded-lg p-2 border bor
+admin.detail.evidenceGallery => <h4 className="text-xs font-extrabold flex items-center gap-2 text-purple-800 dark:text-purple-200 mb-2"><Camera classNa
+admin.detail.gps => {icon:Globe,label:t('admin.detail.gps',lang),value:selReport.coordinates?`${selReport.coordinates[0].toFixed(4)}, ${selR
+admin.detail.heuristicOnly => <span className="w-1.5 h-1.5 rounded-full bg-aegis-500 inline-block"/> {t('admin.detail.heuristicOnly',lang)}
+admin.detail.location => <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><MapPin classNam
+admin.detail.mediaNotAvailable => <div className="text-center py-4 text-gray-400 text-xs italic">{t('admin.detail.mediaNotAvailable',lang)}</div>
+admin.detail.mlPowered => <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse inline-block"/> {t('admin.detail.mlPowered',lang)}
+admin.detail.noDescription => <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{selReport.description||t('admin.detail.noDescri
+admin.detail.noOperatorNotes => <p className="text-xs text-gray-500 dark:text-gray-400 italic">{selReport.operatorNotes || t('admin.detail.noOperatorNot
+admin.detail.notSpecified => <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{selReport.location||t('admin.detail.notSpecified',l
+admin.detail.operatorNotes => <h4 className="text-xs font-extrabold flex items-center gap-2 text-gray-700 dark:text-gray-200 mb-2"><Edit2 className="w
+admin.detail.photo => <span className="text-purple-500 font-bold">{t('admin.detail.photo',lang)} {i+1}:</span>
+admin.detail.printReport => <button onClick={()=>printSingleReport(selReport)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-whi
+admin.detail.recommendedActions => <h4 className="text-xs font-extrabold flex items-center gap-2 text-emerald-800 dark:text-emerald-200 mb-2"><CheckCircle 
+admin.detail.reporter => {icon:User,label:t('admin.detail.reporter',lang),value:selReport.reporter||t('admin.detail.anonymousCitizen',lang)},
+admin.detail.reportId => {icon:Hash,label:t('admin.detail.reportId',lang),value:selReport.reportNumber||'N/A'},
+admin.detail.severity => <span className={`text-[10px] px-2.5 py-1 rounded-full font-extrabold uppercase tracking-wider ${selReport.severity==='H
+admin.detail.shareReport => <button onClick={()=>handleShareReport(selReport)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-whi
+admin.detail.statusLocked => {t('admin.detail.statusLocked',lang)}
+admin.detail.statusTimeline => <h4 className="text-xs font-extrabold flex items-center gap-2 text-gray-700 dark:text-gray-200 mb-2"><Clock className="w
+admin.detail.submitted => {icon:Clock,label:t('admin.detail.submitted',lang),value:selReport.displayTime||new Date(selReport.timestamp).toLocaleSt
+admin.detail.superAdminOverride => {t('admin.detail.superAdminOverride',lang)}
+admin.detail.timelineAi => <div className="relative"><div className="absolute -left-[21px] top-0.5 w-3 h-3 rounded-full bg-purple-500 border-2 bord
+admin.detail.timelineChanged => {selReport.status!=='Unverified'&&!selReport.verifiedAt&&<div className="relative"><div className="absolute -left-[21px]
+admin.detail.timelineResolved => {selReport.resolvedAt&&<div className="relative"><div className="absolute -left-[21px] top-0.5 w-3 h-3 rounded-full bg-s
+admin.detail.timelineSubmitted => <div className="relative"><div className="absolute -left-[21px] top-0.5 w-3 h-3 rounded-full bg-blue-500 border-2 border
+admin.detail.timelineVerified => {selReport.verifiedAt&&<div className="relative"><div className="absolute -left-[21px] top-0.5 w-3 h-3 rounded-full bg-g
+admin.detail.trappedPersons => {selReport.trappedPersons==='yes'&&<span className="text-[10px] px-2.5 py-1 rounded-full bg-red-500 text-white font-extr
+admin.detail.viewFull => <span className="text-white text-[10px] font-bold flex items-center gap-1"><ZoomIn className="w-3 h-3"/>{t('admin.detail
+admin.filters.status.archived => if (value === 'Archived') return t('admin.filters.status.archived', lang)
+admin.filters.status.falseReport => if (value === 'False_Report') return t('admin.filters.status.falseReport', lang)
+admin.gallery.aiPhotoAnalysis => <span className="text-purple-400 font-bold"><Brain className="w-3 h-3 inline mr-1"/>{t('admin.gallery.aiPhotoAnalysis',l
+admin.gallery.closeGallery => <button onClick={()=>setGalleryOpen(false)} className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/10 h
+admin.gallery.evidencePhoto => <p className="text-white text-sm font-bold">{t('admin.gallery.evidencePhoto',lang)} {galleryIndex+1} {t('admin.gallery.o
+admin.gallery.of => <p className="text-white text-sm font-bold">{t('admin.gallery.evidencePhoto',lang)} {galleryIndex+1} {t('admin.gallery.o
+admin.gallery.openOriginal => <button onClick={()=>window.open(mediaItems[galleryIndex]?.url||mediaItems[galleryIndex]?.file_url,'_blank')} className=
+admin.mapView.intel => <span className="flex items-center gap-1"><Brain className="w-3 h-3"/> {t('admin.mapView.intel',lang)}</span>
+admin.mapView.layers => <span className="flex items-center gap-1"><Layers className="w-3 h-3"/> {t('admin.mapView.layers',lang)}</span>
+admin.mapView.subtitle => <p className="text-[9px] text-gray-500 dark:text-gray-300 font-medium">{t('admin.mapView.subtitle',lang)}</p>
+admin.mapView.title => <h2 className="font-bold text-sm leading-tight text-gray-900 dark:text-white">{t('admin.mapView.title',lang)}</h2>
+admin.print.allowPopups => const handlePrint=()=>{const w=window.open('','','width=800,height=600');if(!w){pushNotification(t('admin.print.allowPop
+admin.print.allowPopupSingle => const printSingleReport=(r:Report)=>{const w=window.open('','',`width=800,height=600`);if(!w){pushNotification(t('admin.
+admin.profile.email => <input className="w-full px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gra
+admin.profile.phone => <input className="w-full px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gra
+admin.profile.updateFailed => <button onClick={() => { apiUpdateProfile(user!.id, profileForm).then(() => { pushNotification(t('admin.profileUpdated',
+admin.sensitiveData => <p className="text-xs text-gray-500 dark:text-gray-400">{t('admin.sensitiveData',lang)}</p>
+admin.share.dialogOpened => pushNotification(t('admin.share.dialogOpened',lang),'success')
+admin.share.draftOpened => pushNotification(t('admin.share.draftOpened',lang),'success')
+admin.share.linkCopied => pushNotification(t('admin.share.linkCopied',lang),'success')
+admin.share.unableToShare => pushNotification(t('admin.share.unableToShare',lang),'error')
+admin.suspend.1day => {[{label:t('admin.suspend.1day',lang),days:1},{label:t('admin.suspend.3days',lang),days:3},{label:t('admin.suspend.1week
+admin.suspend.1month => {[{label:t('admin.suspend.1day',lang),days:1},{label:t('admin.suspend.3days',lang),days:3},{label:t('admin.suspend.1week
+admin.suspend.1week => {[{label:t('admin.suspend.1day',lang),days:1},{label:t('admin.suspend.3days',lang),days:3},{label:t('admin.suspend.1week
+admin.suspend.3days => {[{label:t('admin.suspend.1day',lang),days:1},{label:t('admin.suspend.3days',lang),days:3},{label:t('admin.suspend.1week
+admin.suspend.durationLabel => <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 block mb-1">{t('admin.suspend.durationLabel',la
+admin.suspend.indefinite => {!suspendForm.until&&<p className="text-[10px] text-gray-500 mt-1">{t('admin.suspend.indefinite',lang)}</p>}
+admin.suspend.indefiniteBtn => {[{label:t('admin.suspend.1day',lang),days:1},{label:t('admin.suspend.3days',lang),days:3},{label:t('admin.suspend.1week
+admin.suspend.reasonLabel => <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 block mb-1">{t('admin.suspend.reasonLabel',lang
+admin.suspend.reasonPlaceholder => <textarea className="w-full px-3 py-2 text-xs bg-gray-100 dark:bg-gray-800 rounded-lg min-h-[60px] border border-gray-20
+admin.suspend.suspendedUntil => {suspendForm.until&&<p className="text-[10px] text-aegis-600 dark:text-aegis-400 mt-1">{t('admin.suspend.suspendedUntil'
+citizen.auth.citizenPortal => <span className="block text-[9px] text-gray-400 dark:text-aegis-500/50 tracking-widest uppercase">{t('citizen.auth.citiz
+citizen.auth.error.avatarUploadFailed => setNotification({ message: t('citizen.auth.error.avatarUploadFailed', lang), type: 'warning' })
+citizen.auth.error.invalidEmail => const msg = t('citizen.auth.error.invalidEmail', lang)
+citizen.auth.error.tosAccept => setNotification({ message: t('citizen.auth.error.tosAccept', lang), type: 'warning' })
+citizen.auth.error.tosRequired => setError(t('citizen.auth.error.tosRequired', lang))
+citizen.auth.forgot.backToLogin => ← {t('citizen.auth.forgot.backToLogin', lang)}
+citizen.auth.forgot.sending => {submitting ? t('citizen.auth.forgot.sending', lang) : t('citizen.auth.forgot.sendResetLink', lang)}
+citizen.auth.forgot.sendResetLink => {submitting ? t('citizen.auth.forgot.sending', lang) : t('citizen.auth.forgot.sendResetLink', lang)}
+citizen.auth.forgot.sent => <p className="text-sm font-semibold text-green-800 dark:text-green-300">{t('citizen.auth.forgot.sent', lang)}</p>
+citizen.auth.forgot.sentDesc => <p className="text-xs text-green-600 dark:text-green-400 mt-1">{t('citizen.auth.forgot.sentDesc', lang)}</p>
+citizen.auth.forgot.subtitle => <p className="text-xs text-gray-500 mt-1">{t('citizen.auth.forgot.subtitle', lang)}</p>
+citizen.auth.forgot.title => <h3 className="text-lg font-bold text-gray-900 dark:text-white">{t('citizen.auth.forgot.title', lang)}</h3>
+citizen.auth.forgotPassword => {t('citizen.auth.forgotPassword', lang)}
+citizen.auth.tos.and => {t('citizen.auth.tos.iAgree', lang)} <a href="/terms" target="_blank" className="text-aegis-600 underline">{t('citizen.a
+citizen.auth.tos.gdpr => {t('citizen.auth.tos.gdpr', lang)}
+citizen.auth.tos.heading => <Shield className="w-3.5 h-3.5 text-aegis-600" /> {t('citizen.auth.tos.heading', lang)}
+citizen.auth.tos.iAgree => {t('citizen.auth.tos.iAgree', lang)} <a href="/terms" target="_blank" className="text-aegis-600 underline">{t('citizen.a
+citizen.auth.tos.privacyPolicy => <a href="/privacy" target="_blank" className="text-aegis-600 underline">{t('citizen.auth.tos.privacyPolicy', lang)}</a>.
+citizen.auth.tos.termsOfService => {t('citizen.auth.tos.iAgree', lang)} <a href="/terms" target="_blank" className="text-aegis-600 underline">{t('citizen.a
+citizen.auth.widget.crowdDensity => { key: 'crowd' as const, label: t('citizen.auth.widget.crowdDensity', lang) },
+citizen.auth.widget.emergencyCard => { key: 'emergency' as const, label: t('citizen.auth.widget.emergencyCard', lang) },
+citizen.auth.widget.loading => <Suspense fallback={<div className="py-6 text-center text-xs text-gray-400">{t('citizen.auth.widget.loading', lang)}</di
+citizen.auth.widget.riskAssessment => { key: 'risk' as const, label: t('citizen.auth.widget.riskAssessment', lang) },
+citizen.auth.widget.safeZones => { key: 'shelters' as const, label: t('citizen.auth.widget.safeZones', lang) },
+citizen.subscribe.alertTopics => <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">{t('citizen.subscribe.alertTopics', lang) || 
+common.querying => {t('common.querying', lang)}
+community.active => {stats.onlineNow > 0 ? t('community.active', lang) : t('community.quiet', lang)}
+dashboard.confidence => <span>{t('dashboard.confidence', lang)}: {Math.round(confSafe)}%</span>
+dashboard.eta => {p.time_to_flood && <span>{t('dashboard.eta', lang)}: {p.time_to_flood}</span>}
+dashboard.severity => <span>{t('dashboard.severity', lang)}: {p.severity}</span>
+delivery.attempted => <p className="text-[10px] text-blue-500 font-semibold uppercase">{t('delivery.attempted', lang)}</p>
+delivery.channelResults => <p className="text-[10px] font-bold text-gray-500 uppercase mb-2">{t('delivery.channelResults', lang)}</p>
+floodLayer.floodLayers => <h3 className="text-sm font-bold text-gray-900 dark:text-white">{t('floodLayer.floodLayers', lang)}</h3>
+floodPred.floodPrediction => <h3 className="text-sm font-bold text-gray-900 dark:text-white">{t('floodPred.floodPrediction', lang)}</h3>
+floodPred.loadingPredictions => {t('floodPred.loadingPredictions', lang)}
+map.highSeverity => <span className="text-[10px] text-gray-300">{t('map.highSeverity', lang)}</span>
+map.layer.aiFlood => { key: 'predictions', label: t('map.layer.aiFlood', lang), color: '#a855f7' },
+map.layer.distressBeacons => { key: 'distress', label: t('map.layer.distressBeacons', lang), color: '#f97316' },
+map.layer.riskZones => { key: 'riskZones', label: t('map.layer.riskZones', lang), color: '#eab308' },
+map.layer.riverGauges => { key: 'rivers', label: t('map.layer.riverGauges', lang), color: '#3b82f6' },
+map.layer.sepaStations => { key: 'stations', label: t('map.layer.sepaStations', lang), color: '#22c55e' },
+map.lowSeverity => <span className="text-[10px] text-gray-300">{t('map.lowSeverity', lang)}</span>
+map.mediumSeverity => <span className="text-[10px] text-gray-300">{t('map.mediumSeverity', lang)}</span>
+map.sosDistress => <span className="text-[10px] text-red-300">{t('map.sosDistress', lang)}</span>
+river.alertLabel => { label: t('river.alertLabel', lang),   value: `${hoveredGauge.alertLevel.toFixed(2)}m`,   color: 'text-red-500' },
+river.fetchingRiverData => <p className="text-xs text-gray-400">{t('river.fetchingRiverData', lang)}</p>
+river.floodWarningMsg => {hoveredGauge.status === 'alert' ? t('river.floodAlertMsg', lang) : t('river.floodWarningMsg', lang)}
+river.hoverForDetails => {!isHov && <span className="ml-1 opacity-60 flex items-center gap-0.5"><Info className="w-2 h-2"/> {t('river.hoverForDet
+river.noStationsConfigured => {t('river.noStationsConfigured', lang)}
+river.warningLabel => { label: t('river.warningLabel', lang), value: `${hoveredGauge.warningLevel.toFixed(2)}m`, color: 'text-amber-500' },
+safety.allClear => <p className="text-sm text-green-400/70">{t('safety.allClear', lang)}</p>
+safety.autoRefreshes => {t('safety.autoRefreshes', lang)} |
+safety.dataFromSources => {t('safety.dataFromSources', lang)}
+safety.emergencyNumbers => {t('safety.emergencyNumbers', lang)}
+safety.lifeThreateningEmergency => <p className="text-lg font-semibold text-red-300 mb-1">{t('safety.lifeThreateningEmergency', lang)}</p>
+safety.noHighRiskFlood => <p className="text-sm text-gray-500">{t('safety.noHighRiskFlood', lang)}</p>
+safety.weatherDataLoading => <p className="text-sm text-gray-500">{t('safety.weatherDataLoading', lang)}</p>
+severity => <button onClick={() => toggleSort('severity')} className="flex items-center gap-1 font-bold text-gray-600 dark:text-gray
+spatial.areaDesc => { id: 'area', label: t('spatial.area', lang), icon: <Pentagon className="w-4 h-4" />, description: t('spatial.areaDesc',
+spatial.bearingDesc => { id: 'bearing', label: t('spatial.bearing', lang), icon: <Compass className="w-4 h-4" />, description: t('spatial.beari
+spatial.bufferZoneDesc => { id: 'buffer', label: t('spatial.bufferZone', lang), icon: <CircleDot className="w-4 h-4" />, description: t('spatial.b
+spatial.coordinatesDesc => { id: 'coord-lookup', label: t('spatial.coordinates', lang), icon: <MapPin className="w-4 h-4" />, description: t('spati
+spatial.densityDesc => { id: 'density', label: t('spatial.density', lang), icon: <Flame className="w-4 h-4" />, description: t('spatial.density
+spatial.distanceDesc => { id: 'distance', label: t('spatial.distance', lang), icon: <Ruler className="w-4 h-4" />, description: t('spatial.dista
+spatial.distanceLabel => <p className="text-xs">{t('spatial.distanceLabel', lang)}: {formatDist(nearestShelter.distance)}</p>
+spatial.elevationDesc => { id: 'elevation', label: t('spatial.elevation', lang), icon: <Mountain className="w-4 h-4" />, description: t('spatial.
+spatial.exportViewDesc => { id: 'export', label: t('spatial.exportView', lang), icon: <Download className="w-4 h-4" />, description: t('spatial.ex
+spatial.floodRiskDesc => { id: 'flood-risk', label: t('spatial.floodRisk', lang), icon: <Droplets className="w-4 h-4" />, description: t('spatial
+spatial.fullAnalysisDesc => { id: 'buffer-analysis', label: t('spatial.fullAnalysis', lang), icon: <Database className="w-4 h-4" />, description: t(
+spatial.nearestShelterDesc => { id: 'nearest-shelter', label: t('spatial.nearestShelter', lang), icon: <Home className="w-4 h-4" />, description: t('s
+spatial.radiusSearchDesc => { id: 'radius-search', label: t('spatial.radiusSearch', lang), icon: <Search className="w-4 h-4" />, description: t('spa
+spatial.spatialAnalysisTools => title={t('spatial.spatialAnalysisTools', lang)}
+subscribe.whatsapp => { key: 'whatsapp', label: t('subscribe.whatsapp', lang) || 'WhatsApp', icon: MessageSquare, gradient: 'from-green-500 to
+weather.couldNotDetermineLocation => else setError(t('weather.couldNotDetermineLocation', lang))
+weather.enableLocationToSee => if (err.code === 1) setError(t('weather.enableLocationToSee', lang))
+weather.loadingWeather => <span className="text-xs text-gray-400 ml-2">{t('weather.loadingWeather', lang)}</span>

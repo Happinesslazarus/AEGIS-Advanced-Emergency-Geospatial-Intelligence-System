@@ -1,10 +1,13 @@
 import { useState } from 'react'
 import { CheckCircle, AlertTriangle, HelpCircle } from 'lucide-react'
 import { useAlerts } from '../../contexts/AlertsContext'
+import { t } from '../../utils/i18n'
+import { useLanguage } from '../../hooks/useLanguage'
 
 type SafetyStatus = 'safe' | 'help' | 'unsure' | null
 
 export default function SafetyCheckIn(): JSX.Element {
+  const lang = useLanguage()
   const [status, setStatus] = useState<SafetyStatus>(null)
   const { pushNotification } = useAlerts()
 
@@ -25,7 +28,7 @@ export default function SafetyCheckIn(): JSX.Element {
   return (
     <div className="bg-aegis-700 dark:bg-aegis-900 text-white" role="region" aria-label="Safety check-in">
       <div className="max-w-7xl mx-auto px-4 py-4">
-        <h3 className="text-sm font-semibold mb-2.5 text-aegis-100">Are You Safe?</h3>
+        <h3 className="text-sm font-semibold mb-2.5 text-aegis-100">{t('safetyCheck.areYouSafe', lang)}</h3>
         <div className="flex flex-wrap gap-2.5">
           {items.map(({ key, label, icon: Icon, base, active }) => (
             <button key={key} onClick={() => handle(key)}

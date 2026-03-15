@@ -9,8 +9,11 @@
 import React, { useEffect, useState } from 'react'
 import { WifiOff, RefreshCw, Check } from 'lucide-react'
 import { useOnlineStatus } from '../../hooks/useOnlineStatus'
+import { t } from '../../utils/i18n'
+import { useLanguage } from '../../hooks/useLanguage'
 
 export default function OfflineIndicator(): JSX.Element | null {
+  const lang = useLanguage()
   const { isOnline, queuedRequests, syncNow } = useOnlineStatus()
   const [visible, setVisible] = useState(false)
   const [justReconnected, setJustReconnected] = useState(false)
@@ -45,23 +48,23 @@ export default function OfflineIndicator(): JSX.Element | null {
       {justReconnected ? (
         <>
           <Check className="w-4 h-4 shrink-0" />
-          <span>Back online</span>
+          <span>{t('offline.backOnline', lang)}</span>
           {queuedRequests > 0 && (
-            <span className="text-xs opacity-80">— syncing {queuedRequests} queued request{queuedRequests !== 1 ? 's' : ''}</span>
+            <span className="text-xs opacity-80">— {t('offline.syncing', lang)} {queuedRequests}</span>
           )}
         </>
       ) : (
         <>
           <WifiOff className="w-4 h-4 shrink-0 animate-pulse" />
-          <span>You are offline</span>
+          <span>{t('offline.youAreOffline', lang)}</span>
           {queuedRequests > 0 && (
-            <span className="text-xs opacity-80">({queuedRequests} queued)</span>
+            <span className="text-xs opacity-80">({queuedRequests} {t('offline.queued', lang)})</span>
           )}
           <button
             onClick={syncNow}
             className="ml-1 p-1.5 rounded-lg hover:bg-white/20 transition-colors"
-            title="Try to sync now"
-            aria-label="Try to sync queued requests"
+            title={t('offline.trySync', lang)}
+            aria-label={t('offline.trySyncAria', lang)}
           >
             <RefreshCw className="w-3.5 h-3.5" />
           </button>

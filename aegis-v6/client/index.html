@@ -15,6 +15,15 @@
     <link rel="icon" href="/favicon.svg" />
   </head>
   <body class="antialiased">
+    <!-- Apply theme synchronously before React loads to prevent flash of wrong theme -->
+    <script>
+      ;(function(){
+        var t = localStorage.getItem('aegis-theme') || ''
+        var dark = t === '' || (t !== 'light' && t !== 'sunset')
+        document.documentElement.classList.toggle('dark', dark)
+        document.documentElement.setAttribute('data-theme', t || 'default')
+      })()
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

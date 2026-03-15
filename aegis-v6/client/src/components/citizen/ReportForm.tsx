@@ -9,6 +9,7 @@ import { LucideIcon } from '../../utils/iconMap'
 import { useReports } from '../../contexts/ReportsContext'
 import { useAlerts } from '../../contexts/AlertsContext'
 import type { ReportFormData, IncidentCategoryKey, SeverityLevel, TrappedOption, LocationMetadata, LocationSource } from '../../types'
+import { useLanguage } from '../../hooks/useLanguage'
 
 interface Props { onClose: () => void }
 
@@ -301,6 +302,7 @@ const CUSTOM_FIELD_DEFS: Record<string, CustomFieldDef[]> = {
 }
 
 export default function ReportForm({ onClose }: Props): JSX.Element {
+  const lang = useLanguage()
   const { t } = useTranslation(['incidents', 'common'])
   const { addReport } = useReports(); const { pushNotification } = useAlerts()
   const [step, setStep] = useState(1); const [errors, setErrors] = useState<Record<string, string>>({})
@@ -928,7 +930,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
       // Tapping the active button returns to "not sure"
       return (
         <div key={field.key} className={`flex items-center justify-between gap-3 ${base}`}>
-          <span className="text-sm text-gray-700 dark:text-gray-300 leading-tight">{label}</span>
+          <span className="text-sm text-secondary leading-tight">{label}</span>
           <div className="flex gap-1 shrink-0">
             <button
               type="button"
@@ -936,7 +938,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
               className={`px-2.5 py-1 text-xs rounded-l-full font-medium border transition-colors ${
                 val === true
                   ? 'bg-green-600 text-white border-green-600'
-                  : 'bg-white dark:bg-gray-800 text-gray-500 border-gray-300 dark:border-gray-600 hover:border-green-400 hover:text-green-600'
+                  : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-green-400 hover:text-green-600'
               }`}
             >Yes</button>
             <button
@@ -944,8 +946,8 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
               onClick={() => upCustom(field.key, val === undefined ? undefined : undefined)}
               className={`px-2.5 py-1 text-xs font-medium border-y transition-colors ${
                 val === undefined
-                  ? 'bg-gray-100 dark:bg-gray-700 text-gray-500 border-gray-300 dark:border-gray-600'
-                  : 'bg-white dark:bg-gray-800 text-gray-400 border-gray-300 dark:border-gray-600 hover:bg-gray-50'
+                  ? 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 border-gray-300 dark:border-gray-600'
+                  : 'bg-white dark:bg-gray-800 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50'
               }`}
               title="Not sure — skip this"
             >?</button>
@@ -955,7 +957,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
               className={`px-2.5 py-1 text-xs rounded-r-full font-medium border transition-colors ${
                 val === false
                   ? 'bg-red-500 text-white border-red-500'
-                  : 'bg-white dark:bg-gray-800 text-gray-500 border-gray-300 dark:border-gray-600 hover:border-red-400 hover:text-red-500'
+                  : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-red-400 hover:text-red-500'
               }`}
             >No</button>
           </div>
@@ -966,7 +968,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
     if (field.type === 'number') {
       return (
         <div key={field.key} className={`flex items-center gap-3 ${base}`}>
-          <label className="text-sm text-gray-700 dark:text-gray-300 flex-1 leading-tight">{label}</label>
+          <label className="text-sm text-secondary flex-1 leading-tight">{label}</label>
           <input
             type="number"
             min={0}
@@ -982,7 +984,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
     if (field.type === 'select' && field.options) {
       return (
         <div key={field.key} className={`flex items-center gap-3 ${base}`}>
-          <label className="text-sm text-gray-700 dark:text-gray-300 flex-1 leading-tight">{label}</label>
+          <label className="text-sm text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex-1 leading-tight">{label}</label>
           <select
             className="input text-sm py-1 w-36"
             value={val !== undefined ? String(val) : ''}
@@ -998,7 +1000,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
     // text
     return (
       <div key={field.key} className={`flex items-center gap-3 ${base}`}>
-        <label className="text-sm text-gray-700 dark:text-gray-300 flex-1 leading-tight">{label}</label>
+        <label className="text-sm text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex-1 leading-tight">{label}</label>
         <input
           type="text"
           className="input text-sm py-1 w-36"
@@ -1094,12 +1096,12 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
                 onChange={e => up('description', e.target.value)}
                 maxLength={2000}
               />
-              <p className="text-xs text-gray-500 text-right">{form.description.length}/2000</p>
+              <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 text-right">{form.description.length}/2000</p>
               {errors.description && <p className="text-red-500 text-sm">{errors.description}</p>}
 
               {/* When did this happen? */}
               <div>
-                <label className="text-xs font-medium text-gray-600 dark:text-gray-400">When did this happen?</label>
+                <label className="text-xs font-medium text-muted">When did this happen?</label>
                 <input
                   type="datetime-local"
                   className="input w-full text-sm mt-1"
@@ -1107,7 +1109,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
                   value={incidentTime}
                   onChange={e => setIncidentTime(e.target.value)}
                 />
-                <p className="text-[10px] text-gray-400 mt-0.5">Leave blank if happening right now</p>
+                <p className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-0.5">Leave blank if happening right now</p>
               </div>
 
               {/* Incident-specific custom fields */}
@@ -1194,7 +1196,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
                     </div>
                   </div>
                 )}
-                {isSearchingAddress && <p className="text-[10px] text-gray-500 mt-1">Searching address suggestions…</p>}
+                {isSearchingAddress && <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-1">Searching address suggestions…</p>}
                 {showSuggestions && addressSuggestions.length > 0 && (
                   <div className="absolute z-20 mt-1 w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg max-h-52 overflow-y-auto">
                     {addressSuggestions.map((s, i) => (
@@ -1221,7 +1223,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
                           ? 'bg-amber-100 text-amber-700 ring-1 ring-amber-300'
                           : locationConfidence === 'poor'
                             ? 'bg-red-100 text-red-700 ring-1 ring-red-300'
-                            : 'bg-gray-100 text-gray-500'
+                            : 'bg-gray-100 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'
                   }`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${
                       locationConfidence === 'excellent' ? 'bg-emerald-500'
@@ -1233,7 +1235,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
                     {locationConfidence === 'manual' ? 'Pinned' : locationConfidence === 'unknown' ? 'No location yet' : `${locationConfidence.charAt(0).toUpperCase() + locationConfidence.slice(1)} accuracy`}
                     {gpsAccuracy != null ? ` ±${gpsAccuracy}m` : ''}
                   </span>
-                  <label className="flex items-center gap-2 text-[11px] text-gray-700 dark:text-gray-300 ml-auto">
+                  <label className="flex items-center gap-2 text-[11px] text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 ml-auto">
                     <input
                       type="checkbox"
                       className="rounded border-gray-300"
@@ -1264,7 +1266,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
                 <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 mt-1">
                   {/* Tile switcher */}
                   <div className="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 px-2 py-1 border-b border-gray-200 dark:border-gray-700">
-                    <span className="text-[10px] text-gray-500 mr-1">Layer:</span>
+                    <span className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mr-1">Layer:</span>
                     {FREE_TILE_PROVIDERS.map((p, i) => (
                       <button
                         key={p.name}
@@ -1279,7 +1281,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
                         {p.name}
                       </button>
                     ))}
-                    <span className="ml-auto text-[9px] text-gray-400">Tap map to pin</span>
+                    <span className="ml-auto text-[9px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">Tap map to pin</span>
                   </div>
 
                   <MapContainer
@@ -1327,7 +1329,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
                   </MapContainer>
 
                   <div className="flex items-center gap-2 px-2 py-1.5 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
-                    <span className="text-[10px] text-gray-500 flex-1">
+                    <span className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex-1">
                       {manualPinCoords
                         ? '📌 Pinned manually — highest precision'
                         : gpsCoords
@@ -1341,7 +1343,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
                 </div>
                 {/* Quick observation tags */}
               <div className="mt-3">
-                <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">What can you observe? <span className="font-normal text-gray-400">(tap all that apply)</span></p>
+                <p className="text-xs font-medium text-muted mb-1.5">What can you observe? <span className="font-normal text-muted">(tap all that apply)</span></p>
                 <div className="flex flex-wrap gap-1.5">
                   {QUICK_OBSERVATIONS.map(o => (
                     <button
@@ -1362,7 +1364,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
 
               {/* Estimated people affected */}
               <div className="flex items-center gap-3 mt-2">
-                <span className="text-xs font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">People affected:</span>
+                <span className="text-xs font-medium text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 whitespace-nowrap">People affected:</span>
                 <select
                   className="input text-xs py-1 flex-1"
                   value={estimatedAffected}
@@ -1379,7 +1381,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
               </div>
 
               <div className="flex items-center justify-between gap-2 mt-2">
-                  <p className="text-[10px] text-gray-500">
+                  <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
                     Source: <span className="font-medium">{manualPinCoords ? 'map pin' : locationSource.replace(/_/g, ' ')}</span>
                   </p>
                   <button
@@ -1400,7 +1402,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
                       <div key={i} className="relative group rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
                         <img src={m.preview} alt={`Evidence ${i + 1}`} className="w-full h-20 object-cover" />
                         <button onClick={() => removeMedia(i)} className="absolute top-1 right-1 w-5 h-5 bg-red-600 text-white rounded-full flex items-center justify-center opacity-80 hover:opacity-100 transition-opacity" aria-label="Remove"><X className="w-3 h-3" /></button>
-                        <p className="text-[9px] text-center text-gray-500 py-0.5 truncate px-1">{m.file.name}</p>
+                        <p className="text-[9px] text-center text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 py-0.5 truncate px-1">{m.file.name}</p>
                       </div>
                     ))}
                   </div>
@@ -1408,9 +1410,9 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
                 {mediaFiles.length < MAX_IMAGES && (
                   <div className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-colors ${mediaFiles.length > 0 ? 'border-green-400 bg-green-50 dark:bg-green-950/20' : 'border-gray-300 dark:border-gray-600 hover:border-aegis-400'}`} onClick={() => fileRef.current?.click()}>
                     <input ref={fileRef} type="file" className="hidden" accept="image/jpeg,image/png,image/webp" multiple onChange={handleFiles} />
-                    <Camera className="w-6 h-6 mx-auto text-gray-400 mb-1" />
+                    <Camera className="w-6 h-6 mx-auto text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-1" />
                     <p className="text-sm font-medium">{mediaFiles.length > 0 ? `Add more (${MAX_IMAGES - mediaFiles.length} remaining)` : 'Add photo evidence'}</p>
-                    <p className="text-xs text-gray-500">JPG, PNG, WEBP · Max {MAX_SIZE_MB}MB each</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">JPG, PNG, WEBP · Max {MAX_SIZE_MB}MB each</p>
                   </div>
                 )}
               </div>
@@ -1418,15 +1420,15 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
               {/* Summary */}
               <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 space-y-1 text-sm">
                 <p className="font-semibold">Summary</p>
-                <p className="text-gray-600 dark:text-gray-400">
+                <p className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
                   Type: <span className="font-medium text-gray-800 dark:text-gray-200">{selectedSubLabel || form.incidentCategory}</span>
                 </p>
-                <p className="text-gray-600 dark:text-gray-400">
+                <p className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
                   Severity: {form.severity} | Trapped: {form.trappedPersons}
                   {mediaFiles.length > 0 ? ` | Photos: ${mediaFiles.length}` : ''}
                 </p>
                 {Object.keys(customFields).filter(k => customFields[k] !== undefined).length > 0 && (
-                  <p className="text-gray-500 text-xs">
+                  <p className="text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 text-xs">
                     + {Object.keys(customFields).filter(k => customFields[k] !== undefined).length} additional {selectedSubLabel} details
                   </p>
                 )}
@@ -1435,7 +1437,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
               <button onClick={submit} disabled={isSubmitting} className="btn-danger w-full py-3 text-base disabled:opacity-60">
                 <Send className="w-5 h-5" /> {isSubmitting ? 'Submitting...' : 'Submit Emergency Report'}
               </button>
-              <p className="text-xs text-center text-gray-500">Anonymous. Call 999 first for life-threatening emergencies.</p>
+              <p className="text-xs text-center text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">Anonymous. Call 999 first for life-threatening emergencies.</p>
             </div>
           )}
 
@@ -1461,3 +1463,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
     </div>
   )
 }
+
+
+
+
