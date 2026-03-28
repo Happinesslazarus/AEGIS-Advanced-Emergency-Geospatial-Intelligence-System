@@ -46,6 +46,8 @@ ai-engine/model_registry/
 ai-engine/feature_store/
 ai-engine/data/raw/
 ai-engine/data/processed/
+ai-engine/data/cache/
+!ai-engine/data/cache/.gitkeep
 
 # Logs
 logs/
