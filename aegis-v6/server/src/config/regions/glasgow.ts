@@ -1,8 +1,8 @@
-/**
+﻿/**
  * config/regions/glasgow.ts — Glasgow city region configuration
  *
  * Glasgow is the second region, proving AEGIS scales to any city.
- * The River Clyde is Glasgow's primary flood risk, flowing W→E through
+ * The River Clyde is Glasgow's primary flood risk, flowing W?E through
  * the city centre. The Kelvin joins from the north near Partick.
  *
  * Thresholds calibrated from SEPA published levels for Clyde stations.
@@ -65,7 +65,7 @@ const glasgow: CityRegionConfig = {
       layers: 'sepa:fld_FluvialHighLikelihood',
       format: 'image/png',
       transparent: true,
-      attribution: '© SEPA',
+      attribution: '— SEPA',
       opacity: 0.5,
       riskLevel: 'high',
     },
@@ -75,7 +75,7 @@ const glasgow: CityRegionConfig = {
       layers: 'sepa:fld_FluvialMediumLikelihood',
       format: 'image/png',
       transparent: true,
-      attribution: '© SEPA',
+      attribution: '— SEPA',
       opacity: 0.4,
       riskLevel: 'medium',
     },
@@ -85,7 +85,7 @@ const glasgow: CityRegionConfig = {
       layers: 'sepa:fld_PluvialHighLikelihood',
       format: 'image/png',
       transparent: true,
-      attribution: '© SEPA',
+      attribution: '— SEPA',
       opacity: 0.35,
       riskLevel: 'low',
     },
@@ -97,7 +97,7 @@ const glasgow: CityRegionConfig = {
     glasgow: 'glasgow_routes.json',
   },
 
-  // ── Multi-Incident Configuration ──────────────────────────────
+  // Multi-Incident Configuration
   language: 'en',
   units: 'metric',
   enabledIncidents: {
@@ -129,3 +129,4 @@ const glasgow: CityRegionConfig = {
 }
 
 export default glasgow
+

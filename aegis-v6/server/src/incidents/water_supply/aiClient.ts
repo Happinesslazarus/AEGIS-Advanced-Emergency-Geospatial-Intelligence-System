@@ -5,9 +5,10 @@
 
 import type { IncidentPrediction } from '../types.js'
 import pool from '../../models/db.js'
+import { logger } from '../../services/logger.js'
 
 export class WaterSupplyAIClient {
-  /**
+   /**
    * Get rule-based predictions for water supply disruptions
    * Uses report clustering and contamination analysis
    */
@@ -53,7 +54,7 @@ export class WaterSupplyAIClient {
         dataSourcesUsed: ['citizen_reports', 'water_quality_monitoring']
       }]
     } catch (error) {
-      console.error(`Water supply rule-based model error: ${error}`)
+      logger.error({ err: error }, '[WaterSupply/AIClient] Rule-based model error')
       return []
     }
   }

@@ -4,9 +4,10 @@
  */
 
 import { FLOOD_DATA_SOURCES } from './config.js'
+import { logger } from '../../services/logger.js'
 
 export class FloodDataIngestion {
-  /**
+   /**
    * Ingest flood data from UK Environment Agency API
    */
   static async ingestFloodData(region: string): Promise<{ recordsIngested: number; source: string }> {
@@ -17,26 +18,26 @@ export class FloodDataIngestion {
       })
 
       if (!response.ok) {
-        console.warn(`EA Flood API returned ${response.status}`)
+        logger.warn({ status: response.status }, '[Flood] EA Flood API returned non-OK status')
         return { recordsIngested: 0, source: 'UK Environment Agency (failed)' }
       }
 
       const data = await response.json()
       const floods = data.items || []
 
-      console.log(`Ingested ${floods.length} flood warnings from EA API`)
+      logger.info({ count: floods.length }, '[Flood] Ingested flood warnings from EA API')
       
       return {
         recordsIngested: floods.length,
         source: 'UK Environment Agency Flood Monitoring'
       }
     } catch (error) {
-      console.error(`Flood data ingestion error: ${error}`)
+      logger.error({ err: error }, '[Flood] Data ingestion error')
       return { recordsIngested: 0, source: 'UK Environment Agency (error)' }
     }
   }
 
-  /**
+   /**
    * Fetch river gauge readings
    */
   static async fetchRiverGauges(region: string): Promise<Record<string, unknown>[]> {
@@ -53,12 +54,12 @@ export class FloodDataIngestion {
       const data = await response.json()
       return data.items || []
     } catch (error) {
-      console.error(`River gauge fetch error: ${error}`)
+      logger.error({ err: error }, '[Flood] River gauge fetch error')
       return []
     }
   }
 
-  /**
+   /**
    * Schedule periodic data ingestion
    */
   static scheduleIngestion(intervalMinutes = 15): NodeJS.Timer {

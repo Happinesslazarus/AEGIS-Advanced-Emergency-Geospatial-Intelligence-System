@@ -27,25 +27,25 @@ export interface RiverHistory {
 }
 
 export interface RiverDataAdapter {
-  /** Human-readable name for this adapter */
+  /* Human-readable name for this adapter */
   readonly name: string
 
-  /** Whether this adapter is currently available (has required config) */
+  /* Whether this adapter is currently available (has required config) */
   isAvailable(): boolean
 
-  /**
+   /**
    * Fetch the current reading for a specific station.
    * Returns null if the station is not found or the fetch fails.
    */
   fetchCurrentLevel(stationId: string, stationName?: string, riverName?: string): Promise<RiverReading | null>
 
-  /**
+   /**
    * Fetch historical readings for a station over a time range.
    * @param hours Number of hours of history to retrieve (default 24)
    */
   fetchHistory(stationId: string, hours?: number): Promise<RiverHistory | null>
 
-  /**
+   /**
    * Fetch levels for multiple stations in one call where possible.
    */
   fetchMultiple(stationIds: string[]): Promise<RiverReading[]>

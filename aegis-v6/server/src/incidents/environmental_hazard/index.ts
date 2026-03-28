@@ -58,7 +58,7 @@ class EnvironmentalHazardModule extends BaseIncidentModule {
         confidence: 0.6,
         confidenceSource: 'statistical',
         region,
-        description: `Air Quality Index: ${aqi}. PM2.5: ${pm25}μg/m³, PM10: ${pm10}μg/m³, NO₂: ${no2}μg/m³`,
+        description: `Air Quality Index: ${aqi}. PM2.5: ${pm25}—g/m—, PM10: ${pm10}—g/m—, NO2: ${no2}—g/m—`,
         advisoryText: this.getAdvisoryText(severity),
         generatedAt: new Date().toISOString(),
         dataSourcesUsed: ['air_quality_api', 'statistical_model'],

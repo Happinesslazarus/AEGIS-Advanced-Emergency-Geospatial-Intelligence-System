@@ -73,3 +73,4 @@ export default function OfflineIndicator(): JSX.Element | null {
     </div>
   )
 }
+

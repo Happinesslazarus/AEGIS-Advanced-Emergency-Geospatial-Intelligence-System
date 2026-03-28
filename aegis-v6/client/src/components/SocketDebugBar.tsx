@@ -1,11 +1,11 @@
-/*
+﻿/*
  * SocketDebugBar.tsx - Temporary debug UI for socket transport validation
  * 
  * Shows:
- *   - Socket connection status (live vs failed)
- *   - User role (citizen/operator/admin)
- *   - Thread count (messages available)
- *   - Socket URL being used
+ * Socket connection status (live vs failed)
+ * User role (citizen/operator/admin)
+ * Thread count (messages available)
+ * Socket URL being used
  * 
  * Remove this component after confirming transport is working reliably.
  */
@@ -43,12 +43,12 @@ export default function SocketDebugBar(): JSX.Element {
   const socketUrl = getSocketUrl()
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 h-10 bg-gray-900 border-t border-gray-700 text-xs text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex items-center justify-between px-4 z-40 font-mono">
+    <div className="fixed bottom-0 left-0 right-0 h-10 bg-gray-900 border-t border-gray-700 text-xs text-gray-300 dark:text-gray-300 flex items-center justify-between px-4 z-40 font-mono">
       <div className="flex items-center gap-6">
         {/* Connection Status */}
         <div className="flex items-center gap-2">
           <div className={`w-2 h-2 rounded-full ${socket.connected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
-          <span className="text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">Socket:</span>
+          <span className="text-gray-400 dark:text-gray-300">Socket:</span>
           <span className={socket.connected ? 'text-green-400' : 'text-red-400'}>
             {socket.connected ? 'Connected' : 'Disconnected'}
           </span>
@@ -56,34 +56,31 @@ export default function SocketDebugBar(): JSX.Element {
 
         {/* User Role */}
         <div className="flex items-center gap-2">
-          <span className="text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">Role:</span>
+          <span className="text-gray-400 dark:text-gray-300">Role:</span>
           <span className="text-blue-300">{role}</span>
         </div>
 
         {/* Thread Count */}
         <div className="flex items-center gap-2">
-          <span className="text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">Threads:</span>
+          <span className="text-gray-400 dark:text-gray-300">Threads:</span>
           <span className="text-yellow-300">{threadCount}</span>
         </div>
 
         {/* User Name */}
         {user?.displayName && (
           <div className="flex items-center gap-2">
-            <span className="text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">User:</span>
+            <span className="text-gray-400 dark:text-gray-300">User:</span>
             <span className="text-purple-300">{user.displayName}</span>
           </div>
         )}
       </div>
 
       {/* Socket URL (right side) */}
-      <div className="flex items-center gap-2 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+      <div className="flex items-center gap-2 text-gray-500 dark:text-gray-300">
         <span>URL:</span>
-        <span className="text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 max-w-xs truncate">{socketUrl}</span>
+        <span className="text-gray-400 dark:text-gray-300 max-w-xs truncate">{socketUrl}</span>
       </div>
     </div>
   )
 }
-
-
-
-
+

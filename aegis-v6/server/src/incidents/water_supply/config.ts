@@ -39,3 +39,4 @@ export const WATER_SUPPLY_PRIORITY_LEVELS = {
   lowPressure: 'Medium',
   boilAdvisory: 'Medium'
 }
+

@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { BarChart3, TrendingUp, PieChart, Clock, RefreshCw, Timer, CheckCircle2, ShieldCheck, Users, MapPin, Activity, Wifi, Download } from 'lucide-react'
-import { io, Socket } from 'socket.io-client'
 import { apiGetReportAnalytics } from '../../utils/api'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
+import { useSharedSocket } from '../../contexts/SocketContext'
 
 type RangeValue = '24h' | '7d' | '30d' | 'all'
 
@@ -121,11 +121,10 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [data, setData] = useState<AnalyticsPayload | null>(null)
-  const socketRef = useRef<Socket | null>(null)
+  const { socket: sharedSocket, connected: socketConnected } = useSharedSocket()
   const inFlightRef = useRef(false)
   const lastRefreshRef = useRef(0)
   const rangeRef = useRef<RangeValue>('24h')
-  const [socketConnected, setSocketConnected] = useState(false)
   const [nowTick, setNowTick] = useState(Date.now())
 
   // "Show more" toggle state for expandable sections
@@ -157,17 +156,8 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
   }, [range])
 
   useEffect(() => {
-    const token = localStorage.getItem('aegis-token') || localStorage.getItem('token') || sessionStorage.getItem('token')
-    if (!token) return
-
-    const socket = io('http://localhost:3001', {
-      auth: { token },
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionDelay: 1500,
-    })
-    socketRef.current = socket
-    setSocketConnected(socket.connected)
+    const socket = sharedSocket
+    if (!socket) return
 
     const refreshFromEvent = () => {
       const now = Date.now()
@@ -175,26 +165,16 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
       void load(rangeRef.current)
     }
 
-    const onConnect = () => setSocketConnected(true)
-    const onDisconnect = () => setSocketConnected(false)
-
     socket.on('report:new', refreshFromEvent)
     socket.on('report:updated', refreshFromEvent)
     socket.on('report:bulk-updated', refreshFromEvent)
-    socket.on('connect', onConnect)
-    socket.on('disconnect', onDisconnect)
 
     return () => {
       socket.off('report:new', refreshFromEvent)
       socket.off('report:updated', refreshFromEvent)
       socket.off('report:bulk-updated', refreshFromEvent)
-      socket.off('connect', onConnect)
-      socket.off('disconnect', onDisconnect)
-      socket.disconnect()
-      socketRef.current = null
-      setSocketConnected(false)
     }
-  }, [load])
+  }, [sharedSocket, load])
 
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -300,15 +280,15 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
 
   const emptyState = (title: string, subtitle: string) => (
     <div className="flex flex-col items-center justify-center h-24 text-center">
-      <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{title}</p>
-      <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-1">{subtitle}</p>
+      <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">{title}</p>
+      <p className="text-[10px] text-gray-500 dark:text-gray-300 mt-1">{subtitle}</p>
     </div>
   )
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <select
             value={range}
             onChange={(e) => setRange(e.target.value as RangeValue)}
@@ -347,14 +327,14 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
             <Download className="w-3.5 h-3.5" /> {t('common.json', lang)}
           </button>
         </div>
-        <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+        <p className="text-[10px] text-gray-500 dark:text-gray-300">
           {data?.generatedAt ? `${t('analytics.liveAsOf', lang)} ${new Date(data.generatedAt).toLocaleTimeString()} • ${lastAgeSec}s ago` : t('analytics.liveData', lang)}
         </p>
       </div>
 
       {error && <div className="text-xs text-red-600 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-2.5">{error}</div>}
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
         {[
           { label: t('analytics.reportsToday', lang), value: reportsToday, color: 'text-aegis-600' },
           { label: t('analytics.reportsThisWeek', lang), value: reportsThisWeek, color: 'text-blue-600' },
@@ -370,32 +350,32 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
           { label: t('analytics.threatLevelIndex', lang), value: data?.kpis.threatLevelIndex || 0, color: data?.kpis.threatLevelIndex && data.kpis.threatLevelIndex >= 70 ? 'text-red-600' : data?.kpis.threatLevelIndex && data.kpis.threatLevelIndex >= 40 ? 'text-amber-600' : 'text-green-600' },
         ].map((kpi) => (
           <div key={kpi.label} className="bg-white dark:bg-gray-900 rounded-xl p-3 border border-gray-200 dark:border-gray-800 shadow-sm">
-            <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-bold uppercase">{kpi.label}</p>
+            <p className="text-[10px] text-gray-500 dark:text-gray-300 font-bold uppercase">{kpi.label}</p>
             <p className={`text-2xl font-extrabold ${kpi.color}`}>{loading ? '...' : kpi.value}</p>
           </div>
         ))}
       </div>
 
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-3 grid grid-cols-1 md:grid-cols-4 gap-3">
-        <div className="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-200 md:col-span-2">
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-3 grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-200 col-span-2 md:col-span-2">
           <TrendingUp className="w-4 h-4 text-aegis-600" />
           {t('analytics.hybridTrend', lang)}
         </div>
         <div className="text-right">
           <p className={`text-lg font-extrabold ${trendClass}`}>{weekOverWeek}%</p>
-          <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('analytics.weekOverWeek', lang)}</p>
+          <p className="text-[10px] text-gray-500 dark:text-gray-300">{t('analytics.weekOverWeek', lang)}</p>
         </div>
         <div className="text-right">
           <p className={`text-lg font-extrabold ${monthlyTrend >= 0 ? 'text-green-600' : 'text-red-600'}`}>{monthlyTrend}%</p>
-          <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('analytics.monthlyTrend', lang)}</p>
+          <p className="text-[10px] text-gray-500 dark:text-gray-300">{t('analytics.monthlyTrend', lang)}</p>
         </div>
         <div className="text-right">
           <p className="text-lg font-extrabold text-amber-600">{hybrid.incidentSpikes}</p>
-          <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('analytics.detectedSpikes', lang)}</p>
+          <p className="text-[10px] text-gray-500 dark:text-gray-300">{t('analytics.detectedSpikes', lang)}</p>
         </div>
         <div className="text-right">
           <p className={`text-lg font-extrabold ${hybrid.trendFromSeries >= 0 ? 'text-green-600' : 'text-red-600'}`}>{hybrid.trendFromSeries}%</p>
-          <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('analytics.clientTrendEstimate', lang)}</p>
+          <p className="text-[10px] text-gray-500 dark:text-gray-300">{t('analytics.clientTrendEstimate', lang)}</p>
         </div>
       </div>
 
@@ -404,18 +384,18 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
           <Activity className="w-4 h-4 text-aegis-600" />
           {t('analytics.systemHealth', lang)}
         </h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
           <div className="flex flex-col gap-1 p-2 rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-1.5">
               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('analytics.database', lang)}</span>
+              <span className="text-gray-600 dark:text-gray-300">{t('analytics.database', lang)}</span>
             </div>
             <span className="text-sm font-bold text-green-600">{t('common.connected', lang)}</span>
           </div>
           <div className="flex flex-col gap-1 p-2 rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-1.5">
               <div className={`w-2 h-2 rounded-full ${socketConnected ? 'bg-green-500 animate-pulse' : 'bg-amber-500'}`} />
-              <span className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('analytics.liveStream', lang)}</span>
+              <span className="text-gray-600 dark:text-gray-300">{t('analytics.liveStream', lang)}</span>
             </div>
             <span className={`text-sm font-bold ${socketConnected ? 'text-green-600' : 'text-amber-600'}`}>
               {socketConnected ? t('common.active', lang) : t('analytics.polling', lang)}
@@ -424,14 +404,14 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
           <div className="flex flex-col gap-1 p-2 rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-1.5">
               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('analytics.analyticsEngine', lang)}</span>
+              <span className="text-gray-600 dark:text-gray-300">{t('analytics.analyticsEngine', lang)}</span>
             </div>
             <span className="text-sm font-bold text-green-600">{t('common.running', lang)}</span>
           </div>
           <div className="flex flex-col gap-1 p-2 rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-1.5">
               <div className="w-2 h-2 rounded-full bg-blue-500" />
-              <span className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('analytics.lastDataSync', lang)}</span>
+              <span className="text-gray-600 dark:text-gray-300">{t('analytics.lastDataSync', lang)}</span>
             </div>
             <span className="text-sm font-bold text-blue-600">
               {data?.generatedAt ? new Date(data.generatedAt).toLocaleTimeString() : '--:--:--'}
@@ -448,7 +428,7 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
           ) : (
             <>
               {series.every(s => s.count === 0) && (
-                <p className="text-xs text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 text-center py-2 italic">{t('analytics.noReportsPopulate', lang)}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-300 text-center py-2 italic">{t('analytics.noReportsPopulate', lang)}</p>
               )}
               <div className="relative flex items-end gap-1 h-28">
                 {series.map((point, i) => {
@@ -457,7 +437,7 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
                   const isSpike = point.count >= hybrid.spikeThreshold && point.count > 0
                   return (
                     <div key={`${point.label}-${i}`} className="flex-1 flex flex-col items-center gap-0.5 relative">
-                      <span className="text-[8px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{point.count > 0 ? point.count : ''}</span>
+                      <span className="text-[8px] text-gray-400 dark:text-gray-300">{point.count > 0 ? point.count : ''}</span>
                       <div className="w-full relative flex flex-col justify-end" style={{ height: '100%' }}>
                         {barPct > 0 && (
                           <div className={`w-full rounded-t ${isSpike ? 'bg-amber-500' : 'bg-aegis-500'}`} style={{ height: `${barPct}%` }} title={`${point.label}: ${point.count}`} />
@@ -476,10 +456,10 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
               </div>
               <div className="flex gap-1 mt-1">
                 {series.map((point, i) => (
-                  <div key={`lbl-${i}`} className="flex-1 text-center text-[7px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{i % Math.ceil(((series.length || 1) / 6)) === 0 ? point.label : ''}</div>
+                  <div key={`lbl-${i}`} className="flex-1 text-center text-micro text-gray-400 dark:text-gray-300">{i % Math.ceil(((series.length || 1) / 6)) === 0 ? point.label : ''}</div>
                 ))}
               </div>
-              <div className="flex items-center gap-3 mt-2 text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+              <div className="flex items-center gap-3 mt-2 text-[10px] text-gray-500 dark:text-gray-300">
                 <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-aegis-500 inline-block" /> {t('common.reports', lang)}</span>
                 <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500 inline-block" /> {t('analytics.spike', lang)}</span>
                 <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-purple-500 inline-block" /> {t('analytics.movingAvg', lang)}</span>
@@ -500,7 +480,7 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
               const color = label === 'High' ? 'bg-red-500' : label === 'Medium' ? 'bg-amber-500' : 'bg-blue-500'
               return (
                 <div key={label} className={onFilterSeverity ? 'cursor-pointer hover:opacity-80' : ''} onClick={() => onFilterSeverity?.(label)}>
-                  <div className="flex justify-between text-xs mb-0.5"><span>{label}</span><span className="text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{count} ({pct}%)</span></div>
+                  <div className="flex justify-between text-xs mb-0.5"><span>{label}</span><span className="text-gray-500 dark:text-gray-300">{count} ({pct}%)</span></div>
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2"><div className={`${color} h-2 rounded-full`} style={{ width: `${pct}%` }} /></div>
                 </div>
               )
@@ -519,7 +499,7 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
               const pct = Math.round((row.count / maxCategory) * 100)
               return (
                 <div key={row.category} className={onFilterCategory ? 'cursor-pointer hover:opacity-80' : ''} onClick={() => onFilterCategory?.(row.category)}>
-                  <div className="flex justify-between text-xs mb-0.5"><span className="capitalize">{row.category.replace(/_/g, ' ')}</span><span className="text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{row.count}</span></div>
+                  <div className="flex justify-between text-xs mb-0.5"><span className="capitalize">{row.category.replace(/_/g, ' ')}</span><span className="text-gray-500 dark:text-gray-300">{row.count}</span></div>
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2"><div className="bg-aegis-500 h-2 rounded-full" style={{ width: `${pct}%` }} /></div>
                 </div>
               )
@@ -539,7 +519,7 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
               const color = label === 'Urgent' ? 'bg-red-600' : label === 'Verified' ? 'bg-green-500' : label === 'Flagged' ? 'bg-amber-500' : label === 'Resolved' ? 'bg-gray-500' : label === 'Archived' ? 'bg-slate-500' : label === 'False_Report' ? 'bg-rose-700' : 'bg-blue-500'
               return (
                 <div key={label} className={onFilterStatus ? 'cursor-pointer hover:opacity-80' : ''} onClick={() => onFilterStatus?.(label)}>
-                  <div className="flex justify-between text-xs mb-0.5"><span>{label}</span><span className="text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{count} ({pct}%)</span></div>
+                  <div className="flex justify-between text-xs mb-0.5"><span>{label}</span><span className="text-gray-500 dark:text-gray-300">{count} ({pct}%)</span></div>
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2"><div className={`${color} h-2 rounded-full`} style={{ width: `${pct}%` }} /></div>
                 </div>
               )
@@ -558,7 +538,7 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
               <div key={row.category} className="text-xs">
                 <div className="flex justify-between mb-1">
                   <span className="capitalize">{row.category.replace(/_/g, ' ')}</span>
-                  <span className="text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{row.total}</span>
+                  <span className="text-gray-500 dark:text-gray-300">{row.total}</span>
                 </div>
                 <div className="w-full h-2 rounded overflow-hidden bg-gray-100 dark:bg-gray-800 flex">
                   <div className="bg-red-500" style={{ width: `${row.total > 0 ? Math.round((row.High / row.total) * 100) : 0}%` }} />
@@ -613,7 +593,7 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
               const pct = Math.round((row.count / maxOfficer) * 100)
               return (
                 <div key={row.officer}>
-                  <div className="flex justify-between text-xs mb-0.5"><span className="truncate max-w-[160px]">{row.officer}</span><span className="text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{row.count}</span></div>
+                  <div className="flex justify-between text-xs mb-0.5"><span className="truncate max-w-[120px] sm:max-w-[160px] md:max-w-[200px]">{row.officer}</span><span className="text-gray-500 dark:text-gray-300 shrink-0 ml-2">{row.count}</span></div>
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2"><div className="bg-aegis-500 h-2 rounded-full" style={{ width: `${pct}%` }} /></div>
                 </div>
               )
@@ -626,15 +606,15 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
           <h3 className="text-sm font-bold mb-3 flex items-center gap-2"><Activity className="w-4 h-4 text-aegis-600" /> {t('analytics.performanceMetrics', lang)}</h3>
           <div className="grid grid-cols-2 gap-2 text-xs">
             <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-2">
-              <p className="text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('analytics.adminResponseTime', lang)}</p>
+              <p className="text-gray-500 dark:text-gray-300">{t('analytics.adminResponseTime', lang)}</p>
               <p className="text-base font-bold text-blue-600">{fmtMins(adminResponse)}</p>
             </div>
             <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-2">
-              <p className="text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('analytics.investigationCompletion', lang)}</p>
+              <p className="text-gray-500 dark:text-gray-300">{t('analytics.investigationCompletion', lang)}</p>
               <p className="text-base font-bold text-green-600">{fmtMins(completionTime)}</p>
             </div>
             <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-2 col-span-2">
-              <p className="text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('analytics.movingAverageWindow', lang)}</p>
+              <p className="text-gray-500 dark:text-gray-300">{t('analytics.movingAverageWindow', lang)}</p>
               <p className="text-base font-bold text-aegis-600">{t('analytics.clientSideBuckets', lang)}</p>
             </div>
           </div>
@@ -648,16 +628,16 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
             <>
             <div className="grid grid-cols-2 gap-2 text-xs mb-3">
             <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-2">
-              <p className="text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('analytics.nextBucketForecast', lang)}</p>
+              <p className="text-gray-500 dark:text-gray-300">{t('analytics.nextBucketForecast', lang)}</p>
               <p className="text-base font-bold text-aegis-600">{forecastNext}</p>
             </div>
             <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-2">
-              <p className="text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('analytics.seriesDirection', lang)}</p>
+              <p className="text-gray-500 dark:text-gray-300">{t('analytics.seriesDirection', lang)}</p>
               <p className="text-base font-bold text-blue-600">{trendLabel}</p>
             </div>
           </div>
           <div className="space-y-2">
-            {hybrid.spikes.length === 0 && <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('analytics.noAnomalies', lang)}</p>}
+            {hybrid.spikes.length === 0 && <p className="text-xs text-gray-500 dark:text-gray-300">{t('analytics.noAnomalies', lang)}</p>}
             {(spikesExpanded ? hybrid.spikes : hybrid.spikes.slice(0, 4)).map((spike) => (
               <div key={`spike-${spike.label}`} className="text-xs border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20 rounded-lg px-2 py-1.5 flex items-center justify-between">
                 <span>{t('analytics.spikeAt', lang)} {spike.label}</span>
@@ -688,7 +668,7 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
               { label: t('analytics.verificationCoverage', lang), value: quality?.verificationCoverageRate ?? data?.kpis.verificationRate ?? 0, color: 'bg-green-500' },
             ].map((item) => (
               <div key={item.label}>
-                <div className="flex justify-between text-xs mb-0.5"><span>{item.label}</span><span className="text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{item.value}%</span></div>
+                <div className="flex justify-between text-xs mb-0.5"><span>{item.label}</span><span className="text-gray-500 dark:text-gray-300">{item.value}%</span></div>
                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2"><div className={`${item.color} h-2 rounded-full`} style={{ width: `${Math.max(0, Math.min(100, item.value))}%` }} /></div>
               </div>
             ))}
@@ -696,14 +676,11 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 rounded-xl p-3 border border-gray-200 dark:border-gray-800 text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex items-center gap-2">
+      <div className="bg-white dark:bg-gray-900 rounded-xl p-3 border border-gray-200 dark:border-gray-800 text-xs text-gray-500 dark:text-gray-300 flex items-center gap-2">
         <Timer className="w-4 h-4 text-aegis-600" />
         {t('analytics.hybridAnalyticsFootnote', lang)}
       </div>
     </div>
   )
 }
-
-
-
-
+

@@ -1,0 +1,63 @@
+{
+  "regionId": "default",
+  "name": "Global (Default)",
+  "country": "Global",
+  "countryCode": "",
+  "timezone": "UTC",
+  "languages": ["en"],
+  "units": "metric",
+
+  "centre": { "lat": 0, "lng": 0 },
+  "zoom": 3,
+  "bounds": { "north": 85, "south": -85, "east": 180, "west": -180 },
+
+  "emergencyNumber": "112",
+  "floodAuthority": "Local flood authority",
+  "weatherAuthority": "National meteorological service",
+
+  "emergencyContacts": [
+    { "name": "International Emergency", "number": "112", "type": "police" },
+    { "name": "Local Emergency Services", "number": "911", "type": "police" }
+  ],
+
+  "phoneFormat": {
+    "countryCode": "",
+    "dialCode": "+",
+    "nationalFormat": "International E.164",
+    "nationalRegex": "^\\+[1-9]\\d{7,14}$",
+    "example": "+12025551234"
+  },
+
+  "ingestionEndpoints": {
+    "flood_warnings": "",
+    "gauge_data": "",
+    "weather_api": "https://api.open-meteo.com/v1/forecast"
+  },
+
+  "floodZones": [],
+
+  "supportedHazardTypes": [
+    "flood", "severe_storm", "heatwave", "wildfire", "landslide",
+    "earthquake", "tsunami", "drought", "volcanic_eruption",
+    "power_outage", "water_supply", "infrastructure_damage",
+    "public_safety", "environmental_hazard"
+  ],
+
+  "monitoredCities": [],
+
+  "llmContext": {
+    "floodAuthority": "your local flood authority",
+    "weatherAuthority": "your national meteorological service",
+    "floodAuthorityUrl": "",
+    "weatherWarningsUrl": "",
+    "exampleLocations": [],
+    "crisisResources": [
+      { "name": "International Emergency", "number": "112" }
+    ],
+    "officialSourceAdvice": "Contact your local emergency management authority for official warnings."
+  },
+
+  "rivers": [],
+  "propagationMap": {},
+  "historicalFloodEvents": []
+}

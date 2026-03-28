@@ -7,7 +7,7 @@
  *   Ctrl+N — New report
  *   Ctrl+Shift+A — Go to admin panel
  *   Escape — Close modals / panels
- *   ? — Show keyboard shortcut help (when not in an input)
+ * — Show keyboard shortcut help (when not in an input)
  */
 
 import { useEffect, useCallback } from 'react'
@@ -63,7 +63,7 @@ export function useKeyboardShortcuts(handlers: ShortcutHandlers = {}): void {
         return
       }
 
-      // ? — Show shortcut help (only when not typing in an input)
+      // — Show shortcut help (only when not typing in an input)
       if (e.key === '?' && !isInput) {
         e.preventDefault()
         handlers.onShowHelp?.()
@@ -79,7 +79,7 @@ export function useKeyboardShortcuts(handlers: ShortcutHandlers = {}): void {
   }, [handleKeyDown])
 }
 
-/** All available shortcuts for the help overlay */
+/* All available shortcuts for the help overlay */
 export const SHORTCUTS = [
   { keys: ['Ctrl', 'K'], description: 'Focus search / command palette' },
   { keys: ['Ctrl', '/'], description: 'Toggle AI chatbot' },
@@ -88,3 +88,4 @@ export const SHORTCUTS = [
   { keys: ['Esc'], description: 'Close modal / panel' },
   { keys: ['?'], description: 'Show keyboard shortcuts' },
 ] as const
+

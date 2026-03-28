@@ -1,9 +1,7 @@
-"""
-═══════════════════════════════════════════════════════════════════════════════
+﻿"""
  AEGIS AI ENGINE — Infrastructure Damage Prediction Module
  Structural stress risk assessment using flood inundation, wind loading,
  ground movement (landslide/subsidence), and asset age proxies.
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from typing import Dict, List, Optional, Any, Tuple
@@ -17,7 +15,7 @@ from app.schemas.predictions import (
 )
 from app.core.model_registry import ModelRegistry
 from app.core.feature_store import FeatureStore
-
+from app.hazards.shap_explainer import explain_prediction
 
 class InfrastructureDamagePredictor:
     """
@@ -29,7 +27,10 @@ class InfrastructureDamagePredictor:
     def __init__(self, model_registry: ModelRegistry, feature_store: FeatureStore):
         self.model_registry = model_registry
         self.feature_store = feature_store
-        self.hazard_type = HazardType.INFRASTRUCTURE_DAMAGE
+        self.hazard_type = HazardType.INFRASTRUCTURE
+        self._last_shap = None
+        self._model_type_label = None
+        self._label_strategy = None
         logger.info("InfrastructureDamage prediction module initialized")
 
     async def predict(self, request: PredictionRequest) -> PredictionResponse:
@@ -81,12 +82,18 @@ class InfrastructureDamagePredictor:
             expires_at=datetime.utcnow() + timedelta(hours=24),
             data_sources=["weather_api", "river_gauges", "dem_elevation", "citizen_reports"],
             warnings=["Avoid potentially compromised bridges and underpasses"] if probability > 0.50 else [],
+            model_type_label=self._model_type_label or ("rule_based" if not model_metadata else "heuristic_model"),
+            shap_explanation=self._last_shap,
+            label_strategy=self._label_strategy,
         )
 
     async def _predict_with_model(self, model, features, metadata) -> Tuple[float, float]:
         try:
             fv = np.array([features.get(f, 0.0) for f in metadata.feature_names]).reshape(1, -1)
             prob = model.predict_proba(fv)[0, 1] if hasattr(model, "predict_proba") else float(model.predict(fv)[0])
+            self._last_shap = explain_prediction(model, fv, list(metadata.feature_names))
+            self._model_type_label = getattr(metadata, 'model_type_label', None)
+            self._label_strategy = getattr(metadata, 'label_strategy', None)
             return float(np.clip(prob, 0.0, 1.0)), metadata.performance_metrics.get("roc_auc", 0.72)
         except Exception as e:
             logger.error(f"Model error: {e}")
@@ -125,11 +132,11 @@ class InfrastructureDamagePredictor:
         radius_km = 1.5 + prob * 6.0
         d_lat = radius_km / 111.0
         d_lng = radius_km / (111.0 * np.cos(np.radians(lat)))
-        return GeoPolygon(coordinates=[[[
+        return GeoPolygon(coordinates=[[
             [lng - d_lng, lat - d_lat], [lng + d_lng, lat - d_lat],
             [lng + d_lng, lat + d_lat], [lng - d_lng, lat + d_lat],
             [lng - d_lng, lat - d_lat],
-        ]]])
+        ]])
 
     def _identify_contributing_factors(self, features: Dict[str, float], prob: float) -> List[ContributingFactor]:
         return [

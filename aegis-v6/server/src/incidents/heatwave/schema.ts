@@ -40,3 +40,4 @@ export function sanitizeHeatwaveCustomFields(fields: Record<string, unknown>): H
     coolingCentersOpen: typeof fields.coolingCentersOpen === 'boolean' ? fields.coolingCentersOpen : undefined
   }
 }
+

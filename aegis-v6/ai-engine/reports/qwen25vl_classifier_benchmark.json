@@ -1,0 +1,386 @@
+{
+  "model": "qwen2.5vl:7b",
+  "mode": "direct_classifier",
+  "prompt": "Classify this image into exactly ONE of these disaster categories:\nwildfire, flood, earthquake, storm, landslide, drought, structural_damage, heatwave, safe\n\nRules:\n- \"safe\" means no disaster is visible\n- Reply with ONLY the category name, nothing else\n\nCategory:",
+  "accuracy": 35.7,
+  "correct": 15,
+  "total": 42,
+  "total_time_seconds": 2900.9,
+  "avg_time_per_image": 69.1,
+  "results": [
+    {
+      "id": "wf-001",
+      "expected": "wildfire",
+      "predicted": "wildfire",
+      "raw_response": "wildfire",
+      "matched": true,
+      "time_seconds": 115.1
+    },
+    {
+      "id": "wf-002",
+      "expected": "wildfire",
+      "predicted": "wildfire",
+      "raw_response": "wildfire",
+      "matched": true,
+      "time_seconds": 39.7
+    },
+    {
+      "id": "wf-003",
+      "expected": "wildfire",
+      "predicted": "wildfire",
+      "raw_response": "wildfire",
+      "matched": true,
+      "time_seconds": 66.3
+    },
+    {
+      "id": "wf-004",
+      "expected": "wildfire",
+      "predicted": "safe",
+      "raw_response": "safe",
+      "matched": false,
+      "time_seconds": 54.5
+    },
+    {
+      "id": "wf-005",
+      "expected": "wildfire",
+      "predicted": "safe",
+      "raw_response": "safe",
+      "matched": false,
+      "time_seconds": 83.2
+    },
+    {
+      "id": "wf-006",
+      "expected": "wildfire",
+      "predicted": "safe",
+      "raw_response": "safe",
+      "matched": false,
+      "time_seconds": 84.6
+    },
+    {
+      "id": "fl-001",
+      "expected": "flood",
+      "predicted": "flood",
+      "raw_response": "flood",
+      "matched": true,
+      "time_seconds": 36.3
+    },
+    {
+      "id": "fl-002",
+      "expected": "flood",
+      "predicted": "storm",
+      "raw_response": "storm",
+      "matched": false,
+      "time_seconds": 45.2
+    },
+    {
+      "id": "fl-003",
+      "expected": "flood",
+      "predicted": "safe",
+      "raw_response": "safe",
+      "matched": false,
+      "time_seconds": 36.0
+    },
+    {
+      "id": "fl-004",
+      "expected": "flood",
+      "predicted": "safe",
+      "raw_response": "safe",
+      "matched": false,
+      "time_seconds": 134.2
+    },
+    {
+      "id": "fl-005",
+      "expected": "flood",
+      "predicted": "safe",
+      "raw_response": "safe",
+      "matched": false,
+      "time_seconds": 37.1
+    },
+    {
+      "id": "fl-006",
+      "expected": "flood",
+      "predicted": "flood",
+      "raw_response": "flood",
+      "matched": true,
+      "time_seconds": 45.0
+    },
+    {
+      "id": "eq-001",
+      "expected": "earthquake",
+      "predicted": "safe",
+      "raw_response": "safe",
+      "matched": false,
+      "time_seconds": 86.6
+    },
+    {
+      "id": "eq-002",
+      "expected": "earthquake",
+      "predicted": "safe",
+      "raw_response": "safe",
+      "matched": false,
+      "time_seconds": 37.9
+    },
+    {
+      "id": "eq-003",
+      "expected": "earthquake",
+      "predicted": "safe",
+      "raw_response": "safe",
+      "matched": false,
+      "time_seconds": 36.1
+    },
+    {
+      "id": "eq-004",
+      "expected": "earthquake",
+      "predicted": "safe",
+      "raw_response": "safe",
+      "matched": false,
+      "time_seconds": 123.1
+    },
+    {
+      "id": "st-001",
+      "expected": "storm",
+      "predicted": "storm",
+      "raw_response": "storm",
+      "matched": true,
+      "time_seconds": 42.2
+    },
+    {
+      "id": "st-002",
+      "expected": "storm",
+      "predicted": "storm",
+      "raw_response": "storm",
+      "matched": true,
+      "time_seconds": 38.1
+    },
+    {
+      "id": "st-003",
+      "expected": "storm",
+      "predicted": "safe",
+      "raw_response": "safe",
+      "matched": false,
+      "time_seconds": 33.1
+    },
+    {
+      "id": "st-004",
+      "expected": "storm",
+      "predicted": "storm",
+      "raw_response": "storm",
+      "matched": true,
+      "time_seconds": 37.2
+    },
+    {
+      "id": "st-005",
+      "expected": "storm",
+      "predicted": "safe",
+      "raw_response": "safe",
+      "matched": false,
+      "time_seconds": 51.7
+    },
+    {
+      "id": "st-006",
+      "expected": "storm",
+      "predicted": "safe",
+      "raw_response": "safe",
+      "matched": false,
+      "time_seconds": 125.1
+    },
+    {
+      "id": "ls-001",
+      "expected": "landslide",
+      "predicted": "safe",
+      "raw_response": "safe",
+      "matched": false,
+      "time_seconds": 69.8
+    },
+    {
+      "id": "ls-002",
+      "expected": "landslide",
+      "predicted": "safe",
+      "raw_response": "safe",
+      "matched": false,
+      "time_seconds": 94.0
+    },
+    {
+      "id": "ls-003",
+      "expected": "landslide",
+      "predicted": "safe",
+      "raw_response": "safe",
+      "matched": false,
+      "time_seconds": 125.8
+    },
+    {
+      "id": "ls-004",
+      "expected": "landslide",
+      "predicted": "safe",
+      "raw_response": "safe",
+      "matched": false,
+      "time_seconds": 40.9
+    },
+    {
+      "id": "dr-001",
+      "expected": "drought",
+      "predicted": "drought",
+      "raw_response": "drought",
+      "matched": true,
+      "time_seconds": 39.6
+    },
+    {
+      "id": "dr-002",
+      "expected": "drought",
+      "predicted": "safe",
+      "raw_response": "safe",
+      "matched": false,
+      "time_seconds": 99.1
+    },
+    {
+      "id": "dr-003",
+      "expected": "drought",
+      "predicted": "safe",
+      "raw_response": "safe",
+      "matched": false,
+      "time_seconds": 63.6
+    },
+    {
+      "id": "dr-004",
+      "expected": "drought",
+      "predicted": "safe",
+      "raw_response": "safe",
+      "matched": false,
+      "time_seconds": 74.1
+    },
+    {
+      "id": "sd-001",
+      "expected": "structural_damage",
+      "predicted": "safe",
+      "raw_response": "safe",
+      "matched": false,
+      "time_seconds": 38.1
+    },
+    {
+      "id": "sd-002",
+      "expected": "structural_damage",
+      "predicted": "safe",
+      "raw_response": "safe",
+      "matched": false,
+      "time_seconds": 76.3
+    },
+    {
+      "id": "sd-003",
+      "expected": "structural_damage",
+      "predicted": "safe",
+      "raw_response": "safe",
+      "matched": false,
+      "time_seconds": 100.4
+    },
+    {
+      "id": "sd-004",
+      "expected": "structural_damage",
+      "predicted": "safe",
+      "raw_response": "safe",
+      "matched": false,
+      "time_seconds": 162.2
+    },
+    {
+      "id": "hw-001",
+      "expected": "heatwave",
+      "predicted": "safe",
+      "raw_response": "safe",
+      "matched": false,
+      "time_seconds": 88.5
+    },
+    {
+      "id": "hw-002",
+      "expected": "heatwave",
+      "predicted": "safe",
+      "raw_response": "safe",
+      "matched": false,
+      "time_seconds": 113.3
+    },
+    {
+      "id": "sf-001",
+      "expected": "safe",
+      "predicted": "safe",
+      "raw_response": "safe",
+      "matched": true,
+      "time_seconds": 44.5
+    },
+    {
+      "id": "sf-002",
+      "expected": "safe",
+      "predicted": "safe",
+      "raw_response": "safe",
+      "matched": true,
+      "time_seconds": 37.6
+    },
+    {
+      "id": "sf-003",
+      "expected": "safe",
+      "predicted": "safe",
+      "raw_response": "safe",
+      "matched": true,
+      "time_seconds": 78.3
+    },
+    {
+      "id": "sf-004",
+      "expected": "safe",
+      "predicted": "safe",
+      "raw_response": "safe",
+      "matched": true,
+      "time_seconds": 37.6
+    },
+    {
+      "id": "sf-005",
+      "expected": "safe",
+      "predicted": "safe",
+      "raw_response": "safe",
+      "matched": true,
+      "time_seconds": 36.7
+    },
+    {
+      "id": "sf-006",
+      "expected": "safe",
+      "predicted": "safe",
+      "raw_response": "safe",
+      "matched": true,
+      "time_seconds": 91.4
+    }
+  ],
+  "category_stats": {
+    "wildfire": {
+      "correct": 3,
+      "total": 6
+    },
+    "flood": {
+      "correct": 2,
+      "total": 6
+    },
+    "earthquake": {
+      "correct": 0,
+      "total": 4
+    },
+    "storm": {
+      "correct": 3,
+      "total": 6
+    },
+    "landslide": {
+      "correct": 0,
+      "total": 4
+    },
+    "drought": {
+      "correct": 1,
+      "total": 4
+    },
+    "structural_damage": {
+      "correct": 0,
+      "total": 4
+    },
+    "heatwave": {
+      "correct": 0,
+      "total": 2
+    },
+    "safe": {
+      "correct": 6,
+      "total": 6
+    }
+  }
+}

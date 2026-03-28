@@ -4,11 +4,12 @@
  */
 
 import type { IncidentPrediction } from '../types.js'
+import { logger } from '../../services/logger.js'
 
 const AI_ENGINE_URL = process.env.AI_ENGINE_URL || 'http://localhost:8000'
 
 export class FloodAIClient {
-  /**
+   /**
    * Get ML-based flood predictions from AI engine
    */
   static async getPredictions(region: string, features: Record<string, unknown>): Promise<IncidentPrediction[]> {
@@ -47,7 +48,7 @@ export class FloodAIClient {
         modelVersion: data.model_version || 'flood_v1.0'
       }]
     } catch (error) {
-      console.error(`Flood AI client error: ${error}`)
+      logger.error({ err: error }, '[Flood/AIClient] Prediction failed')
       // Return fallback prediction
       return [{
         incidentType: 'flood',
@@ -64,7 +65,7 @@ export class FloodAIClient {
     }
   }
 
-  /**
+   /**
    * Check if AI engine is available
    */
   static async healthCheck(): Promise<boolean> {

@@ -14,17 +14,18 @@ import { useTranslation } from 'react-i18next'
 import { setLanguage, getLanguage, t } from '../../utils/i18n'
 import { LANGUAGES } from '../../data/disasterTypes'
 import { useLanguage } from '../../hooks/useLanguage'
+import { codeToFlag } from '../../data/countryCodes'
 
 const LANG_FLAGS: Record<string, string> = {
-  en: '🇬🇧',
-  es: '🇪🇸',
-  fr: '🇫🇷',
-  ar: '🇸🇦',
-  zh: '🇨🇳',
-  hi: '🇮🇳',
-  pt: '🇵🇹',
-  pl: '🇵🇱',
-  ur: '🇵🇰',
+  en: codeToFlag('GB'),
+  es: codeToFlag('ES'),
+  fr: codeToFlag('FR'),
+  ar: codeToFlag('SA'),
+  zh: codeToFlag('CN'),
+  hi: codeToFlag('IN'),
+  pt: codeToFlag('PT'),
+  pl: codeToFlag('PL'),
+  ur: codeToFlag('PK'),
 }
 
 const LS_KEY = 'aegis_lang_chosen'
@@ -97,12 +98,12 @@ export default function LanguagePreferenceDialog(): JSX.Element | null {
                     : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-gray-50 dark:bg-gray-800'
                 }`}
               >
-                <span className="text-2xl leading-none">{LANG_FLAGS[lang.code] || '🌐'}</span>
+                <span className="text-2xl leading-none">{LANG_FLAGS[lang.code] || '??'}</span>
                 <div className="min-w-0 flex-1">
                   <p className={`text-sm font-semibold truncate ${selected === lang.code ? 'text-aegis-700 dark:text-aegis-300' : 'text-gray-800 dark:text-gray-200'}`}>
                     {lang.label}
                   </p>
-                  <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 truncate">{lang.code.toUpperCase()}</p>
+                  <p className="text-[10px] text-gray-500 dark:text-gray-300 truncate">{lang.code.toUpperCase()}</p>
                 </div>
                 {selected === lang.code && (
                   <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-aegis-500 flex items-center justify-center">
@@ -116,7 +117,7 @@ export default function LanguagePreferenceDialog(): JSX.Element | null {
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-between">
-          <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+          <p className="text-xs text-gray-500 dark:text-gray-300">
             {t('langDialog.changeLater', lang)}
           </p>
           <button
@@ -131,7 +132,4 @@ export default function LanguagePreferenceDialog(): JSX.Element | null {
     </div>
   )
 }
-
-
-
-
+

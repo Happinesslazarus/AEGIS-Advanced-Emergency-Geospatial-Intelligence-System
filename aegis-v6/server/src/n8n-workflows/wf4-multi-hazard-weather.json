@@ -10,7 +10,7 @@
     },
     {
       "parameters": {
-        "url": "https://api.open-meteo.com/v1/forecast?latitude=57.15&longitude=-2.09&hourly=temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,soil_moisture_0_to_1cm&forecast_days=3&timezone=Europe/London",
+        "url": "={{ 'https://api.open-meteo.com/v1/forecast?latitude=' + ($env.AEGIS_DEFAULT_LAT || '0') + '&longitude=' + ($env.AEGIS_DEFAULT_LON || '0') + '&hourly=temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,soil_moisture_0_to_1cm&forecast_days=3&timezone=' + ($env.AEGIS_TIMEZONE || 'UTC') }}",
         "options": { "timeout": 15000 },
         "headerParametersJson": "{ \"User-Agent\": \"AEGIS-n8n/1.0\" }"
       },

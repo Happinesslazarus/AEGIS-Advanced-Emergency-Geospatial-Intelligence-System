@@ -27,7 +27,6 @@ import yaml
 import json
 from datetime import datetime
 
-
 class ExperimentTracker:
     """
     Track machine learning experiments using MLflow.
@@ -390,4 +389,4 @@ class ExperimentTracker:
         except Exception as e:
             logger.error(f"Failed to compare runs: {e}")
             return {}
-
+

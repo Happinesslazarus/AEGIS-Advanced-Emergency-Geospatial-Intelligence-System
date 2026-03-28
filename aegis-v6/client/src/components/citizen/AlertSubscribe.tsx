@@ -110,7 +110,7 @@ export default function AlertSubscribe({ onClose, lang }: Props): JSX.Element {
             <div className="text-center py-8 animate-fade-in">
               <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
               <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('alertSub.subscribed', activeLang)}</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-2">{t('alertSub.successDescription', activeLang)}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">{t('alertSub.successDescription', activeLang)}</p>
               <button onClick={onClose} className="btn-primary mt-4">{t('common.done', activeLang)}</button>
             </div>
           ) : (
@@ -141,7 +141,7 @@ export default function AlertSubscribe({ onClose, lang }: Props): JSX.Element {
                 <div className="flex flex-wrap gap-2">
                   {areas.map(area => (
                     <button key={area.key} onClick={() => toggleArea(area.key)}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${selectedAreas.has(area.key) ? 'bg-aegis-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:bg-gray-200'}`}>
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${selectedAreas.has(area.key) ? 'bg-aegis-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200'}`}>
                       {area.label}
                     </button>
                   ))}
@@ -158,7 +158,4 @@ export default function AlertSubscribe({ onClose, lang }: Props): JSX.Element {
     </div>
   )
 }
-
-
-
-
+

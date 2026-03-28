@@ -1,4 +1,4 @@
-/** @type {import('tailwindcss').Config} */
+﻿/* @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   darkMode: 'class',
@@ -18,11 +18,95 @@ export default {
           900: 'rgb(var(--aegis-900) / <alpha-value>)',
           950: 'rgb(var(--aegis-950) / <alpha-value>)',
         },
+        /* Semantic surface / foreground tokens — theme-aware via CSS vars */
+        surface: {
+          DEFAULT:      'rgb(var(--surface-primary)   / <alpha-value>)',
+          secondary:    'rgb(var(--surface-secondary) / <alpha-value>)',
+          muted:        'rgb(var(--surface-muted)     / <alpha-value>)',
+          elevated:     'rgb(var(--surface-elevated)  / <alpha-value>)',
+          'ultra-dark': 'rgb(var(--surface-ultra-dark) / <alpha-value>)',
+        },
+        overlay: 'rgb(var(--surface-overlay) / <alpha-value>)',
+        fg: {
+          DEFAULT:   'rgb(var(--text-primary)   / <alpha-value>)',
+          secondary: 'rgb(var(--text-secondary) / <alpha-value>)',
+          muted:     'rgb(var(--text-muted)     / <alpha-value>)',
+        },
+        success: {
+          DEFAULT: 'rgb(var(--accent-success) / <alpha-value>)',
+          surface: 'rgb(var(--success-surface) / <alpha-value>)',
+          text:    'rgb(var(--success-text)    / <alpha-value>)',
+        },
+        warning: {
+          DEFAULT: 'rgb(var(--accent-warning) / <alpha-value>)',
+          surface: 'rgb(var(--warning-surface) / <alpha-value>)',
+          text:    'rgb(var(--warning-text)    / <alpha-value>)',
+        },
+        danger: {
+          DEFAULT: 'rgb(var(--accent-danger)  / <alpha-value>)',
+          surface: 'rgb(var(--danger-surface) / <alpha-value>)',
+          text:    'rgb(var(--danger-text)    / <alpha-value>)',
+        },
+        info: {
+          DEFAULT: 'rgb(var(--accent-info)    / <alpha-value>)',
+          surface: 'rgb(var(--info-surface)   / <alpha-value>)',
+          text:    'rgb(var(--info-text)      / <alpha-value>)',
+        },
+      },
+      borderColor: {
+        muted:  'rgb(var(--border-muted)   / <alpha-value>)',
+        subtle: 'rgb(var(--border-subtle)  / <alpha-value>)',
+        strong: 'rgb(var(--border-strong)  / <alpha-value>)',
+      },
+      ringColor: {
+        focus: 'rgb(var(--focus-ring) / <alpha-value>)',
       },
       fontFamily: {
         display: ['"DM Sans"','system-ui','sans-serif'],
         body: ['"DM Sans"','system-ui','sans-serif'],
         mono: ['"JetBrains Mono"','monospace'],
+      },
+      /* Typography scale
+         Semantic font-size tokens so components reference a role
+         instead of arbitrary pixel values. Each entry is [size, { lineHeight, letterSpacing? }]. */
+      fontSize: {
+        /* Micro text — absolute floor for accessibility (badges, legends) */
+        'micro':  ['0.625rem', { lineHeight: '0.875rem' }],          /* 10px / 14px — WCAG minimum */
+        /* Captions — timestamps, metadata, chart labels */
+        'caption': ['0.6875rem', { lineHeight: '1rem' }],            /* 11px / 16px */
+        /* Labels — form labels, stat labels, table headers */
+        'label':  ['0.75rem', { lineHeight: '1rem', letterSpacing: '0.025em' }],  /* 12px (= text-xs) */
+        /* Body small — secondary text, descriptions, table cells */
+        'body-sm': ['0.8125rem', { lineHeight: '1.25rem' }],         /* 13px */
+        /* Body — primary readable text */
+        'body':   ['0.875rem', { lineHeight: '1.375rem' }],          /* 14px (= text-sm) */
+        /* Body large — emphasized body / card intros */
+        'body-lg': ['1rem', { lineHeight: '1.5rem' }],               /* 16px (= text-base) */
+        /* Heading small — card titles, section headers */
+        'heading-sm': ['1rem', { lineHeight: '1.5rem', letterSpacing: '-0.01em' }],
+        /* Heading — section titles, panel headers */
+        'heading': ['1.125rem', { lineHeight: '1.625rem', letterSpacing: '-0.015em' }],  /* 18px (= text-lg) */
+        /* Heading large — page section titles */
+        'heading-lg': ['1.25rem', { lineHeight: '1.75rem', letterSpacing: '-0.02em' }],  /* 20px (= text-xl) */
+        /* Display — page titles, hero headings */
+        'display': ['1.5rem', { lineHeight: '2rem', letterSpacing: '-0.025em' }],         /* 24px (= text-2xl) */
+        /* Display large — splash / landing headings */
+        'display-lg': ['1.875rem', { lineHeight: '2.25rem', letterSpacing: '-0.025em' }], /* 30px (= text-3xl) */
+      },
+      /* Motion tokens
+         Standardized durations & easings so every transition uses a
+         shared vocabulary instead of arbitrary one-off values. */
+      transitionDuration: {
+        'fast':   '150ms',   /* micro-interactions: toggles, color shifts */
+        'normal': '200ms',   /* standard: buttons, inputs, nav items */
+        'slow':   '300ms',   /* structural: sidebar collapse, panel resize */
+        'slower': '500ms',   /* emphasis: page transitions, modals */
+      },
+      transitionTimingFunction: {
+        'smooth':  'cubic-bezier(0.4, 0, 0.2, 1)',   /* Material ease-in-out */
+        'enter':   'cubic-bezier(0, 0, 0.2, 1)',     /* decelerate (entering) */
+        'exit':    'cubic-bezier(0.4, 0, 1, 1)',     /* accelerate (leaving) */
+        'spring':  'cubic-bezier(0.175, 0.885, 0.32, 1.275)', /* slight overshoot */
       },
       animation: {
         'fade-in':'fadeIn 0.3s ease-out',
@@ -55,3 +139,4 @@ export default {
   },
   plugins: [],
 }
+

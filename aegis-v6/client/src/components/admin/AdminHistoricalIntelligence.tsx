@@ -1,12 +1,11 @@
-/**
+ /*
  * AdminHistoricalIntelligence.tsx — Professional Historical Intelligence Dashboard
- *
  * Comprehensive historical event analysis: header stats, seasonal trends (dual-axis
  * flood + rainfall), flood risk heatmap with live map, and an advanced past events
  * board with expandable details, timeline view, CSV export, and year grouping.
- */
+  */
 
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useState, useMemo, useEffect, useCallback, lazy, Suspense } from 'react'
 import {
   History, Map, Clock, FileText, Search, Waves, Droplets,
   Download, ChevronDown, ChevronUp, MapPin, Calendar,
@@ -16,12 +15,12 @@ import {
 import { HISTORICAL_EVENTS, SEASONAL_TRENDS } from '../../data/historical'
 import { useLocation } from '../../contexts/LocationContext'
 import { apiGetHeatmapData } from '../../utils/api'
-import LiveMap from '../shared/LiveMap'
+const LiveMap = lazy(() => import('../shared/LiveMap'))
 import type { HistoricalEvent } from '../../types'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 
-/* ── Helpers ── */
+/*  Helpers  */
 
 function parseDamage(raw: string): number {
   if (!raw) return 0
@@ -53,7 +52,7 @@ function getYearRange(): string {
   return min === max ? `${min}` : `${min}–${max}`
 }
 
-/* ── CSV Export ── */
+/*  CSV Export  */
 
 function exportCSV(events: HistoricalEvent[]) {
   const headers = ['ID', 'Date', 'Type', 'Location', 'Severity', 'Affected People', 'Damage', 'Description']
@@ -71,7 +70,7 @@ function exportCSV(events: HistoricalEvent[]) {
   URL.revokeObjectURL(url)
 }
 
-/* ── Severity config ── */
+/*  Severity config  */
 
 const SEV_CONFIG = {
   High:   { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-300', icon: 'text-red-600', dot: 'bg-red-500', border: 'border-red-200 dark:border-red-800' },
@@ -80,10 +79,6 @@ const SEV_CONFIG = {
 } as const
 
 type SevKey = keyof typeof SEV_CONFIG
-
-/* ══════════════════════════════════════════════════════════════════════
-   COMPONENT
-   ══════════════════════════════════════════════════════════════════════ */
 
 export default function AdminHistoricalIntelligence() {
   const lang = useLanguage()
@@ -110,7 +105,7 @@ export default function AdminHistoricalIntelligence() {
       .catch(() => setHeatmapData([]))
   }, [])
 
-  // ── Computed stats ──
+  //  Computed stats
   const stats = useMemo(() => {
     const totalDamage = HISTORICAL_EVENTS.reduce((s, e) => s + parseDamage(e.damage), 0)
     const totalAffected = HISTORICAL_EVENTS.reduce((s, e) => s + (e.affectedPeople || 0), 0)
@@ -120,7 +115,7 @@ export default function AdminHistoricalIntelligence() {
     return { totalDamage, totalAffected, highCount, avgAffected, types }
   }, [])
 
-  // ── Seasonal stats ──
+  //  Seasonal stats
   const seasonalStats = useMemo(() => {
     const totalFloods = SEASONAL_TRENDS.reduce((s, t) => s + t.floodCount, 0)
     const totalRainfall = SEASONAL_TRENDS.reduce((s, t) => s + t.rainfallMm, 0)
@@ -129,7 +124,7 @@ export default function AdminHistoricalIntelligence() {
     return { totalFloods, totalRainfall, peakMonth, avgSeverity }
   }, [])
 
-  // ── Filtered + sorted events (memoized) ──
+  //  Filtered + sorted events (memoized)
   const sortedEvents = useMemo(() => {
     let items = [...HISTORICAL_EVENTS]
     if (histFilter !== 'all') items = items.filter(e => e.severity === histFilter)
@@ -152,7 +147,7 @@ export default function AdminHistoricalIntelligence() {
     return items
   }, [histSearch, histSort, histFilter, histType])
 
-  // ── Year-grouped events ──
+  //  Year-grouped events
   const yearGroups = useMemo(() => {
     const groups: Record<string, HistoricalEvent[]> = {}
     for (const e of sortedEvents) {
@@ -170,7 +165,7 @@ export default function AdminHistoricalIntelligence() {
   // Reset page on filter change
   useEffect(() => { setPage(0) }, [histSearch, histFilter, histType, histSort])
 
-  // ── Heatmap zone cards ──
+  //  Heatmap zone cards
   const zoneCards = useMemo(() => {
     if (heatmapData.length > 0) {
       return heatmapData.slice(0, 4).map((h: any) => {
@@ -187,7 +182,7 @@ export default function AdminHistoricalIntelligence() {
     })
   }, [heatmapData, loc])
 
-  // ── Event type distribution for header ──
+  //  Event type distribution for header
   const typeDist = useMemo(() => {
     const map: Record<string, number> = {}
     HISTORICAL_EVENTS.forEach(e => { map[e.type] = (map[e.type] || 0) + 1 })
@@ -197,7 +192,7 @@ export default function AdminHistoricalIntelligence() {
   return (
     <div className="space-y-5 animate-fade-in">
 
-      {/* ═══════════════ HEADER PANEL ═══════════════ */}
+      {/*  HEADER PANEL  */}
       <div className="bg-gradient-to-br from-slate-900 via-gray-900 to-zinc-900 rounded-2xl shadow-2xl overflow-hidden relative">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjAzKSIvPjwvc3ZnPg==')] opacity-50" />
         <div className="relative z-10 p-6">
@@ -209,12 +204,12 @@ export default function AdminHistoricalIntelligence() {
               </div>
               <div>
                 <h2 className="text-slate-900 dark:text-white font-bold text-xl tracking-tight">{t('historical.title', lang)}</h2>
-                <p className="text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 text-sm">{t('historical.subtitle', lang)} &middot; {loc.name || t('historical.allRegions', lang)} &middot; {getYearRange()}</p>
+                <p className="text-gray-400 dark:text-gray-300 text-sm">{t('historical.subtitle', lang)} &middot; {loc.name || t('historical.allRegions', lang)} &middot; {getYearRange()}</p>
               </div>
             </div>
             <button
               onClick={() => exportCSV(HISTORICAL_EVENTS)}
-              className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-white transition-all"
+              className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs text-gray-300 dark:text-gray-300 hover:text-white transition-all"
             >
               <Download className="w-3.5 h-3.5" /> {t('common.exportAllCSV', lang)}
             </button>
@@ -233,7 +228,7 @@ export default function AdminHistoricalIntelligence() {
               <div key={i} className={`bg-gradient-to-br ${s.accent} rounded-xl p-3 border border-white/5 hover:border-white/10 transition-colors`}>
                 <div className="flex items-center gap-2 mb-1">
                   <s.icon className={`w-3.5 h-3.5 ${s.color} opacity-70`} />
-                  <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-wider font-semibold">{s.label}</p>
+                  <p className="text-[10px] text-gray-500 dark:text-gray-300 uppercase tracking-wider font-semibold">{s.label}</p>
                 </div>
                 <p className={`text-lg font-bold ${s.color}`}>{s.value}</p>
               </div>
@@ -242,14 +237,14 @@ export default function AdminHistoricalIntelligence() {
 
           {/* Event type distribution */}
           <div className="mt-4 flex items-center gap-3 flex-wrap">
-            <span className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-wider font-semibold">{t('historical.distribution', lang)}:</span>
+            <span className="text-[10px] text-gray-500 dark:text-gray-300 uppercase tracking-wider font-semibold">{t('historical.distribution', lang)}:</span>
             {typeDist.map(([type, count]) => {
               const pct = Math.round((count / HISTORICAL_EVENTS.length) * 100)
               return (
                 <div key={type} className="flex items-center gap-2">
                   <div className="flex items-center gap-1.5">
                     {type === 'Storm' ? <Waves className="w-3 h-3 text-purple-400" /> : <Droplets className="w-3 h-3 text-blue-400" />}
-                    <span className="text-xs text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-medium">{type}</span>
+                    <span className="text-xs text-gray-300 dark:text-gray-300 font-medium">{type}</span>
                   </div>
                   <div className="w-20 h-1.5 bg-white/5 rounded-full overflow-hidden">
                     <div
@@ -257,7 +252,7 @@ export default function AdminHistoricalIntelligence() {
                       style={{ width: `${pct}%` }}
                     />
                   </div>
-                  <span className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{pct}%</span>
+                  <span className="text-[10px] text-gray-500 dark:text-gray-300">{pct}%</span>
                 </div>
               )
             })}
@@ -265,7 +260,7 @@ export default function AdminHistoricalIntelligence() {
         </div>
       </div>
 
-      {/* ═══════════════ FLOOD RISK HEATMAP ═══════════════ */}
+      {/*  FLOOD RISK HEATMAP  */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-lg overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-3">
@@ -274,7 +269,7 @@ export default function AdminHistoricalIntelligence() {
             </div>
             <div>
               <h3 className="font-bold text-sm text-gray-900 dark:text-white">{t('historical.floodRiskHeatmap', lang)}</h3>
-              <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{loc.name || t('historical.activeRegion', lang)} &middot; {t('historical.heatmapSubtitle', lang)} &middot; {HISTORICAL_EVENTS.length} {t('historical.recorded', lang)}</p>
+              <p className="text-[10px] text-gray-500 dark:text-gray-300">{loc.name || t('historical.activeRegion', lang)} &middot; {t('historical.heatmapSubtitle', lang)} &middot; {HISTORICAL_EVENTS.length} {t('historical.recorded', lang)}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -287,7 +282,7 @@ export default function AdminHistoricalIntelligence() {
             </div>
             <button
               onClick={() => setMapExpanded(!mapExpanded)}
-              className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300 transition-colors"
               title={mapExpanded ? 'Collapse map' : 'Expand map'}
             >
               {mapExpanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
@@ -295,7 +290,9 @@ export default function AdminHistoricalIntelligence() {
           </div>
         </div>
 
-        <LiveMap showFloodPredictions height={mapExpanded ? '620px' : '420px'} className="w-full transition-all duration-300" />
+        <Suspense fallback={<div className="h-64 animate-pulse bg-gray-200 dark:bg-gray-800 rounded" />}>
+          <LiveMap showFloodPredictions height={mapExpanded ? '620px' : '420px'} className="w-full transition-all duration-300" />
+        </Suspense>
 
         {/* Zone risk summary cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4">
@@ -313,14 +310,14 @@ export default function AdminHistoricalIntelligence() {
 
         {/* Risk summary footer */}
         <div className="px-4 pb-3 flex items-center justify-between">
-          <p className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 italic">
+          <p className="text-[10px] text-gray-400 dark:text-gray-300 italic">
             {heatmapData.length > 0
               ? `${heatmapData.length} ${t('historical.historicalEvents', lang)}`
               : `${t('common.risk', lang)} ${t('map.floodZone', lang).toLowerCase()}`}
           </p>
           {zoneCards.length > 0 && (
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('historical.avgRisk', lang)}:</span>
+              <span className="text-[10px] text-gray-400 dark:text-gray-300">{t('historical.avgRisk', lang)}:</span>
               <span className="text-xs font-bold text-red-500">
                 {Math.round(zoneCards.reduce((s, z) => s + z.risk, 0) / zoneCards.length)}%
               </span>
@@ -329,7 +326,7 @@ export default function AdminHistoricalIntelligence() {
         </div>
       </div>
 
-      {/* ═══════════════ SEASONAL FLOOD TRENDS (DUAL AXIS) ═══════════════ */}
+      {/*  SEASONAL FLOOD TRENDS (DUAL AXIS)  */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-lg overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between flex-wrap gap-3">
@@ -339,7 +336,7 @@ export default function AdminHistoricalIntelligence() {
               </div>
               <div>
                 <h3 className="font-bold text-sm text-gray-900 dark:text-white">{t('historical.seasonalTrends', lang)}</h3>
-                <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('historical.seasonalSubtitle', lang)}</p>
+                <p className="text-[10px] text-gray-500 dark:text-gray-300">{t('historical.seasonalSubtitle', lang)}</p>
               </div>
             </div>
             {/* Metric toggle */}
@@ -351,7 +348,7 @@ export default function AdminHistoricalIntelligence() {
                   className={`px-3 py-1.5 text-[10px] font-semibold rounded-md transition-all ${
                     seasonalMetric === key
                       ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                      : 'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'
+                      : 'text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300'
                   }`}
                 >
                   {label}
@@ -364,22 +361,22 @@ export default function AdminHistoricalIntelligence() {
           <div className="flex items-center gap-6 mt-3 flex-wrap">
             <div className="flex items-center gap-1.5">
               <div className="w-2 h-2 rounded-full bg-blue-500" />
-              <span className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('historical.totalFloods', lang)}:</span>
+              <span className="text-[10px] text-gray-500 dark:text-gray-300">{t('historical.totalFloods', lang)}:</span>
               <span className="text-xs font-bold text-gray-900 dark:text-white">{seasonalStats.totalFloods}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-2 h-2 rounded-full bg-cyan-500" />
-              <span className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('historical.totalRainfall', lang)}:</span>
+              <span className="text-[10px] text-gray-500 dark:text-gray-300">{t('historical.totalRainfall', lang)}:</span>
               <span className="text-xs font-bold text-gray-900 dark:text-white">{seasonalStats.totalRainfall}mm</span>
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-2 h-2 rounded-full bg-red-500" />
-              <span className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('historical.peakMonth', lang)}:</span>
+              <span className="text-[10px] text-gray-500 dark:text-gray-300">{t('historical.peakMonth', lang)}:</span>
               <span className="text-xs font-bold text-red-600">{seasonalStats.peakMonth.month} ({seasonalStats.peakMonth.floodCount} {t('historical.floods', lang).toLowerCase()})</span>
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-2 h-2 rounded-full bg-amber-500" />
-              <span className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('historical.avgSeverity', lang)}:</span>
+              <span className="text-[10px] text-gray-500 dark:text-gray-300">{t('historical.avgSeverity', lang)}:</span>
               <span className="text-xs font-bold text-amber-600">{seasonalStats.avgSeverity.toFixed(1)}/5</span>
             </div>
           </div>
@@ -389,7 +386,7 @@ export default function AdminHistoricalIntelligence() {
           {/* Chart area */}
           <div className="relative">
             {/* Y-axis labels */}
-            <div className="absolute left-0 top-0 bottom-6 w-8 flex flex-col justify-between text-[9px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-mono">
+            <div className="absolute left-0 top-0 bottom-6 w-8 flex flex-col justify-between text-[9px] text-gray-400 dark:text-gray-300 font-mono">
               {seasonalMetric === 'floods' && <><span>5</span><span>3</span><span>0</span></>}
               {seasonalMetric === 'rainfall' && <><span>90mm</span><span>60mm</span><span>30mm</span></>}
               {seasonalMetric === 'severity' && <><span>3.0</span><span>1.5</span><span>0</span></>}
@@ -445,7 +442,7 @@ export default function AdminHistoricalIntelligence() {
                     )}
 
                     {/* Value label on hover */}
-                    <div className="text-[9px] font-bold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity">{displayValue}</div>
+                    <div className="text-[9px] font-bold text-gray-500 dark:text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity">{displayValue}</div>
 
                     {/* Bar */}
                     <div className="w-full relative" style={{ height: '180px' }}>
@@ -465,7 +462,7 @@ export default function AdminHistoricalIntelligence() {
                     </div>
 
                     {/* Month label */}
-                    <span className={`text-[10px] font-medium transition-colors ${isPeak ? 'text-red-500 font-bold' : 'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`}>
+                    <span className={`text-[10px] font-medium transition-colors ${isPeak ? 'text-red-500 font-bold' : 'text-gray-500 dark:text-gray-300'}`}>
                       {s.month}
                     </span>
                   </div>
@@ -501,31 +498,31 @@ export default function AdminHistoricalIntelligence() {
           <div className="flex items-center gap-5 mt-4 flex-wrap">
             {seasonalMetric === 'floods' && (
               <>
-                <span className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300"><div className="w-3 h-3 rounded bg-red-500" />{t('common.high', lang)} (&ge;4)</span>
-                <span className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300"><div className="w-3 h-3 rounded bg-amber-500" />{t('common.medium', lang)} (2-3)</span>
-                <span className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300"><div className="w-3 h-3 rounded bg-emerald-500" />{t('common.low', lang)} (0-1)</span>
-                <span className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300"><div className="w-2 h-2 rounded-full bg-cyan-400 border border-gray-300" />{t('weather.rainfall', lang)} (mm)</span>
+                <span className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-300"><div className="w-3 h-3 rounded bg-red-500" />{t('common.high', lang)} (&ge;4)</span>
+                <span className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-300"><div className="w-3 h-3 rounded bg-amber-500" />{t('common.medium', lang)} (2-3)</span>
+                <span className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-300"><div className="w-3 h-3 rounded bg-emerald-500" />{t('common.low', lang)} (0-1)</span>
+                <span className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-300"><div className="w-2 h-2 rounded-full bg-cyan-400 border border-gray-300" />{t('weather.rainfall', lang)} (mm)</span>
               </>
             )}
             {seasonalMetric === 'rainfall' && (
               <>
-                <span className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300"><div className="w-3 h-3 rounded bg-blue-600" />Heavy (&ge;80mm)</span>
-                <span className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300"><div className="w-3 h-3 rounded bg-blue-400" />Moderate (65-79mm)</span>
-                <span className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300"><div className="w-3 h-3 rounded bg-cyan-400" />Light (&lt;65mm)</span>
+                <span className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-300"><div className="w-3 h-3 rounded bg-blue-600" />Heavy (&ge;80mm)</span>
+                <span className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-300"><div className="w-3 h-3 rounded bg-blue-400" />Moderate (65-79mm)</span>
+                <span className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-300"><div className="w-3 h-3 rounded bg-cyan-400" />Light (&lt;65mm)</span>
               </>
             )}
             {seasonalMetric === 'severity' && (
               <>
-                <span className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300"><div className="w-3 h-3 rounded bg-red-500" />High (&ge;2.0)</span>
-                <span className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300"><div className="w-3 h-3 rounded bg-amber-500" />Medium (1.0-1.9)</span>
-                <span className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300"><div className="w-3 h-3 rounded bg-emerald-400" />Low (&lt;1.0)</span>
+                <span className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-300"><div className="w-3 h-3 rounded bg-red-500" />High (&ge;2.0)</span>
+                <span className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-300"><div className="w-3 h-3 rounded bg-amber-500" />Medium (1.0-1.9)</span>
+                <span className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-300"><div className="w-3 h-3 rounded bg-emerald-400" />Low (&lt;1.0)</span>
               </>
             )}
           </div>
         </div>
       </div>
 
-      {/* ═══════════════ PAST EVENTS BOARD ═══════════════ */}
+      {/*  PAST EVENTS BOARD  */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-lg overflow-hidden">
         {/* Header + controls */}
         <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700">
@@ -536,7 +533,7 @@ export default function AdminHistoricalIntelligence() {
               </div>
               <div>
                 <h3 className="font-bold text-sm text-gray-900 dark:text-white">{t('historical.pastEventsBoard', lang)}</h3>
-                <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{sortedEvents.length} {t('common.of', lang)} {HISTORICAL_EVENTS.length} {t('history.events', lang).toLowerCase()} &middot; {t('common.page', lang)} {page + 1} {t('common.of', lang)} {totalPages || 1}</p>
+                <p className="text-[10px] text-gray-500 dark:text-gray-300">{sortedEvents.length} {t('common.of', lang)} {HISTORICAL_EVENTS.length} {t('history.events', lang).toLowerCase()} &middot; {t('common.page', lang)} {page + 1} {t('common.of', lang)} {totalPages || 1}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -544,20 +541,20 @@ export default function AdminHistoricalIntelligence() {
               <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
                 <button
                   onClick={() => setEventsView('list')}
-                  className={`px-2.5 py-1.5 text-[10px] font-semibold rounded-md transition-all ${eventsView === 'list' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`}
+                  className={`px-2.5 py-1.5 text-[10px] font-semibold rounded-md transition-all ${eventsView === 'list' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-300'}`}
                 >
                   {t('common.list', lang)}
                 </button>
                 <button
                   onClick={() => setEventsView('timeline')}
-                  className={`px-2.5 py-1.5 text-[10px] font-semibold rounded-md transition-all ${eventsView === 'timeline' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`}
+                  className={`px-2.5 py-1.5 text-[10px] font-semibold rounded-md transition-all ${eventsView === 'timeline' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-300'}`}
                 >
                   {t('admin.historical.timeline', lang)}
                 </button>
               </div>
               <button
                 onClick={() => exportCSV(sortedEvents)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-semibold bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-semibold bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300 transition-colors"
               >
                 <Download className="w-3 h-3" /> {t('common.csv', lang)}
               </button>
@@ -567,7 +564,7 @@ export default function AdminHistoricalIntelligence() {
           {/* Search & Filters */}
           <div className="flex flex-wrap gap-2 items-center">
             <div className="relative flex-1 min-w-[180px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 dark:text-gray-300" />
               <input
                 value={histSearch}
                 onChange={e => setHistSearch(e.target.value)}
@@ -575,7 +572,7 @@ export default function AdminHistoricalIntelligence() {
                 className="w-full pl-9 pr-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
               />
               {histSearch && (
-                <button onClick={() => setHistSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-600">
+                <button onClick={() => setHistSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-300 hover:text-gray-600">
                   <X className="w-3.5 h-3.5" />
                 </button>
               )}
@@ -613,9 +610,9 @@ export default function AdminHistoricalIntelligence() {
           <div>
             {sortedEvents.length === 0 ? (
               <div className="text-center py-14">
-                <Search className="w-10 h-10 text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-                <p className="text-sm text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-medium">{t('historical.noEventsMatch', lang)}</p>
-                <p className="text-xs text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-1">{t('historical.tryAdjustingFilters', lang)}</p>
+                <Search className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                <p className="text-sm text-gray-500 dark:text-gray-300 font-medium">{t('historical.noEventsMatch', lang)}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-300 mt-1">{t('historical.tryAdjustingFilters', lang)}</p>
               </div>
             ) : (
               <>
@@ -640,20 +637,20 @@ export default function AdminHistoricalIntelligence() {
                             <div className="flex items-center gap-2 flex-wrap mb-1">
                               <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${config.bg} ${config.text}`}>{sev}</span>
                               <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">{e.type}</span>
-                              <span className="text-[10px] font-mono text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{formatDate(e.date)}</span>
+                              <span className="text-[10px] font-mono text-gray-400 dark:text-gray-300">{formatDate(e.date)}</span>
                             </div>
                             <h4 className="font-bold text-sm text-gray-900 dark:text-white">{e.location}</h4>
-                            <p className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-0.5 line-clamp-2">{e.description}</p>
+                            <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5 line-clamp-2">{e.description}</p>
                           </div>
                           <div className="text-right flex-shrink-0 flex flex-col items-end gap-1">
                             {e.affectedPeople > 0 && (
                               <>
                                 <p className="text-sm font-bold text-red-600">{e.affectedPeople.toLocaleString()}</p>
-                                <p className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('historical.affected', lang)}</p>
+                                <p className="text-[10px] text-gray-400 dark:text-gray-300">{t('historical.affected', lang)}</p>
                               </>
                             )}
-                            {e.damage && <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{e.damage}</p>}
-                            <ChevronDown className={`w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                            {e.damage && <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">{e.damage}</p>}
+                            <ChevronDown className={`w-4 h-4 text-gray-400 dark:text-gray-300 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                           </div>
                         </div>
 
@@ -663,29 +660,29 @@ export default function AdminHistoricalIntelligence() {
                             <div className="ml-14 bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
                               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
                                 <div>
-                                  <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase font-semibold">{t('common.date', lang)}</p>
+                                  <p className="text-[10px] text-gray-500 dark:text-gray-300 uppercase font-semibold">{t('common.date', lang)}</p>
                                   <p className="text-xs font-bold text-gray-900 dark:text-white">{formatDate(e.date)}</p>
                                 </div>
                                 <div>
-                                  <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase font-semibold">{t('historical.coordinates', lang)}</p>
+                                  <p className="text-[10px] text-gray-500 dark:text-gray-300 uppercase font-semibold">{t('historical.coordinates', lang)}</p>
                                   <p className="text-xs font-bold text-gray-900 dark:text-white font-mono">{e.coordinates[0].toFixed(3)}, {e.coordinates[1].toFixed(3)}</p>
                                 </div>
                                 <div>
-                                  <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase font-semibold">{t('historical.impact', lang)}</p>
+                                  <p className="text-[10px] text-gray-500 dark:text-gray-300 uppercase font-semibold">{t('historical.impact', lang)}</p>
                                   <p className="text-xs font-bold text-red-600">{e.affectedPeople.toLocaleString()} {t('common.people', lang)}</p>
                                 </div>
                                 <div>
-                                  <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase font-semibold">{t('historical.damageCost', lang)}</p>
+                                  <p className="text-[10px] text-gray-500 dark:text-gray-300 uppercase font-semibold">{t('historical.damageCost', lang)}</p>
                                   <p className="text-xs font-bold text-gray-900 dark:text-white">{e.damage}</p>
                                 </div>
                               </div>
                               <div>
-                                <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase font-semibold mb-1">{t('historical.fullDescription', lang)}</p>
-                                <p className="text-xs text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 leading-relaxed">{e.description}</p>
+                                <p className="text-[10px] text-gray-500 dark:text-gray-300 uppercase font-semibold mb-1">{t('historical.fullDescription', lang)}</p>
+                                <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">{e.description}</p>
                               </div>
                               {/* Severity indicator bar */}
                               <div className="mt-3 flex items-center gap-2">
-                                <span className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-semibold">{t('common.severity', lang)}:</span>
+                                <span className="text-[10px] text-gray-500 dark:text-gray-300 font-semibold">{t('common.severity', lang)}:</span>
                                 <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                                   <div
                                     className={`h-full rounded-full transition-all ${sev === 'High' ? 'bg-red-500 w-full' : sev === 'Medium' ? 'bg-amber-500 w-2/3' : 'bg-emerald-500 w-1/3'}`}
@@ -719,7 +716,7 @@ export default function AdminHistoricalIntelligence() {
                           className={`w-7 h-7 rounded-lg text-[10px] font-bold transition-colors ${
                             page === i
                               ? 'bg-blue-600 text-white shadow-sm'
-                              : 'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                              : 'text-gray-500 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
                           }`}
                         >
                           {i + 1}
@@ -745,8 +742,8 @@ export default function AdminHistoricalIntelligence() {
           <div className="p-5">
             {sortedEvents.length === 0 ? (
               <div className="text-center py-14">
-                <Calendar className="w-10 h-10 text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-                <p className="text-sm text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-medium">{t('historical.noEvents', lang)}</p>
+                <Calendar className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                <p className="text-sm text-gray-500 dark:text-gray-300 font-medium">{t('historical.noEvents', lang)}</p>
               </div>
             ) : (
               <div className="space-y-6">
@@ -758,7 +755,7 @@ export default function AdminHistoricalIntelligence() {
                         <span className="text-xs font-extrabold text-gray-700 dark:text-gray-200">{year}</span>
                       </div>
                       <div className="h-px flex-1 bg-gradient-to-r from-gray-300 dark:from-gray-700 to-transparent" />
-                      <span className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-semibold px-2 py-0.5 bg-gray-100 dark:bg-gray-800 rounded-full">
+                      <span className="text-[10px] text-gray-500 dark:text-gray-300 font-semibold px-2 py-0.5 bg-gray-100 dark:bg-gray-800 rounded-full">
                         {events.length} {t('historical.event', lang)}{events.length !== 1 ? 's' : ''}
                       </span>
                     </div>
@@ -779,10 +776,10 @@ export default function AdminHistoricalIntelligence() {
                                   <div className="flex items-center gap-2 flex-wrap mb-1.5">
                                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${config.bg} ${config.text}`}>{sev}</span>
                                     <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">{e.type}</span>
-                                    <span className="text-[10px] font-mono text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{formatDate(e.date)}</span>
+                                    <span className="text-[10px] font-mono text-gray-500 dark:text-gray-300">{formatDate(e.date)}</span>
                                   </div>
                                   <h4 className="font-bold text-sm text-gray-900 dark:text-white mb-0.5">{e.location}</h4>
-                                  <p className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 leading-relaxed">{e.description}</p>
+                                  <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">{e.description}</p>
 
                                   {/* Impact bar */}
                                   <div className="flex items-center gap-4 mt-2.5">
@@ -794,13 +791,13 @@ export default function AdminHistoricalIntelligence() {
                                     )}
                                     {e.damage && (
                                       <div className="flex items-center gap-1.5">
-                                        <TrendingDown className="w-3 h-3 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
-                                        <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{e.damage}</span>
+                                        <TrendingDown className="w-3 h-3 text-gray-500 dark:text-gray-300" />
+                                        <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300">{e.damage}</span>
                                       </div>
                                     )}
                                     <div className="flex items-center gap-1.5">
-                                      <Eye className="w-3 h-3 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
-                                      <span className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-mono">{e.coordinates[0].toFixed(3)}, {e.coordinates[1].toFixed(3)}</span>
+                                      <Eye className="w-3 h-3 text-gray-400 dark:text-gray-300" />
+                                      <span className="text-[10px] text-gray-500 dark:text-gray-300 font-mono">{e.coordinates[0].toFixed(3)}, {e.coordinates[1].toFixed(3)}</span>
                                     </div>
                                   </div>
                                 </div>
@@ -820,8 +817,4 @@ export default function AdminHistoricalIntelligence() {
     </div>
   )
 }
-
-
-
-
-
+

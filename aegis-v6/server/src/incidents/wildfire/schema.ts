@@ -41,3 +41,4 @@ export function sanitizeWildfireCustomFields(fields: Record<string, unknown>): W
     smokeVisible: typeof fields.smokeVisible === 'boolean' ? fields.smokeVisible : undefined
   }
 }
+

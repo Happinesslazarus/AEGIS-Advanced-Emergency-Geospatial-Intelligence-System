@@ -1,5 +1,6 @@
 import fs from 'fs'
 import path from 'path'
+import { logger } from '../services/logger.js'
 
 export interface IncidentFieldSchema {
   key: string
@@ -166,7 +167,7 @@ function loadOverrides(): void {
       registry.set(row.id, { ...registry.get(row.id), ...row })
     }
   } catch (err: any) {
-    console.warn(`[incident-types] Failed loading overrides: ${err.message}`)
+    logger.warn({ err }, '[incident-types] Failed loading overrides')
   }
 }
 
@@ -174,7 +175,7 @@ function saveOverrides(): void {
   try {
     fs.writeFileSync(overridePath, JSON.stringify(listIncidentTypes(), null, 2), 'utf8')
   } catch (err: any) {
-    console.warn(`[incident-types] Failed saving overrides: ${err.message}`)
+    logger.warn({ err }, '[incident-types] Failed saving overrides')
   }
 }
 

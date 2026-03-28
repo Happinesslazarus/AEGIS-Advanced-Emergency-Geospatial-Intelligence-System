@@ -1,13 +1,11 @@
--- ═══════════════════════════════════════════════════════════════════════════
 -- Citizen Audit Fixes Migration
 -- Adds missing columns to support socket.ts distress handlers, password
 -- reset flow, and community help citizen tracking.
 -- Run: psql -f migration_citizen_audit_fixes.sql
--- ═══════════════════════════════════════════════════════════════════════════
 
 BEGIN;
 
--- ─── 1. distress_calls: add columns used by socket.ts but missing in original migration ──
+--  1. distress_calls: add columns used by socket.ts but missing in original migration
 
 ALTER TABLE distress_calls ADD COLUMN IF NOT EXISTS citizen_name      VARCHAR(255);
 ALTER TABLE distress_calls ADD COLUMN IF NOT EXISTS latitude          DOUBLE PRECISION;
@@ -25,16 +23,16 @@ ALTER TABLE distress_calls ADD COLUMN IF NOT EXISTS triage_level      VARCHAR(20
 ALTER TABLE distress_calls ADD COLUMN IF NOT EXISTS resolved_by       UUID;
 ALTER TABLE distress_calls ADD COLUMN IF NOT EXISTS resolution        TEXT;
 
--- ─── 2. citizens: add password-reset columns ──────────────────────────────
+--  2. citizens: add password-reset columns
 
 ALTER TABLE citizens ADD COLUMN IF NOT EXISTS reset_token         TEXT;
 ALTER TABLE citizens ADD COLUMN IF NOT EXISTS reset_token_expires TIMESTAMPTZ;
 
--- ─── 3. community_help: add citizen_id FK for tracking who created an entry ──
+--  3. community_help: add citizen_id FK for tracking who created an entry
 
 ALTER TABLE community_help ADD COLUMN IF NOT EXISTS citizen_id UUID;
 
--- ─── 4. account_deletion_log: ensure GDPR audit table exists ─────────────
+--  4. account_deletion_log: ensure GDPR audit table exists
 
 CREATE TABLE IF NOT EXISTS account_deletion_log (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -46,7 +44,7 @@ CREATE TABLE IF NOT EXISTS account_deletion_log (
   created_at    TIMESTAMPTZ DEFAULT NOW()
 );
 
--- ─── 5. community_post_shares: referenced by communityRoutes but no migration ──
+--  5. community_post_shares: referenced by communityRoutes but no migration
 
 CREATE TABLE IF NOT EXISTS community_post_shares (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -55,6 +53,21 @@ CREATE TABLE IF NOT EXISTS community_post_shares (
   platform   VARCHAR(50),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE community_post_shares ADD COLUMN IF NOT EXISTS citizen_id UUID;
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_name = 'community_post_shares' AND column_name = 'user_id'
+  ) THEN
+    UPDATE community_post_shares
+    SET citizen_id = user_id
+    WHERE citizen_id IS NULL;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_community_post_shares_post ON community_post_shares(post_id);
 CREATE INDEX IF NOT EXISTS idx_community_post_shares_citizen ON community_post_shares(citizen_id);

@@ -1,5 +1,5 @@
 ﻿/**
- * incidents/types.ts â€” Core types for the AEGIS incident plugin system
+ * incidents/types.ts — Core types for the AEGIS incident plugin system
  *
  * Every incident module must implement the IncidentModule interface.
  * The platform core dynamically loads these modules from the registry.
@@ -7,9 +7,7 @@
 
 import type { Router } from 'express'
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // Operational Status
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 export type IncidentOperationalStatus =
   | 'fully_operational'
@@ -17,15 +15,11 @@ export type IncidentOperationalStatus =
   | 'configured_only'
   | 'disabled'
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // AI Tier Strategy
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 export type AITier = 'rule_based' | 'statistical' | 'ml'
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // Incident Prediction
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 export interface IncidentPrediction {
   incidentType: string
@@ -43,9 +37,7 @@ export interface IncidentPrediction {
   modelVersion?: string
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // Incident Alert
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 export interface IncidentAlert {
   id: string
@@ -61,9 +53,7 @@ export interface IncidentAlert {
   acknowledged: boolean
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // Incident Map Data
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 export interface IncidentMapMarker {
   id: string
@@ -84,9 +74,7 @@ export interface IncidentMapData {
   heatmapPoints?: Array<{ lat: number; lng: number; intensity: number }>
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // Incident Registry Entry (metadata)
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 export interface IncidentRegistryEntry {
   id: string
@@ -111,9 +99,7 @@ export interface IncidentRegistryEntry {
   alertThresholds: { advisory: number; warning: number; critical: number }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// Alert Rules â€” evaluates conditions to generate alerts
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// Alert Rules — evaluates conditions to generate alerts
 
 export interface AlertRuleContext {
   incidentType: string
@@ -138,35 +124,34 @@ export interface AlertRuleResult {
   description: string
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// Incident Module Interface â€” every incident plugin must implement this
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// Incident Module Interface — every incident plugin must implement this
 
 export interface IncidentModule {
-  /** Unique incident type identifier */
+  /* Unique incident type identifier */
   id: string
 
-  /** Registry metadata */
+  /* Registry metadata */
   registry: IncidentRegistryEntry
 
-  /** Express router with incident-specific routes */
+  /* Express router with incident-specific routes */
   router: Router
 
-  /** Generate predictions using the incident's AI tier strategy */
+  /* Generate predictions using the incident's AI tier strategy */
   getPredictions(region: string): Promise<IncidentPrediction[]>
 
-  /** Get active alerts for this incident type */
+  /* Get active alerts for this incident type */
   getAlerts(region: string): Promise<IncidentAlert[]>
 
-  /** Get map visualization data */
+  /* Get map visualization data */
   getMapData(region: string): Promise<IncidentMapData>
 
-  /** Evaluate alert rules against current conditions */
+  /* Evaluate alert rules against current conditions */
   evaluateAlertRules(context: AlertRuleContext): Promise<AlertRuleResult[]>
 
-  /** Ingest data from external sources (called by cron/n8n) */
+  /* Ingest data from external sources (called by cron/n8n) */
   ingestData(region: string): Promise<{ recordsIngested: number; source: string }>
 
-  /** Get incident history */
+  /* Get incident history */
   getHistory(region: string, days?: number): Promise<any[]>
 }
+

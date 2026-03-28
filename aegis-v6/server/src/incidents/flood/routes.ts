@@ -3,12 +3,13 @@
  */
 
 import { Router, Request, Response } from 'express'
+import { regionRegistry } from '../../adapters/regions/RegionRegistry.js'
 
 export function setupFloodRoutes(router: Router): void {
   // GET /gauges — river gauge readings
   router.get('/gauges', async (req: Request, res: Response) => {
     try {
-      const region = String(req.query.region || process.env.REGION_ID || 'aberdeen_scotland_uk')
+      const region = String(req.query.region || process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId)
       res.json({
         incidentType: 'flood',
         region,
@@ -24,7 +25,7 @@ export function setupFloodRoutes(router: Router): void {
   // GET /flood-warnings — active flood warnings from EA
   router.get('/flood-warnings', async (req: Request, res: Response) => {
     try {
-      const region = String(req.query.region || process.env.REGION_ID || 'aberdeen_scotland_uk')
+      const region = String(req.query.region || process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId)
       res.json({
         incidentType: 'flood',
         region,
@@ -40,7 +41,7 @@ export function setupFloodRoutes(router: Router): void {
   // GET /river-levels — current river levels
   router.get('/river-levels', async (req: Request, res: Response) => {
     try {
-      const region = String(req.query.region || process.env.REGION_ID || 'aberdeen_scotland_uk')
+      const region = String(req.query.region || process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId)
       res.json({
         incidentType: 'flood',
         region,
@@ -53,3 +54,4 @@ export function setupFloodRoutes(router: Router): void {
     }
   })
 }
+

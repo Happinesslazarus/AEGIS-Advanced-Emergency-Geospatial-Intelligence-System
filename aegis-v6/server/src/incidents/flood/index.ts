@@ -148,3 +148,4 @@ class FloodModule extends BaseIncidentModule {
 }
 
 export default new FloodModule()
+

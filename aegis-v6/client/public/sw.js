@@ -1,13 +1,12 @@
-/**
+﻿ /*
  * AEGIS v6 Production Service Worker
- *
  * Strategies:
- *   - App shell: cache-first (HTML, CSS, JS, fonts)
- *   - API data:  network-first with cache fallback
- *   - Images:    stale-while-revalidate
- *   - Push:      notifications with severity-based priority
- *   - Sync:      offline report queue with background sync
- */
+ * App shell: cache-first (HTML, CSS, JS, fonts)
+ * API data:  network-first with cache fallback
+ * Images:    stale-while-revalidate
+ * Push:      notifications with severity-based priority
+ * Sync:      offline report queue with background sync
+  */
 
 const CACHE_VERSION = 'aegis-v6.9.0'
 const STATIC_CACHE = `${CACHE_VERSION}-static`
@@ -23,9 +22,7 @@ const APP_SHELL = [
   '/icons/icon-512x512.png',
 ]
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §1  INSTALL — Pre-cache app shell
-// ═══════════════════════════════════════════════════════════════════════════════
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -36,9 +33,7 @@ self.addEventListener('install', (event) => {
   )
 })
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §2  ACTIVATE — Clean old caches
-// ═══════════════════════════════════════════════════════════════════════════════
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
@@ -55,9 +50,7 @@ self.addEventListener('activate', (event) => {
   )
 })
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §3  FETCH — Routing strategies
-// ═══════════════════════════════════════════════════════════════════════════════
 
 self.addEventListener('fetch', (event) => {
   const { request } = event
@@ -69,9 +62,21 @@ self.addEventListener('fetch', (event) => {
   // Skip cross-origin requests except tile servers
   if (url.origin !== self.location.origin && !isTileRequest(url)) return
 
-  // API requests: network-first
+  // API requests: network-first (but never cache authenticated responses)
   if (url.pathname.startsWith('/api/')) {
-    event.respondWith(networkFirst(request, DATA_CACHE, 5000))
+    if (request.headers.get('Authorization')) {
+      // Authenticated request — pass through to network without caching
+      event.respondWith(
+        fetch(request).catch(() =>
+          new Response(JSON.stringify({ error: 'Offline', cached: false }), {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        )
+      )
+    } else {
+      event.respondWith(networkFirst(request, DATA_CACHE, 5000))
+    }
     return
   }
 
@@ -101,7 +106,7 @@ function isTileRequest(url) {
   )
 }
 
-/** Cache-first: serve from cache if available, else network */
+/* Cache-first: serve from cache if available, else network */
 async function cacheFirst(request, cacheName) {
   const cached = await caches.match(request)
   if (cached) return cached
@@ -122,7 +127,7 @@ async function cacheFirst(request, cacheName) {
   }
 }
 
-/** Network-first with timeout: try network, fall back to cache */
+/* Network-first with timeout: try network, fall back to cache */
 async function networkFirst(request, cacheName, timeoutMs = 5000) {
   const cache = await caches.open(cacheName)
 
@@ -147,7 +152,7 @@ async function networkFirst(request, cacheName, timeoutMs = 5000) {
   }
 }
 
-/** Stale-while-revalidate: return cache immediately, update in background */
+/* Stale-while-revalidate: return cache immediately, update in background */
 async function staleWhileRevalidate(request, cacheName) {
   const cache = await caches.open(cacheName)
   const cached = await cache.match(request)
@@ -162,9 +167,7 @@ async function staleWhileRevalidate(request, cacheName) {
   return cached || (await networkPromise) || new Response('', { status: 503 })
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §4  OFFLINE QUEUE — Store failed POST/PUT requests for background sync
-// ═══════════════════════════════════════════════════════════════════════════════
 
 const QUEUE_STORE = 'aegis-offline-queue'
 
@@ -245,9 +248,7 @@ self.addEventListener('message', (event) => {
   }
 })
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §5  BACKGROUND SYNC — Replay offline queue when back online
-// ═══════════════════════════════════════════════════════════════════════════════
 
 self.addEventListener('sync', (event) => {
   if (event.tag === 'aegis-sync') {
@@ -282,9 +283,7 @@ async function replayQueue() {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §6  PUSH NOTIFICATIONS
-// ═══════════════════════════════════════════════════════════════════════════════
 
 self.addEventListener('push', (event) => {
   let data = {}
@@ -323,9 +322,7 @@ self.addEventListener('push', (event) => {
   event.waitUntil(self.registration.showNotification(title, options))
 })
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §7  NOTIFICATION CLICK
-// ═══════════════════════════════════════════════════════════════════════════════
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
@@ -348,9 +345,7 @@ self.addEventListener('notificationclick', (event) => {
   )
 })
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §8  PERIODIC CACHE CLEANUP
-// ═══════════════════════════════════════════════════════════════════════════════
 
 // Clean image cache if it gets too large (max 200 entries)
 async function trimCache(cacheName, maxItems = 200) {
@@ -370,3 +365,4 @@ self.addEventListener('message', (event) => {
     trimCache(DATA_CACHE, 100)
   }
 })
+

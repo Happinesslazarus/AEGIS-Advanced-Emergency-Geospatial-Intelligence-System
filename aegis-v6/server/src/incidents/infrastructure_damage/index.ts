@@ -50,3 +50,4 @@ class InfrastructureDamageModule extends BaseIncidentModule {
 }
 
 export default new InfrastructureDamageModule()
+

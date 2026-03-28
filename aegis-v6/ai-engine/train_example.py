@@ -1,5 +1,4 @@
 """
-═══════════════════════════════════════════════════════════════════════════════
  AEGIS AI ENGINE — Training Script Example
  
  Demonstrates how to use the training pipeline to train models.
@@ -8,7 +7,6 @@
      python train_example.py --hazard flood --model xgboost
      python train_example.py --hazard drought --model lightgbm --tune
      python train_example.py --train-all
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 import asyncio
@@ -18,7 +16,6 @@ from loguru import logger
 import sys
 
 from app.training import TrainingPipeline
-
 
 async def train_single_model(hazard_type: str, model_type: str, tune: bool = False):
     """
@@ -70,7 +67,6 @@ async def train_single_model(hazard_type: str, model_type: str, tune: bool = Fal
         logger.error(f"Training failed: {e}")
         raise
 
-
 async def train_all_models_for_hazard(hazard_type: str):
     """
     Train all available models for a hazard type.
@@ -115,7 +111,6 @@ async def train_all_models_for_hazard(hazard_type: str):
         logger.error(f"Training failed: {e}")
         raise
 
-
 async def train_all_hazards():
     """Train models for all enabled hazards."""
     logger.info("Training models for all hazards")
@@ -137,7 +132,6 @@ async def train_all_hazards():
     logger.success(f"\nCompleted training for {len(all_results)} hazards")
     
     return all_results
-
 
 def main():
     """Main entry point."""
@@ -219,7 +213,6 @@ Examples:
         logger.error("  2. --hazard and --train-all-models for training all models")
         logger.error("  3. --train-all for comprehensive training")
         sys.exit(1)
-
 
 if __name__ == "__main__":
     main()

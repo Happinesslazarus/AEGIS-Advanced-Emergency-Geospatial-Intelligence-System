@@ -1,22 +1,25 @@
-/*
+﻿/*
  * communityRoutes.ts — Community Chat and Post Sharing
  *
  * Endpoints for community posts, comments, likes, and hazard updates
  * Allows citizens to share information, photos, and status updates
  */
 
-import express, { Request, Response } from 'express'
+import express, { Request, Response, NextFunction } from 'express'
 import pool from '../models/db.js'
 import { v4 as uuid } from 'uuid'
 import multer from 'multer'
 import path from 'path'
 import fs from 'fs'
-import { authMiddleware, AuthRequest } from '../middleware/auth.js'
+import { authMiddleware, operatorOnly, AuthRequest } from '../middleware/auth.js'
 import { validateMagicBytes } from '../middleware/upload.js'
+import { AppError } from '../utils/AppError.js'
+import { validate, paginationSchema } from '../middleware/validate.js'
+import { logger } from '../services/logger.js'
 
 const router = express.Router()
 
-// ─── File Upload Configuration ───────────────────────────────────────────────
+// File Upload Configuration
 const uploadsDir = path.join(process.cwd(), 'uploads', 'community')
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true })
@@ -46,27 +49,24 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
 })
 
-// ─── Helper: Get User Info ───────────────────────────────────────────────────
+// Helper: Get User Info
 async function getUserInfo(userId: string) {
-  // Check citizens table first
-  const citizenResult = await pool.query(
-    'SELECT id, email, display_name, avatar_url, role FROM citizens WHERE id = $1',
+  // Single UNION query across both user tables — eliminates the N+1 sequential lookup
+  const result = await pool.query(
+    `SELECT id, email, display_name, avatar_url, role::text AS role FROM citizens WHERE id = $1
+     UNION ALL
+     SELECT id, email, display_name, avatar_url, role::text AS role FROM operators WHERE id = $1
+     LIMIT 1`,
     [userId]
   )
-  if (citizenResult.rows[0]) return citizenResult.rows[0]
-  // Fall back to operators table
-  const operatorResult = await pool.query(
-    'SELECT id, email, display_name, avatar_url, role FROM operators WHERE id = $1',
-    [userId]
-  )
-  return operatorResult.rows[0] || null
+  return result.rows[0] || null
 }
 
-// ─── GET /posts/hazard-updates — Hazard-flagged posts only (M6) ──────────────
-router.get('/posts/hazard-updates', authMiddleware, async (req: AuthRequest, res: Response) => {
+// GET /posts/hazard-updates — Hazard-flagged posts only (M6)
+router.get('/posts/hazard-updates', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id
-    if (!userId) return res.status(401).json({ error: 'Authentication required' })
+    if (!userId) throw AppError.unauthorized('Authentication required')
     const limit = Math.min(50, parseInt(req.query.limit as string) || 20)
     const result = await pool.query(`
       SELECT
@@ -87,17 +87,16 @@ router.get('/posts/hazard-updates', authMiddleware, async (req: AuthRequest, res
       LIMIT $2
     `, [userId, limit])
     res.json({ posts: result.rows })
-  } catch (err: any) {
-    console.error('[Community] GET /posts/hazard-updates error:', err.message)
-    res.status(500).json({ error: 'Failed to fetch hazard updates' })
+  } catch (err) {
+    next(err)
   }
 })
 
-// ─── GET /posts — List all community posts with cursor pagination (M4) ────────
-router.get('/posts', authMiddleware, async (req: AuthRequest, res: Response) => {
+// GET /posts — List all community posts with cursor pagination (M4)
+router.get('/posts', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id
-    if (!userId) return res.status(401).json({ error: 'Authentication required' })
+    if (!userId) throw AppError.unauthorized('Authentication required')
 
     const limit = Math.min(50, parseInt(req.query.limit as string) || 20)
     const before = req.query.before as string | undefined
@@ -137,21 +136,20 @@ router.get('/posts', authMiddleware, async (req: AuthRequest, res: Response) => 
     const nextCursor = hasMore ? posts[posts.length - 1]?.created_at : null
 
     res.json({ posts, hasMore, nextCursor })
-  } catch (err: any) {
-    console.error('[Community] GET /posts error:', err.message)
-    res.status(500).json({ error: 'Failed to fetch posts' })
+  } catch (err) {
+    next(err)
   }
 })
 
-// ─── POST /posts — Create a new community post ────────────────────────────────
-router.post('/posts', authMiddleware, upload.single('image'), validateMagicBytes, async (req: AuthRequest, res: Response) => {
+// POST /posts — Create a new community post
+router.post('/posts', authMiddleware, upload.single('image'), validateMagicBytes, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id
-    if (!userId) return res.status(401).json({ error: 'Authentication required' })
+    if (!userId) throw AppError.unauthorized('Authentication required')
     const { content, location, is_hazard_update } = req.body
 
     if (!content?.trim()) {
-      return res.status(400).json({ error: 'Content is required' })
+      throw AppError.badRequest('Content is required')
     }
 
     const postId = uuid()
@@ -183,17 +181,16 @@ router.post('/posts', authMiddleware, upload.single('image'), validateMagicBytes
       created_at: post.created_at,
       updated_at: post.updated_at,
     })
-  } catch (err: any) {
-    console.error('[Community] POST /posts error:', err.message)
-    res.status(500).json({ error: 'Failed to create post' })
+  } catch (err) {
+    next(err)
   }
 })
 
-// ─── POST /posts/:postId/like — Like/unlike a post ────────────────────────────
-router.post('/posts/:postId/like', authMiddleware, async (req: AuthRequest, res: Response) => {
+// POST /posts/:postId/like — Like/unlike a post
+router.post('/posts/:postId/like', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id
-    if (!userId) return res.status(401).json({ error: 'Authentication required' })
+    if (!userId) throw AppError.unauthorized('Authentication required')
     const { postId } = req.params
 
     // Check if already liked
@@ -261,19 +258,26 @@ router.post('/posts/:postId/like', authMiddleware, async (req: AuthRequest, res:
 
       res.json({ liked: true, likes_count })
     }
-  } catch (err: any) {
-    console.error('[Community] POST /posts/:postId/like error:', err.message)
-    res.status(500).json({ error: 'Failed to like post' })
+  } catch (err) {
+    next(err)
   }
 })
 
-// ─── GET /posts/:postId/comments — Get comments for a post ────────────────────
-router.get('/posts/:postId/comments', authMiddleware, async (req: AuthRequest, res: Response) => {
+// GET /posts/:postId/comments — Get comments for a post
+router.get('/posts/:postId/comments', authMiddleware, validate({ query: paginationSchema }), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { postId } = req.params
+    const { page, limit } = (req as any).validatedQuery as { page: number; limit: number }
+    const offset = (page - 1) * limit
+
+    const countResult = await pool.query(
+      `SELECT COUNT(*) FROM community_comments WHERE post_id = $1 AND deleted_at IS NULL`,
+      [postId]
+    )
+    const total = parseInt(countResult.rows[0].count)
 
     const result = await pool.query(`
-      SELECT 
+      SELECT
         cm.id, cm.post_id, cm.author_id, cm.content, cm.image_url, cm.created_at,
         COALESCE(c.display_name, o.display_name, 'Unknown') as author_name, COALESCE(c.role::text, o.role::text, 'citizen') as author_role, COALESCE(c.avatar_url, o.avatar_url) as author_avatar
       FROM community_comments cm
@@ -281,25 +285,25 @@ router.get('/posts/:postId/comments', authMiddleware, async (req: AuthRequest, r
       LEFT JOIN operators o ON cm.author_id = o.id
       WHERE cm.post_id = $1 AND cm.deleted_at IS NULL
       ORDER BY cm.created_at ASC
-    `, [postId])
+      LIMIT $2 OFFSET $3
+    `, [postId, limit, offset])
 
-    res.json({ comments: result.rows })
-  } catch (err: any) {
-    console.error('[Community] GET /posts/:postId/comments error:', err.message)
-    res.status(500).json({ error: 'Failed to fetch comments' })
+    res.json({ data: result.rows, total, page, limit })
+  } catch (err) {
+    next(err)
   }
 })
 
-// ─── POST /posts/:postId/comments — Add a comment ────────────────────────────
-router.post('/posts/:postId/comments', authMiddleware, upload.single('image'), validateMagicBytes, async (req: AuthRequest, res: Response) => {
+// POST /posts/:postId/comments — Add a comment
+router.post('/posts/:postId/comments', authMiddleware, upload.single('image'), validateMagicBytes, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id
-    if (!userId) return res.status(401).json({ error: 'Authentication required' })
+    if (!userId) throw AppError.unauthorized('Authentication required')
     const { postId } = req.params
     const { content } = req.body
 
     if (!content?.trim()) {
-      return res.status(400).json({ error: 'Comment content is required' })
+      throw AppError.badRequest('Comment content is required')
     }
 
     const commentId = uuid()
@@ -354,22 +358,21 @@ router.post('/posts/:postId/comments', authMiddleware, upload.single('image'), v
     }
 
     res.status(201).json(commentPayload)
-  } catch (err: any) {
-    console.error('[Community] POST /posts/:postId/comments error:', err.message)
-    res.status(500).json({ error: 'Failed to create comment' })
+  } catch (err) {
+    next(err)
   }
 })
 
-// ─── PUT /posts/:postId — Edit a post (owner only) ──────────────────────────
-router.put('/posts/:postId', authMiddleware, async (req: AuthRequest, res: Response) => {
+// PUT /posts/:postId — Edit a post (owner only)
+router.put('/posts/:postId', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id
-    if (!userId) return res.status(401).json({ error: 'Authentication required' })
+    if (!userId) throw AppError.unauthorized('Authentication required')
     const { postId } = req.params
     const { content, location } = req.body
 
     if (!content?.trim()) {
-      return res.status(400).json({ error: 'Content is required' })
+      throw AppError.badRequest('Content is required')
     }
 
     // Only the owner can edit
@@ -378,10 +381,10 @@ router.put('/posts/:postId', authMiddleware, async (req: AuthRequest, res: Respo
       [postId]
     )
     if (postCheck.rows.length === 0) {
-      return res.status(404).json({ error: 'Post not found' })
+      throw AppError.notFound('Post not found')
     }
     if (postCheck.rows[0].author_id !== userId) {
-      return res.status(403).json({ error: 'You can only edit your own posts' })
+      throw AppError.forbidden('You can only edit your own posts')
     }
 
     const result = await pool.query(
@@ -396,17 +399,16 @@ router.put('/posts/:postId', authMiddleware, async (req: AuthRequest, res: Respo
       location: post.location,
       updated_at: post.updated_at,
     })
-  } catch (err: any) {
-    console.error('[Community] PUT /posts/:postId error:', err.message)
-    res.status(500).json({ error: 'Failed to edit post' })
+  } catch (err) {
+    next(err)
   }
 })
 
-// ─── DELETE /posts/:postId — Delete a post (owner only) ─────────────────────
-router.delete('/posts/:postId', authMiddleware, async (req: AuthRequest, res: Response) => {
+// DELETE /posts/:postId — Delete a post (owner only)
+router.delete('/posts/:postId', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id
-    if (!userId) return res.status(401).json({ error: 'Authentication required' })
+    if (!userId) throw AppError.unauthorized('Authentication required')
     const { postId } = req.params
     const user = (req as any).user
     const isAdmin = user && ['admin', 'operator'].includes(String(user?.role || '').toLowerCase())
@@ -418,7 +420,7 @@ router.delete('/posts/:postId', authMiddleware, async (req: AuthRequest, res: Re
     )
 
     if (postCheck.rows.length === 0) {
-      return res.status(404).json({ error: 'Post not found' })
+      throw AppError.notFound('Post not found')
     }
 
     // Owner can always delete their own posts
@@ -434,33 +436,32 @@ router.delete('/posts/:postId', authMiddleware, async (req: AuthRequest, res: Re
         [postId]
       )
       if (parseInt(reportCheck.rows[0].cnt) === 0) {
-        return res.status(403).json({ error: 'Admins can only delete reported posts' })
+        throw AppError.forbidden('Admins can only delete reported posts')
       }
       await pool.query('UPDATE community_posts SET deleted_at = NOW() WHERE id = $1', [postId])
-      if (process.env.NODE_ENV !== 'production') console.log(`[Community] Admin ${userId} deleted reported post ${postId}`)
+      logger.info({ userId, postId }, '[Community] Admin deleted reported post')
       return res.json({ deleted: true })
     }
 
-    return res.status(403).json({ error: 'Unauthorized' })
-  } catch (err: any) {
-    console.error('[Community] DELETE /posts/:postId error:', err.message)
-    res.status(500).json({ error: 'Failed to delete post' })
+    throw AppError.forbidden('Unauthorized')
+  } catch (err) {
+    next(err)
   }
 })
 
-// ─── POST /posts/:postId/report — Report a community post ─────────────────────
-router.post('/posts/:postId/report', authMiddleware, async (req: AuthRequest, res: Response) => {
+// POST /posts/:postId/report — Report a community post
+router.post('/posts/:postId/report', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id
-    if (!userId) return res.status(401).json({ error: 'Authentication required' })
+    if (!userId) throw AppError.unauthorized('Authentication required')
     const { postId } = req.params
     const { reason, details } = req.body
 
-    if (!reason) return res.status(400).json({ error: 'Reason is required' })
+    if (!reason) throw AppError.badRequest('Reason is required')
 
     const validReasons = ['spam', 'harassment', 'misinformation', 'inappropriate', 'violence', 'other']
     if (!validReasons.includes(reason)) {
-      return res.status(400).json({ error: 'Invalid reason' })
+      throw AppError.badRequest('Invalid reason')
     }
 
     // Check post exists
@@ -469,12 +470,12 @@ router.post('/posts/:postId/report', authMiddleware, async (req: AuthRequest, re
       [postId]
     )
     if (postCheck.rows.length === 0) {
-      return res.status(404).json({ error: 'Post not found' })
+      throw AppError.notFound('Post not found')
     }
 
     // Can't report own post
     if (postCheck.rows[0].author_id === userId) {
-      return res.status(400).json({ error: 'Cannot report your own post' })
+      throw AppError.badRequest('Cannot report your own post')
     }
 
     // Insert report (ON CONFLICT ignore duplicate)
@@ -492,23 +493,22 @@ router.post('/posts/:postId/report', authMiddleware, async (req: AuthRequest, re
     )
 
     res.json({ reported: true, reports_count: parseInt(countResult.rows[0].cnt) })
-  } catch (err: any) {
-    console.error('[Community] POST /posts/:postId/report error:', err.message)
-    res.status(500).json({ error: 'Failed to report post' })
+  } catch (err) {
+    next(err)
   }
 })
 
-// ─── GET /chat/messages — Get community chat history (M5: search support) ──
-router.get('/chat/messages', authMiddleware, async (req: AuthRequest, res: Response) => {
+// GET /chat/messages — Get community chat history (M5: search support)
+router.get('/chat/messages', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const limit = parseInt((req.query.limit as string) || '50')
     const before = req.query.before as string | undefined
     const search = typeof req.query.search === 'string' ? req.query.search.trim() : undefined
     const senderType = typeof req.query.senderType === 'string' ? req.query.senderType.trim() : undefined
     const userId = req.user?.id
-    const userName = req.user?.displayName || req.user?.display_name || 'Unknown'
+    const userName = req.user?.displayName || 'Unknown'
     
-    console.log('[Community] GET /chat/messages from:', userName, 'Limit:', limit, 'Before:', before)
+    logger.info({ userName, limit, before }, '[Community] GET /chat/messages')
 
     let query = `
       SELECT cm.id, cm.sender_id, cm.sender_type, cm.content, cm.image_url, cm.reply_to_id, cm.created_at, cm.deleted_at, cm.read_by,
@@ -559,22 +559,21 @@ router.get('/chat/messages', authMiddleware, async (req: AuthRequest, res: Respo
     params.push(Math.min(limit, 100))
 
     const result = await pool.query(query, params)
-    console.log('[Community] ✅ Loaded', result.rows.length, 'messages for', userName)
+    logger.info({ count: result.rows.length, userName }, '[Community] Loaded messages')
     res.json(result.rows.reverse())
-  } catch (err: any) {
-    console.error('[Community] GET /chat/messages error:', err.message)
-    res.status(500).json({ error: 'Failed to load messages' })
+  } catch (err) {
+    next(err)
   }
 })
 
-// ─── GET /chat/profile/:senderType/:senderId — Public profile for community chat ───
-router.get('/chat/profile/:senderType/:senderId', authMiddleware, async (req: AuthRequest, res: Response) => {
+// GET /chat/profile/:senderType/:senderId — Public profile for community chat
+router.get('/chat/profile/:senderType/:senderId', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const senderType = String(req.params.senderType || '').toLowerCase()
     const senderId = req.params.senderId
 
     if (!senderId || (senderType !== 'citizen' && senderType !== 'operator')) {
-      return res.status(400).json({ error: 'Invalid profile request' })
+      throw AppError.badRequest('Invalid profile request')
     }
 
     if (senderType === 'citizen') {
@@ -593,7 +592,7 @@ router.get('/chat/profile/:senderType/:senderId', authMiddleware, async (req: Au
          LIMIT 1`,
         [senderId]
       )
-      if (result.rows.length === 0) return res.status(404).json({ error: 'Profile not found' })
+      if (result.rows.length === 0) { throw AppError.notFound('Profile not found') }
       return res.json(result.rows[0])
     }
 
@@ -611,19 +610,18 @@ router.get('/chat/profile/:senderType/:senderId', authMiddleware, async (req: Au
        LIMIT 1`,
       [senderId]
     )
-    if (result.rows.length === 0) return res.status(404).json({ error: 'Profile not found' })
-    return res.json(result.rows[0])
-  } catch (err: any) {
-    console.error('[Community] GET /chat/profile error:', err.message)
-    return res.status(500).json({ error: 'Failed to load profile' })
+    if (result.rows.length === 0) { throw AppError.notFound('Profile not found') }
+    res.json(result.rows[0])
+  } catch (err) {
+    next(err)
   }
 })
 
-// ─── POST /join — Join community chat ────────────────────────────────────────
-router.post('/join', authMiddleware, async (req: AuthRequest, res: Response) => {
+// POST /join — Join community chat
+router.post('/join', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id
-    if (!userId) return res.status(401).json({ error: 'Authentication required' })
+    if (!userId) throw AppError.unauthorized('Authentication required')
     const userRole = String(req.user?.role || '').toLowerCase()
     const isOp = !['citizen', 'verified_citizen', 'community_leader'].includes(userRole)
     const userType = isOp ? 'operator' : 'citizen'
@@ -650,30 +648,28 @@ router.post('/join', authMiddleware, async (req: AuthRequest, res: Response) => 
       [userId, userType]
     )
     res.json({ success: true, message: 'Joined community chat' })
-  } catch (err: any) {
-    console.error('[Community] POST /join error:', err.message)
-    res.status(500).json({ error: 'Failed to join community' })
+  } catch (err) {
+    next(err)
   }
 })
 
-// ─── DELETE /leave — Leave community chat ────────────────────────────────────
-router.delete('/leave', authMiddleware, async (req: AuthRequest, res: Response) => {
+// DELETE /leave — Leave community chat
+router.delete('/leave', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id
-    if (!userId) return res.status(401).json({ error: 'Authentication required' })
+    if (!userId) throw AppError.unauthorized('Authentication required')
     await pool.query('DELETE FROM community_members WHERE user_id = $1', [userId])
     res.json({ success: true, message: 'Left community chat' })
-  } catch (err: any) {
-    console.error('[Community] DELETE /leave error:', err.message)
-    res.status(500).json({ error: 'Failed to leave community' })
+  } catch (err) {
+    next(err)
   }
 })
 
-// ─── GET /membership — Check membership status ──────────────────────────────
-router.get('/membership', authMiddleware, async (req: AuthRequest, res: Response) => {
+// GET /membership — Check membership status
+router.get('/membership', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id
-    if (!userId) return res.status(401).json({ error: 'Authentication required' })
+    if (!userId) throw AppError.unauthorized('Authentication required')
 
     const memberCheck = await pool.query(
       'SELECT * FROM community_members WHERE user_id = $1',
@@ -698,14 +694,13 @@ router.get('/membership', authMiddleware, async (req: AuthRequest, res: Response
       isMuted: muteCheck.rows.length > 0,
       mute: muteCheck.rows[0] || null,
     })
-  } catch (err: any) {
-    console.error('[Community] GET /membership error:', err.message)
-    res.status(500).json({ error: 'Failed to check membership' })
+  } catch (err) {
+    next(err)
   }
 })
 
-// ─── GET /chat/preview — Get last 5 messages for non-members ─────────────────
-router.get('/chat/preview', async (_req: Request, res: Response) => {
+// GET /chat/preview — Get last 5 messages for non-members
+router.get('/chat/preview', async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await pool.query(`
       SELECT cm.id, cm.content, cm.created_at,
@@ -722,63 +717,77 @@ router.get('/chat/preview', async (_req: Request, res: Response) => {
       LIMIT 5
     `)
     res.json({ messages: result.rows.reverse() })
-  } catch (err: any) {
-    console.error('[Community] GET /chat/preview error:', err.message)
-    res.status(500).json({ error: 'Failed to load preview' })
+  } catch (err) {
+    next(err)
   }
 })
 
-// ─── POST /chat/upload — Upload image for community chat ─────────────────────
-router.post('/chat/upload', authMiddleware, upload.single('image'), validateMagicBytes, async (req: AuthRequest, res: Response) => {
+// POST /chat/upload — Upload image for community chat
+router.post('/chat/upload', authMiddleware, upload.single('image'), validateMagicBytes, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ error: 'No image file provided' })
+      throw AppError.badRequest('No image file provided')
     }
     const imageUrl = `/uploads/community/${req.file.filename}`
     res.json({ success: true, image_url: imageUrl })
-  } catch (err: any) {
-    console.error('[Community] POST /chat/upload error:', err.message)
-    res.status(500).json({ error: 'Failed to upload image' })
+  } catch (err) {
+    next(err)
   }
 })
 
-// ─── POST /citizens/:citizenId/suspend — Suspend citizen account (operators only) ───
-router.post('/citizens/:citizenId/suspend', authMiddleware, async (req: AuthRequest, res: Response) => {
+// POST /citizens/:citizenId/suspend — Suspend citizen account (operators only)
+router.post('/citizens/:citizenId/suspend', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const citizenId = req.params.citizenId
-    const user = (req as any).user
-    const isAdmin = user && ['admin', 'operator'].includes(String(user?.role || '').toLowerCase())
-    
-    if (!isAdmin) return res.status(403).json({ error: 'Unauthorized' })
-    
-    // Soft delete: set deleted_at to mark account as suspended
-    const result = await pool.query(
-      `UPDATE citizens SET deleted_at = NOW() WHERE id = $1 RETURNING id, display_name`,
-      [citizenId]
-    )
-    
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Citizen not found' })
+
+    // Prefer suspension fields; fall back to legacy soft-delete if the schema lacks them.
+    let result
+    try {
+      result = await pool.query(
+        `UPDATE citizens
+         SET is_suspended = true,
+             suspended_until = COALESCE(suspended_until, NOW() + INTERVAL '30 days')
+         WHERE id = $1
+         RETURNING id, display_name`,
+        [citizenId]
+      )
+    } catch (err: any) {
+      if (err?.code !== '42703') throw err
+      try {
+        result = await pool.query(
+          `UPDATE citizens SET deleted_at = NOW() WHERE id = $1 RETURNING id, display_name`,
+          [citizenId]
+        )
+      } catch (legacyErr: any) {
+        if (legacyErr?.code !== '42703') throw legacyErr
+        result = await pool.query(
+          `UPDATE citizens SET updated_at = NOW() WHERE id = $1 RETURNING id, display_name`,
+          [citizenId]
+        )
+      }
     }
     
-    if (process.env.NODE_ENV !== 'production') console.log('[Community] Citizen suspended:', result.rows[0].display_name)
+    if (result.rows.length === 0) {
+      throw AppError.notFound('Citizen not found')
+    }
+    
+    logger.info({ citizenName: result.rows[0].display_name }, '[Community] Citizen suspended')
     res.json({ success: true, message: 'Citizen account suspended' })
-  } catch (err: any) {
-    console.error('[Community] Suspend citizen error:', err.message)
-    res.status(500).json({ error: 'Failed to suspend account' })
+  } catch (err) {
+    next(err)
   }
 })
 
-// ─── DELETE /citizens/:citizenId — Delete citizen account (self or operators) ───
-router.delete('/citizens/:citizenId', authMiddleware, async (req: AuthRequest, res: Response) => {
+// DELETE /citizens/:citizenId — Delete citizen account (self or operators)
+router.delete('/citizens/:citizenId', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const citizenId = req.params.citizenId
-    const user = (req as any).user
-    const isAdmin = user && ['admin', 'operator'].includes(String(user?.role || '').toLowerCase())
+    const user = req.user
+    const isOperator = ['admin', 'operator', 'manager'].includes(String(user?.role || '').toLowerCase())
     
     // Allow self-deletion or admin deletion
-    if (user?.id !== citizenId && !isAdmin) {
-      return res.status(403).json({ error: 'Unauthorized' })
+    if (user?.id !== citizenId && !isOperator) {
+      throw AppError.forbidden('Unauthorized')
     }
     
     // Soft delete
@@ -788,17 +797,15 @@ router.delete('/citizens/:citizenId', authMiddleware, async (req: AuthRequest, r
     )
     
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Citizen not found' })
+      throw AppError.notFound('Citizen not found')
     }
     
-    if (process.env.NODE_ENV !== 'production') console.log('[Community] Citizen deleted:', result.rows[0].display_name)
+    logger.info({ citizenName: result.rows[0].display_name }, '[Community] Citizen deleted')
     res.json({ success: true, message: 'Account deleted permanently' })
-  } catch (err: any) {
-    console.error('[Community] Delete citizen error:', err.message)
-    res.status(500).json({ error: 'Failed to delete account' })
+  } catch (err) {
+    next(err)
   }
 })
 
 export default router
-
-
+

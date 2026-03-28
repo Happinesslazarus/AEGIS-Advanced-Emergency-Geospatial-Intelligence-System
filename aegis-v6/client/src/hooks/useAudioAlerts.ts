@@ -1,11 +1,11 @@
-/*
+﻿/*
  * useAudioAlerts.ts - Web Speech API Audio Alert System
  *
  * Provides text-to-speech functionality for alert announcements:
- * - Auto-play for critical alerts (configurable)
- * - Manual play for any alert
- * - Voice selection, volume, rate settings
- * - Respects user preferences (mute, quiet hours, etc.)
+ * Auto-play for critical alerts (configurable)
+ * Manual play for any alert
+ * Voice selection, volume, rate settings
+ * Respects user preferences (mute, quiet hours, etc.)
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
@@ -180,3 +180,4 @@ export function useAudioAlerts(userSettings?: Partial<AudioAlertSettings>) {
     stop,
   }
 }
+

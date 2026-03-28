@@ -4,9 +4,10 @@
  */
 
 import pool from '../../models/db.js'
+import { logger } from '../../services/logger.js'
 
 export class InfrastructureDamageDataIngestion {
-  /**
+   /**
    * No external data source - relies on citizen reports
    * This method aggregates and processes existing reports
    */
@@ -24,19 +25,19 @@ export class InfrastructureDamageDataIngestion {
       
       const count = parseInt(result.rows[0]?.count || '0')
       
-      console.log(`Processed ${count} infrastructure damage reports from citizens`)
+      logger.info({ count }, '[InfrastructureDamage] Processed citizen reports')
       
       return {
         recordsIngested: count,
         source: 'Citizen Reports (aggregation)'
       }
     } catch (error) {
-      console.error(`Infrastructure damage data processing error: ${error}`)
+      logger.error({ err: error }, '[InfrastructureDamage] Data processing error')
       return { recordsIngested: 0, source: 'Citizen Reports (error)' }
     }
   }
 
-  /**
+   /**
    * Categorize damage by type
    */
   static async categorizeDamage(region: string): Promise<Record<string, number>> {
@@ -62,12 +63,12 @@ export class InfrastructureDamageDataIngestion {
       
       return categorization
     } catch (error) {
-      console.error(`Damage categorization error: ${error}`)
+      logger.error({ err: error }, '[InfrastructureDamage] Damage categorization error')
       return {}
     }
   }
 
-  /**
+   /**
    * Schedule periodic data processing
    */
   static scheduleIngestion(intervalMinutes = 30): NodeJS.Timer {

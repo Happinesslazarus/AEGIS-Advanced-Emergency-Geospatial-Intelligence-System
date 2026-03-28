@@ -4,9 +4,10 @@
  */
 
 import type { IncidentPrediction } from '../types.js'
+import { logger } from '../../services/logger.js'
 
 export class SevereStormAIClient {
-  /**
+   /**
    * Get statistical predictions for severe storms
    * Uses statistical analysis of weather patterns, no external AI engine call
    */
@@ -54,7 +55,7 @@ export class SevereStormAIClient {
         dataSourcesUsed: ['weather_statistical_model', 'meteorological_data']
       }]
     } catch (error) {
-      console.error(`Severe storm statistical model error: ${error}`)
+      logger.error({ err: error }, '[SevereStorm/AIClient] Statistical model error')
       return []
     }
   }

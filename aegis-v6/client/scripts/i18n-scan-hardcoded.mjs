@@ -75,11 +75,11 @@ if (!fs.existsSync(rootDir)) {
 walk(rootDir)
 
 if (violations.length === 0) {
-  console.log('✅ No obvious hardcoded UI strings found.')
+  console.log('[OK] No obvious hardcoded UI strings found.')
   process.exit(0)
 }
 
-console.error(`❌ Found ${violations.length} potential hardcoded UI strings:`)
+console.error(`[ERR] Found ${violations.length} potential hardcoded UI strings:`)
 for (const v of violations.slice(0, 300)) {
   console.error(`- ${v.file}:${v.line} [${v.kind}] "${v.text}"`)
 }

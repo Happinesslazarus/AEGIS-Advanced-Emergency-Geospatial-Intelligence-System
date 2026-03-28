@@ -1,8 +1,7 @@
-/**
+﻿ /*
  * SpatialToolbar.tsx — 12 interactive spatial analysis tools for the
  * DisasterMap. Uses PostGIS server endpoints (/api/spatial/*) with
  * client-side Haversine as fallback for offline resilience.
- *
  * Tools:
  *  1. Distance Measure — PostGIS ST_Distance with Haversine fallback
  *  2. Area Measure — PostGIS ST_Area with spherical excess fallback
@@ -16,7 +15,7 @@
  * 10. Export View — capture current map bounds + data summary
  * 11. Buffer Analysis — PostGIS full spatial analysis (reports + shelters + zones)
  * 12. Density Map — PostGIS incident density / KDE heatmap data
- */
+  */
 
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useMap, useMapEvents, Marker, Circle, Polyline, Polygon, Popup } from 'react-leaflet'
@@ -28,10 +27,9 @@ import {
 import type { Report } from '../../types'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
+import { sanitizeHtml } from './SafeHtml'
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Types
-// ═══════════════════════════════════════════════════════════════════════════════
 
 type ToolId =
   | 'distance' | 'area' | 'buffer' | 'radius-search'
@@ -82,16 +80,14 @@ interface Props {
   hideToggle?: boolean
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Haversine & Geodesic Math
-// ═══════════════════════════════════════════════════════════════════════════════
 
 const R_EARTH = 6371 // Earth radius in km
 
 function toRad(deg: number): number { return deg * (Math.PI / 180) }
 function toDeg(rad: number): number { return rad * (180 / Math.PI) }
 
-/** Haversine distance between two points in km */
+/* Haversine distance between two points in km */
 function haversine(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const dLat = toRad(lat2 - lat1)
   const dLng = toRad(lng2 - lng1)
@@ -100,7 +96,7 @@ function haversine(lat1: number, lng1: number, lat2: number, lng2: number): numb
   return R_EARTH * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
-/** Spherical polygon area using the spherical excess formula (km²) */
+/* Spherical polygon area using the spherical excess formula (km²) */
 function sphericalPolygonArea(coords: [number, number][]): number {
   if (coords.length < 3) return 0
   const n = coords.length
@@ -113,7 +109,7 @@ function sphericalPolygonArea(coords: [number, number][]): number {
   return Math.abs(sum * R_EARTH * R_EARTH / 2)
 }
 
-/** Compass bearing from point A to point B */
+/* Compass bearing from point A to point B */
 function bearing(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const dLng = toRad(lng2 - lng1)
   const y = Math.sin(dLng) * Math.cos(toRad(lat2))
@@ -132,9 +128,7 @@ function formatDist(km: number): string {
   return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(2)} km`
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Tool Definitions
-// ═══════════════════════════════════════════════════════════════════════════════
 
 function getTools(lang: string): ToolDef[] {
   return [
@@ -153,9 +147,7 @@ function getTools(lang: string): ToolDef[] {
 ]
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Marker Icons
-// ═══════════════════════════════════════════════════════════════════════════════
 
 function toolIcon(color: string, label: string): L.DivIcon {
   return L.divIcon({
@@ -167,9 +159,7 @@ function toolIcon(color: string, label: string): L.DivIcon {
   })
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Click Handler Sub-component
-// ═══════════════════════════════════════════════════════════════════════════════
 
 function ToolClickHandler({ activeTool, onMapClick }: { activeTool: ToolId | null; onMapClick: (e: L.LeafletMouseEvent) => void }) {
   useMapEvents({
@@ -182,9 +172,7 @@ function ToolClickHandler({ activeTool, onMapClick }: { activeTool: ToolId | nul
   return null
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Main Component
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export default function SpatialToolbar({ reports = [], open, hideToggle }: Props): JSX.Element {
   const map = useMap()
@@ -239,7 +227,7 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTool, reset])
 
-  // ─── Distance ──────────────────────────────────────────────────────────────
+  //  Distance
 
   const totalDistance = useMemo(() => {
     if (points.length < 2) return 0
@@ -250,14 +238,14 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
     return d
   }, [points])
 
-  // ─── Area ──────────────────────────────────────────────────────────────────
+  //  Area
 
   const polygonArea = useMemo(() => {
     if (points.length < 3) return 0
     return sphericalPolygonArea(points)
   }, [points])
 
-  // ─── Reverse Geocode ───────────────────────────────────────────────────────
+  //  Reverse Geocode
 
   const reverseGeocode = useCallback(async (lat: number, lng: number): Promise<string> => {
     try {
@@ -272,7 +260,7 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
     }
   }, [])
 
-  // ─── Elevation Lookup ──────────────────────────────────────────────────────
+  //  Elevation Lookup
 
   const fetchElevation = useCallback(async (coords: [number, number][]): Promise<ElevationPoint[]> => {
     try {
@@ -291,7 +279,7 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
     }
   }, [])
 
-  // ─── Nearest Shelter ───────────────────────────────────────────────────────
+  //  Nearest Shelter
 
   const findNearestShelter = useCallback(async (lat: number, lng: number): Promise<ShelterResult | null> => {
     // Try PostGIS nearest-neighbour first (uses KNN <-> operator)
@@ -339,7 +327,7 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
     }
   }, [])
 
-  // ─── Flood Risk Query ─────────────────────────────────────────────────────
+  //  Flood Risk Query
 
   const queryFloodRisk = useCallback(async (lat: number, lng: number): Promise<string> => {
     // Try PostGIS ST_Contains / ST_DWithin flood zone check first
@@ -400,7 +388,7 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
     }
   }, [])
 
-  // ─── Radius Search ─────────────────────────────────────────────────────────
+  //  Radius Search
 
   const doRadiusSearch = useCallback(async (lat: number, lng: number, radiusKm: number) => {
     // Try PostGIS ST_DWithin buffer analysis first
@@ -452,7 +440,7 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
     return { reports: nearbyReports.length, shelters }
   }, [reports])
 
-  // ─── PostGIS Buffer Analysis ───────────────────────────────────────────────
+  //  PostGIS Buffer Analysis
 
   const runBufferAnalysis = useCallback(async (lat: number, lng: number, radiusKm: number): Promise<BufferAnalysisResult | null> => {
     try {
@@ -468,7 +456,7 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
     }
   }, [])
 
-  // ─── PostGIS Density Map ───────────────────────────────────────────────────
+  //  PostGIS Density Map
 
   const fetchDensity = useCallback(async (): Promise<DensityPoint[]> => {
     try {
@@ -493,7 +481,7 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
     }
   }, [map])
 
-  // ─── Export View ───────────────────────────────────────────────────────────
+  //  Export View
 
   const [exportFormat, setExportFormat] = useState<'json' | 'csv' | 'geojson' | 'kml'>('json')
 
@@ -564,7 +552,7 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
     setActiveTool(null)
   }, [map, reports, exportFormat, getExportData])
 
-  // ─── Map Click Handler ─────────────────────────────────────────────────────
+  //  Map Click Handler
 
   const handleMapClick = useCallback(async (e: L.LeafletMouseEvent) => {
     const { lat, lng } = e.latlng
@@ -763,7 +751,7 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
       {/* Nearest shelter marker */}
       {activeTool === 'nearest-shelter' && nearestShelter && (
         <>
-          <Marker position={[nearestShelter.lat, nearestShelter.lng]} icon={toolIcon('#10b981', '🏠')}>
+          <Marker position={[nearestShelter.lat, nearestShelter.lng]} icon={toolIcon('#10b981', '<svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;12&quot; height=&quot;12&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;white&quot; stroke-width=&quot;2.5&quot;><path d=&quot;m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z&quot;/><polyline points=&quot;9 22 9 12 15 12 15 22&quot;/></svg>')}>
             <Popup>
               <p className="font-semibold text-sm">{nearestShelter.name}</p>
               <p className="text-xs">{t('spatial.distanceLabel', lang)}: {formatDist(nearestShelter.distance)}</p>
@@ -799,7 +787,7 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
         <Marker
           key={`ba-shelter-${i}`}
           position={[parseFloat(s.lat), parseFloat(s.lng)]}
-          icon={toolIcon('#7c3aed', '🏠')}
+          icon={toolIcon('#7c3aed', '<svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;12&quot; height=&quot;12&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;white&quot; stroke-width=&quot;2.5&quot;><path d=&quot;m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z&quot;/><polyline points=&quot;9 22 9 12 15 12 15 22&quot;/></svg>')}
         >
           <Popup>
             <p className="font-semibold text-sm">{s.name}</p>
@@ -830,13 +818,13 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
         </Marker>
       ))}
 
-      {/* ─── Toolbar UI ────────────────────────────────────────────────── */}
+      {/*  Toolbar UI  */}
       <div className="absolute top-3 right-3 z-[760] select-none" style={{ pointerEvents: 'auto' }}>
         {/* Toggle button — hidden when the parent toolbar controls it */}
         {!hideToggle && (
           <button
             onClick={() => setExpanded(!expanded)}
-            className="bg-white dark:bg-gray-800 shadow-lg rounded-lg px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-1.5"
+            className="bg-white dark:bg-gray-800 shadow-lg rounded-lg px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-1.5"
             title={t('spatial.spatialAnalysisTools', lang)}
           >
             <Ruler className="w-4 h-4" />
@@ -857,7 +845,7 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
                   className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-xs transition-colors ${
                     activeTool === tool.id
                       ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-semibold'
-                      : 'text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
                   title={tool.description}
                 >
@@ -871,22 +859,22 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
             {activeTool && (
               <div className="border-t border-gray-200 dark:border-gray-700 p-2.5">
                 <div className="flex items-center justify-between mb-1">
-                  <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{activeToolDef?.label}</p>
+                  <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">{activeToolDef?.label}</p>
                   <div className="flex gap-1">
-                    <button onClick={reset} className="text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-200" title={t('common.reset', lang)}>
+                    <button onClick={reset} className="text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-200" title={t('common.reset', lang)}>
                       <RotateCcw className="w-3.5 h-3.5" />
                     </button>
-                    <button onClick={() => { reset(); setActiveTool(null) }} className="text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-200" title={t('spatial.closeTool', lang)}>
+                    <button onClick={() => { reset(); setActiveTool(null) }} className="text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-200" title={t('spatial.closeTool', lang)}>
                       <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
-                <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-2">{activeToolDef?.description}</p>
+                <p className="text-[10px] text-gray-500 dark:text-gray-300 mb-2">{activeToolDef?.description}</p>
 
                 {/* Radius input for buffer/radius-search/buffer-analysis */}
                 {(activeTool === 'buffer' || activeTool === 'radius-search' || activeTool === 'buffer-analysis') && (
                   <div className="flex items-center gap-2 mb-2">
-                    <label className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('spatial.radius', lang)}:</label>
+                    <label className="text-[10px] text-gray-500 dark:text-gray-300">{t('spatial.radius', lang)}:</label>
                     <input
                       type="range"
                       min={0.1}
@@ -896,14 +884,14 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
                       onChange={e => setBufferRadius(Number(e.target.value))}
                       className="flex-1 h-1"
                     />
-                    <span className="text-[10px] font-mono w-12 text-right text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{bufferRadius} km</span>
+                    <span className="text-[10px] font-mono w-12 text-right text-gray-600 dark:text-gray-300">{bufferRadius} km</span>
                   </div>
                 )}
 
                 {/* Export format picker */}
                 {activeTool === 'export' && (
                   <div className="mb-2">
-                    <label className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-1 block">{t('spatial.exportFormat', lang)}:</label>
+                    <label className="text-[10px] text-gray-500 dark:text-gray-300 mb-1 block">{t('spatial.exportFormat', lang)}:</label>
                     <div className="grid grid-cols-2 gap-1">
                       {(['json', 'csv', 'geojson', 'kml'] as const).map(fmt => (
                         <button
@@ -912,7 +900,7 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
                           className={`text-[10px] px-2 py-1.5 rounded font-medium transition-colors
                             ${exportFormat === fmt
                               ? 'bg-blue-600 text-white'
-                              : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:bg-blue-100 dark:hover:bg-blue-900'
+                              : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-blue-100 dark:hover:bg-blue-900'
                             }`}
                         >
                           {fmt.toUpperCase()}
@@ -932,9 +920,10 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
 
                 {/* Result */}
                 {result && !loading && (
-                  <div className="text-xs text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 bg-gray-50 dark:bg-gray-900 rounded p-2 whitespace-pre-wrap leading-relaxed">
+                  <div className="text-xs text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900 rounded p-2 whitespace-pre-wrap leading-relaxed">
                     {result.split('\n').map((line, i) => {
-                      const html = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                      // SECURITY: Sanitize HTML before rendering to prevent XSS
+                      const html = sanitizeHtml(line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'))
                       return <p key={i} dangerouslySetInnerHTML={{ __html: html }} />
                     })}
                   </div>
@@ -943,7 +932,7 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
                 {/* Elevation mini chart */}
                 {activeTool === 'elevation' && elevationData.length >= 2 && (
                   <div className="mt-2">
-                    <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-1">{t('spatial.elevationProfile', lang)}</p>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-300 mb-1">{t('spatial.elevationProfile', lang)}</p>
                     <div className="flex items-end gap-px h-12 bg-gray-100 dark:bg-gray-900 rounded p-1">
                       {elevationData.map((e, i) => {
                         const vals = elevationData.filter(v => v.elevation !== null).map(v => v.elevation!)
@@ -968,7 +957,7 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
                 {activeTool === 'radius-search' && radiusResults && (
                   <div className="mt-2 space-y-1">
                     {radiusResults.shelters.slice(0, 3).map((s, i) => (
-                      <div key={i} className="text-[10px] text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex justify-between">
+                      <div key={i} className="text-[10px] text-gray-600 dark:text-gray-300 flex justify-between">
                         <span className="truncate">{s.name}</span>
                         <span className="font-mono">{formatDist(s.distance)}</span>
                       </div>
@@ -981,9 +970,9 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
                   <div className="mt-2 space-y-1.5">
                     {bufferAnalysis.reports.count > 0 && (
                       <div>
-                        <p className="text-[10px] font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">Top Reports:</p>
+                        <p className="text-[10px] font-semibold text-gray-600 dark:text-gray-300">Top Reports:</p>
                         {bufferAnalysis.reports.items.slice(0, 3).map((r: any, i: number) => (
-                          <div key={i} className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex justify-between">
+                          <div key={i} className="text-[10px] text-gray-500 dark:text-gray-300 flex justify-between">
                             <span className="truncate">{r.type || 'Report'} ({r.severity})</span>
                             <span className="font-mono">{formatDist(parseFloat(r.distance_km) || 0)}</span>
                           </div>
@@ -992,9 +981,9 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
                     )}
                     {bufferAnalysis.shelters.count > 0 && (
                       <div>
-                        <p className="text-[10px] font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">Shelters:</p>
+                        <p className="text-[10px] font-semibold text-gray-600 dark:text-gray-300">Shelters:</p>
                         {bufferAnalysis.shelters.items.slice(0, 3).map((s: any, i: number) => (
-                          <div key={i} className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex justify-between">
+                          <div key={i} className="text-[10px] text-gray-500 dark:text-gray-300 flex justify-between">
                             <span className="truncate">{s.name}</span>
                             <span className="font-mono">{formatDist(parseFloat(s.distance_km) || 0)}</span>
                           </div>
@@ -1003,7 +992,7 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
                     )}
                     {bufferAnalysis.flood_zones.count > 0 && (
                       <div>
-                        <p className="text-[10px] font-semibold text-red-600 dark:text-red-400">⚠ Flood Zones: {bufferAnalysis.flood_zones.count}</p>
+                        <p className="text-[10px] font-semibold text-red-600 dark:text-red-400">Flood Zones: {bufferAnalysis.flood_zones.count}</p>
                       </div>
                     )}
                   </div>
@@ -1012,7 +1001,7 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
                 {/* Density legend */}
                 {activeTool === 'density' && densityPoints.length > 0 && (
                   <div className="mt-2">
-                    <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-1">Density Legend</p>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-300 mb-1">Density Legend</p>
                     <div className="flex items-center gap-2 text-[10px]">
                       <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500" /> Low</span>
                       <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500" /> Medium</span>
@@ -1028,7 +1017,4 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
     </>
   )
 }
-
-
-
 

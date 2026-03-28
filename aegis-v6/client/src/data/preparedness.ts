@@ -2,7 +2,7 @@ import type { PreparednessTip, PreparednessScenario } from '../types'
 
 export const PREPAREDNESS_TIPS: PreparednessTip[] = [
   {
-    category: 'flood', icon: '🌊', title: 'Flood Preparedness',
+    category: 'flood', icon: 'Waves', title: 'Flood Preparedness',
     before: [
       'Know your flood risk — check SEPA/EA flood maps for your area',
       'Sign up for flood warnings (Floodline: 0345 988 1188)',
@@ -32,7 +32,7 @@ export const PREPAREDNESS_TIPS: PreparednessTip[] = [
     ],
   },
   {
-    category: 'earthquake', icon: '🌍', title: 'Earthquake Preparedness',
+    category: 'earthquake', icon: 'Globe', title: 'Earthquake Preparedness',
     before: [
       'Identify safe spots in each room (under sturdy furniture)',
       'Secure heavy furniture and appliances to walls',
@@ -55,7 +55,7 @@ export const PREPAREDNESS_TIPS: PreparednessTip[] = [
     ],
   },
   {
-    category: 'fire', icon: '🔥', title: 'Fire / Wildfire Preparedness',
+    category: 'fire', icon: 'Flame', title: 'Fire / Wildfire Preparedness',
     before: [
       'Install smoke alarms on every floor — test monthly',
       'Plan and practise escape routes from every room',
@@ -79,7 +79,7 @@ export const PREPAREDNESS_TIPS: PreparednessTip[] = [
     ],
   },
   {
-    category: 'storm', icon: '🌀', title: 'Storm / Hurricane Preparedness',
+    category: 'storm', icon: 'Wind', title: 'Storm / Hurricane Preparedness',
     before: [
       'Monitor weather forecasts closely',
       'Secure outdoor furniture, bins and loose objects',
@@ -105,7 +105,7 @@ export const PREPAREDNESS_TIPS: PreparednessTip[] = [
     ],
   },
   {
-    category: 'general', icon: '🛡️', title: 'General Emergency Preparedness',
+    category: 'general', icon: 'Shield', title: 'General Emergency Preparedness',
     before: [
       'Create a household emergency plan and practise it',
       'Build a 72-hour emergency kit',
@@ -285,35 +285,33 @@ export const PREPAREDNESS_SCENARIOS: PreparednessScenario[] = [
 ]
 
 export const EMERGENCY_KIT_ITEMS: { item: string; icon: string; priority: 'essential' | 'important' | 'recommended' }[] = [
-  { item: 'Water — 2L per person per day (3-day supply)', icon: '💧', priority: 'essential' },
-  { item: 'Non-perishable food (3-day supply)', icon: '🥫', priority: 'essential' },
-  { item: 'Torch with spare batteries', icon: '🔦', priority: 'essential' },
-  { item: 'First aid kit', icon: '🏥', priority: 'essential' },
-  { item: 'Medications and prescriptions', icon: '💊', priority: 'essential' },
-  { item: 'Phone charger / power bank', icon: '🔋', priority: 'essential' },
-  { item: 'Important documents (waterproof bag)', icon: '📋', priority: 'essential' },
-  { item: 'Cash (ATMs may not work)', icon: '💵', priority: 'important' },
-  { item: 'Battery / hand-crank radio', icon: '📻', priority: 'important' },
-  { item: 'Warm clothing and blankets', icon: '🧥', priority: 'important' },
-  { item: 'Whistle (to signal for help)', icon: '📣', priority: 'important' },
-  { item: 'Dust mask / face covering', icon: '😷', priority: 'important' },
-  { item: 'Protective gloves', icon: '🧤', priority: 'important' },
-  { item: 'Waterproof jacket / poncho', icon: '🌧️', priority: 'important' },
-  { item: 'Spare glasses / contact lenses', icon: '👓', priority: 'important' },
-  { item: 'Wrench to turn off utilities', icon: '🔧', priority: 'recommended' },
-  { item: 'Can opener (manual)', icon: '🥫', priority: 'recommended' },
-  { item: 'Local maps (paper)', icon: '🗺️', priority: 'recommended' },
-  { item: 'Plastic sheeting and tape', icon: '📦', priority: 'recommended' },
-  { item: 'Sanitation supplies & wet wipes', icon: '🧻', priority: 'recommended' },
-  { item: 'Infant supplies (if applicable)', icon: '🍼', priority: 'recommended' },
-  { item: 'Pet food & supplies (if applicable)', icon: '🐾', priority: 'recommended' },
-  { item: 'Multi-tool / Swiss army knife', icon: '🔪', priority: 'recommended' },
-  { item: 'Emergency contact list (printed)', icon: '📞', priority: 'recommended' },
+  { item: 'Water — 2L per person per day (3-day supply)', icon: 'Droplets', priority: 'essential' },
+  { item: 'Non-perishable food (3-day supply)', icon: 'Package', priority: 'essential' },
+  { item: 'Torch with spare batteries', icon: 'Flashlight', priority: 'essential' },
+  { item: 'First aid kit', icon: 'Cross', priority: 'essential' },
+  { item: 'Medications and prescriptions', icon: 'Pill', priority: 'essential' },
+  { item: 'Phone charger / power bank', icon: 'BatteryCharging', priority: 'essential' },
+  { item: 'Important documents (waterproof bag)', icon: 'FileText', priority: 'essential' },
+  { item: 'Cash (ATMs may not work)', icon: 'Banknote', priority: 'important' },
+  { item: 'Battery / hand-crank radio', icon: 'Radio', priority: 'important' },
+  { item: 'Warm clothing and blankets', icon: 'Shirt', priority: 'important' },
+  { item: 'Whistle (to signal for help)', icon: 'Volume2', priority: 'important' },
+  { item: 'Dust mask / face covering', icon: 'Shield', priority: 'important' },
+  { item: 'Protective gloves', icon: 'Hand', priority: 'important' },
+  { item: 'Waterproof jacket / poncho', icon: 'CloudRain', priority: 'important' },
+  { item: 'Spare glasses / contact lenses', icon: 'Glasses', priority: 'important' },
+  { item: 'Wrench to turn off utilities', icon: 'Wrench', priority: 'recommended' },
+  { item: 'Can opener (manual)', icon: 'Package', priority: 'recommended' },
+  { item: 'Local maps (paper)', icon: 'Map', priority: 'recommended' },
+  { item: 'Plastic sheeting and tape', icon: 'Box', priority: 'recommended' },
+  { item: 'Sanitation supplies & wet wipes', icon: 'Sparkles', priority: 'recommended' },
+  { item: 'Infant supplies (if applicable)', icon: 'Baby', priority: 'recommended' },
+  { item: 'Pet food & supplies (if applicable)', icon: 'PawPrint', priority: 'recommended' },
+  { item: 'Multi-tool / Swiss army knife', icon: 'Wrench', priority: 'recommended' },
+  { item: 'Emergency contact list (printed)', icon: 'Phone', priority: 'recommended' },
 ]
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // QUIZ QUESTIONS — data–driven, easy to expand or load from an API
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export interface QuizQuestion {
   q: string
@@ -356,9 +354,7 @@ export const ALL_QUIZ: QuizQuestion[] = [
   { q: 'What is the correct order of priorities in an emergency (triage principle)?', opts: ['Property, then people','Call news, then help others','Safety first, then alert services, then help casualties','Help casualties, then call for help, then ensure safety'], correct: 2, category: 'general', explanation: 'Never compromise your own safety. Ensure you are safe, call 999, then assist others as trained.' },
 ]
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // BADGES — gamification achievements
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export interface Badge {
   id: string
@@ -369,12 +365,12 @@ export interface Badge {
 }
 
 export const BADGES: Badge[] = [
-  { id: 'scenario_1', label: 'First Responder', desc: 'Complete your first scenario', icon: '🎯', condition: (s) => s.size >= 1 },
-  { id: 'scenario_5', label: 'Survivor', desc: 'Complete 5 scenarios', icon: '🏆', condition: (s) => s.size >= 5 },
-  { id: 'scenario_all', label: 'Scenario Master', desc: 'Complete all scenarios', icon: '🌟', condition: (s) => s.size >= PREPAREDNESS_SCENARIOS.length },
-  { id: 'quiz_50', label: 'Quiz Starter', desc: 'Score 50%+ on quiz', icon: '📝', condition: (_s, score, total) => score / total >= 0.5 },
-  { id: 'quiz_80', label: 'Emergency Expert', desc: 'Score 80%+ on quiz', icon: '🎓', condition: (_s, score, total) => score / total >= 0.8 },
-  { id: 'quiz_100', label: 'Safety Legend', desc: 'Score 100% on quiz', icon: '👑', condition: (_s, score, total) => score === total },
-  { id: 'kit_50', label: 'Kit Builder', desc: 'Check 50% of kit items', icon: '🎒', condition: (_s, _sc, _tot, kitPct) => kitPct >= 0.5 },
-  { id: 'kit_all', label: 'Fully Equipped', desc: 'Check all kit items', icon: '✅', condition: (_s, _sc, _tot, kitPct) => kitPct >= 1 },
+  { id: 'scenario_1', label: 'First Responder', desc: 'Complete your first scenario', icon: 'Target', condition: (s) => s.size >= 1 },
+  { id: 'scenario_5', label: 'Survivor', desc: 'Complete 5 scenarios', icon: 'Trophy', condition: (s) => s.size >= 5 },
+  { id: 'scenario_all', label: 'Scenario Master', desc: 'Complete all scenarios', icon: 'Star', condition: (s) => s.size >= PREPAREDNESS_SCENARIOS.length },
+  { id: 'quiz_50', label: 'Quiz Starter', desc: 'Score 50%+ on quiz', icon: 'FileText', condition: (_s, score, total) => score / total >= 0.5 },
+  { id: 'quiz_80', label: 'Emergency Expert', desc: 'Score 80%+ on quiz', icon: 'Award', condition: (_s, score, total) => score / total >= 0.8 },
+  { id: 'quiz_100', label: 'Safety Legend', desc: 'Score 100% on quiz', icon: 'Crown', condition: (_s, score, total) => score === total },
+  { id: 'kit_50', label: 'Kit Builder', desc: 'Check 50% of kit items', icon: 'Backpack', condition: (_s, _sc, _tot, kitPct) => kitPct >= 0.5 },
+  { id: 'kit_all', label: 'Fully Equipped', desc: 'Check all kit items', icon: 'CheckCircle', condition: (_s, _sc, _tot, kitPct) => kitPct >= 1 },
 ]

@@ -1,18 +1,12 @@
--- ═══════════════════════════════════════════════════════════════
 -- AEGIS Seed Data
 -- Populates the database with realistic sample data for testing
 -- and demonstration during the degree show presentation
---
 -- Includes: 30 sample reports across Scotland,
 -- AI model metrics for the transparency dashboard, and sample alerts
---
--- ═══════════════════════════════════════════════════════════════
 
--- ───────────────────────────────────────────────────
 -- Sample reports across Scottish cities
 -- Each report simulates a realistic emergency scenario
 -- Coordinates use WGS84 (EPSG:4326) for PostGIS compatibility
--- ───────────────────────────────────────────────────
 
 -- Aberdeen area reports
 INSERT INTO reports (report_number, incident_category, incident_subtype, display_type, description, severity, status, trapped_persons, location_text, coordinates, ai_confidence, ai_analysis) VALUES
@@ -86,29 +80,33 @@ INSERT INTO reports (report_number, incident_category, incident_subtype, display
 ('RPT-029', 'natural_disaster', 'flood', 'Natural Disaster — Flood / Rising Water', 'River Tweed flooding at Peebles. Extensive flooding along Tweed Green. Footbridge closed. Several campervan park visitors stranded. Water levels continuing to rise overnight.', 'medium', 'unverified', 'no', 'Peebles, Scottish Borders', ST_SetSRID(ST_MakePoint(-3.1900, 55.6510), 4326), 77, '{"panicLevel": 5, "fakeProbability": 14, "sentimentScore": -0.5, "keyEntities": ["River Tweed", "Peebles", "Tweed Green"], "reasoning": "Moderate confidence: Tweed flooding is realistic, but time reference (overnight) makes verification difficult."}'),
 
 -- Fife
-('RPT-030', 'natural_disaster', 'flood', 'Natural Disaster — Flood / Rising Water', 'Coastal flooding in St Andrews. Heavy seas overtopping the harbour wall. East Scores and The Scores areas affected. University buildings sandbagging entrances.', 'medium', 'verified', 'no', 'St Andrews, Fife', ST_SetSRID(ST_MakePoint(-2.7970, 56.3400), 4326), 84, '{"panicLevel": 4, "fakeProbability": 10, "sentimentScore": -0.4, "keyEntities": ["St Andrews", "harbour", "The Scores", "university"], "reasoning": "Moderate-high confidence: coastal flooding at St Andrews is documented, multiple landmarks verify local knowledge."}');
+('RPT-030', 'natural_disaster', 'flood', 'Natural Disaster — Flood / Rising Water', 'Coastal flooding in St Andrews. Heavy seas overtopping the harbour wall. East Scores and The Scores areas affected. University buildings sandbagging entrances.', 'medium', 'verified', 'no', 'St Andrews, Fife', ST_SetSRID(ST_MakePoint(-2.7970, 56.3400), 4326), 84, '{"panicLevel": 4, "fakeProbability": 10, "sentimentScore": -0.4, "keyEntities": ["St Andrews", "harbour", "The Scores", "university"], "reasoning": "Moderate-high confidence: coastal flooding at St Andrews is documented, multiple landmarks verify local knowledge."}')
+ON CONFLICT (report_number) DO NOTHING;
 
--- ───────────────────────────────────────────────────
 -- Sample alerts
--- ───────────────────────────────────────────────────
-INSERT INTO alerts (title, message, severity, alert_type, location_text, coordinates, radius_km) VALUES
-('Flood Warning — River Don, Aberdeen', 'SEPA has issued a flood warning for the River Don at Park Bridge. River levels are expected to peak overnight. Residents in low-lying areas of Bridge of Don and Grandholm should prepare for potential evacuation.', 'critical', 'flood_warning', 'River Don, Aberdeen', ST_SetSRID(ST_MakePoint(-2.095, 57.172), 4326), 5.0),
-('Flood Alert — River Dee, Aberdeenshire', 'River Dee levels are rising. Properties along Riverside Drive in Cults should prepare sandbag defences. Monitor SEPA for updates.', 'warning', 'flood_warning', 'River Dee, Aberdeen', ST_SetSRID(ST_MakePoint(-2.155, 57.134), 4326), 8.0),
-('Surface Water Warning — Edinburgh', 'Heavy rainfall forecast for Edinburgh over the next 12 hours. Risk of surface water flooding in Dean Village, Roseburn, and Stockbridge areas. Avoid low-lying routes.', 'warning', 'flood_warning', 'Edinburgh', ST_SetSRID(ST_MakePoint(-3.220, 55.952), 4326), 15.0),
-('Flood Warning — River Clyde, Glasgow', 'River Clyde expected to reach warning levels by evening. Dalmarnock, Yoker, and Glasgow Green areas at greatest risk. Emergency shelters open at Tollcross Leisure Centre.', 'critical', 'flood_warning', 'River Clyde, Glasgow', ST_SetSRID(ST_MakePoint(-4.250, 55.860), 4326), 12.0),
-('Travel Disruption — A82 Loch Lomond', 'A82 blocked at Tarbet due to landslide. No estimated reopening time. Use A83/M80 as alternative route. Avoid unnecessary travel in the area.', 'warning', 'travel', 'A82, Loch Lomond', ST_SetSRID(ST_MakePoint(-4.720, 56.200), 4326), 20.0);
+-- Guard against duplicate inserts on re-run (alerts have no natural unique key).
+-- Only insert if the alerts table is empty (seed data scenario).
+INSERT INTO alerts (title, message, severity, alert_type, location_text, coordinates, radius_km)
+SELECT v.* FROM (VALUES
+  ('Flood Warning — River Don, Aberdeen'::VARCHAR(200), 'SEPA has issued a flood warning for the River Don at Park Bridge. River levels are expected to peak overnight. Residents in low-lying areas of Bridge of Don and Grandholm should prepare for potential evacuation.'::TEXT, 'critical'::alert_severity, 'flood_warning'::VARCHAR(50), 'River Don, Aberdeen'::VARCHAR(200), ST_SetSRID(ST_MakePoint(-2.095, 57.172), 4326), 5.0::FLOAT),
+  ('Flood Alert — River Dee, Aberdeenshire', 'River Dee levels are rising. Properties along Riverside Drive in Cults should prepare sandbag defences. Monitor SEPA for updates.', 'warning', 'flood_warning', 'River Dee, Aberdeen', ST_SetSRID(ST_MakePoint(-2.155, 57.134), 4326), 8.0),
+  ('Surface Water Warning — Edinburgh', 'Heavy rainfall forecast for Edinburgh over the next 12 hours. Risk of surface water flooding in Dean Village, Roseburn, and Stockbridge areas. Avoid low-lying routes.', 'warning', 'flood_warning', 'Edinburgh', ST_SetSRID(ST_MakePoint(-3.220, 55.952), 4326), 15.0),
+  ('Flood Warning — River Clyde, Glasgow', 'River Clyde expected to reach warning levels by evening. Dalmarnock, Yoker, and Glasgow Green areas at greatest risk. Emergency shelters open at Tollcross Leisure Centre.', 'critical', 'flood_warning', 'River Clyde, Glasgow', ST_SetSRID(ST_MakePoint(-4.250, 55.860), 4326), 12.0),
+  ('Travel Disruption — A82 Loch Lomond', 'A82 blocked at Tarbet due to landslide. No estimated reopening time. Use A83/M80 as alternative route. Avoid unnecessary travel in the area.', 'warning', 'travel', 'A82, Loch Lomond', ST_SetSRID(ST_MakePoint(-4.720, 56.200), 4326), 20.0)
+) AS v(title, message, severity, alert_type, location_text, coordinates, radius_km)
+WHERE NOT EXISTS (SELECT 1 FROM alerts LIMIT 1);
 
--- ───────────────────────────────────────────────────
 -- AI model performance metrics
 -- Pre-populated for the transparency dashboard
 -- In production, these would be updated after each model training cycle
--- ───────────────────────────────────────────────────
-INSERT INTO ai_model_metrics (model_name, model_version, accuracy, precision_score, recall, f1_score, confusion_matrix, feature_importance, confidence_distribution, training_samples, last_trained, notes) VALUES
-('FloodClassifier', 'v1.2', 0.89, 0.91, 0.87, 0.87,
- '{"labels": ["River", "Flash", "Coastal", "Surface"], "matrix": [[40, 5, 2, 3], [4, 38, 1, 7], [1, 2, 42, 5], [3, 6, 4, 37]]}',
- '{"features": [{"name": "River level (m)", "importance": 0.35}, {"name": "Rainfall 24h (mm)", "importance": 0.28}, {"name": "Elevation (m)", "importance": 0.18}, {"name": "Soil saturation (%)", "importance": 0.08}, {"name": "Distance to river (m)", "importance": 0.06}, {"name": "Historical frequency", "importance": 0.03}, {"name": "Season", "importance": 0.02}]}',
- '{"ranges": [{"label": "90-100%", "count": 45}, {"label": "80-89%", "count": 62}, {"label": "70-79%", "count": 38}, {"label": "60-69%", "count": 25}, {"label": "50-59%", "count": 18}, {"label": "<50%", "count": 12}]}',
- 2847, '2026-02-12 14:30:00+00', 'Trained on SEPA historical flood records 2000-2025 combined with Environment Agency data. LSTM component uses 10-year river level time series.'),
+-- Only insert if the table is empty (idempotent on re-run)
+INSERT INTO ai_model_metrics (model_name, model_version, accuracy, precision_score, recall, f1_score, confusion_matrix, feature_importance, confidence_distribution, training_samples, last_trained, notes)
+SELECT * FROM (VALUES
+('FloodClassifier'::VARCHAR(100), 'v1.2'::VARCHAR(20), 0.89::FLOAT, 0.91::FLOAT, 0.87::FLOAT, 0.87::FLOAT,
+ '{"labels": ["River", "Flash", "Coastal", "Surface"], "matrix": [[40, 5, 2, 3], [4, 38, 1, 7], [1, 2, 42, 5], [3, 6, 4, 37]]}'::JSONB,
+ '{"features": [{"name": "River level (m)", "importance": 0.35}, {"name": "Rainfall 24h (mm)", "importance": 0.28}, {"name": "Elevation (m)", "importance": 0.18}, {"name": "Soil saturation (%)", "importance": 0.08}, {"name": "Distance to river (m)", "importance": 0.06}, {"name": "Historical frequency", "importance": 0.03}, {"name": "Season", "importance": 0.02}]}'::JSONB,
+ '{"ranges": [{"label": "90-100%", "count": 45}, {"label": "80-89%", "count": 62}, {"label": "70-79%", "count": 38}, {"label": "60-69%", "count": 25}, {"label": "50-59%", "count": 18}, {"label": "<50%", "count": 12}]}'::JSONB,
+ 2847::INTEGER, '2026-02-12 14:30:00+00'::TIMESTAMPTZ, 'Trained on SEPA historical flood records 2000-2025 combined with Environment Agency data. LSTM component uses 10-year river level time series.'::TEXT),
 
 ('SentimentAnalyser', 'v2.0', 0.93, 0.92, 0.94, 0.93,
  '{"labels": ["Panic", "Urgent", "Calm", "Informational"], "matrix": [[85, 8, 2, 5], [6, 82, 4, 8], [1, 3, 90, 6], [3, 5, 4, 88]]}',
@@ -120,52 +118,56 @@ INSERT INTO ai_model_metrics (model_name, model_version, accuracy, precision_sco
  '{"labels": ["Genuine", "Suspicious", "Fake"], "matrix": [[78, 12, 10], [8, 72, 20], [5, 15, 80]]}',
  '{"features": [{"name": "Location specificity", "importance": 0.30}, {"name": "Temporal consistency", "importance": 0.22}, {"name": "Cross-reference match", "importance": 0.18}, {"name": "Language authenticity", "importance": 0.12}, {"name": "Media verification", "importance": 0.10}, {"name": "Reporter history", "importance": 0.08}]}',
  '{"ranges": [{"label": "90-100%", "count": 30}, {"label": "80-89%", "count": 55}, {"label": "70-79%", "count": 48}, {"label": "60-69%", "count": 35}, {"label": "50-59%", "count": 22}, {"label": "<50%", "count": 10}]}',
- 3150, '2026-02-10 16:45:00+00', 'Trained on mix of genuine SEPA-verified reports and synthetically generated fake reports. Cross-references against SEPA flood zone polygons and river gauge data.');
+ 3150, '2026-02-10 16:45:00+00', 'Trained on mix of genuine SEPA-verified reports and synthetically generated fake reports. Cross-references against SEPA flood zone polygons and river gauge data.')
+) AS v(model_name, model_version, accuracy, precision_score, recall, f1_score, confusion_matrix, feature_importance, confidence_distribution, training_samples, last_trained, notes)
+WHERE NOT EXISTS (SELECT 1 FROM ai_model_metrics LIMIT 1);
 
 -- Community help offers (seed data)
-INSERT INTO community_help (type, category, title, description, location_text, location_lat, location_lng, capacity, status, consent_given) VALUES
-  ('offer', 'shelter', 'Aberdeen Community Centre', 'Heated space with beds for 30 people. Hot drinks available.', 'Union Street, Aberdeen', 57.1497, -2.0943, 30, 'active', true),
+-- Only insert if the table is empty (no unique constraint to conflict on)
+INSERT INTO community_help (type, category, title, description, location_text, location_lat, location_lng, capacity, status, consent_given)
+SELECT v.* FROM (VALUES
+  ('offer'::community_help_type, 'shelter'::community_help_category, 'Aberdeen Community Centre'::TEXT, 'Heated space with beds for 30 people. Hot drinks available.'::TEXT, 'Union Street, Aberdeen'::TEXT, 57.1497::DOUBLE PRECISION, -2.0943::DOUBLE PRECISION, 30::INTEGER, 'active'::community_help_status, true::BOOLEAN),
   ('offer', 'food', 'Torry Volunteer Kitchen', 'Hot meals served 12pm-8pm. Bottled water available.', 'Victoria Road, Torry', 57.1350, -2.0780, 50, 'active', true),
   ('offer', 'transport', 'Bridge of Don 4x4 Group', '3 vehicles available for evacuation. Can carry 12 people.', 'Bridge of Don, Aberdeen', 57.1780, -2.0920, 12, 'active', true),
   ('offer', 'medical', 'St Johns First Aiders', 'Qualified first aiders with supplies. Available 24/7.', 'King Street, Aberdeen', 57.1540, -2.0850, 5, 'active', true),
   ('offer', 'clothing', 'Salvation Army Depot', 'Dry clothing, blankets, and hygiene kits.', 'George Street, Aberdeen', 57.1510, -2.0950, 100, 'active', true),
   ('request', 'shelter', 'Family of 4 needs accommodation', '2 adults and 2 children displaced by flooding. Pets: 1 cat.', 'Cults, Aberdeen', 57.1200, -2.1500, 4, 'active', true),
   ('request', 'food', 'Elderly residents need meals', '8 elderly residents in care home, kitchen flooded.', 'Dyce, Aberdeen', 57.2050, -2.1650, 8, 'active', true)
-ON CONFLICT DO NOTHING;
+) AS v(type, category, title, description, location_text, location_lat, location_lng, capacity, status, consent_given)
+WHERE NOT EXISTS (SELECT 1 FROM community_help LIMIT 1);
 
--- ═══════════════════════════════════════════════════════════════════════════════
 -- Seed data for flood_predictions
--- ═══════════════════════════════════════════════════════════════════════════════
-
-INSERT INTO flood_predictions (area, probability, time_to_flood, matched_pattern, next_areas, severity, confidence, data_sources, model_version) VALUES
-('River Don Area', 0.87, '45 mins', 'Feb 2023 Flood (87% similarity)', ARRAY['King Street', 'Market Square'], 'high', 87, ARRAY['River gauge', 'Rainfall radar', 'Historical pattern', 'Citizen reports'], 'flood-fp-v2.1'),
+-- Only insert if the table is empty (no unique constraint to conflict on)
+INSERT INTO flood_predictions (area, probability, time_to_flood, matched_pattern, next_areas, severity, confidence, data_sources, model_version)
+SELECT v.* FROM (VALUES
+('River Don Area'::VARCHAR(200), 0.87::FLOAT, '45 mins'::VARCHAR(100), 'Feb 2023 Flood (87% similarity)'::VARCHAR(300), ARRAY['King Street', 'Market Square']::TEXT[], 'high'::report_severity, 87::INTEGER, ARRAY['River gauge', 'Rainfall radar', 'Historical pattern', 'Citizen reports']::TEXT[], 'flood-fp-v2.1'::VARCHAR(50)),
 ('Dee Valley', 0.62, '2 hours', 'Nov 2022 Flood (62% similarity)', ARRAY['Bridge of Dee', 'Garthdee Road'], 'medium', 62, ARRAY['River gauge', 'Historical pattern'], 'flood-fp-v2.1'),
 ('Coastal Aberdeen', 0.45, '4 hours', 'Storm Babet 2023 (45% similarity)', ARRAY['Beach Esplanade', 'Footdee'], 'low', 45, ARRAY['Tide gauge', 'Wind forecast', 'Historical pattern'], 'flood-fp-v2.1')
-ON CONFLICT DO NOTHING;
+) AS v(area, probability, time_to_flood, matched_pattern, next_areas, severity, confidence, data_sources, model_version)
+WHERE NOT EXISTS (SELECT 1 FROM flood_predictions LIMIT 1);
 
--- ═══════════════════════════════════════════════════════════════════════════════
 -- Seed data for resource_deployments
--- ═══════════════════════════════════════════════════════════════════════════════
-
-INSERT INTO resource_deployments (zone, priority, active_reports, estimated_affected, ai_recommendation, ambulances, fire_engines, rescue_boats, deployed) VALUES
-('Zone A — City Centre', 'Critical', 15, '23 people needing help', 'Deploy 3 ambulances, 2 fire engines, 1 rescue boat. Prioritise Market Street and Union Street areas.', 3, 2, 1, false),
+-- Only insert if the table is empty (no unique constraint to conflict on)
+INSERT INTO resource_deployments (zone, priority, active_reports, estimated_affected, ai_recommendation, ambulances, fire_engines, rescue_boats, deployed)
+SELECT v.* FROM (VALUES
+('Zone A — City Centre'::VARCHAR(100), 'Critical'::VARCHAR(20), 15::INTEGER, '23 people needing help'::VARCHAR(200), 'Deploy 3 ambulances, 2 fire engines, 1 rescue boat. Prioritise Market Street and Union Street areas.'::TEXT, 3::INTEGER, 2::INTEGER, 1::INTEGER, false::BOOLEAN),
 ('Zone B — Old Aberdeen / Bridge of Don', 'high', 8, '12 people needing help', 'Deploy 2 ambulances, 1 fire engine. Focus on King Street and St Machar Drive.', 2, 1, 0, false),
 ('Zone C — Riverside / Dee Valley', 'medium', 4, '4 people needing help', 'Deploy 1 ambulance. Monitor Bridge of Dee and Riverside Drive.', 1, 0, 1, false),
 ('Zone D — Coastal / Beach', 'low', 2, '1 person needing help', 'Standby 1 ambulance. Monitor Beach Esplanade and Footdee.', 1, 0, 0, false)
-ON CONFLICT DO NOTHING;
+) AS v(zone, priority, active_reports, estimated_affected, ai_recommendation, ambulances, fire_engines, rescue_boats, deployed)
+WHERE NOT EXISTS (SELECT 1 FROM resource_deployments LIMIT 1);
 
--- ═══════════════════════════════════════════════════════════
 --  SEED: Activity Log entries (matching Screenshot 3 style)
--- ═══════════════════════════════════════════════════════════
-
-INSERT INTO audit_log (operator_name, action, action_type, target_type, created_at) VALUES
-  ('System Administrator', 'Exported reports as CSV', 'export', 'report', NOW()),
+--  Only insert if audit_log is empty (idempotent on re-run)
+INSERT INTO audit_log (operator_name, action, action_type, target_type, created_at)
+SELECT * FROM (VALUES
+  ('System Administrator'::VARCHAR(100), 'Exported reports as CSV'::TEXT, 'export'::VARCHAR(50), 'report'::VARCHAR(50), NOW()),
   ('System Administrator', 'Logged in to AEGIS Admin', 'login', 'session', NOW() - INTERVAL '1 hour'),
   ('System Administrator', 'Verified report', 'verify', 'report', NOW() - INTERVAL '1 hour'),
   ('System Administrator', 'Sent alert: Flood Warning — River Don', 'alert_send', 'alert', NOW() - INTERVAL '55 minutes'),
   ('Emergency Operator', 'Flagged report for review', 'flag', 'report', NOW() - INTERVAL '45 minutes'),
   ('System Administrator', 'Deployed resources to Bridge of Don', 'deploy', 'deployment', NOW() - INTERVAL '35 minutes'),
   ('Emergency Operator', 'Escalated to URGENT', 'urgent', 'report', NOW() - INTERVAL '25 minutes')
-ON CONFLICT DO NOTHING;
-
-
+) AS v(operator_name, action, action_type, target_type, created_at)
+WHERE NOT EXISTS (SELECT 1 FROM audit_log LIMIT 1);
+

@@ -1,5 +1,4 @@
-/**
- * i18n_replace_admin2.mjs — batch 2: AnalyticsCenter, AnalyticsDashboard, 
+﻿ * i18n_replace_admin2.mjs — batch 2: AnalyticsCenter, AnalyticsDashboard, 
  * AITransparencyDashboard, CommandCenter (more strings), LoginPage, AllReportsManager
  */
 import { readFileSync, writeFileSync } from 'fs'
@@ -19,9 +18,7 @@ function replaceAll(code, pairs) {
   return { result, count }
 }
 
-// ────────────────────────────────────────────────────────────
 // AnalyticsCenter.tsx
-// ────────────────────────────────────────────────────────────
 function fixAnalyticsCenter() {
   const file = join(SRC, 'components/admin/AnalyticsCenter.tsx')
   let code = readFileSync(file, 'utf8')
@@ -72,9 +69,7 @@ function fixAnalyticsCenter() {
   else console.log('SKIP AnalyticsCenter')
 }
 
-// ────────────────────────────────────────────────────────────
 // AnalyticsDashboard.tsx
-// ────────────────────────────────────────────────────────────
 function fixAnalyticsDashboard() {
   const file = join(SRC, 'components/admin/AnalyticsDashboard.tsx')
   let code = readFileSync(file, 'utf8')
@@ -150,9 +145,7 @@ function fixAnalyticsDashboard() {
   else console.log('SKIP AnalyticsDashboard')
 }
 
-// ────────────────────────────────────────────────────────────
 // AITransparencyDashboard.tsx
-// ────────────────────────────────────────────────────────────
 function fixAITransparencyDashboard() {
   const file = join(SRC, 'components/admin/AITransparencyDashboard.tsx')
   let code = readFileSync(file, 'utf8')
@@ -249,9 +242,7 @@ function fixAITransparencyDashboard() {
   else console.log('SKIP AITransparencyDashboard')
 }
 
-// ────────────────────────────────────────────────────────────
 // CommandCenter.tsx (additional strings)
-// ────────────────────────────────────────────────────────────
 function fixCommandCenter() {
   const file = join(SRC, 'components/admin/CommandCenter.tsx')
   let code = readFileSync(file, 'utf8')
@@ -317,9 +308,7 @@ function fixCommandCenter() {
   else console.log('SKIP CommandCenter')
 }
 
-// ────────────────────────────────────────────────────────────
 // AllReportsManager.tsx (additional strings)
-// ────────────────────────────────────────────────────────────
 function fixAllReportsManager() {
   const file = join(SRC, 'components/admin/AllReportsManager.tsx')
   let code = readFileSync(file, 'utf8')
@@ -346,9 +335,7 @@ function fixAllReportsManager() {
   else console.log('SKIP AllReportsManager')
 }
 
-// ────────────────────────────────────────────────────────────
 // LoginPage.tsx
-// ────────────────────────────────────────────────────────────
 function fixLoginPage() {
   const file = join(SRC, 'components/admin/LoginPage.tsx')
   let code = readFileSync(file, 'utf8')
@@ -387,3 +374,4 @@ fixAllReportsManager()
 fixLoginPage()
 
 console.log('\nDone!')
+

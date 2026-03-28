@@ -1,19 +1,17 @@
-/**
+﻿ /*
  * services/resilienceLayer.ts — API Caching, Rate Limiting, Retry Logic
- *
  * Provides:
  *   1. In-memory LRU cache with TTL for API responses
  *   2. Per-provider rate limit tracking
  *   3. Exponential backoff retry with circuit breaker
  *   4. Provider health monitoring
  *   5. Automatic fallback switching
- *
  * This is the infrastructure layer that ALL external API calls route through.
- */
+  */
 
-// ═══════════════════════════════════════════════════════════════════════════════
+import { logger } from './logger.js'
+
 // §1  LRU CACHE WITH TTL
-// ═══════════════════════════════════════════════════════════════════════════════
 
 interface CacheEntry<T> {
   value: T
@@ -92,9 +90,7 @@ export const apiCache = new LRUCache(500)       // API response cache
 export const embeddingCache = new LRUCache(200)  // Embedding vector cache
 export const llmCache = new LRUCache(100)        // LLM response cache
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §2  RATE LIMITER
-// ═══════════════════════════════════════════════════════════════════════════════
 
 interface RateLimitConfig {
   maxRequests: number
@@ -109,7 +105,7 @@ class RateLimiter {
     this.configs.set(provider, config)
   }
 
-  /** Returns true if request is allowed, false if rate limited */
+  /* Returns true if request is allowed, false if rate limited */
   acquire(provider: string): boolean {
     const config = this.configs.get(provider) || { maxRequests: 30, windowMs: 60000 }
     const now = Date.now()
@@ -125,7 +121,7 @@ class RateLimiter {
     return true
   }
 
-  /** Wait until rate limit allows a request */
+  /* Wait until rate limit allows a request */
   async waitForSlot(provider: string): Promise<void> {
     while (!this.acquire(provider)) {
       const window = this.windows.get(provider)
@@ -164,9 +160,7 @@ rateLimiter.configure('newsapi', { maxRequests: 5, windowMs: 60000 })
 rateLimiter.configure('wikipedia', { maxRequests: 10, windowMs: 60000 })
 rateLimiter.configure('nominatim', { maxRequests: 1, windowMs: 1000 }) // Strict 1/sec
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §3  CIRCUIT BREAKER
-// ═══════════════════════════════════════════════════════════════════════════════
 
 interface CircuitState {
   failures: number
@@ -224,7 +218,7 @@ class CircuitBreaker {
 
     if (circuit.failures >= this.failureThreshold) {
       circuit.state = 'open'
-      console.warn(`[CircuitBreaker] ${provider} circuit OPENED after ${circuit.failures} failures`)
+      logger.warn({ provider, failures: circuit.failures }, '[CircuitBreaker] Circuit OPENED')
     }
   }
 
@@ -239,9 +233,7 @@ class CircuitBreaker {
 
 export const circuitBreaker = new CircuitBreaker()
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §4  RESILIENT FETCH — Combines all layers
-// ═══════════════════════════════════════════════════════════════════════════════
 
 interface ResilientFetchOptions {
   provider: string
@@ -251,9 +243,9 @@ interface ResilientFetchOptions {
   timeoutMs?: number
 }
 
-/**
+ /*
  * Fetch with full resilience: cache check → rate limit → circuit breaker → retry → cache store
- */
+  */
 export async function resilientFetch<T = any>(
   url: string,
   fetchOpts: RequestInit = {},
@@ -292,7 +284,7 @@ export async function resilientFetch<T = any>(
 
       if (res.status === 429) {
         const retryAfter = parseInt(res.headers.get('retry-after') || '5')
-        console.warn(`[Resilience] ${provider} rate limited, waiting ${retryAfter}s`)
+        logger.warn({ provider, retryAfter }, '[Resilience] Provider rate limited')
         await new Promise(r => setTimeout(r, retryAfter * 1000))
         continue
       }
@@ -316,7 +308,7 @@ export async function resilientFetch<T = any>(
 
       if (attempt < maxRetries - 1) {
         const backoff = Math.pow(2, attempt) * 1000
-        console.warn(`[Resilience] ${provider} attempt ${attempt + 1} failed: ${err.message}. Retrying in ${backoff}ms`)
+        logger.warn({ provider, attempt: attempt + 1, backoffMs: backoff, error: err.message }, '[Resilience] Attempt failed, retrying')
         await new Promise(r => setTimeout(r, backoff))
       }
     }
@@ -325,9 +317,7 @@ export async function resilientFetch<T = any>(
   throw lastError || new Error(`[Resilience] ${provider}: all retries exhausted`)
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §5  HEALTH MONITORING
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export function getResilienceStatus() {
   return {
@@ -340,3 +330,4 @@ export function getResilienceStatus() {
     circuitBreakers: circuitBreaker.status(),
   }
 }
+

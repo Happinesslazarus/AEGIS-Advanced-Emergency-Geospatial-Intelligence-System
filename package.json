@@ -8,20 +8,28 @@
     "aegis-v6/server"
   ],
   "scripts": {
-    "dev:server": "cd aegis-v6/server && npm run dev",
-    "dev:client": "cd aegis-v6/client && npm run dev",
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "npm run dev --workspace=aegis-server",
+    "dev:client": "npm run dev --workspace=aegis-client",
     "dev:ai": "cd aegis-v6/ai-engine && ../.venv/Scripts/uvicorn main:app --reload --port 8000",
-    "build:client": "cd aegis-v6/client && npm run build",
-    "build:server": "cd aegis-v6/server && npm run build",
+    "build:client": "npm run build --workspace=aegis-client",
+    "build:server": "npm run build --workspace=aegis-server",
     "build": "npm run build:server && npm run build:client",
-    "test:server": "cd aegis-v6/server && npm test",
-    "test:client": "cd aegis-v6/client && npm test",
+    "test:server": "npm test --workspace=aegis-server",
+    "test:client": "npm test --workspace=aegis-client",
     "test:e2e": "cd aegis-v6/client && npm run e2e",
     "lint:client": "cd aegis-v6/client && npm run lint",
     "lint:server": "cd aegis-v6/server && npm run lint"
   },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=9.0.0"
+  },
+  "dependencies": {
+    "@types/multer": "^2.1.0",
+    "multer": "^2.1.1"
   }
 }

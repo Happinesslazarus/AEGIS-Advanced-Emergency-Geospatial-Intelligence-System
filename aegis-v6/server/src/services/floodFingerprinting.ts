@@ -1,27 +1,24 @@
-/**
+﻿ /*
  * services/floodFingerprinting.ts — Flood Fingerprinting Algorithm
- *
  * Feature #26: Flood Fingerprinting — compares current multi-source state
  *   vector against historical flood event fingerprints using cosine similarity.
  * Feature #27: Pre-Alert System — triggers notification delivery when operator
  *   sends pre-alert for a prediction.
- *
  * Outputs:
- *   - Probability of flooding
- *   - Best historical match with similarity %
- *   - Predicted downstream propagation areas
- *   - Estimated time to flood impact
- *
+ * Probability of flooding
+ * Best historical match with similarity %
+ * Predicted downstream propagation areas
+ * Estimated time to flood impact
  * This is pure ML — no LLM involvement.
- */
+  */
 
 import pool from '../models/db.js'
 import { runFusion, gatherFusionData, type FusionResult } from './fusionEngine.js'
 import { devLog } from '../utils/logger.js'
+import { regionRegistry } from '../adapters/regions/RegionRegistry.js'
+import { logger } from './logger.js'
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §1  TYPES
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export interface FloodFingerprint {
   eventId: string
@@ -65,18 +62,19 @@ export interface FloodPrediction {
   createdAt?: Date
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §2  COSINE SIMILARITY
-// ═══════════════════════════════════════════════════════════════════════════════
 
 function cosineSimilarity(a: Record<string, number>, b: Record<string, number>): number {
-  const keys = new Set([...Object.keys(a), ...Object.keys(b)])
+  // Get union of all keys
+  const allKeys = new Set([...Object.keys(a), ...Object.keys(b)])
+  if (allKeys.size === 0) return 0
+
   let dotProduct = 0
   let normA = 0
   let normB = 0
 
-  for (const key of keys) {
-    const va = a[key] || 0
+  for (const key of allKeys) {
+    const va = a[key] || 0  // Missing features treated as 0
     const vb = b[key] || 0
     dotProduct += va * vb
     normA += va * va
@@ -85,33 +83,46 @@ function cosineSimilarity(a: Record<string, number>, b: Record<string, number>):
 
   const denominator = Math.sqrt(normA) * Math.sqrt(normB)
   if (denominator === 0) return 0
+
   return dotProduct / denominator
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §3  BUILD CURRENT STATE VECTOR
-// ═══════════════════════════════════════════════════════════════════════════════
 
-function buildCurrentVector(fusion: FusionResult): Record<string, number> {
+function buildCurrentVector(features: Array<{name: string; rawValue: number; normalised: number; unit: string}>): Record<string, number> {
   const vector: Record<string, number> = {}
 
-  for (const f of fusion.features) {
-    const key = f.name.toLowerCase().replace(/\s+/g, '_')
-    // Use raw value for features that have physical units
-    if (f.unit === 'm' && f.name === 'Water Level') vector.water_level = f.rawValue
-    else if (f.unit === 'mm') vector.rainfall_24h = f.rawValue
-    else if (f.unit === 'm/h') vector.gauge_delta = f.rawValue
-    else if (f.name === 'Soil Saturation') vector.soil_saturation = f.normalised
-    else if (f.name === 'Seasonal Weighting') vector.season = f.rawValue
-    else if (f.name === 'Urban Density') vector.urban_density = f.normalised
+  for (const f of features) {
+    const nameLower = f.name.toLowerCase().replace(/[\s_-]+/g, '_')
+
+    // Map feature names to vector keys using flexible matching
+    if (nameLower.includes('water_level') || nameLower.includes('river_level')) {
+      vector.water_level = f.normalised
+    } else if (nameLower.includes('rainfall')) {
+      vector.rainfall_24h = f.normalised
+    } else if (nameLower.includes('gauge') || nameLower.includes('delta') || nameLower.includes('rate')) {
+      vector.gauge_delta = f.normalised
+    } else if (nameLower.includes('soil') || nameLower.includes('saturation') || nameLower.includes('moisture')) {
+      vector.soil_saturation = f.normalised
+    } else if (nameLower.includes('citizen') || nameLower.includes('report')) {
+      vector.citizen_reports = f.normalised
+    } else if (nameLower.includes('historical') || nameLower.includes('history')) {
+      vector.historical_match = f.normalised
+    } else if (nameLower.includes('terrain') || nameLower.includes('elevation')) {
+      vector.terrain = f.normalised
+    } else if (nameLower.includes('photo') || nameLower.includes('cnn') || nameLower.includes('image')) {
+      vector.photo_cnn = f.normalised
+    } else if (nameLower.includes('season')) {
+      vector.seasonal = f.normalised
+    } else if (nameLower.includes('urban') || nameLower.includes('density')) {
+      vector.urban_density = f.normalised
+    }
   }
 
   return vector
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §4  LOAD HISTORICAL FINGERPRINTS
-// ═══════════════════════════════════════════════════════════════════════════════
 
 async function loadFingerprints(): Promise<FloodFingerprint[]> {
   try {
@@ -133,38 +144,22 @@ async function loadFingerprints(): Promise<FloodFingerprint[]> {
       affectedPeople: r.affected_people || 0,
     }))
   } catch (err: any) {
-    console.error(`[Fingerprinting] Failed to load historical events: ${err.message}`)
+    logger.error({ err }, '[Fingerprinting] Failed to load historical events')
     return []
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §5  DOWNSTREAM PROPAGATION PREDICTION
-// ═══════════════════════════════════════════════════════════════════════════════
 
-/** Predict which areas will be affected next based on the best matching historical event */
+/* Predict which areas will be affected next based on the best matching historical event */
 function predictNextAreas(bestMatch: FingerprintMatch, currentArea: string): string[] {
   // Build dynamic propagation from the historical match data.
   // bestMatch.affectedZones already contains real zones from flood_history DB table.
   // We use those as the primary propagation prediction.
-  
-  // Known propagation patterns by region (expandable — loaded from historical DB data)
+
+  // Known propagation patterns by region (expandable — loaded from region config)
   // This serves as a fallback when no historical zones are available.
-  const propagationFallbacks: Record<string, string[]> = {
-    // Scotland — Aberdeen region
-    'River Don Corridor': ['King Street', 'Tillydrone', 'Seaton', 'Bridge of Don'],
-    'Riverside / Dee Valley': ['Riverside Drive', 'Duthie Park', 'Torry'],
-    // England — common EA flood zones
-    'Thames Valley': ['Teddington', 'Kingston', 'Richmond', 'Putney'],
-    'Severn Valley': ['Shrewsbury', 'Worcester', 'Gloucester', 'Tewkesbury'],
-    'Trent Valley': ['Burton', 'Nottingham', 'Newark', 'Gainsborough'],
-    'Yorkshire Ouse': ['York', 'Cawood', 'Selby', 'Naburn'],
-    'River Aire': ['Leeds', 'Castleford', 'Goole', 'Knottingley'],
-    // Wales
-    'River Towy': ['Llandeilo', 'Carmarthen', 'Dryslwyn'],
-    // Northern Ireland
-    'River Lagan': ['Belfast', 'Lisburn', 'Moira'],
-  }
+  const propagationFallbacks: Record<string, string[]> = regionRegistry.getActiveRegion().getPropagationMap()
 
   const matchAreas = bestMatch.affectedZones.length > 0
     ? bestMatch.affectedZones
@@ -178,19 +173,16 @@ function predictNextAreas(bestMatch: FingerprintMatch, currentArea: string): str
   return Array.from(predicted).slice(0, 8)
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §6  MAIN FINGERPRINTING FUNCTION
-// ═══════════════════════════════════════════════════════════════════════════════
 
-/**
+ /*
  * Run the flood fingerprinting algorithm.
  * Compares current conditions against all historical events.
- *
  * @param regionId  Region identifier (e.g. 'scotland')
  * @param latitude  Current location latitude
  * @param longitude Current location longitude
  * @param area      Area name (e.g. 'River Don Corridor')
- */
+  */
 export async function runFingerprinting(
   regionId: string,
   latitude: number,
@@ -204,22 +196,29 @@ export async function runFingerprinting(
   const fusionResult = await runFusion(fusionInput)
 
   // Step 2: Build current state vector
-  const currentVector = buildCurrentVector(fusionResult)
+  const currentVector = buildCurrentVector(fusionResult.features)
 
   // Step 3: Load historical fingerprints
   const fingerprints = await loadFingerprints()
 
-  // Step 4: Compute similarity against each historical event
-  const matches: FingerprintMatch[] = fingerprints.map(fp => ({
-    eventName: fp.eventName,
-    eventDate: new Date(fp.eventDate).toISOString().split('T')[0],
-    similarity: cosineSimilarity(currentVector, fp.featureVector),
-    area: fp.area,
-    severity: fp.severity,
-    affectedZones: fp.affectedZones,
-    damageGbp: fp.damageGbp,
-    affectedPeople: fp.affectedPeople,
-  })).sort((a, b) => b.similarity - a.similarity)
+  // Step 4: Compute similarity against each historical event (with recency decay)
+  const matches: FingerprintMatch[] = fingerprints.map(fp => {
+    const rawSimilarity = cosineSimilarity(currentVector, fp.featureVector)
+    // Apply recency decay: older events lose 5% per year, floor at 20%
+    const eventDate = new Date(fp.eventDate)
+    const yearsAgo = (Date.now() - eventDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000)
+    const recencyDecay = Math.max(0.2, 1 - 0.05 * yearsAgo)
+    return {
+      eventName: fp.eventName,
+      eventDate: eventDate.toISOString().split('T')[0],
+      similarity: rawSimilarity * recencyDecay,
+      area: fp.area,
+      severity: fp.severity,
+      affectedZones: fp.affectedZones,
+      damageGbp: fp.damageGbp,
+      affectedPeople: fp.affectedPeople,
+    }
+  }).sort((a, b) => b.similarity - a.similarity)
 
   // Step 5: Best match
   const bestMatch = matches[0] || {
@@ -298,7 +297,7 @@ export async function runFingerprinting(
     prediction.id = result.rows[0].id
     prediction.createdAt = result.rows[0].created_at
   } catch (err: any) {
-    console.error(`[Fingerprinting] DB storage failed: ${err.message}`)
+    logger.error({ err }, '[Fingerprinting] DB storage failed')
   }
 
   const ms = Date.now() - start
@@ -307,14 +306,12 @@ export async function runFingerprinting(
   return prediction
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §7  PRE-ALERT SYSTEM (Feature #27)
-// ═══════════════════════════════════════════════════════════════════════════════
 
-/**
+ /*
  * Send pre-alert notifications for a flood prediction.
  * Updates prediction, notifies subscribers via all channels, logs audit trail.
- */
+  */
 export async function sendPreAlert(
   predictionId: string,
   operatorId: string,
@@ -339,7 +336,7 @@ export async function sendPreAlert(
   }
 
   const pred = predResult.rows[0]
-  const alertTitle = `⚠️ Pre-Alert: ${pred.area} — ${(pred.probability * 100).toFixed(0)}% flood probability`
+  const alertTitle = `Pre-Alert: ${pred.area} — ${(pred.probability * 100).toFixed(0)}% flood probability`
   const alertMessage = `Flood predicted in ${pred.time_to_flood}. Areas at risk: ${(pred.next_areas || []).join(', ')}. Severity: ${pred.severity}. Take precautionary action now.`
 
   // Find subscribers in the affected area (within 20km)
@@ -392,14 +389,12 @@ export async function sendPreAlert(
   return { sent, channels: Array.from(channelsUsed) }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §8  GET ACTIVE PREDICTIONS
-// ═══════════════════════════════════════════════════════════════════════════════
 
-/**
+ /*
  * Get all active (non-expired) flood predictions.
  * Used by the admin dashboard.
- */
+  */
 export async function getActivePredictions(): Promise<FloodPrediction[]> {
   try {
     const result = await pool.query(
@@ -431,7 +426,8 @@ export async function getActivePredictions(): Promise<FloodPrediction[]> {
       createdAt: r.created_at,
     }))
   } catch (err: any) {
-    console.error(`[Fingerprinting] Failed to load predictions: ${err.message}`)
+    logger.error({ err }, '[Fingerprinting] Failed to load predictions')
     return []
   }
 }
+

@@ -1,0 +1,1105 @@
+{
+  "generated_at": "2026-03-17T13:09:54.490138",
+  "regions_tested": [
+    "uk"
+  ],
+  "training": [
+    {
+      "hazard": "severe_storm",
+      "region": "uk",
+      "status": "trained",
+      "model_pkl": "E:\\aegis-v6-fullstack\\aegis-v6\\ai-engine\\model_registry\\severe_storm_uk_v1\\model.pkl",
+      "metadata_json": "E:\\aegis-v6-fullstack\\aegis-v6\\ai-engine\\model_registry\\severe_storm_uk_v1\\metadata.json",
+      "registry_dir": "E:\\aegis-v6-fullstack\\aegis-v6\\ai-engine\\model_registry\\severe_storm_uk_v1",
+      "metrics": {},
+      "shap_top5": {},
+      "samples": 0,
+      "error": null
+    },
+    {
+      "hazard": "wildfire",
+      "region": "uk",
+      "status": "trained",
+      "model_pkl": "E:\\aegis-v6-fullstack\\aegis-v6\\ai-engine\\model_registry\\wildfire_uk_v1\\model.pkl",
+      "metadata_json": "E:\\aegis-v6-fullstack\\aegis-v6\\ai-engine\\model_registry\\wildfire_uk_v1\\metadata.json",
+      "registry_dir": "E:\\aegis-v6-fullstack\\aegis-v6\\ai-engine\\model_registry\\wildfire_uk_v1",
+      "metrics": {},
+      "shap_top5": {},
+      "samples": 0,
+      "error": null
+    },
+    {
+      "hazard": "landslide",
+      "region": "uk",
+      "status": "trained",
+      "model_pkl": "E:\\aegis-v6-fullstack\\aegis-v6\\ai-engine\\model_registry\\landslide_uk_v1\\model.pkl",
+      "metadata_json": "E:\\aegis-v6-fullstack\\aegis-v6\\ai-engine\\model_registry\\landslide_uk_v1\\metadata.json",
+      "registry_dir": "E:\\aegis-v6-fullstack\\aegis-v6\\ai-engine\\model_registry\\landslide_uk_v1",
+      "metrics": {},
+      "shap_top5": {},
+      "samples": 0,
+      "error": null
+    },
+    {
+      "hazard": "power_outage",
+      "region": "uk",
+      "status": "trained",
+      "model_pkl": "E:\\aegis-v6-fullstack\\aegis-v6\\ai-engine\\model_registry\\power_outage_uk_v1\\model.pkl",
+      "metadata_json": "E:\\aegis-v6-fullstack\\aegis-v6\\ai-engine\\model_registry\\power_outage_uk_v1\\metadata.json",
+      "registry_dir": "E:\\aegis-v6-fullstack\\aegis-v6\\ai-engine\\model_registry\\power_outage_uk_v1",
+      "metrics": {},
+      "shap_top5": {},
+      "samples": 0,
+      "error": null
+    },
+    {
+      "hazard": "water_supply_disruption",
+      "region": "uk",
+      "status": "trained",
+      "model_pkl": "E:\\aegis-v6-fullstack\\aegis-v6\\ai-engine\\model_registry\\water_supply_disruption_uk_v1\\model.pkl",
+      "metadata_json": "E:\\aegis-v6-fullstack\\aegis-v6\\ai-engine\\model_registry\\water_supply_disruption_uk_v1\\metadata.json",
+      "registry_dir": "E:\\aegis-v6-fullstack\\aegis-v6\\ai-engine\\model_registry\\water_supply_disruption_uk_v1",
+      "metrics": {},
+      "shap_top5": {},
+      "samples": 0,
+      "error": null
+    },
+    {
+      "hazard": "infrastructure_damage",
+      "region": "uk",
+      "status": "trained",
+      "model_pkl": "E:\\aegis-v6-fullstack\\aegis-v6\\ai-engine\\model_registry\\infrastructure_damage_uk_v1\\model.pkl",
+      "metadata_json": "E:\\aegis-v6-fullstack\\aegis-v6\\ai-engine\\model_registry\\infrastructure_damage_uk_v1\\metadata.json",
+      "registry_dir": "E:\\aegis-v6-fullstack\\aegis-v6\\ai-engine\\model_registry\\infrastructure_damage_uk_v1",
+      "metrics": {},
+      "shap_top5": {},
+      "samples": 0,
+      "error": null
+    },
+    {
+      "hazard": "public_safety_incident",
+      "region": "uk",
+      "status": "trained",
+      "model_pkl": "E:\\aegis-v6-fullstack\\aegis-v6\\ai-engine\\model_registry\\public_safety_incident_uk_v1\\model.pkl",
+      "metadata_json": "E:\\aegis-v6-fullstack\\aegis-v6\\ai-engine\\model_registry\\public_safety_incident_uk_v1\\metadata.json",
+      "registry_dir": "E:\\aegis-v6-fullstack\\aegis-v6\\ai-engine\\model_registry\\public_safety_incident_uk_v1",
+      "metrics": {},
+      "shap_top5": {},
+      "samples": 0,
+      "error": null
+    },
+    {
+      "hazard": "environmental_hazard",
+      "region": "uk",
+      "status": "trained",
+      "model_pkl": "E:\\aegis-v6-fullstack\\aegis-v6\\ai-engine\\model_registry\\environmental_hazard_uk_v1\\model.pkl",
+      "metadata_json": "E:\\aegis-v6-fullstack\\aegis-v6\\ai-engine\\model_registry\\environmental_hazard_uk_v1\\metadata.json",
+      "registry_dir": "E:\\aegis-v6-fullstack\\aegis-v6\\ai-engine\\model_registry\\environmental_hazard_uk_v1",
+      "metrics": {},
+      "shap_top5": {},
+      "samples": 0,
+      "error": null
+    }
+  ],
+  "predictors": [
+    {
+      "hazard": "flood",
+      "import_ok": true,
+      "model_loaded": true,
+      "stub_fallback": false,
+      "shap_returned": true,
+      "transparency_fields": true,
+      "response_ok": true,
+      "model_version": "v2026.03.03.093011",
+      "error": null
+    },
+    {
+      "hazard": "drought",
+      "import_ok": true,
+      "model_loaded": true,
+      "stub_fallback": false,
+      "shap_returned": true,
+      "transparency_fields": true,
+      "response_ok": true,
+      "model_version": "v2026.03.03.080723",
+      "error": null
+    },
+    {
+      "hazard": "heatwave",
+      "import_ok": true,
+      "model_loaded": true,
+      "stub_fallback": false,
+      "shap_returned": true,
+      "transparency_fields": true,
+      "response_ok": true,
+      "model_version": "v2026.03.03.080725",
+      "error": null
+    },
+    {
+      "hazard": "severe_storm",
+      "import_ok": true,
+      "model_loaded": true,
+      "stub_fallback": false,
+      "shap_returned": true,
+      "transparency_fields": true,
+      "response_ok": true,
+      "model_version": "v1",
+      "error": null
+    },
+    {
+      "hazard": "wildfire",
+      "import_ok": true,
+      "model_loaded": true,
+      "stub_fallback": false,
+      "shap_returned": true,
+      "transparency_fields": true,
+      "response_ok": true,
+      "model_version": "v1",
+      "error": null
+    },
+    {
+      "hazard": "landslide",
+      "import_ok": true,
+      "model_loaded": true,
+      "stub_fallback": false,
+      "shap_returned": true,
+      "transparency_fields": true,
+      "response_ok": true,
+      "model_version": "v1",
+      "error": null
+    },
+    {
+      "hazard": "power_outage",
+      "import_ok": true,
+      "model_loaded": true,
+      "stub_fallback": false,
+      "shap_returned": true,
+      "transparency_fields": true,
+      "response_ok": true,
+      "model_version": "v1",
+      "error": null
+    },
+    {
+      "hazard": "water_supply_disruption",
+      "import_ok": true,
+      "model_loaded": true,
+      "stub_fallback": false,
+      "shap_returned": true,
+      "transparency_fields": true,
+      "response_ok": true,
+      "model_version": "v1",
+      "error": null
+    },
+    {
+      "hazard": "infrastructure_damage",
+      "import_ok": true,
+      "model_loaded": true,
+      "stub_fallback": false,
+      "shap_returned": true,
+      "transparency_fields": true,
+      "response_ok": true,
+      "model_version": "v1",
+      "error": null
+    },
+    {
+      "hazard": "public_safety_incident",
+      "import_ok": true,
+      "model_loaded": true,
+      "stub_fallback": false,
+      "shap_returned": true,
+      "transparency_fields": true,
+      "response_ok": true,
+      "model_version": "v1",
+      "error": null
+    },
+    {
+      "hazard": "environmental_hazard",
+      "import_ok": true,
+      "model_loaded": true,
+      "stub_fallback": false,
+      "shap_returned": true,
+      "transparency_fields": true,
+      "response_ok": true,
+      "model_version": "v1",
+      "error": null
+    }
+  ],
+  "validation": {
+    "flood": [
+      {
+        "scenario": "london_normal",
+        "verdict": "IMPROVED",
+        "model_prob": 0.44,
+        "stub_prob": 0.2283,
+        "delta": 0.2117,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "supervised",
+        "error": null
+      },
+      {
+        "scenario": "london_heavy_rain",
+        "verdict": "DEGRADED",
+        "model_prob": 0.57,
+        "stub_prob": 0.8888,
+        "delta": -0.3188000000000001,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "supervised",
+        "error": null
+      },
+      {
+        "scenario": "scotland_heatwave",
+        "verdict": "IMPROVED",
+        "model_prob": 0.42,
+        "stub_prob": 0.1343,
+        "delta": 0.28569999999999995,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "supervised",
+        "error": null
+      },
+      {
+        "scenario": "scotland_storm",
+        "verdict": "EQUIVALENT",
+        "model_prob": 0.47,
+        "stub_prob": 0.4434,
+        "delta": 0.026599999999999957,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "supervised",
+        "error": null
+      },
+      {
+        "scenario": "wales_drought",
+        "verdict": "IMPROVED",
+        "model_prob": 0.46,
+        "stub_prob": 0.1361,
+        "delta": 0.3239,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "supervised",
+        "error": null
+      }
+    ],
+    "drought": [
+      {
+        "scenario": "london_normal",
+        "verdict": "DEGRADED",
+        "model_prob": 0.09,
+        "stub_prob": 0.2767,
+        "delta": -0.1867,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "supervised",
+        "error": null
+      },
+      {
+        "scenario": "london_heavy_rain",
+        "verdict": "DEGRADED",
+        "model_prob": 0.09,
+        "stub_prob": 0.1642,
+        "delta": -0.07420000000000002,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "supervised",
+        "error": null
+      },
+      {
+        "scenario": "scotland_heatwave",
+        "verdict": "DEGRADED",
+        "model_prob": 0.09,
+        "stub_prob": 0.4267,
+        "delta": -0.3367,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "supervised",
+        "error": null
+      },
+      {
+        "scenario": "scotland_storm",
+        "verdict": "DEGRADED",
+        "model_prob": 0.09,
+        "stub_prob": 0.2017,
+        "delta": -0.1117,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "supervised",
+        "error": null
+      },
+      {
+        "scenario": "wales_drought",
+        "verdict": "DEGRADED",
+        "model_prob": 0.09,
+        "stub_prob": 0.6342,
+        "delta": -0.5442,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "supervised",
+        "error": null
+      }
+    ],
+    "heatwave": [
+      {
+        "scenario": "london_normal",
+        "verdict": "DEGRADED",
+        "model_prob": 0.1,
+        "stub_prob": 0.345,
+        "delta": -0.24499999999999997,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "supervised",
+        "error": null
+      },
+      {
+        "scenario": "london_heavy_rain",
+        "verdict": "DEGRADED",
+        "model_prob": 0.1,
+        "stub_prob": 0.3455,
+        "delta": -0.24549999999999997,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "supervised",
+        "error": null
+      },
+      {
+        "scenario": "scotland_heatwave",
+        "verdict": "DEGRADED",
+        "model_prob": 0.1,
+        "stub_prob": 0.78,
+        "delta": -0.68,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "supervised",
+        "error": null
+      },
+      {
+        "scenario": "scotland_storm",
+        "verdict": "DEGRADED",
+        "model_prob": 0.1,
+        "stub_prob": 0.3195,
+        "delta": -0.2195,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "supervised",
+        "error": null
+      },
+      {
+        "scenario": "wales_drought",
+        "verdict": "DEGRADED",
+        "model_prob": 0.1,
+        "stub_prob": 0.4425,
+        "delta": -0.3425,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "supervised",
+        "error": null
+      }
+    ],
+    "severe_storm": [
+      {
+        "scenario": "london_normal",
+        "verdict": "DEGRADED",
+        "model_prob": 0.0001,
+        "stub_prob": 0.105,
+        "delta": -0.1049,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "weakly_supervised",
+        "error": null
+      },
+      {
+        "scenario": "london_heavy_rain",
+        "verdict": "DEGRADED",
+        "model_prob": 0.0001,
+        "stub_prob": 0.105,
+        "delta": -0.1049,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "weakly_supervised",
+        "error": null
+      },
+      {
+        "scenario": "scotland_heatwave",
+        "verdict": "DEGRADED",
+        "model_prob": 0.0001,
+        "stub_prob": 0.105,
+        "delta": -0.1049,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "weakly_supervised",
+        "error": null
+      },
+      {
+        "scenario": "scotland_storm",
+        "verdict": "DEGRADED",
+        "model_prob": 0.0001,
+        "stub_prob": 0.429,
+        "delta": -0.4289,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "weakly_supervised",
+        "error": null
+      },
+      {
+        "scenario": "wales_drought",
+        "verdict": "DEGRADED",
+        "model_prob": 0.0001,
+        "stub_prob": 0.105,
+        "delta": -0.1049,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "weakly_supervised",
+        "error": null
+      }
+    ],
+    "wildfire": [
+      {
+        "scenario": "london_normal",
+        "verdict": "DEGRADED",
+        "model_prob": 0.0004,
+        "stub_prob": 0.2977,
+        "delta": -0.2973,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "weakly_supervised",
+        "error": null
+      },
+      {
+        "scenario": "london_heavy_rain",
+        "verdict": "DEGRADED",
+        "model_prob": 0.0004,
+        "stub_prob": 0.0727,
+        "delta": -0.0723,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "weakly_supervised",
+        "error": null
+      },
+      {
+        "scenario": "scotland_heatwave",
+        "verdict": "DEGRADED",
+        "model_prob": 0.0004,
+        "stub_prob": 0.742,
+        "delta": -0.7416,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "weakly_supervised",
+        "error": null
+      },
+      {
+        "scenario": "scotland_storm",
+        "verdict": "DEGRADED",
+        "model_prob": 0.0004,
+        "stub_prob": 0.215,
+        "delta": -0.21459999999999999,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "weakly_supervised",
+        "error": null
+      },
+      {
+        "scenario": "wales_drought",
+        "verdict": "DEGRADED",
+        "model_prob": 0.0004,
+        "stub_prob": 0.6899,
+        "delta": -0.6895,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "weakly_supervised",
+        "error": null
+      }
+    ],
+    "landslide": [
+      {
+        "scenario": "london_normal",
+        "verdict": "DEGRADED",
+        "model_prob": 0.0001,
+        "stub_prob": 0.2328,
+        "delta": -0.23270000000000002,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "experimental",
+        "error": null
+      },
+      {
+        "scenario": "london_heavy_rain",
+        "verdict": "DEGRADED",
+        "model_prob": 0.0001,
+        "stub_prob": 0.645,
+        "delta": -0.6449,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "experimental",
+        "error": null
+      },
+      {
+        "scenario": "scotland_heatwave",
+        "verdict": "DEGRADED",
+        "model_prob": 0.0001,
+        "stub_prob": 0.1618,
+        "delta": -0.1617,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "experimental",
+        "error": null
+      },
+      {
+        "scenario": "scotland_storm",
+        "verdict": "DEGRADED",
+        "model_prob": 0.0001,
+        "stub_prob": 0.4758,
+        "delta": -0.4757,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "experimental",
+        "error": null
+      },
+      {
+        "scenario": "wales_drought",
+        "verdict": "DEGRADED",
+        "model_prob": 0.0001,
+        "stub_prob": 0.1344,
+        "delta": -0.1343,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "experimental",
+        "error": null
+      }
+    ],
+    "power_outage": [
+      {
+        "scenario": "london_normal",
+        "verdict": "DEGRADED",
+        "model_prob": 0.0,
+        "stub_prob": 0.0867,
+        "delta": -0.0867,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "heuristic_model",
+        "error": null
+      },
+      {
+        "scenario": "london_heavy_rain",
+        "verdict": "DEGRADED",
+        "model_prob": 0.0,
+        "stub_prob": 0.0933,
+        "delta": -0.0933,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "heuristic_model",
+        "error": null
+      },
+      {
+        "scenario": "scotland_heatwave",
+        "verdict": "DEGRADED",
+        "model_prob": 0.0,
+        "stub_prob": 0.3833,
+        "delta": -0.3833,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "heuristic_model",
+        "error": null
+      },
+      {
+        "scenario": "scotland_storm",
+        "verdict": "DEGRADED",
+        "model_prob": 0.0,
+        "stub_prob": 0.5767,
+        "delta": -0.5767,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "heuristic_model",
+        "error": null
+      },
+      {
+        "scenario": "wales_drought",
+        "verdict": "DEGRADED",
+        "model_prob": 0.0,
+        "stub_prob": 0.0883,
+        "delta": -0.0883,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "heuristic_model",
+        "error": null
+      }
+    ],
+    "water_supply_disruption": [
+      {
+        "scenario": "london_normal",
+        "verdict": "EQUIVALENT",
+        "model_prob": 0.0001,
+        "stub_prob": 0.04,
+        "delta": -0.0399,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "experimental",
+        "error": null
+      },
+      {
+        "scenario": "london_heavy_rain",
+        "verdict": "DEGRADED",
+        "model_prob": 0.0001,
+        "stub_prob": 0.19,
+        "delta": -0.1899,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "experimental",
+        "error": null
+      },
+      {
+        "scenario": "scotland_heatwave",
+        "verdict": "DEGRADED",
+        "model_prob": 0.0001,
+        "stub_prob": 0.24,
+        "delta": -0.2399,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "experimental",
+        "error": null
+      },
+      {
+        "scenario": "scotland_storm",
+        "verdict": "EQUIVALENT",
+        "model_prob": 0.0001,
+        "stub_prob": 0.04,
+        "delta": -0.0399,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "experimental",
+        "error": null
+      },
+      {
+        "scenario": "wales_drought",
+        "verdict": "DEGRADED",
+        "model_prob": 0.0001,
+        "stub_prob": 0.17,
+        "delta": -0.16990000000000002,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "experimental",
+        "error": null
+      }
+    ],
+    "infrastructure_damage": [
+      {
+        "scenario": "london_normal",
+        "verdict": "DEGRADED",
+        "model_prob": 0.0,
+        "stub_prob": 0.0629,
+        "delta": -0.0629,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "heuristic_model",
+        "error": null
+      },
+      {
+        "scenario": "london_heavy_rain",
+        "verdict": "DEGRADED",
+        "model_prob": 0.0,
+        "stub_prob": 0.4089,
+        "delta": -0.4089,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "heuristic_model",
+        "error": null
+      },
+      {
+        "scenario": "scotland_heatwave",
+        "verdict": "EQUIVALENT",
+        "model_prob": 0.0,
+        "stub_prob": 0.0002,
+        "delta": -0.0002,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "heuristic_model",
+        "error": null
+      },
+      {
+        "scenario": "scotland_storm",
+        "verdict": "DEGRADED",
+        "model_prob": 0.0,
+        "stub_prob": 0.4408,
+        "delta": -0.4408,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "heuristic_model",
+        "error": null
+      },
+      {
+        "scenario": "wales_drought",
+        "verdict": "EQUIVALENT",
+        "model_prob": 0.0,
+        "stub_prob": 0.0002,
+        "delta": -0.0002,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "heuristic_model",
+        "error": null
+      }
+    ],
+    "public_safety_incident": [
+      {
+        "scenario": "london_normal",
+        "verdict": "DEGRADED",
+        "model_prob": 0.0,
+        "stub_prob": 0.2933,
+        "delta": -0.2933,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "experimental",
+        "error": null
+      },
+      {
+        "scenario": "london_heavy_rain",
+        "verdict": "DEGRADED",
+        "model_prob": 0.0,
+        "stub_prob": 0.41,
+        "delta": -0.41,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "experimental",
+        "error": null
+      },
+      {
+        "scenario": "scotland_heatwave",
+        "verdict": "DEGRADED",
+        "model_prob": 0.0,
+        "stub_prob": 0.5767,
+        "delta": -0.5767,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "experimental",
+        "error": null
+      },
+      {
+        "scenario": "scotland_storm",
+        "verdict": "DEGRADED",
+        "model_prob": 0.0,
+        "stub_prob": 0.41,
+        "delta": -0.41,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "experimental",
+        "error": null
+      },
+      {
+        "scenario": "wales_drought",
+        "verdict": "DEGRADED",
+        "model_prob": 0.0,
+        "stub_prob": 0.3933,
+        "delta": -0.3933,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "experimental",
+        "error": null
+      }
+    ],
+    "environmental_hazard": [
+      {
+        "scenario": "london_normal",
+        "verdict": "IMPROVED",
+        "model_prob": 0.8495,
+        "stub_prob": 0.3225,
+        "delta": 0.527,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "weakly_supervised",
+        "error": null
+      },
+      {
+        "scenario": "london_heavy_rain",
+        "verdict": "IMPROVED",
+        "model_prob": 0.8495,
+        "stub_prob": 0.1225,
+        "delta": 0.7270000000000001,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "weakly_supervised",
+        "error": null
+      },
+      {
+        "scenario": "scotland_heatwave",
+        "verdict": "IMPROVED",
+        "model_prob": 0.8495,
+        "stub_prob": 0.4225,
+        "delta": 0.42700000000000005,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "weakly_supervised",
+        "error": null
+      },
+      {
+        "scenario": "scotland_storm",
+        "verdict": "IMPROVED",
+        "model_prob": 0.8495,
+        "stub_prob": 0.1225,
+        "delta": 0.7270000000000001,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "weakly_supervised",
+        "error": null
+      },
+      {
+        "scenario": "wales_drought",
+        "verdict": "IMPROVED",
+        "model_prob": 0.8495,
+        "stub_prob": 0.2725,
+        "delta": 0.577,
+        "model_available": true,
+        "shap_available": true,
+        "model_type": "weakly_supervised",
+        "error": null
+      }
+    ]
+  },
+  "status": [
+    {
+      "hazard": "severe_storm",
+      "status": "trained_and_runnable",
+      "trained_regions": [
+        "uk"
+      ],
+      "failed_regions": [],
+      "model_loaded": true,
+      "stub_fallback": false,
+      "shap_available": true,
+      "transparency": true,
+      "validation_verdicts": {
+        "london_normal": "DEGRADED",
+        "london_heavy_rain": "DEGRADED",
+        "scotland_heatwave": "DEGRADED",
+        "scotland_storm": "DEGRADED",
+        "wales_drought": "DEGRADED"
+      },
+      "ml_improves": 0,
+      "ml_matches": 0,
+      "ml_degrades": 5,
+      "no_model": 0
+    },
+    {
+      "hazard": "wildfire",
+      "status": "trained_and_runnable",
+      "trained_regions": [
+        "uk"
+      ],
+      "failed_regions": [],
+      "model_loaded": true,
+      "stub_fallback": false,
+      "shap_available": true,
+      "transparency": true,
+      "validation_verdicts": {
+        "london_normal": "DEGRADED",
+        "london_heavy_rain": "DEGRADED",
+        "scotland_heatwave": "DEGRADED",
+        "scotland_storm": "DEGRADED",
+        "wales_drought": "DEGRADED"
+      },
+      "ml_improves": 0,
+      "ml_matches": 0,
+      "ml_degrades": 5,
+      "no_model": 0
+    },
+    {
+      "hazard": "landslide",
+      "status": "trained_and_runnable",
+      "trained_regions": [
+        "uk"
+      ],
+      "failed_regions": [],
+      "model_loaded": true,
+      "stub_fallback": false,
+      "shap_available": true,
+      "transparency": true,
+      "validation_verdicts": {
+        "london_normal": "DEGRADED",
+        "london_heavy_rain": "DEGRADED",
+        "scotland_heatwave": "DEGRADED",
+        "scotland_storm": "DEGRADED",
+        "wales_drought": "DEGRADED"
+      },
+      "ml_improves": 0,
+      "ml_matches": 0,
+      "ml_degrades": 5,
+      "no_model": 0
+    },
+    {
+      "hazard": "power_outage",
+      "status": "trained_and_runnable",
+      "trained_regions": [
+        "uk"
+      ],
+      "failed_regions": [],
+      "model_loaded": true,
+      "stub_fallback": false,
+      "shap_available": true,
+      "transparency": true,
+      "validation_verdicts": {
+        "london_normal": "DEGRADED",
+        "london_heavy_rain": "DEGRADED",
+        "scotland_heatwave": "DEGRADED",
+        "scotland_storm": "DEGRADED",
+        "wales_drought": "DEGRADED"
+      },
+      "ml_improves": 0,
+      "ml_matches": 0,
+      "ml_degrades": 5,
+      "no_model": 0
+    },
+    {
+      "hazard": "water_supply_disruption",
+      "status": "trained_and_runnable",
+      "trained_regions": [
+        "uk"
+      ],
+      "failed_regions": [],
+      "model_loaded": true,
+      "stub_fallback": false,
+      "shap_available": true,
+      "transparency": true,
+      "validation_verdicts": {
+        "london_normal": "EQUIVALENT",
+        "london_heavy_rain": "DEGRADED",
+        "scotland_heatwave": "DEGRADED",
+        "scotland_storm": "EQUIVALENT",
+        "wales_drought": "DEGRADED"
+      },
+      "ml_improves": 0,
+      "ml_matches": 2,
+      "ml_degrades": 3,
+      "no_model": 0
+    },
+    {
+      "hazard": "infrastructure_damage",
+      "status": "trained_and_runnable",
+      "trained_regions": [
+        "uk"
+      ],
+      "failed_regions": [],
+      "model_loaded": true,
+      "stub_fallback": false,
+      "shap_available": true,
+      "transparency": true,
+      "validation_verdicts": {
+        "london_normal": "DEGRADED",
+        "london_heavy_rain": "DEGRADED",
+        "scotland_heatwave": "EQUIVALENT",
+        "scotland_storm": "DEGRADED",
+        "wales_drought": "EQUIVALENT"
+      },
+      "ml_improves": 0,
+      "ml_matches": 2,
+      "ml_degrades": 3,
+      "no_model": 0
+    },
+    {
+      "hazard": "public_safety_incident",
+      "status": "trained_and_runnable",
+      "trained_regions": [
+        "uk"
+      ],
+      "failed_regions": [],
+      "model_loaded": true,
+      "stub_fallback": false,
+      "shap_available": true,
+      "transparency": true,
+      "validation_verdicts": {
+        "london_normal": "DEGRADED",
+        "london_heavy_rain": "DEGRADED",
+        "scotland_heatwave": "DEGRADED",
+        "scotland_storm": "DEGRADED",
+        "wales_drought": "DEGRADED"
+      },
+      "ml_improves": 0,
+      "ml_matches": 0,
+      "ml_degrades": 5,
+      "no_model": 0
+    },
+    {
+      "hazard": "environmental_hazard",
+      "status": "trained_and_runnable",
+      "trained_regions": [
+        "uk"
+      ],
+      "failed_regions": [],
+      "model_loaded": true,
+      "stub_fallback": false,
+      "shap_available": true,
+      "transparency": true,
+      "validation_verdicts": {
+        "london_normal": "IMPROVED",
+        "london_heavy_rain": "IMPROVED",
+        "scotland_heatwave": "IMPROVED",
+        "scotland_storm": "IMPROVED",
+        "wales_drought": "IMPROVED"
+      },
+      "ml_improves": 5,
+      "ml_matches": 0,
+      "ml_degrades": 0,
+      "no_model": 0
+    },
+    {
+      "hazard": "flood",
+      "status": "trained_and_runnable",
+      "trained_regions": [],
+      "failed_regions": [],
+      "model_loaded": true,
+      "stub_fallback": false,
+      "shap_available": true,
+      "transparency": true,
+      "validation_verdicts": {
+        "london_normal": "IMPROVED",
+        "london_heavy_rain": "DEGRADED",
+        "scotland_heatwave": "IMPROVED",
+        "scotland_storm": "EQUIVALENT",
+        "wales_drought": "IMPROVED"
+      },
+      "ml_improves": 3,
+      "ml_matches": 1,
+      "ml_degrades": 1,
+      "no_model": 0
+    },
+    {
+      "hazard": "drought",
+      "status": "trained_and_runnable",
+      "trained_regions": [],
+      "failed_regions": [],
+      "model_loaded": true,
+      "stub_fallback": false,
+      "shap_available": true,
+      "transparency": true,
+      "validation_verdicts": {
+        "london_normal": "DEGRADED",
+        "london_heavy_rain": "DEGRADED",
+        "scotland_heatwave": "DEGRADED",
+        "scotland_storm": "DEGRADED",
+        "wales_drought": "DEGRADED"
+      },
+      "ml_improves": 0,
+      "ml_matches": 0,
+      "ml_degrades": 5,
+      "no_model": 0
+    },
+    {
+      "hazard": "heatwave",
+      "status": "trained_and_runnable",
+      "trained_regions": [],
+      "failed_regions": [],
+      "model_loaded": true,
+      "stub_fallback": false,
+      "shap_available": true,
+      "transparency": true,
+      "validation_verdicts": {
+        "london_normal": "DEGRADED",
+        "london_heavy_rain": "DEGRADED",
+        "scotland_heatwave": "DEGRADED",
+        "scotland_storm": "DEGRADED",
+        "wales_drought": "DEGRADED"
+      },
+      "ml_improves": 0,
+      "ml_matches": 0,
+      "ml_degrades": 5,
+      "no_model": 0
+    }
+  ]
+}

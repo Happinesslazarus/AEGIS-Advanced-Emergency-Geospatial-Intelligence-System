@@ -1,19 +1,20 @@
-/*
+﻿/*
  * CitizenAuthContext.tsx - Citizen Authentication Context
  *
  * Provides citizen auth state across the entire app:
- * - Login/Register/Logout
- * - JWT token management (localStorage)
- * - Profile, preferences, emergency contacts
- * - Auto-refresh on mount
+ * Login/Register/Logout
+ * JWT token management (localStorage)
+ * Profile, preferences, emergency contacts
+ * Auto-refresh on mount
  */
 
 import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react'
 import { API_BASE } from '../utils/helpers'
+import { notifySocketAuthChange } from './SocketContext'
 
 // API_BASE imported from ../utils/helpers
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// Types
 
 export interface CitizenUser {
   id: string
@@ -125,7 +126,7 @@ export interface RegisterData {
 
 const CitizenAuthContext = createContext<CitizenAuthContextType | null>(null)
 
-// ─── Helper ──────────────────────────────────────────────────────────────────
+// Helper
 
 async function apiFetch(path: string, options: RequestInit = {}) {
   const token = localStorage.getItem('aegis-citizen-token')
@@ -151,7 +152,8 @@ async function apiFetch(path: string, options: RequestInit = {}) {
         const retryRes = await fetch(`${API_BASE}${path}`, { ...options, headers: retryHeaders, credentials: 'include' })
         const retryData = await retryRes.json().catch(() => ({}))
         if (!retryRes.ok) {
-          const error: any = new Error(retryData?.error || 'Request failed')
+          const errMsg = typeof retryData?.error === 'string' ? retryData.error : retryData?.error?.message || 'Request failed'
+          const error: any = new Error(errMsg)
           error.status = retryRes.status
           throw error
         }
@@ -160,7 +162,8 @@ async function apiFetch(path: string, options: RequestInit = {}) {
     }
 
     if (!res.ok) {
-      const error: any = new Error(data?.error || 'Request failed')
+      const errMsg = typeof data?.error === 'string' ? data.error : data?.error?.message || 'Request failed'
+      const error: any = new Error(errMsg)
       error.status = res.status
       throw error
     }
@@ -175,7 +178,7 @@ async function apiFetch(path: string, options: RequestInit = {}) {
   }
 }
 
-/** Attempt to get a new access token using the httpOnly refresh cookie */
+/* Attempt to get a new access token using the httpOnly refresh cookie */
 let refreshPromise: Promise<boolean> | null = null
 async function silentRefresh(): Promise<boolean> {
   // Deduplicate concurrent refresh attempts
@@ -203,7 +206,7 @@ async function silentRefresh(): Promise<boolean> {
   return refreshPromise
 }
 
-// ─── Provider ────────────────────────────────────────────────────────────────
+// Provider
 
 export function CitizenAuthProvider({ children }: { children: ReactNode }): JSX.Element {
   const [user, setUser] = useState<CitizenUser | null>(() => {
@@ -227,6 +230,7 @@ export function CitizenAuthProvider({ children }: { children: ReactNode }): JSX.
   const saveToken = useCallback((t: string) => {
     setToken(t)
     localStorage.setItem('aegis-citizen-token', t)
+    notifySocketAuthChange()
   }, [])
 
   const saveUser = useCallback((u: CitizenUser | null) => {
@@ -256,6 +260,7 @@ export function CitizenAuthProvider({ children }: { children: ReactNode }): JSX.
     setRecentSafety([])
     setUnreadMessages(0)
     localStorage.removeItem('aegis-citizen-token')
+    notifySocketAuthChange()
     // Clear server-side refresh cookie (#25)
     fetch(`${API_BASE}/api/citizen-auth/logout`, { method: 'POST', credentials: 'include' }).catch(() => {})
   }, [saveUser])
@@ -394,7 +399,7 @@ export function CitizenAuthProvider({ children }: { children: ReactNode }): JSX.
         body: formData,
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Upload failed')
+      if (!res.ok) throw new Error(typeof data.error === 'string' ? data.error : data.error?.message || 'Upload failed')
       saveUser(user ? { ...user, avatarUrl: data.avatarUrl } : user)
       return data.avatarUrl
     } catch {
@@ -486,3 +491,4 @@ export function useCitizenAuth(): CitizenAuthContextType {
   if (!ctx) throw new Error('useCitizenAuth must be within CitizenAuthProvider')
   return ctx
 }
+

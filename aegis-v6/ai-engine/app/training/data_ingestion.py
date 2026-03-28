@@ -1,5 +1,4 @@
 """
-═══════════════════════════════════════════════════════════════════════════════
  AEGIS AI ENGINE — Real Dataset Ingestion Pipeline
  
  Pulls historical disaster data from external sources:
@@ -8,7 +7,6 @@
  - SEPA (Scottish Environment Protection Agency) River Gauges
  - Met Office DataPoint Historical Weather
  - NOAA Global Historical Climatology Network (GHCN)
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 import pandas as pd
@@ -21,7 +19,6 @@ import aiohttp
 import json
 from pathlib import Path
 import yaml
-
 
 class RealDatasetIngestion:
     """
@@ -537,7 +534,6 @@ class RealDatasetIngestion:
         except Exception:
             return 0
 
-
 async def main():
     """CLI entry point for dataset ingestion."""
     from app.core.config import settings
@@ -558,7 +554,6 @@ async def main():
     
     finally:
         await ingestion.cleanup()
-
 
 if __name__ == "__main__":
     import asyncio

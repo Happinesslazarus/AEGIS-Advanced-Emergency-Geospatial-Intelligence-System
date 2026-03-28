@@ -1,13 +1,14 @@
 /**
- * incidents/landslide/service.ts â€” Landslide incident business logic
+ * incidents/landslide/service.ts — Landslide incident business logic
  */
 
 import pool from '../../models/db.js'
 import type { IncidentPrediction } from '../types.js'
 import { landslideConfig, LANDSLIDE_RISK_THRESHOLDS } from './config.js'
+import { logger } from '../../services/logger.js'
 
 export class LandslideService {
-  /**
+   /**
    * Get landslide risk score
    */
   static async calculateLandslideRisk(region: string): Promise<number> {
@@ -28,7 +29,7 @@ export class LandslideService {
     }
   }
 
-  /**
+   /**
    * Get landslide predictions for a region
    */
   static async getLandslidePredictions(region: string): Promise<IncidentPrediction[]> {
@@ -54,7 +55,7 @@ export class LandslideService {
     }]
   }
 
-  /**
+   /**
    * Get landslide advisory text based on severity
    */
   static getLandslideAdvisory(severity: string): string {
@@ -70,7 +71,7 @@ export class LandslideService {
     }
   }
 
-  /**
+   /**
    * Calculate rainfall accumulation
    */
   static async calculateRainfallAccumulation(region: string, hours: number): Promise<{ rainfall24h: number; rainfall72h: number; riskLevel: string }> {
@@ -88,7 +89,7 @@ export class LandslideService {
       }
       return { rainfall24h: Math.round(rainfall24h * 10) / 10, rainfall72h: Math.round(rainfall72h * 10) / 10, riskLevel }
     } catch (error) {
-      console.error('Rainfall accumulation calculation error:', error)
+      logger.error({ err: error }, '[LandslideService] Rainfall accumulation calculation error')
       return { rainfall24h: 0, rainfall72h: 0, riskLevel: 'Unknown' }
     }
   }

@@ -36,7 +36,7 @@ import { useLanguage } from '../../hooks/useLanguage'
 
 type FilterMode = 'all' | 'emergency' | 'open' | 'in_progress' | 'resolved' | 'mine'
 
-// ── Message grouping helpers ──────────────────────────────────────────────────
+// Message grouping helpers
 
 function formatDateSeparator(dateStr: string, lang: string): string {
   const d = new Date(dateStr)
@@ -67,7 +67,7 @@ function StatusBadge({ status }: { status: string }) {
     open: { bg: 'bg-green-100 dark:bg-green-950/30', text: 'text-green-700 dark:text-green-300' },
     in_progress: { bg: 'bg-blue-100 dark:bg-blue-950/30', text: 'text-blue-700 dark:text-blue-300' },
     resolved: { bg: 'bg-purple-100 dark:bg-purple-950/30', text: 'text-purple-700 dark:text-purple-300' },
-    closed: { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300' },
+    closed: { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-500 dark:text-gray-400' },
   }
   const s = map[status] || map.open
   return (
@@ -89,14 +89,14 @@ export default function AdminMessaging(): JSX.Element {
 
   // Quick reply templates for common responses
   const QUICK_REPLIES = [
-    { label: 'Acknowledged', text: 'Thank you for reaching out. We have received your message and are looking into it.', icon: '✅' },
-    { label: 'On It', text: 'Our team is actively working on this. We will update you as soon as we have more information.', icon: '⚡' },
-    { label: 'Stay Safe', text: 'Please stay safe and follow local emergency guidelines. Avoid flood-prone areas and keep emergency supplies ready.', icon: '🛡️' },
-    { label: 'Need Info', text: 'Could you please provide more details? Specifically your exact location, the severity of the situation, and any immediate dangers.', icon: '📋' },
-    { label: 'Resources Sent', text: 'Emergency resources have been dispatched to your area. Please stay where you are if it is safe to do so.', icon: '🚑' },
-    { label: 'Update', text: 'We have an update on your situation. The emergency services are aware and coordinating response efforts.', icon: '📢' },
-    { label: 'Resolved', text: 'This issue has been resolved. If you need any further assistance, please do not hesitate to reach out again.', icon: '✨' },
-    { label: 'Escalated', text: 'Your case has been escalated to a senior operator for priority handling. You will hear back shortly.', icon: '🔺' },
+    { label: 'Acknowledged', text: 'Thank you for reaching out. We have received your message and are looking into it.', Icon: CheckCircle },
+    { label: 'On It', text: 'Our team is actively working on this. We will update you as soon as we have more information.', Icon: Zap },
+    { label: 'Stay Safe', text: 'Please stay safe and follow local emergency guidelines. Avoid flood-prone areas and keep emergency supplies ready.', Icon: Shield },
+    { label: 'Need Info', text: 'Could you please provide more details? Specifically your exact location, the severity of the situation, and any immediate dangers.', Icon: FileText },
+    { label: 'Resources Sent', text: 'Emergency resources have been dispatched to your area. Please stay where you are if it is safe to do so.', Icon: Heart },
+    { label: 'Update', text: 'We have an update on your situation. The emergency services are aware and coordinating response efforts.', Icon: Bell },
+    { label: 'Resolved', text: 'This issue has been resolved. If you need any further assistance, please do not hesitate to reach out again.', Icon: Sparkles },
+    { label: 'Escalated', text: 'Your case has been escalated to a senior operator for priority handling. You will hear back shortly.', Icon: AlertTriangle },
   ]
   const [previewUrl, setPreviewUrl] = useState('')
   const [uploadingImage, setUploadingImage] = useState(false)
@@ -358,11 +358,11 @@ export default function AdminMessaging(): JSX.Element {
   const openCount = threads.filter(t => t.status === 'open').length
   const inProgressCount = threads.filter(t => t.status === 'in_progress').length
 
-  // ── PROFESSIONAL SPLIT LAYOUT ───────────────────────────────────
+  // PROFESSIONAL SPLIT LAYOUT
 
   return (
     <div className="flex h-[calc(100vh-180px)] bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950 dark:to-gray-900 rounded-2xl overflow-hidden shadow-xl border border-gray-200/80 dark:border-gray-800/80">
-      {/* ══════ LEFT: Thread Inbox Panel ══════ */}
+      {/* LEFT: Thread Inbox Panel */}
       <div className={`w-full md:w-[420px] flex flex-col bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 ${activeThread ? 'hidden md:flex' : 'flex'}`}>
         {/* Premium Header */}
         <div className="p-4 bg-gradient-to-r from-aegis-600 via-aegis-700 to-aegis-800 text-white">
@@ -406,7 +406,7 @@ export default function AdminMessaging(): JSX.Element {
         {/* Search + Filter */}
         <div className="p-3 space-y-2.5 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50">
           <div className="relative">
-            <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
+            <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-gray-400 dark:text-gray-400" />
             <input
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
@@ -414,7 +414,7 @@ export default function AdminMessaging(): JSX.Element {
               placeholder={t('messaging.searchPlaceholder', lang)} 
             />
             {searchTerm && (
-              <button onClick={() => setSearchTerm('')} className="absolute right-3 top-2.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-600">
+              <button onClick={() => setSearchTerm('')} className="absolute right-3 top-2.5 text-gray-400 dark:text-gray-400 hover:text-gray-600">
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
@@ -432,7 +432,7 @@ export default function AdminMessaging(): JSX.Element {
                 className={`text-[10px] font-bold px-3 py-1.5 rounded-lg whitespace-nowrap transition flex items-center gap-1 ${
                   filter === f.key
                     ? 'bg-aegis-600 text-white shadow-md shadow-aegis-600/25'
-                    : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-aegis-300'
+                    : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-aegis-300'
                 }`}>
                 <f.icon className="w-3 h-3" />
                 {f.label}
@@ -449,10 +449,10 @@ export default function AdminMessaging(): JSX.Element {
           {filteredThreads.length === 0 ? (
             <div className="p-10 text-center">
               <div className="w-16 h-16 mx-auto mb-3 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                <MessageSquare className="w-8 h-8 text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-600" />
+                <MessageSquare className="w-8 h-8 text-gray-300 dark:text-gray-400" />
               </div>
-              <p className="text-sm font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('messaging.noConversations', lang)}</p>
-              <p className="text-[11px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-0.5">{t('messaging.matchingThreads', lang)}</p>
+              <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">{t('messaging.noConversations', lang)}</p>
+              <p className="text-[11px] text-gray-400 dark:text-gray-400 mt-0.5">{t('messaging.matchingThreads', lang)}</p>
             </div>
           ) : filteredThreads.map(thread => {
             const isActive = activeThread?.id === thread.id
@@ -492,8 +492,8 @@ export default function AdminMessaging(): JSX.Element {
                       <span className="text-xs font-bold text-gray-900 dark:text-white truncate">{thread.citizen_name || `${t('common.unknown', lang)} ${t('messaging.citizen', lang)}`}</span>
                       {thread.is_vulnerable && <Heart className="w-3 h-3 text-amber-500 flex-shrink-0" />}
                     </div>
-                    <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 truncate">{thread.subject}</p>
-                    <p className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 truncate mt-0.5 leading-relaxed">{thread.last_message || t('messaging.noMessages', lang)}</p>
+                    <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-400 truncate">{thread.subject}</p>
+                    <p className="text-[10px] text-gray-400 dark:text-gray-400 truncate mt-0.5 leading-relaxed">{thread.last_message || t('messaging.noMessages', lang)}</p>
                   </div>
 
                   <div className="flex flex-col items-end gap-1.5 flex-shrink-0 pt-0.5">
@@ -501,7 +501,7 @@ export default function AdminMessaging(): JSX.Element {
                     {thread.operator_unread > 0 && (
                       <span className="bg-red-500 text-white text-[9px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full shadow-sm shadow-red-500/30 animate-pulse">{thread.operator_unread}</span>
                     )}
-                    <span className="text-[9px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex items-center gap-0.5">
+                    <span className="text-[9px] text-gray-400 dark:text-gray-400 flex items-center gap-0.5">
                       <Clock className="w-2.5 h-2.5" />
                       {thread.updated_at ? timeAgo(thread.updated_at) : ''}
                     </span>
@@ -513,7 +513,7 @@ export default function AdminMessaging(): JSX.Element {
         </div>
       </div>
 
-      {/* ══════ RIGHT: Chat Panel ══════ */}
+      {/* RIGHT: Chat Panel */}
       <div className={`flex-1 flex flex-col bg-white dark:bg-gray-900 ${!activeThread ? 'hidden md:flex' : 'flex'}`}>
         {!activeThread ? (
           /* Premium Empty State */
@@ -523,8 +523,8 @@ export default function AdminMessaging(): JSX.Element {
                 <MessageSquare className="w-10 h-10 text-aegis-500" />
               </div>
               <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">{t('messaging.supportInbox', lang)}</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 max-w-xs">{t('messaging.selectConversation', lang)}</p>
-              <div className="mt-4 flex items-center justify-center gap-4 text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+              <p className="text-xs text-gray-500 dark:text-gray-400 max-w-xs">{t('messaging.selectConversation', lang)}</p>
+              <div className="mt-4 flex items-center justify-center gap-4 text-[10px] text-gray-400 dark:text-gray-400">
                 <span className="flex items-center gap-1"><Sparkles className="w-3 h-3" /> {t('messaging.quickReplies', lang)}</span>
                 <span className="flex items-center gap-1"><Languages className="w-3 h-3" /> {t('messaging.translation', lang)}</span>
                 <span className="flex items-center gap-1"><Shield className="w-3 h-3" /> {t('common.priority', lang)}</span>
@@ -535,7 +535,7 @@ export default function AdminMessaging(): JSX.Element {
           <>
             {/* Enhanced Chat Header */}
             <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center gap-3 bg-gradient-to-r from-white to-gray-50 dark:from-gray-900 dark:to-gray-900/80">
-              <button onClick={() => setActiveThread(null)} className="md:hidden p-1.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition">
+              <button onClick={() => setActiveThread(null)} className="md:hidden p-1.5 text-gray-400 dark:text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition">
                 <ArrowLeft className="w-5 h-5" />
               </button>
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 shadow-sm ${
@@ -554,14 +554,14 @@ export default function AdminMessaging(): JSX.Element {
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+                <div className="flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400">
                   <span className="font-medium">{activeThread.citizen_name}</span>
                   {activeThread.is_vulnerable && (
                     <span className="flex items-center gap-0.5 text-amber-600 dark:text-amber-400"><Heart className="w-3 h-3" /> Vulnerable</span>
                   )}
-                  <span className="text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-600">|</span>
+                  <span className="text-gray-300 dark:text-gray-400">|</span>
                   <span className="capitalize">{activeThread.category || 'general'}</span>
-                  <span className="text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-600">|</span>
+                  <span className="text-gray-300 dark:text-gray-400">|</span>
                   <StatusBadge status={activeThread.status} />
                 </div>
               </div>
@@ -581,7 +581,7 @@ export default function AdminMessaging(): JSX.Element {
                       <option key={lang.code} value={lang.code}>{lang.name}</option>
                     ))}
                   </select>
-                  <label className="flex items-center gap-1 text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+                  <label className="flex items-center gap-1 text-[10px] text-gray-500 dark:text-gray-400">
                     <input type="checkbox" checked={autoTranslate} onChange={() => setAutoTranslate(!autoTranslate)} className="w-3 h-3 rounded border-gray-300 text-aegis-600" />
                     {t('admin.messaging.autoTranslate', lang)}
                   </label>
@@ -639,10 +639,10 @@ export default function AdminMessaging(): JSX.Element {
               {messages.length === 0 && (
                 <div className="text-center py-12">
                   <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                    <MessageSquare className="w-7 h-7 text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-600" />
+                    <MessageSquare className="w-7 h-7 text-gray-300 dark:text-gray-400" />
                   </div>
-                  <p className="text-sm font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('messaging.noMessages', lang)}</p>
-                  <p className="text-[11px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-0.5">{t('messaging.startConversation', lang)}</p>
+                  <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">{t('messaging.noMessages', lang)}</p>
+                  <p className="text-[11px] text-gray-400 dark:text-gray-400 mt-0.5">{t('messaging.startConversation', lang)}</p>
                 </div>
               )}
               {messages.map((msg: ChatMessage, idx: number) => {
@@ -655,7 +655,7 @@ export default function AdminMessaging(): JSX.Element {
                     {/* Date Separator */}
                     {showDate && (
                       <div className="flex items-center justify-center py-3">
-                        <div className="bg-white dark:bg-gray-800 text-[10px] font-bold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 px-3 py-1 rounded-full shadow-sm border border-gray-200 dark:border-gray-700">
+                        <div className="bg-white dark:bg-gray-800 text-[10px] font-bold text-gray-500 dark:text-gray-400 px-3 py-1 rounded-full shadow-sm border border-gray-200 dark:border-gray-700">
                           {formatDateSeparator(msg.created_at, lang)}
                         </div>
                       </div>
@@ -698,7 +698,7 @@ export default function AdminMessaging(): JSX.Element {
                           <img src={msg.attachment_url} alt="attachment" className="mt-2 max-w-full max-h-56 rounded-xl border border-white/20 object-contain" />
                         )}
                         <div className={`flex items-center gap-1.5 mt-1 ${isMine ? 'justify-end' : 'justify-start'}`}>
-                          <span className={`text-[10px] ${isMine ? 'text-white/50' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`}>
+                          <span className={`text-[10px] ${isMine ? 'text-white/50' : 'text-gray-400 dark:text-gray-400'}`}>
                             {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </span>
                           {isMine && <MessageStatusIcon status={msg.status} />}
@@ -708,7 +708,7 @@ export default function AdminMessaging(): JSX.Element {
                               className={`px-1 py-0.5 rounded transition-colors ${
                                 translations[msg.id]
                                   ? (isMine ? 'text-white/70 bg-white/10' : 'text-blue-500 bg-blue-50 dark:bg-blue-950/30')
-                                  : (isMine ? 'text-white/30 hover:text-white/60 hover:bg-white/10' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/30')
+                                  : (isMine ? 'text-white/30 hover:text-white/60 hover:bg-white/10' : 'text-gray-400 dark:text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/30')
                               } opacity-0 group-hover:opacity-100`}
                               title={t('admin.messaging.translate', lang)}
                             >
@@ -733,7 +733,7 @@ export default function AdminMessaging(): JSX.Element {
                         <div className="w-2 h-2 bg-aegis-400 rounded-full animate-bounce" style={{ animationDelay: '200ms' }} />
                         <div className="w-2 h-2 bg-aegis-400 rounded-full animate-bounce" style={{ animationDelay: '400ms' }} />
                       </div>
-                      <span className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-medium">{threadTypers[0].userName} {t('admin.messaging.isTyping', lang)}</span>
+                      <span className="text-[10px] text-gray-400 dark:text-gray-400 font-medium">{threadTypers[0].userName} {t('admin.messaging.isTyping', lang)}</span>
                     </div>
                   </div>
                 </div>
@@ -751,7 +751,7 @@ export default function AdminMessaging(): JSX.Element {
                     className={`text-[10px] font-bold px-2.5 py-1 rounded-lg transition flex items-center gap-1 ${
                       showQuickReplies
                         ? 'bg-aegis-100 dark:bg-aegis-950/30 text-aegis-600'
-                        : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-400'
                     }`}
                   >
                     <Sparkles className="w-3 h-3" /> {t('messaging.quickReplies', lang)}
@@ -766,8 +766,8 @@ export default function AdminMessaging(): JSX.Element {
                           className="px-2.5 py-2 text-[10px] font-medium bg-gray-50 dark:bg-gray-800 hover:bg-aegis-50 dark:hover:bg-aegis-950/20 border border-gray-200 dark:border-gray-700 hover:border-aegis-300 dark:hover:border-aegis-700 rounded-lg transition text-left group/qr"
                           title={qr.text}
                         >
-                          <span className="text-base">{qr.icon}</span>
-                          <span className="block text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 group-hover/qr:text-aegis-600 dark:group-hover/qr:text-aegis-400 truncate">{qr.label}</span>
+                          <qr.Icon className="w-4 h-4" />
+                          <span className="block text-gray-600 dark:text-gray-300 group-hover/qr:text-aegis-600 dark:group-hover/qr:text-aegis-400 truncate">{qr.label}</span>
                         </button>
                       ))}
                     </div>
@@ -796,7 +796,7 @@ export default function AdminMessaging(): JSX.Element {
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-aegis-600 hover:border-aegis-300 hover:bg-aegis-50 dark:hover:bg-aegis-950/10 transition"
+                    className="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-400 hover:text-aegis-600 hover:border-aegis-300 hover:bg-aegis-50 dark:hover:bg-aegis-950/10 transition"
                     title={t('citizen.messaging.attachFile', lang)}
                   >
                     <ImageIcon className="w-4 h-4" />
@@ -817,7 +817,7 @@ export default function AdminMessaging(): JSX.Element {
               </div>
             ) : (
               <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-800 text-center bg-gray-50 dark:bg-gray-900">
-                <div className="flex items-center justify-center gap-2 text-sm text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+                <div className="flex items-center justify-center gap-2 text-sm text-gray-400 dark:text-gray-400">
                   <CheckCircle className="w-4 h-4 text-green-400" />
                   {t('admin.messaging.status', lang)}: <span className="font-semibold capitalize">{activeThread.status}</span>
                 </div>
@@ -829,8 +829,4 @@ export default function AdminMessaging(): JSX.Element {
     </div>
   )
 }
-
-
-
-
 

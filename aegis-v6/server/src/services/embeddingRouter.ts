@@ -11,6 +11,7 @@
 
 import type { EmbeddingRequest, EmbeddingResponse } from '../types/index.js'
 import { devLog } from '../utils/logger.js'
+import { logger } from './logger.js'
 
 interface EmbeddingProvider {
   name: string
@@ -32,15 +33,34 @@ interface ProviderState {
 
 const providers: ProviderState[] = []
 
+const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || 'http://localhost:11434'
+
 function initProviders(): void {
   if (providers.length > 0) return
 
-  const defs: EmbeddingProvider[] = [
+  const defs: EmbeddingProvider[] = []
+
+  // Ollama local embedding — zero cost, highest priority
+  const ollamaEmbModel = process.env.OLLAMA_EMBEDDING_MODEL || 'nomic-embed-text'
+  const ollamaEnabled = process.env.OLLAMA_ENABLED !== 'false'
+  if (ollamaEnabled) {
+    defs.push({
+      name: 'ollama',
+      model: ollamaEmbModel,
+      apiKey: '',
+      baseUrl: OLLAMA_BASE_URL,
+      dimensions: 768,
+      priority: 0,
+      enabled: true,
+    })
+  }
+
+  defs.push(
     {
       name: 'huggingface',
       model: process.env.HF_EMBEDDING_MODEL || 'sentence-transformers/all-MiniLM-L6-v2',
       apiKey: process.env.HF_API_KEY || '',
-      baseUrl: 'https://router.huggingface.co',
+      baseUrl: 'https://router.huggingface.co/hf-inference',
       dimensions: 384,
       priority: 1,
       enabled: !!process.env.HF_API_KEY,
@@ -49,12 +69,12 @@ function initProviders(): void {
       name: 'gemini',
       model: 'text-embedding-004',
       apiKey: process.env.GEMINI_API_KEY || '',
-      baseUrl: 'https://generativelanguage.googleapis.com/v1',
+      baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
       dimensions: 768,
       priority: 2,
       enabled: !!process.env.GEMINI_API_KEY,
     },
-  ]
+  )
 
   for (const config of defs.sort((a, b) => a.priority - b.priority)) {
     if (!config.enabled) continue
@@ -68,10 +88,25 @@ function initProviders(): void {
   }
 
   if (providers.length === 0) {
-    console.error('[Embedding] ❌ No embedding providers configured. Set HF_API_KEY or GEMINI_API_KEY in .env')
+    logger.error('[Embedding] No embedding providers configured. Set HF_API_KEY or GEMINI_API_KEY in .env')
   } else {
-    devLog(`[Embedding] ✅ ${providers.length} provider(s): ${providers.map((p) => p.config.name).join(' → ')}`)
+    devLog(`[Embedding] ? ${providers.length} provider(s): ${providers.map((p) => p.config.name).join(' ? ')}`)
   }
+}
+
+async function callOllamaEmbedding(config: EmbeddingProvider, texts: string[]): Promise<number[][]> {
+  const results: number[][] = []
+  for (const text of texts) {
+    const res = await fetch(`${config.baseUrl}/api/embeddings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: config.model, prompt: text }),
+    })
+    if (!res.ok) throw new Error(`Ollama Embedding ${res.status}: ${await res.text()}`)
+    const data = await res.json() as { embedding: number[] }
+    results.push(data.embedding)
+  }
+  return results
 }
 
 async function callHuggingFace(config: EmbeddingProvider, texts: string[]): Promise<number[][]> {
@@ -118,7 +153,7 @@ async function callGemini(config: EmbeddingProvider, texts: string[]): Promise<n
   return data.embeddings?.map((e: any) => e.values) || []
 }
 
-/**
+ /**
  * Generate embeddings for one or more texts.
  * Rotates through providers on failure.
  */
@@ -144,7 +179,9 @@ export async function generateEmbeddings(req: EmbeddingRequest): Promise<Embeddi
 
     try {
       let embeddings: number[][]
-      if (state.config.name === 'huggingface') {
+      if (state.config.name === 'ollama') {
+        embeddings = await callOllamaEmbedding(state.config, req.texts)
+      } else if (state.config.name === 'huggingface') {
         embeddings = await callHuggingFace(state.config, req.texts)
       } else if (state.config.name === 'gemini') {
         embeddings = await callGemini(state.config, req.texts)
@@ -163,14 +200,14 @@ export async function generateEmbeddings(req: EmbeddingRequest): Promise<Embeddi
     } catch (err: any) {
       state.consecutiveErrors++
       state.lastErrorAt = Date.now()
-      console.warn(`[Embedding] ⚠️  ${state.config.name} failed: ${err.message}`)
+      logger.warn({ err, provider: state.config.name }, '[Embedding] Provider failed')
     }
   }
 
   throw new Error('All embedding providers failed.')
 }
 
-/**
+ /**
  * Convenience: embed a single text and return its vector.
  */
 export async function embedText(text: string): Promise<number[]> {

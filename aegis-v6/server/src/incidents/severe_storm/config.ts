@@ -52,3 +52,4 @@ export const OPEN_METEO_PARAMS = [
   'cloudcover',
   'pressure_msl'
 ]
+

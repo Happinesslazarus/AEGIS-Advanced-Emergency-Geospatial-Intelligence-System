@@ -1,13 +1,10 @@
 """
-═══════════════════════════════════════════════════════════════════════════════
  AEGIS AI ENGINE — Prometheus Metrics
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
 from fastapi import FastAPI, Response
 from loguru import logger
-
 
 # Define metrics
 prediction_counter = Counter(
@@ -32,7 +29,6 @@ error_counter = Counter(
     'Total number of errors',
     ['error_type']
 )
-
 
 def setup_metrics(app: FastAPI):
     """

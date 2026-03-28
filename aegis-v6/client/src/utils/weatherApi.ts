@@ -171,4 +171,3 @@ function wmoToIcon(code: number): string {
   if (code <= 82) return '09d'
   return '11d'
 }
-

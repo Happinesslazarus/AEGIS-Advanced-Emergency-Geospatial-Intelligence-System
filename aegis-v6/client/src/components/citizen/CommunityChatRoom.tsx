@@ -1,4 +1,4 @@
-/*
+﻿/*
  * CommunityChatRoom.tsx - Enhanced Real-time Community Chat Room
  *
  * Features: image sharing, reply-to, emoji picker, lightbox,
@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { Socket } from 'socket.io-client'
 import { useLocation } from 'react-router-dom'
+import { getToken } from '../../utils/api'
 import { useCitizenAuth } from '../../contexts/CitizenAuthContext'
 import { useSharedSocket } from '../../contexts/SocketContext'
 import { translateText, buildTranslationMap, TRANSLATION_LANGUAGES } from '../../utils/translateService'
@@ -24,7 +25,7 @@ import { API_BASE } from '../../utils/helpers'
 
 // API_BASE imported from ../../utils/helpers
 
-/* ── Emoji Data ── */
+/* Emoji Data */
 const EMOJI_CATEGORIES = [
   {
     key: 'communityChat.emojiCategorySmileys',
@@ -40,7 +41,7 @@ const EMOJI_CATEGORIES = [
   },
 ]
 
-/* ── Report Reasons ── */
+/* Report Reasons */
 const REPORT_REASONS = [
   { value: 'Spam or misleading', key: 'communityChat.reason.spam.label' },
   { value: 'Harassment or bullying', key: 'communityChat.reason.harassment.label' },
@@ -79,7 +80,7 @@ const MUTE_DURATIONS = [
   { value: '3m', key: 'communityChat.duration3Months' },
 ]
 
-/* ── Types ── */
+/* Types */
 interface ChatMsg {
   id: string
   sender_id: string
@@ -113,7 +114,7 @@ interface TypingInfo {
   displayName: string
 }
 
-/* ── Helpers ── */
+/* Helpers */
 function timeStr(dateStr: string): string {
   return new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
@@ -144,7 +145,7 @@ function groupByDate(messages: ChatMsg[]): { date: string; msgs: ChatMsg[] }[] {
   return groups
 }
 
-/** Render message text with auto-linked URLs */
+/* Render message text with auto-linked URLs */
 function RenderContent({ text, isMine }: { text: string; isMine: boolean }) {
   if (!text) return null
   const urlRe = /(https?:\/\/[^\s<]+)/g
@@ -170,7 +171,7 @@ function RenderContent({ text, isMine }: { text: string; isMine: boolean }) {
   )
 }
 
-/* ── Loading Skeleton ── */
+/* Loading Skeleton */
 function MessageSkeleton() {
   return (
     <div className="space-y-4 p-4">
@@ -190,7 +191,7 @@ function MessageSkeleton() {
   )
 }
 
-/* ── Emoji Picker ── */
+/* Emoji Picker */
 function EmojiPicker({ onSelect, onClose }: { onSelect: (emoji: string) => void; onClose: () => void }) {
   const [activeCategory, setActiveCategory] = useState(0)
   const ref = useRef<HTMLDivElement>(null)
@@ -217,7 +218,7 @@ function EmojiPicker({ onSelect, onClose }: { onSelect: (emoji: string) => void;
             className={`flex-1 text-[10px] font-semibold px-2 py-1.5 rounded-t-lg transition ${
               activeCategory === idx
                 ? 'bg-aegis-50 dark:bg-aegis-950/30 text-aegis-600 border-b-2 border-aegis-500'
-                : 'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'
+                : 'text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300'
             }`}
           >
             {t(cat.key, getLanguage())}
@@ -242,7 +243,7 @@ function EmojiPicker({ onSelect, onClose }: { onSelect: (emoji: string) => void;
   )
 }
 
-/* ── Image Lightbox ── */
+/* Image Lightbox */
 function ImageLightbox({ src, onClose }: { src: string; onClose: () => void }) {
   const lang = getLanguage()
   return (
@@ -266,7 +267,7 @@ function ImageLightbox({ src, onClose }: { src: string; onClose: () => void }) {
   )
 }
 
-/* ── Confirm Dialog ── */
+/* Confirm Dialog */
 function ConfirmDialog({ title, message, onConfirm, onCancel }: {
   title: string; message: string; onConfirm: () => void; onCancel: () => void
 }) {
@@ -275,9 +276,9 @@ function ConfirmDialog({ title, message, onConfirm, onCancel }: {
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[90] flex items-center justify-center p-4" onClick={onCancel}>
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-sm w-full p-6" onClick={e => e.stopPropagation()}>
         <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">{title}</h3>
-        <p className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-5">{message}</p>
+        <p className="text-sm text-gray-600 dark:text-gray-300 mb-5">{message}</p>
         <div className="flex justify-end gap-3">
-          <button onClick={onCancel} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:hover:text-gray-200 transition">{t('common.cancel', lang)}</button>
+          <button onClick={onCancel} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-200 transition">{t('common.cancel', lang)}</button>
           <button onClick={onConfirm} className="px-4 py-2 text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg transition font-medium">{t('common.delete', lang)}</button>
         </div>
       </div>
@@ -285,7 +286,7 @@ function ConfirmDialog({ title, message, onConfirm, onCancel }: {
   )
 }
 
-/* ── Report Dialog ── */
+/* Report Dialog */
 function ReportDialog({ onSubmit, onCancel }: {
   onSubmit: (reason: string, details: string) => void; onCancel: () => void
 }) {
@@ -296,12 +297,12 @@ function ReportDialog({ onSubmit, onCancel }: {
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[90] flex items-center justify-center p-4" onClick={onCancel}>
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6" onClick={e => e.stopPropagation()}>
         <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2"><Flag className="w-5 h-5 text-red-500" /> {t('communityChat.reportMessageTitle', lang)}</h3>
-        <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-4">{t('communityChat.reportMessageSubtitle', lang)}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-300 mb-4">{t('communityChat.reportMessageSubtitle', lang)}</p>
         <div className="space-y-2 mb-4">
           {REPORT_REASONS.map(r => (
             <label key={r.value} className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition border ${reason === r.value ? 'border-red-400 bg-red-50 dark:bg-red-950/20' : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}>
               <input type="radio" name="reason" value={r.value} checked={reason === r.value} onChange={() => setReason(r.value)} className="text-red-600" />
-              <span className="text-sm text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t(r.key, lang)}</span>
+              <span className="text-sm text-gray-700 dark:text-gray-300">{t(r.key, lang)}</span>
             </label>
           ))}
         </div>
@@ -313,7 +314,7 @@ function ReportDialog({ onSubmit, onCancel }: {
           className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 mb-4 resize-none"
         />
         <div className="flex justify-end gap-3">
-          <button onClick={onCancel} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:hover:text-gray-200 transition">{t('common.cancel', lang)}</button>
+          <button onClick={onCancel} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-200 transition">{t('common.cancel', lang)}</button>
           <button onClick={() => { if (reason) onSubmit(reason, details) }} disabled={!reason} className="px-4 py-2 text-sm bg-red-600 hover:bg-red-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 text-white rounded-lg transition font-medium">{t('communityChat.submitReport', lang)}</button>
         </div>
       </div>
@@ -321,31 +322,29 @@ function ReportDialog({ onSubmit, onCancel }: {
   )
 }
 
-/* ================================================================
-   MAIN COMPONENT
-   ================================================================ */
+// Main exported component
 export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Socket | null } = {}): JSX.Element {
   const { user: citizenUser, token: citizenToken } = useCitizenAuth()
   const location = useLocation()
   const isAdminPage = location.pathname.startsWith('/admin')
   const adminUserStr = localStorage.getItem('aegis-user')
-  const adminToken = localStorage.getItem('aegis-token')
+  const adminToken = getToken()
   let adminUser: any = null
   try { adminUser = adminUserStr ? JSON.parse(adminUserStr) : null } catch {}
   const user = isAdminPage ? (adminUser || citizenUser) : (citizenUser || adminUser)
   const activeToken = isAdminPage
-    ? (adminToken || citizenToken || localStorage.getItem('token') || '')
-    : (citizenToken || adminToken || localStorage.getItem('token') || '')
+    ? (adminToken || citizenToken || '')
+    : (citizenToken || adminToken || '')
   // Treat all non-citizen roles as staff/operator in community chat
   const isAdmin = !!user && !['citizen', 'verified_citizen', 'community_leader'].includes(String(user?.role || '').toLowerCase())
   const userRole = user?.role || 'citizen'
 
-  // ── Use shared socket from existing useSocket hook (only for admin, when no parentSocket) ──
+  // Use shared socket from existing useSocket hook (only for admin, when no parentSocket)
   const { socket: hookSocket, connected: hookConnected, connect: hookConnect } = useSharedSocket()
   const [socket, setSocket] = useState<Socket | null>(null)
   const [connected, setConnected] = useState(false)
 
-  // ── State ──
+  // State
   const [messages, setMessages] = useState<ChatMsg[]>([])
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([])
   const [typingUsers, setTypingUsers] = useState<TypingInfo[]>([])
@@ -432,16 +431,16 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
   const hasMarkedInitialMessagesRef = useRef(false)
   const hasJoinedRef = useRef(false)
   const isMountedRef = useRef(true)
-  const lastMessageTimeRef = useRef<string | null>(null)  // Track latest message time for reconnect sync
+  const lastMessageTimeRef = useRef<string | null>(null) // Track latest message time for reconnect sync
 
   // Helper function to mark messages as read
   const markMessagesAsRead = useCallback((msgs: ChatMsg[]) => {
     if (!socket || !user?.id) return
     
     // Filter messages that need to be marked as read:
-    // - Not sent by current user
-    // - Not already read by current user
-    // - Not temporary/pending
+    // Not sent by current user
+    // Not already read by current user
+    // Not temporary/pending
     const messagesToMark = msgs.filter((msg) => {
       if (msg.sender_id === user.id) return false
       if (msg.id.startsWith('tmp-')) return false
@@ -459,20 +458,16 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
   // Helper: fetch and merge missed messages from REST (for reconnection sync)
   const fetchAndMergeMissedMessages = useCallback(async () => {
     if (!activeToken) {
-      console.log('[CommunityChat] No token for fetching missed messages')
       return
     }
-    console.log('[CommunityChat] 📥 Fetching missed messages...')
     try {
       const res = await fetch('/api/community/chat/messages?limit=50', {
         headers: { Authorization: `Bearer ${activeToken}` }
       })
       if (!res.ok) {
-        console.error('[CommunityChat] Fetch missed messages failed:', res.status, res.statusText)
         return
       }
       const freshMsgs: ChatMsg[] = await res.json()
-      console.log('[CommunityChat] Received', freshMsgs?.length || 0, 'messages from API')
       if (!Array.isArray(freshMsgs) || freshMsgs.length === 0) return
 
       setMessages((prev: ChatMsg[]) => {
@@ -480,17 +475,15 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
         const existingIds = new Set(prev.filter((m: ChatMsg) => !m.id.startsWith('tmp-')).map((m: ChatMsg) => m.id))
         const newMsgs = freshMsgs.filter((m: ChatMsg) => !existingIds.has(m.id))
         if (newMsgs.length === 0) {
-          console.log('[CommunityChat] No new messages to merge')
           return prev
         }
-        console.log('[CommunityChat] Merged', newMsgs.length, 'missed messages after reconnect')
         // Merge & sort chronologically
         const merged = [...prev.filter((m: ChatMsg) => !m.id.startsWith('tmp-')), ...newMsgs]
         merged.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
         return merged
       })
-    } catch (err) {
-      console.error('[CommunityChat] Failed to fetch missed messages:', err)
+    } catch {
+      // fetch failed — will retry on next reconnect
     }
   }, [activeToken])
 
@@ -504,8 +497,8 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     }
   }, [messages])
 
-  // ── Load messages from REST on mount (primary) ──
-  // ── Check community membership on mount (citizens only) ──
+  // Load messages from REST on mount (primary)
+  // Check community membership on mount (citizens only)
   useEffect(() => {
     if (isAdmin) {
       setIsMember(true) // Admins always have access
@@ -530,8 +523,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
             setMuteExpiresAt(data.mute?.expires_at || null)
           }
         }
-      } catch (err) {
-        console.error('[CommunityChat] Membership check failed:', err)
+      } catch {
         // Default to member on error for backwards compat
         setIsMember(true)
       }
@@ -554,7 +546,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     loadPreview()
   }, [activeToken, isAdmin])
 
-  // ── Join/Leave community handlers ──
+  // Join/Leave community handlers
   const handleJoinCommunity = async () => {
     if (!activeToken) return
     setJoiningCommunity(true)
@@ -589,8 +581,8 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
           setBanReason(data.reason || t('communityChat.leaveBanned', currentLang))
         }
       }
-    } catch (err) {
-      console.error('[CommunityChat] Join failed:', err)
+    } catch {
+      // join failed
     } finally {
       setJoiningCommunity(false)
     }
@@ -612,8 +604,8 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
         setOnlineUsers([])
         setIsMember(false)
       }
-    } catch (err) {
-      console.error('[CommunityChat] Leave failed:', err)
+    } catch {
+      // leave failed
     }
   }
 
@@ -627,7 +619,6 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
         // // console.log('[CommunityChat] REST load starting, token exists:', !!token)
         
         if (!token) {
-          console.warn('[CommunityChat] No token found, skipping REST load')
           if (!isCancelled) setLoading(false)
           return
         }
@@ -650,12 +641,9 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
             // // console.log('[CommunityChat] State updated successfully - messages:', msgs.length)
           }
         } else {
-          const error = await res.text()
-          console.error('[CommunityChat] REST failed:', res.status, error)
           if (!isCancelled) setLoading(false)
         }
-      } catch (err) {
-        console.error('[CommunityChat] REST error:', err)
+      } catch {
         if (!isCancelled) setLoading(false)
       }
     }
@@ -667,7 +655,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     }
   }, [activeToken])
 
-  // ── Determine which socket to use: parentSocket (citizen) or hookSocket (admin) ──
+  // Determine which socket to use: parentSocket (citizen) or hookSocket (admin)
   useEffect(() => {
     // PRIORITY 1: Use parentSocket from CitizenDashboard if available
     if (parentSocket?.connected) {
@@ -713,7 +701,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     }
   }, [parentSocket?.id, parentSocket?.connected, hookSocket?.id, hookConnected, activeToken])
 
-  // ── Register all socket event listeners when socket connects ──
+  // Register all socket event listeners when socket connects
   useEffect(() => {
     if (!socket || !connected) {
       // // console.log('[CommunityChat] Waiting for socket connection...')
@@ -721,14 +709,14 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     }
 
     // // console.log('[CommunityChat] Socket connected:', socket.id, 'for user:', user?.displayName, 'isAdmin:', isAdmin, 'socket.connected:', socket.connected)
-    console.log('[CommunityChat] ✅ Socket connected:', socket.id, 'User:', user?.displayName, 'Admin:', isAdmin)
+    console.log('[CommunityChat] [OK] Socket connected:', socket.id, 'User:', user?.displayName, 'Admin:', isAdmin)
     setLoading(false)
     setError('')
 
-    // ── Named handler functions for precise cleanup (avoids removing other components' handlers) ──
+    // Named handler functions for precise cleanup (avoids removing other components' handlers)
 
     const handleMessage = (msg: ChatMsg) => {
-      console.log('[CommunityChat] 📨 Message received:', msg.sender_name, 'ID:', msg.id)
+      console.log('[CommunityChat] Message received:', msg.sender_name, 'ID:', msg.id)
       setMessages((prev: ChatMsg[]) => {
         // If message has tempId and sender is current user, replace optimistic message
         if (msg.sender_id === userRef.current?.id) {
@@ -830,7 +818,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     }
 
     const handleOnlineUpdate = ({ users }: { users: OnlineUser[] }) => {
-      console.log('[CommunityChat] 👥 Online users update:', users?.length || 0, 'users')
+      console.log('[CommunityChat] Online users update:', users?.length || 0, 'users')
       setOnlineUsers(Array.isArray(users) ? users : [])
     }
 
@@ -885,7 +873,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
       setMuteExpiresAt(null)
     }
 
-    // ── Register all named event listeners ──
+    // Register all named event listeners
     socket.off('community:chat:message', handleMessage)
     socket.off('community:chat:deleted', handleDeleted)
     socket.off('community:chat:edited', handleEdited)
@@ -914,9 +902,9 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
 
     // Join room (only once per connection)
     if (!hasJoinedRef.current) {
-      console.log('[CommunityChat] 🔔 EMITTING JOIN REQUEST, socket:', socket.id, 'connected:', socket.connected)
+      console.log('[CommunityChat] EMITTING JOIN REQUEST, socket:', socket.id, 'connected:', socket.connected)
       socket.emit('community:chat:join', (ack: any) => {
-        console.log('[CommunityChat] ✅ join ack received:', ack)
+        console.log('[CommunityChat] [OK] join ack received:', ack)
         if (ack?.success) {
           setJoined(true)
           hasJoinedRef.current = true
@@ -932,7 +920,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
           setIsMember(false)
           console.log('[CommunityChat] ⛔ Banned from chat')
         } else {
-          console.error('[CommunityChat] ❌ join ack failed:', ack)
+          console.error('[CommunityChat] [ERR] join ack failed:', ack)
         }
       })
 
@@ -941,7 +929,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     // Handle socket reconnection — rejoin room and resync messages
     // Handle socket disconnect — track state for admin socket
     const handleDisconnect = () => {
-      console.log('[CommunityChat] ⚠️ Socket disconnected')
+      console.log('[CommunityChat] [WARN] Socket disconnected')
       setConnected(false)
       setJoined(false)
       hasJoinedRef.current = false
@@ -950,12 +938,12 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     socket.on('disconnect', handleDisconnect)
 
     const handleReconnect = () => {
-      console.log('[CommunityChat] 🔄 Socket reconnected, re-joining room and syncing messages')
+      console.log('[CommunityChat] Socket reconnected, re-joining room and syncing messages')
       setConnected(true)
       hasJoinedRef.current = false
       socket.emit('community:chat:join', (ack: any) => {
         if (ack?.success) {
-          console.log('[CommunityChat] ✅ Rejoined successfully')
+          console.log('[CommunityChat] [OK] Rejoined successfully')
           setJoined(true)
           hasJoinedRef.current = true
           if (ack.users && Array.isArray(ack.users)) {
@@ -978,11 +966,11 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
           if (hasJoinedRef.current && ack.users.length > 0) {
             const isInList = ack.users.some((u: any) => u.userId === userRef.current?.id)
             if (!isInList) {
-              console.log('[CommunityChat] ⚠️ Not in online list despite joined — re-joining room')
+              console.log('[CommunityChat] [WARN] Not in online list despite joined — re-joining room')
               hasJoinedRef.current = false
               socket.emit('community:chat:join', (joinAck: any) => {
                 if (joinAck?.success) {
-                  console.log('[CommunityChat] ✅ Re-joined successfully')
+                  console.log('[CommunityChat] [OK] Re-joined successfully')
                   hasJoinedRef.current = true
                   setJoined(true)
                   if (joinAck.users) setOnlineUsers(joinAck.users)
@@ -1125,7 +1113,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     }
   }, [activeToken])
 
-  // ── Image Upload ──
+  // Image Upload
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -1176,7 +1164,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     }
   }
 
-  // ── Reply ──
+  // Reply
   const handleReply = (msg: ChatMsg) => {
     setReplyTo(msg)
     textareaRef.current?.focus()
@@ -1184,14 +1172,14 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
 
   const clearReply = () => setReplyTo(null)
 
-  // ── Emoji ──
+  // Emoji
   const handleEmojiSelect = (emoji: string) => {
     setMsgInput((prev: string) => prev + emoji)
     setShowEmoji(false)
     textareaRef.current?.focus()
   }
 
-  // ── Send Message (FIX #3a — optimistic msg replaced via ack, no duplicate from broadcast) ──
+  // Send Message (FIX #3a — optimistic msg replaced via ack, no duplicate from broadcast)
   const handleSend = async () => {
     const content = msgInput.trim()
     if (!content && !imageFile) return
@@ -1480,33 +1468,33 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
   }, [messages, chatSearch])
   const messageGroups = useMemo(() => groupByDate(filteredMessages), [filteredMessages])
 
-  // ── Not signed in ──
+  // Not signed in
   if (!user) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <Shield className="w-12 h-12 text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-700 mx-auto mb-3" />
+          <Shield className="w-12 h-12 text-gray-300 dark:text-gray-700 mx-auto mb-3" />
           <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">{t('communityChat.signInRequired', currentLang)}</h3>
-          <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('communityChat.signInMessage', currentLang)}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-300">{t('communityChat.signInMessage', currentLang)}</p>
         </div>
       </div>
     )
   }
 
-  // ── Banned state ──
+  // Banned state
   if (isBanned) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center max-w-sm">
           <Ban className="w-12 h-12 text-red-400 mx-auto mb-3" />
           <h3 className="text-sm font-semibold text-red-600 dark:text-red-400 mb-1">{t('communityChat.bannedTitle', currentLang)}</h3>
-          <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{banReason || t('communityChat.bannedDefault', currentLang)}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-300">{banReason || t('communityChat.bannedDefault', currentLang)}</p>
         </div>
       </div>
     )
   }
 
-  // ── Not a member — show preview + join button ──
+  // Not a member — show preview + join button
   if (isMember === false && !isAdmin) {
     return (
       <div className="max-w-5xl mx-auto">
@@ -1519,7 +1507,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
               </div>
               <div>
                 <h2 className="text-sm font-bold text-gray-900 dark:text-white">{t('communityChat.roomTitle', currentLang)}</h2>
-                <p className="text-[11px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('communityChat.joinPrompt', currentLang)}</p>
+                <p className="text-[11px] text-gray-500 dark:text-gray-300">{t('communityChat.joinPrompt', currentLang)}</p>
               </div>
             </div>
           </div>
@@ -1535,14 +1523,14 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                       {msg.sender_name?.charAt(0)?.toUpperCase() || '?'}
                     </div>
                     <div>
-                      <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{msg.sender_name}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{(translations[msg.id] || msg.content)?.slice(0, 80) || t('communityChat.imagePlaceholder', currentLang)}</p>
+                      <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">{msg.sender_name}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-300">{(translations[msg.id] || msg.content)?.slice(0, 80) || t('communityChat.imagePlaceholder', currentLang)}</p>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 text-center py-8">{t('communityChat.previewUnavailable', currentLang)}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-300 text-center py-8">{t('communityChat.previewUnavailable', currentLang)}</p>
             )}
           </div>
 
@@ -1550,7 +1538,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
           <div className="px-4 py-6 text-center border-t border-gray-100 dark:border-gray-800">
             <Users className="w-10 h-10 text-aegis-500 mx-auto mb-2" />
             <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-1">{t('communityChat.joinCommunityTitle', currentLang)}</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-4">{t('communityChat.joinCommunityDesc', currentLang)}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-300 mb-4">{t('communityChat.joinCommunityDesc', currentLang)}</p>
             <button
               onClick={handleJoinCommunity}
               disabled={joiningCommunity}
@@ -1565,7 +1553,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     )
   }
 
-  // ── Still loading membership ──
+  // Still loading membership
   if (isMember === null && !isAdmin) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -1674,22 +1662,22 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
         {/* Search Bar — slides in when active */}
         {showChatSearch && (
           <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 flex items-center gap-2">
-            <Search className="w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex-shrink-0" />
+            <Search className="w-4 h-4 text-gray-400 dark:text-gray-300 flex-shrink-0" />
             <input
               type="text"
               value={chatSearch}
               onChange={e => setChatSearch(e.target.value)}
               placeholder={t('communityChat.searchMessagesPlaceholder', currentLang)}
               autoFocus
-              className="flex-1 text-sm bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300"
+              className="flex-1 text-sm bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder:text-gray-400 dark:text-gray-300"
             />
             {chatSearch && (
-              <span className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex-shrink-0">
+              <span className="text-[10px] text-gray-400 dark:text-gray-300 flex-shrink-0">
                 {filteredMessages.length} {t(filteredMessages.length === 1 ? 'communityChat.result' : 'common.results', currentLang)}
               </span>
             )}
             <button onClick={() => { setShowChatSearch(false); setChatSearch('') }} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition">
-              <X className="w-3.5 h-3.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
+              <X className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300" />
             </button>
           </div>
         )}
@@ -1721,7 +1709,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                   <MessageSquare className="w-8 h-8 text-aegis-500" />
                 </div>
                 <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-1">{t('communityChat.noMessagesYet', currentLang)}</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('communityChat.startConversation', currentLang)}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-300">{t('communityChat.startConversation', currentLang)}</p>
               </div>
             </div>
           ) : (
@@ -1731,7 +1719,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                   {/* Date separator */}
                   <div className="flex items-center gap-3 py-2">
                     <div className="flex-1 border-t border-gray-200 dark:border-gray-800" />
-                    <span className="text-[10px] font-medium text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-wider px-2">
+                    <span className="text-[10px] font-medium text-gray-400 dark:text-gray-300 uppercase tracking-wider px-2">
                       {dateLabel(group.date)}
                     </span>
                     <div className="flex-1 border-t border-gray-200 dark:border-gray-800" />
@@ -1742,7 +1730,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                     if (msg.sender_id === 'system') {
                       return (
                         <div key={msg.id} className="flex justify-center my-1">
-                          <span className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-full">
+                          <span className="text-[10px] text-gray-400 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-full">
                             {msg.content}
                           </span>
                         </div>
@@ -1811,7 +1799,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                             <div className="flex items-center gap-1.5 mb-1 ml-1">
                               <button
                                 onClick={() => openProfile(msg)}
-                                className="text-[11px] font-semibold text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-aegis-600 dark:hover:text-aegis-400 transition-colors cursor-pointer"
+                                className="text-[11px] font-semibold text-gray-700 dark:text-gray-300 hover:text-aegis-600 dark:hover:text-aegis-400 transition-colors cursor-pointer"
                               >
                                 {msg.sender_name || t('communityHelp.anonymous', currentLang)}
                               </button>
@@ -1829,7 +1817,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                               </span>
                               <button
                                 onClick={() => openProfile(msg)}
-                                className="text-[11px] font-semibold text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-aegis-600 dark:hover:text-aegis-400 transition-colors cursor-pointer"
+                                className="text-[11px] font-semibold text-gray-700 dark:text-gray-300 hover:text-aegis-600 dark:hover:text-aegis-400 transition-colors cursor-pointer"
                               >
                                 {msg.sender_name || t('communityHelp.anonymous', currentLang)}
                               </button>
@@ -1855,7 +1843,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                                   <Reply className="w-3 h-3 inline mr-0.5" />
                                   {msg.reply_sender_name}
                                 </p>
-                                <p className={`text-[11px] truncate ${isOperator ? 'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300' : 'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`}>
+                                <p className={`text-[11px] truncate ${isOperator ? 'text-gray-500 dark:text-gray-300' : 'text-gray-500 dark:text-gray-300'}`}>
                                   {msg.reply_content || t('communityChat.imagePlaceholder', currentLang)}
                                 </p>
                               </div>
@@ -1889,7 +1877,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                                   }}
                                 />
                                 <div className="flex items-center gap-1.5 justify-end">
-                                  <button onClick={cancelEdit} className="text-[10px] px-2 py-1 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 transition">{t('common.cancel', currentLang)}</button>
+                                  <button onClick={cancelEdit} className="text-[10px] px-2 py-1 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300 transition">{t('common.cancel', currentLang)}</button>
                                   <button onClick={saveEdit} className="text-[10px] px-2 py-1 bg-aegis-600 hover:bg-aegis-700 text-white rounded transition flex items-center gap-0.5"><Check className="w-3 h-3" /> {t('common.save', currentLang)}</button>
                                 </div>
                               </div>
@@ -1897,7 +1885,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                               <>
                                 {msg.content && <RenderContent text={msg.content} isMine={isOperator} />}
                                 {msg.edited_at && (
-                                  <span className={`text-[9px] italic text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300`}> ({t('communityChat.edited', currentLang)})</span>
+                                  <span className={`text-[9px] italic text-gray-400 dark:text-gray-300`}> ({t('communityChat.edited', currentLang)})</span>
                                 )}
                                 {/* Translated text */}
                                 {translations[msg.id] && (
@@ -1905,7 +1893,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                                     <p className="text-[10px] text-blue-500 dark:text-blue-400 font-semibold flex items-center gap-0.5 mb-0.5">
                                       <Languages className="w-3 h-3" /> {t('communityChat.translatedLabel', currentLang)}
                                     </p>
-                                    <p className="text-sm text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{translations[msg.id]}</p>
+                                    <p className="text-sm text-gray-700 dark:text-gray-300">{translations[msg.id]}</p>
                                   </div>
                                 )}
                               </>
@@ -1915,12 +1903,12 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                             {!isEditing && (
                               <div className={`flex items-center gap-1.5 mt-0.5 justify-between`}>
                                 <div className="flex items-center gap-1">
-                                  <span className={`text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300`}>
+                                  <span className={`text-[10px] text-gray-400 dark:text-gray-300`}>
                                     {timeStr(msg.created_at)}
                                   </span>
                                   {/* Read receipt ticks (only for own messages) */}
                                   {msg.sender_id === userId && (
-                                    <span className={`text-[10px] ${msg.read_by && msg.read_by.some((r: any) => r.user_id !== userId) ? 'text-blue-500' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`} title={msg.read_by && msg.read_by.some((r: any) => r.user_id !== userId) ? t('communityChat.read', currentLang) : t('common.sent', currentLang)}>
+                                    <span className={`text-[10px] ${msg.read_by && msg.read_by.some((r: any) => r.user_id !== userId) ? 'text-blue-500' : 'text-gray-400 dark:text-gray-300'}`} title={msg.read_by && msg.read_by.some((r: any) => r.user_id !== userId) ? t('communityChat.read', currentLang) : t('common.sent', currentLang)}>
                                       {msg.read_by && msg.read_by.some((r: any) => r.user_id !== userId) ? '✓✓' : '✓'}
                                     </span>
                                   )}
@@ -1929,7 +1917,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                                   {!msg.id.startsWith('tmp-') && (
                                     <button
                                       onClick={() => handleReply(msg)}
-                                      className={`text-[10px] flex items-center gap-0.5 p-0.5 rounded text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-600`}
+                                      className={`text-[10px] flex items-center gap-0.5 p-0.5 rounded text-gray-400 dark:text-gray-300 hover:text-gray-600`}
                                       title={t('common.reply', currentLang)}
                                     >
                                       <Reply className="w-3 h-3" />
@@ -1939,7 +1927,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                                   {msg.sender_id === userId && !msg.id.startsWith('tmp-') && (
                                     <button
                                       onClick={() => startEdit(msg)}
-                                      className="text-[10px] flex items-center gap-0.5 p-0.5 rounded text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-600"
+                                      className="text-[10px] flex items-center gap-0.5 p-0.5 rounded text-gray-400 dark:text-gray-300 hover:text-gray-600"
                                       title={t('common.edit', currentLang)}
                                     >
                                       <Edit2 className="w-3 h-3" />
@@ -1949,7 +1937,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                                   {msg.content && !msg.id.startsWith('tmp-') && (
                                     <button
                                       onClick={() => handleTranslate(msg.id, msg.content)}
-                                      className={`text-[10px] flex items-center gap-0.5 px-1 py-0.5 rounded transition ${translations[msg.id] ? 'text-blue-500 bg-blue-50 dark:bg-blue-950/30' : translatingId === msg.id ? 'text-blue-400 animate-pulse' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/30'}`}
+                                      className={`text-[10px] flex items-center gap-0.5 px-1 py-0.5 rounded transition ${translations[msg.id] ? 'text-blue-500 bg-blue-50 dark:bg-blue-950/30' : translatingId === msg.id ? 'text-blue-400 animate-pulse' : 'text-gray-400 dark:text-gray-300 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/30'}`}
                                       title={translations[msg.id] ? t('communityChat.removeTranslation', currentLang) : t('citizen.messages.translate', currentLang)}
                                       disabled={translatingId === msg.id}
                                     >
@@ -1960,7 +1948,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                                   {msg.sender_id !== userId && !msg.id.startsWith('tmp-') && (
                                     <button
                                       onClick={() => handleReport(msg)}
-                                      className="text-[10px] flex items-center gap-0.5 p-0.5 rounded text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-red-500"
+                                      className="text-[10px] flex items-center gap-0.5 p-0.5 rounded text-gray-400 dark:text-gray-300 hover:text-red-500"
                                       title={t('communityChat.reportAction', currentLang)}
                                     >
                                       <Flag className="w-3 h-3" />
@@ -1996,7 +1984,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                     <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                     <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                   </div>
-                  <span className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+                  <span className="text-[10px] text-gray-400 dark:text-gray-300">
                     {typingUsers.map((t: TypingInfo) => t.displayName).join(', ')} {t(typingUsers.length === 1 ? 'communityChat.typingSingular' : 'communityChat.typingPlural', currentLang)}
                   </span>
                 </div>
@@ -2023,10 +2011,10 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
             <Reply className="w-4 h-4 text-aegis-500 flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-[10px] font-semibold text-aegis-600 dark:text-aegis-400">{replyTo.sender_name}</p>
-              <p className="text-[11px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 truncate">{replyTo.content || t('communityChat.imagePlaceholder', currentLang)}</p>
+              <p className="text-[11px] text-gray-500 dark:text-gray-300 truncate">{replyTo.content || t('communityChat.imagePlaceholder', currentLang)}</p>
             </div>
             <button onClick={clearReply} className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition">
-              <X className="w-3.5 h-3.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
+              <X className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300" />
             </button>
           </div>
         )}
@@ -2044,8 +2032,8 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
               </button>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 truncate">{imageFile?.name}</p>
-              <p className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{imageFile ? (imageFile.size / 1024).toFixed(0) + ' KB' : ''}</p>
+              <p className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">{imageFile?.name}</p>
+              <p className="text-[10px] text-gray-400 dark:text-gray-300">{imageFile ? (imageFile.size / 1024).toFixed(0) + ' KB' : ''}</p>
             </div>
           </div>
         )}
@@ -2072,7 +2060,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                 className={`p-2.5 rounded-xl transition ${
                   showEmoji
                     ? 'bg-aegis-100 dark:bg-aegis-950/30 text-aegis-600 shadow-sm'
-                    : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800'
+                    : 'text-gray-400 dark:text-gray-300 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800'
                 }`}
                 title={t('communityChat.emoji', currentLang)}
               >
@@ -2089,7 +2077,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
             {/* Image upload button */}
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="p-2.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-aegis-600 hover:bg-aegis-50 dark:hover:bg-aegis-950/10 rounded-xl transition"
+              className="p-2.5 text-gray-400 dark:text-gray-300 hover:text-aegis-600 hover:bg-aegis-50 dark:hover:bg-aegis-950/10 rounded-xl transition"
               title={t('communityChat.shareImage', currentLang)}
             >
               <ImageIcon className="w-5 h-5" />
@@ -2115,7 +2103,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
               }}
               placeholder={replyTo ? `${t('communityChat.replyToPrefix', currentLang)} ${replyTo.sender_name}...` : t('citizen.messages.typeMessage', currentLang)}
               rows={1}
-              className="flex-1 px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition resize-none max-h-28 placeholder:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300"
+              className="flex-1 px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition resize-none max-h-28 placeholder:text-gray-400 dark:text-gray-300"
             />
 
             {/* Send button */}
@@ -2136,7 +2124,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
               <AlertCircle className="w-3 h-3" /> {t('common.reconnecting', currentLang)}
             </p>
           )}
-          <p className="text-[9px] text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-700 mt-1">
+          <p className="text-[9px] text-gray-300 dark:text-gray-700 mt-1">
             {t('communityChat.newLineHint', currentLang)} - {t('communityChat.imageSizeLimit', currentLang)}
           </p>
           </>
@@ -2147,7 +2135,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
       {/* Right Panel: Online Users — Premium Design */}
       <div className={`w-60 bg-white dark:bg-gray-900 border border-l-0 border-gray-200 dark:border-gray-800 rounded-r-xl flex-col shadow-xl ${showOnlinePanel ? 'hidden md:flex' : 'hidden lg:flex'}`}>
         <div className="p-3 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-aegis-50 to-white dark:from-gray-900 dark:to-gray-900">
-          <h3 className="text-xs font-bold text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex items-center gap-1.5 uppercase tracking-wider">
+          <h3 className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5 uppercase tracking-wider">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
             {t('communityChat.onlineTitle', currentLang)} ({onlineUsers.length})
           </h3>
@@ -2156,7 +2144,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
           {onlineUsers.length === 0 ? (
             <div className="text-center py-6">
               <Users className="w-8 h-8 text-gray-200 dark:text-gray-700 mx-auto mb-2" />
-              <p className="text-[11px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('communityChat.noUsersOnline', currentLang)}</p>
+              <p className="text-[11px] text-gray-400 dark:text-gray-300">{t('communityChat.noUsersOnline', currentLang)}</p>
             </div>
           ) : (
             <>
@@ -2205,7 +2193,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
         </div>
         {/* Features & Guidelines */}
         <div className="p-3 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900">
-          <h4 className="text-[9px] font-bold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-wider mb-2">{t('communityChat.chatFeatures', currentLang)}</h4>
+          <h4 className="text-[9px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider mb-2">{t('communityChat.chatFeatures', currentLang)}</h4>
           <div className="grid grid-cols-2 gap-1">
             {[
               { icon: ImageIcon, label: t('communityChat.featureImages', currentLang) },
@@ -2215,22 +2203,22 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
               { icon: Smile, label: t('communityChat.emoji', currentLang) },
               { icon: Languages, label: t('citizen.messages.translate', currentLang) },
             ].map((f, i) => (
-              <div key={i} className="flex items-center gap-1 text-[9px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 bg-white dark:bg-gray-800 px-2 py-1.5 rounded-lg">
+              <div key={i} className="flex items-center gap-1 text-[9px] text-gray-400 dark:text-gray-300 bg-white dark:bg-gray-800 px-2 py-1.5 rounded-lg">
                 <f.icon className="w-2.5 h-2.5 text-aegis-500 flex-shrink-0" />
                 <span>{f.label}</span>
               </div>
             ))}
           </div>
           <div className="mt-2.5 pt-2.5 border-t border-gray-100 dark:border-gray-700">
-            <h4 className="text-[9px] font-bold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-wider mb-1.5">{t('communityChat.guidelinesTitle', currentLang)}</h4>
+            <h4 className="text-[9px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider mb-1.5">{t('communityChat.guidelinesTitle', currentLang)}</h4>
             <ul className="space-y-1">
               {[
                 { icon: UserCheck, text: t('communityChat.guidelineRespect', currentLang) },
                 { icon: Shield, text: t('communityChat.guidelineNoPersonalInfo', currentLang) },
                 { icon: AlertCircle, text: t('communityChat.guidelineEmergency', currentLang) },
               ].map((g, i) => (
-                <li key={i} className="flex items-start gap-1 text-[9px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
-                  <g.icon className="w-2.5 h-2.5 mt-0.5 flex-shrink-0 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
+                <li key={i} className="flex items-start gap-1 text-[9px] text-gray-400 dark:text-gray-300">
+                  <g.icon className="w-2.5 h-2.5 mt-0.5 flex-shrink-0 text-gray-400 dark:text-gray-300" />
                   <span>{g.text}</span>
                 </li>
               ))}
@@ -2251,7 +2239,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                   {isAdmin && !deleteTarget.isOwnMessage ? t('communityChat.moderateMessage', currentLang) : t('communityChat.deleteMessage', currentLang)}
               </h3>
             </div>
-            <p className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-3">
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
               {isAdmin && !deleteTarget.isOwnMessage
                 ? `${t('communityChat.deleteMessagePrompt', currentLang)} ${deleteTarget.senderName}? ${t('communityChat.deleteMessageSuffix', currentLang)}`
                 : t('communityChat.deleteOwnMessagePrompt', currentLang)}
@@ -2259,7 +2247,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
             {/* Admin reason field for audit — only shown when deleting someone else's message */}
             {isAdmin && !deleteTarget.isOwnMessage && (
               <div className="mb-4">
-                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-wider mb-1.5">{t('communityChat.reasonForDeletionAudit', currentLang)}</label>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider mb-1.5">{t('communityChat.reasonForDeletionAudit', currentLang)}</label>
                 <select
                   value={deleteReason}
                   onChange={e => setDeleteReason(e.target.value)}
@@ -2280,7 +2268,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
               </div>
             )}
             <div className="flex justify-end gap-3">
-              <button onClick={() => { setDeleteTarget(null); setDeleteReason('') }} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:hover:text-gray-200 transition">{t('common.cancel', currentLang)}</button>
+              <button onClick={() => { setDeleteTarget(null); setDeleteReason('') }} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-200 transition">{t('common.cancel', currentLang)}</button>
               <button
                 onClick={confirmDelete}
                 disabled={isAdmin && !deleteTarget.isOwnMessage && !deleteReason.trim()}
@@ -2344,22 +2332,22 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
             <div className="space-y-3 border-t border-gray-200 dark:border-gray-800 pt-4">
               {profileView.bio && (
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-wider mb-1">{t('communityChat.profileBio', currentLang)}</p>
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider mb-1">{t('communityChat.profileBio', currentLang)}</p>
                   <p className="text-sm text-gray-900 dark:text-white">{profileView.bio}</p>
                 </div>
               )}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-wider mb-1">{t('communityChat.profileJoined', currentLang)}</p>
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider mb-1">{t('communityChat.profileJoined', currentLang)}</p>
                   <p className="text-sm text-gray-900 dark:text-white">{profileView.joinedAt ? new Date(profileView.joinedAt).toLocaleDateString() : (profileView.loading ? t('common.loading', currentLang) : t('common.notAvailable', currentLang))}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-wider mb-1">{t('communityChat.profileMessages', currentLang)}</p>
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider mb-1">{t('communityChat.profileMessages', currentLang)}</p>
                   <p className="text-sm text-gray-900 dark:text-white">{profileView.loading ? t('common.loading', currentLang) : (profileView.messageCount ?? 0)}</p>
                 </div>
               </div>
               <div>
-                <p className="text-xs font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-wider mb-1">{t('common.status', currentLang)}</p>
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider mb-1">{t('common.status', currentLang)}</p>
                 <p className="text-sm text-gray-900 dark:text-white">{profileView.status || (profileView.loading ? t('common.loading', currentLang) : t('common.active', currentLang))}</p>
               </div>
             </div>
@@ -2424,7 +2412,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
               
               <button
                 onClick={() => setProfileView(null)}
-                className="w-full px-4 py-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 rounded-lg font-medium transition"
+                className="w-full px-4 py-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium transition"
               >
                 {t('common.close', currentLang)}
               </button>
@@ -2441,10 +2429,10 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
               <Ban className="w-5 h-5 text-red-500" /> {t('communityChat.banUser', currentLang)} {showBanModal.name}
             </h3>
-            <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-4">{t('communityChat.banModalDesc', currentLang)}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-300 mb-4">{t('communityChat.banModalDesc', currentLang)}</p>
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('common.reason', currentLang)}</label>
+                <label className="text-xs font-semibold text-gray-600 dark:text-gray-300">{t('common.reason', currentLang)}</label>
                 <input
                   id="ban-reason"
                   type="text"
@@ -2453,7 +2441,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('communityChat.durationLabel', currentLang)}</label>
+                <label className="text-xs font-semibold text-gray-600 dark:text-gray-300">{t('communityChat.durationLabel', currentLang)}</label>
                 <div className="grid grid-cols-3 gap-2 mt-1">
                   {BAN_DURATIONS.map(opt => (
                     <button
@@ -2481,7 +2469,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                       className={`px-3 py-2 text-xs font-medium rounded-lg border transition ${
                         opt.value === 'permanent'
                           ? 'bg-red-600 hover:bg-red-700 text-white border-red-600'
-                          : 'bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-950/20 text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-red-300'
+                          : 'bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-950/20 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-red-300'
                       }`}
                     >
                       {t(opt.key, currentLang)}
@@ -2492,7 +2480,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
             </div>
             <button
               onClick={() => setShowBanModal(null)}
-              className="w-full mt-4 px-4 py-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 rounded-lg font-medium transition text-sm"
+              className="w-full mt-4 px-4 py-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium transition text-sm"
             >
               {t('common.cancel', currentLang)}
             </button>
@@ -2507,10 +2495,10 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
               <VolumeX className="w-5 h-5 text-yellow-500" /> {t('communityChat.muteUser', currentLang)} {showMuteModal.name}
             </h3>
-            <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-4">{t('communityChat.muteModalDesc', currentLang)}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-300 mb-4">{t('communityChat.muteModalDesc', currentLang)}</p>
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('common.reason', currentLang)}</label>
+                <label className="text-xs font-semibold text-gray-600 dark:text-gray-300">{t('common.reason', currentLang)}</label>
                 <input
                   id="mute-reason"
                   type="text"
@@ -2519,7 +2507,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('communityChat.durationLabel', currentLang)}</label>
+                <label className="text-xs font-semibold text-gray-600 dark:text-gray-300">{t('communityChat.durationLabel', currentLang)}</label>
                 <div className="grid grid-cols-3 gap-2 mt-1">
                   {MUTE_DURATIONS.map(opt => (
                     <button
@@ -2540,7 +2528,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
                           }
                         })
                       }}
-                      className="px-3 py-2 text-xs font-medium rounded-lg border transition bg-white dark:bg-gray-800 hover:bg-yellow-50 dark:hover:bg-yellow-950/20 text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-yellow-300"
+                      className="px-3 py-2 text-xs font-medium rounded-lg border transition bg-white dark:bg-gray-800 hover:bg-yellow-50 dark:hover:bg-yellow-950/20 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-yellow-300"
                     >
                       {t(opt.key, currentLang)}
                     </button>
@@ -2550,7 +2538,7 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
             </div>
             <button
               onClick={() => setShowMuteModal(null)}
-              className="w-full mt-4 px-4 py-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 rounded-lg font-medium transition text-sm"
+              className="w-full mt-4 px-4 py-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium transition text-sm"
             >
               {t('common.cancel', currentLang)}
             </button>
@@ -2560,8 +2548,4 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     </div>
   )
 }
-
-
-
-
-
+

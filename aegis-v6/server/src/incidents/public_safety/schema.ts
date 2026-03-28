@@ -43,3 +43,4 @@ export function sanitizePublicSafetyCustomFields(fields: Record<string, unknown>
     evacuationNeeded: typeof fields.evacuationNeeded === 'boolean' ? fields.evacuationNeeded : undefined
   }
 }
+

@@ -1,0 +1,74 @@
+# AEGIS LLM Fine-Tuning Requirements
+# ====================================
+# Install separately from the main requirements.txt — these are only needed
+# for LLM fine-tuning, dataset generation, and model evaluation.
+#
+# Quick install:
+#   pip install -r requirements-llm.txt
+#
+# For CUDA 12.1 + torch 2.5 (RTX 2060, RTX 3xxx, RTX 4xxx):
+#   pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu121
+#   pip install -r requirements-llm.txt
+#
+# Windows WSL2 with Unsloth (2x faster training, recommended if available):
+#   pip install unsloth
+#   pip install -r requirements-llm.txt
+#
+# Hardware recommendations:
+#   RTX 2060 (8GB)  → Llama 3.2 3B Q4  (safe) | Llama 3.1 8B Q4 (tight, batch=1)
+#   RTX 3080 (10GB) → Llama 3.1 8B Q4  (comfortable)
+#   RTX 4090 (24GB) → Llama 3.1 8B fp16 (fast, high quality)
+#   Cloud A100-40G  → Llama 3.1 70B Q4 (max quality, ~$20 for 3 epochs)
+
+# ── Core training stack ──────────────────────────────────────────────────────
+# transformers must match your torch version closely
+transformers>=4.47.1,<4.50.0
+
+# TRL (Transformer Reinforcement Learning) — SFTTrainer, ORPOTrainer, DPOTrainer
+trl>=0.12.0,<0.15.0
+
+# PEFT — LoRA / QLoRA adapters
+peft>=0.14.0,<0.16.0
+
+# BitsAndBytes — 4-bit NF4 quantization for 8GB VRAM
+# NOTE: Windows support is limited. Use the pre-built wheel:
+#   pip install bitsandbytes --prefer-binary
+bitsandbytes>=0.45.0
+
+# Datasets — loads JSONL training data efficiently
+datasets>=3.2.0,<4.0.0
+
+# Accelerate — multi-GPU / CPU offload support
+accelerate>=1.2.0,<2.0.0
+
+# TensorBoard — training curve visualisation
+# Run: tensorboard --logdir D:/aegis-models/aegis-llm-v1/runs
+tensorboard>=2.18.0
+
+# ── Optional: Unsloth (Linux/WSL2 only — 2x faster, 50% less VRAM) ───────────
+# Uncomment if running on Linux or WSL2:
+# unsloth[cu121-torch250]>=2024.12.0
+
+# ── Dataset generation ───────────────────────────────────────────────────────
+# Anthropic Claude API — used for generating and correcting training examples
+# Only consumed during dataset generation, NOT during live inference
+anthropic>=0.39.0,<1.0.0
+
+# ── Evaluation and benchmarking ──────────────────────────────────────────────
+# Async HTTP for Ollama API communication
+httpx>=0.28.1,<1.0.0
+
+# Logging — used throughout the pipeline
+loguru>=0.7.3
+
+# ── Utilities ────────────────────────────────────────────────────────────────
+scipy>=1.14.0
+scikit-learn>=1.6.0
+tqdm>=4.67.0
+numpy>=2.2.0
+packaging>=24.0
+
+# ── Torch (base — install separately for your CUDA version — see above) ──────
+# Included here for reference only. PyPI torch is CPU-only.
+# Use the CUDA wheel instead (linked above).
+# torch>=2.5.0

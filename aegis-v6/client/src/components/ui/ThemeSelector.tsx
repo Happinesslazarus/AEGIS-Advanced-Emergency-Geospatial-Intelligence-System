@@ -1,9 +1,9 @@
-import { useState, useRef, useEffect } from 'react'
+﻿import { useState, useRef, useEffect } from 'react'
 import { Palette, Check } from 'lucide-react'
 import { useTheme, THEMES, type ThemeName } from '../../contexts/ThemeContext'
 
 interface Props {
-  /** Show on dark navbar (always-white icon) */
+  /* Show on dark navbar (always-white icon) */
   darkNav?: boolean
   className?: string
 }
@@ -50,7 +50,7 @@ export default function ThemeSelector({ darkNav, className = '' }: Props) {
         <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700/50 overflow-hidden z-50 animate-scale-in">
           {/* Header */}
           <div className="px-4 py-2.5 border-b border-gray-100 dark:border-gray-800">
-            <p className="text-[10px] font-bold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-widest">Choose Theme</p>
+            <p className="text-[10px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-widest">Choose Theme</p>
           </div>
 
           {/* Theme list */}
@@ -84,13 +84,13 @@ export default function ThemeSelector({ darkNav, className = '' }: Props) {
                     }`}>
                       {t.label}
                     </p>
-                    <p className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 truncate">{t.description}</p>
+                    <p className="text-[10px] text-gray-400 dark:text-gray-300 truncate">{t.description}</p>
                   </div>
 
                   {/* Dark/Light badge */}
                   <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-full flex-shrink-0 ${
                     t.isDark
-                      ? 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'
+                      ? 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-300'
                       : 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400'
                   }`}>
                     {t.isDark ? 'Dark' : 'Light'}
@@ -102,8 +102,8 @@ export default function ThemeSelector({ darkNav, className = '' }: Props) {
 
           {/* Footer */}
           <div className="px-4 py-2 border-t border-gray-100 dark:border-gray-800">
-            <p className="text-[9px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-600">
-              Active: <span className="font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{themeConfig.label}</span>
+            <p className="text-[9px] text-gray-400 dark:text-gray-400">
+              Active: <span className="font-semibold text-gray-500 dark:text-gray-300">{themeConfig.label}</span>
             </p>
           </div>
         </div>
@@ -111,7 +111,4 @@ export default function ThemeSelector({ darkNav, className = '' }: Props) {
     </div>
   )
 }
-
-
-
-
+

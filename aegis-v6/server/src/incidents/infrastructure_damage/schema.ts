@@ -46,3 +46,4 @@ export function sanitizeInfrastructureDamageCustomFields(fields: Record<string, 
     emergencyAccess: typeof fields.emergencyAccess === 'boolean' ? fields.emergencyAccess : undefined
   }
 }
+

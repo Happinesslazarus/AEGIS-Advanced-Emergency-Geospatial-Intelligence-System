@@ -14,9 +14,7 @@ const SIZES = {
 export default function MessageStatusIcon({ status, size = 'md' }: Props) {
   const cls = SIZES[size]
   if (status === 'read') return <CheckCheck className={`${cls} text-blue-500`} />
-  if (status === 'delivered') return <CheckCheck className={`${cls} text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300`} />
-  return <Check className={`${cls} text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300`} />
+  if (status === 'delivered') return <CheckCheck className={`${cls} text-gray-400 dark:text-gray-300`} />
+  return <Check className={`${cls} text-gray-400 dark:text-gray-300`} />
 }
-
-
-
+

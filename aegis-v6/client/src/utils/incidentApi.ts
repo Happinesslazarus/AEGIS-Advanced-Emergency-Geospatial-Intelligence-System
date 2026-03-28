@@ -1,16 +1,14 @@
-/**
+﻿/**
  * incidentApi.ts — V1 Incident API client
  *
  * Interfaces with the new /api/v1/incidents/* endpoints while
  * keeping backward compatibility with existing /api/* routes.
  */
 
+import { getToken } from './api'
+
 const BASE = String(import.meta.env.VITE_API_BASE_URL || '')
 const V1 = `${BASE}/api/v1/incidents`
-
-function getToken(): string | null {
-  return localStorage.getItem('aegis-token')
-}
 
 async function v1Fetch<T = unknown>(path: string, opts: RequestInit = {}): Promise<T> {
   const token = getToken()
@@ -27,12 +25,13 @@ async function v1Fetch<T = unknown>(path: string, opts: RequestInit = {}): Promi
 
   if (!res.ok) {
     const e = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
-    throw new Error(e.error || `HTTP ${res.status}`)
+    const errMsg = typeof e.error === 'string' ? e.error : e.error?.message || e.message || `HTTP ${res.status}`
+    throw new Error(errMsg)
   }
   return res.json() as Promise<T>
 }
 
-// ─── Types ──────────────────────────────────────────────────────────────
+// Types
 
 export interface IncidentRegistryEntry {
   id: string
@@ -116,20 +115,20 @@ export interface IncidentDashboardSummary {
   totalPredictions: number
 }
 
-// ─── Cross-incident endpoints ───────────────────────────────────────────
+// Cross-incident endpoints
 
-/** Get all registered incident modules and their status */
-export async function apiGetIncidentRegistry(): Promise<{ modules: IncidentRegistryEntry[] }> {
+/* Get all registered incident modules and their status */
+export async function apiGetIncidentRegistry(): Promise<{ modules: IncidentRegistryEntry[]; incidents?: IncidentRegistryEntry[] }> {
   return v1Fetch('/registry')
 }
 
-/** Get dashboard summary for all operational incidents */
+/* Get dashboard summary for all operational incidents */
 export async function apiGetIncidentDashboard(region?: string): Promise<IncidentDashboardSummary> {
   const q = region ? `?region=${encodeURIComponent(region)}` : ''
   return v1Fetch(`/all/dashboard${q}`)
 }
 
-/** Get all predictions across all incident types */
+/* Get all predictions across all incident types */
 export async function apiGetAllIncidentPredictions(region?: string): Promise<{
   predictions: IncidentPrediction[]
   count: number
@@ -139,7 +138,7 @@ export async function apiGetAllIncidentPredictions(region?: string): Promise<{
   return v1Fetch(`/all/predictions${q}`)
 }
 
-/** Get all alerts across all incident types */
+/* Get all alerts across all incident types */
 export async function apiGetAllIncidentAlerts(): Promise<{
   alerts: IncidentAlert[]
   count: number
@@ -148,7 +147,7 @@ export async function apiGetAllIncidentAlerts(): Promise<{
   return v1Fetch('/all/alerts')
 }
 
-/** Get all map data across all incident types */
+/* Get all map data across all incident types */
 export async function apiGetAllIncidentMapData(region?: string): Promise<{
   layers: IncidentMapData[]
   region: string
@@ -157,9 +156,9 @@ export async function apiGetAllIncidentMapData(region?: string): Promise<{
   return v1Fetch(`/all/map-data${q}`)
 }
 
-// ─── Per-incident endpoints ─────────────────────────────────────────────
+// Per-incident endpoints
 
-/** Get active incidents for a specific type */
+/* Get active incidents for a specific type */
 export async function apiGetIncidentActive(type: string, region?: string): Promise<{
   reports: any[]
 }> {
@@ -167,7 +166,7 @@ export async function apiGetIncidentActive(type: string, region?: string): Promi
   return v1Fetch(`/${type}/active${q}`)
 }
 
-/** Get predictions for a specific incident type */
+/* Get predictions for a specific incident type */
 export async function apiGetIncidentPredictions(type: string, region?: string): Promise<{
   predictions: IncidentPrediction[]
 }> {
@@ -175,27 +174,27 @@ export async function apiGetIncidentPredictions(type: string, region?: string): 
   return v1Fetch(`/${type}/predictions${q}`)
 }
 
-/** Get alerts for a specific incident type */
+/* Get alerts for a specific incident type */
 export async function apiGetIncidentAlerts(type: string): Promise<{
   alerts: IncidentAlert[]
 }> {
   return v1Fetch(`/${type}/alerts`)
 }
 
-/** Get map data for a specific incident type */
+/* Get map data for a specific incident type */
 export async function apiGetIncidentMapData(type: string, region?: string): Promise<IncidentMapData> {
   const q = region ? `?region=${encodeURIComponent(region)}` : ''
   return v1Fetch(`/${type}/map-data${q}`)
 }
 
-/** Get history for a specific incident type */
+/* Get history for a specific incident type */
 export async function apiGetIncidentHistory(type: string, days = 30): Promise<{
   history: any[]
 }> {
   return v1Fetch(`/${type}/history?days=${days}`)
 }
 
-/** Submit a report for a specific incident type */
+/* Submit a report for a specific incident type */
 export async function apiSubmitIncidentReport(
   type: string,
   data: {
@@ -214,14 +213,14 @@ export async function apiSubmitIncidentReport(
   })
 }
 
-// ─── Flood-specific endpoints (backward compat) ────────────────────────
+// Flood-specific endpoints (backward compat)
 
-/** Flood threat level */
+/* Flood threat level */
 export async function apiGetFloodThreat(): Promise<any> {
   return v1Fetch('/flood/threat')
 }
 
-/** Flood evacuation route */
+/* Flood evacuation route */
 export async function apiGetFloodEvacuationRoute(
   lat: number,
   lng: number,
@@ -230,13 +229,14 @@ export async function apiGetFloodEvacuationRoute(
   return v1Fetch(`/flood/evacuation/route?lat=${lat}&lng=${lng}&severity=${severity}`)
 }
 
-/** Flood evacuation routes for a region */
+/* Flood evacuation routes for a region */
 export async function apiGetFloodEvacuationRoutes(region?: string): Promise<any> {
   const q = region ? `?region=${encodeURIComponent(region)}` : ''
   return v1Fetch(`/flood/evacuation/routes${q}`)
 }
 
-/** Flood extents for a river */
+/* Flood extents for a river */
 export async function apiGetFloodExtents(river: string): Promise<any> {
   return v1Fetch(`/flood/extents/${encodeURIComponent(river)}`)
 }
+

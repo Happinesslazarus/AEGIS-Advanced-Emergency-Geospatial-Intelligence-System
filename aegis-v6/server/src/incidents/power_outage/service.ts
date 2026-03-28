@@ -7,7 +7,7 @@ import type { IncidentPrediction } from '../types.js'
 import { powerOutageConfig, POWER_OUTAGE_CRITICAL_FACILITIES } from './config.js'
 
 export class PowerOutageService {
-  /**
+   /**
    * Get power outage risk score
    */
   static async calculateOutageRisk(region: string): Promise<number> {
@@ -28,7 +28,7 @@ export class PowerOutageService {
     }
   }
 
-  /**
+   /**
    * Get power outage predictions for a region
    */
   static async getOutagePredictions(region: string): Promise<IncidentPrediction[]> {
@@ -54,7 +54,7 @@ export class PowerOutageService {
     }]
   }
 
-  /**
+   /**
    * Get power outage advisory text based on severity
    */
   static getOutageAdvisory(severity: string): string {
@@ -70,7 +70,7 @@ export class PowerOutageService {
     }
   }
 
-  /**
+   /**
    * Estimate affected households
    */
   static async estimateAffectedHouseholds(region: string): Promise<number> {

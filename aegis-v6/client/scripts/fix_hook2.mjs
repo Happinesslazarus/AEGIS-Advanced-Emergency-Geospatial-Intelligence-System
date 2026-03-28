@@ -1,5 +1,4 @@
-/**
- * Fix: Remove useLanguage() from inside destructured params and add it to the function body.
+﻿ * Fix: Remove useLanguage() from inside destructured params and add it to the function body.
  * Reads the file, finds the problematic pattern, and moves the hook.
  */
 import { readFileSync, writeFileSync } from 'fs'
@@ -52,3 +51,4 @@ for (const rel of FILES) {
     writeFileSync(file, code, 'utf8')
   }
 }
+

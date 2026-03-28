@@ -1,22 +1,20 @@
-/**
+ /*
  * services/evacuationService.ts — Evacuation route calculator
- *
  * Calculates safe routes from a starting point to shelters or high ground,
  * avoiding active flood zones. Uses OpenRouteService API when configured,
- * with pre-calculated fallback routes for Aberdeen.
- */
+ * with pre-calculated fallback routes for monitored cities.
+  */
 
 import { getActiveCityRegion } from '../config/regions/index.js'
 import pool from '../models/db.js'
 import fs from 'fs'
 import path from 'path'
 import { IncidentIntelligenceCore } from './incidentIntelligenceCore.js'
+import { logger } from './logger.js'
 
 const intelligenceCore = new IncidentIntelligenceCore(getActiveCityRegion())
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Types
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export interface EvacuationRoute {
   id: string
@@ -34,6 +32,11 @@ export interface EvacuationRoute {
   }
   isBlocked: boolean
   blockedReason?: string
+  riskScore?: number
+  recommendationScore?: number
+  etaConfidence?: number
+  closureProximityM?: number
+  explanation?: RouteExplanation
 }
 
 export interface EvacuationResult {
@@ -41,11 +44,62 @@ export interface EvacuationResult {
   nearestShelter: EvacuationRoute | null
   calculatedAt: string
   usingFallback: boolean
+  rankingModel?: string
+  routeRefreshSeconds?: number
+  riskSignalsUsed?: number
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+export interface EvacuationRoutingOptions {
+  optimizeFor?: 'fastest' | 'safest' | 'balanced'
+  refreshWindowSeconds?: number
+  liveClosures?: Array<{
+    lat: number
+    lng: number
+    radiusMeters?: number
+    severity?: 'low' | 'medium' | 'high' | 'critical'
+    reason?: string
+  }>
+}
+
+type RouteHazardSignal = {
+  lat: number
+  lng: number
+  severity: 'low' | 'medium' | 'high' | 'critical'
+  confidence: number
+  source: 'live_report' | 'closure'
+  reason?: string
+}
+
+type RouteHazardHit = {
+  source: 'live_report' | 'closure'
+  severity: 'low' | 'medium' | 'high' | 'critical'
+  confidence: number
+  distanceM: number
+  reason?: string
+}
+
+type RouteBlockedSegment = {
+  from: { lat: number; lng: number }
+  to: { lat: number; lng: number }
+  hazardSeverity: string
+  hazardDistanceM: number
+}
+
+type RouteScoreBreakdown = {
+  timeScore: number
+  riskPenalty: number
+  profile: 'fastest' | 'safest' | 'balanced'
+  timeWeight: number
+  riskWeight: number
+}
+
+type RouteExplanation = {
+  topHazards: RouteHazardHit[]
+  blockedSegments: RouteBlockedSegment[]
+  scoreBreakdown: RouteScoreBreakdown
+}
+
 // Pre-calculated Routes (fallback) — Aberdeen, Edinburgh, Glasgow, Dundee
-// ═══════════════════════════════════════════════════════════════════════════════
 
 const ABERDEEN_ROUTES: EvacuationRoute[] = [
   {
@@ -172,32 +226,57 @@ const ABERDEEN_ROUTES: EvacuationRoute[] = [
   },
 ]
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Core Functions
-// ═══════════════════════════════════════════════════════════════════════════════
 
-/**
+ /*
  * Calculate evacuation routes from a starting point.
  * Uses OpenRouteService if API key present, otherwise pre-calculated routes.
- */
+  */
 export async function calculateEvacuationRoutes(
   startLat: number,
   startLng: number,
   floodExtentGeoJSON?: any,
   destinationType: 'shelter' | 'high_ground' | 'both' = 'both',
+  options?: EvacuationRoutingOptions,
 ): Promise<EvacuationResult> {
   const orsKey = process.env.ORS_API_KEY
 
   if (orsKey) {
     try {
-      return await calculateWithORS(startLat, startLng, floodExtentGeoJSON, destinationType, orsKey)
+      return await calculateWithORS(startLat, startLng, floodExtentGeoJSON, destinationType, orsKey, options)
     } catch (err: any) {
-      console.warn(`[Evacuation] ORS failed, using fallback: ${err.message}`)
+      logger.warn({ err }, '[Evacuation] ORS failed, using fallback')
     }
   }
 
   // Fallback to pre-calculated routes
-  return getFallbackRoutes(startLat, startLng, destinationType)
+  return getFallbackRoutes(startLat, startLng, destinationType, options)
+}
+
+export async function getOperationalEvacuationOverview(
+  destinationType: 'shelter' | 'high_ground' | 'both' = 'both',
+  options?: EvacuationRoutingOptions,
+): Promise<EvacuationResult> {
+  const region = getActiveCityRegion()
+  const dynamicHazard = await buildDynamicAvoidPolygons(region.centre.lat, region.centre.lng, options)
+  let routes = getPreCalculatedRoutes()
+
+  if (destinationType === 'shelter') {
+    routes = routes.filter((r) => r.toType === 'shelter')
+  } else if (destinationType === 'high_ground') {
+    routes = routes.filter((r) => r.toType === 'high_ground')
+  }
+
+  const ranked = rankEvacuationRoutes(routes, dynamicHazard.hazards, options)
+  return {
+    routes: ranked,
+    nearestShelter: ranked.find((r) => r.toType === 'shelter') || ranked[0] || null,
+    calculatedAt: new Date().toISOString(),
+    usingFallback: true,
+    rankingModel: 'risk-aware-v2-operational-overview',
+    routeRefreshSeconds: Math.max(15, options?.refreshWindowSeconds || 30),
+    riskSignalsUsed: dynamicHazard.hazards.length,
+  }
 }
 
 async function calculateWithORS(
@@ -206,8 +285,9 @@ async function calculateWithORS(
   floodExtentGeoJSON: any,
   destinationType: string,
   apiKey: string,
+  options?: EvacuationRoutingOptions,
 ): Promise<EvacuationResult> {
-  const dynamicHazardAvoidance = await buildDynamicAvoidPolygons(startLat, startLng)
+  const dynamicHazard = await buildDynamicAvoidPolygons(startLat, startLng, options)
 
   // Get nearest shelters from DB
   const { rows: shelters } = await pool.query(`
@@ -227,7 +307,7 @@ async function calculateWithORS(
     }
 
     // Add hazard avoidance polygons (dynamic incidents + optional flood extent)
-    const avoidPolygons = dynamicHazardAvoidance || floodExtentGeoJSON
+    const avoidPolygons = dynamicHazard.avoidPolygons || floodExtentGeoJSON
     if (avoidPolygons) {
       body.options = { avoid_polygons: avoidPolygons }
     }
@@ -270,15 +350,24 @@ async function calculateWithORS(
     }
   }
 
+  const ranked = rankEvacuationRoutes(routes, dynamicHazard.hazards, options)
+
   return {
-    routes,
-    nearestShelter: routes[0] || null,
+    routes: ranked,
+    nearestShelter: ranked.find((r) => r.toType === 'shelter') || ranked[0] || null,
     calculatedAt: new Date().toISOString(),
     usingFallback: false,
+    rankingModel: 'risk-aware-v2',
+    routeRefreshSeconds: Math.max(15, options?.refreshWindowSeconds || 30),
+    riskSignalsUsed: dynamicHazard.hazards.length,
   }
 }
 
-async function buildDynamicAvoidPolygons(lat: number, lng: number): Promise<any | null> {
+async function buildDynamicAvoidPolygons(
+  lat: number,
+  lng: number,
+  options?: EvacuationRoutingOptions,
+): Promise<{ avoidPolygons: any | null; hazards: RouteHazardSignal[] }> {
   try {
     const { rows } = await pool.query(
       `SELECT ST_Y(coordinates::geometry) AS lat,
@@ -296,27 +385,53 @@ async function buildDynamicAvoidPolygons(lat: number, lng: number): Promise<any 
       [lng, lat],
     )
 
-    if (!rows.length) return null
+    const closures = (options?.liveClosures || []).filter((c) =>
+      Number.isFinite(c.lat) && Number.isFinite(c.lng),
+    )
+
+    const hazards: RouteHazardSignal[] = [
+      ...rows.map((r: any) => ({
+        lat: Number(r.lat),
+        lng: Number(r.lng),
+        severity: (String(r.severity || 'medium').toLowerCase() as RouteHazardSignal['severity']),
+        confidence: Math.max(0.35, Math.min(0.99, Number(r.ai_confidence || 50) / 100)),
+        source: 'live_report' as const,
+        reason: 'Recent high-risk incident',
+      })),
+      ...closures.map((c, idx) => ({
+        lat: Number(c.lat),
+        lng: Number(c.lng),
+        severity: c.severity || 'high',
+        confidence: 0.95,
+        source: 'closure' as const,
+        reason: c.reason || `Live road closure ${idx + 1}`,
+      })),
+    ]
+
+    if (!hazards.length) return { avoidPolygons: null, hazards: [] }
 
     const evidence = intelligenceCore.buildEvidenceEvents(
-      rows.map((r: any, idx: number) => ({
+      hazards.map((h: RouteHazardSignal, idx: number) => ({
         id: `route-risk-${idx}`,
         signal_type: 'route_hazard',
         created_at: new Date().toISOString(),
-        ai_confidence: Number(r.ai_confidence || 50),
-        severity: r.severity,
-        lat: Number(r.lat),
-        lng: Number(r.lng),
+        ai_confidence: Math.round(h.confidence * 100),
+        severity: h.severity,
+        lat: h.lat,
+        lng: h.lng,
       })),
     )
 
-    return intelligenceCore.buildRouteRiskMask(evidence, {
+    return {
+      avoidPolygons: intelligenceCore.buildRouteRiskMask(evidence, {
       maxDistanceMeters: 10000,
       maxEvents: 20,
       lookbackHours: 4,
-    })
+      }),
+      hazards,
+    }
   } catch {
-    return null
+    return { avoidPolygons: null, hazards: [] }
   }
 }
 
@@ -324,8 +439,23 @@ function getFallbackRoutes(
   _startLat: number,
   _startLng: number,
   destinationType: string,
+  options?: EvacuationRoutingOptions,
 ): EvacuationResult {
-  let routes = [...ABERDEEN_ROUTES]
+  // Select pre-calculated routes from all available cities, closest first
+  const allRoutes = getPreCalculatedRoutes()
+  let routes = allRoutes.length > 0 ? [...allRoutes] : [...ABERDEEN_ROUTES]
+
+  // Sort by distance from the starting point (closest routes first)
+  routes.sort((a, b) => {
+    const aCoord = a.geometry.coordinates[0]
+    const bCoord = b.geometry.coordinates[0]
+    const aDist = Math.hypot(aCoord[1] - _startLat, aCoord[0] - _startLng)
+    const bDist = Math.hypot(bCoord[1] - _startLat, bCoord[0] - _startLng)
+    return aDist - bDist
+  })
+
+  // Keep the 10 closest routes
+  routes = routes.slice(0, 10)
 
   if (destinationType === 'shelter') {
     routes = routes.filter(r => r.toType === 'shelter')
@@ -333,24 +463,211 @@ function getFallbackRoutes(
     routes = routes.filter(r => r.toType === 'high_ground')
   }
 
+  const closureHazards: RouteHazardSignal[] = (options?.liveClosures || []).map((c, idx) => ({
+    lat: Number(c.lat),
+    lng: Number(c.lng),
+    severity: c.severity || 'high',
+    confidence: 0.95,
+    source: 'closure',
+    reason: c.reason || `Fallback closure ${idx + 1}`,
+  }))
+
+  const ranked = rankEvacuationRoutes(routes, closureHazards, options)
+
   return {
-    routes,
-    nearestShelter: routes.find(r => r.toType === 'shelter') || null,
+    routes: ranked,
+    nearestShelter: ranked.find(r => r.toType === 'shelter') || null,
     calculatedAt: new Date().toISOString(),
     usingFallback: true,
+    rankingModel: 'risk-aware-v2-fallback',
+    routeRefreshSeconds: Math.max(15, options?.refreshWindowSeconds || 30),
+    riskSignalsUsed: closureHazards.length,
   }
 }
 
-/**
+function rankEvacuationRoutes(
+  routes: EvacuationRoute[],
+  hazards: RouteHazardSignal[],
+  options?: EvacuationRoutingOptions,
+): EvacuationRoute[] {
+  if (!routes.length) return []
+
+  const optimizeFor = options?.optimizeFor || 'balanced'
+  const profile = optimizeFor === 'safest'
+    ? { timeWeight: 0.25, riskWeight: 0.75 }
+    : optimizeFor === 'fastest'
+      ? { timeWeight: 0.75, riskWeight: 0.25 }
+      : { timeWeight: 0.5, riskWeight: 0.5 }
+
+  const longestDuration = Math.max(...routes.map((r) => r.durationMinutes || 1), 1)
+
+  const ranked = routes.map((route) => {
+    const points = extractRoutePoints(route.geometry)
+
+    let minDistance = Number.POSITIVE_INFINITY
+    let weightedHazard = 0
+    let severeProximityHits = 0
+    const hazardHits: RouteHazardHit[] = []
+
+    for (const h of hazards) {
+      const severityWeight = hazardSeverityWeight(h.severity)
+      const nearest = points.reduce((best, p) => {
+        const d = haversineMeters(p.lat, p.lng, h.lat, h.lng)
+        return Math.min(best, d)
+      }, Number.POSITIVE_INFINITY)
+
+      minDistance = Math.min(minDistance, nearest)
+
+      const proximityRisk = nearest <= 50
+        ? 1.0
+        : nearest <= 150
+          ? 0.7
+          : nearest <= 300
+            ? 0.45
+            : nearest <= 600
+              ? 0.2
+              : 0
+
+      if (nearest <= 150 && (h.severity === 'high' || h.severity === 'critical')) {
+        severeProximityHits += 1
+      }
+
+      if (nearest <= 800) {
+        hazardHits.push({
+          source: h.source,
+          severity: h.severity,
+          confidence: h.confidence,
+          distanceM: Math.round(nearest),
+          reason: h.reason,
+        })
+      }
+
+      weightedHazard += proximityRisk * severityWeight * h.confidence
+    }
+
+    const hazardDenominator = Math.max(1, hazards.length)
+    const riskScore = Number(Math.min(1, weightedHazard / hazardDenominator).toFixed(3))
+    const timeScore = 1 - Math.min(1, (route.durationMinutes || longestDuration) / longestDuration)
+    const recommendationScore = Number((
+      timeScore * profile.timeWeight + (1 - riskScore) * profile.riskWeight
+    ).toFixed(3))
+
+    const isBlocked = severeProximityHits > 0
+    const etaConfidence = Number(Math.max(0.3, Math.min(0.99, 0.92 - riskScore * 0.5)).toFixed(2))
+    const blockedSegments = computeBlockedSegments(points, hazards)
+    hazardHits.sort((a, b) => a.distanceM - b.distanceM)
+
+    return {
+      ...route,
+      isBlocked,
+      blockedReason: isBlocked ? 'High-severity hazard or closure intersects route corridor' : route.blockedReason,
+      riskScore,
+      recommendationScore,
+      etaConfidence,
+      closureProximityM: Number.isFinite(minDistance) ? Math.round(minDistance) : undefined,
+      explanation: {
+        topHazards: hazardHits.slice(0, 5),
+        blockedSegments,
+        scoreBreakdown: {
+          timeScore: Number(timeScore.toFixed(3)),
+          riskPenalty: Number(riskScore.toFixed(3)),
+          profile: optimizeFor,
+          timeWeight: profile.timeWeight,
+          riskWeight: profile.riskWeight,
+        },
+      },
+    }
+  })
+
+  return ranked.sort((a, b) => {
+    if (a.isBlocked !== b.isBlocked) return a.isBlocked ? 1 : -1
+    return (b.recommendationScore || 0) - (a.recommendationScore || 0)
+  })
+}
+
+function extractRoutePoints(geometry: any): Array<{ lat: number; lng: number }> {
+  if (!geometry || !Array.isArray(geometry.coordinates)) return []
+
+  const coords = geometry.type === 'LineString'
+    ? geometry.coordinates
+    : geometry.type === 'MultiLineString'
+      ? geometry.coordinates.flat()
+      : []
+
+  return coords
+    .filter((c: any) => Array.isArray(c) && c.length >= 2)
+    .map((c: any) => ({ lng: Number(c[0]), lat: Number(c[1]) }))
+    .filter((p: any) => Number.isFinite(p.lat) && Number.isFinite(p.lng))
+}
+
+function computeBlockedSegments(
+  points: Array<{ lat: number; lng: number }>,
+  hazards: RouteHazardSignal[],
+): RouteBlockedSegment[] {
+  if (points.length < 2 || hazards.length === 0) return []
+
+  const segments: RouteBlockedSegment[] = []
+  for (let i = 0; i < points.length - 1; i++) {
+    const from = points[i]
+    const to = points[i + 1]
+
+    for (const hazard of hazards) {
+      const d1 = haversineMeters(from.lat, from.lng, hazard.lat, hazard.lng)
+      const d2 = haversineMeters(to.lat, to.lng, hazard.lat, hazard.lng)
+      const nearest = Math.min(d1, d2)
+
+      const threshold = hazard.severity === 'critical'
+        ? 220
+        : hazard.severity === 'high'
+          ? 170
+          : 120
+
+      if (nearest <= threshold) {
+        segments.push({
+          from,
+          to,
+          hazardSeverity: hazard.severity,
+          hazardDistanceM: Math.round(nearest),
+        })
+        break
+      }
+    }
+  }
+
+  return segments.slice(0, 8)
+}
+
+function hazardSeverityWeight(severity: string): number {
+  const s = String(severity || 'medium').toLowerCase()
+  if (s === 'critical') return 1.0
+  if (s === 'high') return 0.8
+  if (s === 'low') return 0.35
+  return 0.55
+}
+
+function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const toRad = (v: number): number => (v * Math.PI) / 180
+  const earthRadiusM = 6371000
+  const dLat = toRad(lat2 - lat1)
+  const dLon = toRad(lon2 - lon1)
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2)
+    + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2))
+    /*
+    * Math.sin(dLon / 2) * Math.sin(dLon / 2)
+     */
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  return earthRadiusM * c
+}
+
+ /*
  * Get all pre-calculated evacuation routes for the active region.
- */
+  */
 export function getPreCalculatedRoutes(): EvacuationRoute[] {
   return [...ABERDEEN_ROUTES, ...EDINBURGH_ROUTES, ...GLASGOW_ROUTES, ...DUNDEE_ROUTES]
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Edinburgh pre-calculated routes
-// ═══════════════════════════════════════════════════════════════════════════════
 
 const EDINBURGH_ROUTES: EvacuationRoute[] = [
   {
@@ -437,9 +754,7 @@ const EDINBURGH_ROUTES: EvacuationRoute[] = [
   },
 ]
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Glasgow pre-calculated routes
-// ═══════════════════════════════════════════════════════════════════════════════
 
 const GLASGOW_ROUTES: EvacuationRoute[] = [
   {
@@ -526,9 +841,7 @@ const GLASGOW_ROUTES: EvacuationRoute[] = [
   },
 ]
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Dundee pre-calculated routes
-// ═══════════════════════════════════════════════════════════════════════════════
 
 const DUNDEE_ROUTES: EvacuationRoute[] = [
   {

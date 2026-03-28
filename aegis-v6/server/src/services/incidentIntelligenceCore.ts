@@ -22,12 +22,112 @@ export interface IncidentCluster {
   radius_m: number
   time_window_minutes: number
   report_ids: string[]
+  density_score?: number
+  scale?: 'local' | 'regional'
+  growth_vector?: { bearing_deg: number; speed_mps: number }
 }
 
 export interface CascadingInsight {
   chain: string[]
   confidence: number
   recommended_actions: string[]
+  likely_within_minutes?: number
+  impact_score?: number
+  evidence_strength?: number
+  confidence_band?: { p10: number; p50: number; p90: number }
+  triggers?: string[]
+}
+
+interface CascadeInferenceOptions {
+  forecastHorizonMinutes?: number
+  monteCarloRuns?: number
+}
+
+export interface TemporalPattern {
+  pattern: 'acceleration' | 'deceleration' | 'periodic' | 'escalation' | 'stable'
+  confidence: number
+  projectedNextEvent: Date | null
+  trendDirection: 'increasing' | 'decreasing' | 'stable' | 'oscillating'
+  details: {
+    avgIntervalMs?: number
+    recentIntervalMs?: number
+    periodicityMs?: number
+    severityTrend?: number
+  }
+}
+
+export interface AnomalyResult {
+  eventId: string
+  anomalyType: 'statistical' | 'spatial' | 'severity'
+  zScore: number
+  description: string
+  severity: 'low' | 'medium' | 'high'
+}
+
+export interface AnomalyDetectionConfig {
+  statisticalThreshold?: number
+  spatialThreshold?: number
+  severityThreshold?: number
+}
+
+export interface ImpactScoreResult {
+  total: number
+  breakdown: {
+    populationExposure: number
+    infrastructureCriticality: number
+    timeOfDayFactor: number
+    weatherAmplification: number
+    historicalImpact: number
+    clusterSizeFactor: number
+  }
+  riskLevel: 'low' | 'moderate' | 'high' | 'critical'
+}
+
+export interface ImpactScoreOptions {
+  nearbyPopulation?: number
+  infrastructureCount?: number
+  criticalFacilities?: Array<{ type: string; distance_m: number }>
+  currentWeather?: { windSpeed?: number; temperature?: number; humidity?: number; precipitation?: number }
+  historicalSeverityAvg?: number
+}
+
+export interface TimelineEvent {
+  timestamp: Date
+  eventId: string
+  signalType: string
+  severity?: string
+  phase: 'onset' | 'escalation' | 'peak' | 'decline' | 'resolution'
+  isMilestone: boolean
+  annotation: string
+}
+
+export interface IncidentTimeline {
+  incidentId: string
+  events: TimelineEvent[]
+  currentPhase: 'onset' | 'escalation' | 'peak' | 'decline' | 'resolution'
+  phaseTransitions: Array<{ from: string; to: string; at: Date; eventId: string }>
+  predictedPhases: Array<{ phase: string; estimatedAt: Date; confidence: number }>
+  durationSoFarMinutes: number
+  estimatedRemainingMinutes: number | null
+}
+
+export interface CrossIncidentCorrelation {
+  incidentA: string
+  incidentB: string
+  correlationScore: number
+  correlationType: 'causal' | 'co-occurring' | 'amplifying'
+  spatialProximityKm: number
+  temporalProximityMinutes: number
+  typeCompatibility: number
+  explanation: string
+}
+
+export interface MultiScaleClusterOptions extends ClusterOptions {
+  localRadiusMeters?: number
+  regionalRadiusMeters?: number
+  temporalWindowMinutes?: number
+  minDensityPerKm2?: number
+  enableClusterMerging?: boolean
 }
 
 export interface RegionalProviderAdapter {
@@ -76,6 +176,15 @@ type MultiPolygonMask = {
   coordinates: number[][][][]
 }
 
+// Context for geography/magnitude-aware cascade evaluation
+export interface CascadeContext {
+  isUrban: boolean
+  isCoastal: boolean
+  populationDensity: number  // per km—
+  timeOfDay: number          // 0-23
+  magnitude?: number         // 0-1 overall incident magnitude
+}
+
 const DEFAULT_CASCADE_RULES: Array<{ chain: string[]; trigger: (signals: Record<string, number>) => boolean }> = [
   {
     chain: ['severe_storm', 'flood', 'infrastructure_damage', 'evacuation'],
@@ -88,6 +197,26 @@ const DEFAULT_CASCADE_RULES: Array<{ chain: string[]; trigger: (signals: Record<
   {
     chain: ['flood', 'power_outage', 'water_supply', 'public_safety'],
     trigger: (s) => (s.flood || 0) >= 2 && (s.power_outage || 0) >= 2,
+  },
+  {
+    chain: ['heatwave', 'drought', 'wildfire_risk', 'evacuation'],
+    trigger: (s) => (s.heatwave || 0) >= 2 && (s.drought || 0) >= 1,
+  },
+  {
+    chain: ['flood', 'landslide', 'infrastructure_damage', 'road_closure'],
+    trigger: (s) => (s.flood || 0) >= 2 && (s.landslide || 0) >= 1,
+  },
+  {
+    chain: ['power_outage', 'heatwave', 'medical_emergency', 'shelter_activation'],
+    trigger: (s) => (s.power_outage || 0) >= 2 && (s.heatwave || 0) >= 2,
+  },
+  {
+    chain: ['severe_storm', 'power_outage', 'communication_failure', 'emergency_broadcast'],
+    trigger: (s) => (s.severe_storm || 0) >= 2 && (s.power_outage || 0) >= 1,
+  },
+  {
+    chain: ['earthquake', 'infrastructure_damage', 'gas_leak', 'evacuation'],
+    trigger: (s) => (s.earthquake || 0) >= 1 && (s.infrastructure_damage || 0) >= 1,
   },
 ]
 
@@ -196,8 +325,11 @@ export class IncidentIntelligenceCore {
         const confidence = Math.max(0.05, Math.min(0.99, Number((avgConf * 0.8 + Math.min(group.length / 15, 0.19)).toFixed(2))))
 
         const ts = group.map((e) => e.occurredAt.getTime())
+        const stableCenterLat = Number(centerLat.toFixed(3))
+        const stableCenterLng = Number(centerLng.toFixed(3))
+        const stableKey = `${dominantType}_${stableCenterLat}_${stableCenterLng}`
         return {
-          cluster_id: `cluster_${Date.now()}_${idx}`,
+          cluster_id: `cluster_${stableKey.replace(/[^a-zA-Z0-9_.-]/g, '_')}`,
           incident_type: dominantType,
           reports: group.length,
           confidence,
@@ -210,13 +342,31 @@ export class IncidentIntelligenceCore {
       .sort((a, b) => b.reports - a.reports)
   }
 
-  inferCascades(events: EvidenceEvent[]): { activeSignals: Record<string, { count: number; avg: number }>; inferred: CascadingInsight[] } {
+  inferCascades(
+    events: EvidenceEvent[],
+    options?: CascadeInferenceOptions,
+  ): { activeSignals: Record<string, { count: number; avg: number }>; inferred: CascadingInsight[] } {
+    const forecastHorizonMinutes = Math.max(30, Math.min(24 * 60, options?.forecastHorizonMinutes ?? 180))
     const activeSignals: Record<string, { count: number; avg: number }> = {}
     for (const e of events) {
       const existing = activeSignals[e.signalType] || { count: 0, avg: 0 }
       const nextCount = existing.count + 1
       const nextAvg = ((existing.avg * existing.count) + e.confidence * 100) / nextCount
       activeSignals[e.signalType] = { count: nextCount, avg: Number(nextAvg.toFixed(2)) }
+    }
+
+    const now = Date.now()
+    const oneHourAgo = now - 60 * 60 * 1000
+    const twoHoursAgo = now - 2 * 60 * 60 * 1000
+    const recentCounts: Record<string, number> = {}
+    const priorCounts: Record<string, number> = {}
+    for (const e of events) {
+      const ts = e.occurredAt.getTime()
+      if (ts >= oneHourAgo) {
+        recentCounts[e.signalType] = (recentCounts[e.signalType] || 0) + 1
+      } else if (ts >= twoHoursAgo) {
+        priorCounts[e.signalType] = (priorCounts[e.signalType] || 0) + 1
+      }
     }
 
     const signalCounts: Record<string, number> = Object.fromEntries(
@@ -232,11 +382,72 @@ export class IncidentIntelligenceCore {
 
         const avgCount = chainSignals.length ? chainSignals.reduce((a, b) => a + b.count, 0) / chainSignals.length : 0
         const avgConf = chainSignals.length ? chainSignals.reduce((a, b) => a + b.avg, 0) / chainSignals.length : 50
-        const confidence = Math.max(0.1, Math.min(0.99, Number(((avgConf / 100) * 0.7 + Math.min(avgCount / 20, 0.25)).toFixed(2))))
+        const momentumBoost = rule.chain.reduce((acc, signal) => {
+          const recent = recentCounts[signal] || 0
+          const previous = priorCounts[signal] || 0
+          const trend = previous > 0 ? (recent - previous) / previous : (recent > 0 ? 0.5 : 0)
+          return acc + Math.max(-0.15, Math.min(0.25, trend * 0.12))
+        }, 0)
+
+        const freshnessFactor = Math.max(
+          0,
+          Math.min(
+            1,
+            events.length
+              ? events.reduce((acc, e) => {
+                const ageHours = (now - e.occurredAt.getTime()) / 3600000
+                return acc + Math.max(0, 1 - ageHours / 12)
+              }, 0) / events.length
+              : 0,
+          ),
+        )
+
+        const baseConfidence = (avgConf / 100) * 0.64 + Math.min(avgCount / 22, 0.22)
+        const confidence = Math.max(
+          0.1,
+          Math.min(0.99, Number((baseConfidence + momentumBoost + freshnessFactor * 0.1).toFixed(2))),
+        )
+
+        const dominantSignal = rule.chain[0]
+        const dominantRecent = recentCounts[dominantSignal] || 0
+        const leadTimeScale = Math.max(0.2, 1 - Math.min(0.8, dominantRecent / 10))
+        const likelyWithinMinutes = Math.round(
+          Math.max(15, Math.min(forecastHorizonMinutes, forecastHorizonMinutes * leadTimeScale)),
+        )
+
+        const impactScore = Math.round(
+          Math.max(
+            0,
+            Math.min(
+              100,
+              (confidence * 55) + (rule.chain.length * 8) + Math.min(25, avgCount * 2),
+            ),
+          ),
+        )
+
+        const evidenceStrength = Number(Math.min(1, (avgCount / 12) + (avgConf / 100) * 0.4).toFixed(2))
+
+        // Monte Carlo-style confidence intervals with Bayesian narrowing
+        const monteCarloRuns = options?.monteCarloRuns ?? 50
+        const mcSamples: number[] = []
+        for (let mc = 0; mc < monteCarloRuns; mc++) {
+          const noiseScale = Math.max(0.02, 0.2 - (evidenceStrength * 0.15))
+          const noise = (Math.random() - 0.5) * 2 * noiseScale
+          mcSamples.push(Math.max(0.01, Math.min(0.99, confidence + noise)))
+        }
+        mcSamples.sort((a, b) => a - b)
+        const p10 = Number(mcSamples[Math.floor(monteCarloRuns * 0.1)].toFixed(2))
+        const p50 = Number(mcSamples[Math.floor(monteCarloRuns * 0.5)].toFixed(2))
+        const p90 = Number(mcSamples[Math.floor(monteCarloRuns * 0.9)].toFixed(2))
 
         return {
           chain: rule.chain,
           confidence,
+          likely_within_minutes: likelyWithinMinutes,
+          impact_score: impactScore,
+          evidence_strength: evidenceStrength,
+          confidence_band: { p10, p50, p90 },
+          triggers: rule.chain.filter((k) => (signalCounts[k] || 0) > 0),
           recommended_actions: [
             'Activate regional incident command watch',
             'Validate route safety and evacuation corridors',
@@ -244,6 +455,53 @@ export class IncidentIntelligenceCore {
           ],
         }
       })
+
+    // Predictive precursor mode: if leading signals are intensifying but full rule trigger has not fired.
+    for (const rule of DEFAULT_CASCADE_RULES) {
+      const alreadyIncluded = inferred.some((i) => i.chain.join('|') === rule.chain.join('|'))
+      if (alreadyIncluded) continue
+
+      const head = rule.chain[0]
+      const second = rule.chain[1]
+      const headCount = signalCounts[head] || 0
+      const secondCount = signalCounts[second] || 0
+      const headRecent = recentCounts[head] || 0
+      const secondRecent = recentCounts[second] || 0
+
+      if (headCount >= 2 && (secondCount >= 1 || headRecent >= 2 || secondRecent >= 1)) {
+        const precursorConfidence = Number(
+          Math.max(
+            0.18,
+            Math.min(0.72, (headCount * 0.08) + (secondCount * 0.06) + (headRecent * 0.05)),
+          ).toFixed(2),
+        )
+
+        inferred.push({
+          chain: rule.chain,
+          confidence: precursorConfidence,
+          likely_within_minutes: Math.round(Math.max(20, Math.min(forecastHorizonMinutes, forecastHorizonMinutes * 0.75))),
+          impact_score: Math.round(precursorConfidence * 70),
+          evidence_strength: Number(Math.min(0.85, precursorConfidence + 0.15).toFixed(2)),
+          confidence_band: {
+            p10: Number(Math.max(0.05, precursorConfidence - 0.18).toFixed(2)),
+            p50: Number(Math.max(0.1, precursorConfidence - 0.1).toFixed(2)),
+            p90: Number(Math.min(0.9, precursorConfidence + 0.14).toFixed(2)),
+          },
+          triggers: [head, second].filter(Boolean),
+          recommended_actions: [
+            'Pre-stage response teams for likely secondary impacts',
+            'Increase data refresh cadence to 30-second incident polling',
+            'Prepare public advisory draft for rapid escalation',
+          ],
+        })
+      }
+    }
+
+    inferred.sort((a, b) => {
+      const impactDiff = (b.impact_score || 0) - (a.impact_score || 0)
+      if (impactDiff !== 0) return impactDiff
+      return b.confidence - a.confidence
+    })
 
     return { activeSignals, inferred }
   }
@@ -343,7 +601,9 @@ export class IncidentIntelligenceCore {
     const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2)
       + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2))
+      /*
       * Math.sin(dLon / 2) * Math.sin(dLon / 2)
+       */
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
     return earthRadiusM * c
   }
@@ -364,5 +624,70 @@ export class IncidentIntelligenceCore {
     }
 
     return [points]
+  }
+
+   /**
+   * Evaluate cascade rules with geographic and temporal context.
+   * Adjusts cascade confidence/probability based on whether we're in an urban vs rural area,
+   * coastal proximity, population density, and time of day.
+   */
+  evaluateCascadeWithContext(
+    events: EvidenceEvent[],
+    context: CascadeContext,
+    options?: CascadeInferenceOptions,
+  ): { activeSignals: Record<string, { count: number; avg: number }>; inferred: CascadingInsight[] } {
+    const base = this.inferCascades(events, options)
+
+    // Apply context-aware adjustments to each inferred cascade
+    const adjusted = base.inferred.map(insight => {
+      let multiplier = 1.0
+
+      // Urban areas: infrastructure cascades more likely (power, water, transport)
+      const infraChains = ['power_outage', 'water_supply', 'infrastructure_damage', 'communication_failure']
+      const hasInfraChain = insight.chain.some(c => infraChains.includes(c))
+      if (context.isUrban && hasInfraChain) {
+        multiplier *= 1.25 // 25% more likely in urban areas
+      } else if (!context.isUrban && hasInfraChain) {
+        multiplier *= 0.75 // Less interconnected infrastructure in rural areas
+      }
+
+      // Coastal areas: flood ? infrastructure cascades more severe
+      if (context.isCoastal && insight.chain.includes('flood')) {
+        multiplier *= 1.15
+      }
+
+      // Population density scaling: higher density = higher impact, lower threshold for cascades
+      if (context.populationDensity > 5000) multiplier *= 1.2
+      else if (context.populationDensity > 1000) multiplier *= 1.1
+      else if (context.populationDensity < 100) multiplier *= 0.85
+
+      // Night-time: power outage cascades more dangerous (no visibility, harder response)
+      const isNight = context.timeOfDay >= 22 || context.timeOfDay < 6
+      if (isNight && insight.chain.includes('power_outage')) {
+        multiplier *= 1.2
+      }
+
+      // Magnitude boost: higher magnitude events cascade more aggressively
+      if (context.magnitude && context.magnitude > 0.7) {
+        multiplier *= 1 + (context.magnitude - 0.7) * 0.5 // Up to +15% at magnitude 1.0
+      }
+
+      const adjustedConfidence = Math.max(0.1, Math.min(0.99, insight.confidence * multiplier))
+      const adjustedImpact = insight.impact_score
+        ? Math.round(Math.min(100, (insight.impact_score || 0) * multiplier))
+        : undefined
+
+      return {
+        ...insight,
+        confidence: Number(adjustedConfidence.toFixed(2)),
+        impact_score: adjustedImpact,
+        // Reduce lead time in urban areas (faster cascade propagation)
+        likely_within_minutes: context.isUrban && insight.likely_within_minutes
+          ? Math.round(insight.likely_within_minutes * 0.8)
+          : insight.likely_within_minutes,
+      }
+    })
+
+    return { activeSignals: base.activeSignals, inferred: adjusted }
   }
 }

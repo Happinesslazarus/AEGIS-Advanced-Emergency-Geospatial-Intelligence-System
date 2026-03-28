@@ -41,7 +41,7 @@ export const logger = pino({
   },
 })
 
-/**
+ /**
  * Express request logger middleware.
  * Logs method, url, status code, and response time for every request.
  */
@@ -74,6 +74,7 @@ export function requestLogger() {
       const sanitizedUrl = sanitizeLoggedUrl(req.originalUrl)
 
       logger[level]({
+        requestId: req.requestId,
         method: req.method,
         url: sanitizedUrl,
         status: res.statusCode,

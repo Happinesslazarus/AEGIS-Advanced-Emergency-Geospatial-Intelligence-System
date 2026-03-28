@@ -1,5 +1,5 @@
 /**
- * DisasterMap.tsx � Production map with WMS layers, clustering,
+ * DisasterMap.tsx ? Production map with WMS layers, clustering,
  * tile switching, heatmap, shelters, and scale bar.
  *
  * All map features are configurable via props. The component fetches
@@ -23,10 +23,9 @@ import SpatialToolbar from './SpatialToolbar'
 import IncidentMapLayers from './IncidentMapLayers'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
+import { getAnyToken } from '../../utils/api'
 
-// -------------------------------------------------------------------------------
 // Types & Config
-// -------------------------------------------------------------------------------
 
 interface WMSLayer {
   name: string
@@ -92,6 +91,32 @@ interface IncidentObject {
   time_window_minutes: number
 }
 
+interface EvacuationRouteExplanation {
+  topHazards?: Array<{ severity: string; confidence: number; distanceM: number; reason?: string }>
+  blockedSegments?: Array<{ hazardSeverity: string; hazardDistanceM: number }>
+  scoreBreakdown?: {
+    timeScore: number
+    riskPenalty: number
+    profile: 'fastest' | 'safest' | 'balanced'
+    timeWeight: number
+    riskWeight: number
+  }
+}
+
+interface EvacuationRouteMapItem {
+  id?: string
+  name?: string
+  description?: string
+  coordinates?: any[]
+  geometry?: { type: string; coordinates: any[] }
+  recommendationScore?: number
+  riskScore?: number
+  etaConfidence?: number
+  closureProximityM?: number
+  isBlocked?: boolean
+  explanation?: EvacuationRouteExplanation
+}
+
 interface Props {
   reports?: Report[]
   deployments?: DeploymentZone[]
@@ -132,17 +157,15 @@ const TILE_LAYERS = {
   },
 }
 
-// -------------------------------------------------------------------------------
 // Sub-components
-// -------------------------------------------------------------------------------
 
 function MapUpdater({ center, zoom }: { center: [number, number]; zoom: number }) {
   const map = useMap()
-  useEffect(() => { map.setView(center, zoom) }, [center, zoom, map])
+  useEffect(() => { map.flyTo(center, zoom, { duration: 1.5 }) }, [center, zoom, map])
   return null
 }
 
-/**
+ /**
  * Heatmap layer using leaflet.heat. We use a useEffect approach
  * because leaflet.heat is an imperative plugin without a React wrapper.
  */
@@ -166,7 +189,7 @@ function HeatmapLayer({ points }: { points: [number, number, number][] }) {
         }).addTo(map)
       }
     } catch {
-      // leaflet.heat not available � silently skip
+      // leaflet.heat not available ? silently skip
     }
 
     return () => { if (layer) map.removeLayer(layer) }
@@ -175,9 +198,7 @@ function HeatmapLayer({ points }: { points: [number, number, number][] }) {
   return null
 }
 
-// -------------------------------------------------------------------------------
 // Helpers
-// -------------------------------------------------------------------------------
 
 function icon(color: string, size = 28): L.DivIcon {
   return L.divIcon({
@@ -231,9 +252,7 @@ const stationPointToLayer = (feature: any, latlng: L.LatLng): L.CircleMarker => 
   })
 }
 
-// -------------------------------------------------------------------------------
 // Main Component
-// -------------------------------------------------------------------------------
 
 export default function DisasterMap({
   reports = [],
@@ -269,7 +288,7 @@ export default function DisasterMap({
 
   // Real API data state
   const [distressBeacons, setDistressBeacons] = useState<any[]>([])
-  const [evacuationRoutes, setEvacuationRoutes] = useState<any[]>([])
+  const [evacuationRoutes, setEvacuationRoutes] = useState<EvacuationRouteMapItem[]>([])
   const [predictions, setPredictions] = useState<any[]>([])
   const [riskLayerData, setRiskLayerData] = useState<any>(null)
   const [realHeatmapData, setRealHeatmapData] = useState<[number, number, number][]>([])
@@ -281,7 +300,7 @@ export default function DisasterMap({
   const [mapReady, setMapReady] = useState(false)
 
   const getAuthContext = useCallback((): { token: string | null; role: string | null } => {
-    const token = localStorage.getItem('aegis-token') || localStorage.getItem('aegis-citizen-token')
+    const token = getAnyToken()
     const rawUser = localStorage.getItem('aegis-user') || localStorage.getItem('aegis-citizen-user')
     let role: string | null = null
     try {
@@ -334,7 +353,7 @@ export default function DisasterMap({
     return () => document.removeEventListener('fullscreenchange', onFSChange)
   }, [])
 
-  // Socket.io � listen for distress:new / distress:updated in real-time
+  // Socket.io ? listen for distress:new / distress:updated in real-time
   useEffect(() => {
     if (!showDistress || !canReadDistress || !sharedSocket.socket) return
     const socket = sharedSocket.socket
@@ -450,7 +469,7 @@ export default function DisasterMap({
     if (!showEvacuation) return
     fetch('/api/incidents/flood/evacuation/routes')
       .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data?.routes) setEvacuationRoutes(data.routes) })
+      .then(data => { if (data?.routes) setEvacuationRoutes(data.routes as EvacuationRouteMapItem[]) })
       .catch(() => {})
   }, [showEvacuation])
 
@@ -551,11 +570,11 @@ export default function DisasterMap({
           <div className="min-w-[200px]">
             <div className="flex items-center gap-2 mb-1">
               <span className={`badge ${getSeverityClass(r.severity)}`}>{r.severity}</span>
-              <span className="text-xs font-mono text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{r.id.slice(0, 8)}</span>
+              <span className="text-xs font-mono text-gray-500 dark:text-gray-300">{r.id.slice(0, 8)}</span>
             </div>
             <p className="font-semibold text-sm text-gray-900 mb-1">{r.type}</p>
             <p className="text-xs text-gray-600 mb-1 line-clamp-2">{r.description}</p>
-            <p className="text-xs text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{r.location}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-300">{r.location}</p>
           </div>
         </Popup>
       </Marker>
@@ -606,7 +625,7 @@ export default function DisasterMap({
                 <p className="font-semibold text-sm">{incident.incident_type.replace(/_/g, ' ')} Incident</p>
                 <p className="text-xs text-gray-600">State: {incident.lifecycle_state.toUpperCase()}</p>
                 <p className="text-xs text-gray-600">Confidence: {Math.round(confidence * 100)}%</p>
-                <p className="text-xs text-gray-600">Evidence: {incident.evidence_count} � Window: {incident.time_window_minutes} min</p>
+                <p className="text-xs text-gray-600">Evidence: {incident.evidence_count} ? Window: {incident.time_window_minutes} min</p>
               </div>
             </Popup>
           </Circle>
@@ -661,7 +680,7 @@ export default function DisasterMap({
           <Popup>
             <div className="min-w-[220px]">
               <p className="font-semibold text-sm">{cluster.incident_type} Cluster</p>
-              <p className="text-xs text-gray-600">Reports: {cluster.reports} � Radius: {cluster.radius_m}m</p>
+              <p className="text-xs text-gray-600">Reports: {cluster.reports} ? Radius: {cluster.radius_m}m</p>
               <p className="text-xs text-gray-600">Time Window: {cluster.time_window_minutes} min</p>
               <p className="text-xs text-gray-600">Confidence: {Math.round(confidence * 100)}%</p>
             </div>
@@ -738,7 +757,7 @@ export default function DisasterMap({
               {t('dmap.type', lang)}: {s.shelter_type}
             </p>
             {s.amenities.length > 0 && (
-              <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-1">
+              <p className="text-xs text-gray-500 dark:text-gray-300 mt-1">
                 {t('dmap.amenities', lang)}: {s.amenities.join(', ')}
               </p>
             )}
@@ -801,23 +820,47 @@ export default function DisasterMap({
   // Evacuation route polylines
   const evacuationLines = useMemo(() => {
     if (!showEvacuation || !layerToggles.evacuation || !evacuationRoutes.length) return null
-    return evacuationRoutes.map((route, i) => {
-      if (!route.coordinates?.length) return null
-      const latlngs: [number, number][] = route.coordinates.map((c: any) =>
+    return evacuationRoutes.map((route: EvacuationRouteMapItem, i) => {
+      const rawCoords = route.coordinates?.length ? route.coordinates : route.geometry?.coordinates
+      if (!rawCoords?.length) return null
+      const latlngs: [number, number][] = rawCoords.map((c: any) =>
         Array.isArray(c) ? [c[1], c[0]] as [number, number] : [c.lat, c.lng] as [number, number]
       )
       return (
-        <Polyline key={`evac-${i}`} positions={latlngs} pathOptions={{ color: '#22c55e', weight: 4, opacity: 0.8, dashArray: '10 6' }}>
+        <Polyline key={`evac-${route.id || i}`} positions={latlngs} pathOptions={{ color: route.isBlocked ? '#ef4444' : '#22c55e', weight: 4, opacity: 0.8, dashArray: route.isBlocked ? '4 8' : '10 6' }}>
           <Popup>
-            <p className="font-semibold text-sm">{route.name || t('dmap.evacuationRoute', lang)}</p>
-            <p className="text-xs text-gray-600">{route.description || ''}</p>
+            <div className="min-w-[220px]">
+              <p className="font-semibold text-sm">{route.name || t('dmap.evacuationRoute', lang)}</p>
+              {route.description && <p className="text-xs text-gray-600">{route.description}</p>}
+              {typeof route.recommendationScore === 'number' && (
+                <p className="text-xs text-gray-600">Recommendation: {Math.round(route.recommendationScore * 100)}% — Risk: {Math.round((route.riskScore || 0) * 100)}%</p>
+              )}
+              {typeof route.etaConfidence === 'number' && (
+                <p className="text-xs text-gray-600">ETA confidence: {Math.round(route.etaConfidence * 100)}%{route.closureProximityM ? ` — Closure proximity ${route.closureProximityM}m` : ''}</p>
+              )}
+              {route.explanation?.scoreBreakdown && (
+                <p className="text-xs text-gray-500 mt-1">Profile: {route.explanation.scoreBreakdown.profile} — Time {Math.round(route.explanation.scoreBreakdown.timeScore * 100)} — Risk penalty {Math.round(route.explanation.scoreBreakdown.riskPenalty * 100)}</p>
+              )}
+              {route.explanation?.blockedSegments?.length ? (
+                <div className="mt-1">
+                  <p className="text-[11px] font-semibold text-red-700">Blocked segments</p>
+                  <p className="text-xs text-gray-600">{route.explanation.blockedSegments.length} segment(s) affected — closest {Math.min(...route.explanation.blockedSegments.map((segment) => segment.hazardDistanceM))}m</p>
+                </div>
+              ) : null}
+              {route.explanation?.topHazards?.length ? (
+                <div className="mt-1">
+                  <p className="text-[11px] font-semibold text-gray-800">Top hazards</p>
+                  <p className="text-xs text-gray-600">{route.explanation.topHazards.slice(0, 2).map((h) => `${h.severity} ${h.distanceM}m${h.reason ? ` (${h.reason})` : ''}`).join(' — ')}</p>
+                </div>
+              ) : null}
+            </div>
           </Popup>
         </Polyline>
       )
     }).filter(Boolean)
   }, [showEvacuation, layerToggles.evacuation, evacuationRoutes])
 
-  // AI Flood prediction risk circles � dynamic coords from location context + prediction data
+  // AI Flood prediction risk circles ? dynamic coords from location context + prediction data
   const predictionCircles = useMemo(() => {
     if (!showPredictions || !layerToggles.predictions || !predictions.length) return null
     // Build coordinate lookup from location floodZones + prediction lat/lng
@@ -840,9 +883,10 @@ export default function DisasterMap({
             <div className="min-w-[200px]">
               <p className="font-bold text-sm">{p.area}</p>
               <p className="text-xs">{t('dmap.floodProbability', lang)}: <span className="font-bold" style={{ color: colour }}>{Math.round(prob * 100)}%</span></p>
-              <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('dmap.severity', lang)}: {p.severity} — {t('dmap.confidence', lang)}: {p.confidence}%</p>
-              {p.time_to_flood && <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('dmap.timeToFlood', lang)}: {p.time_to_flood}</p>}
-              <p className="text-xs text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-1">{p.model_version}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-300">{t('dmap.severity', lang)}: {p.severity} — {t('dmap.confidence', lang)}: {p.confidence}%</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Uncertainty band: {Math.max(0, Math.round((Number(p.probability || 0) - (100 - Number(p.confidence || 0)) / 200) * 100))}% - {Math.min(100, Math.round((Number(p.probability || 0) + (100 - Number(p.confidence || 0)) / 200) * 100))}%</p>
+              {p.time_to_flood && <p className="text-xs text-gray-500 dark:text-gray-300">{t('dmap.timeToFlood', lang)}: {p.time_to_flood}</p>}
+              <p className="text-xs text-gray-400 dark:text-gray-300 mt-1">{p.model_version}</p>
             </div>
           </Popup>
         </Circle>
@@ -850,7 +894,7 @@ export default function DisasterMap({
     }).filter(Boolean)
   }, [showPredictions, layerToggles.predictions, predictions])
 
-  // Deployment zone markers � resolve coords from DB, floodZones lookup, or offset from center
+  // Deployment zone markers ? resolve coords from DB, floodZones lookup, or offset from center
   const deploymentMarkers = useMemo(() => {
     if (!deployments || !deployments.length) return null
     // Build coordinate lookup from location floodZones
@@ -874,7 +918,7 @@ export default function DisasterMap({
         const zoneLower = d.zone.toLowerCase()
         for (const [name, c] of Object.entries(zoneCoords)) {
           if (zoneLower.includes(name) || name.includes(zoneLower) ||
-              zoneLower.replace(/zone\s*[a-z]\s*[��-]\s*/i, '').trim() === name) {
+              zoneLower.replace(/zone\s*[a-z]\s*[??-]\s*/i, '').trim() === name) {
             coords = c
             break
           }
@@ -964,7 +1008,7 @@ export default function DisasterMap({
       className={`map-wrapper flex flex-col rounded-xl overflow-hidden ${className}`}
       style={isFullscreen ? { height: '100dvh' } : { height }}
     >
-      {/* -- Unified map toolbar (hidden in focus mode) -- */}
+      {/* Unified map toolbar (hidden in focus mode) */}
       {!focusMode && (
         <div className="flex-shrink-0 flex items-center gap-1 px-2 py-1.5 bg-gray-900/85 backdrop-blur-md border-b border-white/10 z-[750]">
           {/* Left control group */}
@@ -986,7 +1030,7 @@ export default function DisasterMap({
               </button>
               {overlayPanelOpen && (
                 <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 shadow-xl rounded-lg p-3 w-56 max-h-[50vh] overflow-y-auto border border-gray-200 dark:border-gray-700 z-[760]">
-                  <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-2 uppercase tracking-wider">{t('dmap.toggleOverlays', lang)}</p>
+                  <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-300 mb-2 uppercase tracking-wider">{t('dmap.toggleOverlays', lang)}</p>
                   {([
                     { key: 'floodZones' as const, label: t('dmap.overlay.floodZones', lang), color: 'bg-red-300', enabled: showFloodZones },
                     { key: 'floodMonitoring' as const, label: t('dmap.overlay.floodMonitoring', lang), color: 'bg-amber-500', enabled: showFloodMonitoring },
@@ -1007,7 +1051,7 @@ export default function DisasterMap({
                         className="rounded border-gray-300 text-blue-500 w-4 h-4"
                       />
                       <span className={`w-3 h-3 rounded-full ${layer.color} flex-shrink-0`} />
-                      <span className="text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{layer.label}</span>
+                      <span className="text-gray-700 dark:text-gray-300">{layer.label}</span>
                     </label>
                   ))}
                 </div>
@@ -1032,7 +1076,7 @@ export default function DisasterMap({
                 {layerPanelOpen && (
                   <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 shadow-xl rounded-lg p-3 w-56 border border-gray-200 dark:border-gray-700 z-[760]">
                     {wmsLayers.length === 0 ? (
-                      <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 py-2 text-center italic">
+                      <p className="text-xs text-gray-500 dark:text-gray-300 py-2 text-center italic">
                         {t('dmap.noWmsLayers', lang)}
                       </p>
                     ) : wmsLayers.map((wms, idx) => (
@@ -1043,7 +1087,7 @@ export default function DisasterMap({
                           onChange={() => toggleWMS(String(idx))}
                           className="rounded border-gray-300"
                         />
-                        <span className="text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{wms.name}</span>
+                        <span className="text-gray-700 dark:text-gray-300">{wms.name}</span>
                       </label>
                     ))}
                   </div>
@@ -1070,59 +1114,59 @@ export default function DisasterMap({
                     {([['bg-red-500', t('dmap.legend.high', lang)], ['bg-amber-500', t('dmap.legend.medium', lang)], ['bg-blue-500', t('dmap.legend.low', lang)]] as [string, string][]).map(([c, l]) => (
                       <div key={l} className="flex items-center gap-2">
                         <span className={`w-2.5 h-2.5 rounded-full ${c} flex-shrink-0`} />
-                        <span className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{l}</span>
+                        <span className="text-gray-600 dark:text-gray-300">{l}</span>
                       </div>
                     ))}
                     {showFloodZones && layerToggles.floodZones && (
                       <div className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded-full bg-red-300/50 border border-red-400 flex-shrink-0" />
-                        <span className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('dmap.legend.floodZone', lang)}</span>
+                        <span className="text-gray-600 dark:text-gray-300">{t('dmap.legend.floodZone', lang)}</span>
                       </div>
                     )}
                     {showShelters && layerToggles.shelters && (
                       <div className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded-full bg-green-500 flex-shrink-0" />
-                        <span className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('dmap.legend.shelter', lang)}</span>
+                        <span className="text-gray-600 dark:text-gray-300">{t('dmap.legend.shelter', lang)}</span>
                       </div>
                     )}
                     {showFloodMonitoring && layerToggles.floodMonitoring && (
                       <>
                         <div className="flex items-center gap-2">
                           <span className="w-2.5 h-2.5 rounded-full bg-red-500 flex-shrink-0" />
-                          <span className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('dmap.legend.warning', lang)}</span>
+                          <span className="text-gray-600 dark:text-gray-300">{t('dmap.legend.warning', lang)}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="w-2.5 h-2.5 rounded-full bg-amber-500 flex-shrink-0" />
-                          <span className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('dmap.legend.watch', lang)}</span>
+                          <span className="text-gray-600 dark:text-gray-300">{t('dmap.legend.watch', lang)}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="w-2.5 h-2.5 rounded-full bg-green-500 flex-shrink-0" />
-                          <span className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('dmap.legend.station', lang)}</span>
+                          <span className="text-gray-600 dark:text-gray-300">{t('dmap.legend.station', lang)}</span>
                         </div>
                       </>
                     )}
                     {showHeatmap && layerToggles.heatmap && (
                       <div className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-blue-500 to-red-500 flex-shrink-0" />
-                        <span className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('dmap.legend.density', lang)}</span>
+                        <span className="text-gray-600 dark:text-gray-300">{t('dmap.legend.density', lang)}</span>
                       </div>
                     )}
                     {showDistress && layerToggles.distress && distressBeacons.length > 0 && (
                       <div className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse flex-shrink-0" />
-                        <span className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">SOS ({distressBeacons.length})</span>
+                        <span className="text-gray-600 dark:text-gray-300">SOS ({distressBeacons.length})</span>
                       </div>
                     )}
                     {showPredictions && layerToggles.predictions && predictions.length > 0 && (
                       <div className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/60 border border-yellow-500 flex-shrink-0" />
-                        <span className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('dmap.legend.aiPrediction', lang)} ({predictions.length})</span>
+                        <span className="text-gray-600 dark:text-gray-300">{t('dmap.legend.aiPrediction', lang)} ({predictions.length})</span>
                       </div>
                     )}
                     {layerToggles.confidenceHalos && (
                       <div className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/60 border border-emerald-500 flex-shrink-0" />
-                        <span className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+                        <span className="text-gray-600 dark:text-gray-300">
                           {incidentObjects.length > 0 ? `${t('dmap.legend.confidenceLifecycle', lang)} (${incidentObjects.length})` : t('dmap.legend.confidenceHalo', lang)}
                         </span>
                       </div>
@@ -1130,37 +1174,37 @@ export default function DisasterMap({
                     {layerToggles.clusters && incidentClusters.length > 0 && (
                       <div className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded-full bg-lime-500/70 border border-lime-600 flex-shrink-0" />
-                        <span className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('dmap.legend.clusters', lang)} ({incidentClusters.length})</span>
+                        <span className="text-gray-600 dark:text-gray-300">{t('dmap.legend.clusters', lang)} ({incidentClusters.length})</span>
                       </div>
                     )}
                     {showRiskLayer && layerToggles.riskLayer && riskLayerData?.features?.length > 0 && (
                       <div className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded bg-orange-200 border border-orange-400 flex-shrink-0" />
-                        <span className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('dmap.legend.riskZone', lang)} ({riskLayerData.features.length})</span>
+                        <span className="text-gray-600 dark:text-gray-300">{t('dmap.legend.riskZone', lang)} ({riskLayerData.features.length})</span>
                       </div>
                     )}
                     {showEvacuation && layerToggles.evacuation && evacuationRoutes.length > 0 && (
                       <div className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded bg-green-500 flex-shrink-0" />
-                        <span className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('dmap.legend.evacuation', lang)}</span>
+                        <span className="text-gray-600 dark:text-gray-300">{t('dmap.legend.evacuation', lang)}</span>
                       </div>
                     )}
                     {deployments.length > 0 && (
                       <>
                         <div className="flex items-center gap-2">
                           <span className="w-2.5 h-2.5 rounded-full border-2 border-green-500 bg-green-100 flex-shrink-0" />
-                          <span className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('dmap.legend.deployed', lang)} ({deployments.filter(d => d.deployed).length})</span>
+                          <span className="text-gray-600 dark:text-gray-300">{t('dmap.legend.deployed', lang)} ({deployments.filter(d => d.deployed).length})</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="w-2.5 h-2.5 rounded-full border-2 border-red-500 bg-red-100 flex-shrink-0" style={{ borderStyle: 'dashed' }} />
-                          <span className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('dmap.legend.awaiting', lang)} ({deployments.filter(d => !d.deployed).length})</span>
+                          <span className="text-gray-600 dark:text-gray-300">{t('dmap.legend.awaiting', lang)} ({deployments.filter(d => !d.deployed).length})</span>
                         </div>
                       </>
                     )}
                   </div>
                   {showFloodMonitoring && floodData.loading && (
                     <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-                      <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('dmap.loadingFloodData', lang)}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-300">{t('dmap.loadingFloodData', lang)}</p>
                     </div>
                   )}
                   {showFloodMonitoring && floodData.error && (
@@ -1213,7 +1257,7 @@ export default function DisasterMap({
             <button
               onClick={() => setFocusMode(true)}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-white/60 hover:text-white hover:bg-white/10 transition-colors"
-              title="Focus mode � hide controls"
+              title="Focus mode ? hide controls"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 flex-shrink-0">
                 <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22"/>
@@ -1248,7 +1292,7 @@ export default function DisasterMap({
             <div className="w-10 h-10 rounded-xl bg-aegis-600 flex items-center justify-center animate-pulse">
               <svg viewBox="0 0 24 24" fill="white" className="w-5 h-5"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/></svg>
             </div>
-            <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">Initialising map�</p>
+            <p className="text-xs font-semibold text-gray-600 dark:text-gray-300">Initialising map?</p>
           </div>
         )}
         <MapContainer center={mapCenter} zoom={mapZoom} className="h-full w-full" scrollWheelZoom
@@ -1346,14 +1390,14 @@ export default function DisasterMap({
         {!focusMode && cascadingInsights.length > 0 && (
           <div className="absolute bottom-3 right-3 z-[720] max-w-[320px]">
             <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur rounded-lg border border-gray-200 dark:border-gray-700 shadow-xl p-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-2">{t('dmap.cascadingInsights', lang)}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300 mb-2">{t('dmap.cascadingInsights', lang)}</p>
               <div className="space-y-2 max-h-[180px] overflow-y-auto">
                 {cascadingInsights.slice(0, 3).map((insight, idx) => (
                   <div key={`cascade-${idx}`} className="rounded-md border border-gray-200 dark:border-gray-700 p-2">
                     <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">
                       {insight.chain.join(' -> ')}
                     </p>
-                    <p className="text-[11px] text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+                    <p className="text-[11px] text-gray-600 dark:text-gray-300">
                       {t('dmap.confidence', lang)}: {Math.round(insight.confidence * 100)}%
                     </p>
                   </div>
@@ -1366,8 +1410,3 @@ export default function DisasterMap({
     </div>
   )
 }
-
-
-
-
-

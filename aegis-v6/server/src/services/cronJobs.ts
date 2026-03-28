@@ -1,39 +1,49 @@
-/**
+﻿ /*
  * services/cronJobs.ts — Scheduled background tasks
- *
  * Uses node-cron to run periodic jobs:
- *   1. Ingest SEPA flood warnings RSS feed (every 15 minutes)
- *   2. Clean expired response cache entries (hourly)
- *   3. Expire old chat sessions (daily)
- *   4. Re-ingest data from EA, NASA POWER, Open-Meteo (every 6 hours)
- *   5. Retrain ML models (daily at 2am)
- *   6. Monitor AI confidence + anomaly detection (every 30 minutes)
- *   7. Expand RAG knowledge base (daily at 4am)
- *
+ * 1. Ingest flood warnings via region adapter (every 15 minutes)
+ * 2. Clean expired response cache entries (hourly)
+ * 3. Expire old chat sessions (daily)
+ * 4. Re-ingest data from EA, NASA POWER, Open-Meteo (every 6 hours)
+ * 5. Retrain ML models (daily at 2am)
+ * 6. Monitor AI confidence + anomaly detection (every 30 minutes)
+ * 7. Expand RAG knowledge base (daily at 4am)
  * Each job logs its execution to the scheduled_jobs table for auditing.
  * Jobs are idempotent and safe to restart at any time.
- */
+  */
 
 import cron from 'node-cron'
 import pool from '../models/db.js'
+import { logger } from './logger.js'
 import { getActiveRegion } from '../config/regions.js'
+import { regionRegistry } from '../adapters/regions/RegionRegistry.js'
 import { fetchAndBroadcastLevels } from './riverLevelService.js'
 import { calculateThreatLevel } from './threatLevelService.js'
 import { aiClient } from './aiClient.js'
 import { broadcastIncidentAlert, broadcastPredictionUpdate } from './socket.js'
+import { collectModelRollingStats, computeAndPersistModelDriftSnapshots } from './modelMonitoringService.js'
+import { cronJobDuration, cronJobTotal, cronJobLastSuccess } from './metrics.js'
+import { fetchWithTimeout } from '../utils/fetchWithTimeout.js'
 
 const region = getActiveRegion()
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// §1  JOB EXECUTION WRAPPER
-// ═══════════════════════════════════════════════════════════════════════════════
+/* Resolve region ID for incident modules: query param → env → active adapter */
+function getActiveRegionId(): string {
+  return process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId
+}
+
+// §1 JOB EXECUTION WRAPPER
 
 async function runJob(name: string, fn: () => Promise<number | string>): Promise<void> {
   const start = Date.now()
   try {
     const affected = await fn()
     const duration = Date.now() - start
-    console.log(`[Cron] ✅ ${name} completed in ${duration}ms (${affected} records)`)
+    logger.info({ job: name, durationMs: duration, records: affected }, `[Cron] ${name} completed`)
+
+    cronJobDuration.observe({ job: name }, duration / 1000)
+    cronJobTotal.inc({ job: name, status: 'success' })
+    cronJobLastSuccess.set({ job: name }, Date.now() / 1000)
 
     await pool.query(
       `INSERT INTO scheduled_jobs (job_name, status, duration_ms, records_affected, completed_at)
@@ -42,7 +52,10 @@ async function runJob(name: string, fn: () => Promise<number | string>): Promise
     ).catch(() => {}) // Don't fail the job if logging fails
   } catch (err: any) {
     const duration = Date.now() - start
-    console.error(`[Cron] ❌ ${name} failed after ${duration}ms: ${err.message}`)
+    logger.error({ job: name, durationMs: duration, err }, `[Cron] ${name} failed`)
+
+    cronJobDuration.observe({ job: name }, duration / 1000)
+    cronJobTotal.inc({ job: name, status: 'failure' })
 
     await pool.query(
       `INSERT INTO scheduled_jobs (job_name, status, duration_ms, error_message, completed_at)
@@ -52,94 +65,77 @@ async function runJob(name: string, fn: () => Promise<number | string>): Promise
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// §2  SEPA FLOOD WARNINGS INGESTION
-// ═══════════════════════════════════════════════════════════════════════════════
+// §2 FLOOD WARNINGS INGESTION (region-aware)
 
-async function ingestSEPAWarnings(): Promise<number> {
-  // SEPA flood warning RSS feed was discontinued.
-  // Use SEPA's public floodline flood warning JSON endpoint instead.
-  // Fallback chain: SEPA JSON → Environment Agency API → skip
-  const urls = [
-    'https://floodline.sepa.org.uk/floodmap/rest/flood/warnings',
-    'https://environment.data.gov.uk/flood-monitoring/id/floods?_limit=50',
-  ]
+async function ingestFloodWarnings(): Promise<number> {
+  // Use the active region adapter to get flood warnings from the correct authority
+  const adapter = regionRegistry.getActiveRegion()
+  const endpoints = adapter.getIngestionEndpoints()
 
-  let data: any[] = []
-  let source = 'SEPA'
-
-  for (const url of urls) {
-    try {
-      const res = await fetch(url, {
-        headers: { 'User-Agent': 'AEGIS-AlertIngestion/1.0', Accept: 'application/json' },
-        signal: AbortSignal.timeout(15000),
-      })
-      if (!res.ok) continue
-      const json = await res.json()
-      if (url.includes('sepa')) {
-        // SEPA format: direct array of warning objects
-        data = Array.isArray(json) ? json : json.warnings || json.items || []
-        source = 'SEPA'
-      } else {
-        // EA format: { items: [...] }
-        data = json.items || []
-        source = 'EA'
-      }
-      if (data.length > 0) break
-    } catch {
-      continue
+  // Primary: use the adapter's getFloodWarnings() (handles fallback internally)
+  let data: Array<{ id: string; title: string; description: string; severity: string; area: string | null; source: string }> = []
+  try {
+    const warnings = await adapter.getFloodWarnings()
+    data = warnings.map(w => ({
+      id: w.id,
+      title: w.title,
+      description: w.description,
+      severity: w.severity,
+      area: w.area,
+      source: w.source,
+    }))
+  } catch {
+    // Adapter failed — try raw ingestion endpoint URLs as fallback
+    const urls = [endpoints.flood_warnings, endpoints.flood_rss].filter(Boolean)
+    for (const url of urls) {
+      try {
+        const res = await fetchWithTimeout(url, {
+          timeout: 15_000,
+          headers: { 'User-Agent': 'AEGIS-AlertIngestion/1.0', Accept: 'application/json' },
+        })
+        if (!res.ok) continue
+        const json = await res.json()
+        const items = Array.isArray(json) ? json : json.warnings || json.items || []
+        if (items.length > 0) {
+          data = items.map((item: any) => ({
+            id: item.id || item.floodAreaID || item.uri || `alert-${Date.now()}`,
+            title: item.description || item.message || item.headline || 'Flood Warning',
+            description: item.description || item.message || item.summary || '',
+            severity: item.severity || item.severityLevel || 'info',
+            area: item.area || item.eaAreaName || item.floodArea?.label || item.county || null,
+            source: adapter.regionId,
+          }))
+          break
+        }
+      } catch { continue }
     }
   }
 
-  if (!data.length) {
-    // Fallback: use SEPA KiWIS timeseries API to check for active alerts
-    const kiWISBase = process.env.SEPA_API_BASE || 'https://timeseries.sepa.org.uk/KiWIS/KiWIS'
-    try {
-      const res = await fetch(
-        `${kiWISBase}?service=kisters&type=queryServices&datasource=0&request=getrequestinfo&format=json`,
-        { headers: { 'User-Agent': 'AEGIS/1.0' }, signal: AbortSignal.timeout(10000) },
-      )
-      if (res.ok) {
-        // KiWIS doesn't have a direct "warnings" endpoint, but confirming connectivity
-        console.log('[Cron] SEPA KiWIS is reachable — no dedicated warnings endpoint available')
-      }
-    } catch { /* skip */ }
-    return 0
-  }
+  if (!data.length) return 0
 
   let ingested = 0
-
   for (const item of data) {
-    // Normalize fields across SEPA and EA formats
-    const id = item.id || item.floodAreaID || item.uri || `${source}-${Date.now()}-${ingested}`
-    const title = item.description || item.message || item.headline || `${source} Flood Warning`
-    const description = item.description || item.message || item.summary || ''
-    const area = item.area || item.eaAreaName || item.floodArea?.label || item.county || null
-
     let severity: 'critical' | 'warning' | 'info' = 'info'
-    const sevRaw = (item.severity || item.severityLevel || item.severity_level || '').toString().toLowerCase()
-    if (sevRaw.includes('severe') || sevRaw === '1') severity = 'critical'
+    const sevRaw = (item.severity || '').toString().toLowerCase()
+    if (sevRaw.includes('severe') || sevRaw === '1' || sevRaw === 'critical') severity = 'critical'
     else if (sevRaw.includes('warning') || sevRaw === '2') severity = 'warning'
     else if (sevRaw.includes('alert') || sevRaw === '3') severity = 'info'
-
-    const updated = item.timeRaised || item.timeMessageChanged || item.updated || new Date().toISOString()
 
     try {
       await pool.query(
         `INSERT INTO external_alerts (source, source_id, title, description, severity, area, ingested_at, expires_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         VALUES ($1, $2, $3, $4, $5, $6, now(), $7)
          ON CONFLICT (source, source_id) DO UPDATE SET
            title = EXCLUDED.title,
            description = EXCLUDED.description,
            severity = EXCLUDED.severity`,
         [
-          source,
-          String(id),
-          title.slice(0, 500),
-          description.slice(0, 2000),
+          item.source || adapter.regionId,
+          String(item.id),
+          item.title.slice(0, 500),
+          item.description.slice(0, 2000),
           severity,
-          area,
-          new Date(updated),
+          item.area,
           new Date(Date.now() + 24 * 60 * 60 * 1000),
         ],
       )
@@ -157,9 +153,7 @@ function extractTag(xml: string, tag: string): string | null {
   return match ? match[1].replace(/<[^>]+>/g, '').trim() : null
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// §3  CACHE CLEANUP
-// ═══════════════════════════════════════════════════════════════════════════════
+// §3 CACHE CLEANUP
 
 async function cleanExpiredCache(): Promise<number> {
   const result = await pool.query(
@@ -168,9 +162,7 @@ async function cleanExpiredCache(): Promise<number> {
   return result.rowCount || 0
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// §4  EXPIRE OLD CHAT SESSIONS
-// ═══════════════════════════════════════════════════════════════════════════════
+// §4 EXPIRE OLD CHAT SESSIONS
 
 async function expireChatSessions(): Promise<number> {
   const result = await pool.query(
@@ -180,14 +172,12 @@ async function expireChatSessions(): Promise<number> {
   return result.rowCount || 0
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// §5  DATA RE-INGESTION (scheduled)
-// ═══════════════════════════════════════════════════════════════════════════════
+// §5 DATA RE-INGESTION (scheduled)
 
 async function scheduledDataIngestion(): Promise<number> {
   try {
     // Lazy import to avoid circular dependency at load time
-    const { ingestEAFloodData, ingestNASAPowerData, ingestOpenMeteoData, ensureIngestionSchema } 
+    const { ingestEAFloodData, ingestNASAPowerData, ingestOpenMeteoData, ensureIngestionSchema }
       = await import('./dataIngestionService.js')
 
     await ensureIngestionSchema()
@@ -197,48 +187,44 @@ async function scheduledDataIngestion(): Promise<number> {
     // EA river gauge data (fresh readings)
     const ea = await ingestEAFloodData(100)
     total += ea.rowsIngested
-    console.log(`[Cron/Ingestion] EA: ${ea.rowsIngested} new readings`)
+    logger.info({ source: 'EA', rowsIngested: ea.rowsIngested }, '[Cron/Ingestion] EA readings ingested')
 
-    // Open-Meteo climate data (recent observations)  
+    // Open-Meteo climate data (recent observations)
     const meteo = await ingestOpenMeteoData()
     total += meteo.rowsIngested
-    console.log(`[Cron/Ingestion] Open-Meteo: ${meteo.rowsIngested} new records`)
+    logger.info({ source: 'Open-Meteo', rowsIngested: meteo.rowsIngested }, '[Cron/Ingestion] Open-Meteo records ingested')
 
     return total
   } catch (err: any) {
-    console.error(`[Cron/Ingestion] Failed: ${err.message}`)
+    logger.error({ err }, '[Cron/Ingestion] Failed')
     return 0
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// §6  ML MODEL RETRAINING (scheduled)
-// ═══════════════════════════════════════════════════════════════════════════════
+// §6 ML MODEL RETRAINING (scheduled)
 
 async function scheduledModelRetraining(): Promise<number> {
   try {
     const { trainAllModels } = await import('./mlTrainingPipeline.js')
-    console.log('[Cron/Training] Starting scheduled model retraining...')
+    logger.info('[Cron/Training] Starting scheduled model retraining...')
     const result = await trainAllModels()
-    console.log(`[Cron/Training] Complete: ${result.summary.successful}/${result.summary.total} models trained`)
+    logger.info({ successful: result.summary.successful, total: result.summary.total }, '[Cron/Training] Complete')
     return result.summary.successful
   } catch (err: any) {
-    console.error(`[Cron/Training] Failed: ${err.message}`)
+    logger.error({ err }, '[Cron/Training] Failed')
     return 0
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// §7  AI CONFIDENCE MONITORING & ANOMALY DETECTION
-// ═══════════════════════════════════════════════════════════════════════════════
+// §7 AI CONFIDENCE MONITORING & ANOMALY DETECTION
 
 async function monitorAIConfidence(): Promise<number> {
   try {
     // Check recent AI predictions for confidence drift
     const { rows: recentPredictions } = await pool.query(`
-      SELECT 
+      SELECT
         AVG(ai_confidence) as avg_confidence,
-        MIN(ai_confidence) as min_confidence,  
+        MIN(ai_confidence) as min_confidence,
         MAX(ai_confidence) as max_confidence,
         STDDEV(ai_confidence) as stddev_confidence,
         COUNT(*) as prediction_count,
@@ -284,8 +270,7 @@ async function monitorAIConfidence(): Promise<number> {
     ])
 
     if (anomalyDetected) {
-      console.warn(`[Monitor] ⚠️ ANOMALY DETECTED: avg_confidence=${avgConf.toFixed(3)}, ` +
-        `low_conf_ratio=${(lowConfRatio * 100).toFixed(1)}%, stddev=${stddevConf.toFixed(3)}`)
+      logger.warn({ avgConf, lowConfRatio, stddevConf, lowConfCount, predCount }, '[Monitor] ANOMALY DETECTED')
 
       // Log system event for anomaly
       await pool.query(`
@@ -299,18 +284,17 @@ async function monitorAIConfidence(): Promise<number> {
         }),
       ]).catch(() => {})
     } else {
-      console.log(`[Monitor] ✅ AI confidence OK: avg=${avgConf.toFixed(3)}, ` +
-        `predictions=${predCount}, low_conf=${lowConfCount}`)
+      logger.info({ avgConf, predCount, lowConfCount }, '[Monitor] AI confidence OK')
     }
 
     // Check model drift — compare recent vs historical performance
     const { rows: historicalMetrics } = await pool.query(`
-      SELECT metric_value 
-      FROM ai_model_metrics 
-      WHERE model_name = 'ai_monitor' 
+      SELECT metric_value
+      FROM ai_model_metrics
+      WHERE model_name = 'ai_monitor'
         AND metric_name = 'confidence_check'
         AND created_at > NOW() - INTERVAL '7 days'
-      ORDER BY created_at DESC 
+      ORDER BY created_at DESC
       LIMIT 14
     `)
 
@@ -319,13 +303,12 @@ async function monitorAIConfidence(): Promise<number> {
       const historicalAvg = historical.reduce((a, b) => a + b, 0) / historical.length
 
       if (avgConf < historicalAvg * 0.8) {
-        console.warn(`[Monitor] ⚠️ MODEL DRIFT: current avg (${avgConf.toFixed(3)}) ` +
-          `is ${((1 - avgConf / historicalAvg) * 100).toFixed(1)}% below 7-day avg (${historicalAvg.toFixed(3)})`)
+        logger.warn({ currentAvg: avgConf, historicalAvg, driftPct: ((1 - avgConf / historicalAvg) * 100).toFixed(1) }, '[Monitor] MODEL DRIFT detected')
 
         // Trigger retraining if drift is significant
         try {
           const { trainAllModels } = await import('./mlTrainingPipeline.js')
-          console.log('[Monitor] Auto-triggering retraining due to model drift...')
+          logger.info('[Monitor] Auto-triggering retraining due to model drift...')
           await trainAllModels()
         } catch { /* non-critical */ }
       }
@@ -333,31 +316,35 @@ async function monitorAIConfidence(): Promise<number> {
 
     return predCount
   } catch (err: any) {
-    console.error(`[Monitor] Failed: ${err.message}`)
+    logger.error({ err }, '[Monitor] Failed')
     return 0
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// §8  RAG KNOWLEDGE BASE EXPANSION (scheduled)
-// ═══════════════════════════════════════════════════════════════════════════════
+// §8 RAG KNOWLEDGE BASE EXPANSION (scheduled)
 
 async function scheduledRAGExpansion(): Promise<number> {
   try {
     const { expandRAGKnowledgeBase } = await import('./ragExpansionService.js')
-    console.log('[Cron/RAG] Expanding knowledge base...')
+    logger.info('[Cron/RAG] Expanding knowledge base...')
     const result = await expandRAGKnowledgeBase()
-    console.log(`[Cron/RAG] Complete: ${result.newDocuments} documents stored`)
+    logger.info({ newDocuments: result.newDocuments }, '[Cron/RAG] Complete')
     return result.newDocuments || 0
   } catch (err: any) {
-    console.error(`[Cron/RAG] Failed: ${err.message}`)
+    logger.error({ err }, '[Cron/RAG] Failed')
     return 0
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// §9c  SAFETY CHECK-IN REMINDERS (#36)
-// ═══════════════════════════════════════════════════════════════════════════════
+// §9c SAFETY CHECK-IN REMINDERS (#36)
+// FIX (2026-03-16 audit): The INSERT used column "body" which does not exist in the
+// messages table (correct column: "content") and omitted the NOT NULL sender_id column.
+// Both bugs caused every reminder to silently fail at the per-citizen catch block while
+// runJob reported "0 records" as success. Fixed: use "content", supply a sentinel
+// system UUID for sender_id, and propagate persistent failures so runJob marks the
+// job as failed when ALL citizens fail.
+
+const SYSTEM_SENDER_ID = '00000000-0000-0000-0000-000000000000'
 
 async function sendSafetyReminders(): Promise<number> {
   // Find active, vulnerable citizens whose last check-in is overdue.
@@ -375,7 +362,7 @@ async function sendSafetyReminders(): Promise<number> {
     WHERE c.deleted_at IS NULL
       AND c.is_active = true
       AND (
-        (c.is_vulnerable = true  AND lc.last_at < NOW() - INTERVAL '24 hours')
+        (c.is_vulnerable = true AND lc.last_at < NOW() - INTERVAL '24 hours')
         OR
         (c.is_vulnerable = false AND lc.last_at < NOW() - INTERVAL '72 hours')
       )
@@ -384,6 +371,7 @@ async function sendSafetyReminders(): Promise<number> {
   if (overdue.rows.length === 0) return 0
 
   let reminded = 0
+  let consecutiveFailures = 0
 
   for (const citizen of overdue.rows) {
     try {
@@ -410,16 +398,17 @@ async function sendSafetyReminders(): Promise<number> {
         threadId = newThread.rows[0].id
       }
 
-      // Add a system message
+      // Add a system message (column is "content", not "body" — see migration_citizen_system.sql §7)
       const hoursAgo = Math.round(
         (Date.now() - new Date(citizen.last_at).getTime()) / (1000 * 60 * 60)
       )
       await pool.query(
-        `INSERT INTO messages (thread_id, sender_type, body)
-         VALUES ($1, 'operator', $2)`,
+        `INSERT INTO messages (thread_id, sender_type, sender_id, content)
+         VALUES ($1, 'operator', $2, $3)`,
         [
           threadId,
-          `🔔 Safety Reminder: We haven't heard from you in ${hoursAgo} hours. ` +
+          SYSTEM_SENDER_ID,
+          ` Safety Reminder: We haven't heard from you in ${hoursAgo} hours. ` +
           `Please check in when you can so we know you're safe. ` +
           `Go to Safety → Check In to update your status.`,
         ]
@@ -455,17 +444,27 @@ async function sendSafetyReminders(): Promise<number> {
       }
 
       reminded++
+      consecutiveFailures = 0
     } catch (err: any) {
-      console.error(`[Cron/SafetyReminder] Failed for ${citizen.id}: ${err.message}`)
+      consecutiveFailures++
+      logger.error({ citizenId: citizen.id, err }, '[Cron/SafetyReminder] Failed for citizen')
+
+      // If every attempt so far has failed, the problem is likely systemic (schema mismatch,
+      // connection loss). Throw to surface the failure in runJob rather than silently
+      // reporting "0 records" as success.
+      if (consecutiveFailures >= 3 && reminded === 0) {
+        throw new Error(
+          `Safety reminder job aborting: ${consecutiveFailures} consecutive failures. ` +
+          `Last error: ${err.message}`
+        )
+      }
     }
   }
 
   return reminded
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// §9b  ACCOUNT DELETION PROCESSING (30-day grace period)
-// ═══════════════════════════════════════════════════════════════════════════════
+// §9b ACCOUNT DELETION PROCESSING (30-day grace period)
 
 async function processScheduledDeletions(): Promise<number> {
   // Find citizens whose 30-day grace period has expired
@@ -519,23 +518,21 @@ async function processScheduledDeletions(): Promise<number> {
       ).catch(() => {})
 
       processed++
-      console.log(`[Cron/Deletion] Permanently deleted account: ${citizen.display_name} (${citizen.id})`)
+      logger.info({ citizenId: citizen.id, displayName: citizen.display_name }, '[Cron/Deletion] Permanently deleted account')
     } catch (err: any) {
-      console.error(`[Cron/Deletion] Failed to delete ${citizen.id}: ${err.message}`)
+      logger.error({ citizenId: citizen.id, err }, '[Cron/Deletion] Failed to delete account')
     }
   }
 
   return processed
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// §10  SCHEDULE ALL JOBS
-// ═══════════════════════════════════════════════════════════════════════════════
+// §10 SCHEDULE ALL JOBS
 
 export function startCronJobs(): void {
-  // Ingest SEPA warnings every 15 minutes
+  // Ingest flood warnings every 15 minutes
   cron.schedule('*/15 * * * *', () => {
-    runJob('sepa_warnings_ingestion', ingestSEPAWarnings)
+    runJob('flood_warnings_ingestion', ingestFloodWarnings)
   })
 
   // Fetch river levels every 5 minutes
@@ -553,18 +550,16 @@ export function startCronJobs(): void {
     runJob('chat_session_expiry', expireChatSessions)
   })
 
+  // Clean up expired/revoked trusted devices daily at 3:30am
+  cron.schedule('30 3 * * *', () => {
+    runJob('trusted_device_cleanup', async () => {
+      const { cleanupExpiredDevices } = await import('./deviceTrustService.js')
+      return cleanupExpiredDevices()
+    })
+  })
+
   if (process.env.NODE_ENV !== 'production') {
-    console.log('[Cron] ✅ Scheduled jobs started:')
-    console.log('  • SEPA warnings ingestion: every 15 minutes')
-    console.log('  • River level monitoring: every 5 minutes')
-    console.log('  • Cache cleanup: every hour')
-    console.log('  • Chat session expiry: daily at 3am')
-    console.log('  • Data re-ingestion (EA, Open-Meteo): every 6 hours')
-    console.log('  • ML model retraining: daily at 2am')
-    console.log('  • AI confidence monitoring: every 30 minutes')
-    console.log('  • RAG knowledge expansion: daily at 4am')
-    console.log('  • Account deletion processing: daily at 5am')
-    console.log('  • Safety check-in reminders: every 30 minutes')
+    logger.info('Scheduled jobs started: flood_warnings(15m), river_levels(5m), cache_cleanup(1h), chat_expiry(3am), data_ingestion(6h), ml_retrain(2am), ai_monitor(30m), rag_expand(4am), account_deletion(5am), safety_reminders(30m)')
   }
 
   // Calculate threat level every 10 minutes
@@ -590,6 +585,16 @@ export function startCronJobs(): void {
     runJob('ai_confidence_monitor', monitorAIConfidence)
   })
 
+  // Model monitoring rolling stats every 15 minutes
+  cron.schedule('*/15 * * * *', () => {
+    runJob('model_monitoring_rolling_stats', collectModelRollingStats)
+  })
+
+  // Persist model monitoring snapshots every hour
+  cron.schedule('0 * * * *', () => {
+    runJob('model_monitoring_hourly_snapshot', computeAndPersistModelDriftSnapshots)
+  })
+
   // Drift detection + model performance snapshot every hour (M16 + M17)
   cron.schedule('0 * * * *', () => {
     runJob('model_drift_check', async () => {
@@ -600,7 +605,7 @@ export function startCronJobs(): void {
         for (const m of models) {
           if (m.drift_detected) {
             driftCount++
-            console.warn(`[Cron/Drift] Drift detected in ${m.model_name} — consider retraining`)
+            logger.warn({ modelName: m.model_name }, '[Cron/Drift] Drift detected — consider retraining')
             await pool.query(`
               INSERT INTO model_drift_metrics (model_name, metric_name, drift_detected, threshold, current_value, created_at)
               VALUES ($1, 'output_distribution', true, 0.05, $2, NOW())
@@ -625,7 +630,7 @@ export function startCronJobs(): void {
           ]).catch(() => {})
         }
       } catch (e: any) {
-        console.warn('[Cron/Drift] AI engine unreachable:', e.message)
+        logger.warn({ err: e }, '[Cron/Drift] AI engine unreachable')
       }
       return driftCount
     })
@@ -654,20 +659,24 @@ export function startCronJobs(): void {
         const predictions = await getFloodPredictions()
         return predictions.length
       } catch (e: any) {
-        console.warn(`[Cron] Flood prediction refresh: ${e.message}`)
+        logger.warn({ err: e }, '[Cron] Flood prediction refresh failed')
         return 0
       }
     })
   })
 
-  // Run SEPA ingestion immediately on startup
-  runJob('sepa_warnings_ingestion', ingestSEPAWarnings)
+  // Run flood warning ingestion immediately on startup
+  runJob('flood_warnings_ingestion', ingestFloodWarnings)
 
   // Fetch river levels immediately on startup
   setTimeout(() => runJob('river_level_fetch', fetchAndBroadcastLevels), 5_000)
 
   // Run initial confidence monitoring
   setTimeout(() => runJob('ai_confidence_monitor', monitorAIConfidence), 30_000)
+
+  // Run initial model monitoring quickly after startup
+  setTimeout(() => runJob('model_monitoring_rolling_stats', collectModelRollingStats), 45_000)
+  setTimeout(() => runJob('model_monitoring_hourly_snapshot', computeAndPersistModelDriftSnapshots), 60_000)
 
   // Calculate initial threat level on startup
   setTimeout(() => runJob('threat_level_assessment', async () => {
@@ -682,8 +691,9 @@ export function startCronJobs(): void {
     let tgOffset = 0
     const pollTelegram = async () => {
       try {
-        const r = await fetch(
-          `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/getUpdates?offset=${tgOffset}&limit=100&timeout=0`
+        const r = await fetchWithTimeout(
+          `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/getUpdates?offset=${tgOffset}&limit=100&timeout=0`,
+          { timeout: 15_000 }
         )
         const data: any = await r.json()
         if (!data.ok) return
@@ -691,24 +701,25 @@ export function startCronJobs(): void {
           if (update.update_id >= tgOffset) tgOffset = update.update_id + 1
           const msg = update.message || update.channel_post
           if (!msg?.chat?.id) continue
-          const chatId   = `${msg.chat.id}`
+          const chatId = `${msg.chat.id}`
           const username = msg.chat.username
-          const lookups  = [chatId, ...(username ? [`@${username}`, username] : [])]
+          const lookups = [chatId, ...(username ? [`@${username}`, username] : [])]
           const { rowCount } = await pool.query(
             `UPDATE alert_subscriptions SET telegram_id=$1, updated_at=NOW()
               WHERE telegram_id = ANY($2::text[]) AND telegram_id != $1`,
             [chatId, lookups]
           )
           if (rowCount && rowCount > 0) {
-            console.log(`[Telegram] Auto-resolved @${username || '?'} → chat_id ${chatId} (${rowCount} subscription(s) updated)`)
+            logger.info({ username, chatId, rowCount }, '[Telegram] Auto-resolved username to chat_id')
             // Send welcome message
-            await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+            await fetchWithTimeout(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+              timeout: 15_000,
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 chat_id: msg.chat.id,
                 parse_mode: 'HTML',
-                text: `✅ <b>AEGIS Alert System</b>\n\nYou are now connected! You will receive emergency alerts in this chat.\n\n🆔 Your Telegram ID: <code>${chatId}</code>`,
+                text: `[OK] <b>AEGIS Alert System</b>\n\nYou are now connected! You will receive emergency alerts in this chat.\n\n🆔 Your Telegram ID: <code>${chatId}</code>`,
               }),
             }).catch(() => {})
           }
@@ -718,14 +729,11 @@ export function startCronJobs(): void {
     // Run immediately on startup, then every 2 minutes
     setTimeout(pollTelegram, 5_000)
     cron.schedule('*/2 * * * *', pollTelegram)
-    console.log('[Cron] ✅ Telegram chat_id auto-capture: every 2 minutes')
+    logger.info('[Cron] Telegram chat_id auto-capture: every 2 minutes')
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// §11  n8n FALLBACK MODE
-// ═══════════════════════════════════════════════════════════════════════════════
-//
+// §11 n8n FALLBACK MODE
 // When the n8n instance is unreachable, the health monitor calls
 // activateFallbackJobs() so the same data-fetching work still happens
 // via cron inside this Node process. When n8n comes back online,
@@ -734,25 +742,25 @@ export function startCronJobs(): void {
 const fallbackTasks: ReturnType<typeof cron.schedule>[] = []
 let fallbackActive = false
 
-/**
+ /*
  * Start cron-based fallback jobs that mirror the critical n8n workflows:
- *   WF1  — SEPA gauge polling         (every 5 min)
- *   WF2  — Weather forecast           (every 30 min)
- *   WF3  — Rainfall aggregation       (every 15 min)
- *   WF3b — SEPA RSS alerts            (every 15 min)
- *   WF4  — Lightweight AI run         (every 30 min)
- *   WF5  — Air quality monitor        (every 20 min)
- *   WF6  — Cross-incident evaluator   (every 5 min)
- *   WF7  — Wildfire FDI               (every 15 min)
- *   WF8  — Heatwave check             (hourly)
- *   ...  — All 11 incident modules    (various)
- */
+ * WF1 — Gauge polling (every 5 min)
+ * WF2 — Weather forecast (every 30 min)
+ * WF3 — Rainfall aggregation (every 15 min)
+ * WF3b — Flood alert ingestion (every 15 min)
+ * WF4 — Lightweight AI run (every 30 min)
+ * WF5 — Air quality monitor (every 20 min)
+ * WF6 — Cross-incident evaluator (every 5 min)
+ * WF7 — Wildfire FDI (every 15 min)
+ * WF8 — Heatwave check (hourly)
+ * ... — All 11 incident modules (various)
+  */
 export function activateFallbackJobs(): void {
   if (fallbackActive) return
   fallbackActive = true
-  console.log('[Cron/Fallback] ⚡ Activating n8n fallback jobs')
+  logger.info('[Cron/Fallback] Activating n8n fallback jobs')
 
-  // WF1: SEPA gauge polling (already runs via §10, but ensure 5-min cadence)
+  // WF1: Gauge polling (already runs via §10, but ensure 5-min cadence)
   fallbackTasks.push(
     cron.schedule('*/5 * * * *', () => runJob('fallback_gauge_poll', fetchAndBroadcastLevels)),
   )
@@ -766,7 +774,7 @@ export function activateFallbackJobs(): void {
           const r = await ingestOpenMeteoData()
           return r.rowsIngested
         } catch (e: any) {
-          console.error(`[Fallback/WF2] ${e.message}`)
+          logger.error({ err: e }, '[Fallback/WF2] Weather fetch failed')
           return 0
         }
       }),
@@ -782,7 +790,7 @@ export function activateFallbackJobs(): void {
           const r = await ingestEAFloodData(50)
           return r.rowsIngested
         } catch (e: any) {
-          console.error(`[Fallback/WF3] ${e.message}`)
+          logger.error({ err: e }, '[Fallback/WF3] Rainfall ingestion failed')
           return 0
         }
       }),
@@ -794,12 +802,12 @@ export function activateFallbackJobs(): void {
     cron.schedule('*/30 * * * *', () => runJob('fallback_ai_monitor', monitorAIConfidence)),
   )
 
-  // WF3b: SEPA RSS / alert ingestion (supplementary — mirrors n8n WF3 ingestion path)
+  // WF3b: Flood alert ingestion (supplementary — mirrors n8n WF3 ingestion path)
   fallbackTasks.push(
-    cron.schedule('*/15 * * * *', () => runJob('fallback_sepa_alerts', ingestSEPAWarnings)),
+    cron.schedule('*/15 * * * *', () => runJob('fallback_flood_alerts', ingestFloodWarnings)),
   )
 
-  // ─── WF7 Fallback: Wildfire — Fire Danger Index every 15 min ──────────────
+  // WF7 Fallback: Wildfire — Fire Danger Index every 15 min
   fallbackTasks.push(
     cron.schedule('*/15 * * * *', () =>
       runJob('fallback_wildfire_fdi', async () => {
@@ -807,17 +815,17 @@ export function activateFallbackJobs(): void {
           const { getIncidentModule } = await import('../incidents/index.js')
           const mod = getIncidentModule('wildfire')
           if (!mod) return 0
-          const predictions = await mod.getPredictions(process.env.REGION_ID || 'aberdeen_scotland_uk')
+          const predictions = await mod.getPredictions(getActiveRegionId())
           return predictions.length
         } catch (e: any) {
-          console.warn(`[Fallback/WF7] ${e.message}`)
+          logger.warn({ err: e }, '[Fallback/WF7] Wildfire FDI failed')
           return 0
         }
       }),
     ),
   )
 
-  // ─── WF8 Fallback: Heatwave — temperature check hourly ────────────────────
+  // WF8 Fallback: Heatwave — temperature check hourly
   fallbackTasks.push(
     cron.schedule('0 * * * *', () =>
       runJob('fallback_heatwave_check', async () => {
@@ -825,17 +833,17 @@ export function activateFallbackJobs(): void {
           const { getIncidentModule } = await import('../incidents/index.js')
           const mod = getIncidentModule('heatwave')
           if (!mod) return 0
-          const predictions = await mod.getPredictions(process.env.REGION_ID || 'aberdeen_scotland_uk')
+          const predictions = await mod.getPredictions(getActiveRegionId())
           return predictions.length
         } catch (e: any) {
-          console.warn(`[Fallback/WF8] ${e.message}`)
+          logger.warn({ err: e }, '[Fallback/WF8] Heatwave check failed')
           return 0
         }
       }),
     ),
   )
 
-  // ─── WF9 Fallback: Severe Storm — weather data every 10 min ───────────────
+  // WF9 Fallback: Severe Storm — weather data every 10 min
   fallbackTasks.push(
     cron.schedule('*/10 * * * *', () =>
       runJob('fallback_severe_storm', async () => {
@@ -843,17 +851,17 @@ export function activateFallbackJobs(): void {
           const { getIncidentModule } = await import('../incidents/index.js')
           const mod = getIncidentModule('severe_storm')
           if (!mod) return 0
-          const predictions = await mod.getPredictions(process.env.REGION_ID || 'aberdeen_scotland_uk')
+          const predictions = await mod.getPredictions(getActiveRegionId())
           return predictions.length
         } catch (e: any) {
-          console.warn(`[Fallback/WF9] ${e.message}`)
+          logger.warn({ err: e }, '[Fallback/WF9] Severe storm check failed')
           return 0
         }
       }),
     ),
   )
 
-  // ─── WF10 Fallback: Landslide — rainfall + soil every 3h ──────────────────
+  // WF10 Fallback: Landslide — rainfall + soil every 3h
   fallbackTasks.push(
     cron.schedule('0 */3 * * *', () =>
       runJob('fallback_landslide_risk', async () => {
@@ -861,17 +869,17 @@ export function activateFallbackJobs(): void {
           const { getIncidentModule } = await import('../incidents/index.js')
           const mod = getIncidentModule('landslide')
           if (!mod) return 0
-          const predictions = await mod.getPredictions(process.env.REGION_ID || 'aberdeen_scotland_uk')
+          const predictions = await mod.getPredictions(getActiveRegionId())
           return predictions.length
         } catch (e: any) {
-          console.warn(`[Fallback/WF10] ${e.message}`)
+          logger.warn({ err: e }, '[Fallback/WF10] Landslide risk failed')
           return 0
         }
       }),
     ),
   )
 
-  // ─── WF11-14 Fallback: Rule-based incidents — evaluate every 5 min ────────
+  // WF11-14 Fallback: Rule-based incidents — evaluate every 5 min
   const ruleBasedIncidents = [
     'power_outage',
     'water_supply_disruption',
@@ -886,10 +894,10 @@ export function activateFallbackJobs(): void {
             const { getIncidentModule } = await import('../incidents/index.js')
             const mod = getIncidentModule(incidentId)
             if (!mod) return 0
-            const alerts = await mod.getAlerts(process.env.REGION_ID || 'aberdeen_scotland_uk')
+            const alerts = await mod.getAlerts(getActiveRegionId())
             return alerts.length
           } catch (e: any) {
-            console.warn(`[Fallback/${incidentId}] ${e.message}`)
+            logger.warn({ err: e, incidentId }, `[Fallback/${incidentId}] Incident eval failed`)
             return 0
           }
         }),
@@ -897,7 +905,7 @@ export function activateFallbackJobs(): void {
     )
   }
 
-  // ─── WF15 Fallback: Environmental Hazard — air quality every 20 min ───────
+  // WF15 Fallback: Environmental Hazard — air quality every 20 min
   fallbackTasks.push(
     cron.schedule('*/20 * * * *', () =>
       runJob('fallback_environmental_aqi', async () => {
@@ -905,17 +913,17 @@ export function activateFallbackJobs(): void {
           const { getIncidentModule } = await import('../incidents/index.js')
           const mod = getIncidentModule('environmental_hazard')
           if (!mod) return 0
-          const predictions = await mod.getPredictions(process.env.REGION_ID || 'aberdeen_scotland_uk')
+          const predictions = await mod.getPredictions(getActiveRegionId())
           return predictions.length
         } catch (e: any) {
-          console.warn(`[Fallback/WF15] ${e.message}`)
+          logger.warn({ err: e }, '[Fallback/WF15] Environmental AQI failed')
           return 0
         }
       }),
     ),
   )
 
-  // ─── WF16 Fallback: Drought — precipitation deficit every 6 hours ─────────
+  // WF16 Fallback: Drought — precipitation deficit every 6 hours
   fallbackTasks.push(
     cron.schedule('0 */6 * * *', () =>
       runJob('fallback_drought_monitor', async () => {
@@ -923,43 +931,28 @@ export function activateFallbackJobs(): void {
           const { getIncidentModule } = await import('../incidents/index.js')
           const mod = getIncidentModule('drought')
           if (!mod) return 0
-          const predictions = await mod.getPredictions(process.env.REGION_ID || 'aberdeen_scotland_uk')
+          const predictions = await mod.getPredictions(getActiveRegionId())
           return predictions.length
         } catch (e: any) {
-          console.warn(`[Fallback/WF16] ${e.message}`)
+          logger.warn({ err: e }, '[Fallback/WF16] Drought monitor failed')
           return 0
         }
       }),
     ),
   )
 
-  // ─── WF5 Fallback: Air Quality Monitor — every 20 min ─────────────────────
-  fallbackTasks.push(
-    cron.schedule('*/20 * * * *', () =>
-      runJob('fallback_air_quality', async () => {
-        try {
-          const { getIncidentModule } = await import('../incidents/index.js')
-          const mod = getIncidentModule('environmental_hazard')
-          if (!mod) return 0
-          const predictions = await mod.getPredictions(process.env.REGION_ID || 'aberdeen_scotland_uk')
-          return predictions.length
-        } catch (e: any) {
-          console.warn(`[Fallback/WF5] ${e.message}`)
-          return 0
-        }
-      }),
-    ),
-  )
+  // NOTE: WF5 (Air Quality / Environmental Hazard) is already covered by WF15 above.
+  // Removed the duplicate WF5 fallback task that was previously here.
 
-  // ─── WF6 Fallback: Cross-incident Alert Evaluator — every 5 min ───────────
+  // WF6 Fallback: Cross-incident Alert Evaluator — every 5 min
   fallbackTasks.push(
     cron.schedule('*/5 * * * *', () =>
       runJob('fallback_alert_evaluator', async () => {
         try {
-          const { listModules } = await import('../incidents/index.js')
-          const regionId = process.env.REGION_ID || 'aberdeen_scotland_uk'
+          const { getAllIncidentModules } = await import('../incidents/index.js')
+          const regionId = getActiveRegionId()
           let totalAlerts = 0
-          for (const mod of listModules()) {
+          for (const mod of getAllIncidentModules()) {
             try {
               const alerts = await mod.getAlerts(regionId)
               totalAlerts += alerts.length
@@ -967,21 +960,21 @@ export function activateFallbackJobs(): void {
           }
           return totalAlerts
         } catch (e: any) {
-          console.warn(`[Fallback/WF6] ${e.message}`)
+          logger.warn({ err: e }, '[Fallback/WF6] Alert evaluator failed')
           return 0
         }
       }),
     ),
   )
 
-  // ─── Real-time broadcast: push all active predictions to Socket.IO clients ──
+  // Real-time broadcast: push all active predictions to Socket.IO clients
   // Runs every 5 minutes so dashboards stay live without polling.
   fallbackTasks.push(
     cron.schedule('*/5 * * * *', () =>
       runJob('fallback_broadcast_predictions', async () => {
         try {
           const { getIncidentModule } = await import('../incidents/index.js')
-          const regionId = process.env.REGION_ID || 'aberdeen_scotland_uk'
+          const regionId = getActiveRegionId()
           const incidentTypes = [
             'flood', 'severe_storm', 'heatwave', 'wildfire', 'landslide',
             'drought', 'environmental_hazard',
@@ -1014,19 +1007,19 @@ export function activateFallbackJobs(): void {
           broadcastPredictionUpdate(regionId, allPredictions)
           return allPredictions.length
         } catch (e: any) {
-          console.warn(`[Fallback/broadcast] ${e.message}`)
+          logger.warn({ err: e }, '[Fallback/broadcast] Prediction broadcast failed')
           return 0
         }
       }),
     ),
   )
 
-  console.log(`[Cron/Fallback] ${fallbackTasks.length} fallback jobs activated (covering all 16 n8n workflows + 11 incident modules)`)
+  logger.info({ count: fallbackTasks.length }, '[Cron/Fallback] Fallback jobs activated (covering all 16 n8n workflows + 11 incident modules)')
 }
 
-/**
+ /*
  * Stop all fallback jobs once n8n recovers.
- */
+  */
 export function deactivateFallbackJobs(): void {
   if (!fallbackActive) return
   fallbackActive = false
@@ -1034,10 +1027,11 @@ export function deactivateFallbackJobs(): void {
     task.stop()
   }
   fallbackTasks.length = 0
-  console.log('[Cron/Fallback] 🔄 n8n recovered — fallback jobs deactivated')
+  logger.info('[Cron/Fallback] n8n recovered — fallback jobs deactivated')
 }
 
-/** Whether fallback mode is currently active. */
+/* Whether fallback mode is currently active. */
 export function isFallbackActive(): boolean {
   return fallbackActive
 }
+

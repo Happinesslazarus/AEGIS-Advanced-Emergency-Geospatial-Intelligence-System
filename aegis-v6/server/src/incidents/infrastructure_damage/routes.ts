@@ -3,12 +3,13 @@
  */
 
 import { Router, Request, Response } from 'express'
+import { regionRegistry } from '../../adapters/regions/RegionRegistry.js'
 
 export function setupInfrastructureDamageRoutes(router: Router): void {
   // GET /damage-assessment — damage assessment summary
   router.get('/damage-assessment', async (req: Request, res: Response) => {
     try {
-      const region = String(req.query.region || process.env.REGION_ID || 'aberdeen_scotland_uk')
+      const region = String(req.query.region || process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId)
       res.json({
         incidentType: 'infrastructure_damage',
         region,
@@ -29,7 +30,7 @@ export function setupInfrastructureDamageRoutes(router: Router): void {
   // GET /closures — road and infrastructure closures
   router.get('/closures', async (req: Request, res: Response) => {
     try {
-      const region = String(req.query.region || process.env.REGION_ID || 'aberdeen_scotland_uk')
+      const region = String(req.query.region || process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId)
       res.json({
         incidentType: 'infrastructure_damage',
         region,
@@ -45,7 +46,7 @@ export function setupInfrastructureDamageRoutes(router: Router): void {
   // GET /critical-infrastructure — critical infrastructure status
   router.get('/critical-infrastructure', async (req: Request, res: Response) => {
     try {
-      const region = String(req.query.region || process.env.REGION_ID || 'aberdeen_scotland_uk')
+      const region = String(req.query.region || process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId)
       res.json({
         incidentType: 'infrastructure_damage',
         region,
@@ -58,3 +59,4 @@ export function setupInfrastructureDamageRoutes(router: Router): void {
     }
   })
 }
+

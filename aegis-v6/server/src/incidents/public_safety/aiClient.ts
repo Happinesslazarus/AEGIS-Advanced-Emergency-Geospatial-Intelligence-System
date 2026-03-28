@@ -5,9 +5,10 @@
 
 import type { IncidentPrediction } from '../types.js'
 import pool from '../../models/db.js'
+import { logger } from '../../services/logger.js'
 
 export class PublicSafetyAIClient {
-  /**
+   /**
    * Get rule-based predictions for public safety incidents
    * Uses report clustering and severity keyword analysis
    */
@@ -56,7 +57,7 @@ export class PublicSafetyAIClient {
         dataSourcesUsed: ['citizen_reports', 'emergency_services']
       }]
     } catch (error) {
-      console.error(`Public safety rule-based model error: ${error}`)
+      logger.error({ err: error }, '[PublicSafety/AIClient] Rule-based model error')
       return []
     }
   }

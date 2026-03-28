@@ -1,15 +1,15 @@
-/*
+﻿ /*
  * AdminCommunityHub.tsx — Professional Admin Community Management Hub
- *
  * Features:
- *   - Stats dashboard with real-time metrics
- *   - Full moderation queue for reported posts
- *   - Banned & muted users management
- *   - Sub-tabs: Overview | Live Chat | Posts Feed | Moderation
- *   - Real-time activity monitoring
- */
+ * Stats dashboard with real-time metrics
+ * Full moderation queue for reported posts
+ * Banned & muted users management
+ * Sub-tabs: Overview | Live Chat | Posts Feed | Moderation
+ * Real-time activity monitoring
+  */
 
 import React, { useState, useEffect, useCallback } from 'react'
+import { getToken } from '../../utils/api'
 import {
   Users, MessageSquare, FileText, Shield, Activity, AlertTriangle,
   Ban, VolumeX, Flag, TrendingUp, Eye, Trash2, CheckCircle2,
@@ -45,7 +45,7 @@ interface ReportedPost {
 
 function getAuthHeaders() {
   return {
-    Authorization: `Bearer ${localStorage.getItem('aegis-token') || localStorage.getItem('token') || ''}`
+    Authorization: `Bearer ${getToken() || ''}`
   }
 }
 
@@ -57,7 +57,7 @@ function timeAgo(dateStr: string, lang = 'en'): string {
   return `${Math.floor(seconds / 86400)}${t('time.dAgo', lang)}`
 }
 
-/* ── Stats Card ── */
+/*  Stats Card  */
 function StatCard({ icon: Icon, label, value, trend, color, pulse }: {
   icon: any; label: string; value: string | number; trend?: string; color: string; pulse?: boolean
 }) {
@@ -79,12 +79,12 @@ function StatCard({ icon: Icon, label, value, trend, color, pulse }: {
         )}
       </div>
       <p className="text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
-      <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-0.5">{label}</p>
+      <p className="text-xs text-gray-500 dark:text-gray-300 mt-0.5">{label}</p>
     </div>
   )
 }
 
-/* ── Moderation Tab ── */
+/*  Moderation Tab  */
 function ModerationPanel({ reportedPosts, onRefresh, loading }: {
   reportedPosts: ReportedPost[]; onRefresh: () => void; loading: boolean
 }) {
@@ -126,7 +126,7 @@ function ModerationPanel({ reportedPosts, onRefresh, loading }: {
           </div>
           <div>
             <h3 className="font-bold text-gray-900 dark:text-white">{t('community.moderationQueue', lang)}</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{reportedPosts.length} {t('community.reportedPostsPending', lang)}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-300">{reportedPosts.length} {t('community.reportedPostsPending', lang)}</p>
           </div>
         </div>
         <button
@@ -142,7 +142,7 @@ function ModerationPanel({ reportedPosts, onRefresh, loading }: {
       {/* Search */}
       {reportedPosts.length > 3 && (
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-300" />
           <input
             type="text"
             value={searchTerm}
@@ -152,7 +152,7 @@ function ModerationPanel({ reportedPosts, onRefresh, loading }: {
           />
           {searchTerm && (
             <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2">
-              <X className="w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
+              <X className="w-4 h-4 text-gray-400 dark:text-gray-300" />
             </button>
           )}
         </div>
@@ -161,7 +161,7 @@ function ModerationPanel({ reportedPosts, onRefresh, loading }: {
       {/* Reported Posts List */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-6 h-6 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 animate-spin" />
+          <Loader2 className="w-6 h-6 text-gray-400 dark:text-gray-300 animate-spin" />
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-12 bg-white dark:bg-gray-900/80 rounded-xl border border-gray-100 dark:border-gray-800/60">
@@ -169,7 +169,7 @@ function ModerationPanel({ reportedPosts, onRefresh, loading }: {
             <CheckCircle2 className="w-8 h-8 text-emerald-500" />
           </div>
           <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-1">{t('community.allClear', lang)}</h3>
-          <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('community.noReportedPosts', lang)}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-300">{t('community.noReportedPosts', lang)}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -188,7 +188,7 @@ function ModerationPanel({ reportedPosts, onRefresh, loading }: {
                     </span>
                   )}
                 </div>
-                <span className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{timeAgo(post.created_at)}</span>
+                <span className="text-[10px] text-gray-400 dark:text-gray-300">{timeAgo(post.created_at)}</span>
               </div>
 
               {/* Post Content */}
@@ -201,12 +201,12 @@ function ModerationPanel({ reportedPosts, onRefresh, loading }: {
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-sm font-semibold text-gray-900 dark:text-white">{post.author_name}</span>
                       {post.location && (
-                        <span className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex items-center gap-0.5">
+                        <span className="text-[10px] text-gray-400 dark:text-gray-300 flex items-center gap-0.5">
                           <span>•</span> {post.location}
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 line-clamp-3">{post.content}</p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-3">{post.content}</p>
                     {post.image_url && (
                       <img src={post.image_url} alt="" className="mt-2 rounded-lg max-h-32 object-cover border border-gray-100 dark:border-gray-800" />
                     )}
@@ -223,7 +223,7 @@ function ModerationPanel({ reportedPosts, onRefresh, loading }: {
                     {deletingId === post.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
                     {t('community.removePost', lang)}
                   </button>
-                  <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 rounded-lg transition">
+                  <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg transition">
                     <Eye className="w-3 h-3" />
                     {t('community.viewFullPost', lang)}
                   </button>
@@ -237,7 +237,7 @@ function ModerationPanel({ reportedPosts, onRefresh, loading }: {
   )
 }
 
-/* ── Overview Tab ── */
+/*  Overview Tab  */
 function OverviewPanel({ stats, reportedPosts }: { stats: CommunityStats; reportedPosts: ReportedPost[] }) {
   const lang = useLanguage()
   return (
@@ -262,7 +262,7 @@ function OverviewPanel({ stats, reportedPosts }: { stats: CommunityStats; report
           </h3>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('community.contentModeration', lang)}</span>
+              <span className="text-xs text-gray-600 dark:text-gray-300">{t('community.contentModeration', lang)}</span>
               <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
                 stats.reportedPosts === 0
                   ? 'bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400'
@@ -274,13 +274,13 @@ function OverviewPanel({ stats, reportedPosts }: { stats: CommunityStats; report
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('community.userEngagement', lang)}</span>
+              <span className="text-xs text-gray-600 dark:text-gray-300">{t('community.userEngagement', lang)}</span>
               <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400">
                 {stats.onlineNow > 0 ? t('community.active', lang) : t('community.quiet', lang)}
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('community.realtimeStatus', lang)}</span>
+              <span className="text-xs text-gray-600 dark:text-gray-300">{t('community.realtimeStatus', lang)}</span>
               <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400 flex items-center gap-1">
                 <Radio className="w-2.5 h-2.5 animate-pulse" /> {t('community.connected', lang)}
               </span>
@@ -297,7 +297,7 @@ function OverviewPanel({ stats, reportedPosts }: { stats: CommunityStats; report
           {reportedPosts.length === 0 ? (
             <div className="text-center py-6">
               <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
-              <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('community.noPendingReports', lang)}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-300">{t('community.noPendingReports', lang)}</p>
             </div>
           ) : (
             <div className="space-y-2.5">
@@ -313,12 +313,12 @@ function OverviewPanel({ stats, reportedPosts }: { stats: CommunityStats; report
                         {post.reports_count} report{Number(post.reports_count) !== 1 ? 's' : ''}
                       </span>
                     </div>
-                    <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 truncate mt-0.5">{post.content}</p>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-300 truncate mt-0.5">{post.content}</p>
                   </div>
                 </div>
               ))}
               {reportedPosts.length > 4 && (
-                <p className="text-[10px] text-center text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-medium">+{reportedPosts.length - 4} more in Moderation tab</p>
+                <p className="text-[10px] text-center text-gray-400 dark:text-gray-300 font-medium">+{reportedPosts.length - 4} more in Moderation tab</p>
               )}
             </div>
           )}
@@ -366,9 +366,7 @@ function OverviewPanel({ stats, reportedPosts }: { stats: CommunityStats; report
   )
 }
 
-/* ════════════════════════════════════════════════════════════════════════════
-   MAIN COMPONENT
-   ════════════════════════════════════════════════════════════════════════════ */
+// MAIN COMPONENT
 export default function AdminCommunityHub(): JSX.Element {
   const lang = useLanguage()
   const [activeTab, setActiveTab] = useState<'overview' | 'chat' | 'posts' | 'moderation'>('overview')
@@ -455,7 +453,7 @@ export default function AdminCommunityHub(): JSX.Element {
           </div>
           <div>
             <h2 className="font-bold text-xl text-gray-900 dark:text-white">{t('community.hubTitle', lang)}</h2>
-            <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex items-center gap-1.5">
+            <p className="text-xs text-gray-500 dark:text-gray-300 flex items-center gap-1.5">
               {t('community.hubSubtitle', lang)}
               <span className="flex items-center gap-1 text-[10px] font-medium text-green-600 bg-green-50 dark:bg-green-950/30 dark:text-green-400 px-2 py-0.5 rounded-full">
                 <Radio className="w-2.5 h-2.5 animate-pulse" /> {t('common.live', lang)}
@@ -482,7 +480,7 @@ export default function AdminCommunityHub(): JSX.Element {
             className={`px-5 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
               activeTab === tab.key
                 ? 'bg-white dark:bg-gray-700 text-aegis-700 dark:text-white shadow-md'
-                : 'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'
+                : 'text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300'
             }`}
           >
             <tab.icon className="w-3.5 h-3.5" />
@@ -514,7 +512,4 @@ export default function AdminCommunityHub(): JSX.Element {
     </div>
   )
 }
-
-
-
-
+

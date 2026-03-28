@@ -14,7 +14,7 @@ export default function SafetyCheckIn(): JSX.Element {
   const handle = (s: SafetyStatus): void => {
     setStatus(s)
     pushNotification(
-      s === 'help' ? '🚨 Help request received. Nearby responders notified.' : 'Safety status recorded.',
+      s === 'help' ? 'Help request received. Nearby responders notified.' : 'Safety status recorded.',
       s === 'help' ? 'warning' : 'success'
     )
   }

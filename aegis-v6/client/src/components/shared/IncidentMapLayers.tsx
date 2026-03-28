@@ -1,4 +1,4 @@
-/**
+﻿/**
  * IncidentMapLayers.tsx — Multi-incident map layer overlay
  *
  * Renders per-incident-type markers, circles, and geoJSON layers on the
@@ -16,33 +16,23 @@ import { useIncidents, type IncidentTypeId } from '../../contexts/IncidentContex
 import { apiGetAllIncidentMapData, type IncidentMapData, type IncidentMapMarker } from '../../utils/incidentApi'
 import { useLanguage } from '../../hooks/useLanguage'
 
-// ─── Incident colour & icon config ──────────────────────────────────────
-const INCIDENT_COLORS: Record<string, string> = {
-  flood: '#2563EB',
-  severe_storm: '#7C3AED',
-  heatwave: '#DC2626',
-  wildfire: '#F97316',
-  landslide: '#92400E',
-  power_outage: '#FBBF24',
-  water_supply: '#06B6D4',
-  infrastructure_damage: '#78716C',
-  public_safety: '#EF4444',
-  environmental_hazard: '#16A34A',
-  drought: '#D97706',
-}
+import { INCIDENT_HEX } from '../../utils/colorTokens'
+
+// Incident colour & icon config
+const INCIDENT_COLORS: Record<string, string> = INCIDENT_HEX
 
 const INCIDENT_ICONS: Record<string, string> = {
-  flood: '💧',
-  severe_storm: '⛈️',
-  heatwave: '🌡️',
-  wildfire: '🔥',
-  landslide: '⛰️',
-  power_outage: '⚡',
-  water_supply: '🚰',
-  infrastructure_damage: '🏗️',
-  public_safety: '🛡️',
-  environmental_hazard: '☣️',
-  drought: '🌵',
+  flood: '??',
+  severe_storm: '??',
+  heatwave: '???',
+  wildfire: '??',
+  landslide: '??',
+  power_outage: '?',
+  water_supply: '??',
+  infrastructure_damage: '???',
+  public_safety: '???',
+  environmental_hazard: '??',
+  drought: '??',
 }
 
 const SEVERITY_OPACITY: Record<string, number> = {
@@ -54,7 +44,7 @@ const SEVERITY_OPACITY: Record<string, number> = {
 
 function createIncidentIcon(type: string, severity: string): L.DivIcon {
   const color = INCIDENT_COLORS[type] || '#6B7280'
-  const emoji = INCIDENT_ICONS[type] || '⚠️'
+  const emoji = INCIDENT_ICONS[type] || '??'
   const borderWidth = severity === 'critical' ? 3 : 2
   const size = severity === 'critical' ? 36 : 30
 
@@ -76,15 +66,15 @@ function createIncidentIcon(type: string, severity: string): L.DivIcon {
   })
 }
 
-// ─── Component ──────────────────────────────────────────────────────────
+// Component
 interface Props {
-  /** Which incident types to show. Empty = all enabled */
+  /* Which incident types to show. Empty = all enabled */
   visibleTypes?: IncidentTypeId[]
-  /** Region for filtering */
+  /* Region for filtering */
   region?: string
-  /** Whether to show the layer control panel */
+  /* Whether to show the layer control panel */
   showLayerControl?: boolean
-  /** Refresh interval in ms (0 = no auto-refresh) */
+  /* Refresh interval in ms (0 = no auto-refresh) */
   refreshInterval?: number
 }
 
@@ -93,7 +83,8 @@ export default function IncidentMapLayers({
   region,
   showLayerControl = false,
   refreshInterval = 60000,
-}: Props): JSX.Element | null {  const lang = useLanguage()
+}: Props): JSX.Element | null {
+  const lang = useLanguage()
 
   const { t } = useTranslation(['map', 'incidents'])
   const { operationalTypes } = useIncidents()
@@ -152,7 +143,7 @@ export default function IncidentMapLayers({
       {/* Layer Control Panel */}
       {showLayerControl && (
         <div className="absolute top-2 right-2 z-[1000] bg-white dark:bg-gray-800 rounded-lg shadow-lg p-3 max-w-[200px]">
-          <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase mb-2">
+          <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase mb-2">
             {t('map:layers.title', 'Incident Layers')}
           </h4>
           {typesToFetch.map(type => (
@@ -167,7 +158,7 @@ export default function IncidentMapLayers({
                 className="w-3 h-3 rounded-full inline-block"
                 style={{ backgroundColor: INCIDENT_COLORS[type] }}
               />
-              <span className="capitalize text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+              <span className="capitalize text-gray-700 dark:text-gray-300">
                 {t(`incidents:types.${type}`, { defaultValue: type.replace(/_/g, ' ') })}
               </span>
             </label>
@@ -201,8 +192,8 @@ export default function IncidentMapLayers({
                   {marker.severity}
                 </span>
               </div>
-              <div className="text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 text-xs">
-                {marker.source} • {new Date(marker.timestamp).toLocaleString()}
+              <div className="text-gray-500 dark:text-gray-300 text-xs">
+                {marker.source} — {new Date(marker.timestamp).toLocaleString()}
               </div>
               {marker.details && Object.keys(marker.details).length > 0 && (
                 <div className="mt-1 text-xs text-gray-600">
@@ -237,7 +228,4 @@ export default function IncidentMapLayers({
 }
 
 export { INCIDENT_COLORS, INCIDENT_ICONS }
-
-
-
-
+

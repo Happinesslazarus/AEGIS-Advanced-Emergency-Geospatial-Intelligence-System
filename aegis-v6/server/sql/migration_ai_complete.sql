@@ -1,8 +1,6 @@
--- ═══════════════════════════════════════════════════════════════════════════════
 --  AEGIS v6.10 — Complete AI System Migration
 --  Adds tables for all 37 AI features: fusion, fingerprinting, governance,
 --  EXIF/image analysis, reporter scoring, and live data capture.
--- ═══════════════════════════════════════════════════════════════════════════════
 
 -- §1  AI EXECUTIONS (audit trail for every model call)
 CREATE TABLE IF NOT EXISTS ai_executions (
@@ -49,7 +47,7 @@ CREATE TABLE IF NOT EXISTS flood_predictions (
 );
 
 CREATE INDEX IF NOT EXISTS idx_flood_predictions_active
-    ON flood_predictions (created_at DESC) WHERE expires_at > now() OR expires_at IS NULL;
+    ON flood_predictions (expires_at, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_flood_predictions_geo
     ON flood_predictions USING GIST (coordinates) WHERE coordinates IS NOT NULL;
 

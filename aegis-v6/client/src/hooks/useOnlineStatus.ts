@@ -10,7 +10,7 @@ import { useState, useEffect, useCallback } from 'react'
 export interface OnlineStatus {
   isOnline: boolean
   queuedRequests: number
-  /** Force-sync the offline queue via the service worker. */
+  /* Force-sync the offline queue via the service worker. */
   syncNow: () => void
 }
 
@@ -69,3 +69,4 @@ export function useOnlineStatus(): OnlineStatus {
 
   return { isOnline, queuedRequests, syncNow }
 }
+

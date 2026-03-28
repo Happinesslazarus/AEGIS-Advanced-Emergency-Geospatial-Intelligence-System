@@ -45,3 +45,4 @@ export function useAnnounce() {
     timeoutRef.current = setTimeout(() => { el.textContent = message }, 100)
   }, [])
 }
+

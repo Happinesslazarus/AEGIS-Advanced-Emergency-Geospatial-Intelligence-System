@@ -1,14 +1,11 @@
-/**
+﻿ /*
  * services/mlTrainingPipeline.ts — Server-Side ML Training Orchestrator
- *
  * Trains all ML models using real data from PostgreSQL:
- *
  *   1. Flood Probability Classifier (XGBoost via Python AI Engine)
  *   2. Fake Report Detector (TF-IDF + classifier)
  *   3. Severity Predictor (replaced rule-based with ML, trained via Python)
  *   4. Damage Cost Regression (gradient boosting)
  *   5. Fusion Weight Optimizer (learns optimal weights from outcomes)
- *
  * Training flow:
  *   1. Extract training dataset from PostgreSQL
  *   2. Feature engineering (text, numeric, categorical)
@@ -17,17 +14,15 @@
  *   5. Metrics computation (accuracy, F1, AUC, confusion matrix)
  *   6. Model artifact serialization
  *   7. Store metrics in ai_model_metrics table
- *
  * All models use REAL DATA from the reports and weather tables.
  * Zero Math.random(). Zero synthetic data. Zero hardcoded weights.
- */
+  */
 
 import pool from '../models/db.js'
 import { aiClient } from './aiClient.js'
+import { logger } from './logger.js'
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §1  TYPES
-// ═══════════════════════════════════════════════════════════════════════════════
 
 interface TrainingResult {
   modelName: string
@@ -44,9 +39,7 @@ interface TrainingResult {
   metrics: Record<string, any>
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §2  FUSION WEIGHT OPTIMIZER — Learn optimal weights from data
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export async function trainFusionWeights(): Promise<TrainingResult> {
   const start = Date.now()
@@ -155,14 +148,14 @@ export async function trainFusionWeights(): Promise<TrainingResult> {
   }
 }
 
-/** Compute weights from report-weather correlations when no fusion history exists */
+/* Compute weights from report-weather correlations when no fusion history exists */
 async function computeWeightsFromReportCorrelations(): Promise<TrainingResult> {
   const start = Date.now()
 
   try {
     // Correlate report severity with weather conditions at report time/location
     const { rows } = await pool.query(`
-      SELECT 
+      SELECT
         r.severity,
         w.rainfall_mm,
         w.temperature_c,
@@ -269,9 +262,7 @@ async function computeWeightsFromReportCorrelations(): Promise<TrainingResult> {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §3  FAKE REPORT DETECTOR — Text classification
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export async function trainFakeDetector(): Promise<TrainingResult> {
   const start = Date.now()
@@ -301,13 +292,13 @@ export async function trainFakeDetector(): Promise<TrainingResult> {
 
     // Fallback: direct SQL-based feature computation for basic fake detection heuristics
     const { rows } = await pool.query(`
-      SELECT 
-        r.id, r.title, r.description, r.severity, r.ai_confidence,
+      SELECT
+        r.id, r.incident_category, r.description, r.severity, r.ai_confidence,
         r.created_at,
         rs.trust_score,
         CASE WHEN rs.trust_score < 30 THEN 1 ELSE 0 END as likely_fake
       FROM reports r
-      LEFT JOIN reporter_scores rs ON rs.reporter_id = r.user_id
+      LEFT JOIN reporter_scores rs ON rs.ip_hash = r.reporter_ip
       WHERE r.deleted_at IS NULL
       LIMIT 5000
     `)
@@ -316,8 +307,8 @@ export async function trainFakeDetector(): Promise<TrainingResult> {
     await pool.query(`
       INSERT INTO ai_model_metrics
         (model_name, model_version, metric_name, metric_value, dataset_size)
-      VALUES ('fake_detector', 'heuristic-v2', 'training_rows', $1, $1)
-    `, [rows.length])
+      VALUES ('fake_detector', 'heuristic-v2', 'training_rows', $1, $2)
+    `, [rows.length, rows.length])
 
     return {
       modelName: 'fake_detector',
@@ -342,9 +333,7 @@ export async function trainFakeDetector(): Promise<TrainingResult> {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §4  DAMAGE COST REGRESSION
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export async function trainDamageCostModel(): Promise<TrainingResult> {
   const start = Date.now()
@@ -444,9 +433,7 @@ export async function trainDamageCostModel(): Promise<TrainingResult> {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §5  TRAIN ALL MODELS
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export async function trainAllModels(): Promise<{
   results: TrainingResult[]
@@ -458,10 +445,7 @@ export async function trainAllModels(): Promise<{
     totalTrainingTimeMs: number
   }
 }> {
-  console.log('\n' + '═'.repeat(80))
-  console.log('  AEGIS ML TRAINING PIPELINE — STARTING')
-  console.log('  ' + new Date().toISOString())
-  console.log('═'.repeat(80) + '\n')
+  logger.info('AEGIS ML TRAINING PIPELINE — STARTING')
 
   const results: TrainingResult[] = []
 
@@ -473,14 +457,14 @@ export async function trainAllModels(): Promise<{
   ]
 
   for (const trainer of trainers) {
-    console.log(`[Training] ${trainer.name}...`)
+    logger.info(`[Training] ${trainer.name}...`)
     const result = await trainer.fn()
     results.push(result)
-    console.log(`[Training] ${trainer.name}: ${result.status} (${result.trainingRows} rows, ${result.trainingTimeMs}ms)`)
+    logger.info({ model: trainer.name, status: result.status, trainingRows: result.trainingRows, durationMs: result.trainingTimeMs }, `[Training] ${trainer.name} complete`)
   }
 
   // Also trigger Python AI engine training
-  console.log('[Training] Triggering Python AI Engine training...')
+  logger.info('[Training] Triggering Python AI Engine training...')
   try {
     const pyResult: any = await aiClient.triggerRetrain('all', 'global')
     if (pyResult) {
@@ -498,7 +482,7 @@ export async function trainAllModels(): Promise<{
       })
     }
   } catch (err: any) {
-    console.warn(`[Training] Python AI Engine training failed: ${err.message}`)
+    logger.warn({ err }, '[Training] Python AI Engine training failed')
     results.push({
       modelName: 'python_ai_engine',
       version: 'failed',
@@ -518,11 +502,8 @@ export async function trainAllModels(): Promise<{
     totalTrainingTimeMs: results.reduce((s, r) => s + r.trainingTimeMs, 0),
   }
 
-  console.log('\n' + '═'.repeat(80))
-  console.log('  TRAINING COMPLETE')
-  console.log(`  Success: ${summary.successful}/${summary.total} | Failed: ${summary.failed} | Insufficient: ${summary.insufficientData}`)
-  console.log(`  Total time: ${summary.totalTrainingTimeMs}ms`)
-  console.log('═'.repeat(80) + '\n')
+  logger.info({ successful: summary.successful, total: summary.total, failed: summary.failed, insufficientData: summary.insufficientData, totalTimeMs: summary.totalTrainingTimeMs }, 'TRAINING COMPLETE')
 
   return { results, summary }
 }
+

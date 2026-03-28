@@ -1,7 +1,5 @@
-// ═══════════════════════════════════════════════════════════════════════════════
 // GLOBAL FLOOD & HAZARD DATA — Worldwide flood hotspots, rivers, risk zones
 // Used by both 2D LiveMap and 3D Map3DView for global visualization
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export interface GlobalFloodZone {
   id: string
@@ -41,11 +39,9 @@ export interface GlobalMonitoringStation {
   trend?: 'rising' | 'falling' | 'stable'
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // GLOBAL FLOOD ZONES — 80+ major flood-prone regions worldwide
-// ═══════════════════════════════════════════════════════════════════════════════
 export const GLOBAL_FLOOD_ZONES: GlobalFloodZone[] = [
-  // ── SOUTH & SOUTHEAST ASIA ──
+  //  SOUTH & SOUTHEAST ASIA
   { id: 'bd-1', name: 'Bangladesh Ganges-Brahmaputra Delta', coords: [23.685, 90.356], risk: 'critical', type: 'delta', population: 170000000, country: 'Bangladesh', region: 'South Asia', description: 'World\'s largest river delta — annual monsoon floods affect 30M+ people', rivers: ['Ganges', 'Brahmaputra', 'Meghna'], lastMajorEvent: '2024 Aug monsoon' },
   { id: 'in-1', name: 'Mumbai Coastal Flooding', coords: [19.076, 72.878], risk: 'critical', type: 'urban', population: 21000000, country: 'India', region: 'South Asia', description: 'Extreme urban flooding during monsoon. Sea level rise + subsidence', rivers: ['Mithi River'], lastMajorEvent: '2023 Jul floods' },
   { id: 'in-2', name: 'Kerala Backwaters', coords: [9.931, 76.267], risk: 'high', type: 'monsoon', population: 35000000, country: 'India', region: 'South Asia', description: 'Catastrophic flooding from Western Ghats rainfall', rivers: ['Periyar', 'Pamba'], lastMajorEvent: '2024 monsoon' },
@@ -66,7 +62,7 @@ export const GLOBAL_FLOOD_ZONES: GlobalFloodZone[] = [
   { id: 'jp-1', name: 'Tokyo Bay Typhoon Zone', coords: [35.681, 139.767], risk: 'high', type: 'typhoon', population: 14000000, country: 'Japan', region: 'East Asia', description: 'Underground city vulnerable to storm surge + river flooding', rivers: ['Arakawa', 'Sumida'], lastMajorEvent: '2024 Typhoon' },
   { id: 'jp-2', name: 'Kumamoto-Kyushu Floods', coords: [32.803, 130.708], risk: 'high', type: 'river', population: 1800000, country: 'Japan', region: 'East Asia', description: 'Record rainfall causing devastating mudslides and river floods', rivers: ['Kuma River'], lastMajorEvent: '2024 Jul' },
 
-  // ── EUROPE ──
+  //  EUROPE
   { id: 'de-1', name: 'Rhine-Ruhr Valley', coords: [50.937, 6.960], risk: 'high', type: 'river', population: 58000000, country: 'Germany', region: 'Western Europe', description: 'Major European floodplain — 2021 Ahr Valley disaster killed 189', rivers: ['Rhine', 'Ruhr', 'Ahr'], lastMajorEvent: '2024 flash floods' },
   { id: 'de-2', name: 'Elbe-Dresden Corridor', coords: [51.051, 13.738], risk: 'high', type: 'river', population: 4000000, country: 'Germany', region: 'Central Europe', description: 'Recurring Elbe floods — 2002 "Flood of the Century"', rivers: ['Elbe', 'Mulde'], lastMajorEvent: '2024 spring floods' },
   { id: 'nl-1', name: 'Netherlands Rhine-Maas Delta', coords: [51.925, 4.479], risk: 'critical', type: 'delta', population: 17500000, country: 'Netherlands', region: 'Western Europe', description: '26% below sea level, Delta Works engineering marvel under climate stress', rivers: ['Rhine', 'Maas', 'Schelde'], lastMajorEvent: '2024 storm surge' },
@@ -83,7 +79,7 @@ export const GLOBAL_FLOOD_ZONES: GlobalFloodZone[] = [
   { id: 'gr-1', name: 'Thessaly Plains, Greece', coords: [39.636, 22.417], risk: 'high', type: 'river', population: 750000, country: 'Greece', region: 'Southern Europe', description: '2023 Storm Daniel — Mediterranean medicane flooding', rivers: ['Pinios'], lastMajorEvent: '2024 medicane' },
   { id: 'pl-1', name: 'Oder-Wroclaw Basin', coords: [51.107, 17.039], risk: 'high', type: 'river', population: 3000000, country: 'Poland', region: 'Central Europe', description: '1997 "Millennium Flood" — Central European convergence zone', rivers: ['Oder', 'Odra'], lastMajorEvent: '2024 Sep floods' },
 
-  // ── AFRICA ──
+  //  AFRICA
   { id: 'ng-1', name: 'Niger Delta Flooding', coords: [5.318, 6.462], risk: 'critical', type: 'delta', population: 31000000, country: 'Nigeria', region: 'West Africa', description: '2022 worst flooding in decades — 600+ dead, 1.4M displaced', rivers: ['Niger', 'Benue'], lastMajorEvent: '2024 Oct' },
   { id: 'ng-2', name: 'Lagos Coastal Urban Floods', coords: [6.524, 3.379], risk: 'critical', type: 'urban', population: 21000000, country: 'Nigeria', region: 'West Africa', description: 'Fastest growing megacity — coastal + drainage flooding', lastMajorEvent: '2024 rainy season' },
   { id: 'sd-1', name: 'Sudan Blue Nile Floods', coords: [15.501, 32.560], risk: 'critical', type: 'river', population: 45000000, country: 'Sudan', region: 'East Africa', description: 'Khartoum at Blue & White Nile confluence — annual devastating floods', rivers: ['Blue Nile', 'White Nile'], lastMajorEvent: '2024 Aug' },
@@ -94,7 +90,7 @@ export const GLOBAL_FLOOD_ZONES: GlobalFloodZone[] = [
   { id: 'za-1', name: 'Durban KwaZulu-Natal', coords: [-29.858, 31.022], risk: 'high', type: 'urban', population: 3700000, country: 'South Africa', region: 'Southern Africa', description: '2022 catastrophic floods killed 400+ — climate change intensifying', lastMajorEvent: '2024 subtropical storm' },
   { id: 'ly-1', name: 'Derna, Libya Flash Floods', coords: [32.767, 22.638], risk: 'critical', type: 'dam', population: 100000, country: 'Libya', region: 'North Africa', description: '2023 Mediterranean hurricane — dam failure killed 11,000+', rivers: ['Wadi Derna'], lastMajorEvent: '2023 Storm Daniel' },
 
-  // ── AMERICAS ──
+  //  AMERICAS
   { id: 'us-1', name: 'Houston-Gulf Coast', coords: [29.760, -95.370], risk: 'critical', type: 'urban', population: 7000000, country: 'USA', region: 'North America', description: 'Hurricane Harvey zone — $125B damage, subsidence + urbanization', rivers: ['Buffalo Bayou', 'San Jacinto'], lastMajorEvent: '2024 Hurricane Beryl' },
   { id: 'us-2', name: 'New Orleans Mississippi Delta', coords: [29.951, -90.072], risk: 'critical', type: 'delta', population: 1300000, country: 'USA', region: 'North America', description: 'Below sea level, levee-dependent — Katrina legacy zone', rivers: ['Mississippi', 'Atchafalaya'], lastMajorEvent: '2024 hurricane season' },
   { id: 'us-3', name: 'Miami Sea Level Rise Zone', coords: [25.762, -80.192], risk: 'critical', type: 'coastal', population: 6200000, country: 'USA', region: 'North America', description: 'Porous limestone foundation — king tides + hurricanes', lastMajorEvent: '2024 king tides' },
@@ -110,23 +106,21 @@ export const GLOBAL_FLOOD_ZONES: GlobalFloodZone[] = [
   { id: 'pe-1', name: 'Lima-Peru El Niño Zone', coords: [-12.046, -77.043], risk: 'high', type: 'coastal', population: 10000000, country: 'Peru', region: 'South America', description: 'El Niño coastal floods + Andean mudslides', rivers: ['Rímac'], lastMajorEvent: '2024 El Niño' },
   { id: 'ar-1', name: 'Buenos Aires-Paraná Delta', coords: [-34.604, -58.382], risk: 'high', type: 'delta', population: 15000000, country: 'Argentina', region: 'South America', description: 'Sudestada storms + Paraná floods', rivers: ['Paraná', 'Río de la Plata'], lastMajorEvent: '2024 Sudestada' },
 
-  // ── OCEANIA ──
+  //  OCEANIA
   { id: 'au-1', name: 'Brisbane-Lismore Flood Zone', coords: [-27.469, 153.024], risk: 'high', type: 'river', population: 2500000, country: 'Australia', region: 'Oceania', description: '2022 catastrophic floods — Lismore destroyed, repeated La Niña', rivers: ['Brisbane River', 'Wilsons River'], lastMajorEvent: '2024 La Niña' },
   { id: 'au-2', name: 'Sydney Hawkesbury-Nepean', coords: [-33.749, 150.690], risk: 'high', type: 'river', population: 5300000, country: 'Australia', region: 'Oceania', description: 'Warragamba Dam spilling risk — western Sydney floodplain', rivers: ['Hawkesbury', 'Nepean'], lastMajorEvent: '2024 east coast low' },
   { id: 'au-3', name: 'Fitzroy-Rockhampton QLD', coords: [-23.380, 150.510], risk: 'medium', type: 'river', population: 200000, country: 'Australia', region: 'Oceania', description: 'Tropical cyclone-driven flooding of Fitzroy River', rivers: ['Fitzroy'], lastMajorEvent: '2024 TC' },
   { id: 'nz-1', name: 'Auckland & Cyclone Gabrielle Zone', coords: [-36.849, 174.764], risk: 'high', type: 'urban', population: 1700000, country: 'New Zealand', region: 'Oceania', description: '2023 Cyclone Gabrielle devastation — Hawke\'s Bay + Auckland', lastMajorEvent: '2024 ex-tropical cyclone' },
   { id: 'fj-1', name: 'Fiji Cyclone Belt', coords: [-18.142, 178.442], risk: 'high', type: 'typhoon', population: 900000, country: 'Fiji', region: 'Pacific Islands', description: 'Category 5 cyclones + sea level rise threatening existence', lastMajorEvent: '2024 TC' },
 
-  // ── MIDDLE EAST & CENTRAL ASIA ──
+  //  MIDDLE EAST & CENTRAL ASIA
   { id: 'af-1', name: 'Afghanistan Flash Floods', coords: [34.520, 69.172], risk: 'critical', type: 'monsoon', population: 40000000, country: 'Afghanistan', region: 'Central Asia', description: 'Deforestation + climate change = lethal flash floods in valleys', rivers: ['Kabul River', 'Hari River'], lastMajorEvent: '2024 May — 300+ dead' },
   { id: 'ir-1', name: 'Iran Sistan-Baluchestan Floods', coords: [29.497, 60.862], risk: 'high', type: 'monsoon', population: 3000000, country: 'Iran', region: 'Middle East', description: 'Arid region flash floods — rain on parched land', lastMajorEvent: '2024 winter' },
   { id: 'ae-1', name: 'Dubai-UAE Desert Flash Floods', coords: [25.205, 55.270], risk: 'medium', type: 'urban', population: 3500000, country: 'UAE', region: 'Middle East', description: '2024 unprecedented rainfall — year\'s rain in 24hrs', lastMajorEvent: '2024 Apr record rain' },
   { id: 'tr-1', name: 'Istanbul Bosphorus Floods', coords: [41.009, 28.978], risk: 'medium', type: 'urban', population: 16000000, country: 'Turkey', region: 'Middle East', description: 'Mediterranean climate intensification + rapid urbanization', lastMajorEvent: '2024 Sep' },
 ]
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // MAJOR WORLD RIVERS — Visualization polylines for map rendering
-// ═══════════════════════════════════════════════════════════════════════════════
 export const GLOBAL_RIVERS: GlobalRiver[] = [
   { id: 'r-nile', name: 'Nile', coords: [26.82, 30.80], path: [[31.20, 30.05], [30.05, 31.23], [26.82, 30.80], [24.09, 32.90], [15.60, 32.53], [9.02, 33.40], [4.85, 31.60], [0.32, 32.58]], country: 'Egypt/Sudan/Uganda', lengthKm: 6650, floodRisk: 'high', basinPopulationMillions: 257, description: 'World\'s longest river — Aswan Dam controls flooding' },
   { id: 'r-amazon', name: 'Amazon', coords: [-3.12, -60.02], path: [[-1.45, -48.50], [-2.50, -54.70], [-3.12, -60.02], [-3.45, -65.00], [-4.30, -70.00], [-5.18, -73.50], [-10.00, -75.00]], country: 'Brazil/Peru', lengthKm: 6400, floodRisk: 'high', basinPopulationMillions: 30, description: 'World\'s largest discharge river — seasonal floods inundate millions of km²' },
@@ -144,9 +138,7 @@ export const GLOBAL_RIVERS: GlobalRiver[] = [
   { id: 'r-parana', name: 'Paraná-Río de la Plata', coords: [-34.60, -58.38], path: [[-34.60, -58.38], [-33.75, -59.65], [-31.63, -60.70], [-27.10, -58.83], [-25.28, -57.63], [-24.05, -54.59], [-20.00, -51.00]], country: 'Argentina/Brazil/Paraguay', lengthKm: 4880, floodRisk: 'high', basinPopulationMillions: 75, description: 'South America\'s second river system — Itaipu Dam mega-watershed' },
 ]
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // GLOBAL MONITORING STATIONS — Simulated worldwide gauge network
-// ═══════════════════════════════════════════════════════════════════════════════
 export const GLOBAL_STATIONS: GlobalMonitoringStation[] = [
   // Asia
   { id: 'gs-1', name: 'Farakka Barrage', coords: [24.81, 87.92], country: 'India', type: 'river_gauge', status: 'warning', waterLevel: 8.2, maxLevel: 10.0, trend: 'rising' },
@@ -175,14 +167,12 @@ export const GLOBAL_STATIONS: GlobalMonitoringStation[] = [
   { id: 'gs-21', name: 'Aswan High Dam', coords: [24.03, 32.88], country: 'Egypt', type: 'river_gauge', status: 'active', waterLevel: 176.0, maxLevel: 182.0, trend: 'stable' },
   { id: 'gs-22', name: 'Khartoum Nile Confluence', coords: [15.60, 32.53], country: 'Sudan', type: 'river_gauge', status: 'warning', waterLevel: 16.2, maxLevel: 17.5, trend: 'rising' },
   { id: 'gs-23', name: 'Lokoja Niger-Benue', coords: [7.80, 6.74], country: 'Nigeria', type: 'river_gauge', status: 'alert', waterLevel: 9.8, maxLevel: 10.5, trend: 'rising' },
-  // Oceania  
+  // Oceania
   { id: 'gs-24', name: 'Brisbane River Gauge', coords: [-27.47, 153.02], country: 'Australia', type: 'river_gauge', status: 'active', waterLevel: 1.2, maxLevel: 4.5, trend: 'stable' },
   { id: 'gs-25', name: 'Sydney Harbour Tide', coords: [-33.86, 151.21], country: 'Australia', type: 'tide_gauge', status: 'active', waterLevel: 0.8, maxLevel: 2.1, trend: 'stable' },
 ]
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // HELPER — Risk color mapping
-// ═══════════════════════════════════════════════════════════════════════════════
 export const RISK_COLORS = {
   critical: '#ff0040',
   high: '#ff4400',
@@ -198,12 +188,12 @@ export const STATION_COLORS = {
 } as const
 
 export const TYPE_ICONS: Record<GlobalFloodZone['type'], string> = {
-  river: '🌊',
-  coastal: '🏖️',
-  urban: '🏙️',
-  monsoon: '🌧️',
-  glacier: '🏔️',
-  dam: '🚧',
-  delta: '🔺',
-  typhoon: '🌀',
+  river: 'Waves',
+  coastal: 'Anchor',
+  urban: 'Building',
+  monsoon: 'CloudRain',
+  glacier: 'Mountain',
+  dam: 'Construction',
+  delta: 'Triangle',
+  typhoon: 'Wind',
 }

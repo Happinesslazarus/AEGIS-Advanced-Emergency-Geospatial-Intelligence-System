@@ -1,5 +1,4 @@
-/**
- * i18n_replace_citizen.mjs — Replace hardcoded English strings in citizen components
+﻿ * i18n_replace_citizen.mjs — Replace hardcoded English strings in citizen components
  */
 import { readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
@@ -18,9 +17,7 @@ function replaceAll(code, pairs) {
   return { result, count }
 }
 
-// ────────────────────────────────────────────────────────────
 // ShelterFinder.tsx
-// ────────────────────────────────────────────────────────────
 function fixShelterFinder() {
   const file = join(SRC, 'components/citizen/ShelterFinder.tsx')
   let code = readFileSync(file, 'utf8')
@@ -59,9 +56,7 @@ function fixShelterFinder() {
   else console.log('SKIP ShelterFinder')
 }
 
-// ────────────────────────────────────────────────────────────
 // SOSButton.tsx
-// ────────────────────────────────────────────────────────────
 function fixSOSButton() {
   const file = join(SRC, 'components/citizen/SOSButton.tsx')
   let code = readFileSync(file, 'utf8')
@@ -86,9 +81,7 @@ function fixSOSButton() {
   else console.log('SKIP SOSButton')
 }
 
-// ────────────────────────────────────────────────────────────
 // SafetyCheckIn.tsx
-// ────────────────────────────────────────────────────────────
 function fixSafetyCheckIn() {
   const file = join(SRC, 'components/citizen/SafetyCheckIn.tsx')
   let code = readFileSync(file, 'utf8')
@@ -102,9 +95,7 @@ function fixSafetyCheckIn() {
   else console.log('SKIP SafetyCheckIn')
 }
 
-// ────────────────────────────────────────────────────────────
 // CrowdDensityHeatmap.tsx
-// ────────────────────────────────────────────────────────────
 function fixCrowdDensityHeatmap() {
   const file = join(SRC, 'components/citizen/CrowdDensityHeatmap.tsx')
   let code = readFileSync(file, 'utf8')
@@ -127,9 +118,7 @@ function fixCrowdDensityHeatmap() {
   else console.log('SKIP CrowdDensityHeatmap')
 }
 
-// ────────────────────────────────────────────────────────────
 // LiveIncidentMapPanel.tsx
-// ────────────────────────────────────────────────────────────
 function fixLiveIncidentMapPanel() {
   const file = join(SRC, 'components/citizen/LiveIncidentMapPanel.tsx')
   let code = readFileSync(file, 'utf8')
@@ -142,9 +131,7 @@ function fixLiveIncidentMapPanel() {
   else console.log('SKIP LiveIncidentMapPanel')
 }
 
-// ────────────────────────────────────────────────────────────
 // CitizenMessaging.tsx
-// ────────────────────────────────────────────────────────────
 function fixCitizenMessaging() {
   const file = join(SRC, 'components/citizen/CitizenMessaging.tsx')
   let code = readFileSync(file, 'utf8')
@@ -165,9 +152,7 @@ function fixCitizenMessaging() {
   else console.log('SKIP CitizenMessaging')
 }
 
-// ────────────────────────────────────────────────────────────
 // AlertSubscribe.tsx
-// ────────────────────────────────────────────────────────────
 function fixAlertSubscribe() {
   const file = join(SRC, 'components/citizen/AlertSubscribe.tsx')
   let code = readFileSync(file, 'utf8')
@@ -182,9 +167,7 @@ function fixAlertSubscribe() {
   else console.log('SKIP AlertSubscribe')
 }
 
-// ────────────────────────────────────────────────────────────
 // OnboardingTutorial.tsx
-// ────────────────────────────────────────────────────────────
 function fixOnboardingTutorial() {
   const file = join(SRC, 'components/citizen/OnboardingTutorial.tsx')
   let code = readFileSync(file, 'utf8')
@@ -197,9 +180,7 @@ function fixOnboardingTutorial() {
   else console.log('SKIP OnboardingTutorial')
 }
 
-// ────────────────────────────────────────────────────────────
 // CommunityGuidelines.tsx
-// ────────────────────────────────────────────────────────────
 function fixCommunityGuidelines() {
   const file = join(SRC, 'components/citizen/CommunityGuidelines.tsx')
   let code = readFileSync(file, 'utf8')
@@ -217,9 +198,7 @@ function fixCommunityGuidelines() {
   else console.log('SKIP CommunityGuidelines')
 }
 
-// ────────────────────────────────────────────────────────────
 // Chatbot.tsx
-// ────────────────────────────────────────────────────────────
 function fixChatbot() {
   const file = join(SRC, 'components/citizen/Chatbot.tsx')
   let code = readFileSync(file, 'utf8')
@@ -230,9 +209,7 @@ function fixChatbot() {
   else console.log('SKIP Chatbot')
 }
 
-// ────────────────────────────────────────────────────────────
 // OfflineEmergencyCard.tsx
-// ────────────────────────────────────────────────────────────
 function fixOfflineEmergencyCard() {
   const file = join(SRC, 'components/citizen/OfflineEmergencyCard.tsx')
   let code = readFileSync(file, 'utf8')
@@ -258,3 +235,4 @@ fixChatbot()
 fixOfflineEmergencyCard()
 
 console.log('\nDone!')
+

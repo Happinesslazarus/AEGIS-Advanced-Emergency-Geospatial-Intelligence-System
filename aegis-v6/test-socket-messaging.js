@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 
-/**
+ /*
  * test-socket-messaging.js - Test bidirectional admin <-> citizen messaging
- * 
  * This script:
  * 1. Gets admin and citizen tokens from login endpoint
  * 2. Connects both as Socket.IO clients
@@ -11,7 +10,7 @@
  * 5. Admin sends a reply message
  * 6. Citizen receives the reply
  * 7. Completes the test with success/failure reporting
- */
+  */
 
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 const io = require('socket.io-client');
@@ -38,12 +37,11 @@ function validateCredentials() {
   }
 }
 
-
 function log(msg, type = 'info') {
-  const colors = { 
-    info: '\x1b[36m', 
-    success: '\x1b[32m', 
-    error: '\x1b[31m', 
+  const colors = {
+    info: '\x1b[36m',
+    success: '\x1b[32m',
+    error: '\x1b[31m',
     warning: '\x1b[33m',
     reset: '\x1b[0m'
   };
@@ -157,11 +155,11 @@ function setupAdminListeners() {
     log(`✓ Admin received new thread: ${data.subject}`, 'success');
     testThreadId = data.id;
     testResults.push({ test: 'Admin receives new thread', passed: !!testThreadId });
-    
+
     // Simulate admin reading message and replying
     setTimeout(() => {
       log(`Admin sending reply to thread ${testThreadId}...`, 'info');
-      adminSocket.emit('message:send', 
+      adminSocket.emit('message:send',
         { threadId: testThreadId, content: 'Hello citizen, how can I help?' },
         (response) => {
           if (response?.success) {
@@ -191,7 +189,7 @@ function setupCitizenListeners() {
     log(`✓ Citizen received reply: "${data.message?.content}"`, 'success');
     messageCounts.citizenReceived++;
     testResults.push({ test: 'Citizen receives admin reply', passed: true });
-    
+
     // Test complete
     completeTest();
   });
@@ -209,10 +207,10 @@ async function testMessaging() {
   }
 
   await new Promise(resolve => setTimeout(resolve, 500));
-  
+
   log('Citizen creating new thread...', 'info');
   citizenSocket.emit('thread:create',
-    { 
+    {
       subject: 'Test Emergency Query',
       message: 'I need urgent help with flooding in my area!',
       isEmergency: true
@@ -230,8 +228,8 @@ async function testMessaging() {
 }
 
 function completeTest() {
-  log('\n═══ TEST RESULTS ═══', 'info');
-  
+  log('\n TEST RESULTS ', 'info');
+
   let passed = 0;
   testResults.forEach((result, i) => {
     const icon = result.passed ? '✓' : '✗';
@@ -241,7 +239,7 @@ function completeTest() {
   });
 
   log(`\nPassed: ${passed}/${testResults.length}`, passed === testResults.length ? 'success' : 'warning');
-  
+
   log('\nMessage counts:', 'info');
   log(`  - Admin received: ${messageCounts.adminReceived} messages`, 'info');
   log(`  - Citizen received: ${messageCounts.citizenReceived} messages`, 'info');
@@ -260,7 +258,7 @@ async function runTest() {
   try {
     validateCredentials();
     log('Starting Socket.IO Bidirectional Messaging Test...', 'info');
-    
+
     const ready = await setupConnections();
     if (!ready) {
       log('Failed to setup connections', 'error');

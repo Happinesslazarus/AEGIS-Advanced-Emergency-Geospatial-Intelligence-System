@@ -10,13 +10,14 @@
 import { Router, type Request, type Response } from 'express'
 import { DroughtService } from './service.js'
 import { classifyDroughtSeverity } from './dataIngestion.js'
+import { regionRegistry } from '../../adapters/regions/RegionRegistry.js'
 
 export function setupDroughtRoutes(router: Router): void {
 
   // GET /drought-index
   router.get('/drought-index', async (req: Request, res: Response) => {
     try {
-      const region = String(req.query.region || process.env.REGION_ID || 'aberdeen_scotland_uk')
+      const region = String(req.query.region || process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId)
       const data = await DroughtService.getDroughtIndex()
       const severity = classifyDroughtSeverity(data)
       res.json({
@@ -38,7 +39,7 @@ export function setupDroughtRoutes(router: Router): void {
   // GET /water-advisory
   router.get('/water-advisory', async (req: Request, res: Response) => {
     try {
-      const region = String(req.query.region || process.env.REGION_ID || 'aberdeen_scotland_uk')
+      const region = String(req.query.region || process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId)
       const severity = await DroughtService.getDroughtSeverity(region)
       const advisory = DroughtService.getConservationAdvisory(severity)
       res.json({
@@ -56,7 +57,7 @@ export function setupDroughtRoutes(router: Router): void {
   // GET /precipitation — 30-day summary
   router.get('/precipitation', async (req: Request, res: Response) => {
     try {
-      const region = String(req.query.region || process.env.REGION_ID || 'aberdeen_scotland_uk')
+      const region = String(req.query.region || process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId)
       const data = await DroughtService.getDroughtIndex()
       res.json({
         incidentType: 'drought',
@@ -72,3 +73,4 @@ export function setupDroughtRoutes(router: Router): void {
     }
   })
 }
+

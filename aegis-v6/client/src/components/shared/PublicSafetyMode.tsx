@@ -1,16 +1,14 @@
-/**
+﻿ /*
  * PublicSafetyMode.tsx — Full-screen emergency display for public
  * information boards, kiosks, and citizen emergency view.
- *
  * Displays critical safety information in a large, high-contrast
  * format designed for quick reading under stress. All data comes
  * from real APIs (alerts, shelters, weather, predictions).
- *
  * Activated via:
- *  - URL parameter: ?safety=1
- *  - Toggle button in citizen dashboard
- *  - Emergency alert auto-activation
- */
+ * URL parameter: ?safety=1
+ * Toggle button in citizen dashboard
+ * Emergency alert auto-activation
+  */
 
 import { useState, useEffect, useCallback } from 'react'
 import {
@@ -21,7 +19,7 @@ import {
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 
-/** Safe date formatting — returns readable string or fallback */
+/* Safe date formatting — returns readable string or fallback */
 function safeDate(dateStr: string | undefined | null, fallback = 'Unknown'): string {
   if (!dateStr) return fallback
   try {
@@ -33,9 +31,7 @@ function safeDate(dateStr: string | undefined | null, fallback = 'Unknown'): str
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Types
-// ═══════════════════════════════════════════════════════════════════════════════
 
 interface Alert {
   id: string
@@ -77,9 +73,7 @@ interface Props {
   onClose?: () => void
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Component
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export default function PublicSafetyMode({ onClose }: Props): JSX.Element {
   const lang = useLanguage()
@@ -207,7 +201,7 @@ export default function PublicSafetyMode({ onClose }: Props): JSX.Element {
       </div>
 
       <div className="max-w-7xl mx-auto p-6 space-y-6">
-        {/* ─── Emergency Number Banner ─────────────────────────────────── */}
+        {/*  Emergency Number Banner  */}
         <div className="bg-red-900/50 border-2 border-red-500 rounded-2xl p-6 text-center">
           <p className="text-lg font-semibold text-red-300 mb-1">{t('safety.lifeThreateningEmergency', lang)}</p>
           <p className="text-6xl font-black tracking-widest text-white">999</p>
@@ -217,7 +211,7 @@ export default function PublicSafetyMode({ onClose }: Props): JSX.Element {
           </p>
         </div>
 
-        {/* ─── Critical Alerts ─────────────────────────────────────────── */}
+        {/*  Critical Alerts  */}
         {criticalAlerts.length > 0 && (
           <div className="space-y-3">
             <h2 className="text-lg font-bold text-red-400 flex items-center gap-2">
@@ -233,11 +227,11 @@ export default function PublicSafetyMode({ onClose }: Props): JSX.Element {
                       <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${severityColor(alert.severity)}`}>
                         {alert.severity}
                       </span>
-                      {alert.area && <span className="text-sm text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300"><MapPin className="w-3 h-3 inline" /> {alert.area}</span>}
+                      {alert.area && <span className="text-sm text-gray-400 dark:text-gray-300"><MapPin className="w-3 h-3 inline" /> {alert.area}</span>}
                     </div>
                     <h3 className="text-xl font-bold text-white">{alert.title}</h3>
-                    <p className="text-sm text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-1 leading-relaxed">{alert.description}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-2">
+                    <p className="text-sm text-gray-300 dark:text-gray-300 mt-1 leading-relaxed">{alert.description}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-300 mt-2">
                       <Clock className="w-3 h-3 inline mr-1" />
                       {safeDate(alert.created_at)}
                     </p>
@@ -248,7 +242,7 @@ export default function PublicSafetyMode({ onClose }: Props): JSX.Element {
           </div>
         )}
 
-        {/* ─── Other Alerts ────────────────────────────────────────────── */}
+        {/*  Other Alerts  */}
         {otherAlerts.length > 0 && (
           <div className="space-y-2">
             <h2 className="text-sm font-bold text-amber-400 flex items-center gap-2">
@@ -261,7 +255,7 @@ export default function PublicSafetyMode({ onClose }: Props): JSX.Element {
                   <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase flex-shrink-0 ${severityColor(alert.severity)}`}>{alert.severity}</span>
                   <div>
                     <p className="text-sm font-semibold text-white">{alert.title}</p>
-                    <p className="text-xs text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-0.5 line-clamp-2">{alert.description}</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-300 mt-0.5 line-clamp-2">{alert.description}</p>
                   </div>
                 </div>
               ))}
@@ -269,7 +263,7 @@ export default function PublicSafetyMode({ onClose }: Props): JSX.Element {
           </div>
         )}
 
-        {/* ─── No Alerts State ─────────────────────────────────────────── */}
+        {/*  No Alerts State  */}
         {alerts.length === 0 && !loading && (
           <div className="bg-green-900/30 border border-green-700 rounded-xl p-6 text-center">
             <Shield className="w-10 h-10 text-green-400 mx-auto mb-2" />
@@ -278,7 +272,7 @@ export default function PublicSafetyMode({ onClose }: Props): JSX.Element {
           </div>
         )}
 
-        {/* ─── Grid: Weather + Predictions + Shelters ──────────────────── */}
+        {/*  Grid: Weather + Predictions + Shelters  */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Weather */}
           <div className="bg-gray-900 border border-gray-700 rounded-xl p-5">
@@ -288,14 +282,14 @@ export default function PublicSafetyMode({ onClose }: Props): JSX.Element {
             {weather ? (
               <div className="space-y-2">
                 <p className="text-4xl font-bold text-white">{Math.round(weather.temp)}°C</p>
-                <p className="text-sm text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 capitalize">{weather.description}</p>
-                <div className="flex items-center gap-4 text-xs text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+                <p className="text-sm text-gray-300 dark:text-gray-300 capitalize">{weather.description}</p>
+                <div className="flex items-center gap-4 text-xs text-gray-400 dark:text-gray-300">
                   <span><Wind className="w-3 h-3 inline mr-1" /> {weather.wind_speed} m/s</span>
                   <span><Droplets className="w-3 h-3 inline mr-1" /> {weather.humidity}%</span>
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('safety.weatherDataLoading', lang)}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-300">{t('safety.weatherDataLoading', lang)}</p>
             )}
           </div>
 
@@ -312,19 +306,19 @@ export default function PublicSafetyMode({ onClose }: Props): JSX.Element {
                   const color = pct >= 75 ? 'text-red-400' : pct >= 50 ? 'text-orange-400' : 'text-yellow-400'
                   return (
                     <div key={i} className="flex items-center justify-between">
-                      <span className="text-sm text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{p.area}</span>
+                      <span className="text-sm text-gray-300 dark:text-gray-300">{p.area}</span>
                       <span className={`text-sm font-bold ${color}`}>{pct}%</span>
                     </div>
                   )
                 })}
                 {predictions.length > highRiskPredictions.length && (
-                  <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+                  <p className="text-xs text-gray-500 dark:text-gray-300">
                     + {predictions.length - highRiskPredictions.length} {t('safety.lowerRiskAreas', lang)}
                   </p>
                 )}
               </div>
             ) : (
-              <p className="text-sm text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('safety.noHighRiskFlood', lang)}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-300">{t('safety.noHighRiskFlood', lang)}</p>
             )}
           </div>
 
@@ -339,10 +333,10 @@ export default function PublicSafetyMode({ onClose }: Props): JSX.Element {
                   <div key={s.id} className="flex items-start justify-between gap-2">
                     <div>
                       <p className="text-sm font-semibold text-white">{s.name}</p>
-                      <p className="text-xs text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{s.address}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-300">{s.address}</p>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <p className="text-xs text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{s.current_occupancy}/{s.capacity}</p>
+                      <p className="text-xs text-gray-300 dark:text-gray-300">{s.current_occupancy}/{s.capacity}</p>
                       {s.phone && (
                         <a href={`tel:${s.phone}`} className="text-xs text-blue-400 hover:underline">{s.phone}</a>
                       )}
@@ -351,37 +345,37 @@ export default function PublicSafetyMode({ onClose }: Props): JSX.Element {
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('safety.noShelters', lang)}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-300">{t('safety.noShelters', lang)}</p>
             )}
           </div>
         </div>
 
-        {/* ─── Safety Guidance Quick Links ──────────────────────────────── */}
+        {/*  Safety Guidance Quick Links  */}
         <div className="bg-gray-900 border border-gray-700 rounded-xl p-5">
           <h3 className="text-sm font-bold text-purple-400 mb-3">{t('safety.emergencyResources', lang)}</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
-              { label: 'SEPA Flood Warnings', url: 'https://www.sepa.org.uk/environment/water/flooding/', icon: Droplets },
-              { label: 'Met Office Warnings', url: 'https://www.metoffice.gov.uk/weather/warnings-and-advice', icon: Wind },
-              { label: 'Ready Scotland', url: 'https://ready.scot/', icon: Shield },
-              { label: 'NHS 24', url: 'tel:111', icon: Phone },
+              { label: 'GDACS Global Alerts', url: 'https://www.gdacs.org', icon: Droplets },
+              { label: 'WMO Severe Weather', url: 'https://severeweather.wmo.int', icon: Wind },
+              { label: 'IFRC Disaster Response', url: 'https://www.ifrc.org', icon: Shield },
+              { label: 'Local Emergency Services', url: 'tel:112', icon: Phone },
             ].map((link, i) => (
               <a
                 key={i}
                 href={link.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 rounded-lg p-3 text-sm text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-white transition"
+                className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 rounded-lg p-3 text-sm text-gray-300 dark:text-gray-300 hover:text-white transition"
               >
                 <link.icon className="w-4 h-4 flex-shrink-0" />
                 <span className="flex-1">{link.label}</span>
-                <ExternalLink className="w-3 h-3 flex-shrink-0 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
+                <ExternalLink className="w-3 h-3 flex-shrink-0 text-gray-500 dark:text-gray-300" />
               </a>
             ))}
           </div>
         </div>
 
-        {/* ─── Footer ──────────────────────────────────────────────────── */}
+        {/*  Footer  */}
         <div className="text-center text-xs text-gray-600 py-4 border-t border-gray-800">
           <p>
             {t('safety.lastUpdated', lang)}: {lastUpdated.toLocaleTimeString('en-GB')} |
@@ -396,7 +390,4 @@ export default function PublicSafetyMode({ onClose }: Props): JSX.Element {
     </div>
   )
 }
-
-
-
-
+

@@ -7,7 +7,7 @@ import type { IncidentPrediction } from '../types.js'
 import { environmentalHazardConfig, AIR_QUALITY_THRESHOLDS } from './config.js'
 
 export class EnvironmentalHazardService {
-  /**
+   /**
    * Get environmental hazard risk score
    */
   static async calculateEnvironmentalRisk(region: string): Promise<number> {
@@ -28,7 +28,7 @@ export class EnvironmentalHazardService {
     }
   }
 
-  /**
+   /**
    * Get environmental hazard predictions for a region
    */
   static async getEnvironmentalPredictions(region: string): Promise<IncidentPrediction[]> {
@@ -55,7 +55,7 @@ export class EnvironmentalHazardService {
     }]
   }
 
-  /**
+   /**
    * Get environmental advisory text based on severity
    */
   static getEnvironmentalAdvisory(severity: string): string {
@@ -71,7 +71,7 @@ export class EnvironmentalHazardService {
     }
   }
 
-  /**
+   /**
    * Calculate Air Quality Index (AQI)
    */
   static calculateAQI(pm25: number, pm10: number, o3: number, no2: number): number {
@@ -83,7 +83,7 @@ export class EnvironmentalHazardService {
     return 25
   }
 
-  /**
+   /**
    * Generate health advisory based on AQI
    */
   static generateHealthAdvisory(aqi: number): Record<string, unknown> {

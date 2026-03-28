@@ -1,16 +1,12 @@
-/**
+﻿ /*
  * types/index.ts — Server-side TypeScript type definitions
- *
  * Central type hub for the entire AEGIS backend. Every database row,
  * API payload, and service interface is defined here so that route
  * handlers, services, and middleware share a single source of truth.
- *
  * Organised by domain: auth → reports → alerts → AI → chat → config.
- */
+  */
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §1  ENUMS (mirror PostgreSQL ENUM types)
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export type OperatorRole = 'admin' | 'operator' | 'viewer'
 export type ReportStatus = 'unverified' | 'verified' | 'urgent' | 'flagged' | 'resolved'
@@ -33,9 +29,7 @@ export type ChatSessionStatus = 'active' | 'archived' | 'expired'
 export type ChatMessageRole = 'user' | 'assistant' | 'system' | 'tool'
 export type ConsentType = 'data_processing' | 'location_tracking' | 'ai_analysis' | 'marketing' | 'research'
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §2  DATABASE ROW TYPES
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export interface OperatorRow {
   id: string
@@ -308,9 +302,7 @@ export interface AlertDeliveryLogRow {
   created_at: string
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §3  NEW TABLES (production upgrade: chat sessions, RAG, consent, etc.)
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export interface ChatSessionRow {
   id: string
@@ -448,9 +440,7 @@ export interface TrainingLabelRow {
   created_at: string
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §4  API REQUEST / RESPONSE TYPES
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export interface PaginationParams {
   page: number
@@ -491,9 +481,7 @@ export interface HealthCheck {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §5  AI SERVICE TYPES
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export interface LLMProvider {
   name: string
@@ -512,6 +500,7 @@ export interface LLMRequest {
   temperature?: number
   stream?: boolean
   tools?: LLMTool[]
+  preferredProvider?: string
 }
 
 export interface LLMResponse {
@@ -576,20 +565,44 @@ export interface ImageAnalysisResult {
   latencyMs: number
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §6  CHAT SYSTEM TYPES
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export interface ChatCompletionRequest {
   sessionId?: string
   message: string
   citizenId?: string
   operatorId?: string
+  adminMode?: boolean
+  preferredProvider?: string
   context?: {
     location?: { lat: number; lng: number }
     currentAlerts?: string[]
     reportId?: string
   }
+}
+
+export interface EmergencyDetection {
+  isEmergency: boolean
+  type?: 'medical' | 'trapped' | 'fire' | 'flood' | 'violence' | 'unknown'
+  severity?: 'critical' | 'high' | 'medium' | 'low'
+  suggestedActions: string[]
+}
+
+export interface ResponseQualityScore {
+  relevance: number
+  actionability: number
+  dataRecency: number
+  safetyCompliance: number
+  overall: number
+}
+
+export interface ConversationAnalytics {
+  responseLatencyMs: number
+  toolsInvoked: string[]
+  agentUsed: string
+  emergencyDetected: boolean
+  topicShiftDetected: boolean
+  sessionMessageCount: number
 }
 
 export interface ChatCompletionResponse {
@@ -603,11 +616,19 @@ export interface ChatCompletionResponse {
   confidence?: number
   agent?: string
   emotion?: string
+  budgetUsed?: number
+  budgetLimit?: number
+  budgetRemaining?: number
+  language?: string
+  followUpQuestions?: string[]
+  emergency?: EmergencyDetection
+  qualityScore?: ResponseQualityScore
+  analytics?: ConversationAnalytics
+  smartSuggestions?: Array<{ text: string; category: string; icon?: string; priority: number }>
+  isPersonalized?: boolean
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §7  REGION / HAZARD CONFIG TYPES
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export interface RegionConfig {
   id: string
@@ -645,9 +666,7 @@ export interface HazardConfig {
   models: string[]
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §8  SOCKET.IO EVENT TYPES
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export interface ServerToClientEvents {
   'alert:new': (alert: AlertRow) => void
@@ -680,13 +699,12 @@ export interface ClientToServerEvents {
   'subscribe:reports': (data: { area?: string }) => void
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §9  UTILITY TYPES
-// ═══════════════════════════════════════════════════════════════════════════════
 
-/** Omit password_hash and sensitive fields from user responses */
+/* Omit password_hash and sensitive fields from user responses */
 export type SafeOperator = Omit<OperatorRow, 'password_hash' | 'deleted_at' | 'deleted_by'>
 export type SafeCitizen = Omit<CitizenRow, 'password_hash' | 'verification_token' | 'otp_secret' | 'deleted_at'>
 
-/** Make all properties optional except the ones listed */
+/* Make all properties optional except the ones listed */
 export type PartialExcept<T, K extends keyof T> = Partial<T> & Pick<T, K>
+

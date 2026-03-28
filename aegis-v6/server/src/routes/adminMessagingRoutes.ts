@@ -10,9 +10,10 @@
  * All routes require admin/operator authentication.
  */
 
-import { Router, Response } from 'express'
+import { Router, Response, NextFunction } from 'express'
 import pool from '../models/db.js'
 import { authMiddleware, AuthRequest, requireRole } from '../middleware/auth.js'
+import { AppError } from '../utils/AppError.js'
 
 const router = Router()
 
@@ -20,10 +21,10 @@ const router = Router()
 router.use(authMiddleware)
 router.use(requireRole('admin', 'operator', 'super_admin', 'superadmin'))
 
-/**
+ /**
  * GET /api/admin/threads - List all message threads
  */
-router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
+router.get('/', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const result = await pool.query(`
       SELECT 
@@ -48,16 +49,15 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
     `)
 
     res.json({ threads: result.rows })
-  } catch (err: any) {
-    console.error('[AdminMessaging] Get threads error:', err.message)
-    res.status(500).json({ error: 'Failed to load message threads.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-/**
+ /**
  * GET /api/admin/threads/:id - Get thread with all messages
  */
-router.get('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
+router.get('/:id', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     // Get thread metadata
     const threadResult = await pool.query(`
@@ -74,8 +74,7 @@ router.get('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
     `, [req.params.id])
 
     if (threadResult.rows.length === 0) {
-      res.status(404).json({ error: 'Thread not found.' })
-      return
+      throw AppError.notFound('Thread not found.')
     }
 
     // Get all messages in thread
@@ -107,22 +106,20 @@ router.get('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
       thread: threadResult.rows[0],
       messages: messagesResult.rows
     })
-  } catch (err: any) {
-    console.error('[AdminMessaging] Get thread error:', err.message)
-    res.status(500).json({ error: 'Failed to load thread.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-/**
+ /**
  * POST /api/admin/threads/:id/messages - Send message from admin to citizen
  */
-router.post('/:id/messages', async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/:id/messages', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { content, image_url } = req.body
 
     if (!content?.trim() && !image_url) {
-      res.status(400).json({ error: 'Message content or image required.' })
-      return
+      throw AppError.badRequest('Message content or image required.')
     }
 
     // Verify thread exists
@@ -132,8 +129,7 @@ router.post('/:id/messages', async (req: AuthRequest, res: Response): Promise<vo
     )
 
     if (threadCheck.rows.length === 0) {
-      res.status(404).json({ error: 'Thread not found.' })
-      return
+      throw AppError.notFound('Thread not found.')
     }
 
     const thread = threadCheck.rows[0]
@@ -155,16 +151,15 @@ router.post('/:id/messages', async (req: AuthRequest, res: Response): Promise<vo
     `, [req.params.id])
 
     res.json({ message: result.rows[0] })
-  } catch (err: any) {
-    console.error('[AdminMessaging] Send message error:', err.message)
-    res.status(500).json({ error: 'Failed to send message.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-/**
+ /**
  * PUT /api/admin/threads/:id/read - Mark thread as read (for operator)
  */
-router.put('/:id/read', async (req: AuthRequest, res: Response): Promise<void> => {
+router.put('/:id/read', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     // Verify thread exists
     const threadCheck = await pool.query(
@@ -173,8 +168,7 @@ router.put('/:id/read', async (req: AuthRequest, res: Response): Promise<void> =
     )
 
     if (threadCheck.rows.length === 0) {
-      res.status(404).json({ error: 'Thread not found.' })
-      return
+      throw AppError.notFound('Thread not found.')
     }
 
     // Reset operator's unread count for this thread
@@ -184,9 +178,8 @@ router.put('/:id/read', async (req: AuthRequest, res: Response): Promise<void> =
     )
 
     res.json({ success: true })
-  } catch (err: any) {
-    console.error('[AdminMessaging] Mark read error:', err.message)
-    res.status(500).json({ error: 'Failed to mark thread as read.' })
+  } catch (err) {
+    next(err)
   }
 })
 

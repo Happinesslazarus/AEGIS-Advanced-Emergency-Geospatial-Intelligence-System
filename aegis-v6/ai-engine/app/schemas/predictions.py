@@ -1,15 +1,12 @@
 """
-═══════════════════════════════════════════════════════════════════════════════
  AEGIS AI ENGINE — Strict API Schemas
  Enforces the API contract that MUST NOT change after implementation
-═══════════════════════════════════════════════════════════════════════════════
 """
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, model_validator, validator
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 from enum import Enum
-
 
 class HazardType(str, Enum):
     """Supported hazard types."""
@@ -30,14 +27,12 @@ class HazardType(str, Enum):
     REPORT_CLASSIFIER = "report_classifier"
     FAKE_DETECTOR = "fake_detector"
 
-
 class RiskLevel(str, Enum):
     """Risk classification levels."""
     LOW = "Low"
     MEDIUM = "Medium"
     HIGH = "High"
     CRITICAL = "Critical"
-
 
 class PredictionRequest(BaseModel):
     """
@@ -64,14 +59,12 @@ class PredictionRequest(BaseModel):
         description="Real observed values that override feature store defaults (e.g. river_level, rainfall_24h)"
     )
 
-
 class ContributingFactor(BaseModel):
     """Individual contributing factor with importance weight."""
     factor: str = Field(..., description="Factor name")
     value: float = Field(..., description="Factor value")
     importance: float = Field(..., ge=0, le=1, description="Importance weight 0-1")
     unit: Optional[str] = Field(default=None, description="Measurement unit")
-
 
 class GeoPolygon(BaseModel):
     """
@@ -83,17 +76,30 @@ class GeoPolygon(BaseModel):
         description="Polygon coordinates [[[lng, lat], ...]]"
     )
 
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_numpy_floats(cls, data):
+        """Convert numpy scalar types (e.g. np.float64) to plain Python floats."""
+        if isinstance(data, dict) and "coordinates" in data:
+            def _to_float(v):
+                if isinstance(v, list):
+                    return [_to_float(x) for x in v]
+                try:
+                    return float(v)
+                except (TypeError, ValueError):
+                    return v
+            data = dict(data)
+            data["coordinates"] = _to_float(data["coordinates"])
+        return data
 
 class PredictionResponse(BaseModel):
     """
-    ═══════════════════════════════════════════════════════════════════════
     CRITICAL: THIS SCHEMA IS THE API CONTRACT
     
     DO NOT MODIFY THIS STRUCTURE AFTER DEPLOYMENT
     
     All hazard modules MUST return predictions following this exact format.
     Adding new hazards must conform to this schema.
-    ═══════════════════════════════════════════════════════════════════════
     """
     model_version: str = Field(..., description="Model version that generated prediction")
     hazard_type: HazardType = Field(..., description="Type of hazard predicted")
@@ -131,7 +137,21 @@ class PredictionResponse(BaseModel):
         default_factory=list,
         description="Any warnings or caveats"
     )
-    
+
+    # Model transparency (added for governance / explainability)
+    model_type_label: Optional[str] = Field(
+        default=None,
+        description="supervised | weakly_supervised | heuristic_model | experimental"
+    )
+    shap_explanation: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="SHAP feature explanations for this prediction"
+    )
+    label_strategy: Optional[str] = Field(
+        default=None,
+        description="How training labels were produced"
+    )
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -171,7 +191,6 @@ class PredictionResponse(BaseModel):
             }
         }
 
-
 class ModelStatus(BaseModel):
     """Model health and status information."""
     model_name: str
@@ -183,14 +202,12 @@ class ModelStatus(BaseModel):
     drift_detected: bool
     last_trained: Optional[datetime]
 
-
 class HealthResponse(BaseModel):
     """System health response."""
     status: str
     timestamp: datetime
     models_loaded: int
     models_status: List[ModelStatus]
-
 
 class HazardTypeInfo(BaseModel):
     """Information about a supported hazard type."""
@@ -200,14 +217,12 @@ class HazardTypeInfo(BaseModel):
     supported_regions: List[str]
     forecast_horizons: List[int]
 
-
 class RetrainRequest(BaseModel):
     """Request to trigger model retraining."""
     hazard_type: HazardType
     region_id: str
     model_name: Optional[str] = None
     config_override: Optional[Dict[str, Any]] = None
-
 
 class RetrainResponse(BaseModel):
     """Response from retraining request."""

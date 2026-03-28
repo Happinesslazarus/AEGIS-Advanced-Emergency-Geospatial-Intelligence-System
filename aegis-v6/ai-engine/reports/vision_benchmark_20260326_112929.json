@@ -1,0 +1,70 @@
+{
+  "total": 3,
+  "evaluated": 3,
+  "errors": 0,
+  "type_accuracy": 0.0,
+  "severity_exact_accuracy": 0.0,
+  "severity_close_accuracy": 66.7,
+  "avg_confidence": 50.0,
+  "avg_time_ms": 45163,
+  "false_positives": 0,
+  "false_negatives": 3,
+  "timestamp": "2026-03-26T11:29:29.180560",
+  "results": [
+    {
+      "id": "wf-001",
+      "url": "https://images.pexels.com/photos/51951/forest-fire-fire-smoke-conservation-51951.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/wf-001.jpg",
+      "expected_type": "wildfire",
+      "expected_severity": "high",
+      "description": "Forest fire with flames and smoke",
+      "status": "ok",
+      "predicted_type": "unknown",
+      "predicted_severity": "moderate",
+      "predicted_confidence": 50,
+      "type_correct": false,
+      "severity_distance": 1,
+      "elapsed_ms": 49468,
+      "raw_response": " **Emergency Preparedness and Planning**\n\nEmergency preparedness is crucial to ensure the safety of you, your family, and your community. Here's a comprehensive checklist to help you prepare:\n\n1. **Create an Emergency Kit**:\n   - Water: 2 liters per person per day\n   - Non-perishable food: enough for at least 3 days\n   - Flashlight or lantern with extra batteries\n   - First aid kit and basic first aid supplies\n   - Batteries, portable radio, or NOAA weather radio\n   - Cell phone charger\n   - Cas"
+    },
+    {
+      "id": "wf-002",
+      "url": "https://images.pexels.com/photos/3552472/pexels-photo-3552472.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/wf-002.jpg",
+      "expected_type": "wildfire",
+      "expected_severity": "critical",
+      "description": "Wildfire engulfing trees at night",
+      "status": "ok",
+      "predicted_type": "unknown",
+      "predicted_severity": "moderate",
+      "predicted_confidence": 50,
+      "type_correct": false,
+      "severity_distance": 2,
+      "elapsed_ms": 44638,
+      "raw_response": " Based on the image you provided, it appears to be a photo of a flooded area with standing water and submerged debris. Here's a breakdown of what I can identify:\n\n1. Flooding: The water level is approximately 3 feet high, which could cause significant damage to property and infrastructure.\n2. Structural Damage: There are visible signs of structural damage to buildings in the background, indicating that the flood has caused physical harm to the structures.\n3. Contamination Risk: The standing wate"
+    },
+    {
+      "id": "wf-003",
+      "url": "https://images.pexels.com/photos/266487/pexels-photo-266487.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/wf-003.jpg",
+      "expected_type": "wildfire",
+      "expected_severity": "high",
+      "description": "Fire burning in dry grassland",
+      "status": "ok",
+      "predicted_type": "unknown",
+      "predicted_severity": "moderate",
+      "predicted_confidence": 50,
+      "type_correct": false,
+      "severity_distance": 1,
+      "elapsed_ms": 41384,
+      "raw_response": " **Lead:** Your image shows significant flooding in your area. The water level is approximately 2 feet deep, and there are visible signs of contamination.\n\n**Body:** To prepare for this situation:\n\n1. **Emergency Kit**: Assemble an emergency kit that includes essential items such as flashlights, batteries, first-aid supplies, non-perishable food, and water.\n2. **Communication Plan**: Establish a communication plan with family members or roommates to ensure everyone is accounted for and knows whe"
+    }
+  ],
+  "per_category": {
+    "wildfire": {
+      "total": 3,
+      "correct": 0,
+      "accuracy": 0.0
+    }
+  }
+}

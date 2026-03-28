@@ -50,3 +50,4 @@ class WaterSupplyModule extends BaseIncidentModule {
 }
 
 export default new WaterSupplyModule()
+

@@ -1,9 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 
-/* ═══════════════════════════════════════════════════
-   AEGIS 6-Theme System
-   Each theme defines an accent palette + light/dark base
-   ═══════════════════════════════════════════════════ */
+// AEGIS 6-Theme System
+// Each theme defines an accent palette + light/dark base
 
 export type ThemeName = 'default' | 'light' | 'midnight' | 'ocean' | 'forest' | 'sunset' | 'rose'
 

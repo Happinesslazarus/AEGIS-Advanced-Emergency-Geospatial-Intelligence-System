@@ -1,0 +1,361 @@
+{
+  "metadata": {
+    "name": "AEGIS Vision Benchmark v2.0",
+    "description": "Labeled disaster images (Pexels) for evaluating vision analysis accuracy",
+    "created": "2026-03-26",
+    "categories": [
+      "wildfire",
+      "flood",
+      "earthquake",
+      "storm",
+      "landslide",
+      "drought",
+      "structural_damage",
+      "heatwave",
+      "safe"
+    ],
+    "total_images": 42,
+    "sources": [
+      "Pexels (free license)"
+    ],
+    "usage": "Run: python scripts/evaluate_vision.py --report"
+  },
+  "benchmark": [
+    {
+      "id": "wf-001",
+      "url": "https://images.pexels.com/photos/51951/forest-fire-fire-smoke-conservation-51951.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/wf-001.jpg",
+      "expected_type": "wildfire",
+      "expected_severity": "high",
+      "description": "Forest fire with flames and smoke"
+    },
+    {
+      "id": "wf-002",
+      "url": "https://images.pexels.com/photos/3552472/pexels-photo-3552472.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/wf-002.jpg",
+      "expected_type": "wildfire",
+      "expected_severity": "critical",
+      "description": "Wildfire engulfing trees at night"
+    },
+    {
+      "id": "wf-003",
+      "url": "https://images.pexels.com/photos/266487/pexels-photo-266487.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/wf-003.jpg",
+      "expected_type": "wildfire",
+      "expected_severity": "high",
+      "description": "Fire burning in dry grassland"
+    },
+    {
+      "id": "wf-004",
+      "url": "https://images.pexels.com/photos/5504656/pexels-photo-5504656.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/wf-004.jpg",
+      "expected_type": "wildfire",
+      "expected_severity": "critical",
+      "description": "Large wildfire with thick smoke plume"
+    },
+    {
+      "id": "wf-005",
+      "url": "https://images.pexels.com/photos/3867212/pexels-photo-3867212.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/wf-005.jpg",
+      "expected_type": "wildfire",
+      "expected_severity": "high",
+      "description": "Burning vegetation hillside fire"
+    },
+    {
+      "id": "wf-006",
+      "url": "https://images.pexels.com/photos/9319890/pexels-photo-9319890.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/wf-006.jpg",
+      "expected_type": "wildfire",
+      "expected_severity": "moderate",
+      "description": "Smoldering aftermath of fire"
+    },
+    {
+      "id": "fl-001",
+      "url": "https://images.pexels.com/photos/1739855/pexels-photo-1739855.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/fl-001.jpg",
+      "expected_type": "flood",
+      "expected_severity": "high",
+      "description": "Flooded residential area with stilted house"
+    },
+    {
+      "id": "fl-002",
+      "url": "https://images.pexels.com/photos/1446076/pexels-photo-1446076.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/fl-002.jpg",
+      "expected_type": "flood",
+      "expected_severity": "high",
+      "description": "Flooding in urban area with submerged roads"
+    },
+    {
+      "id": "fl-003",
+      "url": "https://images.pexels.com/photos/3502542/pexels-photo-3502542.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/fl-003.jpg",
+      "expected_type": "flood",
+      "expected_severity": "critical",
+      "description": "Severe flooding with submerged buildings"
+    },
+    {
+      "id": "fl-004",
+      "url": "https://images.pexels.com/photos/3862369/pexels-photo-3862369.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/fl-004.jpg",
+      "expected_type": "flood",
+      "expected_severity": "high",
+      "description": "Flash flood water rushing through area"
+    },
+    {
+      "id": "fl-005",
+      "url": "https://images.pexels.com/photos/5531109/pexels-photo-5531109.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/fl-005.jpg",
+      "expected_type": "flood",
+      "expected_severity": "moderate",
+      "description": "Flooded street with standing water"
+    },
+    {
+      "id": "fl-006",
+      "url": "https://images.pexels.com/photos/6471927/pexels-photo-6471927.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/fl-006.jpg",
+      "expected_type": "flood",
+      "expected_severity": "high",
+      "description": "Flooding aftermath with debris"
+    },
+    {
+      "id": "eq-001",
+      "url": "https://images.pexels.com/photos/6646917/pexels-photo-6646917.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/eq-001.jpg",
+      "expected_type": "earthquake",
+      "expected_severity": "critical",
+      "description": "Collapsed building from earthquake"
+    },
+    {
+      "id": "eq-002",
+      "url": "https://images.pexels.com/photos/6646918/pexels-photo-6646918.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/eq-002.jpg",
+      "expected_type": "earthquake",
+      "expected_severity": "critical",
+      "description": "Earthquake rubble and destruction"
+    },
+    {
+      "id": "eq-003",
+      "url": "https://images.pexels.com/photos/6646921/pexels-photo-6646921.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/eq-003.jpg",
+      "expected_type": "earthquake",
+      "expected_severity": "high",
+      "description": "Cracked walls from seismic damage"
+    },
+    {
+      "id": "eq-004",
+      "url": "https://images.pexels.com/photos/11655025/pexels-photo-11655025.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/eq-004.jpg",
+      "expected_type": "earthquake",
+      "expected_severity": "critical",
+      "description": "Destroyed buildings after earthquake"
+    },
+    {
+      "id": "st-001",
+      "url": "https://images.pexels.com/photos/1119974/pexels-photo-1119974.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/st-001.jpg",
+      "expected_type": "storm",
+      "expected_severity": "high",
+      "description": "Dark storm clouds with lightning"
+    },
+    {
+      "id": "st-002",
+      "url": "https://images.pexels.com/photos/1162251/pexels-photo-1162251.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/st-002.jpg",
+      "expected_type": "storm",
+      "expected_severity": "moderate",
+      "description": "Severe thunderstorm approaching"
+    },
+    {
+      "id": "st-003",
+      "url": "https://images.pexels.com/photos/2527458/pexels-photo-2527458.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/st-003.jpg",
+      "expected_type": "storm",
+      "expected_severity": "high",
+      "description": "Storm damage to trees and structures"
+    },
+    {
+      "id": "st-004",
+      "url": "https://images.pexels.com/photos/1118869/pexels-photo-1118869.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/st-004.jpg",
+      "expected_type": "storm",
+      "expected_severity": "critical",
+      "description": "Tornado funnel cloud approaching"
+    },
+    {
+      "id": "st-005",
+      "url": "https://images.pexels.com/photos/2529973/pexels-photo-2529973.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/st-005.jpg",
+      "expected_type": "storm",
+      "expected_severity": "moderate",
+      "description": "Storm with heavy rain and wind"
+    },
+    {
+      "id": "st-006",
+      "url": "https://images.pexels.com/photos/2406391/pexels-photo-2406391.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/st-006.jpg",
+      "expected_type": "storm",
+      "expected_severity": "high",
+      "description": "Dramatic storm sky with dark clouds"
+    },
+    {
+      "id": "ls-001",
+      "url": "https://images.pexels.com/photos/7537440/pexels-photo-7537440.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/ls-001.jpg",
+      "expected_type": "landslide",
+      "expected_severity": "high",
+      "description": "Landslide with displaced earth on hillside"
+    },
+    {
+      "id": "ls-002",
+      "url": "https://images.pexels.com/photos/7537441/pexels-photo-7537441.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/ls-002.jpg",
+      "expected_type": "landslide",
+      "expected_severity": "critical",
+      "description": "Massive landslide blocking road"
+    },
+    {
+      "id": "ls-003",
+      "url": "https://images.pexels.com/photos/14713929/pexels-photo-14713929.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/ls-003.jpg",
+      "expected_type": "landslide",
+      "expected_severity": "moderate",
+      "description": "Slope failure on mountain"
+    },
+    {
+      "id": "ls-004",
+      "url": "https://images.pexels.com/photos/9816084/pexels-photo-9816084.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "expected_type": "landslide",
+      "expected_severity": "high",
+      "description": "Debris flow covering terrain",
+      "local_path": "/uploads/chat/benchmark/ls-004.jpg"
+    },
+    {
+      "id": "dr-001",
+      "url": "https://images.pexels.com/photos/60013/desert-drought-dehydrated-clay-soil-60013.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/dr-001.jpg",
+      "expected_type": "drought",
+      "expected_severity": "moderate",
+      "description": "Cracked dry earth from drought"
+    },
+    {
+      "id": "dr-002",
+      "url": "https://images.pexels.com/photos/1701209/pexels-photo-1701209.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/dr-002.jpg",
+      "expected_type": "drought",
+      "expected_severity": "high",
+      "description": "Barren drought-stricken landscape"
+    },
+    {
+      "id": "dr-003",
+      "url": "https://images.pexels.com/photos/4226866/pexels-photo-4226866.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/dr-003.jpg",
+      "expected_type": "drought",
+      "expected_severity": "high",
+      "description": "Dead vegetation in drought conditions"
+    },
+    {
+      "id": "dr-004",
+      "url": "https://images.pexels.com/photos/1542495/pexels-photo-1542495.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/dr-004.jpg",
+      "expected_type": "drought",
+      "expected_severity": "moderate",
+      "description": "Dried cracked mud from water shortage"
+    },
+    {
+      "id": "sd-001",
+      "url": "https://images.pexels.com/photos/6646914/pexels-photo-6646914.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/sd-001.jpg",
+      "expected_type": "structural_damage",
+      "expected_severity": "critical",
+      "description": "Collapsed building rubble"
+    },
+    {
+      "id": "sd-002",
+      "url": "https://images.pexels.com/photos/5531101/pexels-photo-5531101.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/sd-002.jpg",
+      "expected_type": "structural_damage",
+      "expected_severity": "high",
+      "description": "Damaged structure after disaster"
+    },
+    {
+      "id": "sd-003",
+      "url": "https://images.pexels.com/photos/6646922/pexels-photo-6646922.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/sd-003.jpg",
+      "expected_type": "structural_damage",
+      "expected_severity": "critical",
+      "description": "Infrastructure failure and collapse"
+    },
+    {
+      "id": "sd-004",
+      "url": "https://images.pexels.com/photos/12377792/pexels-photo-12377792.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/sd-004.jpg",
+      "expected_type": "structural_damage",
+      "expected_severity": "high",
+      "description": "Building with severe damage"
+    },
+    {
+      "id": "hw-001",
+      "url": "https://images.pexels.com/photos/3571551/pexels-photo-3571551.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/hw-001.jpg",
+      "expected_type": "heatwave",
+      "expected_severity": "high",
+      "description": "Sun blazing over dry parched area"
+    },
+    {
+      "id": "hw-002",
+      "url": "https://images.pexels.com/photos/1480690/pexels-photo-1480690.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/hw-002.jpg",
+      "expected_type": "heatwave",
+      "expected_severity": "moderate",
+      "description": "Heat haze over hot dry landscape"
+    },
+    {
+      "id": "sf-001",
+      "url": "https://images.pexels.com/photos/1396122/pexels-photo-1396122.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/sf-001.jpg",
+      "expected_type": "safe",
+      "expected_severity": "none",
+      "description": "Clear sunny day cityscape"
+    },
+    {
+      "id": "sf-002",
+      "url": "https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/sf-002.jpg",
+      "expected_type": "safe",
+      "expected_severity": "none",
+      "description": "Peaceful suburban house"
+    },
+    {
+      "id": "sf-003",
+      "url": "https://images.pexels.com/photos/1550913/pexels-photo-1550913.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/sf-003.jpg",
+      "expected_type": "safe",
+      "expected_severity": "none",
+      "description": "Green park with trees on clear day"
+    },
+    {
+      "id": "sf-004",
+      "url": "https://images.pexels.com/photos/1105766/pexels-photo-1105766.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/sf-004.jpg",
+      "expected_type": "safe",
+      "expected_severity": "none",
+      "description": "Normal busy street scene"
+    },
+    {
+      "id": "sf-005",
+      "url": "https://images.pexels.com/photos/462118/pexels-photo-462118.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/sf-005.jpg",
+      "expected_type": "safe",
+      "expected_severity": "none",
+      "description": "Scenic landscape no hazards"
+    },
+    {
+      "id": "sf-006",
+      "url": "https://images.pexels.com/photos/1770809/pexels-photo-1770809.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/sf-006.jpg",
+      "expected_type": "safe",
+      "expected_severity": "none",
+      "description": "Sunset over calm water"
+    }
+  ]
+}

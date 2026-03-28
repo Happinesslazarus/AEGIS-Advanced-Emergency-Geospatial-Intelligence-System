@@ -40,3 +40,4 @@ export function sanitizePowerOutageCustomFields(fields: Record<string, unknown>)
     backupPowerAvailable: typeof fields.backupPowerAvailable === 'boolean' ? fields.backupPowerAvailable : undefined
   }
 }
+

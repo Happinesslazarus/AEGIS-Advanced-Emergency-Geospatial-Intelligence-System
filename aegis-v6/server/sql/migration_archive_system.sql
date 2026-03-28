@@ -1,8 +1,6 @@
--- ============================================================================
--- MIGRATION: Archive & Soft-Delete System
+﻿-- MIGRATION: Archive & Soft-Delete System
 -- Adds 'archived' and 'false_report' to report_status enum
 -- Adds archived_at and deleted_at columns for soft-delete support
--- ============================================================================
 
 -- Add new enum values to report_status (idempotent)
 DO $$
@@ -68,4 +66,8 @@ CREATE INDEX IF NOT EXISTS idx_reports_archived
     ON reports (archived_at DESC)
     WHERE status = 'archived';
 
-RAISE NOTICE 'Archive system migration complete.';
+DO $$
+BEGIN
+    RAISE NOTICE 'Archive system migration complete.';
+END $$;
+

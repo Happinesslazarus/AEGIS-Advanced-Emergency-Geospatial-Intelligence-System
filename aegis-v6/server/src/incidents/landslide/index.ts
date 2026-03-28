@@ -77,3 +77,4 @@ class LandslideModule extends BaseIncidentModule {
 }
 
 export default new LandslideModule()
+

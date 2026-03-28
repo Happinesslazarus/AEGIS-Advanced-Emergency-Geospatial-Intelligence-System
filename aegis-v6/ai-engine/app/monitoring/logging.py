@@ -1,13 +1,10 @@
 """
-═══════════════════════════════════════════════════════════════════════════════
  AEGIS AI ENGINE — Logging Configuration
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from loguru import logger
 import sys
 from pathlib import Path
-
 
 def setup_logging():
     """

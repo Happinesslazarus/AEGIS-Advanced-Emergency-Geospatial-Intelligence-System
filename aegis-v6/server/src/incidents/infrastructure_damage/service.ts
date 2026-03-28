@@ -7,7 +7,7 @@ import type { IncidentPrediction } from '../types.js'
 import { infrastructureDamageConfig, INFRASTRUCTURE_CRITICAL_TYPES } from './config.js'
 
 export class InfrastructureDamageService {
-  /**
+   /**
    * Get infrastructure damage risk score
    */
   static async calculateDamageRisk(region: string): Promise<number> {
@@ -28,7 +28,7 @@ export class InfrastructureDamageService {
     }
   }
 
-  /**
+   /**
    * Get infrastructure damage predictions for a region
    */
   static async getInfrastructurePredictions(region: string): Promise<IncidentPrediction[]> {
@@ -54,7 +54,7 @@ export class InfrastructureDamageService {
     }]
   }
 
-  /**
+   /**
    * Get infrastructure advisory text based on severity
    */
   static getInfrastructureAdvisory(severity: string): string {
@@ -70,7 +70,7 @@ export class InfrastructureDamageService {
     }
   }
 
-  /**
+   /**
    * Generate damage assessment summary
    */
   static async generateDamageAssessment(region: string): Promise<Record<string, unknown>> {

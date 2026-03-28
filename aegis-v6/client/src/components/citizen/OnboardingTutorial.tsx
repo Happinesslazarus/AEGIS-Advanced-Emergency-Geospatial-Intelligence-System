@@ -40,7 +40,7 @@ export default function OnboardingTutorial(): JSX.Element | null {
           <h2 className="text-lg font-bold text-center">{s.title}</h2>
         </div>
         <div className="p-5">
-          <p className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 text-center leading-relaxed">{s.desc}</p>
+          <p className="text-sm text-gray-600 dark:text-gray-300 text-center leading-relaxed">{s.desc}</p>
           <div className="flex items-center justify-center gap-1.5 my-4">
             {STEPS.map((_, i) => <div key={i} className={`w-2 h-2 rounded-full ${i === step ? 'bg-aegis-600' : 'bg-gray-300 dark:bg-gray-600'}`} />)}
           </div>
@@ -59,7 +59,4 @@ export default function OnboardingTutorial(): JSX.Element | null {
     </div>
   )
 }
-
-
-
-
+

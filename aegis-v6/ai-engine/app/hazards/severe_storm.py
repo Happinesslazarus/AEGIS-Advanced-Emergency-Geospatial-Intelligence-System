@@ -1,9 +1,7 @@
-"""
-═══════════════════════════════════════════════════════════════════════════════
+﻿"""
  AEGIS AI ENGINE — Severe Storm Prediction Module
  Physics-based rule layer using wind speed, pressure drop, humidity,
  and precipitation intensity as primary indicators.
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from typing import Dict, List, Optional, Any, Tuple
@@ -17,7 +15,7 @@ from app.schemas.predictions import (
 )
 from app.core.model_registry import ModelRegistry
 from app.core.feature_store import FeatureStore
-
+from app.hazards.shap_explainer import explain_prediction, get_metadata_importance
 
 class SevereStormPredictor:
     """
@@ -30,6 +28,9 @@ class SevereStormPredictor:
         self.model_registry = model_registry
         self.feature_store = feature_store
         self.hazard_type = HazardType.SEVERE_STORM
+        self._last_shap = None
+        self._model_type_label = None
+        self._label_strategy = None
         logger.info("SevereStorm prediction module initialized")
 
     async def predict(self, request: PredictionRequest) -> PredictionResponse:
@@ -81,12 +82,24 @@ class SevereStormPredictor:
             expires_at=datetime.utcnow() + timedelta(hours=12),
             data_sources=["weather_api", "met_office", "radar", "citizen_reports"],
             warnings=["Storm windows can change rapidly — re-check every 30 minutes"] if probability > 0.55 else [],
+            model_type_label=self._model_type_label or ("rule_based" if not model_metadata else "weakly_supervised"),
+            shap_explanation=self._last_shap,
+            label_strategy=self._label_strategy,
         )
 
     async def _predict_with_model(self, model, features, metadata) -> Tuple[float, float]:
         try:
             fv = np.array([features.get(f, 0.0) for f in metadata.feature_names]).reshape(1, -1)
             prob = model.predict_proba(fv)[0, 1] if hasattr(model, "predict_proba") else float(model.predict(fv)[0])
+            # SHAP explanation
+            self._last_shap = explain_prediction(model, fv, list(metadata.feature_names))
+            # Model transparency from metadata
+            self._model_type_label = getattr(metadata, 'model_type_label', None) or (
+                metadata.performance_metrics.get('model_type_label') if hasattr(metadata, 'performance_metrics') else None
+            )
+            self._label_strategy = getattr(metadata, 'label_strategy', None) or (
+                metadata.performance_metrics.get('label_strategy') if hasattr(metadata, 'performance_metrics') else None
+            )
             return float(np.clip(prob, 0.0, 1.0)), metadata.performance_metrics.get("roc_auc", 0.78)
         except Exception as e:
             logger.error(f"Model error: {e}")
@@ -124,11 +137,11 @@ class SevereStormPredictor:
         radius_km = 5.0 + prob * 20.0
         d_lat = radius_km / 111.0
         d_lng = radius_km / (111.0 * np.cos(np.radians(lat)))
-        return GeoPolygon(coordinates=[[[
+        return GeoPolygon(coordinates=[[
             [lng - d_lng, lat - d_lat], [lng + d_lng, lat - d_lat],
             [lng + d_lng, lat + d_lat], [lng - d_lng, lat + d_lat],
             [lng - d_lng, lat - d_lat],
-        ]]])
+        ]])
 
     def _identify_contributing_factors(self, features: Dict[str, float], prob: float) -> List[ContributingFactor]:
         wind = features.get("wind_speed", 5.0)

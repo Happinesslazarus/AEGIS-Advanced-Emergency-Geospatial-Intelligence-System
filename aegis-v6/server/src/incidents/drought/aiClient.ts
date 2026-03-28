@@ -4,11 +4,12 @@
  */
 
 import type { IncidentPrediction } from '../types.js'
+import { logger } from '../../services/logger.js'
 
 const AI_ENGINE_URL = process.env.AI_ENGINE_URL || 'http://localhost:8000'
 
 export class DroughtAIClient {
-  /**
+   /**
    * Get statistical drought predictions from AI engine (DroughtPredictor).
    */
   static async getPredictions(region: string, latitude = 57.15, longitude = -2.09): Promise<IncidentPrediction[]> {
@@ -49,7 +50,7 @@ export class DroughtAIClient {
         modelVersion: data.model_version,
       }]
     } catch (error) {
-      console.error(`[Drought/AIClient] ${error}`)
+      logger.error({ err: error }, '[Drought/AIClient] Prediction failed')
       return []
     }
   }

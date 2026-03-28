@@ -1,8 +1,9 @@
-import { Router, Response } from 'express'
+﻿import { Router, Response, NextFunction } from 'express'
 import pool from '../models/db.js'
 import { authMiddleware, operatorOnly, AuthRequest } from '../middleware/auth.js'
 import { v4 as uuid } from 'uuid'
 import { emitCommunityEvent } from '../services/communityRealtime.js'
+import { AppError } from '../utils/AppError.js'
 
 const router = Router()
 
@@ -18,16 +19,16 @@ async function findUserById(userId: string): Promise<{ table: 'citizens' | 'oper
   return null
 }
 
-router.post('/users/:id/suspend', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response) => {
+router.post('/users/:id/suspend', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    if (!isSuperAdmin(req)) return res.status(403).json({ error: 'Admin access required.' })
+    if (!isSuperAdmin(req)) throw AppError.forbidden('Admin access required.')
 
     const targetId = req.params.id
     const until = req.body?.until ? new Date(req.body.until) : null
     const reason = typeof req.body?.reason === 'string' ? req.body.reason.trim().slice(0, 240) : null
 
     const target = await findUserById(targetId)
-    if (!target) return res.status(404).json({ error: 'User not found.' })
+    if (!target) throw AppError.notFound('User not found.')
 
     await pool.query(
       `UPDATE ${target.table}
@@ -47,21 +48,20 @@ router.post('/users/:id/suspend', authMiddleware, operatorOnly, async (req: Auth
     emitCommunityEvent('community:user:moderated', { userId: targetId, action: 'suspended', until: until?.toISOString() || null })
 
     res.json({ success: true })
-  } catch (err: any) {
-    console.error('[AdminCommunity] suspend error:', err.message)
-    res.status(500).json({ error: 'Failed to suspend user.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-router.post('/users/:id/ban', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response) => {
+router.post('/users/:id/ban', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    if (!isSuperAdmin(req)) return res.status(403).json({ error: 'Admin access required.' })
+    if (!isSuperAdmin(req)) throw AppError.forbidden('Admin access required.')
 
     const targetId = req.params.id
     const reason = typeof req.body?.reason === 'string' ? req.body.reason.trim().slice(0, 240) : null
 
     const target = await findUserById(targetId)
-    if (!target) return res.status(404).json({ error: 'User not found.' })
+    if (!target) throw AppError.notFound('User not found.')
 
     await pool.query(
       `UPDATE ${target.table}
@@ -84,23 +84,22 @@ router.post('/users/:id/ban', authMiddleware, operatorOnly, async (req: AuthRequ
     emitCommunityEvent('community:user:moderated', { userId: targetId, action: 'banned' })
 
     res.json({ success: true })
-  } catch (err: any) {
-    console.error('[AdminCommunity] ban error:', err.message)
-    res.status(500).json({ error: 'Failed to ban user.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-// ─── POST /users/bulk-ban — Bulk ban multiple users (M7) ─────────────────────
-router.post('/users/bulk-ban', authMiddleware, async (req: AuthRequest, res: Response) => {
+// POST /users/bulk-ban — Bulk ban multiple users (M7)
+router.post('/users/bulk-ban', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    if (!isSuperAdmin(req)) return res.status(403).json({ error: 'Admin access required.' })
+    if (!isSuperAdmin(req)) throw AppError.forbidden('Admin access required.')
 
     const { userIds, reason } = req.body
     if (!Array.isArray(userIds) || userIds.length === 0) {
-      return res.status(400).json({ error: 'userIds array is required.' })
+      throw AppError.badRequest('userIds array is required.')
     }
     if (userIds.length > 50) {
-      return res.status(400).json({ error: 'Cannot bulk-ban more than 50 users at once.' })
+      throw AppError.badRequest('Cannot bulk-ban more than 50 users at once.')
     }
     const trimmedReason = typeof reason === 'string' ? reason.trim().slice(0, 240) : null
 
@@ -130,9 +129,8 @@ router.post('/users/bulk-ban', authMiddleware, async (req: AuthRequest, res: Res
 
     emitCommunityEvent('community:user:bulk_moderated', { action: 'banned', count: banned.length })
     res.json({ success: true, banned: banned.length, failed: failed.length, failedIds: failed })
-  } catch (err: any) {
-    console.error('[AdminCommunity] bulk-ban error:', err.message)
-    res.status(500).json({ error: 'Failed to bulk ban users.' })
+  } catch (err) {
+    next(err)
   }
 })
 

@@ -1,5 +1,4 @@
-#!/usr/bin/env bash
-# ============================================================
+﻿#!/usr/bin/env bash
 # AEGIS v6 — Full Development Stack Startup
 #
 # Starts in order:
@@ -10,7 +9,6 @@
 # Usage:
 #   cd aegis-v6
 #   bash start-dev.sh
-# ============================================================
 
 set -e
 
@@ -18,7 +16,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SERVER_DIR="$SCRIPT_DIR/server"
 CLIENT_DIR="$SCRIPT_DIR/client"
 
-# ── Colours ──────────────────────────────────────
+# Colours
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
 CYAN='\033[0;36m'; BOLD='\033[1m'; NC='\033[0m'
 
@@ -27,7 +25,7 @@ success() { echo -e "${GREEN}[AEGIS]${NC} $*"; }
 warn()    { echo -e "${YELLOW}[AEGIS]${NC} $*"; }
 error()   { echo -e "${RED}[AEGIS]${NC} $*"; }
 
-# ── Cleanup on exit ──────────────────────────────
+# Cleanup on exit
 N8N_PID="" SERVER_PID="" CLIENT_PID=""
 cleanup() {
   echo ""
@@ -39,7 +37,7 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-# ── 1. Start n8n ─────────────────────────────────
+# 1. Start n8n
 info "Starting n8n on port 5678..."
 
 export AEGIS_BACKEND_URL=http://localhost:3001
@@ -69,7 +67,7 @@ else
   warn "n8n didn't respond within 30 s — server will use fallback cron jobs"
 fi
 
-# ── 2. Start AEGIS API server ─────────────────────
+# 2. Start AEGIS API server
 info "Starting AEGIS server on port 3001..."
 
 # Kill any stale server process
@@ -96,7 +94,7 @@ else
   warn "Server health check timed out — check /tmp/aegis-server.log"
 fi
 
-# ── 3. Start Vite dev client ──────────────────────
+# 3. Start Vite dev client
 info "Starting Vite client on port 5173..."
 
 # Kill any stale client process
@@ -115,18 +113,18 @@ else
   warn "Vite client didn't respond yet — check /tmp/aegis-client.log"
 fi
 
-# ── Summary ───────────────────────────────────────
+# Summary
 echo ""
-echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo -e "${GREEN}  AEGIS v6 Development Stack Running${NC}"
-echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo ""
 echo -e "  n8n UI:       ${CYAN}http://localhost:5678${NC}"
 echo -e "  AEGIS API:    ${CYAN}http://localhost:3001/api/health${NC}"
 echo -e "  AEGIS UI:     ${CYAN}http://localhost:5173${NC}"
 echo -e "  Logs:         /tmp/n8n-aegis.log | /tmp/aegis-server.log | /tmp/aegis-client.log"
-echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo ""
 echo -e "  Press ${BOLD}Ctrl+C${NC} to stop all services."
 echo ""
 
 # Keep running until interrupted
 wait $SERVER_PID
+

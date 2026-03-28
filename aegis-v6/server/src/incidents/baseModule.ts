@@ -1,15 +1,15 @@
-/**
+﻿ /*
  * incidents/baseModule.ts — Abstract base for all incident modules
- *
  * Provides shared functionality so each incident plugin only needs to
  * implement incident-specific logic. Includes rule-based prediction
  * fallback, common alert evaluation, and standard route scaffolding.
- */
+  */
 
 import { Router, Request, Response } from 'express'
 import rateLimit from 'express-rate-limit'
 import pool from '../models/db.js'
 import { authMiddleware, type AuthRequest } from '../middleware/auth.js'
+import { regionRegistry } from '../adapters/regions/RegionRegistry.js'
 import type {
   IncidentModule,
   IncidentRegistryEntry,
@@ -21,7 +21,7 @@ import type {
   AlertRuleResult,
 } from './types.js'
 
-/** 30 reports per hour per IP — prevents bulk automated submissions */
+/* 30 reports per hour per IP — prevents bulk automated submissions */
 const reportLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 30,
@@ -41,15 +41,18 @@ export abstract class BaseIncidentModule implements IncidentModule {
     this.setupRoutes()
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
+  /* Resolve region from request query, env, or active adapter */
+  protected getRequestRegion(req: Request): string {
+    return String(req.query.region || process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId)
+  }
+
   // Standard routes — automatically mounted for every incident
-  // ═══════════════════════════════════════════════════════════════════════════
 
   protected setupRoutes(): void {
     // GET /active — active incidents of this type
     this.router.get('/active', async (req: Request, res: Response) => {
       try {
-        const region = String(req.query.region || process.env.REGION_ID || 'aberdeen_scotland_uk')
+        const region = this.getRequestRegion(req)
         const reports = await this.getActiveReports(region)
         res.json({ incidentType: this.id, reports, count: reports.length })
       } catch (err: any) {
@@ -61,7 +64,7 @@ export abstract class BaseIncidentModule implements IncidentModule {
     // GET /predictions — predictions for this incident type (auth required)
     this.router.get('/predictions', authMiddleware, async (req: Request, res: Response) => {
       try {
-        const region = String(req.query.region || process.env.REGION_ID || 'aberdeen_scotland_uk')
+        const region = this.getRequestRegion(req)
         const predictions = await this.getPredictions(region)
         res.json({ incidentType: this.id, predictions, count: predictions.length })
       } catch (err: any) {
@@ -84,7 +87,7 @@ export abstract class BaseIncidentModule implements IncidentModule {
     // GET /history — historical data (auth required)
     this.router.get('/history', authMiddleware, async (req: Request, res: Response) => {
       try {
-        const region = String(req.query.region || process.env.REGION_ID || 'aberdeen_scotland_uk')
+        const region = this.getRequestRegion(req)
         const days = parseInt(String(req.query.days || '30'))
         const history = await this.getHistory(region, days)
         res.json({ incidentType: this.id, history, count: history.length })
@@ -96,7 +99,7 @@ export abstract class BaseIncidentModule implements IncidentModule {
     // GET /alerts — current alerts
     this.router.get('/alerts', async (req: Request, res: Response) => {
       try {
-        const region = String(req.query.region || process.env.REGION_ID || 'aberdeen_scotland_uk')
+        const region = this.getRequestRegion(req)
         const alerts = await this.getAlerts(region)
         res.json({ incidentType: this.id, alerts, count: alerts.length })
       } catch (err: any) {
@@ -107,7 +110,7 @@ export abstract class BaseIncidentModule implements IncidentModule {
     // GET /map-data — map visualization data
     this.router.get('/map-data', async (req: Request, res: Response) => {
       try {
-        const region = String(req.query.region || process.env.REGION_ID || 'aberdeen_scotland_uk')
+        const region = this.getRequestRegion(req)
         const mapData = await this.getMapData(region)
         res.json({ incidentType: this.id, ...mapData })
       } catch (err: any) {
@@ -119,12 +122,10 @@ export abstract class BaseIncidentModule implements IncidentModule {
     this.setupCustomRoutes()
   }
 
-  /** Override in subclass to add incident-specific routes */
+  /* Override in subclass to add incident-specific routes */
   protected setupCustomRoutes(): void {}
 
-  // ═══════════════════════════════════════════════════════════════════════════
   // Default implementations — override in subclass for specific behavior
-  // ═══════════════════════════════════════════════════════════════════════════
 
   async getPredictions(region: string): Promise<IncidentPrediction[]> {
     // Default: rule-based prediction from recent report density
@@ -233,9 +234,7 @@ export abstract class BaseIncidentModule implements IncidentModule {
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
   // Shared helpers
-  // ═══════════════════════════════════════════════════════════════════════════
 
   protected async getActiveReports(region: string): Promise<any[]> {
     try {
@@ -395,3 +394,4 @@ export abstract class BaseIncidentModule implements IncidentModule {
     }
   }
 }
+

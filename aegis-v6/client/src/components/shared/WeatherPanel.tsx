@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Cloud, Droplets, Wind, Eye, AlertTriangle, RefreshCw, Loader2, MapPin, Thermometer, Gauge, CloudRain, Sun, Moon, CloudSun, Snowflake, CloudLightning, CloudFog } from 'lucide-react'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
@@ -53,13 +53,19 @@ export default function WeatherPanel({ compact = false }: Props): JSX.Element {
   const [userCoords, setUserCoords] = useState<{ lat: number; lon: number } | null>(null)
   const [gpsRequesting, setGpsRequesting] = useState(false)
   const [locationLabel, setLocationLabel] = useState(t('weather.enableLocation', lang))
+  const fetchAbortRef = useRef<AbortController | null>(null)
 
   const fetchWeather = useCallback(async (lat: number, lon: number) => {
+    fetchAbortRef.current?.abort()
+    const controller = new AbortController()
+    fetchAbortRef.current = controller
+
     setLoading(true)
     setError('')
     try {
       const res = await fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,precipitation,rain,weather_code,wind_speed_10m,visibility&timezone=auto`
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,precipitation,rain,weather_code,wind_speed_10m,visibility&timezone=auto`,
+        { signal: controller.signal }
       )
       if (!res.ok) throw new Error('Weather API unavailable')
       const data = await res.json()
@@ -83,12 +89,17 @@ export default function WeatherPanel({ compact = false }: Props): JSX.Element {
       })
       setLastUpdated(new Date())
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch weather')
-      setWeather(null)
+      if (err?.name !== 'AbortError') {
+        setError(err.message || 'Failed to fetch weather')
+        setWeather(null)
+      }
     } finally {
       setLoading(false)
     }
   }, [])
+
+  // Cancel any in-flight weather request on unmount
+  useEffect(() => () => { fetchAbortRef.current?.abort() }, [])
 
   const getCondition = (code: number): string => {
     if (code === 0) return 'Clear'
@@ -145,7 +156,7 @@ export default function WeatherPanel({ compact = false }: Props): JSX.Element {
 
   return (
     <div className="glass-card rounded-2xl overflow-hidden shadow-lg" role="region" aria-label="Weather conditions">
-      {/* ── Header with dynamic weather gradient ── */}
+      {/* Header with dynamic weather gradient */}
       <div className={`relative bg-gradient-to-br ${gradient} p-4 pb-10`}>
         <div className="absolute inset-0 bg-black/10" />
         <div className="relative flex items-start justify-between">
@@ -183,10 +194,10 @@ export default function WeatherPanel({ compact = false }: Props): JSX.Element {
               <WeatherIcon className="w-8 h-8 text-aegis-500" />
               <div>
                 <span className="text-3xl font-black text-gray-900 dark:text-white leading-none">{w.temperature}°</span>
-                <span className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 ml-0.5">C</span>
+                <span className="text-xs text-gray-500 dark:text-gray-300 ml-0.5">C</span>
               </div>
             </div>
-            <span className="text-xs font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-1">{w.condition}</span>
+            <span className="text-xs font-semibold text-gray-500 dark:text-gray-300 mb-1">{w.condition}</span>
           </div>
         )}
       </div>
@@ -200,13 +211,13 @@ export default function WeatherPanel({ compact = false }: Props): JSX.Element {
             {[
               { icon: Droplets, label: t('weather.rainfall', lang), value: `${w.rainfall.toFixed(1)} mm/hr`, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-950/30' },
               { icon: Wind, label: t('weather.wind', lang), value: `${w.windSpeed} mph`, color: 'text-teal-500', bg: 'bg-teal-50 dark:bg-teal-950/30' },
-              { icon: Eye, label: t('weather.visibility', lang), value: `${w.visibility.toFixed(0)} km`, color: 'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300', bg: 'bg-gray-50 dark:bg-gray-800/50' },
+              { icon: Eye, label: t('weather.visibility', lang), value: `${w.visibility.toFixed(0)} km`, color: 'text-gray-500 dark:text-gray-300', bg: 'bg-gray-50 dark:bg-gray-800/50' },
               { icon: Gauge, label: t('weather.humidity', lang), value: `${w.humidity}%`, color: 'text-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-950/30' },
             ].map(({ icon: Ico, label, value, color, bg }) => (
               <div key={label} className={`${bg} rounded-xl p-2.5 border border-gray-200/50 dark:border-gray-700/30 hover:scale-[1.02] transition-transform`}>
                 <div className="flex items-center gap-1.5 mb-1">
                   <Ico className={`w-3.5 h-3.5 ${color}`} />
-                  <span className="text-[9px] font-bold text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-wider">{label}</span>
+                  <span className="text-[9px] font-bold text-gray-400 dark:text-gray-300 uppercase tracking-wider">{label}</span>
                 </div>
                 <p className="text-sm font-bold text-gray-900 dark:text-white">{value}</p>
               </div>
@@ -225,7 +236,7 @@ export default function WeatherPanel({ compact = false }: Props): JSX.Element {
           ))}
 
           {lastUpdated && (
-            <p className="text-[9px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 text-right font-medium">
+            <p className="text-[9px] text-gray-400 dark:text-gray-300 text-right font-medium">
               {t('weather.updated', lang)}: {lastUpdated.toLocaleTimeString()}
             </p>
           )}
@@ -233,7 +244,7 @@ export default function WeatherPanel({ compact = false }: Props): JSX.Element {
       ) : loading ? (
         <div className="flex items-center justify-center py-10">
           <Loader2 className="w-5 h-5 text-aegis-500 animate-spin" />
-          <span className="text-xs text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 ml-2">{t('weather.loadingWeather', lang)}</span>
+          <span className="text-xs text-gray-400 dark:text-gray-300 ml-2">{t('weather.loadingWeather', lang)}</span>
         </div>
       ) : (
         <div className="p-4 text-center">
@@ -246,8 +257,4 @@ export default function WeatherPanel({ compact = false }: Props): JSX.Element {
     </div>
   )
 }
-
-
-
-
-
+

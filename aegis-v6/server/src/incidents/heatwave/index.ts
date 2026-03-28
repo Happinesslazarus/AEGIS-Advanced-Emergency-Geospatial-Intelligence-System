@@ -23,7 +23,7 @@ class HeatwaveModule extends BaseIncidentModule {
     enabledRegions: 'all',
     operationalStatus: 'fully_operational',
     fieldSchema: [
-      { key: 'temperatureC', label: 'Observed Temperature (°C)', type: 'number', required: false },
+      { key: 'temperatureC', label: 'Observed Temperature (—C)', type: 'number', required: false },
       { key: 'vulnerablePeopleAffected', label: 'Vulnerable People Affected', type: 'boolean', required: false },
       { key: 'waterAccessIssues', label: 'Water Access Issues', type: 'boolean', required: false },
     ],
@@ -86,7 +86,7 @@ class HeatwaveModule extends BaseIncidentModule {
         confidence: 0.6,
         confidenceSource: 'statistical',
         region,
-        description: `Current: ${currentTemp}°C (feels like ${apparentTemp}°C). Forecast max: ${maxForecast}°C over 3 days.`,
+        description: `Current: ${currentTemp}—C (feels like ${apparentTemp}—C). Forecast max: ${maxForecast}—C over 3 days.`,
         advisoryText: this.getAdvisoryText(severity),
         generatedAt: new Date().toISOString(),
         dataSourcesUsed: ['weather_api', 'statistical_model'],
@@ -98,3 +98,4 @@ class HeatwaveModule extends BaseIncidentModule {
 }
 
 export default new HeatwaveModule()
+

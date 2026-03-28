@@ -1,34 +1,28 @@
-/**
+﻿ /*
  * services/dataIngestionService.ts — Real-World Data Ingestion Pipeline
- *
  * Fetches, cleans, normalises, and stores data from ALL free public APIs:
- *
- * ┌────────────────────────────────────────────────────────┐
- * │  1. UK Environment Agency — River gauge readings       │
- * │  2. SEPA KiWIS API — Scottish river levels             │
- * │  3. OpenWeatherMap — Current weather + forecasts        │
- * │  4. Met Office DataHub — UK weather observations        │
- * │  5. NASA POWER — Climate data (rainfall, temperature)   │
- * │  6. NewsAPI — Flood/storm/disaster news articles        │
- * │  7. Wikimedia — Wikipedia flood event summaries          │
- * │  8. UK Gov Flood History — DEFRA open datasets           │
- * │  9. Open-Meteo — Free weather API (no key needed)        │
- * └────────────────────────────────────────────────────────┘
- *
+ *   1. UK Environment Agency — River gauge readings
+ *   2. SEPA KiWIS API — Scottish river levels
+ *   3. OpenWeatherMap — Current weather + forecasts
+ *   4. Met Office DataHub — UK weather observations
+ *   5. NASA POWER — Climate data (rainfall, temperature)
+ *   6. NewsAPI — Flood/storm/disaster news articles
+ *   7. Wikimedia — Wikipedia flood event summaries
+ *   8. UK Gov Flood History — DEFRA open datasets
+ *   9. Open-Meteo — Free weather API (no key needed)
  * All ingested data is:
- *  - Cleaned (nulls, duplicates, outliers)
- *  - Normalised (consistent units, timestamps)
- *  - Stored in PostgreSQL with ingestion metadata
- *  - Logged (row count, timestamp, source)
- *
+ * Cleaned (nulls, duplicates, outliers)
+ * Normalised (consistent units, timestamps)
+ * Stored in PostgreSQL with ingestion metadata
+ * Logged (row count, timestamp, source)
  * Zero synthetic data. Zero Math.random(). Zero hardcoded values.
- */
+  */
 
 import pool from '../models/db.js'
+import { regionRegistry } from '../adapters/regions/RegionRegistry.js'
+import { logger } from './logger.js'
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §0  CONFIGURATION & TYPES
-// ═══════════════════════════════════════════════════════════════════════════════
 
 const EA_FLOOD_API = 'https://environment.data.gov.uk/flood-monitoring'
 const SEPA_LEVELS_API = 'https://timeseries.sepa.org.uk/KiWIS/KiWIS'
@@ -41,6 +35,20 @@ const NOMINATIM_API = 'https://nominatim.openstreetmap.org'
 
 const OPENWEATHER_KEY = process.env.WEATHER_API_KEY || process.env.OPENWEATHERMAP_API_KEY || ''
 const NEWSAPI_KEY = process.env.NEWSAPI_KEY || ''
+
+/* Resolve monitored city locations from the active region adapter */
+function getMonitoredLocations(): Array<{ name: string; lat: number; lng: number }> {
+  try {
+    const cities = regionRegistry.getActiveRegion().getMonitoredCities()
+    if (cities.length > 0) return cities.map(c => ({ name: c.name, lat: c.lat, lng: c.lng }))
+  } catch { /* registry not yet initialized — fall back */ }
+  // Fallback: a few global cities so ingestion still works without a region
+  return [
+    { name: 'London', lat: 51.51, lng: -0.13 },
+    { name: 'New York', lat: 40.71, lng: -74.01 },
+    { name: 'Tokyo', lat: 35.68, lng: 139.69 },
+  ]
+}
 
 // Rate limiting
 const rateLimits: Record<string, { count: number; windowStart: number; max: number }> = {}
@@ -62,7 +70,7 @@ async function fetchWithRetry(url: string, opts: RequestInit = {}, retries = 3):
       if (res.ok || res.status === 404) return res
       if (res.status === 429) {
         const wait = Math.pow(2, i) * 2000
-        console.log(`[Ingestion] Rate limited by ${new URL(url).hostname}, waiting ${wait}ms`)
+        logger.info({ host: new URL(url).hostname, waitMs: wait }, '[Ingestion] Rate limited, waiting')
         await new Promise(r => setTimeout(r, wait))
         continue
       }
@@ -85,9 +93,7 @@ interface IngestionStats {
   errors: string[]
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §1  SCHEMA CREATION — Ensure all required tables exist
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export async function ensureIngestionSchema(): Promise<void> {
   await pool.query(`
@@ -205,12 +211,10 @@ export async function ensureIngestionSchema(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_news_published ON news_articles(published_at);
     CREATE INDEX IF NOT EXISTS idx_flood_archives_date ON flood_archives(event_date);
   `)
-  console.log('[Ingestion] Schema ensured — all tables ready')
+  logger.info('[Ingestion] Schema ensured — all tables ready')
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §2  UK ENVIRONMENT AGENCY — River Gauge Readings
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export async function ingestEAFloodData(limit = 200): Promise<IngestionStats> {
   const start = Date.now()
@@ -227,7 +231,7 @@ export async function ingestEAFloodData(limit = 200): Promise<IngestionStats> {
 
     const data = await res.json() as any
     const stations = data.items || []
-    console.log(`[Ingestion/EA] Found ${stations.length} monitoring stations`)
+    logger.info({ stationCount: stations.length }, '[Ingestion/EA] Found monitoring stations')
 
     for (const station of stations) {
       if (!checkRate('ea_api', 30)) {
@@ -286,13 +290,11 @@ export async function ingestEAFloodData(limit = 200): Promise<IngestionStats> {
     errors,
   }
   await logIngestion(stats)
-  console.log(`[Ingestion/EA] ${ingested} readings ingested in ${stats.duration}ms`)
+  logger.info({ ingested, durationMs: stats.duration }, '[Ingestion/EA] Readings ingested')
   return stats
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §3  SEPA KiWIS API — Scottish River Levels
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export async function ingestSEPAData(): Promise<IngestionStats> {
   const start = Date.now()
@@ -309,7 +311,7 @@ export async function ingestSEPAData(): Promise<IngestionStats> {
     const data = await res.json() as any
     // KiWIS returns [header, ...rows]
     const rows = Array.isArray(data) && data.length > 1 ? data.slice(1) : []
-    console.log(`[Ingestion/SEPA] Found ${rows.length} stations`)
+    logger.info({ stationCount: rows.length }, '[Ingestion/SEPA] Found stations')
 
     // Fetch readings for Scottish stations
     for (const row of rows.slice(0, 100)) {
@@ -368,13 +370,11 @@ export async function ingestSEPAData(): Promise<IngestionStats> {
     errors,
   }
   await logIngestion(stats)
-  console.log(`[Ingestion/SEPA] ${ingested} readings ingested in ${stats.duration}ms`)
+  logger.info({ ingested, durationMs: stats.duration }, '[Ingestion/SEPA] Readings ingested')
   return stats
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §4  NASA POWER API — Climate Data (Rainfall, Temperature, Solar)
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export async function ingestNASAPowerData(): Promise<IngestionStats> {
   const start = Date.now()
@@ -382,19 +382,8 @@ export async function ingestNASAPowerData(): Promise<IngestionStats> {
   let ingested = 0
   const before = await countRows('climate_observations')
 
-  // Scottish cities for climate data
-  const locations = [
-    { name: 'Aberdeen', lat: 57.15, lng: -2.09 },
-    { name: 'Glasgow', lat: 55.86, lng: -4.25 },
-    { name: 'Edinburgh', lat: 55.95, lng: -3.19 },
-    { name: 'Dundee', lat: 56.46, lng: -2.97 },
-    { name: 'Inverness', lat: 57.48, lng: -4.22 },
-    { name: 'Perth', lat: 56.39, lng: -3.43 },
-    { name: 'Stirling', lat: 56.12, lng: -3.94 },
-    { name: 'Dumfries', lat: 55.07, lng: -3.61 },
-    { name: 'Fort William', lat: 56.82, lng: -5.11 },
-    { name: 'Oban', lat: 56.41, lng: -5.47 },
-  ]
+  // Use monitored cities from the active region adapter
+  const locations = getMonitoredLocations()
 
   // Fetch 3 years of daily data
   const endDate = new Date()
@@ -461,7 +450,7 @@ export async function ingestNASAPowerData(): Promise<IngestionStats> {
         } catch { /* skip duplicates */ }
       }
 
-      console.log(`[Ingestion/NASA] ${loc.name}: ${dates.length} days processed`)
+      logger.info({ location: loc.name, days: dates.length }, '[Ingestion/NASA] Days processed')
     } catch (err: any) {
       errors.push(`NASA POWER ${loc.name}: ${err.message}`)
     }
@@ -478,13 +467,11 @@ export async function ingestNASAPowerData(): Promise<IngestionStats> {
     errors,
   }
   await logIngestion(stats)
-  console.log(`[Ingestion/NASA] ${ingested} climate records in ${stats.duration}ms`)
+  logger.info({ ingested, durationMs: stats.duration }, '[Ingestion/NASA] Climate records ingested')
   return stats
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §5  Open-Meteo — Free Weather API (NO KEY NEEDED)
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export async function ingestOpenMeteoData(): Promise<IngestionStats> {
   const start = Date.now()
@@ -492,18 +479,8 @@ export async function ingestOpenMeteoData(): Promise<IngestionStats> {
   let ingested = 0
   const before = await countRows('climate_observations')
 
-  const locations = [
-    { name: 'Aberdeen', lat: 57.15, lng: -2.09 },
-    { name: 'Glasgow', lat: 55.86, lng: -4.25 },
-    { name: 'Edinburgh', lat: 55.95, lng: -3.19 },
-    { name: 'Dundee', lat: 56.46, lng: -2.97 },
-    { name: 'Inverness', lat: 57.48, lng: -4.22 },
-    { name: 'London', lat: 51.51, lng: -0.13 },
-    { name: 'Manchester', lat: 53.48, lng: -2.24 },
-    { name: 'Birmingham', lat: 52.49, lng: -1.89 },
-    { name: 'Cardiff', lat: 51.48, lng: -3.18 },
-    { name: 'Belfast', lat: 54.60, lng: -5.93 },
-  ]
+  // Use monitored cities from the active region adapter
+  const locations = getMonitoredLocations()
 
   // Open-Meteo historical API - past 2 years
   const endDate = new Date()
@@ -551,7 +528,7 @@ export async function ingestOpenMeteoData(): Promise<IngestionStats> {
         } catch { /* skip duplicates */ }
       }
 
-      console.log(`[Ingestion/OpenMeteo] ${loc.name}: ${dates.length} days`)
+      logger.info({ location: loc.name, days: dates.length }, '[Ingestion/OpenMeteo] Days processed')
     } catch (err: any) {
       errors.push(`Open-Meteo ${loc.name}: ${err.message}`)
     }
@@ -568,13 +545,11 @@ export async function ingestOpenMeteoData(): Promise<IngestionStats> {
     errors,
   }
   await logIngestion(stats)
-  console.log(`[Ingestion/OpenMeteo] ${ingested} records in ${stats.duration}ms`)
+  logger.info({ ingested, durationMs: stats.duration }, '[Ingestion/OpenMeteo] Records ingested')
   return stats
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §6  UK GOV FLOOD HISTORY — DEFRA Open Data
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export async function ingestUKFloodHistory(): Promise<IngestionStats> {
   const start = Date.now()
@@ -591,7 +566,7 @@ export async function ingestUKFloodHistory(): Promise<IngestionStats> {
 
     const data = await res.json() as any
     const areas = data.items || []
-    console.log(`[Ingestion/FloodHistory] Found ${areas.length} EA flood areas`)
+    logger.info({ areaCount: areas.length }, '[Ingestion/FloodHistory] Found EA flood areas')
 
     for (const area of areas) {
       try {
@@ -631,7 +606,7 @@ export async function ingestUKFloodHistory(): Promise<IngestionStats> {
     if (wRes.ok) {
       const wData = await wRes.json() as any
       const warnings = wData.items || []
-      console.log(`[Ingestion/FloodHistory] Found ${warnings.length} active/recent warnings`)
+      logger.info({ warningCount: warnings.length }, '[Ingestion/FloodHistory] Found active/recent warnings')
 
       for (const w of warnings) {
         try {
@@ -685,11 +660,11 @@ export async function ingestUKFloodHistory(): Promise<IngestionStats> {
     errors,
   }
   await logIngestion(stats)
-  console.log(`[Ingestion/FloodHistory] ${ingested} events in ${stats.duration}ms`)
+  logger.info({ ingested, durationMs: stats.duration }, '[Ingestion/FloodHistory] Events ingested')
   return stats
 }
 
-/** Comprehensive UK historical flood event database from public government records */
+/* Comprehensive UK historical flood event database from public government records */
 function getUKHistoricalFloodDatabase() {
   return [
     // Major UK floods from public records
@@ -721,9 +696,7 @@ function getUKHistoricalFloodDatabase() {
   ]
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §7  NEWS API — Flood & Disaster News
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export async function ingestNewsArticles(): Promise<IngestionStats> {
   const start = Date.now()
@@ -732,7 +705,7 @@ export async function ingestNewsArticles(): Promise<IngestionStats> {
   const before = await countRows('news_articles')
 
   if (!NEWSAPI_KEY) {
-    console.log('[Ingestion/News] No NEWSAPI_KEY configured — skipping')
+    logger.info('[Ingestion/News] No NEWSAPI_KEY configured — skipping')
     return { source: 'NewsAPI', rowsIngested: 0, rowsBefore: before, rowsAfter: before, duration: 0, timestamp: new Date().toISOString(), errors: ['No API key'] }
   }
 
@@ -797,13 +770,11 @@ export async function ingestNewsArticles(): Promise<IngestionStats> {
     errors,
   }
   await logIngestion(stats)
-  console.log(`[Ingestion/News] ${ingested} articles in ${stats.duration}ms`)
+  logger.info({ ingested, durationMs: stats.duration }, '[Ingestion/News] Articles ingested')
   return stats
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §8  WIKIPEDIA — Flood Knowledge Base
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export async function ingestWikipediaFloodKnowledge(): Promise<IngestionStats> {
   const start = Date.now()
@@ -898,13 +869,11 @@ export async function ingestWikipediaFloodKnowledge(): Promise<IngestionStats> {
     errors,
   }
   await logIngestion(stats)
-  console.log(`[Ingestion/Wiki] ${ingested} articles in ${stats.duration}ms`)
+  logger.info({ ingested, durationMs: stats.duration }, '[Ingestion/Wiki] Articles ingested')
   return stats
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §9  OpenWeatherMap — Current + Forecast (if key available)
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export async function ingestOpenWeatherData(): Promise<IngestionStats> {
   const start = Date.now()
@@ -913,7 +882,7 @@ export async function ingestOpenWeatherData(): Promise<IngestionStats> {
   const before = await countRows('weather_observations')
 
   if (!OPENWEATHER_KEY) {
-    console.log('[Ingestion/OpenWeather] No WEATHER_API_KEY configured — skipping (use Open-Meteo instead)')
+    logger.info('[Ingestion/OpenWeather] No WEATHER_API_KEY configured — skipping (use Open-Meteo instead)')
     return { source: 'OpenWeatherMap', rowsIngested: 0, rowsBefore: before, rowsAfter: before, duration: 0, timestamp: new Date().toISOString(), errors: ['No API key'] }
   }
 
@@ -966,9 +935,7 @@ export async function ingestOpenWeatherData(): Promise<IngestionStats> {
   return stats
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §10  HELPER FUNCTIONS
-// ═══════════════════════════════════════════════════════════════════════════════
 
 async function countRows(table: string): Promise<number> {
   try {
@@ -990,37 +957,53 @@ async function logIngestion(stats: IngestionStats): Promise<void> {
   } catch { /* non-critical */ }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §11  ORCHESTRATOR — Run full ingestion pipeline
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export async function runFullIngestion(): Promise<{
   totalRows: number
   sources: IngestionStats[]
   databaseCounts: Record<string, number>
 }> {
-  console.log('\n' + '═'.repeat(80))
-  console.log('  AEGIS DATA INGESTION PIPELINE — STARTING')
-  console.log('  ' + new Date().toISOString())
-  console.log('═'.repeat(80) + '\n')
+  logger.info('AEGIS DATA INGESTION PIPELINE — STARTING')
 
   // Ensure schema
   await ensureIngestionSchema()
+
+  // Determine active region to gate UK-specific sources
+  const activeRegion = regionRegistry.getActiveRegion()
+  const regionMeta = activeRegion.getMetadata()
+  const isUK = ['scotland', 'england'].includes(regionMeta.regionId)
 
   // Run all ingestion sources
   const sources: IngestionStats[] = []
 
   // Phase 1: Free APIs that need no key
-  console.log('\n[Phase 1] Free APIs (no key required)...')
-  sources.push(await ingestEAFloodData(200))
+  logger.info('[Phase 1] Free APIs (no key required)...')
+
+  // UK-specific sources — only run when active region is UK
+  if (isUK) {
+    sources.push(await ingestEAFloodData(200))
+    sources.push(await ingestUKFloodHistory())
+  } else {
+    logger.info('[Phase 1] Skipping UK-specific sources (EA, UK flood history) — active region: %s', regionMeta.regionId)
+  }
+
+  // Global sources — always run
   sources.push(await ingestOpenMeteoData())
   sources.push(await ingestNASAPowerData())
-  sources.push(await ingestUKFloodHistory())
   sources.push(await ingestWikipediaFloodKnowledge())
 
   // Phase 2: API-key-gated sources
-  console.log('\n[Phase 2] API-key sources...')
-  sources.push(await ingestSEPAData())
+  logger.info('[Phase 2] API-key sources...')
+
+  // SEPA is Scotland-only
+  if (isUK) {
+    sources.push(await ingestSEPAData())
+  } else {
+    logger.info('[Phase 2] Skipping SEPA — active region: %s', regionMeta.regionId)
+  }
+
+  // Global sources
   sources.push(await ingestNewsArticles())
   sources.push(await ingestOpenWeatherData())
 
@@ -1038,14 +1021,8 @@ export async function runFullIngestion(): Promise<{
 
   const totalRows = Object.values(databaseCounts).reduce((a, b) => a + b, 0)
 
-  console.log('\n' + '═'.repeat(80))
-  console.log('  INGESTION COMPLETE')
-  console.log('═'.repeat(80))
-  console.log(`  Total rows across all tables: ${totalRows.toLocaleString()}`)
-  for (const [table, count] of Object.entries(databaseCounts)) {
-    console.log(`    ${table}: ${count.toLocaleString()}`)
-  }
-  console.log('═'.repeat(80) + '\n')
+  logger.info({ totalRows, databaseCounts }, 'INGESTION COMPLETE')
 
   return { totalRows, sources, databaseCounts }
 }
+

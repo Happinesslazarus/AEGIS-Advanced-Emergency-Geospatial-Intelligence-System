@@ -1,0 +1,207 @@
+# AEGIS v6 — Prometheus Alert Rules
+# Loaded by prometheus.yml via rule_files directive
+
+groups:
+  # Service Health
+  - name: service_health
+    rules:
+      - alert: AegisServerDown
+        expr: up{job="aegis-server"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "AEGIS server is down"
+          description: "The Express API server has been unreachable for >1 minute."
+
+      - alert: AegisAIEngineDown
+        expr: up{job="aegis-ai-engine"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "AI engine is down"
+          description: "The Python AI engine has been unreachable for >2 minutes. Predictions will fail."
+
+      - alert: HighErrorRate
+        expr: |
+          (sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m]))) > 0.05
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Server 5xx error rate above 5%"
+          description: "{{ $value | humanizePercentage }} of requests are returning 5xx errors."
+
+      - alert: HighLatencyP95
+        expr: |
+          histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job="aegis-server"}[5m])) by (le)) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "p95 request latency above 5s"
+          description: "95th percentile latency is {{ $value | humanizeDuration }}."
+
+  # Distress / SOS
+  - name: distress
+    rules:
+      - alert: DistressFailureSpike
+        expr: |
+          rate(distress_events_total{event="activate_error"}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Distress activation failures spiking"
+          description: "SOS activation errors are occurring at >6/min for 2+ minutes."
+
+      - alert: DistressUnacknowledged
+        expr: distress_active_count > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Active distress calls unacknowledged for 10+ minutes"
+          description: "{{ $value }} distress call(s) have been active without resolution for >10 minutes."
+
+  # Alert Delivery
+  - name: alert_delivery
+    rules:
+      - alert: AlertDeliveryFailureRate
+        expr: |
+          (sum(rate(alert_delivery_total{status="failed"}[15m])) / sum(rate(alert_delivery_total[15m]))) > 0.2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Alert delivery failure rate above 20%"
+          description: "{{ $value | humanizePercentage }} of alert deliveries are failing."
+
+      - alert: AlertDeliveryChannelDown
+        expr: |
+          sum by (channel) (rate(alert_delivery_total{status="failed"}[10m])) > 0
+          and
+          sum by (channel) (rate(alert_delivery_total{status="sent"}[10m])) == 0
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Alert channel {{ $labels.channel }} completely failing"
+          description: "All deliveries via {{ $labels.channel }} are failing with zero successes for 10+ minutes."
+
+  # AI / Model Health
+  - name: ai_health
+    rules:
+      - alert: DriftThresholdExceeded
+        expr: aegis_model_drift_score > 0.7
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Model drift above threshold"
+          description: "Model {{ $labels.hazard }}/{{ $labels.region }}/{{ $labels.version }} drift score is {{ $value }}."
+
+      - alert: ModelDegraded
+        expr: aegis_model_degraded == 1
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Model marked degraded"
+          description: "Model {{ $labels.hazard }}/{{ $labels.region }}/{{ $labels.version }} is degraded."
+
+      - alert: AIHighAlertStatus
+        expr: aegis_model_alert_status >= 3
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "AI model in CRITICAL alert state"
+          description: "Model {{ $labels.hazard }}/{{ $labels.region }}/{{ $labels.version }} alert level is critical."
+
+      - alert: AIPredictionLatencyHigh
+        expr: |
+          histogram_quantile(0.95, sum(rate(ai_prediction_seconds_bucket[5m])) by (le, hazard_type)) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "AI prediction p95 latency above 10s"
+          description: "Predictions for {{ $labels.hazard_type }} are slow (p95={{ $value | humanizeDuration }})."
+
+      - alert: ModelFallbackRate
+        expr: rate(aegis_model_fallback_total[15m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Model fallback rate elevated"
+          description: "{{ $labels.hazard }}/{{ $labels.region }} is falling back at {{ $value }}/s."
+
+  # Database
+  - name: database
+    rules:
+      - alert: DBPoolExhaustion
+        expr: db_pool_active_connections >= 18
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Database connection pool near exhaustion"
+          description: "{{ $value }}/20 connections in use. Requests will queue or fail."
+
+      - alert: DBPoolWaiting
+        expr: db_pool_waiting_count > 5
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Requests waiting for DB connections"
+          description: "{{ $value }} requests waiting for a database connection."
+
+      - alert: DBQueryLatencyHigh
+        expr: |
+          histogram_quantile(0.95, sum(rate(db_query_duration_seconds_bucket[5m])) by (le)) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Database query p95 latency above 1s"
+          description: "95th percentile DB query latency is {{ $value | humanizeDuration }}."
+
+  # SSE/Chat
+  - name: chat
+    rules:
+      - alert: ChatStreamFailureRate
+        expr: |
+          (rate(chat_stream_total{status="error"}[10m]) / rate(chat_stream_total[10m])) > 0.2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Chat stream failure rate above 20%"
+          description: "{{ $value | humanizePercentage }} of chat streams are failing."
+
+  # Cron Jobs
+  - name: cron
+    rules:
+      - alert: CronJobFailing
+        expr: |
+          sum by (job) (increase(cron_job_total{status="failure"}[1h])) > 2
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Cron job {{ $labels.job }} failing repeatedly"
+          description: "{{ $labels.job }} has failed {{ $value }} times in the last hour."
+
+      - alert: CronJobStale
+        expr: |
+          (time() - cron_job_last_success_timestamp) > 7200
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Cron job {{ $labels.job }} hasn't succeeded in 2+ hours"
+          description: "Last success was {{ $value | humanizeDuration }} ago."

@@ -1,0 +1,6 @@
+# Ignore local environment file containing secrets
+.env
+
+# Node artifacts
+node_modules/
+dist/

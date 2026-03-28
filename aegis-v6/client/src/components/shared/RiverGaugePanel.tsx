@@ -54,13 +54,13 @@ export default function RiverGaugePanel(): JSX.Element {
     return                           { text: t('river.normal', lang),      bg: 'bg-green-500',  fg: 'text-white' }
   }
 
-  const getPct     = (g: RiverGauge) => Math.min((g.level / g.alertLevel) * 100, 100)
-  const getWarnPct = (g: RiverGauge) => Math.min((g.warningLevel / g.alertLevel) * 100, 100)
+  const getPct     = (g: RiverGauge) => Math.max(0, Math.min((g.level / g.alertLevel) * 100, 100))
+  const getWarnPct = (g: RiverGauge) => Math.max(0, Math.min((g.warningLevel / g.alertLevel) * 100, 100))
 
   const TrendIcon = ({ trend }: { trend: RiverGauge['levelTrend'] }) => {
     if (trend === 'rising')  return <TrendingUp   className="w-3.5 h-3.5 text-red-500" />
     if (trend === 'falling') return <TrendingDown  className="w-3.5 h-3.5 text-green-500" />
-    return <Minus className="w-3.5 h-3.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
+    return <Minus className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300" />
   }
 
   const hoveredGauge = gauges.find(g => g.id === hoveredId) ?? null
@@ -74,7 +74,7 @@ export default function RiverGaugePanel(): JSX.Element {
           <span className="text-[9px] bg-blue-100 dark:bg-blue-600 text-blue-600 dark:text-white px-1.5 py-0.5 rounded-full font-bold">{t('river.live', lang)}</span>
         </h3>
         <div className="flex items-center gap-1">
-          <button onClick={detectLocation} className="btn-ghost p-1.5" title={t('river.useMyGps', lang)}>
+          <button onClick={detectLocation} className="btn-ghost p-1.5" title={t('river.useMyGPS', lang)}>
             <MapPin className="w-3.5 h-3.5 text-blue-400" />
           </button>
           <button onClick={refresh} disabled={loading} className="btn-ghost p-1.5" aria-label="Refresh">
@@ -98,9 +98,9 @@ export default function RiverGaugePanel(): JSX.Element {
 
       {gauges.length === 0 && !loading && !error && (
         <div className="text-center py-4">
-          <Droplets className="w-8 h-8 text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-600 mx-auto mb-2" />
-          <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('river.noGaugeData', lang)}</p>
-          <button onClick={detectLocation} className="mt-2 text-xs text-blue-500 underline">{t('river.useMyGps', lang)}</button>
+          <Droplets className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+          <p className="text-xs text-gray-500 dark:text-gray-300">{t('river.noGaugeData', lang)}</p>
+          <button onClick={detectLocation} className="mt-2 text-xs text-blue-500 underline">{t('river.useMyGPS', lang)}</button>
         </div>
       )}
 
@@ -150,14 +150,14 @@ export default function RiverGaugePanel(): JSX.Element {
                 <div className="absolute top-0 h-full w-0.5 bg-amber-600" style={{ left: `${warnPct}%` }} />
               </div>
               <div className="flex justify-between mt-0.5">
-                <span className="text-[8px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">0m</span>
+                <span className="text-[8px] text-gray-400 dark:text-gray-300">0m</span>
                 <span className="text-[8px] text-amber-500">{g.warningLevel.toFixed(1)}m</span>
                 <span className="text-[8px] text-red-500">{g.alertLevel.toFixed(1)}m</span>
               </div>
-              <p className="text-[8px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-1 flex items-center gap-1">
+              <p className="text-[8px] text-gray-400 dark:text-gray-300 mt-1 flex items-center gap-1">
                 <Clock className="w-2 h-2" />
-                EA Live · {new Date(g.lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                {!isHov && <span className="ml-1 opacity-60 flex items-center gap-0.5"><Info className="w-2 h-2"/> {t('river.hoverForDetails', lang)}</span>}
+                {g.source === 'sepa' ? 'SEPA' : 'EA'} Live · {new Date(g.lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {!isHov && <span className="ml-1 opacity-60 flex items-center gap-0.5"><Info className="w-2 h-2"/> {t('river.hoverDetails', lang)}</span>}
               </p>
             </div>
           )
@@ -189,7 +189,7 @@ export default function RiverGaugePanel(): JSX.Element {
             ].map(item => (
               <div key={item.label} className="bg-white/80 dark:bg-gray-900/60 rounded-lg p-1.5 text-center">
                 <div className={`font-bold text-xs ${item.color}`}>{item.value}</div>
-                <div className="text-[8px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{item.label}</div>
+                <div className="text-[8px] text-gray-500 dark:text-gray-300">{item.label}</div>
               </div>
             ))}
           </div>
@@ -203,9 +203,9 @@ export default function RiverGaugePanel(): JSX.Element {
             <div className="absolute top-0 h-full w-0.5 bg-amber-600" style={{ left: `${getWarnPct(hoveredGauge)}%` }} />
           </div>
 
-          <div className="flex items-center justify-between text-[9px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+          <div className="flex items-center justify-between text-[9px] text-gray-500 dark:text-gray-300">
             <span className="flex items-center gap-1">
-              Trend: <strong className={hoveredGauge.levelTrend === 'rising' ? 'text-red-500' : hoveredGauge.levelTrend === 'falling' ? 'text-green-500' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}>{t(`river.${hoveredGauge.levelTrend}`, lang)}</strong>
+              Trend: <strong className={hoveredGauge.levelTrend === 'rising' ? 'text-red-500' : hoveredGauge.levelTrend === 'falling' ? 'text-green-500' : 'text-gray-400 dark:text-gray-300'}>{t(`river.${hoveredGauge.levelTrend === 'steady' ? 'stable' : hoveredGauge.levelTrend}`, lang)}</strong>
             </span>
             <span className="flex items-center gap-0.5">
               <Clock className="w-2 h-2" /> {new Date(hoveredGauge.lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -225,8 +225,3 @@ export default function RiverGaugePanel(): JSX.Element {
     </div>
   )
 }
-
-
-
-
-

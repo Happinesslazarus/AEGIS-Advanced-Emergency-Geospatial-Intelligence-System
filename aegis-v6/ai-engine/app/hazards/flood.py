@@ -1,8 +1,6 @@
-"""
-═══════════════════════════════════════════════════════════════════════════════
+﻿"""
  AEGIS AI ENGINE — Flood Prediction Module
  Multi-layer ensemble flood prediction system
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from typing import Dict, List, Optional, Any, Tuple
@@ -20,7 +18,7 @@ from app.schemas.predictions import (
 )
 from app.core.model_registry import ModelRegistry
 from app.core.feature_store import FeatureStore
-
+from app.hazards.shap_explainer import explain_prediction
 
 class FloodPredictor:
     """
@@ -44,6 +42,9 @@ class FloodPredictor:
         self.model_registry = model_registry
         self.feature_store = feature_store
         self.hazard_type = HazardType.FLOOD
+        self._last_shap = None
+        self._model_type_label = "supervised"
+        self._label_strategy = "Trained on historical flood event records"
         logger.info("Flood prediction module initialized")
     
     async def predict(self, request: PredictionRequest) -> PredictionResponse:
@@ -183,7 +184,10 @@ class FloodPredictor:
             generated_at=datetime.utcnow(),
             expires_at=datetime.utcnow() + timedelta(hours=6),
             data_sources=["river_gauge", "rainfall_radar", "dem", "historical_patterns"],
-            warnings=[] if confidence > 0.7 else ["Low confidence - limited historical data"]
+            warnings=[] if confidence > 0.7 else ["Low confidence - limited historical data"],
+            model_type_label=self._model_type_label,
+            shap_explanation=self._last_shap,
+            label_strategy=self._label_strategy,
         )
     
     async def _predict_with_model(
@@ -201,11 +205,11 @@ class FloodPredictor:
             # The model expects 645 features including rolling means, lags,
             # interaction terms, and Fourier components.  We only have ~28
             # base features, so we use smart defaults for derived ones:
-            #   - rolling_{stat}: use the base feature value (steady-state approx)
-            #   - lag_Xh: use the base feature value
-            #   - X_Y (product): multiply the two base values
-            #   - DIV_Y (ratio): divide the two base values (guarded)
-            #   - fourier_*/hour_of_day etc: compute from current time
+            # rolling_{stat}: use the base feature value (steady-state approx)
+            # lag_Xh: use the base feature value
+            # X_Y (product): multiply the two base values
+            # DIV_Y (ratio): divide the two base values (guarded)
+            # fourier_*/hour_of_day etc: compute from current time
             now = datetime.utcnow()
             time_defaults = {
                 "hour_of_day": float(now.hour),
@@ -281,12 +285,20 @@ class FloodPredictor:
             probability = np.clip(proba, 0.0, 1.0)
             
             # Confidence from model metrics.
-            # Prefer pr_auc (better for imbalanced data) or f1, but cap at 0.80
-            # to avoid false confidence given this model's training characteristics.
+            # Use pr_auc (better for imbalanced data) or f1 — no artificial cap.
             pr_auc = metadata.performance_metrics.get('pr_auc', 0.0)
             f1 = metadata.performance_metrics.get('f1_score', 0.0)
-            raw_conf = max(pr_auc, f1) if (pr_auc > 0 or f1 > 0) else 0.75
-            confidence = round(min(0.80, max(0.60, raw_conf * 0.80)), 3)
+            raw_conf = max(pr_auc, f1) if (pr_auc > 0 or f1 > 0) else 0.65
+            confidence = round(min(0.99, max(0.40, raw_conf)), 3)
+            
+            # SHAP explainability
+            shap_result = explain_prediction(model, feature_vector, list(metadata.feature_names))
+            if shap_result:
+                self._last_shap = shap_result
+                if metadata.extra_metadata and 'model_type_label' in metadata.extra_metadata:
+                    self._model_type_label = metadata.extra_metadata['model_type_label']
+                if metadata.extra_metadata and 'label_strategy' in metadata.extra_metadata:
+                    self._label_strategy = metadata.extra_metadata['label_strategy']
             
             return probability, confidence
             
@@ -488,3 +500,4 @@ class FloodPredictor:
         # Sort by importance and return top factors
         factors.sort(key=lambda f: f.importance, reverse=True)
         return factors[:8]  # Top 8 factors
+

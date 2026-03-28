@@ -12,6 +12,7 @@ interface Props {
   onClose: () => void
   lang?: string
   anchor?: 'left' | 'right'
+  adminMode?: boolean
 }
 
 interface ChatbotMessage extends ChatMessage {
@@ -260,7 +261,7 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right' 
               <Send className="w-4 h-4" />
             </button>
           </div>
-          <p className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-1.5 text-center">{t('chat.disclaimer', activeLanguage)}</p>
+          <p className="text-[10px] text-gray-400 dark:text-gray-400 mt-1.5 text-center">{t('chat.disclaimer', activeLanguage)}</p>
         </div>
       </div>
     </div>

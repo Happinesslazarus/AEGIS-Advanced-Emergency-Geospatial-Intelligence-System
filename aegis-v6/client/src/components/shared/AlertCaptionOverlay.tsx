@@ -1,14 +1,14 @@
-/*
+﻿/*
  * AlertCaptionOverlay.tsx - Automated Caption/Subtitle System for Alerts
  *
  * Displays animated caption overlays when alerts are announced.
  * Features:
- * - Bottom or top positioning (configurable)
- * - Auto-dismiss after display
- * - Font size options (small/medium/large)
- * - Severity-based color coding
- * - Accessible contrast ratios
- * - Syncs with audio alert system
+ * Bottom or top positioning (configurable)
+ * Auto-dismiss after display
+ * Font size options (small/medium/large)
+ * Severity-based color coding
+ * Accessible contrast ratios
+ * Syncs with audio alert system
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
@@ -157,3 +157,4 @@ export function showAlertCaption(alert: {
 }) {
   window.dispatchEvent(new CustomEvent('aegis-caption', { detail: alert }))
 }
+

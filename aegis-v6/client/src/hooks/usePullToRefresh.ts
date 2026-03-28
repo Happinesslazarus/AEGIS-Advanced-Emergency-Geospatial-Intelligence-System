@@ -1,18 +1,19 @@
 import { useRef, useEffect, useCallback, useState } from 'react'
 
 interface PullToRefreshOptions {
-  /** Callback invoked when user pulls past threshold and releases */
+  /* Callback invoked when user pulls past threshold and releases */
   onRefresh: () => Promise<void>
-  /** Distance in px required to trigger refresh (default: 80) */
+  /* Distance in px required to trigger refresh (default: 80) */
   threshold?: number
-  /** Max pull distance in px (default: 150) */
+  /* Max pull distance in px (default: 150) */
   maxPull?: number
-  /** Whether the hook is enabled (set false to disable on desktop) */
+  /* Whether the hook is enabled (set false to disable on desktop) */
   enabled?: boolean
 }
 
 /**
  * Pull-to-refresh hook for mobile touch devices.
+/**
  * Returns a ref to attach to the scrollable container and the current pull state.
  */
 export function usePullToRefresh({
@@ -85,7 +86,8 @@ export function usePullToRefresh({
     containerRef,
     pullDistance,
     refreshing,
-    /** Whether user has pulled past the threshold */
+    /* Whether user has pulled past the threshold */
     pastThreshold: pullDistance >= threshold,
   }
 }
+

@@ -1,8 +1,6 @@
--- ═══════════════════════════════════════════════════════════════════════════════
 -- AEGIS v6 — Vector Similarity Search Migration
 -- Replaces TEXT-based embedding storage with real vector operations.
 -- Uses PostgreSQL cube extension + custom cosine_similarity function.
--- ═══════════════════════════════════════════════════════════════════════════════
 
 -- Step 1: Install required extensions
 CREATE EXTENSION IF NOT EXISTS cube;
@@ -38,77 +36,118 @@ $$ LANGUAGE plpgsql IMMUTABLE STRICT;
 -- Step 3: Add real embedding columns to rag_documents (double precision array)
 DO $$
 BEGIN
-    -- Add embedding_vector column if not exists
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_name = 'rag_documents' AND column_name = 'embedding_vector'
+    IF EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_name = 'rag_documents'
     ) THEN
-        ALTER TABLE rag_documents ADD COLUMN embedding_vector double precision[];
-    END IF;
+        -- Add embedding_vector column if not exists
+        IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'rag_documents' AND column_name = 'embedding_vector'
+        ) THEN
+            ALTER TABLE rag_documents ADD COLUMN embedding_vector double precision[];
+        END IF;
 
-    -- Add embedding_model column if not exists  
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_name = 'rag_documents' AND column_name = 'embedding_model'
-    ) THEN
-        ALTER TABLE rag_documents ADD COLUMN embedding_model VARCHAR(100);
-    END IF;
+        -- Add embedding_model column if not exists
+        IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'rag_documents' AND column_name = 'embedding_model'
+        ) THEN
+            ALTER TABLE rag_documents ADD COLUMN embedding_model VARCHAR(100);
+        END IF;
 
-    -- Add embedding_dimensions column if not exists
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_name = 'rag_documents' AND column_name = 'embedding_dimensions'
-    ) THEN
-        ALTER TABLE rag_documents ADD COLUMN embedding_dimensions INTEGER;
+        -- Add embedding_dimensions column if not exists
+        IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'rag_documents' AND column_name = 'embedding_dimensions'
+        ) THEN
+            ALTER TABLE rag_documents ADD COLUMN embedding_dimensions INTEGER;
+        END IF;
     END IF;
 END $$;
 
 -- Step 4: Create GIN index on tsvector for full-text fallback (already may exist)
 DO $$
 BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_indexes WHERE indexname = 'idx_rag_documents_content_trgm'
+    IF EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_name = 'rag_documents'
     ) THEN
-        CREATE INDEX idx_rag_documents_content_trgm ON rag_documents USING gin (content gin_trgm_ops);
-    END IF;
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_indexes WHERE indexname = 'idx_rag_documents_content_trgm'
+        ) THEN
+            CREATE INDEX idx_rag_documents_content_trgm ON rag_documents USING gin (content gin_trgm_ops);
+        END IF;
 
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_indexes WHERE indexname = 'idx_rag_documents_tsv'
-    ) THEN
-        CREATE INDEX idx_rag_documents_tsv ON rag_documents USING gin (to_tsvector('english', content));
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_indexes WHERE indexname = 'idx_rag_documents_tsv'
+        ) THEN
+            CREATE INDEX idx_rag_documents_tsv ON rag_documents USING gin (to_tsvector('english', content));
+        END IF;
     END IF;
 END $$;
 
 -- Step 5: Create helper function for vector search
-CREATE OR REPLACE FUNCTION search_rag_by_vector(
-    query_embedding double precision[],
-    match_limit integer DEFAULT 5,
-    similarity_threshold double precision DEFAULT 0.3
-)
-RETURNS TABLE(
-    id integer,
-    title text,
-    content text,
-    source text,
-    category text,
-    similarity double precision
-) AS $$
+DO $$
 BEGIN
-    RETURN QUERY
-    SELECT 
-        r.id,
-        r.title::text,
-        r.content::text,
-        r.source::text,
-        r.category::text,
-        cosine_similarity(r.embedding_vector, query_embedding) as similarity
-    FROM rag_documents r
-    WHERE r.embedding_vector IS NOT NULL
-      AND array_length(r.embedding_vector, 1) = array_length(query_embedding, 1)
-    ORDER BY cosine_similarity(r.embedding_vector, query_embedding) DESC
-    LIMIT match_limit;
-END;
-$$ LANGUAGE plpgsql STABLE;
+    IF EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_name = 'rag_documents'
+    ) THEN
+        EXECUTE $fn$
+            CREATE OR REPLACE FUNCTION search_rag_by_vector(
+                query_embedding double precision[],
+                match_limit integer DEFAULT 5,
+                similarity_threshold double precision DEFAULT 0.3
+            )
+            RETURNS TABLE(
+                id integer,
+                title text,
+                content text,
+                source text,
+                category text,
+                similarity double precision
+            ) AS $body$
+            BEGIN
+                RETURN QUERY
+                SELECT
+                    r.id,
+                    r.title::text,
+                    r.content::text,
+                    r.source::text,
+                    r.category::text,
+                    cosine_similarity(r.embedding_vector, query_embedding) as similarity
+                FROM rag_documents r
+                WHERE r.embedding_vector IS NOT NULL
+                  AND array_length(r.embedding_vector, 1) = array_length(query_embedding, 1)
+                  AND cosine_similarity(r.embedding_vector, query_embedding) >= similarity_threshold
+                ORDER BY cosine_similarity(r.embedding_vector, query_embedding) DESC
+                LIMIT match_limit;
+            END;
+            $body$ LANGUAGE plpgsql STABLE;
+        $fn$;
+    ELSE
+        EXECUTE $fn$
+            CREATE OR REPLACE FUNCTION search_rag_by_vector(
+                query_embedding double precision[],
+                match_limit integer DEFAULT 5,
+                similarity_threshold double precision DEFAULT 0.3
+            )
+            RETURNS TABLE(
+                id integer,
+                title text,
+                content text,
+                source text,
+                category text,
+                similarity double precision
+            ) AS $body$
+            BEGIN
+                RETURN;
+            END;
+            $body$ LANGUAGE plpgsql STABLE;
+        $fn$;
+    END IF;
+END $$;
 
 -- Step 6: Verify installation
 DO $$

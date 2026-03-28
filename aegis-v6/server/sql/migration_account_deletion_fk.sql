@@ -12,5 +12,10 @@ ALTER TABLE account_deletion_log
 
 -- Full-text search index for community chat message content
 -- Allows fast keyword search across the messages table
-CREATE INDEX IF NOT EXISTS idx_community_chat_messages_content_fts
-  ON community_chat_messages USING GIN(to_tsvector('english', COALESCE(content, '')));
+DO $$
+BEGIN
+  CREATE INDEX IF NOT EXISTS idx_community_chat_messages_content_fts
+    ON community_chat_messages USING GIN(to_tsvector('english', COALESCE(content, '')));
+EXCEPTION WHEN undefined_table THEN
+  RAISE NOTICE 'community_chat_messages not present; skipping FTS index.';
+END $$;

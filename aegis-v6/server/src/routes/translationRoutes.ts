@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express'
+import { Router, Request, Response, NextFunction } from 'express'
 import rateLimit from 'express-rate-limit'
 import {
   translateText,
@@ -9,6 +9,7 @@ import {
   MAX_TRANSLATION_BATCH_ITEMS,
   MAX_TRANSLATION_TEXT_LENGTH,
 } from '../services/translationService.js'
+import { AppError } from '../utils/AppError.js'
 
 const router = Router()
 const translateLimiter = rateLimit({
@@ -67,12 +68,11 @@ function getSingleTextRequest(req: Request): { text: string; sourceLanguage: str
   return { text, sourceLanguage, targetLanguage }
 }
 
-router.get('/', translateLimiter, async (req: Request, res: Response): Promise<void> => {
+router.get('/', translateLimiter, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const payload = getSingleTextRequest(req)
     if (!payload) {
-      res.status(400).json({ error: 'text and target language are required' })
-      return
+      throw AppError.badRequest('text and target language are required')
     }
 
     const lengthError = getTextTooLargeError(payload.text)
@@ -82,18 +82,16 @@ router.get('/', translateLimiter, async (req: Request, res: Response): Promise<v
     }
 
     res.json(await translateText(payload.text, payload.targetLanguage, payload.sourceLanguage))
-  } catch (error: any) {
-    console.error('[Translation] GET error:', error.message)
-    res.status(500).json({ error: 'Translation failed' })
+  } catch (err) {
+    next(err)
   }
 })
 
-router.post('/', translateLimiter, async (req: Request, res: Response): Promise<void> => {
+router.post('/', translateLimiter, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const payload = getSingleTextRequest(req)
     if (!payload) {
-      res.status(400).json({ error: 'text and target language are required' })
-      return
+      throw AppError.badRequest('text and target language are required')
     }
 
     const lengthError = getTextTooLargeError(payload.text)
@@ -103,16 +101,15 @@ router.post('/', translateLimiter, async (req: Request, res: Response): Promise<
     }
 
     res.json(await translateText(payload.text, payload.targetLanguage, payload.sourceLanguage))
-  } catch (error: any) {
-    console.error('[Translation] POST error:', error.message)
-    res.status(500).json({ error: 'Translation failed' })
+  } catch (err) {
+    next(err)
   }
 })
 
-router.post('/batch', batchTranslateLimiter, async (req: Request, res: Response): Promise<void> => {
+router.post('/batch', batchTranslateLimiter, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const texts = Array.isArray(req.body?.texts)
-      ? req.body.texts.filter((value: unknown) => typeof value === 'string')
+    const texts: string[] = Array.isArray(req.body?.texts)
+      ? req.body.texts.filter((value: unknown): value is string => typeof value === 'string')
       : []
     const targetLanguage = typeof req.body?.targetLanguage === 'string'
       ? req.body.targetLanguage
@@ -126,41 +123,35 @@ router.post('/batch', batchTranslateLimiter, async (req: Request, res: Response)
         : 'auto'
 
     if (texts.length === 0 || !targetLanguage.trim()) {
-      res.status(400).json({ error: 'texts and target language are required' })
-      return
+      throw AppError.badRequest('texts and target language are required')
     }
 
     if (texts.length > MAX_TRANSLATION_BATCH_ITEMS) {
-      res.status(400).json({ error: `batch requests are limited to ${MAX_TRANSLATION_BATCH_ITEMS} texts` })
-      return
+      throw AppError.badRequest(`batch requests are limited to ${MAX_TRANSLATION_BATCH_ITEMS} texts`)
     }
 
-    const oversized = texts.find((text) => text.trim().length > MAX_TRANSLATION_TEXT_LENGTH)
+    const oversized = texts.find((text: string) => text.trim().length > MAX_TRANSLATION_TEXT_LENGTH)
     if (oversized) {
-      res.status(413).json({ error: `each text must be ${MAX_TRANSLATION_TEXT_LENGTH} characters or fewer` })
-      return
+      throw AppError.payloadTooLarge(`each text must be ${MAX_TRANSLATION_TEXT_LENGTH} characters or fewer`)
     }
 
-    const totalCharacters = texts.reduce((sum, text) => sum + text.trim().length, 0)
+    const totalCharacters = texts.reduce((sum: number, text: string) => sum + text.trim().length, 0)
     if (totalCharacters > MAX_TRANSLATION_BATCH_CHARACTERS) {
-      res.status(413).json({ error: `batch requests are limited to ${MAX_TRANSLATION_BATCH_CHARACTERS} total characters` })
-      return
+      throw AppError.payloadTooLarge(`batch requests are limited to ${MAX_TRANSLATION_BATCH_CHARACTERS} total characters`)
     }
 
     const translations = await translateTexts(texts, targetLanguage, sourceLanguage)
     res.json({ translations })
-  } catch (error: any) {
-    console.error('[Translation] batch error:', error.message)
-    res.status(500).json({ error: 'Batch translation failed' })
+  } catch (err) {
+    next(err)
   }
 })
 
-router.post('/detect', detectLimiter, async (req: Request, res: Response): Promise<void> => {
+router.post('/detect', detectLimiter, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const text = typeof req.body?.text === 'string' ? req.body.text : ''
     if (!text.trim()) {
-      res.status(400).json({ error: 'text is required' })
-      return
+      throw AppError.badRequest('text is required')
     }
     const lengthError = getTextTooLargeError(text)
     if (lengthError) {
@@ -168,9 +159,8 @@ router.post('/detect', detectLimiter, async (req: Request, res: Response): Promi
       return
     }
     res.json({ detectedLanguage: await detectLanguage(text) })
-  } catch (error: any) {
-    console.error('[Translation] detect error:', error.message)
-    res.status(500).json({ error: 'Detection failed' })
+  } catch (err) {
+    next(err)
   }
 })
 

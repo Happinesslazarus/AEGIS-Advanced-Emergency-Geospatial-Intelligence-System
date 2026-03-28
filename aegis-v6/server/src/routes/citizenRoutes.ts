@@ -1,32 +1,29 @@
-/*
+ /*
  * citizenRoutes.ts - Citizen Safety Check-In & Messaging API
- *
  * Handles citizen-specific functionality:
  *   POST /api/citizen/safety          - Submit safety check-in
  *   GET  /api/citizen/safety/history   - Get safety check-in history
  *   GET  /api/citizen/safety/latest    - Get latest safety status
- *
  *   GET  /api/citizen/threads          - List message threads
  *   POST /api/citizen/threads          - Create new thread
  *   GET  /api/citizen/threads/:id      - Get thread with messages
  *   POST /api/citizen/threads/:id/messages - Send message in thread
  *   PUT  /api/citizen/threads/:id/read - Mark messages as read
- *
  *   GET  /api/citizen/alert-history    - Get citizen alert history
  *   POST /api/citizen/alert-history    - Record alert seen/played
- *
  *   GET  /api/citizen/dashboard-stats  - Get personalised dashboard data
- */
+  */
 
-import { Router, Response } from 'express'
+import { Router, Response, NextFunction } from 'express'
 import rateLimit from 'express-rate-limit'
 import pool from '../models/db.js'
-import { authMiddleware, AuthRequest } from '../middleware/auth.js'
+import { authMiddleware, citizenOnly, AuthRequest } from '../middleware/auth.js'
+import { logger } from '../services/logger.js'
 
 const router = Router()
 
 // All routes require citizen authentication
-router.use(authMiddleware)
+router.use(authMiddleware, citizenOnly)
 
 // Rate limiters for citizen-facing endpoints
 const safetyLimiter = rateLimit({
@@ -50,26 +47,21 @@ const MAX_MESSAGE_LENGTH = 5000
 const MAX_SUBJECT_LENGTH = 200
 const MAX_SAFETY_MESSAGE = 1000
 
-
-// ═══════════════════════════════════════════════════════════════════════════════
 // SAFETY CHECK-IN
-// ═══════════════════════════════════════════════════════════════════════════════
 
 // POST /safety — Submit a safety check-in (atomic transaction for help escalation)
-router.post('/safety', safetyLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/safety', safetyLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   const client = await pool.connect()
   try {
     const { status, message, locationLat, locationLng } = req.body
 
     if (!status || !['safe', 'help', 'unsure'].includes(status)) {
-      res.status(400).json({ error: 'Valid status required: safe, help, or unsure.' })
-      return
+      throw AppError.badRequest('Valid status required: safe, help, or unsure.')
     }
 
     // Validate message length
     if (message && typeof message === 'string' && message.length > MAX_SAFETY_MESSAGE) {
-      res.status(400).json({ error: `Message must be ${MAX_SAFETY_MESSAGE} characters or less.` })
-      return
+      throw AppError.badRequest(`Message must be ${MAX_SAFETY_MESSAGE} characters or less.`)
     }
 
     await client.query('BEGIN')
@@ -100,8 +92,8 @@ router.post('/safety', safetyLimiter, async (req: AuthRequest, res: Response): P
 
       // Auto-create a message thread so admin can see & respond
       const threadExists = await client.query(
-        `SELECT id FROM message_threads 
-         WHERE citizen_id = $1 AND status IN ('open', 'in_progress') 
+        `SELECT id FROM message_threads
+         WHERE citizen_id = $1 AND status IN ('open', 'in_progress')
            AND subject LIKE 'HELP REQUEST%'
          LIMIT 1`,
         [req.user!.id]
@@ -138,7 +130,7 @@ router.post('/safety', safetyLimiter, async (req: AuthRequest, res: Response): P
         if (contacts.rows.length > 0) {
           // Log notification for audit (actual SMS/email would require external service)
           for (const contact of contacts.rows) {
-            if (process.env.NODE_ENV !== 'production') console.log(`[EmergencyNotify] Would notify ${contact.name} (${contact.phone}) about ${req.user!.displayName}'s help status`)
+            logger.info({ contactName: contact.name, contactPhone: contact.phone, citizen: req.user!.displayName }, '[EmergencyNotify] Would notify contact about help status')
           }
           // Store notification record for dashboard visibility
           await client.query(
@@ -148,23 +140,22 @@ router.post('/safety', safetyLimiter, async (req: AuthRequest, res: Response): P
           ).catch(() => {})
         }
       } catch (notifyErr: any) {
-        console.error('[EmergencyNotify] Contact notification failed:', notifyErr.message)
+        logger.error({ err: notifyErr }, '[EmergencyNotify] Contact notification failed')
       }
     }
 
     await client.query('COMMIT')
     res.status(201).json(checkIn)
-  } catch (err: any) {
+  } catch (err) {
     await client.query('ROLLBACK')
-    console.error('[Citizen] Safety check-in error:', err.message)
-    res.status(500).json({ error: 'Failed to record safety status.' })
+    next(err)
   } finally {
     client.release()
   }
 })
 
 // GET /safety/history — Get safety check-in history
-router.get('/safety/history', async (req: AuthRequest, res: Response): Promise<void> => {
+router.get('/safety/history', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const limit = Math.min(parseInt(req.query.limit as string) || 20, 100)
     const result = await pool.query(
@@ -177,13 +168,13 @@ router.get('/safety/history', async (req: AuthRequest, res: Response): Promise<v
       [req.user!.id, limit]
     )
     res.json(result.rows)
-  } catch (err: any) {
-    res.status(500).json({ error: 'Failed to load safety history.' })
+  } catch (err) {
+    next(err)
   }
 })
 
 // GET /safety/latest — Get latest safety status
-router.get('/safety/latest', async (req: AuthRequest, res: Response): Promise<void> => {
+router.get('/safety/latest', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const result = await pool.query(
       `SELECT s.*, o.display_name as acknowledged_by_name
@@ -195,18 +186,15 @@ router.get('/safety/latest', async (req: AuthRequest, res: Response): Promise<vo
       [req.user!.id]
     )
     res.json(result.rows[0] || null)
-  } catch (err: any) {
-    res.status(500).json({ error: 'Failed to load safety status.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-
-// ═══════════════════════════════════════════════════════════════════════════════
 // MESSAGING
-// ═══════════════════════════════════════════════════════════════════════════════
 
 // GET /threads — List citizen’s message threads (paginated)
-router.get('/threads', async (req: AuthRequest, res: Response): Promise<void> => {
+router.get('/threads', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const limit = Math.min(parseInt(req.query.limit as string) || 20, 50)
     const offset = Math.max(parseInt(req.query.offset as string) || 0, 0)
@@ -224,40 +212,36 @@ router.get('/threads', async (req: AuthRequest, res: Response): Promise<void> =>
       [req.user!.id, limit, offset]
     )
     res.json(result.rows)
-  } catch (err: any) {
-    res.status(500).json({ error: 'Failed to load message threads.' })
+  } catch (err) {
+    next(err)
   }
 })
 
 // POST /threads — Create a new message thread
-router.post('/threads', threadLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/threads', threadLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { subject, message } = req.body
 
     if (!subject || !message) {
-      res.status(400).json({ error: 'Subject and message are required.' })
-      return
+      throw AppError.badRequest('Subject and message are required.')
     }
 
     // Validate lengths
     if (subject.length > MAX_SUBJECT_LENGTH) {
-      res.status(400).json({ error: `Subject must be ${MAX_SUBJECT_LENGTH} characters or less.` })
-      return
+      throw AppError.badRequest(`Subject must be ${MAX_SUBJECT_LENGTH} characters or less.`)
     }
     if (message.length > MAX_MESSAGE_LENGTH) {
-      res.status(400).json({ error: `Message must be ${MAX_MESSAGE_LENGTH} characters or less.` })
-      return
+      throw AppError.badRequest(`Message must be ${MAX_MESSAGE_LENGTH} characters or less.`)
     }
 
     // Limit active threads per citizen
     const activeCount = await pool.query(
-      `SELECT COUNT(*) as cnt FROM message_threads 
+      `SELECT COUNT(*) as cnt FROM message_threads
        WHERE citizen_id = $1 AND status IN ('open', 'in_progress')`,
       [req.user!.id]
     )
     if (parseInt(activeCount.rows[0].cnt) >= 10) {
-      res.status(400).json({ error: 'Maximum 10 active threads allowed. Please close existing threads first.' })
-      return
+      throw AppError.badRequest('Maximum 10 active threads allowed. Please close existing threads first.')
     }
 
     const threadResult = await pool.query(
@@ -276,14 +260,13 @@ router.post('/threads', threadLimiter, async (req: AuthRequest, res: Response): 
     )
 
     res.status(201).json(thread)
-  } catch (err: any) {
-    console.error('[Citizen] Create thread error:', err.message)
-    res.status(500).json({ error: 'Failed to create message thread.' })
+  } catch (err) {
+    next(err)
   }
 })
 
 // GET /threads/:id — Get thread with messages
-router.get('/threads/:id', async (req: AuthRequest, res: Response): Promise<void> => {
+router.get('/threads/:id', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const threadResult = await pool.query(
       `SELECT t.*, o.display_name as assigned_to_name
@@ -294,8 +277,7 @@ router.get('/threads/:id', async (req: AuthRequest, res: Response): Promise<void
     )
 
     if (threadResult.rows.length === 0) {
-      res.status(404).json({ error: 'Thread not found.' })
-      return
+      throw AppError.notFound('Thread not found.')
     }
 
     // Pagination (#33): ?limit=50&before=<messageId>
@@ -325,7 +307,7 @@ router.get('/threads/:id', async (req: AuthRequest, res: Response): Promise<void
 
     // Mark operator messages as read by citizen
     await pool.query(
-      `UPDATE messages SET status = 'read', read_at = NOW() 
+      `UPDATE messages SET status = 'read', read_at = NOW()
        WHERE thread_id = $1 AND sender_type = 'operator' AND (read_at IS NULL OR status != 'read')`,
       [req.params.id]
     )
@@ -340,22 +322,20 @@ router.get('/threads/:id', async (req: AuthRequest, res: Response): Promise<void
       hasMore,
       oldestId: messages.length > 0 ? messages[0].id : null,
     })
-  } catch (err: any) {
-    res.status(500).json({ error: 'Failed to load thread.' })
+  } catch (err) {
+    next(err)
   }
 })
 
 // POST /threads/:id/messages — Send message in thread
-router.post('/threads/:id/messages', messageLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/threads/:id/messages', messageLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { content } = req.body
     if (!content) {
-      res.status(400).json({ error: 'Message content is required.' })
-      return
+      throw AppError.badRequest('Message content is required.')
     }
     if (typeof content === 'string' && content.length > MAX_MESSAGE_LENGTH) {
-      res.status(400).json({ error: `Message must be ${MAX_MESSAGE_LENGTH} characters or less.` })
-      return
+      throw AppError.badRequest(`Message must be ${MAX_MESSAGE_LENGTH} characters or less.`)
     }
 
     // Verify thread belongs to citizen
@@ -365,13 +345,11 @@ router.post('/threads/:id/messages', messageLimiter, async (req: AuthRequest, re
     )
 
     if (threadCheck.rows.length === 0) {
-      res.status(404).json({ error: 'Thread not found.' })
-      return
+      throw AppError.notFound('Thread not found.')
     }
 
     if (threadCheck.rows[0].status === 'closed') {
-      res.status(400).json({ error: 'This thread is closed. Please create a new one.' })
-      return
+      throw AppError.badRequest('This thread is closed. Please create a new one.')
     }
 
     const msgResult = await pool.query(
@@ -383,21 +361,20 @@ router.post('/threads/:id/messages', messageLimiter, async (req: AuthRequest, re
 
     // Update thread metadata
     await pool.query(
-      `UPDATE message_threads 
+      `UPDATE message_threads
        SET last_message_at = NOW(), updated_at = NOW(), operator_unread = operator_unread + 1, status = 'open'
        WHERE id = $1`,
       [req.params.id]
     )
 
     res.status(201).json(msgResult.rows[0])
-  } catch (err: any) {
-    console.error('[Citizen] Send message error:', err.message)
-    res.status(500).json({ error: 'Failed to send message.' })
+  } catch (err) {
+    next(err)
   }
 })
 
 // PUT /threads/:id/read — Mark all messages in thread as read
-router.put('/threads/:id/read', async (req: AuthRequest, res: Response): Promise<void> => {
+router.put('/threads/:id/read', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     // Verify thread belongs to citizen
     const threadCheck = await pool.query(
@@ -406,14 +383,13 @@ router.put('/threads/:id/read', async (req: AuthRequest, res: Response): Promise
     )
 
     if (threadCheck.rows.length === 0) {
-      res.status(404).json({ error: 'Thread not found.' })
-      return
+      throw AppError.notFound('Thread not found.')
     }
 
     // Mark all unread messages as read for this citizen
     await pool.query(
-      `UPDATE messages 
-       SET status = 'read', read_at = NOW() 
+      `UPDATE messages
+       SET status = 'read', read_at = NOW()
        WHERE thread_id = $1 AND sender_type = 'operator' AND status != 'read'`,
       [req.params.id]
     )
@@ -425,19 +401,15 @@ router.put('/threads/:id/read', async (req: AuthRequest, res: Response): Promise
     )
 
     res.json({ success: true })
-  } catch (err: any) {
-    console.error('[Citizen] Mark read error:', err.message)
-    res.status(500).json({ error: 'Failed to mark messages as read.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-
-// ═══════════════════════════════════════════════════════════════════════════════
 // ALERT HISTORY
-// ═══════════════════════════════════════════════════════════════════════════════
 
 // GET /alert-history — Get citizen's alert interaction history
-router.get('/alert-history', async (req: AuthRequest, res: Response): Promise<void> => {
+router.get('/alert-history', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const result = await pool.query(
       `SELECT ah.*, a.title, a.message, a.severity, a.alert_type, a.location_text
@@ -449,41 +421,37 @@ router.get('/alert-history', async (req: AuthRequest, res: Response): Promise<vo
       [req.user!.id]
     )
     res.json(result.rows)
-  } catch (err: any) {
-    res.status(500).json({ error: 'Failed to load alert history.' })
+  } catch (err) {
+    next(err)
   }
 })
 
 // POST /alert-history — Record that citizen saw/played an alert
-router.post('/alert-history', async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/alert-history', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { alertId, audioPlayed } = req.body
     if (!alertId) {
-      res.status(400).json({ error: 'Alert ID is required.' })
-      return
+      throw AppError.badRequest('Alert ID is required.')
     }
 
     await pool.query(
       `INSERT INTO citizen_alert_history (citizen_id, alert_id, audio_played)
        VALUES ($1, $2, $3)
-       ON CONFLICT (citizen_id, alert_id) 
+       ON CONFLICT (citizen_id, alert_id)
        DO UPDATE SET audio_played = COALESCE($3, citizen_alert_history.audio_played)`,
       [req.user!.id, alertId, audioPlayed || false]
     )
 
     res.json({ recorded: true })
-  } catch (err: any) {
-    res.status(500).json({ error: 'Failed to record alert interaction.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-
-// ═══════════════════════════════════════════════════════════════════════════════
 // PERSONALIZED DASHBOARD
-// ═══════════════════════════════════════════════════════════════════════════════
 
 // GET /dashboard-stats — Get personalized dashboard data
-router.get('/dashboard-stats', async (req: AuthRequest, res: Response): Promise<void> => {
+router.get('/dashboard-stats', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     // Run all dashboard queries in parallel for performance
     const [citizenResult, alertsResult, criticalResult, reportsResult, safetyResult, unreadResult, recentAlerts, helpResult] = await Promise.all([
@@ -509,17 +477,14 @@ router.get('/dashboard-stats', async (req: AuthRequest, res: Response): Promise<
       communityHelp: parseInt(helpResult.rows[0].count),
       region: citizen?.preferred_region || null,
     })
-  } catch (err: any) {
-    console.error('[Citizen] Dashboard stats error:', err.message)
-    res.status(500).json({ error: 'Failed to load dashboard data.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // GDPR Data Export — GET /api/citizen/data-export
-// ═══════════════════════════════════════════════════════════════════════════════
 
-router.get('/data-export', async (req: AuthRequest, res: Response) => {
+router.get('/data-export', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id
 
@@ -551,17 +516,14 @@ router.get('/data-export', async (req: AuthRequest, res: Response) => {
 
     res.setHeader('Content-Disposition', `attachment; filename="aegis-data-export-${new Date().toISOString().slice(0, 10)}.json"`)
     res.json(exportData)
-  } catch (err: any) {
-    console.error('[GDPR] Data export failed:', err.message)
-    res.status(500).json({ error: 'Data export failed. Please try again.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // GDPR Data Erasure — DELETE /api/citizen/data-erasure
-// ═══════════════════════════════════════════════════════════════════════════════
 
-router.delete('/data-erasure', async (req: AuthRequest, res: Response) => {
+router.delete('/data-erasure', async (req: AuthRequest, res: Response, next: NextFunction) => {
   const client = await pool.connect()
   try {
     const userId = req.user!.id
@@ -614,22 +576,18 @@ router.delete('/data-erasure', async (req: AuthRequest, res: Response) => {
       success: true,
       message: 'Your account and personal data have been permanently deleted. Reports have been anonymised for public safety records.',
     })
-  } catch (err: any) {
+  } catch (err) {
     await client.query('ROLLBACK')
-    console.error('[GDPR] Data erasure failed:', err.message)
-    res.status(500).json({ error: 'Data erasure failed. Please contact privacy@aegis.gov.uk.' })
+    next(err)
   } finally {
     client.release()
   }
 })
 
-
-// ═══════════════════════════════════════════════════════════════════════════════
 // ACCOUNT DELETION — 30-day grace period (like Instagram/Facebook)
-// ═══════════════════════════════════════════════════════════════════════════════
 
 // POST /request-deletion — Request account deletion with 30-day grace period
-router.post('/request-deletion', async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/request-deletion', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user!.id
 
@@ -639,8 +597,7 @@ router.post('/request-deletion', async (req: AuthRequest, res: Response): Promis
       [userId]
     )
     if (!existing.rows[0]) {
-      res.status(404).json({ error: 'Account not found' })
-      return
+      throw AppError.notFound('Account not found')
     }
     if (existing.rows[0].deletion_requested_at) {
       res.json({
@@ -673,21 +630,20 @@ router.post('/request-deletion', async (req: AuthRequest, res: Response): Promis
       })]
     )
 
-    if (process.env.NODE_ENV !== 'production') console.log(`[AccountDeletion] ${citizen.display_name} requested deletion. Scheduled: ${citizen.deletion_scheduled_at}`)
+    logger.info({ citizenName: citizen.display_name, scheduledAt: citizen.deletion_scheduled_at }, '[AccountDeletion] Deletion requested')
 
     res.json({
       success: true,
       deletion_scheduled_at: citizen.deletion_scheduled_at,
       message: `Your account will be permanently deleted on ${new Date(citizen.deletion_scheduled_at).toLocaleDateString()}. You can cancel by logging back in within 30 days.`,
     })
-  } catch (err: any) {
-    console.error('[AccountDeletion] Request error:', err.message)
-    res.status(500).json({ error: 'Failed to request account deletion.' })
+  } catch (err) {
+    next(err)
   }
 })
 
 // POST /cancel-deletion — Cancel pending account deletion
-router.post('/cancel-deletion', async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/cancel-deletion', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user!.id
 
@@ -714,20 +670,19 @@ router.post('/cancel-deletion', async (req: AuthRequest, res: Response): Promise
       [userId, citizen.email, citizen.display_name]
     )
 
-    if (process.env.NODE_ENV !== 'production') console.log(`[AccountDeletion] ${citizen.display_name} cancelled deletion request.`)
+    logger.info({ citizenName: citizen.display_name }, '[AccountDeletion] Deletion cancelled')
 
     res.json({
       success: true,
       message: 'Account deletion has been cancelled. Welcome back!',
     })
-  } catch (err: any) {
-    console.error('[AccountDeletion] Cancel error:', err.message)
-    res.status(500).json({ error: 'Failed to cancel deletion.' })
+  } catch (err) {
+    next(err)
   }
 })
 
 // GET /deletion-status — Check deletion status
-router.get('/deletion-status', async (req: AuthRequest, res: Response): Promise<void> => {
+router.get('/deletion-status', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user!.id
     const result = await pool.query(
@@ -735,34 +690,30 @@ router.get('/deletion-status', async (req: AuthRequest, res: Response): Promise<
       [userId]
     )
     if (!result.rows[0]) {
-      res.status(404).json({ error: 'Account not found' })
-      return
+      throw AppError.notFound('Account not found')
     }
     res.json({
       deletion_requested: !!result.rows[0].deletion_requested_at,
       deletion_requested_at: result.rows[0].deletion_requested_at,
       deletion_scheduled_at: result.rows[0].deletion_scheduled_at,
     })
-  } catch (err: any) {
-    console.error('[AccountDeletion] Status check error:', err.message)
-    res.status(500).json({ error: 'Failed to check deletion status.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §9 FAMILY / GROUP SAFETY (#37)
-// ═══════════════════════════════════════════════════════════════════════════════
 
 import crypto from 'crypto'
+import { AppError } from '../utils/AppError.js'
 
 // POST /safety-groups — Create a new safety group
-router.post('/safety-groups', async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/safety-groups', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user!.id
     const { name, description } = req.body
     if (!name || typeof name !== 'string' || name.trim().length < 2 || name.trim().length > 100) {
-      res.status(400).json({ error: 'Group name must be 2-100 characters.' })
-      return
+      throw AppError.badRequest('Group name must be 2-100 characters.')
     }
     const inviteCode = crypto.randomBytes(6).toString('hex').toUpperCase()
     const result = await pool.query(
@@ -776,13 +727,13 @@ router.post('/safety-groups', async (req: AuthRequest, res: Response): Promise<v
       [result.rows[0].id, userId]
     )
     res.status(201).json(result.rows[0])
-  } catch (err: any) {
-    res.status(500).json({ error: 'Failed to create safety group.' })
+  } catch (err) {
+    next(err)
   }
 })
 
 // GET /safety-groups — List groups the citizen belongs to
-router.get('/safety-groups', async (req: AuthRequest, res: Response): Promise<void> => {
+router.get('/safety-groups', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user!.id
     const result = await pool.query(
@@ -794,13 +745,13 @@ router.get('/safety-groups', async (req: AuthRequest, res: Response): Promise<vo
       [userId]
     )
     res.json(result.rows)
-  } catch {
-    res.status(500).json({ error: 'Failed to fetch safety groups.' })
+  } catch (err) {
+    next(err)
   }
 })
 
 // GET /safety-groups/:id/members — Get group members with latest safety status
-router.get('/safety-groups/:id/members', async (req: AuthRequest, res: Response): Promise<void> => {
+router.get('/safety-groups/:id/members', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user!.id
     const groupId = req.params.id
@@ -810,8 +761,7 @@ router.get('/safety-groups/:id/members', async (req: AuthRequest, res: Response)
       [groupId, userId]
     )
     if (membership.rows.length === 0) {
-      res.status(403).json({ error: 'Not a member of this group.' })
-      return
+      throw AppError.forbidden('Not a member of this group.')
     }
     const result = await pool.query(
       `SELECT c.id, c.display_name, c.avatar_url, c.is_vulnerable, sgm.role,
@@ -824,27 +774,25 @@ router.get('/safety-groups/:id/members', async (req: AuthRequest, res: Response)
       [groupId]
     )
     res.json(result.rows)
-  } catch {
-    res.status(500).json({ error: 'Failed to fetch group members.' })
+  } catch (err) {
+    next(err)
   }
 })
 
 // POST /safety-groups/join — Join a group via invite code
-router.post('/safety-groups/join', async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/safety-groups/join', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user!.id
     const { inviteCode } = req.body
     if (!inviteCode || typeof inviteCode !== 'string') {
-      res.status(400).json({ error: 'Invite code is required.' })
-      return
+      throw AppError.badRequest('Invite code is required.')
     }
     const group = await pool.query(
       'SELECT id, name FROM safety_groups WHERE invite_code = $1',
       [inviteCode.trim().toUpperCase()]
     )
     if (group.rows.length === 0) {
-      res.status(404).json({ error: 'Invalid invite code.' })
-      return
+      throw AppError.notFound('Invalid invite code.')
     }
     // Check if already a member
     const existing = await pool.query(
@@ -860,13 +808,13 @@ router.post('/safety-groups/join', async (req: AuthRequest, res: Response): Prom
       [group.rows[0].id, userId]
     )
     res.status(201).json({ message: 'Joined group successfully', group: group.rows[0] })
-  } catch {
-    res.status(500).json({ error: 'Failed to join safety group.' })
+  } catch (err) {
+    next(err)
   }
 })
 
 // DELETE /safety-groups/:id/leave — Leave a safety group
-router.delete('/safety-groups/:id/leave', async (req: AuthRequest, res: Response): Promise<void> => {
+router.delete('/safety-groups/:id/leave', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user!.id
     const groupId = req.params.id
@@ -883,10 +831,9 @@ router.delete('/safety-groups/:id/leave', async (req: AuthRequest, res: Response
       await pool.query('DELETE FROM safety_groups WHERE id = $1', [groupId])
     }
     res.json({ success: true })
-  } catch {
-    res.status(500).json({ error: 'Failed to leave safety group.' })
+  } catch (err) {
+    next(err)
   }
 })
-
 
 export default router

@@ -39,3 +39,4 @@ export const POWER_OUTAGE_CRITICAL_FACILITIES = [
   'emergency_services',
   'communication_hub'
 ]
+

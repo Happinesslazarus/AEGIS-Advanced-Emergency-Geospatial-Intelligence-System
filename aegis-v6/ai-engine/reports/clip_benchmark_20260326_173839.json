@@ -1,0 +1,11 @@
+{
+  "model": "ViT-B-32",
+  "device": "cpu",
+  "total": 0,
+  "evaluated": 0,
+  "errors": 0,
+  "type_accuracy": 0,
+  "timestamp": "2026-03-26T17:38:39",
+  "results": [],
+  "category_stats": {}
+}

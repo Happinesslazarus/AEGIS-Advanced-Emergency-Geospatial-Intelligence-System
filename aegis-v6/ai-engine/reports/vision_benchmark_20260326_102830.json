@@ -1,0 +1,38 @@
+{
+  "total": 1,
+  "evaluated": 1,
+  "errors": 0,
+  "type_accuracy": 0.0,
+  "severity_exact_accuracy": 0.0,
+  "severity_close_accuracy": 100.0,
+  "avg_confidence": 50.0,
+  "avg_time_ms": 18137,
+  "false_positives": 0,
+  "false_negatives": 0,
+  "timestamp": "2026-03-26T10:28:30.742945",
+  "results": [
+    {
+      "id": "wf-001",
+      "url": "https://images.pexels.com/photos/51951/forest-fire-fire-smoke-conservation-51951.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/wf-001.jpg",
+      "expected_type": "wildfire",
+      "expected_severity": "high",
+      "description": "Forest fire with flames and smoke",
+      "status": "ok",
+      "predicted_type": "flood",
+      "predicted_severity": "moderate",
+      "predicted_confidence": 50,
+      "type_correct": false,
+      "severity_distance": 1,
+      "elapsed_ms": 18137,
+      "raw_response": "\ud83d\udcf8 **Image Analysis** (moondream:latest) \u2014 \ud83d\udfe1 50% confidence\n**Detected:** FLOOD | **Severity:** MODERATE\n\n I'm sorry, but I am not able to view the image you provided. Can you please describe what is in the image so that I can assist you better? "
+    }
+  ],
+  "per_category": {
+    "wildfire": {
+      "total": 1,
+      "correct": 0,
+      "accuracy": 0.0
+    }
+  }
+}

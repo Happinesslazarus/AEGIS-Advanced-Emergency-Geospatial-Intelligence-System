@@ -1,6 +1,5 @@
-/*
+﻿ /*
  * reportRoutes.ts - Emergency report management API
- *
  * Handles all report-related endpoints:
  *   GET    /api/reports          - List all reports (with filters)
  *   GET    /api/reports/:id      - Get a single report by ID
@@ -10,25 +9,63 @@
  *   GET    /api/reports/nearby    - Spatial query for nearby reports
  *   GET    /api/reports/stats     - Aggregate statistics for analytics
  *   GET    /api/reports/export    - Export all reports as JSON (admin only)
- *
  * PostGIS spatial functions are used for:
- *   - ST_MakePoint: creating geographic points from lat/lng
- *   - ST_DWithin: finding reports within a radius
- *   - ST_X/ST_Y: extracting coordinates from stored points
- */
+ * ST_MakePoint: creating geographic points from lat/lng
+ * ST_DWithin: finding reports within a radius
+ * ST_X/ST_Y: extracting coordinates from stored points
+  */
 
-import { Router, Request, Response } from 'express'
+import { Router, Request, Response, NextFunction } from 'express'
+import rateLimit from 'express-rate-limit'
 import pool from '../models/db.js'
-import { authMiddleware, AuthRequest } from '../middleware/auth.js'
+import { authMiddleware, operatorOnly, AuthRequest } from '../middleware/auth.js'
+import jwt from 'jsonwebtoken'
 import { devLog } from '../utils/logger.js'
-import { uploadEvidence } from '../middleware/upload.js'
+import { uploadEvidence, validateMagicBytes } from '../middleware/upload.js'
 import { analyseReport } from '../services/aiAnalysisPipeline.js'
+import { analyseImage } from '../services/imageAnalysisService.js'
 import { classify } from '../services/classifierRouter.js'
 import { aiClient } from '../services/aiClient.js'
 import { getActiveCityRegion } from '../config/regions/index.js'
 import { IncidentIntelligenceCore } from '../services/incidentIntelligenceCore.js'
+import { reportSubmissionsTotal } from '../services/metrics.js'
+import { AppError } from '../utils/AppError.js'
+import { validate, paginationSchema } from '../middleware/validate.js'
+import { logger } from '../services/logger.js'
+
+/* Attempt to extract auth user from request without rejecting unauthenticated callers. */
+function tryExtractUser(req: Request): AuthRequest['user'] | null {
+  const header = req.headers.authorization
+  if (!header || !header.startsWith('Bearer ')) return null
+  try {
+    const token = header.split(' ')[1]
+    const secret = process.env.JWT_SECRET
+    if (!secret) return null
+    return jwt.verify(token, secret) as AuthRequest['user']
+  } catch { return null }
+}
+
+function isOperatorRole(role?: string): boolean {
+  return ['admin', 'operator', 'manager'].includes(role || '')
+}
+
+// Rate limiter for public report submission — prevents spam flooding
+const reportSubmitLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,  // 15 minutes
+  max: 10,                    // max 10 reports per IP per window
+  message: { error: 'Too many reports submitted. Please wait before submitting again.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => {
+    // Skip rate limiting for authenticated operators (bulk submissions)
+    return !!(req as AuthRequest).user
+  },
+})
 
 const router = Router()
+
+// Region config resolved once at startup (re-read from config, not env snapshot)
+// Call getActiveCityRegion() per-request if multi-region support is ever added.
 const activeRegion = getActiveCityRegion()
 const regionLat = activeRegion.centre.lat
 const regionLng = activeRegion.centre.lng
@@ -103,84 +140,95 @@ async function fetchRecentSignals(minutes: number): Promise<SignalFetchResult> {
   }
 }
 
-/*
+ /*
  * GET /api/reports
  * Returns all reports, optionally filtered by status, severity, or category.
  * Newest reports appear first. Results include extracted lat/lng from PostGIS.
- */
-router.get('/', async (req: Request, res: Response): Promise<void> => {
+  */
+router.get('/', validate({ query: paginationSchema }), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { status, severity, category, limit = '100' } = req.query
+    const user = tryExtractUser(req)
+    const isOp = isOperatorRole(user?.role)
+    const { status, severity, category } = req.query
+    const { page, limit } = (req as any).validatedQuery as { page: number; limit: number }
+    const offset = (page - 1) * limit
 
-    let query = `
+    let whereClause = ' WHERE 1=1'
+    const params: any[] = []
+    let idx = 1
+
+    // Apply optional filters
+    if (status) { whereClause += ` AND status = $${idx++}`; params.push(status) }
+    if (severity) { whereClause += ` AND severity = $${idx++}`; params.push(severity) }
+    if (category) { whereClause += ` AND incident_category = $${idx++}`; params.push(category) }
+
+    // Get total count for pagination metadata
+    const countResult = await pool.query(`SELECT COUNT(*) FROM reports${whereClause}`, params)
+    const total = parseInt(countResult.rows[0].count)
+
+    const query = `
       SELECT id, report_number, incident_category, incident_subtype, display_type,
              description, severity, status, trapped_persons, location_text,
              ST_Y(coordinates::geometry) as lat, ST_X(coordinates::geometry) as lng,
              has_media, media_type, media_url, reporter_name,
              ai_confidence, ai_analysis, operator_notes,
              created_at, updated_at, verified_at, resolved_at
-      FROM reports WHERE 1=1`
-
-    const params: any[] = []
-    let idx = 1
-
-    // Apply optional filters
-    if (status) { query += ` AND status = $${idx++}`; params.push(status) }
-    if (severity) { query += ` AND severity = $${idx++}`; params.push(severity) }
-    if (category) { query += ` AND incident_category = $${idx++}`; params.push(category) }
-
-    query += ` ORDER BY created_at DESC LIMIT $${idx}`
-    params.push(parseInt(limit as string) || 100)
+      FROM reports${whereClause}
+      ORDER BY created_at DESC LIMIT $${idx++} OFFSET $${idx}`
+    params.push(limit, offset)
 
     const result = await pool.query(query, params)
 
-    // Fetch all media for these reports in a single query
-    const reportIds = result.rows.map((r: any) => r.id)
-    let mediaMap: Record<string, any[]> = {}
-    if (reportIds.length > 0) {
-      const mediaResult = await pool.query(
-        `SELECT id, report_id, file_url, file_type, file_size, original_filename,
-                ai_processed, ai_classification, ai_water_depth, ai_authenticity_score, ai_reasoning
-         FROM report_media WHERE report_id = ANY($1) ORDER BY created_at`,
-        [reportIds]
-      )
-      for (const m of mediaResult.rows) {
-        if (!mediaMap[m.report_id]) mediaMap[m.report_id] = []
-        mediaMap[m.report_id].push({
-          id: m.id,
-          url: m.file_url,
-          file_url: m.file_url,
-          fileType: m.file_type,
-          fileSize: m.file_size,
-          originalFilename: m.original_filename,
-          aiAnalysis: m.ai_processed ? {
-            classification: m.ai_classification,
-            waterDepth: m.ai_water_depth,
-            authenticityScore: m.ai_authenticity_score,
-            reasoning: m.ai_reasoning,
-          } : null,
-        })
+    if (isOp) {
+      // Operators get full data including media
+      const reportIds = result.rows.map((r: any) => r.id)
+      let mediaMap: Record<string, any[]> = {}
+      if (reportIds.length > 0) {
+        const mediaResult = await pool.query(
+          `SELECT id, report_id, file_url, file_type, file_size, original_filename,
+                  ai_processed, ai_classification, ai_water_depth, ai_authenticity_score, ai_reasoning
+           FROM report_media WHERE report_id = ANY($1) ORDER BY created_at`,
+          [reportIds]
+        )
+        for (const m of mediaResult.rows) {
+          if (!mediaMap[m.report_id]) mediaMap[m.report_id] = []
+          mediaMap[m.report_id].push({
+            id: m.id,
+            url: m.file_url,
+            file_url: m.file_url,
+            fileType: m.file_type,
+            fileSize: m.file_size,
+            originalFilename: m.original_filename,
+            aiAnalysis: m.ai_processed ? {
+              classification: m.ai_classification,
+              waterDepth: m.ai_water_depth,
+              authenticityScore: m.ai_authenticity_score,
+              reasoning: m.ai_reasoning,
+            } : null,
+          })
+        }
       }
+      const reports = result.rows.map((row: any) => ({
+        ...formatReport(row),
+        media: mediaMap[row.id] || [],
+      }))
+      res.json({ data: reports, total, page, limit })
+    } else {
+      // Public/citizen access: redacted fields, no media details
+      const reports = result.rows.map((row: any) => formatReportPublic(row))
+      res.json({ data: reports, total, page, limit })
     }
-
-    // Transform database rows into the frontend-expected format
-    const reports = result.rows.map((row: any) => ({
-      ...formatReport(row),
-      media: mediaMap[row.id] || [],
-    }))
-    res.json(reports)
-  } catch (err: any) {
-    console.error('[Reports] List error:', err.message)
-    res.status(500).json({ error: 'Failed to load reports.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-/*
+ /*
  * GET /api/reports/stats
  * Returns aggregate statistics for the analytics dashboard.
  * Includes counts by status, severity, category, hour, and confidence.
- */
-router.get('/stats', async (_req: Request, res: Response): Promise<void> => {
+  */
+router.get('/stats', authMiddleware, operatorOnly, async (_req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     // Run multiple count queries in parallel for performance
     const [byStatus, bySeverity, byCategory, byHour, totals] = await Promise.all([
@@ -200,18 +248,17 @@ router.get('/stats', async (_req: Request, res: Response): Promise<void> => {
       byHour: byHour.rows,
       totals: totals.rows[0],
     })
-  } catch (err: any) {
-    console.error('[Reports] Stats error:', err.message)
-    res.status(500).json({ error: 'Failed to load statistics.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-/*
+ /*
  * GET /api/reports/clusters
  * Spatiotemporal clustering of recent reports for incident intelligence.
  * Query params: minutes, radiusMeters, minReports
- */
-router.get('/clusters', async (req: Request, res: Response): Promise<void> => {
+  */
+router.get('/clusters', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const minutes = Math.min(24 * 60, Math.max(10, parseInt(String(req.query.minutes || '120'), 10) || 120))
     const radiusMeters = Math.min(5000, Math.max(100, parseInt(String(req.query.radiusMeters || '1000'), 10) || 1000))
@@ -243,42 +290,74 @@ router.get('/clusters', async (req: Request, res: Response): Promise<void> => {
       params: { minutes, radiusMeters, minReports },
     })
   } catch (err: any) {
-    console.error('[Reports] Clusters error:', err.message)
+    logger.error({ err }, '[Reports] Clusters error')
     res.json({ ok: true, data: [], clusters: [], warnings: ['clusters unavailable: ' + String(err.message || 'unknown error')] })
   }
 })
 
-/*
+ /*
  * GET /api/reports/cascading-insights
  * Detect likely cascading disaster chains from recent incident signals.
- */
-router.get('/cascading-insights', async (req: Request, res: Response): Promise<void> => {
+  */
+router.get('/cascading-insights', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const windowMinutes = Math.min(24 * 60, Math.max(30, parseInt(String(req.query.windowMinutes || '180'), 10) || 180))
+    const forecastHorizonMinutes = Math.min(24 * 60, Math.max(30, parseInt(String(req.query.forecastHorizonMinutes || '180'), 10) || 180))
 
     const { rows, warnings } = await fetchRecentSignals(windowMinutes)
     const evidence = intelligenceCore.buildEvidenceEvents(rows)
-    const cascade = intelligenceCore.inferCascades(evidence)
+    const cascade = intelligenceCore.inferCascades(evidence, { forecastHorizonMinutes })
 
     res.json({
       ok: true,
       data: cascade.inferred,
       window_minutes: windowMinutes,
+      forecast_horizon_minutes: forecastHorizonMinutes,
+      signal_count: evidence.length,
       active_signals: cascade.activeSignals,
       inferred_cascades: cascade.inferred,
       warnings,
     })
   } catch (err: any) {
-    console.error('[Reports] Cascading insights error:', err.message)
+    logger.error({ err }, '[Reports] Cascading insights error')
     res.json({ ok: true, data: [], inferred_cascades: [], warnings: ['cascading insights unavailable: ' + String(err.message || 'unknown error')] })
   }
 })
 
-/*
+ /*
+ * GET /api/reports/cascading-forecast
+ * Live-data cascading forecast over current evidence only.
+  */
+router.get('/cascading-forecast', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const windowMinutes = Math.min(24 * 60, Math.max(30, parseInt(String(req.query.windowMinutes || '180'), 10) || 180))
+    const forecastHorizonMinutes = Math.min(24 * 60, Math.max(30, parseInt(String(req.query.forecastHorizonMinutes || '180'), 10) || 180))
+
+    const { rows, warnings } = await fetchRecentSignals(windowMinutes)
+    const evidence = intelligenceCore.buildEvidenceEvents(rows)
+    const baseline = intelligenceCore.inferCascades(evidence, { forecastHorizonMinutes })
+
+    res.json({
+      ok: true,
+      window_minutes: windowMinutes,
+      forecast_horizon_minutes: forecastHorizonMinutes,
+      signal_count: evidence.length,
+      data: {
+        activeSignals: baseline.activeSignals,
+        inferred: baseline.inferred,
+      },
+      warnings,
+    })
+  } catch (err) {
+    next(err)
+  }
+})
+
+ /*
  * GET /api/reports/incident-objects
  * Promote clustered evidence into incident objects with confidence lifecycle state.
- */
-router.get('/incident-objects', async (req: Request, res: Response): Promise<void> => {
+  */
+router.get('/incident-objects', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const minutes = Math.min(24 * 60, Math.max(10, parseInt(String(req.query.minutes || '180'), 10) || 180))
     const radiusMeters = Math.min(5000, Math.max(100, parseInt(String(req.query.radiusMeters || '1000'), 10) || 1000))
@@ -299,16 +378,16 @@ router.get('/incident-objects', async (req: Request, res: Response): Promise<voi
       params: { minutes, radiusMeters, minReports },
     })
   } catch (err: any) {
-    console.error('[Reports] Incident objects error:', err.message)
+    logger.error({ err }, '[Reports] Incident objects error')
     res.json({ ok: true, data: [], incidents: [], warnings: ['incident objects unavailable: ' + String(err.message || 'unknown error')] })
   }
 })
 
-/*
+ /*
  * GET /api/reports/incident-objects/:id/explanation
  * Returns confidence trace and drivers for one promoted incident object.
- */
-router.get('/incident-objects/:id/explanation', async (req: Request, res: Response): Promise<void> => {
+  */
+router.get('/incident-objects/:id/explanation', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const minutes = 180
     const radiusMeters = 1000
@@ -324,8 +403,7 @@ router.get('/incident-objects/:id/explanation', async (req: Request, res: Respon
 
     const incident = incidents.find((item) => item.incident_id === incidentId)
     if (!incident) {
-      res.status(404).json({ error: 'Incident object not found.' })
-      return
+      throw AppError.notFound('Incident object not found.')
     }
 
     res.json({
@@ -338,16 +416,62 @@ router.get('/incident-objects/:id/explanation', async (req: Request, res: Respon
       warnings,
     })
   } catch (err: any) {
-    console.error('[Reports] Incident explanation error:', err.message)
+    logger.error({ err }, '[Reports] Incident explanation error')
     res.json({ ok: true, data: null, warnings: ['incident explanation unavailable: ' + String(err.message || 'unknown error')] })
   }
 })
 
-/*
+ /*
+ * GET /api/reports/incident-objects/:id/timeline
+ * Returns confidence/lifecycle evolution for one live incident object across recent windows.
+  */
+router.get('/incident-objects/:id/timeline', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const incidentId = String(req.params.id || '')
+    const radiusMeters = Math.min(5000, Math.max(100, parseInt(String(req.query.radiusMeters || '1000'), 10) || 1000))
+    const minReports = Math.min(20, Math.max(2, parseInt(String(req.query.minReports || '3'), 10) || 3))
+    const checkpoints = [360, 240, 180, 120, 60, 30, 15]
+
+    const { rows, warnings } = await fetchRecentSignals(Math.max(...checkpoints))
+    const timeline = checkpoints.map((minutes) => {
+      const cutoff = Date.now() - minutes * 60 * 1000
+      const snapshotRows = rows.filter((r) => new Date(r.created_at).getTime() >= cutoff)
+      const incidents = intelligenceCore.promoteIncidentObjects(
+        intelligenceCore.buildEvidenceEvents(snapshotRows),
+        { radiusMeters, minReports },
+      )
+      const incident = incidents.find((item) => item.incident_id === incidentId)
+      return {
+        window_minutes: minutes,
+        snapshot_at: new Date().toISOString(),
+        present: Boolean(incident),
+        lifecycle_state: incident?.lifecycle_state || null,
+        confidence: incident?.confidence || null,
+        evidence_count: incident?.evidence_count || 0,
+      }
+    })
+
+    const found = timeline.some((point) => point.present)
+    if (!found) {
+      throw AppError.notFound('Incident object timeline unavailable for this id.')
+    }
+
+    res.json({
+      ok: true,
+      incident_id: incidentId,
+      data: timeline,
+      warnings,
+    })
+  } catch (err) {
+    next(err)
+  }
+})
+
+ /*
  * GET /api/reports/incident-objects/changes
  * Diff incident objects between current and previous windows.
- */
-router.get('/incident-objects/changes', async (req: Request, res: Response): Promise<void> => {
+  */
+router.get('/incident-objects/changes', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const minutes = Math.min(120, Math.max(5, parseInt(String(req.query.minutes || '15'), 10) || 15))
     const baselineMinutes = Math.min(120, Math.max(5, parseInt(String(req.query.baselineMinutes || String(minutes)), 10) || minutes))
@@ -442,17 +566,17 @@ router.get('/incident-objects/changes', async (req: Request, res: Response): Pro
       warnings,
     })
   } catch (err: any) {
-    console.error('[Reports] Incident object changes error:', err.message)
+    logger.error({ err }, '[Reports] Incident object changes error')
     res.json({ ok: true, data: { new_incidents: [], escalated: [], downgraded: [], resolved: [] }, warnings: ['incident object changes unavailable: ' + String(err.message || 'unknown error')] })
   }
 })
 
-/*
+ /*
  * GET /api/reports/analytics
  * Advanced live analytics for admin dashboard with time-range support.
  * Query params: range=24h|7d|30d|all (default: 24h)
- */
-router.get('/analytics', async (req: Request, res: Response): Promise<void> => {
+  */
+router.get('/analytics', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const rangeParam = String(req.query.range || '24h').toLowerCase()
     const range = ['24h', '7d', '30d', 'all'].includes(rangeParam) ? rangeParam : '24h'
@@ -834,17 +958,16 @@ router.get('/analytics', async (req: Request, res: Response): Promise<void> => {
         verificationCoverageRate: total > 0 ? Math.round((verifiedCount / total) * 100) : 0,
       },
     })
-  } catch (err: any) {
-    console.error('[Reports] Analytics error:', err.message)
-    res.status(500).json({ error: 'Failed to load analytics.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-/*
+ /*
  * GET /api/reports/command-center
  * Executive command-center payload for the main admin dashboard.
- */
-router.get('/command-center', async (_req: Request, res: Response): Promise<void> => {
+  */
+router.get('/command-center', authMiddleware, operatorOnly, async (_req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const [activityRes, leaderboardRes, recommendationRes, comparativeRes] = await Promise.all([
       pool.query(
@@ -963,24 +1086,22 @@ router.get('/command-center', async (_req: Request, res: Response): Promise<void
         weekDeltaPct,
       },
     })
-  } catch (err: any) {
-    console.error('[Reports] Command-center error:', err.message)
-    res.status(500).json({ error: 'Failed to load command-center analytics.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-/*
+ /*
  * GET /api/reports/nearby
  * Spatial query: finds reports within a given radius of a point.
  * Uses PostGIS ST_DWithin for efficient spatial filtering.
  * Query params: lat, lng, radius (in metres, default 5000)
- */
-router.get('/nearby', async (req: Request, res: Response): Promise<void> => {
+  */
+router.get('/nearby', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { lat, lng, radius = '5000' } = req.query
     if (!lat || !lng) {
-      res.status(400).json({ error: 'lat and lng query parameters are required.' })
-      return
+      throw AppError.badRequest('lat and lng query parameters are required.')
     }
 
     const result = await pool.query(
@@ -998,18 +1119,20 @@ router.get('/nearby', async (req: Request, res: Response): Promise<void> => {
       ...formatReport(r),
       distanceMetres: Math.round(r.distance_m),
     })))
-  } catch (err: any) {
-    console.error('[Reports] Nearby error:', err.message)
-    res.status(500).json({ error: 'Failed to search nearby reports.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-/*
+ /*
  * GET /api/reports/:id
  * Returns a single report by its UUID.
- */
-router.get('/:id', async (req: Request, res: Response): Promise<void> => {
+  */
+router.get('/:id', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
+    const user = tryExtractUser(req)
+    const isOp = isOperatorRole(user?.role)
+
     const result = await pool.query(
       `SELECT id, report_number, incident_category, incident_subtype, display_type,
               description, severity, status, trapped_persons, location_text,
@@ -1022,47 +1145,50 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
     )
 
     if (result.rows.length === 0) {
-      res.status(404).json({ error: 'Report not found.' })
-      return
+      throw AppError.notFound('Report not found.')
     }
 
-    // Fetch associated media files
-    const mediaResult = await pool.query(
-      `SELECT id, file_url, file_type, file_size, original_filename,
-              ai_processed, ai_classification, ai_water_depth, ai_authenticity_score, ai_reasoning
-       FROM report_media WHERE report_id = $1 ORDER BY created_at`,
-      [req.params.id]
-    )
-    const media = mediaResult.rows.map(m => ({
-      id: m.id,
-      url: m.file_url,
-      file_url: m.file_url,
-      fileType: m.file_type,
-      fileSize: m.file_size,
-      originalFilename: m.original_filename,
-      aiAnalysis: m.ai_processed ? {
-        classification: m.ai_classification,
-        waterDepth: m.ai_water_depth,
-        authenticityScore: m.ai_authenticity_score,
-        reasoning: m.ai_reasoning,
-      } : null,
-    }))
-
-    res.json({ ...formatReport(result.rows[0]), media })
-  } catch (err: any) {
-    console.error('[Reports] Get error:', err.message)
-    res.status(500).json({ error: 'Failed to load report.' })
+    if (isOp) {
+      // Operators get full data including media
+      const mediaResult = await pool.query(
+        `SELECT id, file_url, file_type, file_size, original_filename,
+                ai_processed, ai_classification, ai_water_depth, ai_authenticity_score, ai_reasoning
+         FROM report_media WHERE report_id = $1 ORDER BY created_at`,
+        [req.params.id]
+      )
+      const media = mediaResult.rows.map(m => ({
+        id: m.id,
+        url: m.file_url,
+        file_url: m.file_url,
+        fileType: m.file_type,
+        fileSize: m.file_size,
+        originalFilename: m.original_filename,
+        aiAnalysis: m.ai_processed ? {
+          classification: m.ai_classification,
+          waterDepth: m.ai_water_depth,
+          authenticityScore: m.ai_authenticity_score,
+          reasoning: m.ai_reasoning,
+        } : null,
+      }))
+      res.json({ ...formatReport(result.rows[0]), media })
+    } else {
+      // Public access: redacted fields
+      res.json(formatReportPublic(result.rows[0]))
+    }
+  } catch (err) {
+    next(err)
   }
 })
 
-/*
+ /*
  * POST /api/reports
  * Submit a new emergency report (public endpoint, no auth required).
  * Accepts multipart form data to allow evidence photo/video upload.
  * Automatically runs AI confidence scoring based on available data.
- */
-router.post('/', uploadEvidence, async (req: Request, res: Response): Promise<void> => {
+  */
+router.post('/', reportSubmitLimiter, uploadEvidence, validateMagicBytes, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
+    const submitter = tryExtractUser(req)
     const {
       incidentCategory, incidentSubtype, displayType,
       description, severity, trappedPersons,
@@ -1135,24 +1261,20 @@ router.post('/', uploadEvidence, async (req: Request, res: Response): Promise<vo
       lng === undefined ||
       lng === null
     ) {
-      res.status(400).json({ error: 'Missing required fields.' })
-      return
+      throw AppError.badRequest('Missing required fields.')
     }
 
     // Input length validation (#29)
     if (typeof description !== 'string' || description.length > 5000) {
-      res.status(400).json({ error: 'Description must be under 5000 characters.' })
-      return
+      throw AppError.badRequest('Description must be under 5000 characters.')
     }
     if (typeof locationText !== 'string' || locationText.length > 500) {
-      res.status(400).json({ error: 'Location text must be under 500 characters.' })
-      return
+      throw AppError.badRequest('Location text must be under 500 characters.')
     }
     const parsedLat = parseFloat(lat)
     const parsedLng = parseFloat(lng)
     if (isNaN(parsedLat) || isNaN(parsedLng) || parsedLat < -90 || parsedLat > 90 || parsedLng < -180 || parsedLng > 180) {
-      res.status(400).json({ error: 'Invalid coordinates.' })
-      return
+      throw AppError.badRequest('Invalid coordinates.')
     }
 
     // Build media URL if evidence was uploaded (support up to 3 files)
@@ -1164,9 +1286,23 @@ router.post('/', uploadEvidence, async (req: Request, res: Response): Promise<vo
       ? (files.some(f => f.mimetype.startsWith('video/')) ? 'video' : 'photo')
       : null
 
+    //  Deduplication check: run before INSERT so we can flag the report
+    //    and inform the submitter without blocking them.
+    const dupCheck = await checkDuplicate(
+      description, parsedLat, parsedLng, incidentCategory,
+    )
+
     // Run basic AI confidence scoring
     // Calls real HuggingFace ML classifiers with heuristic fallback
     const aiResult = await computeAIScore(description, severity, trappedPersons, hasMedia, parseFloat(lat), parseFloat(lng))
+
+    // Attach dedup metadata to ai_analysis so it is visible in the admin dashboard
+    if (dupCheck) {
+      aiResult.analysis = {
+        ...aiResult.analysis,
+        deduplication: dupCheck,
+      }
+    }
 
     const dbSeverity = toDbSeverity(severity)
     const reportNumber = await generateReportNumberSafe()
@@ -1178,10 +1314,10 @@ router.post('/', uploadEvidence, async (req: Request, res: Response): Promise<vo
         `INSERT INTO reports
          (report_number, incident_category, incident_subtype, display_type,
           description, severity, trapped_persons, location_text, coordinates,
-          has_media, media_type, media_url, ai_confidence, ai_analysis, custom_fields)
+          has_media, media_type, media_url, reporter_name, ai_confidence, ai_analysis, custom_fields)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8,
                  ST_SetSRID(ST_MakePoint($10, $9), 4326),
-                 $11, $12, $13, $14, $15, $16)
+                 $11, $12, $13, $14, $15, $16, $17)
          RETURNING id, report_number, created_at`,
         [
           reportNumber,
@@ -1189,6 +1325,7 @@ router.post('/', uploadEvidence, async (req: Request, res: Response): Promise<vo
           description, dbSeverity, trappedPersons || 'no', locationText,
           parseFloat(lat), parseFloat(lng),
           hasMedia, mediaType, mediaUrl,
+          submitter?.displayName || 'Anonymous Citizen',
           aiResult.confidence, JSON.stringify(aiResult.analysis),
           JSON.stringify(customFields),
         ]
@@ -1200,10 +1337,10 @@ router.post('/', uploadEvidence, async (req: Request, res: Response): Promise<vo
           `INSERT INTO reports
            (report_number, incident_category, incident_subtype, display_type,
             description, severity, trapped_persons, location_text, coordinates,
-            has_media, media_type, media_url, ai_confidence, ai_analysis)
+            has_media, media_type, media_url, reporter_name, ai_confidence, ai_analysis)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8,
                    ST_SetSRID(ST_MakePoint($10, $9), 4326),
-                   $11, $12, $13, $14, $15)
+                   $11, $12, $13, $14, $15, $16)
            RETURNING id, report_number, created_at`,
           [
             reportNumber,
@@ -1211,6 +1348,7 @@ router.post('/', uploadEvidence, async (req: Request, res: Response): Promise<vo
             description, dbSeverity, trappedPersons || 'no', locationText,
             parseFloat(lat), parseFloat(lng),
             hasMedia, mediaType, mediaUrl,
+            submitter?.displayName || 'Anonymous Citizen',
             aiResult.confidence, JSON.stringify(aiResult.analysis),
           ]
         )
@@ -1220,6 +1358,7 @@ router.post('/', uploadEvidence, async (req: Request, res: Response): Promise<vo
     }
 
     const report = result.rows[0]
+    reportSubmissionsTotal.inc()
 
     // Insert all uploaded files into report_media table
     if (hasFiles && files!.length > 0) {
@@ -1251,7 +1390,7 @@ router.post('/', uploadEvidence, async (req: Request, res: Response): Promise<vo
             has_media: hasMedia,
             media_type: mediaType,
             media_url: mediaUrl,
-            reporter_name: null,
+            reporter_name: submitter?.displayName || null,
             ai_confidence: aiResult.confidence,
             ai_analysis: aiResult.analysis,
             location_metadata: locationMetadata,
@@ -1274,7 +1413,7 @@ router.post('/', uploadEvidence, async (req: Request, res: Response): Promise<vo
         devLog(`[Reports] Broadcast report:new ${report.report_number}`)
       }
     } catch (wsErr: any) {
-      console.warn('[Reports] WebSocket broadcast failed:', wsErr.message)
+      logger.warn({ err: wsErr }, '[Reports] WebSocket broadcast failed')
     }
 
     // Run the full AI analysis pipeline in the background (non-blocking).
@@ -1284,7 +1423,7 @@ router.post('/', uploadEvidence, async (req: Request, res: Response): Promise<vo
       report.id, description, parseFloat(lat), parseFloat(lng),
       locationText, dbSeverity, hasMedia,
     ).catch((err: any) =>
-      console.error('[Reports] AI pipeline error:', err.message),
+      logger.error({ err }, '[Reports] AI pipeline error'),
     )
 
     res.status(201).json({
@@ -1293,10 +1432,114 @@ router.post('/', uploadEvidence, async (req: Request, res: Response): Promise<vo
       createdAt: report.created_at,
       aiConfidence: aiResult.confidence,
       locationMetadata,
+      ...(dupCheck?.isDuplicate ? {
+        possibleDuplicate: {
+          reportNumber: dupCheck.duplicateReportNumber,
+          similarityPct: dupCheck.confidencePct,
+          message: `This report may be a duplicate of ${dupCheck.duplicateReportNumber} (${dupCheck.confidencePct}% similarity). It has been submitted and will be reviewed.`,
+        },
+      } : {}),
     })
-  } catch (err: any) {
-    console.error('[Reports] Create error:', err.message)
-    res.status(500).json({ error: 'Failed to submit report.' })
+  } catch (err) {
+    next(err)
+  }
+})
+
+/*
+ * PUT /api/reports/bulk/status
+ * Bulk update status for multiple reports (admin only).
+  */
+router.put('/bulk/status', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { reportIds, status, reason } = req.body
+
+    if (!Array.isArray(reportIds) || reportIds.length === 0) {
+      throw AppError.badRequest('reportIds must be a non-empty array')
+    }
+
+    const valid = ['Verified', 'Urgent', 'Flagged', 'Resolved', 'Archived', 'False_Report']
+    if (!valid.includes(status)) {
+      throw AppError.badRequest(`Invalid status. Must be one of: ${valid.join(', ')}`)
+    }
+
+    const dbStatus = toDbStatus(status)
+    const client = await pool.connect()
+
+    try {
+      await client.query('BEGIN')
+
+      const typeMap: Record<string, string> = {
+        Verified: 'verify', Urgent: 'urgent', Flagged: 'flag', Resolved: 'resolve',
+        Archived: 'archive', False_Report: 'false_report',
+      }
+
+      let updated = 0
+      for (const reportId of reportIds) {
+        // Get old status
+        const beforeResult = await client.query('SELECT status::text AS status FROM reports WHERE id = $1', [reportId])
+        if (beforeResult.rows.length === 0) continue
+
+        const oldStatus = beforeResult.rows[0].status
+
+        // Build updates based on status
+        const updates: string[] = ['status = $1']
+        const params: any[] = [dbStatus]
+        let idx = 2
+
+        if (status === 'Verified' || status === 'Urgent') {
+          updates.push(`verified_by = $${idx++}`, `verified_at = NOW()`)
+          params.push(req.user!.id)
+        }
+        if (status === 'Resolved') {
+          updates.push(`resolved_at = NOW()`)
+        }
+
+        params.push(reportId)
+        await client.query(`UPDATE reports SET ${updates.join(', ')} WHERE id = $${idx}`, params)
+
+        // Log history
+        await client.query(
+          `INSERT INTO report_status_history (report_id, old_status, new_status, changed_by, reason)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [reportId, oldStatus, dbStatus, req.user!.id, reason || `Bulk ${status.toLowerCase()}`]
+        )
+
+        // Log activity
+        await client.query(
+          `INSERT INTO activity_log (action, action_type, report_id, operator_id, operator_name)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [
+            `${status === 'Urgent' ? 'Escalated to URGENT' : `Marked as ${status}`} (bulk)`,
+            typeMap[status] || 'verify',
+            reportId, req.user!.id, req.user!.displayName,
+          ]
+        )
+
+        updated++
+      }
+
+      await client.query('COMMIT')
+
+      res.json({ success: true, status, updated })
+
+      // Broadcast updates via WebSocket
+      try {
+        const io = req.app.get('io')
+        if (io) {
+          io.emit('report:bulk-updated', { reportIds, status, updatedBy: req.user!.displayName, count: updated })
+          devLog(`[Reports] Broadcast bulk update: ${updated} reports → ${status}`)
+        }
+      } catch (wsErr: any) {
+        logger.warn({ err: wsErr }, '[Reports] WebSocket broadcast failed')
+      }
+    } catch (txErr: any) {
+      await client.query('ROLLBACK')
+      throw txErr
+    } finally {
+      client.release()
+    }
+  } catch (err) {
+    next(err)
   }
 })
 
@@ -1304,22 +1547,20 @@ router.post('/', uploadEvidence, async (req: Request, res: Response): Promise<vo
  * PUT /api/reports/:id/status
  * Update report status (admin only). Logs the action in the activity trail.
  * Valid statuses: Verified, Urgent, Flagged, Resolved
- */
-router.put('/:id/status', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
+  */
+router.put('/:id/status', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { status, reason } = req.body
     const valid = ['Verified', 'Urgent', 'Flagged', 'Resolved', 'Archived', 'False_Report']
     if (!valid.includes(status)) {
-      res.status(400).json({ error: `Invalid status. Must be one of: ${valid.join(', ')}` })
-      return
+      throw AppError.badRequest(`Invalid status. Must be one of: ${valid.join(', ')}`)
     }
 
     const dbStatus = toDbStatus(status)
 
     const beforeResult = await pool.query('SELECT status::text AS status, verified_by FROM reports WHERE id = $1', [req.params.id])
     if (beforeResult.rows.length === 0) {
-      res.status(404).json({ error: 'Report not found.' })
-      return
+      throw AppError.notFound('Report not found.')
     }
     const oldStatus = beforeResult.rows[0].status
     const alreadyDecided = ['verified', 'urgent', 'false_report', 'resolved', 'archived'].includes(oldStatus?.toLowerCase())
@@ -1327,12 +1568,10 @@ router.put('/:id/status', authMiddleware, async (req: AuthRequest, res: Response
 
     // Status locking: once a decision is made, only super-admins can override with justification
     if (alreadyDecided && !isSuperAdmin) {
-      res.status(403).json({ error: 'This report has already been actioned. Only a super-admin can override the status.' })
-      return
+      throw AppError.forbidden('This report has already been actioned. Only a super-admin can override the status.')
     }
     if (alreadyDecided && isSuperAdmin && !reason?.trim()) {
-      res.status(400).json({ error: 'A justification is required to override an already-actioned report.' })
-      return
+      throw AppError.badRequest('A justification is required to override an already-actioned report.')
     }
 
     // Build the update based on the new status
@@ -1388,120 +1627,18 @@ router.put('/:id/status', authMiddleware, async (req: AuthRequest, res: Response
         devLog(`[Reports] Broadcast report:updated ${req.params.id} → ${status}`)
       }
     } catch (wsErr: any) {
-      console.warn('[Reports] WebSocket broadcast failed:', wsErr.message)
+      logger.warn({ err: wsErr }, '[Reports] WebSocket broadcast failed')
     }
-  } catch (err: any) {
-    console.error('[Reports] Status update error:', err.message)
-    res.status(500).json({ error: 'Failed to update status.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-/*
- * PUT /api/reports/bulk/status
- * Bulk update status for multiple reports (admin only).
- */
-router.put('/bulk/status', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    const { reportIds, status, reason } = req.body
-    
-    if (!Array.isArray(reportIds) || reportIds.length === 0) {
-      res.status(400).json({ error: 'reportIds must be a non-empty array' })
-      return
-    }
-
-    const valid = ['Verified', 'Urgent', 'Flagged', 'Resolved', 'Archived', 'False_Report']
-    if (!valid.includes(status)) {
-      res.status(400).json({ error: `Invalid status. Must be one of: ${valid.join(', ')}` })
-      return
-    }
-
-    const dbStatus = toDbStatus(status)
-    const client = await pool.connect()
-    
-    try {
-      await client.query('BEGIN')
-      
-      const typeMap: Record<string, string> = {
-        Verified: 'verify', Urgent: 'urgent', Flagged: 'flag', Resolved: 'resolve',
-        Archived: 'archive', False_Report: 'false_report',
-      }
-      
-      let updated = 0
-      for (const reportId of reportIds) {
-        // Get old status
-        const beforeResult = await client.query('SELECT status::text AS status FROM reports WHERE id = $1', [reportId])
-        if (beforeResult.rows.length === 0) continue
-        
-        const oldStatus = beforeResult.rows[0].status
-        
-        // Build updates based on status
-        const updates: string[] = ['status = $1']
-        const params: any[] = [dbStatus]
-        let idx = 2
-
-        if (status === 'Verified' || status === 'Urgent') {
-          updates.push(`verified_by = $${idx++}`, `verified_at = NOW()`)
-          params.push(req.user!.id)
-        }
-        if (status === 'Resolved') {
-          updates.push(`resolved_at = NOW()`)
-        }
-
-        params.push(reportId)
-        await client.query(`UPDATE reports SET ${updates.join(', ')} WHERE id = $${idx}`, params)
-
-        // Log history
-        await client.query(
-          `INSERT INTO report_status_history (report_id, old_status, new_status, changed_by, reason)
-           VALUES ($1, $2, $3, $4, $5)`,
-          [reportId, oldStatus, dbStatus, req.user!.id, reason || `Bulk ${status.toLowerCase()}`]
-        )
-
-        // Log activity
-        await client.query(
-          `INSERT INTO activity_log (action, action_type, report_id, operator_id, operator_name)
-           VALUES ($1, $2, $3, $4, $5)`,
-          [
-            `${status === 'Urgent' ? 'Escalated to URGENT' : `Marked as ${status}`} (bulk)`,
-            typeMap[status] || 'verify',
-            reportId, req.user!.id, req.user!.displayName,
-          ]
-        )
-        
-        updated++
-      }
-      
-      await client.query('COMMIT')
-      
-      res.json({ success: true, status, updated })
-
-      // Broadcast updates via WebSocket
-      try {
-        const io = req.app.get('io')
-        if (io) {
-          io.emit('report:bulk-updated', { reportIds, status, updatedBy: req.user!.displayName, count: updated })
-          devLog(`[Reports] Broadcast bulk update: ${updated} reports → ${status}`)
-        }
-      } catch (wsErr: any) {
-        console.warn('[Reports] WebSocket broadcast failed:', wsErr.message)
-      }
-    } catch (txErr: any) {
-      await client.query('ROLLBACK')
-      throw txErr
-    } finally {
-      client.release()
-    }
-  } catch (err: any) {
-    console.error('[Reports] Bulk status update error:', err.message)
-    res.status(500).json({ error: 'Failed to bulk update status.' })
-  }
-})
-
-/*
+ /*
  * PUT /api/reports/:id/notes
  * Add or update operator notes on a report (admin only).
- */
-router.put('/:id/notes', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
+  */
+router.put('/:id/notes', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { notes } = req.body
     await pool.query('UPDATE reports SET operator_notes = $1 WHERE id = $2', [notes, req.params.id])
@@ -1513,17 +1650,16 @@ router.put('/:id/notes', authMiddleware, async (req: AuthRequest, res: Response)
     )
 
     res.json({ success: true })
-  } catch (err: any) {
-    console.error('[Reports] Notes error:', err.message)
-    res.status(500).json({ error: 'Failed to save notes.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-/*
+ /*
  * GET /api/reports/export
  * Export all reports as JSON (admin only).
- */
-router.get('/export/json', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
+  */
+router.get('/export/json', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const result = await pool.query(
       `SELECT id, report_number, incident_category, incident_subtype, display_type,
@@ -1540,17 +1676,101 @@ router.get('/export/json', authMiddleware, async (req: AuthRequest, res: Respons
     )
 
     res.json(result.rows.map(formatReport))
-  } catch (err: any) {
-    console.error('[Reports] Export error:', err.message)
-    res.status(500).json({ error: 'Failed to export reports.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-/*
+// REPORT DEDUPLICATION  (Feature #9)
+
+ /*
+ * Jaccard similarity on word-token sets — fast, no external deps.
+ * Returns 0–1 where 1 = identical token sets.
+  */
+function jaccardSimilarity(a: string, b: string): number {
+  const tokenise = (t: string) =>
+    new Set(
+      t.toLowerCase()
+       .replace(/[^\w\s]/g, ' ')
+       .split(/\s+/)
+       .filter(w => w.length > 2),
+    )
+  const setA = tokenise(a)
+  const setB = tokenise(b)
+  if (setA.size === 0 && setB.size === 0) return 1
+  if (setA.size === 0 || setB.size === 0) return 0
+  let intersection = 0
+  for (const t of setA) { if (setB.has(t)) intersection++ }
+  return intersection / (setA.size + setB.size - intersection)
+}
+
+ /*
+ * Check if an incoming report is a likely duplicate of a recently submitted one.
+ * Criteria:
+ * Same incident category
+ * Within 250 metres
+ * Submitted within the last 90 minutes
+ * Jaccard token similarity ≥ 0.55
+ * Returns the best match (highest similarity) above the threshold, or null.
+  */
+async function checkDuplicate(
+  text: string,
+  lat: number,
+  lng: number,
+  category: string,
+): Promise<{
+  isDuplicate: boolean
+  duplicateOf: string | null
+  duplicateReportNumber: string | null
+  similarityScore: number
+  confidencePct: number
+} | null> {
+  try {
+    const { rows } = await pool.query(
+      `SELECT id::text, report_number, description
+       FROM reports
+       WHERE incident_category = $1
+         AND deleted_at IS NULL
+         AND created_at > now() - INTERVAL '90 minutes'
+         AND ST_DWithin(
+           coordinates,
+           ST_SetSRID(ST_MakePoint($3, $2), 4326)::geography,
+           250
+         )
+       ORDER BY created_at DESC
+       LIMIT 8`,
+      [category, lat, lng],
+    )
+
+    let bestSim = 0
+    let bestRow: any = null
+
+    for (const row of rows) {
+      const sim = jaccardSimilarity(text, row.description || '')
+      if (sim > bestSim) { bestSim = sim; bestRow = row }
+    }
+
+    if (bestSim >= 0.55 && bestRow) {
+      return {
+        isDuplicate: true,
+        duplicateOf: bestRow.id,
+        duplicateReportNumber: bestRow.report_number,
+        similarityScore: Math.round(bestSim * 1000) / 1000,
+        confidencePct: Math.round(bestSim * 100),
+      }
+    }
+
+    return { isDuplicate: false, duplicateOf: null, duplicateReportNumber: null, similarityScore: bestSim, confidencePct: 0 }
+  } catch {
+    return null
+  }
+}
+
+ /*
  * Real-time AI confidence scoring using ML classifiers.
  * Calls HuggingFace models for sentiment, fake detection, and severity.
  * Falls back to heuristic-based scoring if ML services are unavailable.
- */
+  */
 async function computeAIScore(
   description: string, severity: string, trapped: string,
   hasMedia: boolean, lat: number, lng: number
@@ -1692,14 +1912,14 @@ async function computeAIScore(
       },
     }
   } catch (err: any) {
-    console.warn(`[Reports] ML scoring failed, using heuristic: ${err.message}`)
+    logger.warn({ err }, '[Reports] ML scoring failed, using heuristic')
     return computeAIScoreFallback(description, severity, trapped, hasMedia, lat, lng)
   }
 }
 
-/**
+ /*
  * Heuristic-only fallback when ML services are unavailable.
- */
+  */
 function computeAIScoreFallback(
   description: string, severity: string, trapped: string,
   hasMedia: boolean, lat: number, lng: number
@@ -1740,10 +1960,39 @@ function computeAIScoreFallback(
   }
 }
 
-/*
+ /*
  * Transforms a database row into the standardised API response format.
  * Converts PostGIS coordinate columns into a simple coordinates array.
+  */
+ /**
+ * Redact sensitive fields from a report for public/unauthenticated access.
+ * Strips: reporter name, operator notes, raw AI analysis, exact coordinates, media URLs.
  */
+function formatReportPublic(row: any): any {
+  return {
+    id: row.id,
+    reportNumber: row.report_number,
+    incidentCategory: row.incident_category,
+    incidentSubtype: row.incident_subtype,
+    type: row.display_type,
+    description: row.description,
+    severity: toUiSeverity(row.severity),
+    status: toUiStatus(row.status),
+    trappedPersons: row.trapped_persons,
+    location: row.location_text,
+    // Round coordinates to ~1km precision for public safety without exact location
+    coordinates: [
+      Math.round(parseFloat(row.lat) * 100) / 100,
+      Math.round(parseFloat(row.lng) * 100) / 100,
+    ],
+    hasMedia: row.has_media,
+    confidence: row.ai_confidence,
+    timestamp: row.created_at,
+    updatedAt: row.updated_at,
+    // Explicitly omitted: reporter, mediaUrl, mediaType, aiAnalysis, operatorNotes
+  }
+}
+
 function formatReport(row: any): any {
   const customFields = typeof row.custom_fields === 'string'
     ? JSON.parse(row.custom_fields)
@@ -1841,3 +2090,4 @@ function toUiSeverity(severity: string): string {
 }
 
 export default router
+

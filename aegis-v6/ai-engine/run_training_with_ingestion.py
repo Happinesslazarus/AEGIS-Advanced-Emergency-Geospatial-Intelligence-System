@@ -1,7 +1,6 @@
 """
-═══════════════════════════════════════════════════════════════════════════════
  AEGIS AI ENGINE — Complete Training Pipeline with Real Data Ingestion
- 
+
  This script implements the full production-grade training workflow:
  1. Check database table row counts
  2. Run data ingestion if < 1000 rows available
@@ -9,7 +8,6 @@
  4. Execute model training with comprehensive logging
  5. Export trained models to registry
  6. Abort if any validation fails
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 import asyncio
@@ -25,63 +23,60 @@ from app.training.data_ingestion import RealDatasetIngestion
 from app.training.training_pipeline import TrainingPipeline
 from app.core.config import settings
 
-
 async def run_complete_training_pipeline():
     """
     Execute complete training pipeline with real data ingestion and validation.
     """
-    
-    logger.info("╔═══════════════════════════════════════════════════════════════════════════════╗")
-    logger.info("║       AEGIS AI ENGINE - PRODUCTION TRAINING PIPELINE WITH DATA INGESTION      ║")
-    logger.info("╚═══════════════════════════════════════════════════════════════════════════════╝")
+
     logger.info("")
-    
+    logger.info("       AEGIS AI ENGINE - PRODUCTION TRAINING PIPELINE WITH DATA INGESTION      ")
+    logger.info("")
+    logger.info("")
+
     # Configuration
     hazards = ["flood", "drought", "heatwave"]
     model_type = "random_forest"
     lookback_days = 180
-    
+
     end_date = datetime.now()
     start_date = end_date - timedelta(days=lookback_days)
-    
+
     ingestion = RealDatasetIngestion()
     pipeline = TrainingPipeline()
-    
+
     try:
-        # ════════════════════════════════════════════════════════════════════
         # PHASE 1: DATA INGESTION AND VALIDATION
-        # ════════════════════════════════════════════════════════════════════
-        
-        logger.info("╔═══════════════════════════════════════════════════════════════════════════════╗")
-        logger.info("║                        PHASE 1: DATA INGESTION                                ║")
-        logger.info("╚═══════════════════════════════════════════════════════════════════════════════╝")
+
         logger.info("")
-        
+        logger.info("                        PHASE 1: DATA INGESTION                                ")
+        logger.info("")
+        logger.info("")
+
         await ingestion.initialize(settings.DATABASE_URL)
-        
+
         # Check current row counts
         logger.info("[Pre-Ingestion Check] Examining database state...")
         initial_counts = await ingestion.check_table_row_counts()
         total_initial_reports = initial_counts.get('reports', 0)
-        
+
         logger.info(f"Current reports in database: {total_initial_reports}")
-        
+
         # Run data ingestion if insufficient data
         if total_initial_reports < RealDatasetIngestion.MINIMUM_REQUIRED_ROWS:
             logger.warning(
                 f"Insufficient data: {total_initial_reports} rows < {RealDatasetIngestion.MINIMUM_REQUIRED_ROWS} required"
             )
             logger.info("Initiating external dataset ingestion...")
-            
+
             try:
                 ingestion_stats = await ingestion.ingest_complete_training_dataset(
                     lookback_days=lookback_days
                 )
-                
+
                 logger.info("")
-                logger.info("╔═══════════════════════════════════════════════════════════════════════════════╗")
-                logger.info("║                       DATA INGESTION COMPLETE                                 ║")
-                logger.info("╚═══════════════════════════════════════════════════════════════════════════════╝")
+                logger.info("")
+                logger.info("                       DATA INGESTION COMPLETE                                 ")
+                logger.info("")
                 logger.info("")
                 logger.info("Dataset Source: UK Environment Agency Flood Monitoring API")
                 logger.info(f"Total Reports Ingested: {ingestion_stats['flood_ingested']}")
@@ -89,12 +84,12 @@ async def run_complete_training_pipeline():
                 logger.info(f"Final Report Count: {ingestion_stats['final_reports']}")
                 logger.info(f"Data Validation: {'✓ PASSED' if ingestion_stats['validation_passed'] else '✗ FAILED'}")
                 logger.info("")
-                
+
             except ValueError as e:
                 logger.error("")
-                logger.error("╔═══════════════════════════════════════════════════════════════════════════════╗")
-                logger.error("║                    DATA INGESTION FAILED                                      ║")
-                logger.error("╚═══════════════════════════════════════════════════════════════════════════════╝")
+                logger.error("")
+                logger.error("                    DATA INGESTION FAILED                                      ")
+                logger.error("")
                 logger.error(str(e))
                 logger.error("")
                 logger.error("TRAINING ABORTED: Cannot proceed without sufficient real data.")
@@ -105,28 +100,26 @@ async def run_complete_training_pipeline():
                 return
         else:
             logger.success(f"✓ Sufficient data available: {total_initial_reports} rows >= {RealDatasetIngestion.MINIMUM_REQUIRED_ROWS} required")
-        
+
         await ingestion.cleanup()
-        
-        # ════════════════════════════════════════════════════════════════════
+
         # PHASE 2: MODEL TRAINING
-        # ════════════════════════════════════════════════════════════════════
-        
+
         logger.info("")
-        logger.info("╔═══════════════════════════════════════════════════════════════════════════════╗")
-        logger.info("║                        PHASE 2: MODEL TRAINING                                ║")
-        logger.info("╚═══════════════════════════════════════════════════════════════════════════════╝")
         logger.info("")
-        
+        logger.info("                        PHASE 2: MODEL TRAINING                                ")
+        logger.info("")
+        logger.info("")
+
         training_results = {}
-        
+
         for hazard in hazards:
             logger.info("")
-            logger.info("┌───────────────────────────────────────────────────────────────────────────────┐")
-            logger.info(f"│  Training Model: {hazard.upper()} + {model_type.upper()}")
-            logger.info("└───────────────────────────────────────────────────────────────────────────────┘")
             logger.info("")
-            
+            logger.info(f"  Training Model: {hazard.upper()} + {model_type.upper()}")
+            logger.info("")
+            logger.info("")
+
             try:
                 result = await pipeline.train_model(
                     hazard_type=hazard,
@@ -137,16 +130,16 @@ async def run_complete_training_pipeline():
                     save_model=True,
                     experiment_name=f"{hazard}_{model_type}_production"
                 )
-                
+
                 training_results[hazard] = result
-                
+
                 logger.info("")
-                logger.info("┌───────────────────────────────────────────────────────────────────────────────┐")
-                logger.info(f"│  {hazard.upper()} MODEL TRAINING COMPLETE")
-                logger.info("└───────────────────────────────────────────────────────────────────────────────┘")
+                logger.info("")
+                logger.info(f"  {hazard.upper()} MODEL TRAINING COMPLETE")
+                logger.info("")
                 logger.info(f"Model Version: {result.get('model_version', 'N/A')}")
                 logger.info(f"Model Path: {result.get('model_path', 'N/A')}")
-                
+
                 metrics = result.get('metrics', {})
                 logger.info("")
                 logger.info("Final Training Metrics:")
@@ -156,34 +149,32 @@ async def run_complete_training_pipeline():
                 logger.info(f"  • F1 Score: {metrics.get('f1', 0):.4f}")
                 logger.info(f"  • ROC AUC: {metrics.get('roc_auc', 0):.4f}")
                 logger.info("")
-                
+
             except Exception as e:
                 logger.error(f"✗ Training failed for {hazard}: {e}")
                 training_results[hazard] = {"status": "failed", "error": str(e)}
-        
-        # ════════════════════════════════════════════════════════════════════
+
         # PHASE 3: FINAL REPORT
-        # ════════════════════════════════════════════════════════════════════
-        
+
         logger.info("")
-        logger.info("╔═══════════════════════════════════════════════════════════════════════════════╗")
-        logger.info("║                      TRAINING PIPELINE COMPLETE                               ║")
-        logger.info("╚═══════════════════════════════════════════════════════════════════════════════╝")
+        logger.info("")
+        logger.info("                      TRAINING PIPELINE COMPLETE                               ")
+        logger.info("")
         logger.info("")
         logger.info("Summary:")
-        
+
         successful = sum(1 for r in training_results.values() if r.get('metrics'))
         failed = len(training_results) - successful
-        
+
         logger.info(f"  • Total hazards trained: {len(hazards)}")
         logger.info(f"  • Successful: {successful}")
         logger.info(f"  • Failed: {failed}")
         logger.info("")
-        
+
         for hazard, result in training_results.items():
             status = "✓ SUCCESS" if result.get('metrics') else "✗ FAILED"
             logger.info(f"  {hazard.ljust(12)}: {status}")
-        
+
         logger.info("")
         logger.info("Next Steps:")
         logger.info("  1. Restart AI Engine to load newly trained models")
@@ -191,7 +182,7 @@ async def run_complete_training_pipeline():
         logger.info("  3. Monitor model performance on live data")
         logger.info("  4. Set up automated retraining schedule")
         logger.info("")
-        
+
     except Exception as e:
         logger.exception(f"Pipeline execution failed: {e}")
         raise
@@ -199,7 +190,6 @@ async def run_complete_training_pipeline():
         # Cleanup
         if ingestion.db_pool:
             await ingestion.cleanup()
-
 
 if __name__ == "__main__":
     asyncio.run(run_complete_training_pipeline())

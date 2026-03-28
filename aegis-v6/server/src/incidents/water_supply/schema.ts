@@ -42,3 +42,4 @@ export function sanitizeWaterSupplyCustomFields(fields: Record<string, unknown>)
     alternativeSupply: typeof fields.alternativeSupply === 'boolean' ? fields.alternativeSupply : undefined
   }
 }
+

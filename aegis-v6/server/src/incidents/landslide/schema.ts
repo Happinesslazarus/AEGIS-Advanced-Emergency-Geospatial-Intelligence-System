@@ -40,3 +40,4 @@ export function sanitizeLandslideCustomFields(fields: Record<string, unknown>): 
     structuresDamaged: typeof fields.structuresDamaged === 'boolean' ? fields.structuresDamaged : undefined
   }
 }
+

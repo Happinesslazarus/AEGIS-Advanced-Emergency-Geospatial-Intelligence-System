@@ -19,7 +19,7 @@ interface QueueItem {
 }
 
 const STATUS_CONFIG: Record<QueueStatus, { label: string; color: string; bg: string; border: string }> = {
-  unassigned:  { label: 'Unassigned',  color: 'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300',   bg: 'bg-gray-500/10',    border: 'border-gray-500/20' },
+  unassigned:  { label: 'Unassigned',  color: 'text-gray-500 dark:text-gray-300',   bg: 'bg-gray-500/10',    border: 'border-gray-500/20' },
   assigned:    { label: 'Assigned',    color: 'text-blue-500',   bg: 'bg-blue-500/10',    border: 'border-blue-500/20' },
   in_progress: { label: 'In Progress', color: 'text-amber-500',  bg: 'bg-amber-500/10',   border: 'border-amber-500/20' },
   escalated:   { label: 'Escalated',   color: 'text-red-500',    bg: 'bg-red-500/10',     border: 'border-red-500/20' },
@@ -134,7 +134,7 @@ export default function IncidentQueue({ reports, currentUser, onNotify }: Incide
           </div>
           <div>
             <h3 className="font-extrabold text-sm text-gray-900 dark:text-white">{t('admin.queue.title', lang)}</h3>
-            <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{queueItems.length} {t('admin.queue.activeIncidents', lang)} &middot; {counts.unassigned} {t('admin.queue.unassigned', lang)}</p>
+            <p className="text-[10px] text-gray-500 dark:text-gray-300">{queueItems.length} {t('admin.queue.activeIncidents', lang)} &middot; {counts.unassigned} {t('admin.queue.unassigned', lang)}</p>
           </div>
         </div>
 
@@ -153,7 +153,7 @@ export default function IncidentQueue({ reports, currentUser, onNotify }: Incide
                     ? isAll
                       ? 'bg-aegis-500/15 text-aegis-600 dark:text-aegis-400 border-aegis-500/30'
                       : `${cfg!.bg} ${cfg!.color} ${cfg!.border}`
-                    : 'bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800'
+                    : 'bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800'
                 }`}
               >
                 {isAll ? 'All' : cfg!.label} ({count})
@@ -168,8 +168,8 @@ export default function IncidentQueue({ reports, currentUser, onNotify }: Incide
         {filteredItems.length === 0 ? (
           <div className="px-5 py-10 text-center">
             <CheckCircle2 className="w-10 h-10 text-green-300 dark:text-green-700 mx-auto mb-2" />
-            <p className="text-sm font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('admin.queue.noIncidents', lang)}</p>
-            <p className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-1">{t('admin.queue.noIncidentsDesc', lang)}</p>
+            <p className="text-sm font-semibold text-gray-500 dark:text-gray-300">{t('admin.queue.noIncidents', lang)}</p>
+            <p className="text-[10px] text-gray-400 dark:text-gray-300 mt-1">{t('admin.queue.noIncidentsDesc', lang)}</p>
           </div>
         ) : (
           filteredItems.map(item => {
@@ -201,11 +201,11 @@ export default function IncidentQueue({ reports, currentUser, onNotify }: Incide
                         {item.report.severity}
                       </span>
                       {item.report.reportNumber && (
-                        <span className="text-[9px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-mono">#{item.report.reportNumber}</span>
+                        <span className="text-[9px] text-gray-400 dark:text-gray-300 font-mono">#{item.report.reportNumber}</span>
                       )}
                     </div>
 
-                    <div className="flex items-center gap-3 mt-1 text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+                    <div className="flex items-center gap-3 mt-1 text-[10px] text-gray-500 dark:text-gray-300">
                       <span className="truncate max-w-[200px]">{item.report.location}</span>
                       <span className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />{timeSince}
@@ -219,11 +219,11 @@ export default function IncidentQueue({ reports, currentUser, onNotify }: Incide
                   </div>
 
                   {/* Action buttons */}
-                  <div className="flex items-center gap-1 flex-shrink-0 opacity-70 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-1 flex-shrink-0 opacity-70 group-hover:opacity-100 transition-opacity flex-wrap">
                     {item.queueStatus === 'unassigned' && (
                       <button
                         onClick={() => handleAssignSelf(item.report.id)}
-                        className="flex items-center gap-1 text-[9px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 border border-blue-200 dark:border-blue-500/20 px-2 py-1 rounded-lg transition-all"
+                        className="flex items-center gap-1 text-[9px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 border border-blue-200 dark:border-blue-500/20 px-2 py-1.5 rounded-lg transition-all min-h-[32px]"
                         title="Assign to self"
                       >
                         <UserPlus className="w-3 h-3" />
@@ -233,7 +233,7 @@ export default function IncidentQueue({ reports, currentUser, onNotify }: Incide
                     {(item.queueStatus === 'assigned' || item.queueStatus === 'unassigned') && (
                       <button
                         onClick={() => handleMarkInProgress(item.report.id)}
-                        className="flex items-center gap-1 text-[9px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 border border-amber-200 dark:border-amber-500/20 px-2 py-1 rounded-lg transition-all"
+                        className="flex items-center gap-1 text-[9px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 border border-amber-200 dark:border-amber-500/20 px-2 py-1.5 rounded-lg transition-all min-h-[32px]"
                         title="Mark in progress"
                       >
                         <Siren className="w-3 h-3" />
@@ -243,7 +243,7 @@ export default function IncidentQueue({ reports, currentUser, onNotify }: Incide
                     {item.queueStatus !== 'resolved' && item.queueStatus !== 'escalated' && (
                       <button
                         onClick={() => handleEscalate(item.report.id)}
-                        className="flex items-center gap-1 text-[9px] font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 border border-red-200 dark:border-red-500/20 px-2 py-1 rounded-lg transition-all"
+                        className="flex items-center gap-1 text-[9px] font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 border border-red-200 dark:border-red-500/20 px-2 py-1.5 rounded-lg transition-all min-h-[32px]"
                         title="Escalate"
                       >
                         <ArrowUpRight className="w-3 h-3" />
@@ -253,7 +253,7 @@ export default function IncidentQueue({ reports, currentUser, onNotify }: Incide
                     {item.assignee && item.queueStatus !== 'resolved' && (
                       <button
                         onClick={() => handleReassign(item.report.id)}
-                        className="flex items-center gap-1 text-[9px] font-bold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2 py-1 rounded-lg transition-all"
+                        className="flex items-center gap-1 text-[9px] font-bold text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2 py-1.5 rounded-lg transition-all min-h-[32px]"
                         title="Reassign"
                       >
                         <RotateCcw className="w-3 h-3" />
@@ -263,7 +263,7 @@ export default function IncidentQueue({ reports, currentUser, onNotify }: Incide
                     {item.queueStatus === 'in_progress' && (
                       <button
                         onClick={() => handleMarkResolved(item.report.id)}
-                        className="flex items-center gap-1 text-[9px] font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-500/10 hover:bg-green-100 dark:hover:bg-green-500/20 border border-green-200 dark:border-green-500/20 px-2 py-1 rounded-lg transition-all"
+                        className="flex items-center gap-1 text-[9px] font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-500/10 hover:bg-green-100 dark:hover:bg-green-500/20 border border-green-200 dark:border-green-500/20 px-2 py-1.5 rounded-lg transition-all min-h-[32px]"
                         title="Mark resolved"
                       >
                         <CheckCircle2 className="w-3 h-3" />
@@ -279,14 +279,14 @@ export default function IncidentQueue({ reports, currentUser, onNotify }: Incide
       </div>
 
       {/* Footer summary */}
-      <div className="px-5 py-3 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50 flex items-center justify-between">
-        <div className="flex items-center gap-4 text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+      <div className="px-3 sm:px-5 py-3 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+        <div className="flex items-center gap-2 sm:gap-4 text-[10px] text-gray-500 dark:text-gray-300 flex-wrap">
           <span><strong className="text-red-500">{counts.escalated}</strong> escalated</span>
           <span><strong className="text-amber-500">{counts.in_progress}</strong> in progress</span>
           <span><strong className="text-blue-500">{counts.assigned}</strong> assigned</span>
-          <span><strong className="text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{counts.unassigned}</strong> awaiting</span>
+          <span><strong className="text-gray-600 dark:text-gray-300">{counts.unassigned}</strong> awaiting</span>
         </div>
-        <span className="text-[9px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">Updated {new Date().toLocaleTimeString()}</span>
+        <span className="text-[9px] text-gray-400 dark:text-gray-300">Updated {new Date().toLocaleTimeString()}</span>
       </div>
     </div>
   )
@@ -303,8 +303,4 @@ function getTimeSince(timestamp: string): string {
   const days = Math.floor(hrs / 24)
   return `${days}d ago`
 }
-
-
-
-
-
+

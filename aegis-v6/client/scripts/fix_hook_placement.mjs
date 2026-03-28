@@ -1,5 +1,4 @@
-/**
- * Fix script: move useLanguage() from inside function parameter destructuring
+﻿ * Fix script: move useLanguage() from inside function parameter destructuring
  * to the function body (after the opening brace).
  */
 import { readFileSync, writeFileSync } from 'fs'
@@ -67,3 +66,4 @@ for (const rel of FILES) {
     console.log(`WARN ${rel} — could not find function body opening`)
   }
 }
+

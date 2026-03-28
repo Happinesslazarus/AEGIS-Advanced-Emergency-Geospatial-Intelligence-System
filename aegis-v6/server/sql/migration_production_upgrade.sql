@@ -1,7 +1,5 @@
--- ═══════════════════════════════════════════════════════════════════════════════
 --  AEGIS v6.9 — Production Upgrade Migration
 --  PostgreSQL 14+ with PostGIS + pgvector
---
 --  Adds tables for:
 --    • LLM chat sessions and messages (AI chatbot)
 --    • RAG document store with vector embeddings
@@ -15,15 +13,12 @@
 --    • Training labels (human-in-the-loop)
 --    • Shelter locations (emergency infrastructure)
 --    • Scheduled jobs log (cron audit trail)
---
 --  Prerequisites:
 --    • Run AFTER schema.sql and migration_citizen_system.sql
 --    • pgvector extension must be available on the server
 --      (install via: CREATE EXTENSION vector;)
---
 --  Usage:
 --    psql -U postgres -d aegis -f migration_production_upgrade.sql
--- ═══════════════════════════════════════════════════════════════════════════════
 
 -- Each statement runs independently so a single failure doesn't
 -- abort the entire migration. pgvector is optional — RAG works
@@ -36,10 +31,7 @@ EXCEPTION WHEN OTHERS THEN
     RAISE NOTICE 'pgvector extension not available — RAG will use full-text search fallback';
 END $$;
 
-
--- ─────────────────────────────────────────────────────────────────────────────
 -- §1  ENUM TYPES
--- ─────────────────────────────────────────────────────────────────────────────
 
 DO $$ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'chat_session_status') THEN
@@ -57,10 +49,7 @@ DO $$ BEGIN
     END IF;
 END $$;
 
-
--- ─────────────────────────────────────────────────────────────────────────────
 -- §2  CHAT SESSIONS (LLM-powered chatbot conversations)
--- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS chat_sessions (
     id              UUID                PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -81,10 +70,7 @@ CREATE INDEX IF NOT EXISTS idx_chat_sessions_citizen
 CREATE INDEX IF NOT EXISTS idx_chat_sessions_status
     ON chat_sessions (status) WHERE status = 'active';
 
-
--- ─────────────────────────────────────────────────────────────────────────────
 -- §3  CHAT MESSAGES (individual messages within a session)
--- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS chat_messages (
     id              UUID                PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -102,10 +88,7 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 CREATE INDEX IF NOT EXISTS idx_chat_messages_session
     ON chat_messages (session_id, created_at ASC);
 
-
--- ─────────────────────────────────────────────────────────────────────────────
 -- §4  RAG DOCUMENTS (knowledge base for retrieval-augmented generation)
--- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS rag_documents (
     id              UUID            PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -139,10 +122,7 @@ CREATE INDEX IF NOT EXISTS idx_rag_documents_type
 CREATE INDEX IF NOT EXISTS idx_rag_documents_source
     ON rag_documents (source);
 
-
--- ─────────────────────────────────────────────────────────────────────────────
 -- §5  RESPONSE CACHE (avoid redundant LLM calls for repeated questions)
--- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS response_cache (
     id              UUID            PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -162,10 +142,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_response_cache_hash
 CREATE INDEX IF NOT EXISTS idx_response_cache_expires
     ON response_cache (expires_at);
 
-
--- ─────────────────────────────────────────────────────────────────────────────
 -- §6  CONSENT RECORDS (GDPR Article 7 — proof of consent)
--- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS consent_records (
     id              UUID                PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -185,10 +162,7 @@ CREATE INDEX IF NOT EXISTS idx_consent_records_citizen
 CREATE INDEX IF NOT EXISTS idx_consent_records_type
     ON consent_records (consent_type, granted);
 
-
--- ─────────────────────────────────────────────────────────────────────────────
 -- §7  EXTERNAL ALERTS (ingested from SEPA RSS, Met Office, EA)
--- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS external_alerts (
     id              UUID            PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -217,10 +191,7 @@ CREATE INDEX IF NOT EXISTS idx_external_alerts_geo
 CREATE INDEX IF NOT EXISTS idx_external_alerts_ingested
     ON external_alerts (ingested_at DESC);
 
-
--- ─────────────────────────────────────────────────────────────────────────────
 -- §8  HAZARD MODULES (universal architecture — per-region hazard config)
--- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS hazard_modules (
     id              UUID            PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -237,10 +208,7 @@ CREATE TABLE IF NOT EXISTS hazard_modules (
 CREATE UNIQUE INDEX IF NOT EXISTS uq_hazard_modules_type_region
     ON hazard_modules (hazard_type, region_id);
 
-
--- ─────────────────────────────────────────────────────────────────────────────
 -- §9  ZONE RISK SCORES (computed risk layers per zone per hazard)
--- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS zone_risk_scores (
     id                      UUID            PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -263,10 +231,7 @@ CREATE INDEX IF NOT EXISTS idx_zone_risk_scores_hazard
 CREATE INDEX IF NOT EXISTS idx_zone_risk_scores_computed
     ON zone_risk_scores (computed_at DESC);
 
-
--- ─────────────────────────────────────────────────────────────────────────────
 -- §10  MODEL DRIFT METRICS (detect degradation in production models)
--- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS model_drift_metrics (
     id              UUID            PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -280,16 +245,25 @@ CREATE TABLE IF NOT EXISTS model_drift_metrics (
     computed_at     TIMESTAMPTZ     NOT NULL DEFAULT now()
 );
 
+ALTER TABLE model_drift_metrics
+    ADD COLUMN IF NOT EXISTS model_name VARCHAR(100),
+    ADD COLUMN IF NOT EXISTS model_version VARCHAR(50),
+    ADD COLUMN IF NOT EXISTS metric_name VARCHAR(100),
+    ADD COLUMN IF NOT EXISTS baseline_value NUMERIC(10,4),
+    ADD COLUMN IF NOT EXISTS current_value NUMERIC(10,4),
+    ADD COLUMN IF NOT EXISTS computed_at TIMESTAMPTZ DEFAULT now();
+
+UPDATE model_drift_metrics
+SET computed_at = COALESCE(computed_at, created_at, now())
+WHERE computed_at IS NULL;
+
 CREATE INDEX IF NOT EXISTS idx_model_drift_model
     ON model_drift_metrics (model_name, model_version, computed_at DESC);
 
 CREATE INDEX IF NOT EXISTS idx_model_drift_detected
     ON model_drift_metrics (drift_detected) WHERE drift_detected = true;
 
-
--- ─────────────────────────────────────────────────────────────────────────────
 -- §11  DAMAGE ESTIMATES (AI-generated impact assessments)
--- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS damage_estimates (
     id                  UUID            PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -307,10 +281,7 @@ CREATE TABLE IF NOT EXISTS damage_estimates (
 CREATE INDEX IF NOT EXISTS idx_damage_estimates_report
     ON damage_estimates (report_id) WHERE report_id IS NOT NULL;
 
-
--- ─────────────────────────────────────────────────────────────────────────────
 -- §12  TRAINING LABELS (human-in-the-loop annotation for model improvement)
--- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS training_labels (
     id              UUID            PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -328,10 +299,7 @@ CREATE INDEX IF NOT EXISTS idx_training_labels_report
 CREATE INDEX IF NOT EXISTS idx_training_labels_type
     ON training_labels (label_type);
 
-
--- ─────────────────────────────────────────────────────────────────────────────
 -- §13  SHELTERS (emergency infrastructure locations)
--- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS shelters (
     id              UUID                    PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -354,10 +322,7 @@ CREATE INDEX IF NOT EXISTS idx_shelters_geo
 CREATE INDEX IF NOT EXISTS idx_shelters_active
     ON shelters (is_active) WHERE is_active = true;
 
-
--- ─────────────────────────────────────────────────────────────────────────────
 -- §14  SCHEDULED JOBS LOG (cron execution audit trail)
--- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS scheduled_jobs (
     id              UUID            PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -373,10 +338,7 @@ CREATE TABLE IF NOT EXISTS scheduled_jobs (
 CREATE INDEX IF NOT EXISTS idx_scheduled_jobs_name
     ON scheduled_jobs (job_name, started_at DESC);
 
-
--- ─────────────────────────────────────────────────────────────────────────────
 -- §15  CITIZENS TABLE EXTENSIONS (profile fields from v6.8)
--- ─────────────────────────────────────────────────────────────────────────────
 
 ALTER TABLE citizens
     ADD COLUMN IF NOT EXISTS bio             TEXT,
@@ -384,10 +346,7 @@ ALTER TABLE citizens
     ADD COLUMN IF NOT EXISTS status_color    VARCHAR(10) DEFAULT 'green',
     ADD COLUMN IF NOT EXISTS vulnerability_flag BOOLEAN NOT NULL DEFAULT false;
 
-
--- ─────────────────────────────────────────────────────────────────────────────
 -- §16  TRIGGERS
--- ─────────────────────────────────────────────────────────────────────────────
 
 -- chat_sessions updated_at
 DROP TRIGGER IF EXISTS trg_chat_sessions_updated_at ON chat_sessions;
@@ -417,10 +376,7 @@ CREATE TRIGGER trg_shelters_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION set_updated_at();
 
-
--- ─────────────────────────────────────────────────────────────────────────────
 -- §17  SEED DATA — RAG Documents (emergency guidance knowledge base)
--- ─────────────────────────────────────────────────────────────────────────────
 
 INSERT INTO rag_documents (title, content, source, doc_type, chunk_index) VALUES
     ('Flood Safety Guide',
@@ -448,10 +404,7 @@ INSERT INTO rag_documents (title, content, source, doc_type, chunk_index) VALUES
      'AEGIS Community Guide', 'help', 0)
 ON CONFLICT DO NOTHING;
 
-
--- ─────────────────────────────────────────────────────────────────────────────
 -- §18  SEED DATA — Sample Shelters
--- ─────────────────────────────────────────────────────────────────────────────
 
 INSERT INTO shelters (name, address, coordinates, capacity, shelter_type, amenities, phone) VALUES
     ('Aberdeen Exhibition & Conference Centre',

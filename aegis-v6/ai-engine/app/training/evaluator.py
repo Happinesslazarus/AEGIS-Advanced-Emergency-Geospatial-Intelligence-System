@@ -34,7 +34,6 @@ except ImportError:
     SHAP_AVAILABLE = False
     logger.warning("SHAP not available, explainability features limited")
 
-
 class ModelEvaluator:
     """
     Evaluate model performance with metrics from config.yaml.
@@ -399,4 +398,4 @@ class ModelEvaluator:
         logger.success("Model comparison complete")
         
         return comparison_df
-
+

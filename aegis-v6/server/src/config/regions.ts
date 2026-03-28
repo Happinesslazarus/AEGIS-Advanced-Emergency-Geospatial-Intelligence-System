@@ -36,7 +36,7 @@ export const REGIONS: Record<string, RegionConfig> = {
         layers: 'sepa:fld_FluvialHighLikelihood',
         format: 'image/png',
         transparent: true,
-        attribution: '© SEPA',
+        attribution: '— SEPA',
       },
       {
         name: 'SEPA Flood Map — River (Medium)',
@@ -44,7 +44,7 @@ export const REGIONS: Record<string, RegionConfig> = {
         layers: 'sepa:fld_FluvialMediumLikelihood',
         format: 'image/png',
         transparent: true,
-        attribution: '© SEPA',
+        attribution: '— SEPA',
       },
       {
         name: 'SEPA Flood Map — Surface Water',
@@ -52,7 +52,7 @@ export const REGIONS: Record<string, RegionConfig> = {
         layers: 'sepa:fld_PluvialHighLikelihood',
         format: 'image/png',
         transparent: true,
-        attribution: '© SEPA',
+        attribution: '— SEPA',
       },
       {
         name: 'SEPA Flood Map — Coastal',
@@ -60,7 +60,7 @@ export const REGIONS: Record<string, RegionConfig> = {
         layers: 'sepa:fld_CoastalHighLikelihood',
         format: 'image/png',
         transparent: true,
-        attribution: '© SEPA',
+        attribution: '— SEPA',
       },
     ],
     rivers: [
@@ -89,7 +89,7 @@ export const REGIONS: Record<string, RegionConfig> = {
         layers: 'Flood_Map_for_Planning_Rivers_and_Sea_Flood_Zone_3',
         format: 'image/png',
         transparent: true,
-        attribution: '© Environment Agency',
+        attribution: '— Environment Agency',
       },
       {
         name: 'EA Flood Zone 2',
@@ -97,7 +97,7 @@ export const REGIONS: Record<string, RegionConfig> = {
         layers: 'Flood_Map_for_Planning_Rivers_and_Sea_Flood_Zone_2',
         format: 'image/png',
         transparent: true,
-        attribution: '© Environment Agency',
+        attribution: '— Environment Agency',
       },
     ],
     rivers: [
@@ -126,7 +126,7 @@ export const REGIONS: Record<string, RegionConfig> = {
         layers: 'NRW:Fluvial_Flood_Map_for_Planning_High_Risk',
         format: 'image/png',
         transparent: true,
-        attribution: '© Natural Resources Wales',
+        attribution: '— Natural Resources Wales',
       },
       {
         name: 'NRW Flood Map — Surface Water',
@@ -134,7 +134,7 @@ export const REGIONS: Record<string, RegionConfig> = {
         layers: 'NRW:Surface_Water_Flood_Map_High_Risk',
         format: 'image/png',
         transparent: true,
-        attribution: '© Natural Resources Wales',
+        attribution: '— Natural Resources Wales',
       },
     ],
     rivers: [
@@ -162,7 +162,7 @@ export const REGIONS: Record<string, RegionConfig> = {
         layers: 'Fluvial_Flood_Extent_High',
         format: 'image/png',
         transparent: true,
-        attribution: '© Department for Infrastructure Northern Ireland',
+        attribution: '— Department for Infrastructure Northern Ireland',
       },
       {
         name: 'DfI Flood Map — Coastal',
@@ -170,7 +170,7 @@ export const REGIONS: Record<string, RegionConfig> = {
         layers: 'Coastal_Flood_Extent_High',
         format: 'image/png',
         transparent: true,
-        attribution: '© Department for Infrastructure Northern Ireland',
+        attribution: '— Department for Infrastructure Northern Ireland',
       },
     ],
     rivers: [
@@ -180,7 +180,7 @@ export const REGIONS: Record<string, RegionConfig> = {
   },
 }
 
-/**
+ /**
  * Get the active region config. Falls back to Scotland if the
  * AEGIS_REGION env var is unset or points to an unknown region.
  */
@@ -189,7 +189,7 @@ export function getActiveRegion(): RegionConfig {
   return REGIONS[regionId] || REGIONS.scotland
 }
 
-/**
+ /**
  * List all available region IDs for admin selection dropdowns.
  */
 export function listRegionIds(): string[] {

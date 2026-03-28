@@ -4,11 +4,12 @@
  */
 
 import type { IncidentPrediction } from '../types.js'
+import { logger } from '../../services/logger.js'
 
 const AI_ENGINE_URL = process.env.AI_ENGINE_URL || 'http://localhost:8000'
 
 export class WildfireAIClient {
-  /**
+   /**
    * Get ML-based wildfire predictions from AI engine
    */
   static async getPredictions(region: string, features: Record<string, unknown>): Promise<IncidentPrediction[]> {
@@ -48,7 +49,7 @@ export class WildfireAIClient {
         modelVersion: data.model_version || 'wildfire_v1.0'
       }]
     } catch (error) {
-      console.error(`Wildfire AI client error: ${error}`)
+      logger.error({ err: error }, '[Wildfire/AIClient] Prediction failed')
       // Return fallback prediction
       return [{
         incidentType: 'wildfire',
@@ -65,7 +66,7 @@ export class WildfireAIClient {
     }
   }
 
-  /**
+   /**
    * Check if AI engine is available
    */
   static async healthCheck(): Promise<boolean> {

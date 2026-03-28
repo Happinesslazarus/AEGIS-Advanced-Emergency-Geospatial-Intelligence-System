@@ -3,12 +3,13 @@
  */
 
 import { Router, Request, Response } from 'express'
+import { regionRegistry } from '../../adapters/regions/RegionRegistry.js'
 
 export function setupEnvironmentalHazardRoutes(router: Router): void {
   // GET /air-quality — current air quality readings
   router.get('/air-quality', async (req: Request, res: Response) => {
     try {
-      const region = String(req.query.region || process.env.REGION_ID || 'aberdeen_scotland_uk')
+      const region = String(req.query.region || process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId)
       res.json({
         incidentType: 'environmental_hazard',
         region,
@@ -30,7 +31,7 @@ export function setupEnvironmentalHazardRoutes(router: Router): void {
   // GET /pollutant-levels — detailed pollutant levels
   router.get('/pollutant-levels', async (req: Request, res: Response) => {
     try {
-      const region = String(req.query.region || process.env.REGION_ID || 'aberdeen_scotland_uk')
+      const region = String(req.query.region || process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId)
       const pollutant = String(req.query.pollutant || 'pm25')
       res.json({
         incidentType: 'environmental_hazard',
@@ -48,7 +49,7 @@ export function setupEnvironmentalHazardRoutes(router: Router): void {
   // GET /health-advisory — health advisory based on air quality
   router.get('/health-advisory', async (req: Request, res: Response) => {
     try {
-      const region = String(req.query.region || process.env.REGION_ID || 'aberdeen_scotland_uk')
+      const region = String(req.query.region || process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId)
       res.json({
         incidentType: 'environmental_hazard',
         region,
@@ -65,3 +66,4 @@ export function setupEnvironmentalHazardRoutes(router: Router): void {
     }
   })
 }
+

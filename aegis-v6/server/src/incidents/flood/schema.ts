@@ -42,3 +42,4 @@ export function sanitizeFloodCustomFields(fields: Record<string, unknown>): Floo
     riverName: typeof fields.riverName === 'string' ? fields.riverName : undefined
   }
 }
+

@@ -5,7 +5,7 @@
 import type { AlertRuleContext, AlertRuleResult } from '../types.js'
 
 export class PowerOutageAlertRules {
-  /**
+   /**
    * Evaluate power outage alert rules based on context
    */
   static evaluate(context: AlertRuleContext): AlertRuleResult[] {

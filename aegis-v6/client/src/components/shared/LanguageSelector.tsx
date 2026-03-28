@@ -30,7 +30,7 @@ export default function LanguageSelector({ darkNav = false, className = '' }: La
         : 'bg-white border-gray-200 hover:bg-gray-50'
     } transition-colors ${className}`}>
       <Globe className={`w-4 h-4 ml-2 flex-shrink-0 ${
-        isDark ? 'text-aegis-400' : 'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'
+        isDark ? 'text-aegis-400' : 'text-gray-500 dark:text-gray-300'
       }`} />
       <select
         value={selectedLang}
@@ -61,7 +61,4 @@ export default function LanguageSelector({ darkNav = false, className = '' }: La
     </div>
   )
 }
-
-
-
-
+

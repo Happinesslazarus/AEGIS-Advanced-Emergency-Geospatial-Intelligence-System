@@ -1,0 +1,32 @@
+# AEGIS Prometheus Configuration
+# Scrapes metrics from the Express server and AI engine.
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# Route fired alerts to Alertmanager
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+
+rule_files:
+  - /etc/prometheus/rules.yml
+
+scrape_configs:
+  # Express API Server
+  - job_name: 'aegis-server'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['server:3001']
+        labels:
+          service: server
+
+  # Python AI Engine
+  - job_name: 'aegis-ai-engine'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['ai:8000']
+        labels:
+          service: ai-engine

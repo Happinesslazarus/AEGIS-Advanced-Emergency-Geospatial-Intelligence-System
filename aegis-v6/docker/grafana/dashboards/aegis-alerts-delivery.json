@@ -1,0 +1,65 @@
+{
+  "uid": "aegis-alerts-delivery",
+  "title": "AEGIS — Alert Delivery",
+  "tags": ["aegis", "alerts"],
+  "timezone": "browser",
+  "refresh": "15s",
+  "time": { "from": "now-3h", "to": "now" },
+  "panels": [
+    {
+      "title": "Alerts Broadcast (total)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [{ "expr": "alert_broadcasts_total", "legendFormat": "Total", "refId": "A" }]
+    },
+    {
+      "title": "Delivery Rate by Channel",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 6, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [
+        { "expr": "sum(rate(alert_delivery_total{status=\"sent\"}[5m])) by (channel)", "legendFormat": "sent:{{ channel }}", "refId": "A" },
+        { "expr": "sum(rate(alert_delivery_total{status=\"failed\"}[5m])) by (channel)", "legendFormat": "failed:{{ channel }}", "refId": "B" }
+      ]
+    },
+    {
+      "title": "Delivery Failure Rate (%)",
+      "type": "gauge",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "fieldConfig": {
+        "defaults": { "min": 0, "max": 100, "thresholds": { "steps": [{ "value": 0, "color": "green" }, { "value": 10, "color": "yellow" }, { "value": 25, "color": "red" }] } }
+      },
+      "targets": [{ "expr": "100 * (sum(rate(alert_delivery_total{status=\"failed\"}[15m])) / clamp_min(sum(rate(alert_delivery_total[15m])), 0.001))", "legendFormat": "Failure %", "refId": "A" }]
+    },
+    {
+      "title": "Delivery Success vs Failure",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 4 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [
+        { "expr": "sum(increase(alert_delivery_total{status=\"sent\"}[1h]))", "legendFormat": "Sent", "refId": "A" },
+        { "expr": "sum(increase(alert_delivery_total{status=\"failed\"}[1h]))", "legendFormat": "Failed", "refId": "B" }
+      ]
+    },
+    {
+      "title": "Delivery by Channel (1h)",
+      "type": "barchart",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [
+        { "expr": "sum(increase(alert_delivery_total[1h])) by (channel, status)", "legendFormat": "{{ channel }}:{{ status }}", "refId": "A" }
+      ]
+    },
+    {
+      "title": "Report Submissions",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [
+        { "expr": "rate(report_submissions_total[5m]) * 60", "legendFormat": "Reports/min", "refId": "A" }
+      ]
+    }
+  ]
+}

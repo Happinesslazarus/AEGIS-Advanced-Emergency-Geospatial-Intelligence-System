@@ -1,0 +1,123 @@
+{
+  "uid": "aegis-system-health",
+  "title": "AEGIS — System Health",
+  "tags": ["aegis", "system"],
+  "timezone": "browser",
+  "refresh": "10s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    {
+      "title": "Server Status",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "fieldConfig": {
+        "defaults": { "mappings": [{ "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }] }
+      },
+      "targets": [{ "expr": "up{job=\"aegis-server\"}", "legendFormat": "Server", "refId": "A" }]
+    },
+    {
+      "title": "AI Engine Status",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "fieldConfig": {
+        "defaults": { "mappings": [{ "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }] }
+      },
+      "targets": [{ "expr": "up{job=\"aegis-ai-engine\"}", "legendFormat": "AI Engine", "refId": "A" }]
+    },
+    {
+      "title": "Request Rate",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [
+        { "expr": "sum(rate(http_requests_total[1m]))", "legendFormat": "Total req/s", "refId": "A" },
+        { "expr": "sum(rate(http_requests_total{status=~\"5..\"}[1m]))", "legendFormat": "5xx/s", "refId": "B" }
+      ]
+    },
+    {
+      "title": "Error Rate (%)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "fieldConfig": {
+        "defaults": { "unit": "percent", "thresholds": { "steps": [{ "value": 0, "color": "green" }, { "value": 1, "color": "yellow" }, { "value": 5, "color": "red" }] } }
+      },
+      "targets": [{ "expr": "100 * sum(rate(http_requests_total{status=~\"5..\"}[5m])) / clamp_min(sum(rate(http_requests_total[5m])), 0.001)", "legendFormat": "5xx %", "refId": "A" }]
+    },
+    {
+      "title": "WebSocket Connections",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [{ "expr": "active_websocket_connections", "legendFormat": "Active", "refId": "A" }]
+    },
+    {
+      "title": "Request Latency (p50/p95/p99)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [
+        { "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket{job=\"aegis-server\"}[5m])) by (le))", "legendFormat": "p50", "refId": "A" },
+        { "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"aegis-server\"}[5m])) by (le))", "legendFormat": "p95", "refId": "B" },
+        { "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{job=\"aegis-server\"}[5m])) by (le))", "legendFormat": "p99", "refId": "C" }
+      ]
+    },
+    {
+      "title": "DB Connection Pool",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "fieldConfig": {
+        "defaults": { "custom": { "stacking": { "mode": "normal" } } }
+      },
+      "targets": [
+        { "expr": "db_pool_active_connections", "legendFormat": "Active", "refId": "A" },
+        { "expr": "db_pool_idle_connections", "legendFormat": "Idle", "refId": "B" },
+        { "expr": "db_pool_waiting_count", "legendFormat": "Waiting", "refId": "C" }
+      ]
+    },
+    {
+      "title": "DB Query Latency (p95)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum(rate(db_query_duration_seconds_bucket[5m])) by (le, operation))", "legendFormat": "p95:{{ operation }}", "refId": "A" }
+      ]
+    },
+    {
+      "title": "Process Memory",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "fieldConfig": { "defaults": { "unit": "bytes" } },
+      "targets": [
+        { "expr": "aegis_process_resident_memory_bytes", "legendFormat": "RSS", "refId": "A" },
+        { "expr": "aegis_nodejs_heap_size_used_bytes", "legendFormat": "Heap Used", "refId": "B" },
+        { "expr": "aegis_nodejs_heap_size_total_bytes", "legendFormat": "Heap Total", "refId": "C" }
+      ]
+    },
+    {
+      "title": "SSE Chat Streams",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [
+        { "expr": "sse_connections_active", "legendFormat": "Active SSE", "refId": "A" },
+        { "expr": "sum(rate(chat_stream_total{status=\"success\"}[5m])) * 60", "legendFormat": "Success/min", "refId": "B" },
+        { "expr": "sum(rate(chat_stream_total{status=\"error\"}[5m])) * 60", "legendFormat": "Errors/min", "refId": "C" }
+      ]
+    },
+    {
+      "title": "Top Routes by Request Rate",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [
+        { "expr": "topk(10, sum(rate(http_requests_total[5m])) by (route))", "legendFormat": "{{ route }}", "refId": "A" }
+      ]
+    }
+  ]
+}

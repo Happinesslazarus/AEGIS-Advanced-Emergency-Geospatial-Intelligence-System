@@ -40,3 +40,4 @@ export function sanitizeSevereStormCustomFields(fields: Record<string, unknown>)
     roadsClosed: typeof fields.roadsClosed === 'boolean' ? fields.roadsClosed : undefined
   }
 }
+

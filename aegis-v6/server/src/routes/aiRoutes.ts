@@ -5,21 +5,41 @@
  * prediction capabilities to the frontend.
  */
 
-import { Router, Request, Response } from 'express'
+import { Router, Request, Response, NextFunction } from 'express'
+import crypto from 'crypto'
 import pool from '../models/db.js'
-import { authMiddleware, operatorOnly, AuthRequest } from '../middleware/auth.js'
+import { adminOnly, authMiddleware, operatorOnly, AuthRequest } from '../middleware/auth.js'
 import { aiClient } from '../services/aiClient.js'
 import { analyseImage } from '../services/imageAnalysisService.js'
 import { devLog } from '../utils/logger.js'
+import {
+  aiPredictionsTotal,
+  aiPredictionLatency,
+  aegisModelPredictionsTotal,
+  aegisModelAvgConfidence,
+  aegisModelDriftScore,
+  aegisModelAlertStatus,
+  aegisModelDegradedGauge,
+} from '../services/metrics.js'
+import { AppError } from '../utils/AppError.js'
+import { logger } from '../services/logger.js'
 
 const router = Router()
+
+function alertLevelToMetric(alertLevel: string): number {
+  const level = String(alertLevel || '').toUpperCase()
+  if (level === 'INFO') return 1
+  if (level === 'WARNING') return 2
+  if (level === 'CRITICAL') return 3
+  return 0
+}
 
 /*
  * POST /api/ai/predict
  * Generate AI-powered hazard prediction for a location.
  * Stores the prediction in PostgreSQL for audit and historical analysis.
  */
-router.post('/predict', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/predict', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const {
       hazard_type,
@@ -39,14 +59,12 @@ router.post('/predict', authMiddleware, operatorOnly, async (req: AuthRequest, r
       longitude === undefined ||
       longitude === null
     ) {
-      res.status(400).json({ error: 'Missing required fields' })
-      return
+      throw AppError.badRequest('Missing required fields')
     }
 
     // Validate coordinates
     if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
-      res.status(400).json({ error: 'Invalid coordinates' })
-      return
+      throw AppError.badRequest('Invalid coordinates')
     }
 
     devLog(
@@ -54,6 +72,7 @@ router.post('/predict', authMiddleware, operatorOnly, async (req: AuthRequest, r
     )
 
     // Call AI Engine
+    const predStart = Date.now()
     const prediction = await aiClient.predict({
       hazard_type,
       region_id,
@@ -69,11 +88,14 @@ router.post('/predict', authMiddleware, operatorOnly, async (req: AuthRequest, r
         hazard_type, region_id, probability, risk_level, confidence,
         predicted_peak_time, input_coordinates, affected_area,
         model_version, prediction_response, contributing_factors,
+        predicted_label, predicted_severity, top_shap_contributors,
+        input_feature_summary_hash,
         data_sources, requested_by, execution_time_ms, expires_at
       ) VALUES (
         $1, $2, $3, $4, $5, $6,
         ST_SetSRID(ST_MakePoint($7, $8), 4326),
-        $9, $10, $11, $12, $13, $14, $15, $16
+        $9, $10, $11, $12, $13, $14,
+        $15, $16, $17, $18, $19, $20
       ) RETURNING id
     `
 
@@ -95,8 +117,26 @@ router.post('/predict', authMiddleware, operatorOnly, async (req: AuthRequest, r
         }
       }
     } catch (polyErr: any) {
-      console.warn('[AI Predict] Skipping invalid geo_polygon:', polyErr.message)
+      logger.warn({ err: polyErr }, '[AI Predict] Skipping invalid geo_polygon')
     }
+
+    const topShapContributors = (prediction.contributing_factors || [])
+      .filter((f: any) => typeof f === 'object' && f !== null)
+      .sort((a: any, b: any) => Math.abs(Number(b.importance || 0)) - Math.abs(Number(a.importance || 0)))
+      .slice(0, 5)
+      .map((f: any) => ({ factor: f.factor || f.name, importance: Number(f.importance || 0), value: f.value }))
+
+    const inputFeatureSummaryHash = crypto
+      .createHash('sha256')
+      .update(JSON.stringify({
+        hazard_type,
+        region_id,
+        latitude,
+        longitude,
+        forecast_horizon: forecast_horizon || 48,
+        include_contributing_factors: include_contributing_factors !== false,
+      }))
+      .digest('hex')
 
     const result = await pool.query(insertQuery, [
       hazard_type,
@@ -111,13 +151,20 @@ router.post('/predict', authMiddleware, operatorOnly, async (req: AuthRequest, r
       prediction.model_version,
       JSON.stringify(prediction),
       JSON.stringify(prediction.contributing_factors || []),
-      JSON.stringify(prediction.data_sources || []),
+      prediction.risk_level,
+      prediction.risk_level,
+      JSON.stringify(topShapContributors),
+      inputFeatureSummaryHash,
+      Array.isArray(prediction.data_sources) ? prediction.data_sources.map(String) : [],
       req.user?.id || null,
       null, // execution_time_ms (could calculate from timestamps)
       prediction.expires_at || null
     ])
 
     devLog(`[AI Prediction] Stored prediction ${result.rows[0].id}`)
+    aiPredictionsTotal.inc({ hazard_type })
+    aiPredictionLatency.observe({ hazard_type }, (Date.now() - predStart) / 1000)
+    aegisModelPredictionsTotal.inc({ hazard: hazard_type, region: region_id, version: prediction.model_version || 'unknown' })
 
     // Broadcast to connected admin clients via socket.io (M18)
     const io = (req as any).app?.get('io')
@@ -139,12 +186,8 @@ router.post('/predict', authMiddleware, operatorOnly, async (req: AuthRequest, r
       ...prediction,
       prediction_id: result.rows[0].id
     })
-  } catch (err: any) {
-    console.error('[AI Prediction] Error:', err.message)
-    res.status(500).json({
-      error: 'Prediction failed',
-      message: err.message
-    })
+  } catch (err) {
+    next(err)
   }
 })
 
@@ -152,7 +195,7 @@ router.post('/predict', authMiddleware, operatorOnly, async (req: AuthRequest, r
  * GET /api/ai/predictions
  * Get historical AI predictions with optional filters
  */
-router.get('/predictions', authMiddleware, operatorOnly, async (req: Request, res: Response): Promise<void> => {
+router.get('/predictions', authMiddleware, operatorOnly, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const {
       hazard_type,
@@ -168,9 +211,13 @@ router.get('/predictions', authMiddleware, operatorOnly, async (req: Request, re
         region_id,
         probability,
         risk_level,
+        predicted_label,
+        predicted_severity,
         confidence,
         predicted_peak_time,
         model_version,
+        top_shap_contributors,
+        input_feature_summary_hash,
         ST_AsGeoJSON(input_coordinates)::json as location,
         ST_AsGeoJSON(affected_area)::json as affected_area_geojson,
         contributing_factors,
@@ -205,9 +252,8 @@ router.get('/predictions', authMiddleware, operatorOnly, async (req: Request, re
     const result = await pool.query(query, params)
 
     res.json(result.rows)
-  } catch (err: any) {
-    console.error('[AI Predictions] Fetch error:', err.message)
-    res.status(500).json({ error: 'Failed to fetch predictions' })
+  } catch (err) {
+    next(err)
   }
 })
 
@@ -215,7 +261,7 @@ router.get('/predictions', authMiddleware, operatorOnly, async (req: Request, re
  * GET /api/ai/status
  * Get AI Engine and model status
  */
-router.get('/status', async (_req: Request, res: Response): Promise<void> => {
+router.get('/status', async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     // Check AI Engine availability
     const isAvailable = await aiClient.isAvailable()
@@ -237,12 +283,8 @@ router.get('/status', async (_req: Request, res: Response): Promise<void> => {
       ai_engine_available: true,
       ...modelStatus
     })
-  } catch (err: any) {
-    console.error('[AI Status] Error:', err.message)
-    res.status(500).json({
-      status: 'error',
-      error: err.message
-    })
+  } catch (err) {
+    next(err)
   }
 })
 
@@ -250,13 +292,12 @@ router.get('/status', async (_req: Request, res: Response): Promise<void> => {
  * GET /api/ai/hazard-types
  * Get supported hazard types
  */
-router.get('/hazard-types', async (_req: Request, res: Response): Promise<void> => {
+router.get('/hazard-types', async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const hazardTypes = await aiClient.getHazardTypes()
     res.json(hazardTypes)
-  } catch (err: any) {
-    console.error('[AI Hazard Types] Error:', err.message)
-    res.status(500).json({ error: 'Failed to fetch hazard types' })
+  } catch (err) {
+    next(err)
   }
 })
 
@@ -264,40 +305,31 @@ router.get('/hazard-types', async (_req: Request, res: Response): Promise<void> 
  * POST /api/ai/retrain
  * Trigger model retraining (admin only)
  */
-router.post('/retrain', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/retrain', authMiddleware, adminOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    // Check if user is admin
-    if (req.user?.role !== 'admin') {
-      res.status(403).json({ error: 'Admin access required' })
-      return
-    }
-
     const { hazard_type, region_id } = req.body
 
     if (!hazard_type || !region_id) {
-      res.status(400).json({ error: 'Missing hazard_type or region_id' })
-      return
+      throw AppError.badRequest('Missing hazard_type or region_id')
     }
 
     const result = await aiClient.triggerRetrain(hazard_type, region_id)
 
     // Log the retrain request
     await pool.query(
-      `INSERT INTO activity_log (operator_id, action, action_type, target_type, metadata)
-       VALUES ($1, $2, $3, $4, $5)`,
+      `INSERT INTO activity_log (operator_id, action, action_type, metadata)
+       VALUES ($1, $2, $3, $4)`,
       [
         req.user?.id,
         `Triggered AI model retraining: ${hazard_type}`,
         'note',
-        'ai_model',
-        JSON.stringify({ hazard_type, region_id, job_id: result.job_id })
+        JSON.stringify({ targetType: 'ai_model', hazard_type, region_id, job_id: result.job_id }),
       ]
     )
 
     res.json(result)
-  } catch (err: any) {
-    console.error('[AI Retrain] Error:', err.message)
-    res.status(500).json({ error: 'Failed to trigger retraining' })
+  } catch (err) {
+    next(err)
   }
 })
 
@@ -305,13 +337,12 @@ router.post('/retrain', authMiddleware, operatorOnly, async (req: AuthRequest, r
  * POST /api/ai/classify-image
  * Classify disaster image using CNN (HuggingFace ViT + DETR)
  */
-router.post('/classify-image', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/classify-image', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { image_path, latitude, longitude, report_id } = req.body
 
     if (!image_path) {
-      res.status(400).json({ error: 'image_path is required' })
-      return
+      throw AppError.badRequest('image_path is required')
     }
 
     devLog(`[AI Classify Image] Analysing: ${image_path}`)
@@ -329,9 +360,8 @@ router.post('/classify-image', authMiddleware, operatorOnly, async (req: AuthReq
       modelUsed: result.modelUsed,
       processingTimeMs: result.processingTimeMs,
     })
-  } catch (err: any) {
-    console.error('[AI Classify Image] Error:', err.message)
-    res.status(500).json({ error: 'Image classification failed', message: err.message })
+  } catch (err) {
+    next(err)
   }
 })
 
@@ -339,13 +369,12 @@ router.post('/classify-image', authMiddleware, operatorOnly, async (req: AuthReq
  * POST /api/ai/classify-report
  * Classify disaster report into hazard type
  */
-router.post('/classify-report', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/classify-report', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { text, description, location } = req.body
 
     if (!text) {
-      res.status(400).json({ error: 'Report text required' })
-      return
+      throw AppError.badRequest('Report text required')
     }
 
     devLog('[AI Classify Report] Analyzing report text')
@@ -353,9 +382,8 @@ router.post('/classify-report', authMiddleware, operatorOnly, async (req: AuthRe
     const result = await aiClient.classifyReport(text, description || '', location || '')
 
     res.json(result)
-  } catch (err: any) {
-    console.error('[AI Classify Report] Error:', err.message)
-    res.status(500).json({ error: 'Report classification failed' })
+  } catch (err) {
+    next(err)
   }
 })
 
@@ -363,7 +391,7 @@ router.post('/classify-report', authMiddleware, operatorOnly, async (req: AuthRe
  * POST /api/ai/predict-severity
  * Predict severity level for a report
  */
-router.post('/predict-severity', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/predict-severity', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const {
       text,
@@ -375,8 +403,7 @@ router.post('/predict-severity', authMiddleware, operatorOnly, async (req: AuthR
     } = req.body
 
     if (!text) {
-      res.status(400).json({ error: 'Report text required' })
-      return
+      throw AppError.badRequest('Report text required')
     }
 
     devLog('[AI Predict Severity] Analyzing severity')
@@ -391,9 +418,8 @@ router.post('/predict-severity', authMiddleware, operatorOnly, async (req: AuthR
     })
 
     res.json(result)
-  } catch (err: any) {
-    console.error('[AI Predict Severity] Error:', err.message)
-    res.status(500).json({ error: 'Severity prediction failed' })
+  } catch (err) {
+    next(err)
   }
 })
 
@@ -401,7 +427,7 @@ router.post('/predict-severity', authMiddleware, operatorOnly, async (req: AuthR
  * POST /api/ai/detect-fake
  * Detect if a report is fake/spam
  */
-router.post('/detect-fake', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/detect-fake', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const {
       text,
@@ -415,8 +441,7 @@ router.post('/detect-fake', authMiddleware, operatorOnly, async (req: AuthReques
     } = req.body
 
     if (!text) {
-      res.status(400).json({ error: 'Report text required' })
-      return
+      throw AppError.badRequest('Report text required')
     }
 
     devLog('[AI Detect Fake] Analyzing report authenticity')
@@ -433,9 +458,8 @@ router.post('/detect-fake', authMiddleware, operatorOnly, async (req: AuthReques
     })
 
     res.json(result)
-  } catch (err: any) {
-    console.error('[AI Detect Fake] Error:', err.message)
-    res.status(500).json({ error: 'Fake detection failed' })
+  } catch (err) {
+    next(err)
   }
 })
 
@@ -449,13 +473,12 @@ router.post('/detect-fake', authMiddleware, operatorOnly, async (req: AuthReques
  * GET /api/ai/models
  * List all governed models with active versions
  */
-router.get('/models', authMiddleware, operatorOnly, async (_req: Request, res: Response): Promise<void> => {
+router.get('/models', authMiddleware, operatorOnly, async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const result = await aiClient.listGovernedModels()
     res.json(result)
-  } catch (err: any) {
-    console.error('[AI Models] Error:', err.message)
-    res.status(500).json({ error: 'Failed to list models' })
+  } catch (err) {
+    next(err)
   }
 })
 
@@ -463,15 +486,14 @@ router.get('/models', authMiddleware, operatorOnly, async (_req: Request, res: R
  * GET /api/ai/models/:modelName/versions
  * List all versions for a specific model
  */
-router.get('/models/:modelName/versions', authMiddleware, operatorOnly, async (req: Request, res: Response): Promise<void> => {
+router.get('/models/:modelName/versions', authMiddleware, operatorOnly, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { modelName } = req.params
     const limit = parseInt(req.query.limit as string) || 20
     const result = await aiClient.listModelVersions(modelName, limit)
     res.json(result)
-  } catch (err: any) {
-    console.error('[AI Model Versions] Error:', err.message)
-    res.status(500).json({ error: 'Failed to list model versions' })
+  } catch (err) {
+    next(err)
   }
 })
 
@@ -479,18 +501,12 @@ router.get('/models/:modelName/versions', authMiddleware, operatorOnly, async (r
  * POST /api/ai/models/rollback
  * Roll back a model to its previous stable version (admin only)
  */
-router.post('/models/rollback', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/models/rollback', authMiddleware, adminOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    if (req.user?.role !== 'admin') {
-      res.status(403).json({ error: 'Admin access required for model rollback' })
-      return
-    }
-
     const { model_name, target_version } = req.body
 
     if (!model_name) {
-      res.status(400).json({ error: 'model_name is required' })
-      return
+      throw AppError.badRequest('model_name is required')
     }
 
     devLog(`[AI Rollback] Model: ${model_name}, target: ${target_version || 'previous'}`)
@@ -510,9 +526,8 @@ router.post('/models/rollback', authMiddleware, operatorOnly, async (req: AuthRe
     )
 
     res.json(result)
-  } catch (err: any) {
-    console.error('[AI Rollback] Error:', err.message)
-    res.status(500).json({ error: 'Model rollback failed', message: err.message })
+  } catch (err) {
+    next(err)
   }
 })
 
@@ -520,15 +535,14 @@ router.post('/models/rollback', authMiddleware, operatorOnly, async (req: AuthRe
  * GET /api/ai/drift
  * Run drift detection on models
  */
-router.get('/drift', authMiddleware, operatorOnly, async (req: Request, res: Response): Promise<void> => {
+router.get('/drift', authMiddleware, operatorOnly, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const model_name = req.query.model_name as string | undefined
     const hours = parseInt(req.query.hours as string) || 24
     const result = await aiClient.checkDrift(model_name, hours)
     res.json(result)
-  } catch (err: any) {
-    console.error('[AI Drift] Error:', err.message)
-    res.status(500).json({ error: 'Drift check failed' })
+  } catch (err) {
+    next(err)
   }
 })
 
@@ -536,21 +550,19 @@ router.get('/drift', authMiddleware, operatorOnly, async (req: Request, res: Res
  * POST /api/ai/predictions/:predictionId/feedback
  * Submit feedback for a prediction (correct/incorrect/uncertain)
  */
-router.post('/predictions/:predictionId/feedback', authMiddleware, async (req: Request, res: Response): Promise<void> => {
+router.post('/predictions/:predictionId/feedback', authMiddleware, operatorOnly, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { predictionId } = req.params
     const { feedback } = req.body
 
     if (!feedback || !['correct', 'incorrect', 'uncertain'].includes(feedback)) {
-      res.status(400).json({ error: 'feedback must be: correct, incorrect, uncertain' })
-      return
+      throw AppError.badRequest('feedback must be: correct, incorrect, uncertain')
     }
 
     const result = await aiClient.submitPredictionFeedback(predictionId, feedback)
     res.json(result)
-  } catch (err: any) {
-    console.error('[AI Feedback] Error:', err.message)
-    res.status(500).json({ error: 'Feedback submission failed' })
+  } catch (err) {
+    next(err)
   }
 })
 
@@ -558,15 +570,14 @@ router.post('/predictions/:predictionId/feedback', authMiddleware, async (req: R
  * GET /api/ai/predictions/stats
  * Get prediction statistics for monitoring
  */
-router.get('/predictions/stats', authMiddleware, operatorOnly, async (req: Request, res: Response): Promise<void> => {
+router.get('/predictions/stats', authMiddleware, operatorOnly, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const model_name = req.query.model_name as string | undefined
     const hours = parseInt(req.query.hours as string) || 24
     const result = await aiClient.getPredictionStats(model_name, hours)
     res.json(result)
-  } catch (err: any) {
-    console.error('[AI Prediction Stats] Error:', err.message)
-    res.status(500).json({ error: 'Failed to get prediction stats' })
+  } catch (err) {
+    next(err)
   }
 })
 
@@ -574,13 +585,12 @@ router.get('/predictions/stats', authMiddleware, operatorOnly, async (req: Reque
  * GET /api/ai/governance/models
  * Alias for /api/ai/models â€” governance dashboard entry point
  */
-router.get('/governance/models', authMiddleware, operatorOnly, async (_req: Request, res: Response): Promise<void> => {
+router.get('/governance/models', authMiddleware, operatorOnly, async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const result = await aiClient.listGovernedModels()
     res.json(result)
-  } catch (err: any) {
-    console.error('[AI Governance Models] Error:', err.message)
-    res.status(500).json({ error: 'Failed to list governed models' })
+  } catch (err) {
+    next(err)
   }
 })
 
@@ -588,7 +598,7 @@ router.get('/governance/models', authMiddleware, operatorOnly, async (_req: Requ
  * GET /api/ai/governance/drift
  * Governance-level drift report â€” returns drift status for all models
  */
-router.get('/governance/drift', authMiddleware, operatorOnly, async (req: Request, res: Response): Promise<void> => {
+router.get('/governance/drift', authMiddleware, operatorOnly, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const hours = parseInt(req.query.hours as string) || 24
     const result = await aiClient.checkDrift(undefined, hours)
@@ -602,9 +612,8 @@ router.get('/governance/drift', authMiddleware, operatorOnly, async (req: Reques
       LIMIT 20
     `).catch(() => ({ rows: [] }))
     res.json({ ...result, persisted_drift: dbDrift.rows })
-  } catch (err: any) {
-    console.error('[AI Governance Drift] Error:', err.message)
-    res.status(500).json({ error: 'Failed to fetch governance drift data' })
+  } catch (err) {
+    next(err)
   }
 })
 
@@ -612,7 +621,7 @@ router.get('/governance/drift', authMiddleware, operatorOnly, async (req: Reques
  * GET /api/ai/confidence-distribution?model=<name>
  * Returns confidence histogram for a model from prediction_logs
  */
-router.get('/confidence-distribution', authMiddleware, operatorOnly, async (req: Request, res: Response): Promise<void> => {
+router.get('/confidence-distribution', authMiddleware, operatorOnly, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const modelName = (req.query.model as string) || null
     const hours = parseInt(req.query.hours as string) || 168 // 7 days default
@@ -665,9 +674,8 @@ router.get('/confidence-distribution', authMiddleware, operatorOnly, async (req:
     }
 
     res.json(result.rows)
-  } catch (err: any) {
-    console.error('[AI Confidence Distribution] Error:', err.message)
-    res.status(500).json({ error: 'Failed to fetch confidence distribution' })
+  } catch (err) {
+    next(err)
   }
 })
 
@@ -675,7 +683,7 @@ router.get('/confidence-distribution', authMiddleware, operatorOnly, async (req:
  * GET /api/ai/audit?limit=N&offset=N&model=<name>
  * Returns AI prediction audit log entries
  */
-router.get('/audit', authMiddleware, operatorOnly, async (req: Request, res: Response): Promise<void> => {
+router.get('/audit', authMiddleware, operatorOnly, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const limit = Math.min(100, parseInt(req.query.limit as string) || 50)
     const offset = Math.max(0, parseInt(req.query.offset as string) || 0)
@@ -712,9 +720,238 @@ router.get('/audit', authMiddleware, operatorOnly, async (req: Request, res: Res
     }
 
     res.json({ entries: result.rows, total: result.rowCount ?? result.rows.length })
-  } catch (err: any) {
-    console.error('[AI Audit] Error:', err.message)
-    res.status(500).json({ error: 'Failed to fetch AI audit log' })
+  } catch (err) {
+    next(err)
+  }
+})
+
+/*
+ *  Model Lifecycle Management Endpoints
+ */
+
+/*
+ * GET /api/ai/registry/versions/:hazardType/:regionId
+ * List all versions for a hazard+region from on-disk model registry
+ */
+router.get('/registry/versions/:hazardType/:regionId', authMiddleware, operatorOnly, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { hazardType, regionId } = req.params
+    const result = await aiClient.listRegistryVersions(hazardType, regionId)
+    res.json(result)
+  } catch (err) {
+    next(err)
+  }
+})
+
+/*
+ * POST /api/ai/registry/promote/:hazardType/:regionId/:version
+ * Promote a specific model version as active (admin only)
+ */
+router.post('/registry/promote/:hazardType/:regionId/:version', authMiddleware, adminOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { hazardType, regionId, version } = req.params
+    const result = await aiClient.promoteRegistryModel(hazardType, regionId, version)
+
+    await pool.query(
+      `INSERT INTO activity_log (operator_id, action, action_type, metadata)
+       VALUES ($1, $2, $3, $4)`,
+      [
+        req.user?.id,
+        `Promoted model: ${hazardType}/${regionId} → ${version}`,
+        'deploy',
+        JSON.stringify({ targetType: 'ai_model', hazardType, regionId, version, result }),
+      ]
+    )
+
+    res.json(result)
+  } catch (err) {
+    next(err)
+  }
+})
+
+/*
+ * POST /api/ai/registry/demote/:hazardType/:regionId
+ * Remove manual promotion override (admin only)
+ */
+router.post('/registry/demote/:hazardType/:regionId', authMiddleware, adminOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { hazardType, regionId } = req.params
+    const result = await aiClient.demoteRegistryModel(hazardType, regionId)
+
+    await pool.query(
+      `INSERT INTO activity_log (operator_id, action, action_type, metadata)
+       VALUES ($1, $2, $3, $4)`,
+      [
+        req.user?.id,
+        `Demoted model override: ${hazardType}/${regionId}`,
+        'deploy',
+        JSON.stringify({ targetType: 'ai_model', hazardType, regionId, result }),
+      ]
+    )
+
+    res.json(result)
+  } catch (err) {
+    next(err)
+  }
+})
+
+/*
+ * GET /api/ai/registry/validate/:hazardType/:regionId/:version
+ * Validate integrity of a specific model version
+ */
+router.get('/registry/validate/:hazardType/:regionId/:version', authMiddleware, operatorOnly, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { hazardType, regionId, version } = req.params
+    const result = await aiClient.validateRegistryModel(hazardType, regionId, version)
+    res.json(result)
+  } catch (err) {
+    next(err)
+  }
+})
+
+/*
+ * POST /api/ai/registry/cleanup/:hazardType/:regionId
+ * Remove old model versions (admin only)
+ */
+router.post('/registry/cleanup/:hazardType/:regionId', authMiddleware, adminOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { hazardType, regionId } = req.params
+    const keep = parseInt(req.query.keep as string) || 3
+    const dryRun = req.query.dry_run === 'true'
+    const result = await aiClient.cleanupRegistryVersions(hazardType, regionId, keep, dryRun)
+    res.json(result)
+  } catch (err) {
+    next(err)
+  }
+})
+
+/*
+ * POST /api/ai/registry/cleanup-all
+ * Run cleanup across all hazard+region combinations (admin only)
+ */
+router.post('/registry/cleanup-all', authMiddleware, adminOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const keep = parseInt(req.query.keep as string) || 3
+    const dryRun = req.query.dry_run !== 'false' // default to dry-run for safety
+    const result = await aiClient.cleanupAllRegistry(keep, dryRun)
+    res.json(result)
+  } catch (err) {
+    next(err)
+  }
+})
+
+/*
+ * GET /api/ai/registry/health/:hazardType/:regionId
+ * Get active model health for a hazard+region
+ */
+router.get('/registry/health/:hazardType/:regionId', authMiddleware, operatorOnly, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { hazardType, regionId } = req.params
+    const result = await aiClient.getRegistryHealth(hazardType, regionId)
+
+    if (result?.current_version) {
+      const labels = {
+        hazard: hazardType,
+        region: regionId,
+        version: result.current_version,
+      }
+      aegisModelAvgConfidence.set(labels, Number(result.avg_confidence ?? 0))
+      aegisModelDriftScore.set(labels, Number(result.drift_score ?? 0))
+      aegisModelAlertStatus.set(labels, alertLevelToMetric(result.alert_level || result.health_status || 'HEALTHY'))
+    }
+
+    res.json(result)
+  } catch (err) {
+    next(err)
+  }
+})
+
+/*
+ * GET /api/ai/registry/health
+ * Get active model health for all hazard+region pairs
+ */
+router.get('/registry/health', authMiddleware, operatorOnly, async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const result = await aiClient.getAllRegistryHealth()
+    for (const item of result?.items || []) {
+      if (!item?.current_version) continue
+      const labels = {
+        hazard: item.hazard_type,
+        region: item.region_id,
+        version: item.current_version,
+      }
+      aegisModelDriftScore.set(labels, Number(item.drift_score ?? 0))
+      aegisModelAlertStatus.set(labels, alertLevelToMetric(item.health_status || 'HEALTHY'))
+    }
+    res.json(result)
+  } catch (err) {
+    next(err)
+  }
+})
+
+/*
+ * GET /api/ai/registry/drift/:hazardType/:regionId/:version
+ * Compute drift snapshot for a model version
+ */
+router.get('/registry/drift/:hazardType/:regionId/:version', authMiddleware, operatorOnly, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { hazardType, regionId, version } = req.params
+    const result = await aiClient.getRegistryDrift(hazardType, regionId, version)
+
+    const snapshot = result?.snapshot || {}
+    if (version) {
+      const labels = { hazard: hazardType, region: regionId, version }
+      aegisModelAvgConfidence.set(labels, Number(snapshot.avg_confidence ?? 0))
+      aegisModelDriftScore.set(labels, Number(snapshot.drift_score ?? 0))
+      aegisModelAlertStatus.set(labels, alertLevelToMetric(snapshot.alert_level || 'HEALTHY'))
+    }
+
+    res.json(result)
+  } catch (err) {
+    next(err)
+  }
+})
+
+/*
+ * POST /api/ai/registry/mark-degraded/:hazardType/:regionId/:version
+ * Manually mark model as degraded/rollback_recommended (admin only)
+ */
+router.post('/registry/mark-degraded/:hazardType/:regionId/:version', authMiddleware, adminOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { hazardType, regionId, version } = req.params
+    const driftScore = Number(req.body?.drift_score ?? 0.8)
+    const reason = String(req.body?.reason || 'manual_mark_degraded')
+
+    const result = await aiClient.markRegistryDegraded(hazardType, regionId, version, driftScore, reason)
+    aegisModelDegradedGauge.set({ hazard: hazardType, region: regionId, version }, 1)
+    await pool.query(
+      `INSERT INTO activity_log (operator_id, action, action_type, metadata)
+       VALUES ($1, $2, $3, $4)`,
+      [
+        req.user?.id,
+        `Marked model degraded: ${hazardType}/${regionId}/${version}`,
+        'note',
+        JSON.stringify({ targetType: 'ai_model', hazardType, regionId, version, driftScore, reason, result }),
+      ]
+    )
+
+    res.json(result)
+  } catch (err) {
+    next(err)
+  }
+})
+
+/*
+ * GET /api/ai/registry/recommend-rollback/:hazardType/:regionId
+ * Get deterministic rollback recommendation for active model
+ */
+router.get('/registry/recommend-rollback/:hazardType/:regionId', authMiddleware, operatorOnly, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { hazardType, regionId } = req.params
+    const result = await aiClient.recommendRegistryRollback(hazardType, regionId)
+    res.json(result)
+  } catch (err) {
+    next(err)
   }
 })
 

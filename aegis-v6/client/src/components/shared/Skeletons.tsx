@@ -4,12 +4,12 @@
  * users visual feedback that content is being fetched.
  */
 
-/** Generic rectangular skeleton with pulse animation */
+/* Generic rectangular skeleton with pulse animation */
 export function SkeletonBox({ className = '' }: { className?: string }): JSX.Element {
   return <div className={`animate-pulse bg-gray-200 dark:bg-gray-700 rounded-lg ${className}`} />
 }
 
-/** Card-shaped skeleton matching the report/alert card layout */
+/* Card-shaped skeleton matching the report/alert card layout */
 export function SkeletonCard(): JSX.Element {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 space-y-3">
@@ -31,7 +31,7 @@ export function SkeletonCard(): JSX.Element {
   )
 }
 
-/** Row skeleton for table/list views */
+/* Row skeleton for table/list views */
 export function SkeletonRow(): JSX.Element {
   return (
     <div className="flex items-center gap-3 p-3">
@@ -45,14 +45,14 @@ export function SkeletonRow(): JSX.Element {
   )
 }
 
-/** Map placeholder while tiles load */
+/* Map placeholder while tiles load */
 export function SkeletonMap({ height = '400px' }: { height?: string }): JSX.Element {
   return (
     <div className="animate-pulse bg-gray-100 dark:bg-gray-800 rounded-xl relative overflow-hidden" style={{ height }}>
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="text-center space-y-2">
           <div className="w-10 h-10 border-3 border-gray-300 dark:border-gray-600 border-t-blue-500 rounded-full animate-spin mx-auto" />
-          <p className="text-xs text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">Loading map...</p>
+          <p className="text-xs text-gray-400 dark:text-gray-300">Loading map...</p>
         </div>
       </div>
       {/* Fake grid lines to indicate map area */}
@@ -65,7 +65,7 @@ export function SkeletonMap({ height = '400px' }: { height?: string }): JSX.Elem
   )
 }
 
-/** Stats card skeleton for dashboard metrics */
+/* Stats card skeleton for dashboard metrics */
 export function SkeletonStat(): JSX.Element {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 space-y-2">
@@ -76,7 +76,7 @@ export function SkeletonStat(): JSX.Element {
   )
 }
 
-/** Chat message skeleton */
+/* Chat message skeleton */
 export function SkeletonChatMessage({ isUser = false }: { isUser?: boolean }): JSX.Element {
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} animate-pulse`}>
@@ -89,7 +89,7 @@ export function SkeletonChatMessage({ isUser = false }: { isUser?: boolean }): J
   )
 }
 
-/** Multiple card skeletons for list loading */
+/* Multiple card skeletons for list loading */
 export function SkeletonCardList({ count = 3 }: { count?: number }): JSX.Element {
   return (
     <div className="space-y-3">
@@ -99,7 +99,4 @@ export function SkeletonCardList({ count = 3 }: { count?: number }): JSX.Element
     </div>
   )
 }
-
-
-
-
+

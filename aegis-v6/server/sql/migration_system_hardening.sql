@@ -40,7 +40,10 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
 
 CREATE INDEX IF NOT EXISTS idx_password_reset_token
     ON password_reset_tokens (token)
-    WHERE used_at IS NULL AND expires_at > now();
+    WHERE used_at IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_password_reset_expires
+    ON password_reset_tokens (expires_at);
 
 CREATE TABLE IF NOT EXISTS report_status_history (
     id          UUID            PRIMARY KEY DEFAULT uuid_generate_v4(),

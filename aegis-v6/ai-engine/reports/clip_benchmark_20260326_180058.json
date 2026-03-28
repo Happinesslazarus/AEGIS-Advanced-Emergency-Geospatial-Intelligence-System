@@ -1,0 +1,2154 @@
+{
+  "model": "ViT-B-32",
+  "device": "cuda",
+  "total": 42,
+  "evaluated": 42,
+  "errors": 0,
+  "type_accuracy": 52.4,
+  "timestamp": "2026-03-26T18:00:58",
+  "results": [
+    {
+      "id": "wf-001",
+      "status": "ok",
+      "expected_type": "wildfire",
+      "expected_severity": "high",
+      "predicted_type": "wildfire",
+      "predicted_severity": "critical",
+      "predicted_confidence": 96,
+      "type_correct": true,
+      "elapsed_ms": 80,
+      "top_predictions": [
+        {
+          "type": "wildfire",
+          "prob": 0.9699
+        },
+        {
+          "type": "heatwave",
+          "prob": 0.0254
+        },
+        {
+          "type": "landslide",
+          "prob": 0.0028
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.001
+        },
+        {
+          "type": "storm",
+          "prob": 0.0004
+        },
+        {
+          "type": "safe",
+          "prob": 0.0003
+        },
+        {
+          "type": "earthquake",
+          "prob": 0.0002
+        },
+        {
+          "type": "drought",
+          "prob": 0.0001
+        },
+        {
+          "type": "flood",
+          "prob": 0.0
+        }
+      ]
+    },
+    {
+      "id": "wf-002",
+      "status": "ok",
+      "expected_type": "wildfire",
+      "expected_severity": "critical",
+      "predicted_type": "wildfire",
+      "predicted_severity": "critical",
+      "predicted_confidence": 93,
+      "type_correct": true,
+      "elapsed_ms": 16,
+      "top_predictions": [
+        {
+          "type": "wildfire",
+          "prob": 0.9344
+        },
+        {
+          "type": "heatwave",
+          "prob": 0.0578
+        },
+        {
+          "type": "landslide",
+          "prob": 0.004
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.0019
+        },
+        {
+          "type": "drought",
+          "prob": 0.001
+        },
+        {
+          "type": "earthquake",
+          "prob": 0.0004
+        },
+        {
+          "type": "storm",
+          "prob": 0.0002
+        },
+        {
+          "type": "safe",
+          "prob": 0.0002
+        },
+        {
+          "type": "flood",
+          "prob": 0.0001
+        }
+      ]
+    },
+    {
+      "id": "wf-003",
+      "status": "ok",
+      "expected_type": "wildfire",
+      "expected_severity": "high",
+      "predicted_type": "wildfire",
+      "predicted_severity": "critical",
+      "predicted_confidence": 96,
+      "type_correct": true,
+      "elapsed_ms": 19,
+      "top_predictions": [
+        {
+          "type": "wildfire",
+          "prob": 0.9602
+        },
+        {
+          "type": "heatwave",
+          "prob": 0.0317
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.0063
+        },
+        {
+          "type": "earthquake",
+          "prob": 0.0009
+        },
+        {
+          "type": "landslide",
+          "prob": 0.0004
+        },
+        {
+          "type": "storm",
+          "prob": 0.0003
+        },
+        {
+          "type": "safe",
+          "prob": 0.0001
+        },
+        {
+          "type": "drought",
+          "prob": 0.0001
+        },
+        {
+          "type": "flood",
+          "prob": 0.0
+        }
+      ]
+    },
+    {
+      "id": "wf-004",
+      "status": "ok",
+      "expected_type": "wildfire",
+      "expected_severity": "critical",
+      "predicted_type": "safe",
+      "predicted_severity": "high",
+      "predicted_confidence": 43,
+      "type_correct": false,
+      "elapsed_ms": 27,
+      "top_predictions": [
+        {
+          "type": "safe",
+          "prob": 0.4381
+        },
+        {
+          "type": "earthquake",
+          "prob": 0.2194
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.1667
+        },
+        {
+          "type": "flood",
+          "prob": 0.0947
+        },
+        {
+          "type": "landslide",
+          "prob": 0.0459
+        },
+        {
+          "type": "heatwave",
+          "prob": 0.0238
+        },
+        {
+          "type": "storm",
+          "prob": 0.0062
+        },
+        {
+          "type": "drought",
+          "prob": 0.0033
+        },
+        {
+          "type": "wildfire",
+          "prob": 0.0019
+        }
+      ]
+    },
+    {
+      "id": "wf-005",
+      "status": "ok",
+      "expected_type": "wildfire",
+      "expected_severity": "high",
+      "predicted_type": "landslide",
+      "predicted_severity": "moderate",
+      "predicted_confidence": 25,
+      "type_correct": false,
+      "elapsed_ms": 19,
+      "top_predictions": [
+        {
+          "type": "landslide",
+          "prob": 0.2587
+        },
+        {
+          "type": "heatwave",
+          "prob": 0.2459
+        },
+        {
+          "type": "storm",
+          "prob": 0.116
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.1135
+        },
+        {
+          "type": "drought",
+          "prob": 0.1052
+        },
+        {
+          "type": "earthquake",
+          "prob": 0.067
+        },
+        {
+          "type": "safe",
+          "prob": 0.0371
+        },
+        {
+          "type": "flood",
+          "prob": 0.029
+        },
+        {
+          "type": "wildfire",
+          "prob": 0.0274
+        }
+      ]
+    },
+    {
+      "id": "wf-006",
+      "status": "ok",
+      "expected_type": "wildfire",
+      "expected_severity": "moderate",
+      "predicted_type": "safe",
+      "predicted_severity": "moderate",
+      "predicted_confidence": 27,
+      "type_correct": false,
+      "elapsed_ms": 15,
+      "top_predictions": [
+        {
+          "type": "safe",
+          "prob": 0.2761
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.2329
+        },
+        {
+          "type": "heatwave",
+          "prob": 0.1088
+        },
+        {
+          "type": "landslide",
+          "prob": 0.0934
+        },
+        {
+          "type": "storm",
+          "prob": 0.0796
+        },
+        {
+          "type": "earthquake",
+          "prob": 0.0699
+        },
+        {
+          "type": "wildfire",
+          "prob": 0.0545
+        },
+        {
+          "type": "drought",
+          "prob": 0.0469
+        },
+        {
+          "type": "flood",
+          "prob": 0.0378
+        }
+      ]
+    },
+    {
+      "id": "fl-001",
+      "status": "ok",
+      "expected_type": "flood",
+      "expected_severity": "high",
+      "predicted_type": "flood",
+      "predicted_severity": "critical",
+      "predicted_confidence": 92,
+      "type_correct": true,
+      "elapsed_ms": 17,
+      "top_predictions": [
+        {
+          "type": "flood",
+          "prob": 0.9239
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.0369
+        },
+        {
+          "type": "storm",
+          "prob": 0.0147
+        },
+        {
+          "type": "earthquake",
+          "prob": 0.0085
+        },
+        {
+          "type": "heatwave",
+          "prob": 0.0081
+        },
+        {
+          "type": "safe",
+          "prob": 0.0045
+        },
+        {
+          "type": "landslide",
+          "prob": 0.0028
+        },
+        {
+          "type": "drought",
+          "prob": 0.0004
+        },
+        {
+          "type": "wildfire",
+          "prob": 0.0002
+        }
+      ]
+    },
+    {
+      "id": "fl-002",
+      "status": "ok",
+      "expected_type": "flood",
+      "expected_severity": "high",
+      "predicted_type": "storm",
+      "predicted_severity": "critical",
+      "predicted_confidence": 99,
+      "type_correct": false,
+      "elapsed_ms": 15,
+      "top_predictions": [
+        {
+          "type": "storm",
+          "prob": 0.991
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.0022
+        },
+        {
+          "type": "heatwave",
+          "prob": 0.002
+        },
+        {
+          "type": "flood",
+          "prob": 0.0015
+        },
+        {
+          "type": "landslide",
+          "prob": 0.0013
+        },
+        {
+          "type": "wildfire",
+          "prob": 0.0009
+        },
+        {
+          "type": "safe",
+          "prob": 0.0007
+        },
+        {
+          "type": "earthquake",
+          "prob": 0.0003
+        },
+        {
+          "type": "drought",
+          "prob": 0.0002
+        }
+      ]
+    },
+    {
+      "id": "fl-003",
+      "status": "ok",
+      "expected_type": "flood",
+      "expected_severity": "critical",
+      "predicted_type": "landslide",
+      "predicted_severity": "critical",
+      "predicted_confidence": 59,
+      "type_correct": false,
+      "elapsed_ms": 17,
+      "top_predictions": [
+        {
+          "type": "landslide",
+          "prob": 0.5926
+        },
+        {
+          "type": "safe",
+          "prob": 0.2693
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.0691
+        },
+        {
+          "type": "earthquake",
+          "prob": 0.0296
+        },
+        {
+          "type": "wildfire",
+          "prob": 0.0132
+        },
+        {
+          "type": "heatwave",
+          "prob": 0.0097
+        },
+        {
+          "type": "storm",
+          "prob": 0.0067
+        },
+        {
+          "type": "drought",
+          "prob": 0.0053
+        },
+        {
+          "type": "flood",
+          "prob": 0.0046
+        }
+      ]
+    },
+    {
+      "id": "fl-004",
+      "status": "ok",
+      "expected_type": "flood",
+      "expected_severity": "high",
+      "predicted_type": "flood",
+      "predicted_severity": "high",
+      "predicted_confidence": 33,
+      "type_correct": true,
+      "elapsed_ms": 24,
+      "top_predictions": [
+        {
+          "type": "flood",
+          "prob": 0.3338
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.2669
+        },
+        {
+          "type": "landslide",
+          "prob": 0.1279
+        },
+        {
+          "type": "heatwave",
+          "prob": 0.0903
+        },
+        {
+          "type": "drought",
+          "prob": 0.0843
+        },
+        {
+          "type": "safe",
+          "prob": 0.0486
+        },
+        {
+          "type": "earthquake",
+          "prob": 0.0343
+        },
+        {
+          "type": "storm",
+          "prob": 0.0087
+        },
+        {
+          "type": "wildfire",
+          "prob": 0.0052
+        }
+      ]
+    },
+    {
+      "id": "fl-005",
+      "status": "ok",
+      "expected_type": "flood",
+      "expected_severity": "moderate",
+      "predicted_type": "heatwave",
+      "predicted_severity": "critical",
+      "predicted_confidence": 49,
+      "type_correct": false,
+      "elapsed_ms": 17,
+      "top_predictions": [
+        {
+          "type": "heatwave",
+          "prob": 0.4939
+        },
+        {
+          "type": "drought",
+          "prob": 0.4343
+        },
+        {
+          "type": "safe",
+          "prob": 0.0385
+        },
+        {
+          "type": "landslide",
+          "prob": 0.0219
+        },
+        {
+          "type": "earthquake",
+          "prob": 0.0058
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.0024
+        },
+        {
+          "type": "wildfire",
+          "prob": 0.0016
+        },
+        {
+          "type": "storm",
+          "prob": 0.001
+        },
+        {
+          "type": "flood",
+          "prob": 0.0005
+        }
+      ]
+    },
+    {
+      "id": "fl-006",
+      "status": "ok",
+      "expected_type": "flood",
+      "expected_severity": "high",
+      "predicted_type": "earthquake",
+      "predicted_severity": "critical",
+      "predicted_confidence": 45,
+      "type_correct": false,
+      "elapsed_ms": 21,
+      "top_predictions": [
+        {
+          "type": "earthquake",
+          "prob": 0.4501
+        },
+        {
+          "type": "flood",
+          "prob": 0.3845
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.0712
+        },
+        {
+          "type": "heatwave",
+          "prob": 0.0461
+        },
+        {
+          "type": "landslide",
+          "prob": 0.0223
+        },
+        {
+          "type": "drought",
+          "prob": 0.0172
+        },
+        {
+          "type": "storm",
+          "prob": 0.0038
+        },
+        {
+          "type": "safe",
+          "prob": 0.0035
+        },
+        {
+          "type": "wildfire",
+          "prob": 0.0012
+        }
+      ]
+    },
+    {
+      "id": "eq-001",
+      "status": "ok",
+      "expected_type": "earthquake",
+      "expected_severity": "critical",
+      "predicted_type": "earthquake",
+      "predicted_severity": "high",
+      "predicted_confidence": 33,
+      "type_correct": true,
+      "elapsed_ms": 16,
+      "top_predictions": [
+        {
+          "type": "earthquake",
+          "prob": 0.3336
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.2459
+        },
+        {
+          "type": "heatwave",
+          "prob": 0.2004
+        },
+        {
+          "type": "safe",
+          "prob": 0.0837
+        },
+        {
+          "type": "drought",
+          "prob": 0.0516
+        },
+        {
+          "type": "storm",
+          "prob": 0.0298
+        },
+        {
+          "type": "landslide",
+          "prob": 0.0245
+        },
+        {
+          "type": "flood",
+          "prob": 0.0205
+        },
+        {
+          "type": "wildfire",
+          "prob": 0.0101
+        }
+      ]
+    },
+    {
+      "id": "eq-002",
+      "status": "ok",
+      "expected_type": "earthquake",
+      "expected_severity": "critical",
+      "predicted_type": "structural_damage",
+      "predicted_severity": "moderate",
+      "predicted_confidence": 27,
+      "type_correct": true,
+      "elapsed_ms": 15,
+      "top_predictions": [
+        {
+          "type": "structural_damage",
+          "prob": 0.2779
+        },
+        {
+          "type": "earthquake",
+          "prob": 0.1978
+        },
+        {
+          "type": "safe",
+          "prob": 0.1733
+        },
+        {
+          "type": "heatwave",
+          "prob": 0.1243
+        },
+        {
+          "type": "drought",
+          "prob": 0.1077
+        },
+        {
+          "type": "landslide",
+          "prob": 0.049
+        },
+        {
+          "type": "flood",
+          "prob": 0.0393
+        },
+        {
+          "type": "wildfire",
+          "prob": 0.027
+        },
+        {
+          "type": "storm",
+          "prob": 0.0038
+        }
+      ]
+    },
+    {
+      "id": "eq-003",
+      "status": "ok",
+      "expected_type": "earthquake",
+      "expected_severity": "high",
+      "predicted_type": "heatwave",
+      "predicted_severity": "moderate",
+      "predicted_confidence": 24,
+      "type_correct": false,
+      "elapsed_ms": 16,
+      "top_predictions": [
+        {
+          "type": "heatwave",
+          "prob": 0.2492
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.1745
+        },
+        {
+          "type": "landslide",
+          "prob": 0.166
+        },
+        {
+          "type": "safe",
+          "prob": 0.1459
+        },
+        {
+          "type": "earthquake",
+          "prob": 0.1036
+        },
+        {
+          "type": "drought",
+          "prob": 0.0698
+        },
+        {
+          "type": "wildfire",
+          "prob": 0.0431
+        },
+        {
+          "type": "flood",
+          "prob": 0.0297
+        },
+        {
+          "type": "storm",
+          "prob": 0.018
+        }
+      ]
+    },
+    {
+      "id": "eq-004",
+      "status": "ok",
+      "expected_type": "earthquake",
+      "expected_severity": "critical",
+      "predicted_type": "heatwave",
+      "predicted_severity": "high",
+      "predicted_confidence": 32,
+      "type_correct": false,
+      "elapsed_ms": 18,
+      "top_predictions": [
+        {
+          "type": "heatwave",
+          "prob": 0.3248
+        },
+        {
+          "type": "safe",
+          "prob": 0.2458
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.1185
+        },
+        {
+          "type": "earthquake",
+          "prob": 0.1106
+        },
+        {
+          "type": "drought",
+          "prob": 0.0912
+        },
+        {
+          "type": "storm",
+          "prob": 0.0624
+        },
+        {
+          "type": "flood",
+          "prob": 0.0355
+        },
+        {
+          "type": "landslide",
+          "prob": 0.0077
+        },
+        {
+          "type": "wildfire",
+          "prob": 0.0036
+        }
+      ]
+    },
+    {
+      "id": "st-001",
+      "status": "ok",
+      "expected_type": "storm",
+      "expected_severity": "high",
+      "predicted_type": "storm",
+      "predicted_severity": "critical",
+      "predicted_confidence": 92,
+      "type_correct": true,
+      "elapsed_ms": 13,
+      "top_predictions": [
+        {
+          "type": "storm",
+          "prob": 0.926
+        },
+        {
+          "type": "heatwave",
+          "prob": 0.0235
+        },
+        {
+          "type": "wildfire",
+          "prob": 0.0215
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.015
+        },
+        {
+          "type": "landslide",
+          "prob": 0.0054
+        },
+        {
+          "type": "earthquake",
+          "prob": 0.0049
+        },
+        {
+          "type": "safe",
+          "prob": 0.0013
+        },
+        {
+          "type": "drought",
+          "prob": 0.0012
+        },
+        {
+          "type": "flood",
+          "prob": 0.0012
+        }
+      ]
+    },
+    {
+      "id": "st-002",
+      "status": "ok",
+      "expected_type": "storm",
+      "expected_severity": "moderate",
+      "predicted_type": "storm",
+      "predicted_severity": "critical",
+      "predicted_confidence": 95,
+      "type_correct": true,
+      "elapsed_ms": 14,
+      "top_predictions": [
+        {
+          "type": "storm",
+          "prob": 0.9538
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.0223
+        },
+        {
+          "type": "flood",
+          "prob": 0.0119
+        },
+        {
+          "type": "safe",
+          "prob": 0.0034
+        },
+        {
+          "type": "earthquake",
+          "prob": 0.0029
+        },
+        {
+          "type": "heatwave",
+          "prob": 0.0029
+        },
+        {
+          "type": "wildfire",
+          "prob": 0.0023
+        },
+        {
+          "type": "landslide",
+          "prob": 0.0004
+        },
+        {
+          "type": "drought",
+          "prob": 0.0002
+        }
+      ]
+    },
+    {
+      "id": "st-003",
+      "status": "ok",
+      "expected_type": "storm",
+      "expected_severity": "high",
+      "predicted_type": "heatwave",
+      "predicted_severity": "critical",
+      "predicted_confidence": 55,
+      "type_correct": false,
+      "elapsed_ms": 13,
+      "top_predictions": [
+        {
+          "type": "heatwave",
+          "prob": 0.5511
+        },
+        {
+          "type": "wildfire",
+          "prob": 0.2611
+        },
+        {
+          "type": "drought",
+          "prob": 0.0973
+        },
+        {
+          "type": "safe",
+          "prob": 0.0742
+        },
+        {
+          "type": "storm",
+          "prob": 0.0058
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.004
+        },
+        {
+          "type": "landslide",
+          "prob": 0.0035
+        },
+        {
+          "type": "earthquake",
+          "prob": 0.0023
+        },
+        {
+          "type": "flood",
+          "prob": 0.0006
+        }
+      ]
+    },
+    {
+      "id": "st-004",
+      "status": "ok",
+      "expected_type": "storm",
+      "expected_severity": "critical",
+      "predicted_type": "storm",
+      "predicted_severity": "critical",
+      "predicted_confidence": 96,
+      "type_correct": true,
+      "elapsed_ms": 15,
+      "top_predictions": [
+        {
+          "type": "storm",
+          "prob": 0.9698
+        },
+        {
+          "type": "wildfire",
+          "prob": 0.0137
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.0076
+        },
+        {
+          "type": "heatwave",
+          "prob": 0.0044
+        },
+        {
+          "type": "landslide",
+          "prob": 0.0013
+        },
+        {
+          "type": "flood",
+          "prob": 0.0013
+        },
+        {
+          "type": "earthquake",
+          "prob": 0.0009
+        },
+        {
+          "type": "drought",
+          "prob": 0.0005
+        },
+        {
+          "type": "safe",
+          "prob": 0.0005
+        }
+      ]
+    },
+    {
+      "id": "st-005",
+      "status": "ok",
+      "expected_type": "storm",
+      "expected_severity": "moderate",
+      "predicted_type": "safe",
+      "predicted_severity": "critical",
+      "predicted_confidence": 68,
+      "type_correct": false,
+      "elapsed_ms": 17,
+      "top_predictions": [
+        {
+          "type": "safe",
+          "prob": 0.6848
+        },
+        {
+          "type": "landslide",
+          "prob": 0.1073
+        },
+        {
+          "type": "wildfire",
+          "prob": 0.0985
+        },
+        {
+          "type": "heatwave",
+          "prob": 0.0513
+        },
+        {
+          "type": "storm",
+          "prob": 0.0378
+        },
+        {
+          "type": "drought",
+          "prob": 0.0147
+        },
+        {
+          "type": "flood",
+          "prob": 0.0023
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.0022
+        },
+        {
+          "type": "earthquake",
+          "prob": 0.0011
+        }
+      ]
+    },
+    {
+      "id": "st-006",
+      "status": "ok",
+      "expected_type": "storm",
+      "expected_severity": "high",
+      "predicted_type": "landslide",
+      "predicted_severity": "critical",
+      "predicted_confidence": 46,
+      "type_correct": false,
+      "elapsed_ms": 18,
+      "top_predictions": [
+        {
+          "type": "landslide",
+          "prob": 0.4633
+        },
+        {
+          "type": "safe",
+          "prob": 0.374
+        },
+        {
+          "type": "wildfire",
+          "prob": 0.0558
+        },
+        {
+          "type": "flood",
+          "prob": 0.0311
+        },
+        {
+          "type": "drought",
+          "prob": 0.0226
+        },
+        {
+          "type": "heatwave",
+          "prob": 0.0173
+        },
+        {
+          "type": "storm",
+          "prob": 0.0167
+        },
+        {
+          "type": "earthquake",
+          "prob": 0.0136
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.0055
+        }
+      ]
+    },
+    {
+      "id": "ls-001",
+      "status": "ok",
+      "expected_type": "landslide",
+      "expected_severity": "high",
+      "predicted_type": "storm",
+      "predicted_severity": "critical",
+      "predicted_confidence": 64,
+      "type_correct": false,
+      "elapsed_ms": 17,
+      "top_predictions": [
+        {
+          "type": "storm",
+          "prob": 0.6482
+        },
+        {
+          "type": "flood",
+          "prob": 0.1298
+        },
+        {
+          "type": "heatwave",
+          "prob": 0.1026
+        },
+        {
+          "type": "wildfire",
+          "prob": 0.0418
+        },
+        {
+          "type": "safe",
+          "prob": 0.029
+        },
+        {
+          "type": "drought",
+          "prob": 0.0197
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.014
+        },
+        {
+          "type": "landslide",
+          "prob": 0.0119
+        },
+        {
+          "type": "earthquake",
+          "prob": 0.003
+        }
+      ]
+    },
+    {
+      "id": "ls-002",
+      "status": "ok",
+      "expected_type": "landslide",
+      "expected_severity": "critical",
+      "predicted_type": "landslide",
+      "predicted_severity": "critical",
+      "predicted_confidence": 63,
+      "type_correct": true,
+      "elapsed_ms": 21,
+      "top_predictions": [
+        {
+          "type": "landslide",
+          "prob": 0.6384
+        },
+        {
+          "type": "drought",
+          "prob": 0.3085
+        },
+        {
+          "type": "safe",
+          "prob": 0.022
+        },
+        {
+          "type": "heatwave",
+          "prob": 0.0144
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.0104
+        },
+        {
+          "type": "earthquake",
+          "prob": 0.0022
+        },
+        {
+          "type": "wildfire",
+          "prob": 0.0016
+        },
+        {
+          "type": "flood",
+          "prob": 0.0013
+        },
+        {
+          "type": "storm",
+          "prob": 0.0011
+        }
+      ]
+    },
+    {
+      "id": "ls-003",
+      "status": "ok",
+      "expected_type": "landslide",
+      "expected_severity": "moderate",
+      "predicted_type": "heatwave",
+      "predicted_severity": "high",
+      "predicted_confidence": 38,
+      "type_correct": false,
+      "elapsed_ms": 19,
+      "top_predictions": [
+        {
+          "type": "heatwave",
+          "prob": 0.3833
+        },
+        {
+          "type": "drought",
+          "prob": 0.368
+        },
+        {
+          "type": "wildfire",
+          "prob": 0.1063
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.0665
+        },
+        {
+          "type": "earthquake",
+          "prob": 0.0359
+        },
+        {
+          "type": "flood",
+          "prob": 0.0176
+        },
+        {
+          "type": "landslide",
+          "prob": 0.0096
+        },
+        {
+          "type": "storm",
+          "prob": 0.0088
+        },
+        {
+          "type": "safe",
+          "prob": 0.004
+        }
+      ]
+    },
+    {
+      "id": "ls-004",
+      "status": "ok",
+      "expected_type": "landslide",
+      "expected_severity": "high",
+      "predicted_type": "landslide",
+      "predicted_severity": "high",
+      "predicted_confidence": 38,
+      "type_correct": true,
+      "elapsed_ms": 17,
+      "top_predictions": [
+        {
+          "type": "landslide",
+          "prob": 0.3801
+        },
+        {
+          "type": "safe",
+          "prob": 0.2149
+        },
+        {
+          "type": "flood",
+          "prob": 0.2111
+        },
+        {
+          "type": "drought",
+          "prob": 0.0891
+        },
+        {
+          "type": "heatwave",
+          "prob": 0.0727
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.0176
+        },
+        {
+          "type": "wildfire",
+          "prob": 0.0082
+        },
+        {
+          "type": "storm",
+          "prob": 0.0039
+        },
+        {
+          "type": "earthquake",
+          "prob": 0.0023
+        }
+      ]
+    },
+    {
+      "id": "dr-001",
+      "status": "ok",
+      "expected_type": "drought",
+      "expected_severity": "moderate",
+      "predicted_type": "drought",
+      "predicted_severity": "critical",
+      "predicted_confidence": 86,
+      "type_correct": true,
+      "elapsed_ms": 15,
+      "top_predictions": [
+        {
+          "type": "drought",
+          "prob": 0.8642
+        },
+        {
+          "type": "heatwave",
+          "prob": 0.1243
+        },
+        {
+          "type": "landslide",
+          "prob": 0.0036
+        },
+        {
+          "type": "storm",
+          "prob": 0.0031
+        },
+        {
+          "type": "safe",
+          "prob": 0.002
+        },
+        {
+          "type": "earthquake",
+          "prob": 0.0013
+        },
+        {
+          "type": "flood",
+          "prob": 0.0006
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.0006
+        },
+        {
+          "type": "wildfire",
+          "prob": 0.0003
+        }
+      ]
+    },
+    {
+      "id": "dr-002",
+      "status": "ok",
+      "expected_type": "drought",
+      "expected_severity": "high",
+      "predicted_type": "heatwave",
+      "predicted_severity": "moderate",
+      "predicted_confidence": 26,
+      "type_correct": true,
+      "elapsed_ms": 19,
+      "top_predictions": [
+        {
+          "type": "heatwave",
+          "prob": 0.2654
+        },
+        {
+          "type": "drought",
+          "prob": 0.2332
+        },
+        {
+          "type": "safe",
+          "prob": 0.1251
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.1246
+        },
+        {
+          "type": "wildfire",
+          "prob": 0.0985
+        },
+        {
+          "type": "storm",
+          "prob": 0.0542
+        },
+        {
+          "type": "flood",
+          "prob": 0.0483
+        },
+        {
+          "type": "landslide",
+          "prob": 0.0265
+        },
+        {
+          "type": "earthquake",
+          "prob": 0.024
+        }
+      ]
+    },
+    {
+      "id": "dr-003",
+      "status": "ok",
+      "expected_type": "drought",
+      "expected_severity": "high",
+      "predicted_type": "drought",
+      "predicted_severity": "high",
+      "predicted_confidence": 36,
+      "type_correct": true,
+      "elapsed_ms": 14,
+      "top_predictions": [
+        {
+          "type": "drought",
+          "prob": 0.3622
+        },
+        {
+          "type": "heatwave",
+          "prob": 0.2852
+        },
+        {
+          "type": "earthquake",
+          "prob": 0.0949
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.0887
+        },
+        {
+          "type": "safe",
+          "prob": 0.0785
+        },
+        {
+          "type": "wildfire",
+          "prob": 0.0358
+        },
+        {
+          "type": "landslide",
+          "prob": 0.0299
+        },
+        {
+          "type": "storm",
+          "prob": 0.0133
+        },
+        {
+          "type": "flood",
+          "prob": 0.0116
+        }
+      ]
+    },
+    {
+      "id": "dr-004",
+      "status": "ok",
+      "expected_type": "drought",
+      "expected_severity": "moderate",
+      "predicted_type": "storm",
+      "predicted_severity": "high",
+      "predicted_confidence": 43,
+      "type_correct": false,
+      "elapsed_ms": 14,
+      "top_predictions": [
+        {
+          "type": "storm",
+          "prob": 0.4362
+        },
+        {
+          "type": "safe",
+          "prob": 0.3429
+        },
+        {
+          "type": "landslide",
+          "prob": 0.0718
+        },
+        {
+          "type": "heatwave",
+          "prob": 0.0488
+        },
+        {
+          "type": "flood",
+          "prob": 0.0299
+        },
+        {
+          "type": "drought",
+          "prob": 0.0286
+        },
+        {
+          "type": "wildfire",
+          "prob": 0.0242
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.0125
+        },
+        {
+          "type": "earthquake",
+          "prob": 0.0051
+        }
+      ]
+    },
+    {
+      "id": "sd-001",
+      "status": "ok",
+      "expected_type": "structural_damage",
+      "expected_severity": "critical",
+      "predicted_type": "earthquake",
+      "predicted_severity": "high",
+      "predicted_confidence": 42,
+      "type_correct": true,
+      "elapsed_ms": 15,
+      "top_predictions": [
+        {
+          "type": "earthquake",
+          "prob": 0.4273
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.2752
+        },
+        {
+          "type": "heatwave",
+          "prob": 0.1458
+        },
+        {
+          "type": "safe",
+          "prob": 0.0724
+        },
+        {
+          "type": "drought",
+          "prob": 0.0424
+        },
+        {
+          "type": "flood",
+          "prob": 0.0166
+        },
+        {
+          "type": "landslide",
+          "prob": 0.0111
+        },
+        {
+          "type": "storm",
+          "prob": 0.007
+        },
+        {
+          "type": "wildfire",
+          "prob": 0.0023
+        }
+      ]
+    },
+    {
+      "id": "sd-002",
+      "status": "ok",
+      "expected_type": "structural_damage",
+      "expected_severity": "high",
+      "predicted_type": "heatwave",
+      "predicted_severity": "critical",
+      "predicted_confidence": 86,
+      "type_correct": false,
+      "elapsed_ms": 14,
+      "top_predictions": [
+        {
+          "type": "heatwave",
+          "prob": 0.8619
+        },
+        {
+          "type": "drought",
+          "prob": 0.1266
+        },
+        {
+          "type": "landslide",
+          "prob": 0.0041
+        },
+        {
+          "type": "safe",
+          "prob": 0.0033
+        },
+        {
+          "type": "earthquake",
+          "prob": 0.0013
+        },
+        {
+          "type": "wildfire",
+          "prob": 0.0012
+        },
+        {
+          "type": "storm",
+          "prob": 0.0008
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.0006
+        },
+        {
+          "type": "flood",
+          "prob": 0.0002
+        }
+      ]
+    },
+    {
+      "id": "sd-003",
+      "status": "ok",
+      "expected_type": "structural_damage",
+      "expected_severity": "critical",
+      "predicted_type": "structural_damage",
+      "predicted_severity": "high",
+      "predicted_confidence": 32,
+      "type_correct": true,
+      "elapsed_ms": 20,
+      "top_predictions": [
+        {
+          "type": "structural_damage",
+          "prob": 0.3259
+        },
+        {
+          "type": "earthquake",
+          "prob": 0.3095
+        },
+        {
+          "type": "safe",
+          "prob": 0.1802
+        },
+        {
+          "type": "flood",
+          "prob": 0.0514
+        },
+        {
+          "type": "heatwave",
+          "prob": 0.0384
+        },
+        {
+          "type": "drought",
+          "prob": 0.0381
+        },
+        {
+          "type": "landslide",
+          "prob": 0.027
+        },
+        {
+          "type": "storm",
+          "prob": 0.0257
+        },
+        {
+          "type": "wildfire",
+          "prob": 0.0038
+        }
+      ]
+    },
+    {
+      "id": "sd-004",
+      "status": "ok",
+      "expected_type": "structural_damage",
+      "expected_severity": "high",
+      "predicted_type": "heatwave",
+      "predicted_severity": "critical",
+      "predicted_confidence": 50,
+      "type_correct": false,
+      "elapsed_ms": 22,
+      "top_predictions": [
+        {
+          "type": "heatwave",
+          "prob": 0.5071
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.1677
+        },
+        {
+          "type": "safe",
+          "prob": 0.1159
+        },
+        {
+          "type": "storm",
+          "prob": 0.0862
+        },
+        {
+          "type": "wildfire",
+          "prob": 0.0457
+        },
+        {
+          "type": "drought",
+          "prob": 0.0353
+        },
+        {
+          "type": "earthquake",
+          "prob": 0.0288
+        },
+        {
+          "type": "landslide",
+          "prob": 0.0108
+        },
+        {
+          "type": "flood",
+          "prob": 0.0025
+        }
+      ]
+    },
+    {
+      "id": "hw-001",
+      "status": "ok",
+      "expected_type": "heatwave",
+      "expected_severity": "high",
+      "predicted_type": "heatwave",
+      "predicted_severity": "high",
+      "predicted_confidence": 37,
+      "type_correct": true,
+      "elapsed_ms": 22,
+      "top_predictions": [
+        {
+          "type": "heatwave",
+          "prob": 0.3727
+        },
+        {
+          "type": "safe",
+          "prob": 0.2705
+        },
+        {
+          "type": "drought",
+          "prob": 0.156
+        },
+        {
+          "type": "landslide",
+          "prob": 0.1255
+        },
+        {
+          "type": "wildfire",
+          "prob": 0.0527
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.009
+        },
+        {
+          "type": "storm",
+          "prob": 0.0088
+        },
+        {
+          "type": "earthquake",
+          "prob": 0.0036
+        },
+        {
+          "type": "flood",
+          "prob": 0.0012
+        }
+      ]
+    },
+    {
+      "id": "hw-002",
+      "status": "ok",
+      "expected_type": "heatwave",
+      "expected_severity": "moderate",
+      "predicted_type": "storm",
+      "predicted_severity": "high",
+      "predicted_confidence": 42,
+      "type_correct": false,
+      "elapsed_ms": 12,
+      "top_predictions": [
+        {
+          "type": "storm",
+          "prob": 0.4203
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.1443
+        },
+        {
+          "type": "wildfire",
+          "prob": 0.1256
+        },
+        {
+          "type": "heatwave",
+          "prob": 0.1047
+        },
+        {
+          "type": "safe",
+          "prob": 0.0796
+        },
+        {
+          "type": "drought",
+          "prob": 0.0444
+        },
+        {
+          "type": "landslide",
+          "prob": 0.0404
+        },
+        {
+          "type": "earthquake",
+          "prob": 0.0298
+        },
+        {
+          "type": "flood",
+          "prob": 0.0108
+        }
+      ]
+    },
+    {
+      "id": "sf-001",
+      "status": "ok",
+      "expected_type": "safe",
+      "expected_severity": "none",
+      "predicted_type": "safe",
+      "predicted_severity": "moderate",
+      "predicted_confidence": 28,
+      "type_correct": true,
+      "elapsed_ms": 14,
+      "top_predictions": [
+        {
+          "type": "safe",
+          "prob": 0.2874
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.1841
+        },
+        {
+          "type": "flood",
+          "prob": 0.1603
+        },
+        {
+          "type": "storm",
+          "prob": 0.1333
+        },
+        {
+          "type": "landslide",
+          "prob": 0.0671
+        },
+        {
+          "type": "earthquake",
+          "prob": 0.0601
+        },
+        {
+          "type": "heatwave",
+          "prob": 0.0557
+        },
+        {
+          "type": "drought",
+          "prob": 0.0281
+        },
+        {
+          "type": "wildfire",
+          "prob": 0.0238
+        }
+      ]
+    },
+    {
+      "id": "sf-002",
+      "status": "ok",
+      "expected_type": "safe",
+      "expected_severity": "none",
+      "predicted_type": "safe",
+      "predicted_severity": "high",
+      "predicted_confidence": 40,
+      "type_correct": true,
+      "elapsed_ms": 14,
+      "top_predictions": [
+        {
+          "type": "safe",
+          "prob": 0.4024
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.1426
+        },
+        {
+          "type": "heatwave",
+          "prob": 0.1329
+        },
+        {
+          "type": "storm",
+          "prob": 0.1135
+        },
+        {
+          "type": "flood",
+          "prob": 0.0644
+        },
+        {
+          "type": "earthquake",
+          "prob": 0.0615
+        },
+        {
+          "type": "drought",
+          "prob": 0.0358
+        },
+        {
+          "type": "landslide",
+          "prob": 0.0295
+        },
+        {
+          "type": "wildfire",
+          "prob": 0.0174
+        }
+      ]
+    },
+    {
+      "id": "sf-003",
+      "status": "ok",
+      "expected_type": "safe",
+      "expected_severity": "none",
+      "predicted_type": "heatwave",
+      "predicted_severity": "critical",
+      "predicted_confidence": 51,
+      "type_correct": false,
+      "elapsed_ms": 18,
+      "top_predictions": [
+        {
+          "type": "heatwave",
+          "prob": 0.52
+        },
+        {
+          "type": "flood",
+          "prob": 0.1208
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.1022
+        },
+        {
+          "type": "storm",
+          "prob": 0.071
+        },
+        {
+          "type": "drought",
+          "prob": 0.0694
+        },
+        {
+          "type": "safe",
+          "prob": 0.0444
+        },
+        {
+          "type": "landslide",
+          "prob": 0.0317
+        },
+        {
+          "type": "wildfire",
+          "prob": 0.0206
+        },
+        {
+          "type": "earthquake",
+          "prob": 0.0198
+        }
+      ]
+    },
+    {
+      "id": "sf-004",
+      "status": "ok",
+      "expected_type": "safe",
+      "expected_severity": "none",
+      "predicted_type": "earthquake",
+      "predicted_severity": "critical",
+      "predicted_confidence": 56,
+      "type_correct": false,
+      "elapsed_ms": 15,
+      "top_predictions": [
+        {
+          "type": "earthquake",
+          "prob": 0.5669
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.171
+        },
+        {
+          "type": "safe",
+          "prob": 0.1614
+        },
+        {
+          "type": "heatwave",
+          "prob": 0.0486
+        },
+        {
+          "type": "drought",
+          "prob": 0.0277
+        },
+        {
+          "type": "flood",
+          "prob": 0.0088
+        },
+        {
+          "type": "landslide",
+          "prob": 0.0068
+        },
+        {
+          "type": "wildfire",
+          "prob": 0.0047
+        },
+        {
+          "type": "storm",
+          "prob": 0.0041
+        }
+      ]
+    },
+    {
+      "id": "sf-005",
+      "status": "ok",
+      "expected_type": "safe",
+      "expected_severity": "none",
+      "predicted_type": "safe",
+      "predicted_severity": "high",
+      "predicted_confidence": 42,
+      "type_correct": true,
+      "elapsed_ms": 14,
+      "top_predictions": [
+        {
+          "type": "safe",
+          "prob": 0.4211
+        },
+        {
+          "type": "heatwave",
+          "prob": 0.3008
+        },
+        {
+          "type": "wildfire",
+          "prob": 0.1759
+        },
+        {
+          "type": "drought",
+          "prob": 0.0804
+        },
+        {
+          "type": "landslide",
+          "prob": 0.0078
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.0074
+        },
+        {
+          "type": "earthquake",
+          "prob": 0.0037
+        },
+        {
+          "type": "storm",
+          "prob": 0.002
+        },
+        {
+          "type": "flood",
+          "prob": 0.0008
+        }
+      ]
+    },
+    {
+      "id": "sf-006",
+      "status": "ok",
+      "expected_type": "safe",
+      "expected_severity": "none",
+      "predicted_type": "safe",
+      "predicted_severity": "critical",
+      "predicted_confidence": 97,
+      "type_correct": true,
+      "elapsed_ms": 27,
+      "top_predictions": [
+        {
+          "type": "safe",
+          "prob": 0.977
+        },
+        {
+          "type": "heatwave",
+          "prob": 0.0111
+        },
+        {
+          "type": "drought",
+          "prob": 0.0039
+        },
+        {
+          "type": "landslide",
+          "prob": 0.0027
+        },
+        {
+          "type": "storm",
+          "prob": 0.0025
+        },
+        {
+          "type": "flood",
+          "prob": 0.0017
+        },
+        {
+          "type": "structural_damage",
+          "prob": 0.0005
+        },
+        {
+          "type": "wildfire",
+          "prob": 0.0004
+        },
+        {
+          "type": "earthquake",
+          "prob": 0.0003
+        }
+      ]
+    }
+  ],
+  "category_stats": {
+    "drought": {
+      "total": 4,
+      "correct": 3,
+      "accuracy": 75.0,
+      "misclassified_as": [
+        "storm"
+      ]
+    },
+    "earthquake": {
+      "total": 4,
+      "correct": 2,
+      "accuracy": 50.0,
+      "misclassified_as": [
+        "heatwave",
+        "heatwave"
+      ]
+    },
+    "flood": {
+      "total": 6,
+      "correct": 2,
+      "accuracy": 33.3,
+      "misclassified_as": [
+        "storm",
+        "landslide",
+        "heatwave",
+        "earthquake"
+      ]
+    },
+    "heatwave": {
+      "total": 2,
+      "correct": 1,
+      "accuracy": 50.0,
+      "misclassified_as": [
+        "storm"
+      ]
+    },
+    "landslide": {
+      "total": 4,
+      "correct": 2,
+      "accuracy": 50.0,
+      "misclassified_as": [
+        "storm",
+        "heatwave"
+      ]
+    },
+    "safe": {
+      "total": 6,
+      "correct": 4,
+      "accuracy": 66.7,
+      "misclassified_as": [
+        "heatwave",
+        "earthquake"
+      ]
+    },
+    "storm": {
+      "total": 6,
+      "correct": 3,
+      "accuracy": 50.0,
+      "misclassified_as": [
+        "heatwave",
+        "safe",
+        "landslide"
+      ]
+    },
+    "structural_damage": {
+      "total": 4,
+      "correct": 2,
+      "accuracy": 50.0,
+      "misclassified_as": [
+        "heatwave",
+        "heatwave"
+      ]
+    },
+    "wildfire": {
+      "total": 6,
+      "correct": 3,
+      "accuracy": 50.0,
+      "misclassified_as": [
+        "safe",
+        "landslide",
+        "safe"
+      ]
+    }
+  }
+}

@@ -17,6 +17,8 @@ export interface ModernNotificationProps {
   onClose?: () => void
 }
 
+import { FEEDBACK_CLASSES } from '../../utils/colorTokens'
+
 const ICONS = {
   success: CheckCircle,
   error: AlertCircle,
@@ -24,36 +26,7 @@ const ICONS = {
   info: Info,
 }
 
-const COLORS = {
-  success: {
-    bg: 'bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30',
-    border: 'border-green-200 dark:border-green-800',
-    text: 'text-green-900 dark:text-green-200',
-    icon: 'text-green-600 dark:text-green-400',
-    progress: 'bg-green-500',
-  },
-  error: {
-    bg: 'bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-950/30 dark:to-rose-950/30',
-    border: 'border-red-200 dark:border-red-800',
-    text: 'text-red-900 dark:text-red-200',
-    icon: 'text-red-600 dark:text-red-400',
-    progress: 'bg-red-500',
-  },
-  warning: {
-    bg: 'bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-950/30 dark:to-yellow-950/30',
-    border: 'border-amber-200 dark:border-amber-800',
-    text: 'text-amber-900 dark:text-amber-200',
-    icon: 'text-amber-600 dark:text-amber-400',
-    progress: 'bg-amber-500',
-  },
-  info: {
-    bg: 'bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30',
-    border: 'border-blue-200 dark:border-blue-800',
-    text: 'text-blue-900 dark:text-blue-200',
-    icon: 'text-blue-600 dark:text-blue-400',
-    progress: 'bg-blue-500',
-  },
-}
+const COLORS = FEEDBACK_CLASSES
 
 export function ModernNotification({
   message,

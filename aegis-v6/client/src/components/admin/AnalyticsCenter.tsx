@@ -1,20 +1,17 @@
-/**
+﻿ /*
  * AnalyticsCenter.tsx — Professional EOC Intelligence & Analytics Console
- *
  * Modeled after FEMA IPAWS Analytics, UK Resilience Direct Reports,
  * Palantir Gotham Intelligence, Esri ArcGIS Ops Dashboard analytics.
- *
  * Wraps the existing AnalyticsDashboard (733-line component with 12 KPIs,
  * 10 chart sections, WebSocket real-time) and adds:
- *
- * - Executive command header with mission clock + data feed indicators
- * - Operational Tempo (OPTEMPO) ribbon — key situation summary in one line
- * - SLA / threshold performance gauges
- * - Severity distribution donut (visual)
- * - Enhanced activity log with timeline + filtering
- * - Data quality scorecard with coverage metrics
- * - Keyboard shortcut reference
- */
+ * Executive command header with mission clock + data feed indicators
+ * Operational Tempo (OPTEMPO) ribbon — key situation summary in one line
+ * SLA / threshold performance gauges
+ * Severity distribution donut (visual)
+ * Enhanced activity log with timeline + filtering
+ * Data quality scorecard with coverage metrics
+ * Keyboard shortcut reference
+  */
 
 import React, { useState, useMemo, useEffect } from 'react'
 import {
@@ -29,9 +26,6 @@ import { t } from '../../utils/i18n'
 import type { Report } from '../../types'
 import { useLanguage } from '../../hooks/useLanguage'
 
-/* ═══════════════════════════════════════════════════════════════════
-   PROPS
-   ═══════════════════════════════════════════════════════════════════ */
 interface AnalyticsCenterProps {
   reports: Report[]
   stats: {
@@ -48,9 +42,6 @@ interface AnalyticsCenterProps {
   pushNotification: (msg: string, type?: 'success' | 'warning' | 'error' | 'info' | string, duration?: number) => void | number
 }
 
-/* ═══════════════════════════════════════════════════════════════════
-   HELPERS
-   ═══════════════════════════════════════════════════════════════════ */
 const timeAgo = (ts: string, lang: string) => {
   const mins = Math.floor((Date.now() - new Date(ts).getTime()) / 60000)
   if (mins < 1) return t('time.justNow', lang)
@@ -69,9 +60,6 @@ const AUDIT_ICON_MAP: Record<string, { bg: string; icon: React.FC<any> }> = {
   recall: { bg: 'bg-cyan-500', icon: RefreshCw },
 }
 
-/* ═══════════════════════════════════════════════════════════════════
-   COMPONENT
-   ═══════════════════════════════════════════════════════════════════ */
 export default function AnalyticsCenter(props: AnalyticsCenterProps) {
   const lang = useLanguage()
   const {
@@ -85,13 +73,13 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
   const [showKeyboard, setShowKeyboard] = useState(false)
   const [optempoExpanded, setOptempoExpanded] = useState(true)
 
-  // ── Live clock ──
+  //  Live clock
   useEffect(() => {
     const interval = setInterval(() => setClockNow(new Date()), 1000)
     return () => clearInterval(interval)
   }, [])
 
-  // ── OPTEMPO metrics ──
+  //  OPTEMPO metrics
   const optempo = useMemo(() => {
     const now = Date.now()
     const last1h = reports.filter(r => now - new Date(r.timestamp).getTime() < 3600000).length
@@ -113,7 +101,7 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
     return { last1h, last24h, reportsPerHour, tempoLevel, tempoColor, tempoBg }
   }, [reports, stats.urgent])
 
-  // ── SLA performance gauges ──
+  //  SLA performance gauges
   const sla = useMemo(() => {
     const verifyRate = stats.verifyRate || (stats.total > 0 ? Math.round((stats.verified / stats.total) * 100) : 0)
     const resolveRate = stats.total > 0 ? Math.round((stats.resolved / stats.total) * 100) : 0
@@ -122,7 +110,7 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
     return { verifyRate, resolveRate, urgentResponseRate, aiCoverage }
   }, [stats])
 
-  // ── Severity donut data ──
+  //  Severity donut data
   const severityDonut = useMemo(() => {
     const total = stats.high + stats.medium + stats.low
     if (total === 0) return { high: 0, medium: 0, low: 0, highPct: 0, medPct: 0, lowPct: 0 }
@@ -134,7 +122,7 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
     }
   }, [stats])
 
-  // ── Filtered audit log ──
+  //  Filtered audit log
   const filteredLog = useMemo(() => {
     if (activityFilter === 'all') return auditLog.slice(0, 30)
     return auditLog.filter(e => (e.action_type || '').includes(activityFilter)).slice(0, 30)
@@ -145,9 +133,9 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
   return (
     <div className="space-y-4 animate-fade-in">
 
-      {/* ═══════════════════════════════════════════════════════════════
+      {/*
           SECTION 1 — COMMAND HEADER
-          ═══════════════════════════════════════════════════════════════ */}
+           */}
       <div className="bg-gradient-to-r from-gray-900 via-gray-900 to-gray-950 rounded-2xl ring-1 ring-gray-800 shadow-lg overflow-hidden">
         <div className="px-5 py-3 flex items-center justify-between flex-wrap gap-3">
           {/* Left: Title + Clock */}
@@ -174,13 +162,13 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
 
           {/* Right: Actions */}
           <div className="flex items-center gap-2">
-            <button onClick={onExportCSV} className="text-[10px] bg-gray-800 hover:bg-gray-700 text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 px-3 py-1.5 rounded-lg flex items-center gap-1.5 ring-1 ring-gray-700 transition-all hover:shadow-md">
+            <button onClick={onExportCSV} className="text-[10px] bg-gray-800 hover:bg-gray-700 text-gray-300 dark:text-gray-300 px-3 py-1.5 rounded-lg flex items-center gap-1.5 ring-1 ring-gray-700 transition-all hover:shadow-md">
               <Download className="w-3 h-3" /> CSV
             </button>
-            <button onClick={onExportJSON} className="text-[10px] bg-gray-800 hover:bg-gray-700 text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 px-3 py-1.5 rounded-lg flex items-center gap-1.5 ring-1 ring-gray-700 transition-all hover:shadow-md">
+            <button onClick={onExportJSON} className="text-[10px] bg-gray-800 hover:bg-gray-700 text-gray-300 dark:text-gray-300 px-3 py-1.5 rounded-lg flex items-center gap-1.5 ring-1 ring-gray-700 transition-all hover:shadow-md">
               <Download className="w-3 h-3" /> JSON
             </button>
-            <button onClick={() => setShowKeyboard(p => !p)} className="text-[10px] bg-gray-800 hover:bg-gray-700 p-1.5 rounded-lg ring-1 ring-gray-700 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 transition-all">
+            <button onClick={() => setShowKeyboard(p => !p)} className="text-[10px] bg-gray-800 hover:bg-gray-700 p-1.5 rounded-lg ring-1 ring-gray-700 text-gray-400 dark:text-gray-300 transition-all">
               <Keyboard className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -192,7 +180,7 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
           className="w-full px-5 py-2 bg-gray-950/60 border-t border-gray-800/60 flex items-center justify-between hover:bg-gray-800/30 transition-colors"
         >
           <div className="flex items-center gap-3">
-            <span className="text-[8px] font-bold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-widest">{t('analytics.optempo', lang)}</span>
+            <span className="text-[8px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-widest">{t('analytics.optempo', lang)}</span>
             <span className={`text-[10px] font-black px-2 py-0.5 rounded ring-1 ${optempo.tempoBg} ${optempo.tempoColor}`}>
               {optempo.tempoLevel}
             </span>
@@ -207,8 +195,8 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
               { label: t('analytics.lastHour', lang), value: optempo.last1h, icon: Zap, color: optempo.last1h >= 10 ? 'text-red-400' : optempo.last1h >= 5 ? 'text-amber-400' : 'text-green-400' },
               { label: t('analytics.last24h', lang), value: optempo.last24h, icon: Clock, color: 'text-cyan-400' },
               { label: t('analytics.reportsPerHr', lang), value: optempo.reportsPerHour, icon: Activity, color: 'text-blue-400' },
-              { label: t('common.urgent', lang), value: stats.urgent, icon: AlertTriangle, color: stats.urgent > 0 ? 'text-red-400' : 'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300' },
-              { label: t('common.unverified', lang), value: stats.unverified, icon: Eye, color: stats.unverified > 5 ? 'text-amber-400' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300' },
+              { label: t('common.urgent', lang), value: stats.urgent, icon: AlertTriangle, color: stats.urgent > 0 ? 'text-red-400' : 'text-gray-500 dark:text-gray-300' },
+              { label: t('common.unverified', lang), value: stats.unverified, icon: Eye, color: stats.unverified > 5 ? 'text-amber-400' : 'text-gray-400 dark:text-gray-300' },
               { label: t('ai.confidence', lang), value: `${stats.avgConf}%`, icon: Brain, color: stats.avgConf >= 70 ? 'text-emerald-400' : 'text-amber-400' },
               { label: t('analytics.mediaAttached', lang), value: stats.withMedia, icon: Signal, color: 'text-purple-400' },
             ].map((m, i) => (
@@ -216,7 +204,7 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
                 <m.icon className={`w-3.5 h-3.5 ${m.color} flex-shrink-0`} />
                 <div>
                   <p className={`text-sm font-black tabular-nums ${m.color}`}>{m.value}</p>
-                  <p className="text-[8px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-wider">{m.label}</p>
+                  <p className="text-[8px] text-gray-500 dark:text-gray-300 uppercase tracking-wider">{m.label}</p>
                 </div>
               </div>
             ))}
@@ -227,24 +215,24 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
       {/* Keyboard Shortcuts */}
       {showKeyboard && (
         <div className="bg-gray-900 text-white rounded-xl p-3 flex items-center gap-4 flex-wrap text-[10px] font-mono ring-1 ring-gray-700">
-          <span className="text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-bold uppercase tracking-wider text-[9px]">Shortcuts:</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">R</kbd> Refresh</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">E</kbd> Export CSV</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">F</kbd> Toggle Fullscreen</span>
-          <button onClick={() => setShowKeyboard(false)} className="ml-auto text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-white"><X className="w-3 h-3" /></button>
+          <span className="text-gray-400 dark:text-gray-300 font-bold uppercase tracking-wider text-[9px]">Shortcuts:</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">R</kbd> Refresh</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">E</kbd> Export CSV</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">F</kbd> Toggle Fullscreen</span>
+          <button onClick={() => setShowKeyboard(false)} className="ml-auto text-gray-400 dark:text-gray-300 hover:text-white"><X className="w-3 h-3" /></button>
         </div>
       )}
 
-      {/* ═══════════════════════════════════════════════════════════════
+      {/*
           SECTION 2 — SLA PERFORMANCE + SEVERITY DONUT
-          ═══════════════════════════════════════════════════════════════ */}
+           */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* SLA Performance Gauges */}
         <div className="lg:col-span-2 bg-white dark:bg-gray-900/80 backdrop-blur rounded-2xl ring-1 ring-gray-200 dark:ring-gray-800 shadow-sm p-5">
           <div className="flex items-center gap-2 mb-4">
             <Target className="w-4 h-4 text-aegis-600" />
             <h3 className="text-sm font-extrabold">{t('analytics.slaTargets', lang)}</h3>
-            <span className="text-[9px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 ml-1">{t('analytics.slaSubtitle', lang)}</span>
+            <span className="text-[9px] text-gray-400 dark:text-gray-300 ml-1">{t('analytics.slaSubtitle', lang)}</span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[
@@ -268,15 +256,15 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
                     {/* Target line */}
                     <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                       fill="none" strokeWidth="0.5" strokeDasharray={`${g.target} ${100 - g.target}`}
-                      className="text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-600" strokeOpacity="0.5"
+                      className="text-gray-400 dark:text-gray-600" strokeOpacity="0.5"
                       style={{ stroke: '#6b7280' }} />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-base font-black tabular-nums">{g.value}<span className="text-[9px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{g.unit}</span></span>
+                    <span className="text-base font-black tabular-nums">{g.value}<span className="text-[9px] text-gray-400 dark:text-gray-300">{g.unit}</span></span>
                   </div>
                 </div>
-                <p className="text-[10px] font-bold text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{g.label}</p>
-                <p className="text-[9px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">Target: {g.target}{g.unit}</p>
+                <p className="text-[10px] font-bold text-gray-700 dark:text-gray-300">{g.label}</p>
+                <p className="text-[9px] text-gray-400 dark:text-gray-300">Target: {g.target}{g.unit}</p>
                 <span className={`text-[9px] font-bold ${g.value >= g.target ? 'text-emerald-600' : 'text-red-500'}`}>
                   {g.value >= g.target ? '✓ MEETING' : '✗ BELOW'}
                 </span>
@@ -314,7 +302,7 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center">
                   <p className="text-lg font-black tabular-nums">{stats.total}</p>
-                  <p className="text-[8px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase">Total</p>
+                  <p className="text-[8px] text-gray-500 dark:text-gray-300 uppercase">Total</p>
                 </div>
               </div>
             </div>
@@ -327,28 +315,28 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
             ].map(s => (
               <div key={s.label} className="flex items-center gap-2">
                 <span className={`w-2.5 h-2.5 rounded-full ${s.color} flex-shrink-0`} />
-                <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 w-16">{s.label}</span>
+                <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300 w-16">{s.label}</span>
                 <div className="flex-1 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                   <div className={`h-full rounded-full ${s.color} transition-all duration-500`} style={{ width: `${s.pct}%` }} />
                 </div>
                 <span className={`text-[10px] font-black tabular-nums ${s.text}`}>{s.count}</span>
-                <span className="text-[9px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 tabular-nums w-8 text-right">{s.pct}%</span>
+                <span className="text-[9px] text-gray-400 dark:text-gray-300 tabular-nums w-8 text-right">{s.pct}%</span>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* ═══════════════════════════════════════════════════════════════
+      {/*
           SECTION 3 — MAIN ANALYTICS DASHBOARD (existing component)
-          ═══════════════════════════════════════════════════════════════ */}
+           */}
       <div className="bg-white dark:bg-gray-900/80 backdrop-blur rounded-2xl ring-1 ring-gray-200 dark:ring-gray-800 shadow-sm overflow-hidden">
         <AnalyticsDashboard />
       </div>
 
-      {/* ═══════════════════════════════════════════════════════════════
+      {/*
           SECTION 4 — ENHANCED ACTIVITY LOG
-          ═══════════════════════════════════════════════════════════════ */}
+           */}
       <div className="bg-white dark:bg-gray-900/80 backdrop-blur rounded-2xl ring-1 ring-gray-200 dark:ring-gray-800 shadow-sm overflow-hidden">
         <button
           onClick={() => setActivityExpanded(p => !p)}
@@ -360,11 +348,11 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
             </div>
             <div className="text-left">
               <h3 className="text-sm font-extrabold">{t('admin.analytics.activityLog', lang)}</h3>
-              <p className="text-[9px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('analytics.activitySubtitle', lang)}</p>
+              <p className="text-[9px] text-gray-400 dark:text-gray-300">{t('analytics.activitySubtitle', lang)}</p>
             </div>
             <span className="text-[10px] font-bold text-aegis-600 bg-aegis-50 dark:bg-aegis-950/30 px-2 py-0.5 rounded-full tabular-nums">{auditLog.length}</span>
           </div>
-          {activityExpanded ? <ChevronUp className="w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" /> : <ChevronDown className="w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />}
+          {activityExpanded ? <ChevronUp className="w-4 h-4 text-gray-400 dark:text-gray-300" /> : <ChevronDown className="w-4 h-4 text-gray-400 dark:text-gray-300" />}
         </button>
 
         {activityExpanded && (
@@ -386,7 +374,7 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
                   className={`text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 transition-all flex-shrink-0 ${
                     activityFilter === f.key
                       ? 'bg-aegis-600 text-white shadow-sm'
-                      : 'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/50 ring-1 ring-gray-200 dark:ring-gray-700'
+                      : 'text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/50 ring-1 ring-gray-200 dark:ring-gray-700'
                   }`}
                 >
                   {f.label}
@@ -398,7 +386,7 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
             {/* Log entries */}
             <div className="divide-y divide-gray-100 dark:divide-gray-800/50 max-h-[400px] overflow-y-auto scrollbar-thin">
               {filteredLog.length === 0 ? (
-                <p className="py-6 text-center text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('admin.analytics.noActivity', lang)}</p>
+                <p className="py-6 text-center text-xs text-gray-500 dark:text-gray-300">{t('admin.analytics.noActivity', lang)}</p>
               ) : filteredLog.map((e: any, i: number) => {
                 const iconCls = 'w-4 h-4'
                 const mapping = AUDIT_ICON_MAP[e.action_type || '']
@@ -436,14 +424,14 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
                         )}
                       </p>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex items-center gap-1">
+                        <span className="text-[10px] text-gray-500 dark:text-gray-300 flex items-center gap-1">
                           <Users className="w-3 h-3" /> {e.operator_name || 'System'}
                         </span>
-                        <span className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 tabular-nums flex items-center gap-1">
+                        <span className="text-[10px] text-gray-400 dark:text-gray-300 tabular-nums flex items-center gap-1">
                           <Clock className="w-3 h-3" /> {timeAgo(e.created_at, lang)}
                         </span>
                         {e.action_type && (
-                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-mono">{e.action_type}</span>
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-300 font-mono">{e.action_type}</span>
                         )}
                       </div>
                     </div>
@@ -455,14 +443,14 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
         )}
       </div>
 
-      {/* ═══════════════════════════════════════════════════════════════
+      {/*
           SECTION 5 — DATA QUALITY SCORECARD
-          ═══════════════════════════════════════════════════════════════ */}
+           */}
       <div className="bg-white dark:bg-gray-900/80 backdrop-blur rounded-2xl ring-1 ring-gray-200 dark:ring-gray-800 shadow-sm p-5">
         <div className="flex items-center gap-2 mb-4">
           <Gauge className="w-4 h-4 text-indigo-500" />
           <h3 className="text-sm font-extrabold">{t('analytics.dataQualityScorecard', lang)}</h3>
-          <span className="text-[9px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 ml-1">{t('analytics.dataQualitySubtitle', lang)}</span>
+          <span className="text-[9px] text-gray-400 dark:text-gray-300 ml-1">{t('analytics.dataQualitySubtitle', lang)}</span>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
@@ -474,10 +462,10 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
             <div key={i} className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3 ring-1 ring-gray-100 dark:ring-gray-800">
               <div className="flex items-center gap-2 mb-2">
                 <m.icon className={`w-3.5 h-3.5 text-${m.color}-500`} style={{ color: m.color === 'violet' ? '#8b5cf6' : m.color === 'blue' ? '#3b82f6' : m.color === 'emerald' ? '#10b981' : '#06b6d4' }} />
-                <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{m.label}</span>
+                <span className="text-[10px] font-bold text-gray-600 dark:text-gray-300">{m.label}</span>
               </div>
               <div className="flex items-end gap-2">
-                <span className="text-2xl font-black tabular-nums">{m.value}<span className="text-xs text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">%</span></span>
+                <span className="text-2xl font-black tabular-nums">{m.value}<span className="text-xs text-gray-400 dark:text-gray-300">%</span></span>
               </div>
               <div className="mt-2 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                 <div
@@ -495,8 +483,4 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
     </div>
   )
 }
-
-
-
-
-
+

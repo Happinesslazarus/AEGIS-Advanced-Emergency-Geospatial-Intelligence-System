@@ -41,3 +41,4 @@ export const PUBLIC_SAFETY_PRIORITY_KEYWORDS = [
   'evacuation',
   'active threat'
 ]
+

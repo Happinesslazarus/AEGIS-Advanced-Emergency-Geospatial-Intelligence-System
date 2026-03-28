@@ -1,7 +1,5 @@
 """
-═══════════════════════════════════════════════════════════════════════════════
  AEGIS AI ENGINE — Drought Prediction Module
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from typing import Dict, List, Optional, Any, Tuple
@@ -12,7 +10,7 @@ from loguru import logger
 from app.schemas.predictions import *
 from app.core.model_registry import ModelRegistry
 from app.core.feature_store import FeatureStore
-
+from app.hazards.shap_explainer import explain_prediction
 
 class DroughtPredictor:
     """
@@ -29,6 +27,9 @@ class DroughtPredictor:
         self.model_registry = model_registry
         self.feature_store = feature_store
         self.hazard_type = HazardType.DROUGHT
+        self._last_shap = None
+        self._model_type_label = "supervised"
+        self._label_strategy = "Trained on historical drought event records"
         logger.info("Drought prediction module initialized")
     
     async def predict(self, request: PredictionRequest) -> PredictionResponse:
@@ -89,7 +90,10 @@ class DroughtPredictor:
             generated_at=datetime.utcnow(),
             expires_at=datetime.utcnow() + timedelta(days=7),
             data_sources=["rainfall_records", "soil_moisture", "ndvi_satellite", "temperature"],
-            warnings=[]
+            warnings=[],
+            model_type_label=self._model_type_label,
+            shap_explanation=self._last_shap,
+            label_strategy=self._label_strategy,
         )
     
     async def _predict_with_model(self, model: Any, features: Dict[str, float], metadata: Any) -> Tuple[float, float]:
@@ -101,7 +105,16 @@ class DroughtPredictor:
             else:
                 probability = float(model.predict(feature_vector)[0])
             probability = np.clip(probability, 0.0, 1.0)
-            confidence = metadata.performance_metrics.get('roc_auc', 0.80)
+            raw_conf = metadata.performance_metrics.get('roc_auc') or metadata.performance_metrics.get('f1_score', 0.65)
+            confidence = round(min(0.99, max(0.40, float(raw_conf))), 3)
+            # SHAP explainability
+            shap_result = explain_prediction(model, feature_vector, list(metadata.feature_names))
+            if shap_result:
+                self._last_shap = shap_result
+                if metadata.extra_metadata and 'model_type_label' in metadata.extra_metadata:
+                    self._model_type_label = metadata.extra_metadata['model_type_label']
+                if metadata.extra_metadata and 'label_strategy' in metadata.extra_metadata:
+                    self._label_strategy = metadata.extra_metadata['label_strategy']
             return probability, confidence
         except Exception as e:
             logger.error(f"Model error: {e}")

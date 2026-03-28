@@ -3,11 +3,12 @@
  * Shows recent hazards/emergencies before citizen authentication
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { AlertTriangle, Droplet, Flame, Wind, TrendingUp, Clock, MapPin, Eye, ChevronRight } from 'lucide-react'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
+import { SEVERITY_CLASSES } from '../../utils/colorTokens'
 
 export interface Alert {
   id: string
@@ -29,14 +30,7 @@ const HAZARD_ICONS: Record<string, any> = {
   default: AlertTriangle,
 }
 
-const SEVERITY_COLORS: Record<string, string> = {
-  critical: 'bg-red-100 border-red-300 text-red-900 dark:bg-red-950/30 dark:border-red-800 dark:text-red-200',
-  high: 'bg-orange-100 border-orange-300 text-orange-900 dark:bg-orange-950/30 dark:border-orange-800 dark:text-orange-200',
-  medium: 'bg-yellow-100 border-yellow-300 text-yellow-900 dark:bg-yellow-950/30 dark:border-yellow-800 dark:text-yellow-200',
-  warning: 'bg-amber-100 border-amber-300 text-amber-900 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-200',
-  low: 'bg-blue-100 border-blue-300 text-blue-900 dark:bg-blue-950/30 dark:border-blue-800 dark:text-blue-200',
-  info: 'bg-sky-100 border-sky-300 text-sky-900 dark:bg-sky-950/30 dark:border-sky-800 dark:text-sky-200',
-}
+const SEVERITY_COLORS: Record<string, string> = SEVERITY_CLASSES
 
 const SEVERITY_BADGES: Record<string, string> = {
   critical: 'bg-red-600 text-white',
@@ -52,17 +46,20 @@ export function IncomingAlertsWidget() {
   const [alerts, setAlerts] = useState<Alert[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const abortRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
     const fetchAlerts = async () => {
+      abortRef.current?.abort()
+      const controller = new AbortController()
+      abortRef.current = controller
       try {
         setLoading(true)
         setError(null)
-        const response = await fetch('/api/alerts')
+        const response = await fetch('/api/alerts', { signal: controller.signal })
         if (!response.ok) throw new Error('Failed to fetch alerts')
         const data = await response.json()
         const list = Array.isArray(data) ? data : (data.alerts || data.data || [])
-        // Normalize: map location → locationText, handle hazardType from type
         const normalized = list.slice(0, 5).map((a: any) => ({
           ...a,
           locationText: a.locationText || a.location || '',
@@ -70,21 +67,26 @@ export function IncomingAlertsWidget() {
         }))
         setAlerts(normalized)
       } catch (err: any) {
-        console.error('Error fetching alerts:', err)
-        setError(t('alerts.loadError', lang))
+        if (err?.name !== 'AbortError') {
+          console.error('Error fetching alerts:', err)
+          setError(t('alerts.loadError', lang))
+        }
       } finally {
         setLoading(false)
       }
     }
 
     fetchAlerts()
-    const interval = setInterval(fetchAlerts, 30000) // Refresh every 30s
-    return () => clearInterval(interval)
+    const interval = setInterval(fetchAlerts, 30000)
+    return () => {
+      clearInterval(interval)
+      abortRef.current?.abort()
+    }
   }, [])
 
   if (loading) {
     return (
-      <div className="p-6 text-center text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+      <div className="p-6 text-center text-gray-500 dark:text-gray-300">
         <div className="animate-spin inline-block w-5 h-5 border-2 border-aegis-600 border-t-transparent rounded-full" />
         <p className="mt-2 text-sm">{t('alerts.loading', lang)}</p>
       </div>
@@ -93,8 +95,8 @@ export function IncomingAlertsWidget() {
 
   if (error || !alerts.length) {
     return (
-      <div className="p-6 text-center text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
-        <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
+      <div className="p-6 text-center text-gray-500 dark:text-gray-300">
+        <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-gray-400 dark:text-gray-300" />
         <p className="text-sm">{t('alerts.noActive', lang)}</p>
       </div>
     )
@@ -155,7 +157,4 @@ export function IncomingAlertsWidget() {
 }
 
 export default IncomingAlertsWidget
-
-
-
-
+

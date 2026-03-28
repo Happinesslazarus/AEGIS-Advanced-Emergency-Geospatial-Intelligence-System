@@ -1,21 +1,22 @@
-/**
+﻿/**
  * Map3DView.tsx — Deck.gl 3D Operations Map with MapLibre GL base
  *
  * Professional 3D mode for the Live Operations Map using:
- *   - MapLibre GL JS with CartoDB Dark Matter vector style (FREE, no token)
- *   - Deck.gl layers: ScatterplotLayer, ColumnLayer, ArcLayer, PolygonLayer, IconLayer, TextLayer
- *   - 3D extruded buildings from OSM data
- *   - Report markers as 3D columns colour-coded by severity
- *   - River gauge stations as glowing orbs with height = water level
- *   - Distress beacons as pulsing red pillars
- *   - Flood prediction extents as translucent 3D polygons
- *   - Evacuation routes as animated arcs
- *   - Smooth orbital rotation and pitch controls
+ * MapLibre GL JS with CartoDB Dark Matter vector style (FREE, no token)
+ * Deck.gl layers: ScatterplotLayer, ColumnLayer, ArcLayer, PolygonLayer, IconLayer, TextLayer
+ * 3D extruded buildings from OSM data
+ * Report markers as 3D columns colour-coded by severity
+ * River gauge stations as glowing orbs with height = water level
+ * Distress beacons as pulsing red pillars
+ * Flood prediction extents as translucent 3D polygons
+ * Evacuation routes as animated arcs
+ * Smooth orbital rotation and pitch controls
  *
  * No API key / token required.
  */
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { getAnyToken } from '../../utils/api'
 import { Map as MapLibreMap, NavigationControl, AttributionControl } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { Deck } from '@deck.gl/core'
@@ -27,13 +28,10 @@ import {
 } from 'lucide-react'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
+import { RISK_HEX, STATION_HEX, SEVERITY_RGBA, STATUS_RGBA } from '../../utils/colorTokens'
 
-const RISK_COLORS: Record<string, string> = {
-  critical: '#dc2626', high: '#f97316', medium: '#eab308', low: '#3b82f6',
-}
-const STATION_COLORS: Record<string, string> = {
-  critical: '#dc2626', high: '#f97316', elevated: '#eab308', normal: '#22c55e',
-}
+const RISK_COLORS: Record<string, string> = RISK_HEX
+const STATION_COLORS: Record<string, string> = STATION_HEX
 
 const API = ''
 
@@ -43,18 +41,8 @@ const DEFAULT_ZOOM = 3
 const DEFAULT_PITCH = 55
 const DEFAULT_BEARING = -20
 
-const SEV_COLOURS: Record<string, [number, number, number, number]> = {
-  High:   [239, 68, 68, 220],
-  Medium: [245, 158, 11, 200],
-  Low:    [59, 130, 246, 180],
-}
-
-const STATUS_COLOURS: Record<string, [number, number, number, number]> = {
-  CRITICAL: [220, 38, 38, 240],
-  HIGH:     [249, 115, 22, 220],
-  ELEVATED: [234, 179, 8, 200],
-  NORMAL:   [34, 197, 94, 180],
-}
+const SEV_COLOURS = SEVERITY_RGBA
+const STATUS_COLOURS = STATUS_RGBA
 
 // CartoDB Dark Matter (no token needed)
 const DARK_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
@@ -94,7 +82,8 @@ export default function Map3DView({
   className = '',
   height = '100%',
   onReportClick,
-}: Props): JSX.Element {  const lang = useLanguage()
+}: Props): JSX.Element {
+  const lang = useLanguage()
 
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
@@ -143,7 +132,7 @@ export default function Map3DView({
     return [baseLat + latOffset, baseLng + lngOffset]
   }, [center, mapCenter])
 
-  // ── Animation loop for pulsing effects ──
+  // Animation loop for pulsing effects
   useEffect(() => {
     let running = true
     const animate = () => {
@@ -155,7 +144,7 @@ export default function Map3DView({
     return () => { running = false; cancelAnimationFrame(animFrameRef.current) }
   }, [])
 
-  // ── Init MapLibre ──
+  // Init MapLibre
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
 
@@ -215,17 +204,17 @@ export default function Map3DView({
           return { html: `<div style="background:#1f2937;color:white;padding:8px 12px;border-radius:8px;font-size:12px;border:1px solid #374151;"><b>${object.stationName || object.riverName}</b><br/><span style="font-size:18px;font-weight:800;font-family:monospace">${object.levelMetres?.toFixed(2)}m</span><br/><span style="color:${object.status === 'NORMAL' ? '#22c55e' : '#ef4444'}">${object.status}</span></div>` }
         }
         if (object._type === 'distress') {
-          return { html: `<div style="background:#1f2937;color:#ef4444;padding:8px 12px;border-radius:8px;font-size:12px;border:1px solid #7f1d1d;"><b>⚠ DISTRESS BEACON</b><br/><span style="color:white">${object.citizenName || 'Citizen'}</span></div>` }
+          return { html: `<div style="background:#1f2937;color:#ef4444;padding:8px 12px;border-radius:8px;font-size:12px;border:1px solid #7f1d1d;"><b>? DISTRESS BEACON</b><br/><span style="color:white">${object.citizenName || 'Citizen'}</span></div>` }
         }
         if (object._type === 'globalZone') {
           const pop = object.population >= 1000000 ? `${(object.population / 1000000).toFixed(1)}M` : `${(object.population / 1000).toFixed(0)}K`
-          return { html: `<div style="background:#1f2937;color:white;padding:10px 14px;border-radius:10px;font-size:12px;border:1px solid #374151;max-width:300px;"><b style="font-size:14px;">${object.name}</b><br/><span style="color:${(RISK_COLORS as any)[object.risk]};font-weight:700;text-transform:uppercase;font-size:10px;">${object.risk} RISK</span> <span style="color:#9ca3af;font-size:10px;">• ${object.type} • ${object.country}</span><br/><span style="color:#d1d5db;font-size:11px;line-height:1.4;">${object.description}</span><br/><span style="color:#60a5fa;font-size:10px;">Pop: ${pop}</span>${object.rivers?.length ? `<br/><span style="color:#22d3ee;font-size:10px;">🌊 ${object.rivers.join(', ')}</span>` : ''}</div>` }
+          return { html: `<div style="background:#1f2937;color:white;padding:10px 14px;border-radius:10px;font-size:12px;border:1px solid #374151;max-width:300px;"><b style="font-size:14px;">${object.name}</b><br/><span style="color:${(RISK_COLORS as any)[object.risk]};font-weight:700;text-transform:uppercase;font-size:10px;">${object.risk} RISK</span> <span style="color:#9ca3af;font-size:10px;">— ${object.type} — ${object.country}</span><br/><span style="color:#d1d5db;font-size:11px;line-height:1.4;">${object.description}</span><br/><span style="color:#60a5fa;font-size:10px;">Pop: ${pop}</span>${object.rivers?.length ? `<br/><span style="color:#22d3ee;font-size:10px;">?? ${object.rivers.join(', ')}</span>` : ''}</div>` }
         }
         if (object._type === 'globalRiver') {
-          return { html: `<div style="background:#1f2937;color:white;padding:10px 14px;border-radius:10px;font-size:12px;border:1px solid #374151;max-width:280px;"><b style="font-size:14px;">🌊 ${object.name}</b><br/><span style="color:${(RISK_COLORS as any)[object.floodRisk]};font-weight:700;text-transform:uppercase;font-size:10px;">${object.floodRisk} flood risk</span><br/><span style="color:#9ca3af;">${object.country}</span><br/><span style="font-family:monospace;font-size:13px;font-weight:700;">${object.lengthKm?.toLocaleString()} km</span> <span style="color:#9ca3af;">• Basin: ${object.basinPopulationMillions}M people</span></div>` }
+          return { html: `<div style="background:#1f2937;color:white;padding:10px 14px;border-radius:10px;font-size:12px;border:1px solid #374151;max-width:280px;"><b style="font-size:14px;">?? ${object.name}</b><br/><span style="color:${(RISK_COLORS as any)[object.floodRisk]};font-weight:700;text-transform:uppercase;font-size:10px;">${object.floodRisk} flood risk</span><br/><span style="color:#9ca3af;">${object.country}</span><br/><span style="font-family:monospace;font-size:13px;font-weight:700;">${object.lengthKm?.toLocaleString()} km</span> <span style="color:#9ca3af;">— Basin: ${object.basinPopulationMillions}M people</span></div>` }
         }
         if (object._type === 'globalStation') {
-          return { html: `<div style="background:#1f2937;color:white;padding:10px 14px;border-radius:10px;font-size:12px;border:1px solid #374151;max-width:260px;"><b style="font-size:13px;">${object.name}</b><br/><span style="color:${(STATION_COLORS as any)[object.status]};font-weight:700;text-transform:uppercase;font-size:10px;">${object.status}</span> <span style="color:#9ca3af;">• ${object.country}</span>${object.waterLevel != null ? `<br/><span style="font-size:18px;font-weight:800;font-family:monospace;">${object.waterLevel}m</span> <span style="color:#6b7280;">/ ${object.maxLevel}m max</span><br/><span style="color:#9ca3af;font-size:10px;">Trend: ${object.trend || 'unknown'}</span>` : ''}</div>` }
+          return { html: `<div style="background:#1f2937;color:white;padding:10px 14px;border-radius:10px;font-size:12px;border:1px solid #374151;max-width:260px;"><b style="font-size:13px;">${object.name}</b><br/><span style="color:${(STATION_COLORS as any)[object.status]};font-weight:700;text-transform:uppercase;font-size:10px;">${object.status}</span> <span style="color:#9ca3af;">— ${object.country}</span>${object.waterLevel != null ? `<br/><span style="font-size:18px;font-weight:800;font-family:monospace;">${object.waterLevel}m</span> <span style="color:#6b7280;">/ ${object.maxLevel}m max</span><br/><span style="color:#9ca3af;font-size:10px;">Trend: ${object.trend || 'unknown'}</span>` : ''}</div>` }
         }
         return null
       },
@@ -267,7 +256,7 @@ export default function Map3DView({
     })
   }, [mapCenter, zoom])
 
-  // ── Fetch live data ──
+  // Fetch live data
   const fetchRivers = useCallback(async () => {
     try {
       const res = await fetch(`${API}/api/rivers/levels`)
@@ -279,7 +268,7 @@ export default function Map3DView({
 
   const fetchDistress = useCallback(async () => {
     try {
-      const token = localStorage.getItem('aegis-token') || localStorage.getItem('aegis-citizen-token')
+      const token = getAnyToken()
       const rawUser = localStorage.getItem('aegis-user') || localStorage.getItem('aegis-citizen-user')
       let role = ''
       try { role = String(rawUser ? JSON.parse(rawUser)?.role || '' : '').toLowerCase() } catch {}
@@ -400,7 +389,7 @@ export default function Map3DView({
     return () => clearInterval(interval)
   }, [fetchRivers, fetchDistress, fetchEvacuation, fetchRiskLayer, fetchStations, fetchPredictions])
 
-  // ── Auto-rotate ──
+  // Auto-rotate
   useEffect(() => {
     if (!autoRotate || !mapRef.current) return
     const map = mapRef.current
@@ -415,7 +404,7 @@ export default function Map3DView({
     return () => cancelAnimationFrame(animFrameRef.current)
   }, [autoRotate])
 
-  // ── Toggle 3D buildings ──
+  // Toggle 3D buildings
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
@@ -426,7 +415,7 @@ export default function Map3DView({
     } catch {}
   }, [show3DBuildings])
 
-  // ── Update Deck.gl layers ──
+  // Update Deck.gl layers
   useEffect(() => {
     if (!deckRef.current) return
 
@@ -434,7 +423,7 @@ export default function Map3DView({
 
     const layers: any[] = []
 
-    // ── Report columns (3D extruded) ──
+    // Report columns (3D extruded)
     const reportData = reports.filter(r => {
       const lat = r.latitude ?? r.coordinates?.[0]
       const lng = r.longitude ?? r.coordinates?.[1]
@@ -479,7 +468,7 @@ export default function Map3DView({
       )
     }
 
-    // ── Heatmap mode ──
+    // Heatmap mode
     if (showHeatmap && reportData.length > 0) {
       layers.push(
         new HeatmapLayer({
@@ -508,7 +497,7 @@ export default function Map3DView({
       )
     }
 
-    // ── River gauge stations (3D orbs) ──
+    // River gauge stations (3D orbs)
     const riverMarkers = riverData.filter(r => r.coordinates?.lat && r.coordinates?.lng).map(r => ({
       ...r,
       _type: 'river',
@@ -547,7 +536,7 @@ export default function Map3DView({
       )
     }
 
-    // ── Distress beacons (pulsing red pillars) ──
+    // Distress beacons (pulsing red pillars)
     const distressMarkers = distressData.filter((b: any) => {
       const lat = b.latitude || b.location?.lat
       const lng = b.longitude || b.location?.lng
@@ -587,7 +576,7 @@ export default function Map3DView({
       )
     }
 
-    // ── Evacuation route arcs ──
+    // Evacuation route arcs
     if (showEvacuationRoutes && evacuationData.length > 0) {
       const arcData = evacuationData.filter((r: any) => r.coordinates?.length >= 2).map((route: any) => {
         const coords = route.coordinates
@@ -612,7 +601,7 @@ export default function Map3DView({
       }
     }
 
-    // ── Risk Zones from real API (replaces static GLOBAL_FLOOD_ZONES) ──
+    // Risk Zones from real API (replaces static GLOBAL_FLOOD_ZONES)
     const hexToRgba = (hex: string, alpha: number): [number, number, number, number] => {
       const r = parseInt(hex.slice(1, 3), 16)
       const g = parseInt(hex.slice(3, 5), 16)
@@ -663,7 +652,7 @@ export default function Map3DView({
           id: 'risk-zone-labels',
           data: riskZoneData,
           getPosition: (d: any) => [d._lng, d._lat],
-          getText: (d: any) => d.name.length > 25 ? d.name.substring(0, 22) + '…' : d.name,
+          getText: (d: any) => d.name.length > 25 ? d.name.substring(0, 22) + '—' : d.name,
           getSize: 11,
           getColor: [255, 255, 255, 200],
           getAngle: 0,
@@ -682,7 +671,7 @@ export default function Map3DView({
       )
     }
 
-    // ── Real Monitoring Stations from API (replaces static GLOBAL_STATIONS) ──
+    // Real Monitoring Stations from API (replaces static GLOBAL_STATIONS)
     const stationLayerData = stationsData.map(s => ({
       ...s,
       _type: 'globalStation' as const,
@@ -718,7 +707,7 @@ export default function Map3DView({
       )
     }
 
-    // ── AI Predictions as 3D columns ──
+    // AI Predictions as 3D columns
     const predLayerData = predictionsData.map(p => ({
       ...p,
       _type: 'prediction' as const,
@@ -772,7 +761,7 @@ export default function Map3DView({
     deckRef.current.setProps({ layers })
   }, [reports, riverData, distressData, evacuationData, riskLayerData, stationsData, predictionsData, showFloodPredictions, showEvacuationRoutes, showHeatmap, animationTime])
 
-  // ── Controls ──
+  // Controls
   const resetView = () => {
     mapRef.current?.flyTo({
       center: mapCenter,
@@ -801,30 +790,30 @@ export default function Map3DView({
       <div className="absolute bottom-16 right-3 z-[1000] flex flex-col gap-1 bg-gray-900/90 backdrop-blur-md rounded-lg border border-gray-700/50 p-1">
         <button
           onClick={() => setAutoRotate(!autoRotate)}
-          className={`p-1.5 rounded-md transition-all ${autoRotate ? 'bg-blue-600 text-white' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-white hover:bg-gray-800'}`}
+          className={`p-1.5 rounded-md transition-all ${autoRotate ? 'bg-blue-600 text-white' : 'text-gray-400 dark:text-gray-300 hover:text-white hover:bg-gray-800'}`}
           title={autoRotate ? 'Stop Rotation' : 'Auto Rotate'}
         >
           <Orbit className="w-3.5 h-3.5" />
         </button>
         <button
           onClick={() => setShow3DBuildings(!show3DBuildings)}
-          className={`p-1.5 rounded-md transition-all ${show3DBuildings ? 'bg-blue-600 text-white' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-white hover:bg-gray-800'}`}
+          className={`p-1.5 rounded-md transition-all ${show3DBuildings ? 'bg-blue-600 text-white' : 'text-gray-400 dark:text-gray-300 hover:text-white hover:bg-gray-800'}`}
           title={show3DBuildings ? 'Hide Buildings' : 'Show Buildings'}
         >
           <Maximize2 className="w-3.5 h-3.5" />
         </button>
         <button
           onClick={() => setShowHeatmap(!showHeatmap)}
-          className={`p-1.5 rounded-md transition-all ${showHeatmap ? 'bg-orange-600 text-white' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-white hover:bg-gray-800'}`}
+          className={`p-1.5 rounded-md transition-all ${showHeatmap ? 'bg-orange-600 text-white' : 'text-gray-400 dark:text-gray-300 hover:text-white hover:bg-gray-800'}`}
           title={showHeatmap ? 'Hide Heatmap' : 'Show Heatmap'}
         >
           <CircleDot className="w-3.5 h-3.5" />
         </button>
         <div className="h-px bg-gray-700/50" />
-        <button onClick={resetView} className="p-1.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition" title="Reset View">
+        <button onClick={resetView} className="p-1.5 text-gray-400 dark:text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition" title="Reset View">
           <RotateCcw className="w-3.5 h-3.5" />
         </button>
-        <button onClick={refreshAll} className="p-1.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition" title="Refresh Data">
+        <button onClick={refreshAll} className="p-1.5 text-gray-400 dark:text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition" title="Refresh Data">
           <RefreshCw className="w-3.5 h-3.5" />
         </button>
       </div>
@@ -836,14 +825,11 @@ export default function Map3DView({
           <span className="text-[10px] font-semibold text-purple-400">3D MODE</span>
         </div>
         <div className="h-3 w-px bg-gray-700" />
-        <span className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
-          {markerCount.reports} reports • {markerCount.rivers + markerCount.stations} stations • {markerCount.riskZones} zones • {markerCount.predictions} predictions • {markerCount.distress} SOS
+        <span className="text-[10px] text-gray-400 dark:text-gray-300">
+          {markerCount.reports} reports — {markerCount.rivers + markerCount.stations} stations — {markerCount.riskZones} zones — {markerCount.predictions} predictions — {markerCount.distress} SOS
         </span>
       </div>
     </div>
   )
 }
-
-
-
-
+

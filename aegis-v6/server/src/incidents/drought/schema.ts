@@ -34,3 +34,4 @@ export function sanitizeDroughtCustomFields(fields: Record<string, unknown>): Dr
     riverLevelLow:      typeof fields.riverLevelLow      === 'boolean' ? fields.riverLevelLow      : undefined,
   }
 }
+

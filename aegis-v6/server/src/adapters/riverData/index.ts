@@ -1,4 +1,4 @@
-/**
+﻿/**
  * adapters/riverData/index.ts — Adapter factory with automatic fallback
  *
  * Returns the appropriate river data adapter based on provider name.
@@ -9,6 +9,7 @@
 import type { RiverDataAdapter, RiverReading, RiverHistory } from './RiverDataAdapter.js'
 import { SEPAAdapter } from './SEPAAdapter.js'
 import { OpenMeteoAdapter } from './OpenMeteoAdapter.js'
+import { logger } from '../../services/logger.js'
 
 const sepaAdapter = new SEPAAdapter()
 const openMeteoAdapter = new OpenMeteoAdapter()
@@ -19,7 +20,7 @@ const ADAPTER_MAP: Record<string, RiverDataAdapter> = {
   OpenMeteo: openMeteoAdapter,
 }
 
-/**
+ /**
  * Get the adapter for a specific data provider.
  * Falls back to OpenMeteo if the requested provider is unknown.
  */
@@ -27,7 +28,7 @@ export function getAdapter(providerName: string): RiverDataAdapter {
   return ADAPTER_MAP[providerName] || openMeteoAdapter
 }
 
-/**
+ /**
  * Fetch current level with automatic fallback.
  * Tries the primary adapter first; if it fails, tries OpenMeteo.
  * If both fail, returns realistic mock data so the map always works.
@@ -56,11 +57,11 @@ export async function fetchWithFallback(
   }
 
   // All providers failed — return null so UI shows 'no data' honestly
-  console.warn(`[RiverAdapter] All providers failed for ${stationId} — no data available`)
+  logger.warn({ stationId }, '[RiverAdapter] All providers failed — no data available')
   return null
 }
 
-/**
+ /**
  * Fetch history with automatic fallback.
  */
 export async function fetchHistoryWithFallback(
@@ -86,11 +87,11 @@ export async function fetchHistoryWithFallback(
   return { stationId, readings: [] }
 }
 
-// ─── Mock Data Generators ───────────────────────────────────────────────────
+// Mock Data Generators
 
 function generateMockReading(stationId: string, stationName?: string, riverName?: string): RiverReading {
   // Generate realistic-looking level with slight variation
-  const baseLevel = 0.8 + Math.random() * 1.2  // 0.8–2.0m range
+  const baseLevel = 0.8 + Math.random() * 1.2  // 0.8—2.0m range
   const hour = new Date().getHours()
   // Rivers tend to be slightly higher in early morning
   const diurnalVariation = Math.sin((hour - 6) * Math.PI / 12) * 0.1

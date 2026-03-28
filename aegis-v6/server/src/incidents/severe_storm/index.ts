@@ -6,6 +6,7 @@
 
 import { BaseIncidentModule } from '../baseModule.js'
 import type { IncidentRegistryEntry, IncidentPrediction } from '../types.js'
+import { regionRegistry } from '../../adapters/regions/RegionRegistry.js'
 
 class SevereStormModule extends BaseIncidentModule {
   id = 'severe_storm'
@@ -34,9 +35,10 @@ class SevereStormModule extends BaseIncidentModule {
   async getPredictions(region: string): Promise<IncidentPrediction[]> {
     // Statistical approach: use weather data + report patterns
     try {
+      const meta = regionRegistry.getActiveRegion().getMetadata()
       const weatherUrl = process.env.WEATHER_API_KEY
-        ? `https://api.openweathermap.org/data/2.5/weather?q=Aberdeen&appid=${process.env.WEATHER_API_KEY}&units=metric`
-        : `https://api.open-meteo.com/v1/forecast?latitude=57.15&longitude=-2.09&current=wind_speed_10m,wind_gusts_10m,precipitation`
+        ? `https://api.openweathermap.org/data/2.5/weather?lat=${meta.centre.lat}&lon=${meta.centre.lng}&appid=${process.env.WEATHER_API_KEY}&units=metric`
+        : `https://api.open-meteo.com/v1/forecast?latitude=${meta.centre.lat}&longitude=${meta.centre.lng}&current=wind_speed_10m,wind_gusts_10m,precipitation`
 
       const res = await fetch(weatherUrl, { signal: AbortSignal.timeout(8000) })
       if (!res.ok) return this.ruleBasedPrediction(region)
@@ -73,3 +75,4 @@ class SevereStormModule extends BaseIncidentModule {
 }
 
 export default new SevereStormModule()
+

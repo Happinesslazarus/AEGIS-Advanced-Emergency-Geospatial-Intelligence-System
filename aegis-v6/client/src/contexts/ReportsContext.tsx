@@ -71,7 +71,7 @@ function normalizeServerReport(report: any): Report {
     mediaUrl: report.mediaUrl || null,
     media: report.media || [],
     reporter: report.reporter || 'Anonymous Citizen',
-    confidence: report.confidence || report.aiConfidence || null,
+    confidence: (() => { const v = report.confidence ?? report.aiConfidence; if (v == null) return null; const n = parseFloat(String(v)); return isNaN(n) ? null : n; })(),
     aiAnalysis: report.aiAnalysis || null,
     locationMetadata: report.locationMetadata || null,
     timestamp: report.timestamp || report.createdAt || new Date().toISOString(),
@@ -141,7 +141,8 @@ export function ReportsProvider({ children }: { children: ReactNode }): JSX.Elem
     setLoading(true)
     apiGetReports()
       .then((data: any) => {
-        const serverReports = (Array.isArray(data) ? data : []).map((report: any) => normalizeServerReport(report))
+        const arr = Array.isArray(data) ? data : (data?.data ?? [])
+        const serverReports = arr.map((report: any) => normalizeServerReport(report))
         setRawReports(serverReports)
       })
       .catch((error: any) => {
@@ -238,6 +239,16 @@ export function ReportsProvider({ children }: { children: ReactNode }): JSX.Elem
     const created: any = await apiSubmitReport(formData)
     await fetchReports()
 
+    // Resolve the reporter name from the citizen JWT stored in localStorage
+    let reporterName = 'Anonymous Citizen'
+    try {
+      const raw = localStorage.getItem('aegis-citizen-token')
+      if (raw) {
+        const payload = JSON.parse(atob(raw.split('.')[1]))
+        if (payload?.displayName) reporterName = payload.displayName
+      }
+    } catch { /* ignore — malformed token */ }
+
     return {
       ...input,
       id: created?.id || `RPT-${Date.now()}`,
@@ -245,7 +256,7 @@ export function ReportsProvider({ children }: { children: ReactNode }): JSX.Elem
       timestamp: created?.createdAt || new Date().toISOString(),
       displayTime: 'Just now',
       status: 'Unverified',
-      reporter: 'Anonymous Citizen',
+      reporter: reporterName,
       confidence: created?.aiConfidence ?? null,
       aiAnalysis: null,
       locationMetadata: input.locationMetadata || null,

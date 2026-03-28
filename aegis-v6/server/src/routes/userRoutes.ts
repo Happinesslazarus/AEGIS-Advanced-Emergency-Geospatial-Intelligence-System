@@ -13,13 +13,15 @@
  * All actions are logged to audit_log with before/after state.
  */
 
-import { Router, Response } from 'express'
+import { Router, Response, NextFunction } from 'express'
 import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import pool from '../models/db.js'
 import { authMiddleware, AuthRequest } from '../middleware/auth.js'
 import { devLog } from '../utils/logger.js'
 import * as notificationService from '../services/notificationService.js'
+import { AppError } from '../utils/AppError.js'
+import { logger } from '../services/logger.js'
 
 const router = Router()
 
@@ -34,8 +36,7 @@ const requireSuperAdmin = (req: AuthRequest, res: Response, next: Function) => {
     if (req.method === 'GET') {
       return next()
     }
-    res.status(403).json({ error: 'Super Admin access required for this action.' })
-    return
+    throw AppError.forbidden('Super Admin access required for this action.')
   }
   next()
 }
@@ -43,7 +44,7 @@ const requireSuperAdmin = (req: AuthRequest, res: Response, next: Function) => {
 /*
  * GET /api/users - List operators with pagination + server-side search/filter (M9+M10)
  */
-router.get('/', authMiddleware, requireSuperAdmin, async (req: AuthRequest, res: Response): Promise<void> => {
+router.get('/', authMiddleware, requireSuperAdmin, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const page = Math.max(1, parseInt(req.query.page as string) || 1)
     const limit = Math.min(100, parseInt(req.query.limit as string) || 50)
@@ -84,16 +85,15 @@ router.get('/', authMiddleware, requireSuperAdmin, async (req: AuthRequest, res:
     `, params)
 
     res.json({ users: result.rows, pagination: { page, limit, total, pages: Math.ceil(total / limit) } })
-  } catch (error) {
-    console.error('Error fetching users:', error)
-    res.status(500).json({ error: 'Failed to fetch users.' })
+  } catch (err) {
+    next(err)
   }
 })
 
 /*
  * GET /api/users/:id - Get single operator details
  */
-router.get('/:id', authMiddleware, requireSuperAdmin, async (req: AuthRequest, res: Response): Promise<void> => {
+router.get('/:id', authMiddleware, requireSuperAdmin, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { id } = req.params
 
@@ -107,14 +107,12 @@ router.get('/:id', authMiddleware, requireSuperAdmin, async (req: AuthRequest, r
     `, [id])
 
     if (result.rows.length === 0) {
-      res.status(404).json({ error: 'User not found.' })
-      return
+      throw AppError.notFound('User not found.')
     }
 
     res.json({ user: result.rows[0] })
-  } catch (error) {
-    console.error('Error fetching user:', error)
-    res.status(500).json({ error: 'Failed to fetch user.' })
+  } catch (err) {
+    next(err)
   }
 })
 
@@ -122,27 +120,24 @@ router.get('/:id', authMiddleware, requireSuperAdmin, async (req: AuthRequest, r
  * PUT /api/users/:id - Update operator profile
  * Allows changing: role, department, phone, display_name
  */
-router.put('/:id', authMiddleware, requireSuperAdmin, async (req: AuthRequest, res: Response): Promise<void> => {
+router.put('/:id', authMiddleware, requireSuperAdmin, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { id } = req.params
     const { role, department, phone, displayName } = req.body
 
     const VALID_ROLES = ['admin', 'operator', 'viewer']
     if (role !== undefined && role !== null && !VALID_ROLES.includes(role)) {
-      res.status(400).json({ error: `Invalid role. Must be one of: ${VALID_ROLES.join(', ')}` })
-      return
+      throw AppError.badRequest(`Invalid role. Must be one of: ${VALID_ROLES.join(', ')}`)
     }
     // Prevent non-super-admin from changing their own role
     if (role !== undefined && req.user?.id === id && req.user?.role !== 'admin') {
-      res.status(403).json({ error: 'Cannot change your own role.' })
-      return
+      throw AppError.forbidden('Cannot change your own role.')
     }
 
     // Fetch current state for audit log
     const before = await pool.query('SELECT id, email, display_name, role, department, phone FROM operators WHERE id = $1', [id])
     if (before.rows.length === 0) {
-      res.status(404).json({ error: 'User not found.' })
-      return
+      throw AppError.notFound('User not found.')
     }
 
     // Update operator
@@ -176,9 +171,8 @@ router.put('/:id', authMiddleware, requireSuperAdmin, async (req: AuthRequest, r
     ])
 
     res.json({ user: after, message: 'User updated successfully.' })
-  } catch (error) {
-    console.error('Error updating user:', error)
-    res.status(500).json({ error: 'Failed to update user.' })
+  } catch (err) {
+    next(err)
   }
 })
 
@@ -186,22 +180,20 @@ router.put('/:id', authMiddleware, requireSuperAdmin, async (req: AuthRequest, r
  * PUT /api/users/:id/suspend - Suspend operator account
  * Body: { until?: string (ISO date), reason: string }
  */
-router.put('/:id/suspend', authMiddleware, requireSuperAdmin, async (req: AuthRequest, res: Response): Promise<void> => {
+router.put('/:id/suspend', authMiddleware, requireSuperAdmin, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { id } = req.params
     const { until, reason } = req.body
 
     // Prevent self-suspension
     if (id === req.user?.id) {
-      res.status(400).json({ error: 'Cannot suspend your own account.' })
-      return
+      throw AppError.badRequest('Cannot suspend your own account.')
     }
 
     // Fetch current state
     const before = await pool.query('SELECT id, email, display_name, is_suspended, suspended_until FROM operators WHERE id = $1', [id])
     if (before.rows.length === 0) {
-      res.status(404).json({ error: 'User not found.' })
-      return
+      throw AppError.notFound('User not found.')
     }
 
     // Suspend account
@@ -239,24 +231,22 @@ router.put('/:id/suspend', authMiddleware, requireSuperAdmin, async (req: AuthRe
     if (io) io.to('admins').emit('user:suspended', { id, until: until || null, reason })
 
     res.json({ user: after, message: 'User suspended successfully.' })
-  } catch (error) {
-    console.error('Error suspending user:', error)
-    res.status(500).json({ error: 'Failed to suspend user.' })
+  } catch (err) {
+    next(err)
   }
 })
 
 /*
  * PUT /api/users/:id/activate - Activate suspended account
  */
-router.put('/:id/activate', authMiddleware, requireSuperAdmin, async (req: AuthRequest, res: Response): Promise<void> => {
+router.put('/:id/activate', authMiddleware, requireSuperAdmin, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { id } = req.params
 
     // Fetch current state
     const before = await pool.query('SELECT id, email, display_name, is_suspended, suspended_until FROM operators WHERE id = $1', [id])
     if (before.rows.length === 0) {
-      res.status(404).json({ error: 'User not found.' })
-      return
+      throw AppError.notFound('User not found.')
     }
 
     // Activate account
@@ -292,9 +282,8 @@ router.put('/:id/activate', authMiddleware, requireSuperAdmin, async (req: AuthR
     if (io) io.to('admins').emit('user:activated', { id })
 
     res.json({ user: after, message: 'User activated successfully.' })
-  } catch (error) {
-    console.error('Error activating user:', error)
-    res.status(500).json({ error: 'Failed to activate user.' })
+  } catch (err) {
+    next(err)
   }
 })
 
@@ -302,15 +291,14 @@ router.put('/:id/activate', authMiddleware, requireSuperAdmin, async (req: AuthR
  * POST /api/users/:id/reset-password - Generate password reset token
  * Admin can force password reset for any user
  */
-router.post('/:id/reset-password', authMiddleware, requireSuperAdmin, async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/:id/reset-password', authMiddleware, requireSuperAdmin, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { id } = req.params
 
     // Check user exists
     const userCheck = await pool.query('SELECT id, email, display_name FROM operators WHERE id = $1 AND deleted_at IS NULL', [id])
     if (userCheck.rows.length === 0) {
-      res.status(404).json({ error: 'User not found.' })
-      return
+      throw AppError.notFound('User not found.')
     }
 
     const targetUser = userCheck.rows[0]
@@ -363,7 +351,7 @@ router.post('/:id/reset-password', authMiddleware, requireSuperAdmin, async (req
         })
       } else {
         // Email failed but token was created
-        console.warn(`⚠️  Email delivery failed: ${emailResult.error}`)
+        logger.warn({ error: emailResult.error }, 'Email delivery failed')
         res.json({ 
           message: 'Password reset token generated but email delivery failed.',
           token,
@@ -374,7 +362,7 @@ router.post('/:id/reset-password', authMiddleware, requireSuperAdmin, async (req
       }
     } catch (emailError: any) {
       // Email failed but token was created
-      console.error('Failed to send password reset email:', emailError.message)
+      logger.error({ err: emailError }, 'Failed to send password reset email')
       res.json({ 
         message: 'Password reset token generated but email delivery failed.',
         token,
@@ -383,30 +371,27 @@ router.post('/:id/reset-password', authMiddleware, requireSuperAdmin, async (req
         warning: 'Email service unavailable - provide reset link manually.'
       })
     }
-  } catch (error) {
-    console.error('Error generating reset token:', error)
-    res.status(500).json({ error: 'Failed to generate reset token.' })
+  } catch (err) {
+    next(err)
   }
 })
 
 /*
  * DELETE /api/users/:id - Soft-delete operator account
  */
-router.delete('/:id', authMiddleware, requireSuperAdmin, async (req: AuthRequest, res: Response): Promise<void> => {
+router.delete('/:id', authMiddleware, requireSuperAdmin, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { id } = req.params
 
     // Prevent self-deletion
     if (id === req.user?.id) {
-      res.status(400).json({ error: 'Cannot delete your own account.' })
-      return
+      throw AppError.badRequest('Cannot delete your own account.')
     }
 
     // Fetch current state
     const before = await pool.query('SELECT id, email, display_name, role FROM operators WHERE id = $1 AND deleted_at IS NULL', [id])
     if (before.rows.length === 0) {
-      res.status(404).json({ error: 'User not found.' })
-      return
+      throw AppError.notFound('User not found.')
     }
 
     // Soft delete
@@ -434,9 +419,8 @@ router.delete('/:id', authMiddleware, requireSuperAdmin, async (req: AuthRequest
     ])
 
     res.json({ message: 'User deleted successfully.' })
-  } catch (error) {
-    console.error('Error deleting user:', error)
-    res.status(500).json({ error: 'Failed to delete user.' })
+  } catch (err) {
+    next(err)
   }
 })
 
@@ -444,7 +428,7 @@ router.delete('/:id', authMiddleware, requireSuperAdmin, async (req: AuthRequest
  * POST /api/users/bulk — Bulk suspend / activate / delete operators (M11)
  * Body: { userIds: string[], action: 'suspend'|'activate'|'delete', until?: string, reason?: string }
  */
-router.post('/bulk', authMiddleware, requireSuperAdmin, async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/bulk', authMiddleware, requireSuperAdmin, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { userIds, action, until, reason } = req.body
 
@@ -503,9 +487,8 @@ router.post('/bulk', authMiddleware, requireSuperAdmin, async (req: AuthRequest,
     if (io) io.to('admins').emit('users:bulk_updated', { action, count: processed.length })
 
     res.json({ success: true, processed: processed.length, failed: failed.length, failedIds: failed })
-  } catch (error) {
-    console.error('Error in bulk user operation:', error)
-    res.status(500).json({ error: 'Bulk operation failed.' })
+  } catch (err) {
+    next(err)
   }
 })
 

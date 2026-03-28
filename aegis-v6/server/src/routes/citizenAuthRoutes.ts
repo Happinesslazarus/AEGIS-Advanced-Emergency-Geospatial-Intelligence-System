@@ -1,4 +1,4 @@
-/*
+﻿/*
  * citizenAuthRoutes.ts - Citizen Authentication API
  *
  * Handles all citizen-facing auth endpoints:
@@ -16,13 +16,22 @@
  * with role='citizen' to distinguish from operator tokens.
  */
 
-import { Router, Response } from 'express'
+import { Router, Response, NextFunction } from 'express'
 import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import rateLimit from 'express-rate-limit'
 import pool from '../models/db.js'
-import { authMiddleware, generateToken, generateRefreshToken, verifyRefreshToken, AuthRequest } from '../middleware/auth.js'
-import { uploadAvatar } from '../middleware/upload.js'
+import { authMiddleware, generateToken, generateRefreshToken, verifyRefreshToken, AuthRequest, createSession, validateSession, rotateRefreshToken, revokeAllSessions } from '../middleware/auth.js'
+import { uploadAvatar, validateMagicBytes } from '../middleware/upload.js'
+import {
+  validatePasswordStrength, hashToken, generateSecureToken, timingSafeCompare,
+  checkLockout, recordFailedLogin, resetFailedLogins, recordPasswordHistory,
+  isPasswordReused, getClientIp, LOCKOUT_DURATION_MINUTES,
+} from '../utils/securityUtils.js'
+import { sendVerificationEmail, sendLockoutNotification, sendPasswordResetEmail } from '../services/emailService.js'
+import { logSecurityEvent, checkSuspiciousActivity } from '../services/securityLogger.js'
+import { AppError } from '../utils/AppError.js'
+import { logger } from '../services/logger.js'
 
 const router = Router()
 
@@ -69,10 +78,8 @@ const MAX_ADDRESS = 200
 const MAX_PHONE = 30
 const MAX_CITY = 100
 
-// ─────────────────────────────────────────────────────────────────────────────
 // POST /register — Create a new citizen account
-// ─────────────────────────────────────────────────────────────────────────────
-router.post('/register', registerLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/register', registerLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { email, password, displayName, phone, preferredRegion,
             isVulnerable, vulnerabilityDetails, country, city, dateOfBirth,
@@ -86,42 +93,33 @@ router.post('/register', registerLimiter, async (req: AuthRequest, res: Response
     }
 
     if (!email || !password || !displayName) {
-      res.status(400).json({ error: 'Email, password, and display name are required.' })
-      return
+      throw AppError.badRequest('Email, password, and display name are required.')
     }
 
     // Email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email)) {
-      res.status(400).json({ error: 'Please enter a valid email address.' })
-      return
+      throw AppError.badRequest('Please enter a valid email address.')
     }
 
     // Input length validation
     if (typeof displayName === 'string' && displayName.length > MAX_DISPLAY_NAME) {
-      res.status(400).json({ error: `Display name must be ${MAX_DISPLAY_NAME} characters or less.` })
-      return
+      throw AppError.badRequest(`Display name must be ${MAX_DISPLAY_NAME} characters or less.`)
     }
     if (typeof bio === 'string' && bio.length > MAX_BIO) {
-      res.status(400).json({ error: `Bio must be ${MAX_BIO} characters or less.` })
-      return
+      throw AppError.badRequest(`Bio must be ${MAX_BIO} characters or less.`)
     }
     if (typeof addressLine === 'string' && addressLine.length > MAX_ADDRESS) {
-      res.status(400).json({ error: `Address must be ${MAX_ADDRESS} characters or less.` })
-      return
+      throw AppError.badRequest(`Address must be ${MAX_ADDRESS} characters or less.`)
     }
     if (typeof phone === 'string' && phone.length > MAX_PHONE) {
-      res.status(400).json({ error: `Phone must be ${MAX_PHONE} characters or less.` })
-      return
+      throw AppError.badRequest(`Phone must be ${MAX_PHONE} characters or less.`)
     }
 
-    // Password strength — require 8+ chars with at least 1 uppercase, 1 digit, and 1 special char
-    if (password.length < 8) {
-      res.status(400).json({ error: 'Password must be at least 8 characters.' })
-      return
-    }
-    if (!/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[!@#$%^&*()\-_=+[\]{};':"\\|,.<>/?]/.test(password)) {
-      res.status(400).json({ error: 'Password must contain at least one uppercase letter, one number, and one special character.' })
+    // Password strength — enterprise policy (12 chars, uppercase, lowercase, digit, special)
+    const pwResult = validatePasswordStrength(password, email)
+    if (!pwResult.valid) {
+      res.status(400).json({ error: pwResult.errors[0] })
       return
     }
 
@@ -132,27 +130,42 @@ router.post('/register', registerLimiter, async (req: AuthRequest, res: Response
       [normalizedEmail]
     )
     if (exists.rows.length > 0) {
-      res.status(409).json({ error: 'An account with this email already exists.' })
-      return
+      throw AppError.conflict('An account with this email already exists.')
+    }
+
+    // Check if phone already registered (if provided)
+    if (phone) {
+      const phoneExists = await pool.query(
+        'SELECT id FROM citizens WHERE phone = $1 AND deleted_at IS NULL',
+        [String(phone).trim()]
+      )
+      if (phoneExists.rows.length > 0) {
+        throw AppError.conflict('An account with this phone number already exists.')
+      }
     }
 
     // Hash password with bcrypt (12 rounds)
     const passwordHash = await bcrypt.hash(password, 12)
 
-    // Generate email verification token
-    const verificationToken = crypto.randomBytes(32).toString('hex')
+    // Generate email verification token (store HASH, send raw)
+    const rawVerificationToken = generateSecureToken()
+    const verificationTokenHash = hashToken(rawVerificationToken)
+    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
 
     // Insert citizen with all new fields (email stored lowercase)
     const result = await pool.query(
       `INSERT INTO citizens (email, password_hash, display_name, phone, preferred_region,
-                             verification_token, is_vulnerable, vulnerability_details,
-                             country, city, date_of_birth, bio, address_line)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                             verification_token_hash, verification_expires,
+                             is_vulnerable, vulnerability_details,
+                             country, city, date_of_birth, bio, address_line,
+                             password_changed_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW())
        RETURNING id, email, display_name, role, preferred_region, email_verified,
                  is_vulnerable, country, city, bio, address_line, created_at`,
       [normalizedEmail, passwordHash, displayName, phone || null, preferredRegion || null,
-       verificationToken, isVulnerable || false, vulnerabilityDetails || null,
-       country || 'United Kingdom', city || null, dateOfBirth || null,
+       verificationTokenHash, verificationExpires,
+       isVulnerable || false, vulnerabilityDetails || null,
+       country || null, city || null, dateOfBirth || null,
        bio || null, addressLine || null]
     )
 
@@ -164,6 +177,24 @@ router.post('/register', registerLimiter, async (req: AuthRequest, res: Response
       [citizen.id]
     )
 
+    // Record initial password in history (prevents immediate reuse)
+    await recordPasswordHistory(citizen.id, 'citizen', passwordHash)
+
+    // Send verification email (dev mode: logged to console + dev_emails table)
+    try {
+      await sendVerificationEmail(normalizedEmail, rawVerificationToken, 'citizen')
+    } catch (emailErr: any) {
+      logger.error({ err: emailErr }, '[CitizenAuth] Failed to send verification email')
+    }
+
+    // Log registration event
+    const clientIp = getClientIp(req)
+    await logSecurityEvent({
+      userId: citizen.id, userType: 'citizen', eventType: 'register',
+      ipAddress: clientIp, userAgent: req.headers['user-agent'] as string,
+      metadata: { email: normalizedEmail },
+    })
+
     // Generate JWT with citizen role
     const token = generateToken({
       id: citizen.id,
@@ -172,6 +203,14 @@ router.post('/register', registerLimiter, async (req: AuthRequest, res: Response
       displayName: citizen.display_name,
     })
     const refreshToken = generateRefreshToken({ id: citizen.id, role: citizen.role || 'citizen' })
+
+    // Create session record for the refresh token
+    await createSession({
+      userId: citizen.id, userType: 'citizen', refreshToken,
+      ipAddress: clientIp, userAgent: req.headers['user-agent'] as string,
+      ttlDays: 7,
+    }).catch(() => {}) // Don't fail registration on session creation error
+
     res.cookie('aegis_refresh', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -197,56 +236,133 @@ router.post('/register', registerLimiter, async (req: AuthRequest, res: Response
         createdAt: citizen.created_at,
       },
     })
-  } catch (err: any) {
-    console.error('[CitizenAuth] Register error:', err.message)
-    res.status(500).json({ error: 'Registration failed. Please try again.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-// ─────────────────────────────────────────────────────────────────────────────
+// POST /check-availability — Check if email or phone is already registered
+router.post('/check-availability', registerLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { email, phone } = req.body
+    const result: Record<string, boolean> = {}
+
+    if (email) {
+      const normalizedEmail = String(email).trim().toLowerCase()
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (emailRegex.test(normalizedEmail)) {
+        const exists = await pool.query(
+          'SELECT id FROM citizens WHERE LOWER(email) = LOWER($1) AND deleted_at IS NULL',
+          [normalizedEmail]
+        )
+        result.emailAvailable = exists.rows.length === 0
+      }
+    }
+
+    if (phone) {
+      const normalizedPhone = String(phone).trim()
+      if (normalizedPhone.length >= 6) {
+        const exists = await pool.query(
+          'SELECT id FROM citizens WHERE phone = $1 AND deleted_at IS NULL',
+          [normalizedPhone]
+        )
+        result.phoneAvailable = exists.rows.length === 0
+      }
+    }
+
+    res.json(result)
+  } catch (err) {
+    next(err)
+  }
+})
+
 // POST /login — Authenticate citizen
-// ─────────────────────────────────────────────────────────────────────────────
-router.post('/login', loginLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { email, password } = req.body
+    const clientIp = getClientIp(req)
+    const userAgent = req.headers['user-agent'] as string
 
     if (!email || !password) {
-      res.status(400).json({ error: 'Email and password are required.' })
-      return
+      throw AppError.badRequest('Email and password are required.')
     }
 
     const result = await pool.query(
       `SELECT id, email, password_hash, display_name, role, avatar_url,
               preferred_region, email_verified, is_active, phone, location_lat, location_lng,
               is_vulnerable, vulnerability_details, country, city, bio, date_of_birth,
-              deletion_requested_at
+              deletion_requested_at, failed_login_attempts, locked_until
        FROM citizens WHERE LOWER(email) = LOWER($1) AND deleted_at IS NULL`,
       [email.trim()]
     )
 
     if (result.rows.length === 0) {
-      res.status(401).json({ error: 'Invalid email or password.' })
-      return
+      // Log failed attempt (no user found — don't reveal this)
+      await logSecurityEvent({ eventType: 'login_failed', ipAddress: clientIp, userAgent, metadata: { reason: 'unknown_email' } })
+      throw AppError.unauthorized('Invalid email or password.')
     }
 
     const citizen = result.rows[0]
 
-    if (!citizen.is_active) {
-      res.status(403).json({ error: 'Account is deactivated. Contact support.' })
+    // Check account lockout
+    const lockoutStatus = checkLockout(citizen.failed_login_attempts, citizen.locked_until)
+    if (lockoutStatus.locked) {
+      await logSecurityEvent({
+        userId: citizen.id, userType: 'citizen', eventType: 'login_failed',
+        ipAddress: clientIp, userAgent, metadata: { reason: 'account_locked', remaining_minutes: lockoutStatus.remainingMinutes },
+      })
+      res.status(423).json({
+        error: `Account is temporarily locked due to too many failed attempts. Try again in ${lockoutStatus.remainingMinutes} minute(s).`,
+        code: 'ACCOUNT_LOCKED',
+        retryAfterMinutes: lockoutStatus.remainingMinutes,
+      })
       return
+    }
+
+    if (!citizen.is_active) {
+      throw AppError.forbidden('Account is deactivated. Contact support.')
     }
 
     const valid = await bcrypt.compare(password, citizen.password_hash)
     if (!valid) {
-      res.status(401).json({ error: 'Invalid email or password.' })
-      return
+      // Record failed attempt + possibly lock the account
+      const newLockout = await recordFailedLogin('citizens', citizen.id)
+
+      await logSecurityEvent({
+        userId: citizen.id, userType: 'citizen', eventType: 'login_failed',
+        ipAddress: clientIp, userAgent, metadata: { attempts: newLockout.attempts },
+      })
+
+      // Check for suspicious activity patterns
+      await checkSuspiciousActivity(citizen.id, 'citizen', clientIp)
+
+      if (newLockout.locked) {
+        await logSecurityEvent({
+          userId: citizen.id, userType: 'citizen', eventType: 'account_locked',
+          ipAddress: clientIp, userAgent, metadata: { duration_minutes: LOCKOUT_DURATION_MINUTES },
+        })
+        // Send lockout notification email
+        sendLockoutNotification(citizen.email, LOCKOUT_DURATION_MINUTES).catch(() => {})
+        res.status(423).json({
+          error: `Account locked for ${LOCKOUT_DURATION_MINUTES} minutes due to too many failed attempts.`,
+          code: 'ACCOUNT_LOCKED',
+          retryAfterMinutes: LOCKOUT_DURATION_MINUTES,
+        })
+        return
+      }
+
+      throw AppError.unauthorized('Invalid email or password.')
     }
 
+    // Successful login — reset failed attempts
+    await resetFailedLogins('citizens', citizen.id)
+
     // Update last login and increment login count
-    await pool.query(
-      'UPDATE citizens SET last_login = NOW(), login_count = login_count + 1 WHERE id = $1',
+    const loginUpdate = await pool.query(
+      'UPDATE citizens SET last_login = NOW(), login_count = login_count + 1 WHERE id = $1 RETURNING login_count, last_login, created_at',
       [citizen.id]
     )
+    const loginMeta = loginUpdate.rows[0]
 
     // Auto-cancel pending deletion if user logs back in (grace period)
     let deletionCancelled = false
@@ -261,7 +377,6 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response): Pro
         [citizen.id, citizen.email, citizen.display_name]
       ).catch(() => {})
       deletionCancelled = true
-      if (process.env.NODE_ENV !== 'production') console.log(`[CitizenAuth] Auto-cancelled deletion for ${citizen.display_name} on login`)
     }
 
     const token = generateToken({
@@ -271,6 +386,19 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response): Pro
       displayName: citizen.display_name,
     })
     const refreshToken = generateRefreshToken({ id: citizen.id, role: citizen.role || 'citizen' })
+
+    // Create session in DB for refresh token tracking
+    await createSession({
+      userId: citizen.id, userType: 'citizen', refreshToken,
+      ipAddress: clientIp, userAgent, ttlDays: 7,
+    }).catch(() => {})
+
+    // Log successful login
+    await logSecurityEvent({
+      userId: citizen.id, userType: 'citizen', eventType: 'login_success',
+      ipAddress: clientIp, userAgent,
+    })
+
     res.cookie('aegis_refresh', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -305,19 +433,19 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response): Pro
         city: citizen.city,
         bio: citizen.bio,
         dateOfBirth: citizen.date_of_birth,
+        loginCount: loginMeta.login_count,
+        lastLogin: loginMeta.last_login,
+        createdAt: loginMeta.created_at,
       },
       preferences: prefsResult.rows[0] || null,
     })
-  } catch (err: any) {
-    console.error('[CitizenAuth] Login error:', err.message)
-    res.status(500).json({ error: 'Login failed. Please try again.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-// ─────────────────────────────────────────────────────────────────────────────
 // GET /me — Get current citizen profile (protected)
-// ─────────────────────────────────────────────────────────────────────────────
-router.get('/me', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
+router.get('/me', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const result = await pool.query(
       `SELECT id, email, display_name, role, avatar_url, phone,
@@ -329,8 +457,7 @@ router.get('/me', authMiddleware, async (req: AuthRequest, res: Response): Promi
     )
 
     if (result.rows.length === 0) {
-      res.status(404).json({ error: 'Citizen account not found.' })
-      return
+      throw AppError.notFound('Citizen account not found.')
     }
 
     const citizen = result.rows[0]
@@ -387,16 +514,13 @@ router.get('/me', authMiddleware, async (req: AuthRequest, res: Response): Promi
       recentSafetyCheckIns: safetyResult.rows,
       unreadMessages: parseInt(unreadResult.rows[0]?.unread_count || '0'),
     })
-  } catch (err: any) {
-    console.error('[CitizenAuth] Profile fetch error:', err.message)
-    res.status(500).json({ error: 'Failed to load profile.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-// ─────────────────────────────────────────────────────────────────────────────
 // PUT /profile — Update citizen profile (protected)
-// ─────────────────────────────────────────────────────────────────────────────
-router.put('/profile', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
+router.put('/profile', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { displayName, phone, preferredRegion, locationLat, locationLng,
             bio, country, city, addressLine, isVulnerable, vulnerabilityDetails, dateOfBirth } = req.body
@@ -427,8 +551,7 @@ router.put('/profile', authMiddleware, async (req: AuthRequest, res: Response): 
       }
     }
     if (setClauses.length === 0) {
-      res.status(400).json({ error: 'No fields to update.' })
-      return
+      throw AppError.badRequest('No fields to update.')
     }
 
     const result = await pool.query(
@@ -442,8 +565,7 @@ router.put('/profile', authMiddleware, async (req: AuthRequest, res: Response): 
     )
 
     if (result.rows.length === 0) {
-      res.status(404).json({ error: 'Account not found.' })
-      return
+      throw AppError.notFound('Account not found.')
     }
 
     const c = result.rows[0]
@@ -468,20 +590,16 @@ router.put('/profile', authMiddleware, async (req: AuthRequest, res: Response): 
         emailVerified: c.email_verified,
       },
     })
-  } catch (err: any) {
-    console.error('[CitizenAuth] Profile update error:', err.message)
-    res.status(500).json({ error: 'Failed to update profile.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-// ─────────────────────────────────────────────────────────────────────────────
 // POST /avatar — Upload profile photo (protected)
-// ─────────────────────────────────────────────────────────────────────────────
-router.post('/avatar', authMiddleware, uploadAvatar, async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/avatar', authMiddleware, uploadAvatar, validateMagicBytes, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     if (!req.file) {
-      res.status(400).json({ error: 'No image file provided. Accepted: JPG, PNG, GIF, WebP (max 2MB).' })
-      return
+      throw AppError.badRequest('No image file provided. Accepted: JPG, PNG, GIF, WebP (max 2MB).')
     }
 
     const avatarUrl = `/uploads/${req.file.filename}`
@@ -492,31 +610,26 @@ router.post('/avatar', authMiddleware, uploadAvatar, async (req: AuthRequest, re
     )
 
     res.json({ avatarUrl })
-  } catch (err: any) {
-    console.error('[CitizenAuth] Avatar upload error:', err.message)
-    res.status(500).json({ error: 'Failed to upload avatar.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-// ─────────────────────────────────────────────────────────────────────────────
 // GET /preferences — Get citizen preferences (protected)
-// ─────────────────────────────────────────────────────────────────────────────
-router.get('/preferences', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
+router.get('/preferences', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const result = await pool.query(
       'SELECT * FROM citizen_preferences WHERE citizen_id = $1',
       [req.user!.id]
     )
     res.json(result.rows[0] || {})
-  } catch (err: any) {
-    res.status(500).json({ error: 'Failed to load preferences.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-// ─────────────────────────────────────────────────────────────────────────────
 // PUT /preferences — Update citizen preferences (protected)
-// ─────────────────────────────────────────────────────────────────────────────
-router.put('/preferences', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
+router.put('/preferences', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const {
       audioAlertsEnabled, audioVoice, audioVolume, autoPlayCritical,
@@ -582,34 +695,30 @@ router.put('/preferences', authMiddleware, async (req: AuthRequest, res: Respons
     )
 
     res.json(result.rows[0])
-  } catch (err: any) {
-    console.error('[CitizenAuth] Preferences update error:', err.message)
-    res.status(500).json({ error: 'Failed to update preferences.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Emergency Contacts CRUD
-// ─────────────────────────────────────────────────────────────────────────────
-router.get('/emergency-contacts', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
+router.get('/emergency-contacts', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const result = await pool.query(
       'SELECT * FROM emergency_contacts WHERE citizen_id = $1 ORDER BY is_primary DESC, created_at ASC',
       [req.user!.id]
     )
     res.json(result.rows)
-  } catch (err: any) {
-    res.status(500).json({ error: 'Failed to load emergency contacts.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-router.post('/emergency-contacts', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/emergency-contacts', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { name, phone, relationship, isPrimary, notifyOnHelp } = req.body
 
     if (!name || !phone) {
-      res.status(400).json({ error: 'Name and phone are required.' })
-      return
+      throw AppError.badRequest('Name and phone are required.')
     }
 
     // Max 5 contacts per citizen
@@ -618,8 +727,7 @@ router.post('/emergency-contacts', authMiddleware, async (req: AuthRequest, res:
       [req.user!.id]
     )
     if (parseInt(countResult.rows[0].cnt) >= 5) {
-      res.status(400).json({ error: 'Maximum 5 emergency contacts allowed.' })
-      return
+      throw AppError.badRequest('Maximum 5 emergency contacts allowed.')
     }
 
     // If setting as primary, un-primary others
@@ -638,13 +746,12 @@ router.post('/emergency-contacts', authMiddleware, async (req: AuthRequest, res:
     )
 
     res.status(201).json(result.rows[0])
-  } catch (err: any) {
-    console.error('[CitizenAuth] Add contact error:', err.message)
-    res.status(500).json({ error: 'Failed to add emergency contact.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-router.delete('/emergency-contacts/:id', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
+router.delete('/emergency-contacts/:id', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const result = await pool.query(
       'DELETE FROM emergency_contacts WHERE id = $1 AND citizen_id = $2 RETURNING id',
@@ -652,34 +759,28 @@ router.delete('/emergency-contacts/:id', authMiddleware, async (req: AuthRequest
     )
 
     if (result.rows.length === 0) {
-      res.status(404).json({ error: 'Contact not found.' })
-      return
+      throw AppError.notFound('Contact not found.')
     }
 
     res.json({ deleted: true })
-  } catch (err: any) {
-    res.status(500).json({ error: 'Failed to remove contact.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-// ─────────────────────────────────────────────────────────────────────────────
 // POST /change-password — Change citizen password (protected)
-// ─────────────────────────────────────────────────────────────────────────────
-router.post('/change-password', authMiddleware, changePasswordLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/change-password', authMiddleware, changePasswordLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { currentPassword, newPassword } = req.body
 
     if (!currentPassword || !newPassword) {
-      res.status(400).json({ error: 'Current and new passwords are required.' })
-      return
+      throw AppError.badRequest('Current and new passwords are required.')
     }
 
-    if (newPassword.length < 8) {
-      res.status(400).json({ error: 'New password must be at least 8 characters.' })
-      return
-    }
-    if (!/[A-Z]/.test(newPassword) || !/[0-9]/.test(newPassword) || !/[!@#$%^&*()\-_=+[\]{};':"\\|,.<>/?]/.test(newPassword)) {
-      res.status(400).json({ error: 'Password must contain at least one uppercase letter, one number, and one special character.' })
+    // Enterprise password policy
+    const pwResult = validatePasswordStrength(newPassword, req.user!.email)
+    if (!pwResult.valid) {
+      res.status(400).json({ error: pwResult.errors[0] })
       return
     }
 
@@ -689,36 +790,52 @@ router.post('/change-password', authMiddleware, changePasswordLimiter, async (re
     )
 
     if (userResult.rows.length === 0) {
-      res.status(404).json({ error: 'Account not found.' })
-      return
+      throw AppError.notFound('Account not found.')
     }
 
     const valid = await bcrypt.compare(currentPassword, userResult.rows[0].password_hash)
     if (!valid) {
-      res.status(401).json({ error: 'Current password is incorrect.' })
-      return
+      throw AppError.unauthorized('Current password is incorrect.')
+    }
+
+    // Check password history (prevent reuse of last 5 passwords)
+    const reused = await isPasswordReused(newPassword, req.user!.id, 'citizen')
+    if (reused) {
+      throw AppError.badRequest('You cannot reuse any of your last 5 passwords. Please choose a different password.')
     }
 
     const newHash = await bcrypt.hash(newPassword, 12)
-    await pool.query('UPDATE citizens SET password_hash = $1 WHERE id = $2', [newHash, req.user!.id])
+    await pool.query(
+      'UPDATE citizens SET password_hash = $1, password_changed_at = NOW() WHERE id = $2',
+      [newHash, req.user!.id]
+    )
 
-    res.json({ success: true, message: 'Password changed successfully.' })
-  } catch (err: any) {
-    console.error('[CitizenAuth] Password change error:', err.message)
-    res.status(500).json({ error: 'Failed to change password.' })
+    // Record in password history
+    await recordPasswordHistory(req.user!.id, 'citizen', newHash)
+
+    // Revoke all other sessions (force re-login on other devices)
+    await revokeAllSessions(req.user!.id, 'password_changed')
+
+    // Log the event
+    const clientIp = getClientIp(req)
+    await logSecurityEvent({
+      userId: req.user!.id, userType: 'citizen', eventType: 'password_changed',
+      ipAddress: clientIp, userAgent: req.headers['user-agent'] as string,
+    })
+
+    res.json({ success: true, message: 'Password changed successfully. All other sessions have been signed out.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-// ─────────────────────────────────────────────────────────────────────────────
 // POST /forgot-password — Request a password reset token
-// ─────────────────────────────────────────────────────────────────────────────
-router.post('/forgot-password', resetLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/forgot-password', resetLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { email } = req.body
 
     if (!email) {
-      res.status(400).json({ error: 'Email is required.' })
-      return
+      throw AppError.badRequest('Email is required.')
     }
 
     const result = await pool.query(
@@ -735,91 +852,118 @@ router.post('/forgot-password', resetLimiter, async (req: AuthRequest, res: Resp
     const citizen = result.rows[0]
 
     // Generate reset token (valid for 1 hour)
-    const resetToken = crypto.randomBytes(32).toString('hex')
+    const rawToken = crypto.randomBytes(32).toString('hex')
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex')
     const resetExpires = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
 
+    // Store the HASH — never store the raw token
     await pool.query(
       'UPDATE citizens SET reset_token = $1, reset_token_expires = $2 WHERE id = $3',
-      [resetToken, resetExpires, citizen.id]
+      [tokenHash, resetExpires, citizen.id]
     )
 
-    // In production, send email here. For dev, log the token.
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`[CitizenAuth] Password reset token for ${citizen.email}: ${resetToken}`)
-      console.log(`[CitizenAuth] Reset URL: /citizen/login?reset=${resetToken}`)
+    // In production, send email with the raw (unhashed) token via emailService.
+    try {
+      await sendPasswordResetEmail(citizen.email, rawToken, 'citizen')
+    } catch (emailErr: any) {
+      logger.error({ err: emailErr }, '[CitizenAuth] Failed to send reset email')
     }
+
+    // Log the event
+    await logSecurityEvent({
+      userId: citizen.id, userType: 'citizen', eventType: 'password_reset_requested',
+      ipAddress: getClientIp(req), userAgent: req.headers['user-agent'] as string,
+    })
 
     res.json({
       success: true,
       message: 'If an account with that email exists, a password reset link has been generated.',
     })
-  } catch (err: any) {
-    console.error('[CitizenAuth] Forgot password error:', err.message)
-    res.status(500).json({ error: 'Failed to process reset request.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-// ─────────────────────────────────────────────────────────────────────────────
 // POST /reset-password — Reset password using a token
-// ─────────────────────────────────────────────────────────────────────────────
-router.post('/reset-password', resetLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/reset-password', resetLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { token, newPassword } = req.body
 
     if (!token || !newPassword) {
-      res.status(400).json({ error: 'Reset token and new password are required.' })
+      throw AppError.badRequest('Reset token and new password are required.')
+    }
+
+    if (newPassword.length < 12) {
+      throw AppError.badRequest('New password must be at least 12 characters.')
+    }
+    const pwResult = validatePasswordStrength(newPassword)
+    if (!pwResult.valid) {
+      res.status(400).json({ error: pwResult.errors[0] })
       return
     }
 
-    if (newPassword.length < 8) {
-      res.status(400).json({ error: 'New password must be at least 8 characters.' })
-      return
-    }
-    if (!/[A-Z]/.test(newPassword) || !/[0-9]/.test(newPassword) || !/[!@#$%^&*()\-_=+[\]{};':"\\|,.<>/?]/.test(newPassword)) {
-      res.status(400).json({ error: 'Password must contain at least one uppercase letter, one number, and one special character.' })
-      return
-    }
+    // Hash the submitted token with SHA-256 to compare against the stored hash
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex')
 
     const result = await pool.query(
-      `SELECT id, email FROM citizens
-       WHERE reset_token = $1 AND reset_token_expires > NOW() AND deleted_at IS NULL`,
-      [token]
+      `SELECT id, email, reset_token FROM citizens
+       WHERE reset_token IS NOT NULL AND reset_token_expires > NOW() AND deleted_at IS NULL
+       AND reset_token = $1`,
+      [tokenHash]
     )
 
     if (result.rows.length === 0) {
-      res.status(400).json({ error: 'Invalid or expired reset token. Please request a new one.' })
-      return
+      throw AppError.badRequest('Invalid or expired reset token. Please request a new one.')
     }
 
-    const citizen = result.rows[0]
+    // Timing-safe comparison as defense-in-depth (DB already matched by hash)
+    const storedHash = Buffer.from(result.rows[0].reset_token, 'hex')
+    const submittedHash = Buffer.from(tokenHash, 'hex')
+    if (storedHash.length !== submittedHash.length || !crypto.timingSafeEqual(storedHash, submittedHash)) {
+      throw AppError.badRequest('Invalid or expired reset token. Please request a new one.')
+    }
+
+    const citizen = { id: result.rows[0].id, email: result.rows[0].email }
     const newHash = await bcrypt.hash(newPassword, 12)
 
     await pool.query(
-      'UPDATE citizens SET password_hash = $1, reset_token = NULL, reset_token_expires = NULL WHERE id = $2',
+      'UPDATE citizens SET password_hash = $1, reset_token = NULL, reset_token_expires = NULL, password_changed_at = NOW() WHERE id = $2',
       [newHash, citizen.id]
     )
 
-    if (process.env.NODE_ENV !== 'production') console.log(`[CitizenAuth] Password reset successful for ${citizen.email}`)
+    // Record in password history & revoke all sessions
+    await recordPasswordHistory(citizen.id, 'citizen', newHash)
+    await revokeAllSessions(citizen.id, 'password_reset')
+
+    await logSecurityEvent({
+      userId: citizen.id, userType: 'citizen', eventType: 'password_reset_completed',
+      ipAddress: getClientIp(req), userAgent: req.headers['user-agent'] as string,
+    })
+
+    logger.info({ email: citizen.email }, '[CitizenAuth] Password reset successful')
 
     res.json({ success: true, message: 'Password has been reset successfully. You can now sign in.' })
-  } catch (err: any) {
-    console.error('[CitizenAuth] Reset password error:', err.message)
-    res.status(500).json({ error: 'Failed to reset password.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-// ─────────────────────────────────────────────────────────────────────────────
 // POST /refresh — Get new access token using refresh token cookie (#24)
-// ─────────────────────────────────────────────────────────────────────────────
-router.post('/refresh', async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/refresh', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const refreshCookie = req.cookies?.aegis_refresh
     if (!refreshCookie) {
-      res.status(401).json({ error: 'No refresh token.' })
-      return
+      throw AppError.unauthorized('No refresh token.')
     }
 
     const decoded = verifyRefreshToken(refreshCookie)
+
+    // Validate session exists and is not revoked
+    const session = await validateSession(refreshCookie)
+    if (!session) {
+      res.clearCookie('aegis_refresh', { path: '/api/citizen-auth' })
+      throw AppError.unauthorized('Session expired or revoked. Please log in again.')
+    }
 
     // Verify citizen still exists and is not deleted
     const result = await pool.query(
@@ -828,14 +972,12 @@ router.post('/refresh', async (req: AuthRequest, res: Response): Promise<void> =
     )
     if (result.rows.length === 0) {
       res.clearCookie('aegis_refresh', { path: '/api/citizen-auth' })
-      res.status(401).json({ error: 'Account not found.' })
-      return
+      throw AppError.unauthorized('Account not found.')
     }
     const citizen = result.rows[0]
     if (citizen.deletion_scheduled_at && new Date(citizen.deletion_scheduled_at) < new Date()) {
       res.clearCookie('aegis_refresh', { path: '/api/citizen-auth' })
-      res.status(401).json({ error: 'Account has been deleted.' })
-      return
+      throw AppError.unauthorized('Account has been deleted.')
     }
 
     const newToken = generateToken({
@@ -845,6 +987,24 @@ router.post('/refresh', async (req: AuthRequest, res: Response): Promise<void> =
       displayName: citizen.display_name,
     })
 
+    // Rotate refresh token (revoke old, issue new)
+    const newRefreshToken = generateRefreshToken({ id: citizen.id, role: citizen.role || 'citizen' })
+    const clientIp = getClientIp(req)
+    await rotateRefreshToken({
+      oldToken: refreshCookie, newToken: newRefreshToken,
+      userId: citizen.id, userType: 'citizen',
+      ipAddress: clientIp, userAgent: req.headers['user-agent'] as string,
+      ttlDays: 7,
+    }).catch(() => {})
+
+    res.cookie('aegis_refresh', newRefreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: '/api/citizen-auth',
+    })
+
     res.json({ token: newToken })
   } catch {
     res.clearCookie('aegis_refresh', { path: '/api/citizen-auth' })
@@ -852,54 +1012,75 @@ router.post('/refresh', async (req: AuthRequest, res: Response): Promise<void> =
   }
 })
 
-// ─────────────────────────────────────────────────────────────────────────────
 // POST /logout — Server-side logout: clear refresh cookie (#25)
-// ─────────────────────────────────────────────────────────────────────────────
-router.post('/logout', (_req: AuthRequest, res: Response): void => {
+router.post('/logout', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  const refreshCookie = req.cookies?.aegis_refresh
+  if (refreshCookie) {
+    // Revoke the session in DB
+    const { hashRefreshToken } = await import('../middleware/auth.js')
+    const tokenHash = hashRefreshToken(refreshCookie)
+    await pool.query(
+      `UPDATE user_sessions SET revoked = true, revoked_reason = 'logout'
+       WHERE refresh_token_hash = $1`,
+      [tokenHash]
+    ).catch(() => {})
+  }
   res.clearCookie('aegis_refresh', { path: '/api/citizen-auth' })
   res.json({ success: true, message: 'Logged out.' })
 })
 
-// ─────────────────────────────────────────────────────────────────────────────
 // GET /verify-email?token=xxx — Verify citizen email address (#23)
-// ─────────────────────────────────────────────────────────────────────────────
-router.get('/verify-email', async (req: AuthRequest, res: Response): Promise<void> => {
+router.get('/verify-email', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { token } = req.query
     if (!token || typeof token !== 'string' || token.length !== 64) {
-      res.status(400).json({ error: 'Invalid verification token.' })
-      return
+      throw AppError.badRequest('Invalid verification token.')
     }
 
-    const result = await pool.query(
-      `UPDATE citizens SET email_verified = true, verification_token = NULL
-       WHERE verification_token = $1 AND email_verified = false
+    const tokenHash = hashToken(token)
+
+    // Try new hashed column first, fall back to legacy plaintext column
+    let result = await pool.query(
+      `UPDATE citizens SET email_verified = true, verification_token_hash = NULL, verification_expires = NULL, verification_token = NULL
+       WHERE verification_token_hash = $1 AND email_verified = false
+       AND (verification_expires IS NULL OR verification_expires > NOW())
        RETURNING id, email, display_name`,
-      [token]
+      [tokenHash]
     )
 
+    // Fallback: check legacy plaintext verification_token (pre-migration tokens)
     if (result.rows.length === 0) {
-      res.status(400).json({ error: 'Invalid or already-used verification token.' })
-      return
+      result = await pool.query(
+        `UPDATE citizens SET email_verified = true, verification_token = NULL, verification_token_hash = NULL
+         WHERE verification_token = $1 AND email_verified = false
+         RETURNING id, email, display_name`,
+        [token]
+      )
     }
 
+    if (result.rows.length === 0) {
+      throw AppError.badRequest('Invalid, expired, or already-used verification token.')
+    }
+
+    await logSecurityEvent({
+      userId: result.rows[0].id, userType: 'citizen', eventType: 'email_verified',
+      ipAddress: getClientIp(req), userAgent: req.headers['user-agent'] as string,
+    })
+
     res.json({ success: true, message: 'Email verified successfully! You can now access all features.' })
-  } catch (err: any) {
-    console.error('[CitizenAuth] Verify email error:', err.message)
-    res.status(500).json({ error: 'Verification failed.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-// ─────────────────────────────────────────────────────────────────────────────
 // POST /resend-verification — Resend email verification token (#23)
-// ─────────────────────────────────────────────────────────────────────────────
 const resendLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 3,
   message: { error: 'Too many verification emails requested. Please try again later.' },
 })
 
-router.post('/resend-verification', authMiddleware, resendLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/resend-verification', authMiddleware, resendLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user!.id
 
@@ -909,8 +1090,7 @@ router.post('/resend-verification', authMiddleware, resendLimiter, async (req: A
     )
 
     if (citizen.rows.length === 0) {
-      res.status(404).json({ error: 'Account not found.' })
-      return
+      throw AppError.notFound('Account not found.')
     }
 
     if (citizen.rows[0].email_verified) {
@@ -918,21 +1098,31 @@ router.post('/resend-verification', authMiddleware, resendLimiter, async (req: A
       return
     }
 
-    const newToken = crypto.randomBytes(32).toString('hex')
+    // Generate new token (hashed storage, raw sent via email)
+    const rawToken = generateSecureToken()
+    const tokenHash = hashToken(rawToken)
+    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+
     await pool.query(
-      'UPDATE citizens SET verification_token = $1 WHERE id = $2',
-      [newToken, userId]
+      'UPDATE citizens SET verification_token_hash = $1, verification_expires = $2, verification_token = NULL WHERE id = $3',
+      [tokenHash, expires, userId]
     )
 
-    // In production, send email here with verification link
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`[CitizenAuth] Verification token for ${citizen.rows[0].email}: ${newToken}`)
+    // Send verification email (dev mode = console + DB, production = SMTP)
+    try {
+      await sendVerificationEmail(citizen.rows[0].email, rawToken, 'citizen')
+    } catch (emailErr: any) {
+      logger.error({ err: emailErr }, '[CitizenAuth] Failed to send verification email')
     }
 
+    await logSecurityEvent({
+      userId, userType: 'citizen', eventType: 'email_verification_sent',
+      ipAddress: getClientIp(req), userAgent: req.headers['user-agent'] as string,
+    })
+
     res.json({ success: true, message: 'Verification email has been sent.' })
-  } catch (err: any) {
-    console.error('[CitizenAuth] Resend verification error:', err.message)
-    res.status(500).json({ error: 'Failed to resend verification email.' })
+  } catch (err) {
+    next(err)
   }
 })
 

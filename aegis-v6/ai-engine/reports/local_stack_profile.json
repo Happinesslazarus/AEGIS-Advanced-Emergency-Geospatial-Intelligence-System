@@ -1,0 +1,87 @@
+{
+  "machine": {
+    "platform": "Windows-11-10.0.26200-SP0",
+    "python": "3.13.4",
+    "cpu_logical_cores": 6,
+    "total_ram_gb": 15.94,
+    "gpu": {
+      "name": "NVIDIA GeForce RTX 2060 SUPER",
+      "vram_gb": 8.0,
+      "cuda_available": true,
+      "source": "torch"
+    },
+    "disks": [
+      {
+        "path": "C:\\",
+        "free_gb": 10.62,
+        "total_gb": 226.28
+      },
+      {
+        "path": "D:\\",
+        "free_gb": 240.36,
+        "total_gb": 586.63
+      },
+      {
+        "path": "E:\\",
+        "free_gb": 9.47,
+        "total_gb": 117.19
+      }
+    ],
+    "best_dataset_drive": "D:\\"
+  },
+  "ollama": {
+    "installed_models": [
+      "qwen3:1.7b",
+      "qwen3:4b",
+      "qwen3:8b",
+      "qwen2.5vl:7b",
+      "granite3.2-vision:2b",
+      "gemma3:4b",
+      "minicpm-v:latest",
+      "moondream:latest",
+      "llava:7b"
+    ],
+    "installed_model_count": 9
+  },
+  "profile_validation": {
+    "configured": {
+      "primary": "qwen3:8b",
+      "fast": "qwen3:4b",
+      "specialist": "qwen3:8b",
+      "ultrafast": "qwen3:1.7b",
+      "vision": "qwen2.5vl:7b"
+    },
+    "recommended": {
+      "primary": "qwen3:8b",
+      "fast": "qwen3:4b",
+      "specialist": "qwen3:8b",
+      "ultrafast": "qwen3:1.7b",
+      "vision": "qwen2.5vl:7b"
+    },
+    "matches": {
+      "primary": true,
+      "fast": true,
+      "specialist": true,
+      "ultrafast": true,
+      "vision": true
+    },
+    "missing_models": [],
+    "issues": []
+  },
+  "recommendation": {
+    "profile": {
+      "primary": "qwen3:8b",
+      "fast": "qwen3:4b",
+      "specialist": "qwen3:8b",
+      "ultrafast": "qwen3:1.7b",
+      "vision": "qwen2.5vl:7b",
+      "rationale": "8GB VRAM works best with an 8B main chat model, smaller fast tiers, and a separate vision model used only when needed."
+    },
+    "dataset_root_suggestion": "D:/aegis-datasets",
+    "notes": [
+      "Keep vision separated from the main chat model on 8GB VRAM.",
+      "Use local models for the majority path and reserve API usage for hard cases.",
+      "Store large external datasets on the drive with the most free space instead of the repo drive."
+    ]
+  }
+}

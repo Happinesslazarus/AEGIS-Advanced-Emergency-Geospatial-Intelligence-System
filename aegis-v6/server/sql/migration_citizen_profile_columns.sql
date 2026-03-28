@@ -5,7 +5,7 @@
 --   to citizens table. Creates account_deletion_log table.
 -- Safe to re-run (uses IF NOT EXISTS / ADD COLUMN IF NOT EXISTS).
 
--- ─── Citizens table columns ───────────────────────────────────────────────────
+-- Citizens table columns
 ALTER TABLE citizens ADD COLUMN IF NOT EXISTS is_vulnerable BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE citizens ADD COLUMN IF NOT EXISTS vulnerability_details TEXT;
 ALTER TABLE citizens ADD COLUMN IF NOT EXISTS country VARCHAR(100) DEFAULT 'United Kingdom';
@@ -16,7 +16,7 @@ ALTER TABLE citizens ADD COLUMN IF NOT EXISTS address_line VARCHAR(200);
 ALTER TABLE citizens ADD COLUMN IF NOT EXISTS deletion_requested_at TIMESTAMPTZ;
 ALTER TABLE citizens ADD COLUMN IF NOT EXISTS deletion_scheduled_at TIMESTAMPTZ;
 
--- ─── Account deletion audit log ───────────────────────────────────────────────
+-- Account deletion audit log
 CREATE TABLE IF NOT EXISTS account_deletion_log (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   citizen_id UUID REFERENCES citizens(id),

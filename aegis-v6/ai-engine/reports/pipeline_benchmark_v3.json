@@ -1,0 +1,1146 @@
+{
+  "pipeline": "3-layer-v3-descriptor",
+  "layers": "L1(Moondream-desc) + L2(CLIP) + L3(Gemma3)",
+  "timestamp": "2026-03-26 19:42:37",
+  "accuracy": 0.4524,
+  "clip_only_accuracy": 0.4286,
+  "improvement": 0.0238,
+  "correct": 19,
+  "total": 42,
+  "results": [
+    {
+      "id": "wf-001",
+      "expected_type": "wildfire",
+      "description": "A forest fire burns through a woodland, with trees ablaze and smoke billowing into the sky.",
+      "description_ms": 2657,
+      "clip_type": "wildfire",
+      "clip_confidence": 0.9967,
+      "clip_top3": [
+        [
+          "wildfire",
+          0.9967
+        ],
+        [
+          "heatwave",
+          0.0017
+        ],
+        [
+          "landslide",
+          0.0012
+        ]
+      ],
+      "final_type": "wildfire",
+      "decision": "L3:gemma",
+      "correct": true,
+      "gemma_raw": "TYPE: wildfire",
+      "gemma_ms": 7271
+    },
+    {
+      "id": "wf-002",
+      "expected_type": "wildfire",
+      "description": "A large fire burns on a mountain, casting an orange glow and creating a dark silhouette against the night sky.",
+      "description_ms": 2575,
+      "clip_type": "wildfire",
+      "clip_confidence": 0.9918,
+      "clip_top3": [
+        [
+          "wildfire",
+          0.9918
+        ],
+        [
+          "heatwave",
+          0.0057
+        ],
+        [
+          "landslide",
+          0.0011
+        ]
+      ],
+      "final_type": "wildfire",
+      "decision": "L3:gemma",
+      "correct": true,
+      "gemma_raw": "TYPE: wildfire",
+      "gemma_ms": 2813
+    },
+    {
+      "id": "wf-003",
+      "expected_type": "wildfire",
+      "description": "urn of fire burns brightly, casting a warm glow on the surrounding area and illuminating the silhouetted figures below.",
+      "description_ms": 2590,
+      "clip_type": "wildfire",
+      "clip_confidence": 0.9949,
+      "clip_top3": [
+        [
+          "wildfire",
+          0.9949
+        ],
+        [
+          "heatwave",
+          0.0039
+        ],
+        [
+          "structural_damage",
+          0.0009
+        ]
+      ],
+      "final_type": "wildfire",
+      "decision": "L3:gemma",
+      "correct": true,
+      "gemma_raw": "TYPE: wildfire",
+      "gemma_ms": 2816
+    },
+    {
+      "id": "wf-004",
+      "expected_type": "wildfire",
+      "description": "iced glass skyscrapers with reflective windows, including a large white building and smaller gray ones, dominate the cityscape under a clear blue sky.",
+      "description_ms": 2648,
+      "clip_type": "safe",
+      "clip_confidence": 0.7734,
+      "clip_top3": [
+        [
+          "safe",
+          0.7734
+        ],
+        [
+          "earthquake",
+          0.1156
+        ],
+        [
+          "structural_damage",
+          0.0469
+        ]
+      ],
+      "final_type": "safe",
+      "decision": "L3:gemma",
+      "correct": false,
+      "gemma_raw": "TYPE: safe",
+      "gemma_ms": 2742
+    },
+    {
+      "id": "wf-005",
+      "expected_type": "wildfire",
+      "description": "urn of flowers on a table, with the woman's hand resting on her chin and glasses reflecting light against a white wall backdrop.",
+      "description_ms": 2619,
+      "clip_type": "structural_damage",
+      "clip_confidence": 0.3566,
+      "clip_top3": [
+        [
+          "structural_damage",
+          0.3566
+        ],
+        [
+          "drought",
+          0.154
+        ],
+        [
+          "storm",
+          0.1224
+        ]
+      ],
+      "final_type": "structural_damage",
+      "decision": "L3:gemma",
+      "correct": false,
+      "gemma_raw": "TYPE: structural_damage",
+      "gemma_ms": 2740
+    },
+    {
+      "id": "wf-006",
+      "expected_type": "wildfire",
+      "description": "A lighthouse with a red roof stands on a rocky island, overlooking the deep blue sea and a distant hillside.",
+      "description_ms": 2593,
+      "clip_type": "structural_damage",
+      "clip_confidence": 0.3565,
+      "clip_top3": [
+        [
+          "structural_damage",
+          0.3565
+        ],
+        [
+          "safe",
+          0.2882
+        ],
+        [
+          "heatwave",
+          0.1224
+        ]
+      ],
+      "final_type": "structural_damage",
+      "decision": "L3:gemma",
+      "correct": false,
+      "gemma_raw": "TYPE: structural_damage",
+      "gemma_ms": 2785
+    },
+    {
+      "id": "fl-001",
+      "expected_type": "flood",
+      "description": "urns of water, a man on the dock, and a small boat are present, with a green building nearby.",
+      "description_ms": 2599,
+      "clip_type": "flood",
+      "clip_confidence": 0.98,
+      "clip_top3": [
+        [
+          "flood",
+          0.98
+        ],
+        [
+          "structural_damage",
+          0.009
+        ],
+        [
+          "safe",
+          0.0063
+        ]
+      ],
+      "final_type": "flood",
+      "decision": "L3:gemma",
+      "correct": true,
+      "gemma_raw": "TYPE: flood",
+      "gemma_ms": 2756
+    },
+    {
+      "id": "fl-002",
+      "expected_type": "flood",
+      "description": "A dark storm cloud looms over a rural landscape, with a lightning bolt striking the ground and a small town nestled amidst green fields under an overcast sky.",
+      "description_ms": 2684,
+      "clip_type": "storm",
+      "clip_confidence": 0.9975,
+      "clip_top3": [
+        [
+          "storm",
+          0.9975
+        ],
+        [
+          "structural_damage",
+          0.0008
+        ],
+        [
+          "heatwave",
+          0.0004
+        ]
+      ],
+      "final_type": "storm",
+      "decision": "L3:gemma",
+      "correct": false,
+      "gemma_raw": "TYPE: storm",
+      "gemma_ms": 2823
+    },
+    {
+      "id": "fl-003",
+      "expected_type": "flood",
+      "description": "iced tea house on a mountain, surrounded by lush greenery and featuring a large tower with a flagpole.",
+      "description_ms": 2571,
+      "clip_type": "landslide",
+      "clip_confidence": 0.728,
+      "clip_top3": [
+        [
+          "landslide",
+          0.728
+        ],
+        [
+          "safe",
+          0.1646
+        ],
+        [
+          "structural_damage",
+          0.0591
+        ]
+      ],
+      "final_type": "landslide",
+      "decision": "L3:gemma",
+      "correct": false,
+      "gemma_raw": "TYPE: landslide",
+      "gemma_ms": 2738
+    },
+    {
+      "id": "fl-004",
+      "expected_type": "flood",
+      "description": "urns of water are being poured into a large pool, with two individuals observing the process from a metal railing.",
+      "description_ms": 2426,
+      "clip_type": "structural_damage",
+      "clip_confidence": 0.7096,
+      "clip_top3": [
+        [
+          "structural_damage",
+          0.7096
+        ],
+        [
+          "flood",
+          0.1069
+        ],
+        [
+          "safe",
+          0.1031
+        ]
+      ],
+      "final_type": "flood",
+      "decision": "L3:gemma",
+      "correct": true,
+      "gemma_raw": "TYPE: flood",
+      "gemma_ms": 2726
+    },
+    {
+      "id": "fl-005",
+      "expected_type": "flood",
+      "description": "iced snow-covered ground, with a lone figure in red and black clothing on the right side of the frame.",
+      "description_ms": 2602,
+      "clip_type": "drought",
+      "clip_confidence": 0.4934,
+      "clip_top3": [
+        [
+          "drought",
+          0.4934
+        ],
+        [
+          "heatwave",
+          0.4058
+        ],
+        [
+          "landslide",
+          0.0452
+        ]
+      ],
+      "final_type": "drought",
+      "decision": "L3:gemma",
+      "correct": false,
+      "gemma_raw": "TYPE: drought",
+      "gemma_ms": 2738
+    },
+    {
+      "id": "fl-006",
+      "expected_type": "flood",
+      "description": "iced over houses and buildings, with a few people walking on the street, creating an urban landscape amidst flooding.",
+      "description_ms": 2432,
+      "clip_type": "flood",
+      "clip_confidence": 0.5197,
+      "clip_top3": [
+        [
+          "flood",
+          0.5197
+        ],
+        [
+          "earthquake",
+          0.4195
+        ],
+        [
+          "structural_damage",
+          0.0255
+        ]
+      ],
+      "final_type": "flood",
+      "decision": "L3:gemma",
+      "correct": true,
+      "gemma_raw": "TYPE: flood",
+      "gemma_ms": 2696
+    },
+    {
+      "id": "eq-001",
+      "expected_type": "earthquake",
+      "description": "urns of water and food are displayed on a table, with people standing around it, including an elderly woman in a wheelchair.",
+      "description_ms": 2449,
+      "clip_type": "structural_damage",
+      "clip_confidence": 0.4036,
+      "clip_top3": [
+        [
+          "structural_damage",
+          0.4036
+        ],
+        [
+          "safe",
+          0.3099
+        ],
+        [
+          "earthquake",
+          0.1891
+        ]
+      ],
+      "final_type": "flood",
+      "decision": "L3:gemma",
+      "correct": false,
+      "gemma_raw": "TYPE: flood",
+      "gemma_ms": 2751
+    },
+    {
+      "id": "eq-002",
+      "expected_type": "earthquake",
+      "description": "iced tea and water bottles are displayed on a table, with \"Volunteer\" t-shirts worn by three individuals.",
+      "description_ms": 2536,
+      "clip_type": "safe",
+      "clip_confidence": 0.5987,
+      "clip_top3": [
+        [
+          "safe",
+          0.5987
+        ],
+        [
+          "structural_damage",
+          0.1628
+        ],
+        [
+          "earthquake",
+          0.151
+        ]
+      ],
+      "final_type": "safe",
+      "decision": "L3:gemma",
+      "correct": false,
+      "gemma_raw": "TYPE: safe",
+      "gemma_ms": 2801
+    },
+    {
+      "id": "eq-003",
+      "expected_type": "earthquake",
+      "description": "urns of medicine are being unloaded from a white van, with two men assisting the process.",
+      "description_ms": 2560,
+      "clip_type": "safe",
+      "clip_confidence": 0.2899,
+      "clip_top3": [
+        [
+          "safe",
+          0.2899
+        ],
+        [
+          "structural_damage",
+          0.2823
+        ],
+        [
+          "earthquake",
+          0.1581
+        ]
+      ],
+      "final_type": "safe",
+      "decision": "L3:gemma",
+      "correct": false,
+      "gemma_raw": "TYPE: safe",
+      "gemma_ms": 2679
+    },
+    {
+      "id": "eq-004",
+      "expected_type": "earthquake",
+      "description": "urns of stone, a woman in white, and trees create an outdoor scene with a black and white filter.",
+      "description_ms": 2611,
+      "clip_type": "safe",
+      "clip_confidence": 0.3917,
+      "clip_top3": [
+        [
+          "safe",
+          0.3917
+        ],
+        [
+          "structural_damage",
+          0.2394
+        ],
+        [
+          "heatwave",
+          0.1151
+        ]
+      ],
+      "final_type": "safe",
+      "decision": "L3:gemma",
+      "correct": false,
+      "gemma_raw": "TYPE: safe",
+      "gemma_ms": 2738
+    },
+    {
+      "id": "st-001",
+      "expected_type": "storm",
+      "description": "urn of fire, a black and white photograph with a stormy sky backdrop.",
+      "description_ms": 2565,
+      "clip_type": "storm",
+      "clip_confidence": 0.9201,
+      "clip_top3": [
+        [
+          "storm",
+          0.9201
+        ],
+        [
+          "heatwave",
+          0.0436
+        ],
+        [
+          "wildfire",
+          0.0203
+        ]
+      ],
+      "final_type": "storm",
+      "decision": "L3:gemma",
+      "correct": true,
+      "gemma_raw": "TYPE: storm",
+      "gemma_ms": 2796
+    },
+    {
+      "id": "st-002",
+      "expected_type": "storm",
+      "description": "iced lightning bolts streak across the sky, illuminating a city skyline with tall buildings and a bridge.",
+      "description_ms": 2600,
+      "clip_type": "storm",
+      "clip_confidence": 0.9861,
+      "clip_top3": [
+        [
+          "storm",
+          0.9861
+        ],
+        [
+          "structural_damage",
+          0.0058
+        ],
+        [
+          "flood",
+          0.0041
+        ]
+      ],
+      "final_type": "storm",
+      "decision": "L3:gemma",
+      "correct": true,
+      "gemma_raw": "TYPE: storm",
+      "gemma_ms": 2670
+    },
+    {
+      "id": "st-003",
+      "expected_type": "storm",
+      "description": "urn of orange flowers with yellow centers, surrounded by green leaves and a blurred background.",
+      "description_ms": 2595,
+      "clip_type": "heatwave",
+      "clip_confidence": 0.5424,
+      "clip_top3": [
+        [
+          "heatwave",
+          0.5424
+        ],
+        [
+          "wildfire",
+          0.2998
+        ],
+        [
+          "drought",
+          0.0726
+        ]
+      ],
+      "final_type": "heatwave",
+      "decision": "L3:gemma",
+      "correct": false,
+      "gemma_raw": "TYPE: heatwave",
+      "gemma_ms": 2820
+    },
+    {
+      "id": "st-004",
+      "expected_type": "storm",
+      "description": "A bright yellow lightning bolt streaks across a deep purple sky, accompanied by dark clouds and raindrops.",
+      "description_ms": 2608,
+      "clip_type": "storm",
+      "clip_confidence": 0.9875,
+      "clip_top3": [
+        [
+          "storm",
+          0.9875
+        ],
+        [
+          "wildfire",
+          0.006
+        ],
+        [
+          "structural_damage",
+          0.0025
+        ]
+      ],
+      "final_type": "storm",
+      "decision": "L3:gemma",
+      "correct": true,
+      "gemma_raw": "TYPE: storm",
+      "gemma_ms": 2738
+    },
+    {
+      "id": "st-005",
+      "expected_type": "storm",
+      "description": "iced trees and fog create a serene, misty forest scene with tall coniferous trees and a light brown sky.",
+      "description_ms": 2635,
+      "clip_type": "wildfire",
+      "clip_confidence": 0.3662,
+      "clip_top3": [
+        [
+          "wildfire",
+          0.3662
+        ],
+        [
+          "heatwave",
+          0.2236
+        ],
+        [
+          "safe",
+          0.176
+        ]
+      ],
+      "final_type": "safe",
+      "decision": "L3:gemma",
+      "correct": false,
+      "gemma_raw": "TYPE: safe",
+      "gemma_ms": 2856
+    },
+    {
+      "id": "st-006",
+      "expected_type": "storm",
+      "description": "iced water reflects the warm hues of a sunset, with a snow-capped mountain and trees in the background.",
+      "description_ms": 2642,
+      "clip_type": "landslide",
+      "clip_confidence": 0.3704,
+      "clip_top3": [
+        [
+          "landslide",
+          0.3704
+        ],
+        [
+          "wildfire",
+          0.2572
+        ],
+        [
+          "safe",
+          0.1483
+        ]
+      ],
+      "final_type": "landslide",
+      "decision": "L3:gemma",
+      "correct": false,
+      "gemma_raw": "TYPE: landslide",
+      "gemma_ms": 2772
+    },
+    {
+      "id": "ls-001",
+      "expected_type": "landslide",
+      "description": "iced windshield wipers on a car's window, with the interior illuminated by a black dashboard and control panel.",
+      "description_ms": 2616,
+      "clip_type": "storm",
+      "clip_confidence": 0.9285,
+      "clip_top3": [
+        [
+          "storm",
+          0.9285
+        ],
+        [
+          "flood",
+          0.0461
+        ],
+        [
+          "heatwave",
+          0.0073
+        ]
+      ],
+      "final_type": "storm",
+      "decision": "L3:gemma",
+      "correct": false,
+      "gemma_raw": "TYPE: storm",
+      "gemma_ms": 2664
+    },
+    {
+      "id": "ls-002",
+      "expected_type": "landslide",
+      "description": "urns of water and a rocky cliff face, with trees and bushes on the left side, create a serene landscape scene.",
+      "description_ms": 2635,
+      "clip_type": "landslide",
+      "clip_confidence": 0.8434,
+      "clip_top3": [
+        [
+          "landslide",
+          0.8434
+        ],
+        [
+          "drought",
+          0.1366
+        ],
+        [
+          "structural_damage",
+          0.0127
+        ]
+      ],
+      "final_type": "landslide",
+      "decision": "L3:gemma",
+      "correct": true,
+      "gemma_raw": "TYPE: landslide",
+      "gemma_ms": 2787
+    },
+    {
+      "id": "ls-003",
+      "expected_type": "landslide",
+      "description": "urn with dried flowers and a small vase of orange and red flowers, accompanied by a bottle of perfume on a white tiled countertop.",
+      "description_ms": 2644,
+      "clip_type": "drought",
+      "clip_confidence": 0.3587,
+      "clip_top3": [
+        [
+          "drought",
+          0.3587
+        ],
+        [
+          "structural_damage",
+          0.3337
+        ],
+        [
+          "earthquake",
+          0.1637
+        ]
+      ],
+      "final_type": "drought",
+      "decision": "L3:gemma",
+      "correct": false,
+      "gemma_raw": "TYPE: drought",
+      "gemma_ms": 2731
+    },
+    {
+      "id": "ls-004",
+      "expected_type": "landslide",
+      "description": "urn of water cascades down a rocky cliff face, surrounded by lush greenery and brown rocks.",
+      "description_ms": 2588,
+      "clip_type": "landslide",
+      "clip_confidence": 0.7071,
+      "clip_top3": [
+        [
+          "landslide",
+          0.7071
+        ],
+        [
+          "safe",
+          0.0915
+        ],
+        [
+          "drought",
+          0.0724
+        ]
+      ],
+      "final_type": "landslide",
+      "decision": "L3:gemma",
+      "correct": true,
+      "gemma_raw": "TYPE: landslide",
+      "gemma_ms": 2727
+    },
+    {
+      "id": "dr-001",
+      "expected_type": "drought",
+      "description": "A barren desert landscape features a lone tree with dry, brown branches and a cloudy sky above.",
+      "description_ms": 2563,
+      "clip_type": "drought",
+      "clip_confidence": 0.991,
+      "clip_top3": [
+        [
+          "drought",
+          0.991
+        ],
+        [
+          "heatwave",
+          0.0037
+        ],
+        [
+          "landslide",
+          0.0026
+        ]
+      ],
+      "final_type": "drought",
+      "decision": "L3:gemma",
+      "correct": true,
+      "gemma_raw": "TYPE: drought",
+      "gemma_ms": 2761
+    },
+    {
+      "id": "dr-002",
+      "expected_type": "drought",
+      "description": "iced coffee on a table, with a man's hand resting on the table and his legs crossed",
+      "description_ms": 2439,
+      "clip_type": "structural_damage",
+      "clip_confidence": 0.3543,
+      "clip_top3": [
+        [
+          "structural_damage",
+          0.3543
+        ],
+        [
+          "drought",
+          0.2168
+        ],
+        [
+          "safe",
+          0.1673
+        ]
+      ],
+      "final_type": "safe",
+      "decision": "L3:gemma",
+      "correct": false,
+      "gemma_raw": "TYPE: safe",
+      "gemma_ms": 2682
+    },
+    {
+      "id": "dr-003",
+      "expected_type": "drought",
+      "description": "iced coffee cup with a brown handle and white interior, placed on a beige surface against a light gray background.",
+      "description_ms": 2592,
+      "clip_type": "drought",
+      "clip_confidence": 0.3556,
+      "clip_top3": [
+        [
+          "drought",
+          0.3556
+        ],
+        [
+          "heatwave",
+          0.3442
+        ],
+        [
+          "earthquake",
+          0.1109
+        ]
+      ],
+      "final_type": "drought",
+      "decision": "L3:gemma",
+      "correct": true,
+      "gemma_raw": "TYPE: drought",
+      "gemma_ms": 2750
+    },
+    {
+      "id": "dr-004",
+      "expected_type": "drought",
+      "description": "urns of water, a small tree, and a rainbow create a serene landscape scene.",
+      "description_ms": 2650,
+      "clip_type": "storm",
+      "clip_confidence": 0.6486,
+      "clip_top3": [
+        [
+          "storm",
+          0.6486
+        ],
+        [
+          "safe",
+          0.1476
+        ],
+        [
+          "heatwave",
+          0.071
+        ]
+      ],
+      "final_type": "storm",
+      "decision": "L3:gemma",
+      "correct": false,
+      "gemma_raw": "TYPE: storm",
+      "gemma_ms": 2838
+    },
+    {
+      "id": "sd-001",
+      "expected_type": "structural_damage",
+      "description": "urns of water and boxes of food are displayed on a table, with six individuals gathered around it, including two seated in wheelchairs.",
+      "description_ms": 2626,
+      "clip_type": "safe",
+      "clip_confidence": 0.3591,
+      "clip_top3": [
+        [
+          "safe",
+          0.3591
+        ],
+        [
+          "structural_damage",
+          0.3268
+        ],
+        [
+          "earthquake",
+          0.2533
+        ]
+      ],
+      "final_type": "flood",
+      "decision": "L3:gemma",
+      "correct": false,
+      "gemma_raw": "TYPE: flood",
+      "gemma_ms": 2796
+    },
+    {
+      "id": "sd-002",
+      "expected_type": "structural_damage",
+      "description": "urn of red liquid spills over a white surface, with the person's head tilted back and arms outstretched against a clear blue sky.",
+      "description_ms": 2602,
+      "clip_type": "drought",
+      "clip_confidence": 0.5763,
+      "clip_top3": [
+        [
+          "drought",
+          0.5763
+        ],
+        [
+          "heatwave",
+          0.3941
+        ],
+        [
+          "safe",
+          0.0095
+        ]
+      ],
+      "final_type": "drought",
+      "decision": "L3:gemma",
+      "correct": false,
+      "gemma_raw": "TYPE: drought",
+      "gemma_ms": 2760
+    },
+    {
+      "id": "sd-003",
+      "expected_type": "structural_damage",
+      "description": "urns of water and cardboard boxes on a sidewalk, with two men nearby.",
+      "description_ms": 2543,
+      "clip_type": "structural_damage",
+      "clip_confidence": 0.362,
+      "clip_top3": [
+        [
+          "structural_damage",
+          0.362
+        ],
+        [
+          "safe",
+          0.3072
+        ],
+        [
+          "earthquake",
+          0.2455
+        ]
+      ],
+      "final_type": "structural_damage",
+      "decision": "L3:gemma",
+      "correct": true,
+      "gemma_raw": "TYPE: structural_damage",
+      "gemma_ms": 2726
+    },
+    {
+      "id": "sd-004",
+      "expected_type": "structural_damage",
+      "description": "urn of a traffic light with red signal glowing, silhouetted against the sky and power lines.",
+      "description_ms": 2602,
+      "clip_type": "heatwave",
+      "clip_confidence": 0.6377,
+      "clip_top3": [
+        [
+          "heatwave",
+          0.6377
+        ],
+        [
+          "structural_damage",
+          0.1194
+        ],
+        [
+          "safe",
+          0.113
+        ]
+      ],
+      "final_type": "structural_damage",
+      "decision": "L3:gemma",
+      "correct": true,
+      "gemma_raw": "TYPE: structural_damage",
+      "gemma_ms": 2755
+    },
+    {
+      "id": "hw-001",
+      "expected_type": "heatwave",
+      "description": "urn of green plants with large leaves and small leaves, creating a lush canopy effect against a gray background.",
+      "description_ms": 2609,
+      "clip_type": "landslide",
+      "clip_confidence": 0.3347,
+      "clip_top3": [
+        [
+          "landslide",
+          0.3347
+        ],
+        [
+          "heatwave",
+          0.2522
+        ],
+        [
+          "drought",
+          0.2057
+        ]
+      ],
+      "final_type": "landslide",
+      "decision": "L3:gemma",
+      "correct": false,
+      "gemma_raw": "TYPE: landslide",
+      "gemma_ms": 2773
+    },
+    {
+      "id": "hw-002",
+      "expected_type": "heatwave",
+      "description": "urn of blue liquid, possibly a chemical or industrial substance, is illuminated against a dark background.",
+      "description_ms": 2614,
+      "clip_type": "storm",
+      "clip_confidence": 0.4213,
+      "clip_top3": [
+        [
+          "storm",
+          0.4213
+        ],
+        [
+          "structural_damage",
+          0.1987
+        ],
+        [
+          "heatwave",
+          0.1241
+        ]
+      ],
+      "final_type": "storm",
+      "decision": "L3:gemma",
+      "correct": false,
+      "gemma_raw": "TYPE: storm",
+      "gemma_ms": 2789
+    },
+    {
+      "id": "sf-001",
+      "expected_type": "safe",
+      "description": "iced driveway leading to a two-story house with a gray roof, white windows, and a red door, set against a pink sky.",
+      "description_ms": 2659,
+      "clip_type": "safe",
+      "clip_confidence": 0.3825,
+      "clip_top3": [
+        [
+          "safe",
+          0.3825
+        ],
+        [
+          "structural_damage",
+          0.2497
+        ],
+        [
+          "flood",
+          0.1096
+        ]
+      ],
+      "final_type": "safe",
+      "decision": "L3:gemma",
+      "correct": true,
+      "gemma_raw": "TYPE: safe",
+      "gemma_ms": 2708
+    },
+    {
+      "id": "sf-002",
+      "expected_type": "safe",
+      "description": "iced gray house with white trim, two garage doors, and a tree on the lawn, set against a backdrop of pink and purple sky.",
+      "description_ms": 2615,
+      "clip_type": "safe",
+      "clip_confidence": 0.5946,
+      "clip_top3": [
+        [
+          "safe",
+          0.5946
+        ],
+        [
+          "heatwave",
+          0.1422
+        ],
+        [
+          "structural_damage",
+          0.1349
+        ]
+      ],
+      "final_type": "safe",
+      "decision": "L3:gemma",
+      "correct": true,
+      "gemma_raw": "TYPE: safe",
+      "gemma_ms": 2769
+    },
+    {
+      "id": "sf-003",
+      "expected_type": "safe",
+      "description": "urn of water with a woman's legs and feet on the edge, wearing an orange swimsuit near a boat ramp.",
+      "description_ms": 2584,
+      "clip_type": "structural_damage",
+      "clip_confidence": 0.2761,
+      "clip_top3": [
+        [
+          "structural_damage",
+          0.2761
+        ],
+        [
+          "heatwave",
+          0.2708
+        ],
+        [
+          "safe",
+          0.2195
+        ]
+      ],
+      "final_type": "flood",
+      "decision": "L3:gemma",
+      "correct": false,
+      "gemma_raw": "TYPE: flood",
+      "gemma_ms": 2754
+    },
+    {
+      "id": "sf-004",
+      "expected_type": "safe",
+      "description": "iced glass skyscrapers with reflective windows, including the Empire State Building and One World Trade Center, dominate a black and white cityscape photograph.",
+      "description_ms": 2631,
+      "clip_type": "earthquake",
+      "clip_confidence": 0.8046,
+      "clip_top3": [
+        [
+          "earthquake",
+          0.8046
+        ],
+        [
+          "structural_damage",
+          0.074
+        ],
+        [
+          "safe",
+          0.056
+        ]
+      ],
+      "final_type": "earthquake",
+      "decision": "L3:gemma",
+      "correct": false,
+      "gemma_raw": "TYPE: earthquake",
+      "gemma_ms": 2859
+    },
+    {
+      "id": "sf-005",
+      "expected_type": "safe",
+      "description": "urn of pink and yellow flowers with a butterfly resting on the center petal, surrounded by green leaves.",
+      "description_ms": 2581,
+      "clip_type": "safe",
+      "clip_confidence": 0.4509,
+      "clip_top3": [
+        [
+          "safe",
+          0.4509
+        ],
+        [
+          "wildfire",
+          0.2536
+        ],
+        [
+          "heatwave",
+          0.1903
+        ]
+      ],
+      "final_type": "safe",
+      "decision": "L3:gemma",
+      "correct": true,
+      "gemma_raw": "TYPE: safe",
+      "gemma_ms": 2769
+    },
+    {
+      "id": "sf-006",
+      "expected_type": "safe",
+      "description": "vernacular trees with green leaves and brown trunks line a path through a park, creating a natural corridor for visitors to enjoy.",
+      "description_ms": 2632,
+      "clip_type": "safe",
+      "clip_confidence": 0.8502,
+      "clip_top3": [
+        [
+          "safe",
+          0.8502
+        ],
+        [
+          "heatwave",
+          0.0679
+        ],
+        [
+          "drought",
+          0.044
+        ]
+      ],
+      "final_type": "safe",
+      "decision": "L3:gemma",
+      "correct": true,
+      "gemma_raw": "TYPE: safe",
+      "gemma_ms": 2675
+    }
+  ]
+}

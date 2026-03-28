@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-
 @dataclass(frozen=True)
 class RegionConfig:
     """
@@ -27,7 +26,6 @@ class RegionConfig:
     era5_grid_res: float = 0.10
     climate_zone: str = "temperate_oceanic"
     enabled: bool = True
-
 
 REGION_REGISTRY: dict[str, RegionConfig] = {
     "scotland": RegionConfig(
@@ -88,7 +86,6 @@ REGION_REGISTRY: dict[str, RegionConfig] = {
     ),
 }
 
-
 def get_region(region_id: str) -> RegionConfig:
     if region_id not in REGION_REGISTRY:
         raise KeyError(
@@ -96,10 +93,8 @@ def get_region(region_id: str) -> RegionConfig:
         )
     return REGION_REGISTRY[region_id]
 
-
 def get_enabled_regions() -> list[RegionConfig]:
     return [region for region in REGION_REGISTRY.values() if region.enabled]
-
 
 def get_all_regions() -> list[RegionConfig]:
     return list(REGION_REGISTRY.values())

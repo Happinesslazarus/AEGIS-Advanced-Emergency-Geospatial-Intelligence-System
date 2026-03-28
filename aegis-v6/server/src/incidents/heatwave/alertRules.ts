@@ -5,7 +5,7 @@
 import type { AlertRuleContext, AlertRuleResult } from '../types.js'
 
 export class HeatwaveAlertRules {
-  /**
+   /**
    * Evaluate heatwave alert rules based on context
    */
   static evaluate(context: AlertRuleContext): AlertRuleResult[] {
@@ -35,14 +35,14 @@ export class HeatwaveAlertRules {
         shouldAlert: true,
         severity: 'critical',
         title: 'Extreme Heat Warning',
-        description: `Temperature exceeds 38°C. Life-threatening heat conditions.`
+        description: `Temperature exceeds 38—C. Life-threatening heat conditions.`
       })
     } else if (weatherData?.temperature && Number(weatherData.temperature) >= 35) {
       results.push({
         shouldAlert: true,
         severity: 'warning',
         title: 'High Temperature Alert',
-        description: `Temperature exceeds 35°C. Dangerous heat expected.`
+        description: `Temperature exceeds 35—C. Dangerous heat expected.`
       })
     }
 

@@ -21,13 +21,13 @@ export default function ReportCard({ report, onClick, showActions = false, onVer
             <span className={`badge ${getSeverityClass(report.severity)}`}>{report.severity}</span>
             <span className={`badge ${getStatusClass(report.status)}`}>{report.status}</span>
             {report.confidence != null && <span className="badge badge-info"><Bot className="w-3 h-3 mr-1" />{report.confidence}%</span>}
-            {report.hasMedia && <Camera className="w-3.5 h-3.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" aria-label="Has media" />}
+            {report.hasMedia && <Camera className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300" aria-label="Has media" />}
             {report.aiAnalysis && report.aiAnalysis.fakeProbability > 0.6 && <span className="badge bg-orange-600 text-white">{t('report.possibleFake', lang)}</span>}
             {report.aiAnalysis?.vulnerablePersonAlert && <span className="badge bg-purple-600 text-white">{t('report.vulnerablePerson', lang)}</span>}
           </div>
           <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{report.type}</p>
-          <p className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-1">{truncate(report.description, 120)}</p>
-          <div className="flex items-center gap-4 mt-2 text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+          <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{truncate(report.description, 120)}</p>
+          <div className="flex items-center gap-4 mt-2 text-xs text-gray-500 dark:text-gray-300">
             <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{truncate(report.location, 40)}</span>
             <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{report.displayTime}</span>
             <span className="font-mono">{report.id}</span>
@@ -43,7 +43,4 @@ export default function ReportCard({ report, onClick, showActions = false, onVer
     </div>
   )
 }
-
-
-
-
+

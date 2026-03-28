@@ -1,8 +1,6 @@
 """
-═══════════════════════════════════════════════════════════════════════════════
  AEGIS AI ENGINE — Real ML Model Wrappers
  Load and use trained models from model registry
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 import pickle
@@ -12,7 +10,6 @@ from loguru import logger
 from datetime import datetime
 import numpy as np
 from scipy.sparse import hstack
-
 
 class TrainedModelLoader:
     """Load and inference with real trained models."""
@@ -70,7 +67,6 @@ class TrainedModelLoader:
     def get_metadata(self, model_type: str) -> Dict:
         """Get model metadata."""
         return self.metadata.get(model_type, {})
-
 
 class ReportClassifierML:
     """Real ML-based report classification."""
@@ -139,7 +135,6 @@ class ReportClassifierML:
             'error': 'Model not yet trained on historical data',
             'message': 'Run ml_pipeline.py to train models'
         }
-
 
 class SeverityPredictorML:
     """Real ML-based severity prediction."""

@@ -1,13 +1,11 @@
-/**
+ /*
  * middleware/validate.ts — Zod request validation middleware
- *
  * Wraps Zod schemas into Express middleware that validates request
  * body, query params, or route params. Returns 400 with detailed
  * error messages on validation failure.
- *
  * Usage:
  *   router.post('/reports', validate(createReportSchema), handler)
- */
+  */
 
 import { Request, Response, NextFunction } from 'express'
 import { z, ZodSchema, ZodError } from 'zod'
@@ -18,11 +16,11 @@ interface ValidateOptions {
   params?: ZodSchema
 }
 
-/**
+ /*
  * Create validation middleware from Zod schema(s).
  * Validates body, query, and/or params. Attaches parsed data back
  * to the request so handlers get typed, sanitised input.
- */
+  */
 export function validate(schemas: ValidateOptions | ZodSchema) {
   // Allow passing a single schema for body validation
   const opts: ValidateOptions = schemas instanceof z.ZodType
@@ -78,9 +76,7 @@ function formatErrors(error: ZodError): string[] {
   })
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // COMMON VALIDATION SCHEMAS
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -121,6 +117,7 @@ export const createAlertSchema = z.object({
 export const chatMessageSchema = z.object({
   message: z.string().min(1, 'Message is required').max(2000),
   sessionId: z.string().uuid().optional(),
+  preferredProvider: z.string().optional(),
 })
 
 export const subscribeSchema = z.object({

@@ -1,13 +1,14 @@
 /**
- * incidents/severe_storm/service.ts â€” Severe Storm incident business logic
+ * incidents/severe_storm/service.ts — Severe Storm incident business logic
  */
 
 import pool from '../../models/db.js'
 import type { IncidentPrediction } from '../types.js'
 import { severeStormConfig, STORM_WEATHER_THRESHOLDS } from './config.js'
+import { logger } from '../../services/logger.js'
 
 export class SevereStormService {
-  /**
+   /**
    * Get storm risk score based on weather data and reports
    */
   static async calculateStormRisk(region: string): Promise<number> {
@@ -28,7 +29,7 @@ export class SevereStormService {
     }
   }
 
-  /**
+   /**
    * Get severe storm predictions for a region
    */
   static async getStormPredictions(region: string): Promise<IncidentPrediction[]> {
@@ -54,7 +55,7 @@ export class SevereStormService {
     }]
   }
 
-  /**
+   /**
    * Get storm advisory text based on severity
    */
   static getStormAdvisory(severity: string): string {
@@ -70,7 +71,7 @@ export class SevereStormService {
     }
   }
 
-  /**
+   /**
    * Analyze wind speed data
    */
   static async analyzeWindPatterns(region: string): Promise<{ currentWindSpeed: number; maxGust: number; gustLevel: string; direction: number }> {
@@ -90,7 +91,7 @@ export class SevereStormService {
       }
       return { currentWindSpeed: Math.round(currentWindSpeed * 10) / 10, maxGust: Math.round(maxGust * 10) / 10, gustLevel, direction: Math.round(direction) }
     } catch (error) {
-      console.error('Wind pattern analysis error:', error)
+      logger.error({ err: error }, '[SevereStormService] Wind pattern analysis error')
       return { currentWindSpeed: 0, maxGust: 0, gustLevel: 'Unknown', direction: 0 }
     }
   }

@@ -6,7 +6,7 @@ import {
   MapPin, FileText, Home, Bell, Users, Activity, Shield,
   BookOpen, Newspaper, ChevronLeft, ChevronRight, Lock,
   AlertTriangle, MessageSquare, ShieldAlert, Settings, User,
-  Globe, Heart, X
+  Globe, Heart, X, Sparkles
 } from 'lucide-react'
 import { useCitizenAuth } from '../../contexts/CitizenAuthContext'
 import { t } from '../../utils/i18n'
@@ -28,10 +28,11 @@ interface SidebarItemConfig extends Omit<SidebarItem, 'label'> {
 }
 
 const NAV_ITEM_CONFIG: SidebarItemConfig[] = [
+  { key: 'home',       labelKey: 'layout.sidebar.home',             icon: Sparkles,      path: '/citizen/dashboard',              guestAccess: false, citizenOnly: true, color: 'text-indigo-500' },
   { key: 'map',        labelKey: 'map.title',                       icon: MapPin,        path: '/citizen',                        guestAccess: true,  color: 'text-blue-500' },
   { key: 'reports',    labelKey: 'reports.title',                   icon: FileText,      path: '/citizen?tab=reports',            guestAccess: true,  color: 'text-orange-500' },
   { key: 'shelters',   labelKey: 'citizenPage.tab.safeZones',       icon: Home,          path: '/citizen?tab=shelters',           guestAccess: true,  color: 'text-green-500' },
-  { key: 'alerts',     labelKey: 'citizen.action.alerts',           icon: Bell,          path: '/citizen/dashboard?tab=alerts',   guestAccess: true,  color: 'text-red-500' },
+  { key: 'alerts',     labelKey: 'citizen.action.alerts',           icon: Bell,          path: '/alerts',                         guestAccess: true,  color: 'text-red-500' },
   { key: 'community',  labelKey: 'layout.sidebar.communitySupport', icon: Users,         path: '/citizen?tab=community',          guestAccess: true,  color: 'text-teal-500' },
   { key: 'risk',       labelKey: 'risk.title',                      icon: Activity,      path: '/citizen/dashboard?tab=risk',     guestAccess: false, citizenOnly: true, color: 'text-rose-500' },
   { key: 'emergency',  labelKey: 'citizenPage.emergencyCard',       icon: Shield,        path: '/citizen/dashboard?tab=emergency', guestAccess: false, citizenOnly: true, color: 'text-amber-500' },
@@ -43,7 +44,7 @@ const CITIZEN_EXTRA_ITEM_CONFIG: SidebarItemConfig[] = [
   { key: 'messages',   labelKey: 'citizen.tab.messages',            icon: MessageSquare, path: '/citizen/dashboard?tab=messages', guestAccess: false, citizenOnly: true, color: 'text-sky-500' },
   { key: 'safety',     labelKey: 'layout.sidebar.safetyCheckIn',    icon: ShieldAlert,   path: '/citizen/dashboard?tab=safety',   guestAccess: false, citizenOnly: true, color: 'text-green-600' },
   { key: 'profile',    labelKey: 'layout.sidebar.myProfile',        icon: User,          path: '/citizen/dashboard?tab=profile',  guestAccess: false, citizenOnly: true, color: 'text-indigo-500' },
-  { key: 'settings',   labelKey: 'layout.header.settings',          icon: Settings,      path: '/citizen/dashboard?tab=settings', guestAccess: false, citizenOnly: true, color: 'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300' },
+  { key: 'settings',   labelKey: 'layout.header.settings',          icon: Settings,      path: '/citizen/dashboard?tab=settings', guestAccess: false, citizenOnly: true, color: 'text-gray-500 dark:text-gray-300' },
 ]
 
 interface SidebarProps {
@@ -94,21 +95,21 @@ export default function Sidebar({
     return (
       <button
         key={item.key}
-        onClick={() => isLocked ? undefined : onNavigate(item)}
+        onClick={() => { if (!isLocked) onNavigate(item) }}
         title={collapsed ? item.label : undefined}
         className={`w-full flex items-center gap-3 rounded-xl transition-all duration-200 group relative
-          ${collapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2.5'}
+          ${collapsed ? 'justify-center px-2 py-2.5 min-h-[44px]' : 'px-3 py-2.5 min-h-[40px]'}
           ${isActive
             ? 'bg-aegis-500/15 dark:bg-aegis-500/20 text-aegis-700 dark:text-aegis-300 font-bold shadow-sm'
             : isLocked
-              ? 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 cursor-default'
-              : 'text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white'
+              ? 'text-gray-400 dark:text-gray-300 cursor-default'
+              : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white'
           }`}
         disabled={isLocked}
       >
         <div className="relative flex-shrink-0">
-          <Icon className={`w-[18px] h-[18px] transition-colors ${isActive ? (item.color || 'text-aegis-500') : isLocked ? 'text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300' : 'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 group-hover:text-gray-700 dark:group-hover:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`} />
-          {isLocked && <Lock className="w-2 h-2 absolute -top-0.5 -right-1 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />}
+          <Icon className={`w-[18px] h-[18px] transition-colors ${isActive ? (item.color || 'text-aegis-500') : isLocked ? 'text-gray-300 dark:text-gray-300' : 'text-gray-500 dark:text-gray-300 group-hover:text-gray-700 dark:group-hover:text-gray-300 dark:text-gray-300'}`} />
+          {isLocked && <Lock className="w-2 h-2 absolute -top-0.5 -right-1 text-gray-400 dark:text-gray-300" />}
           {badge > 0 && (
             <span className="absolute -top-1.5 -right-2 w-4 h-4 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center shadow-sm">
               {badge > 9 ? '9+' : badge}
@@ -146,11 +147,11 @@ export default function Sidebar({
       {/* Sidebar header */}
       <div className={`flex items-center ${collapsed ? 'justify-center' : 'justify-between'} px-3 py-3 border-b border-gray-200 dark:border-white/5`}>
         {!collapsed && (
-          <span className="text-[10px] font-bold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-widest">{t('layout.sidebar.navigation', lang)}</span>
+          <span className="text-[10px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-widest">{t('layout.sidebar.navigation', lang)}</span>
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 transition-colors hidden lg:flex"
+          className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 text-gray-500 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-300 dark:text-gray-300 transition-colors hidden lg:flex"
           title={collapsed ? t('layout.sidebar.expandSidebar', lang) : t('layout.sidebar.collapseSidebar', lang)}
         >
           {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
@@ -159,22 +160,29 @@ export default function Sidebar({
 
       {/* Navigation items */}
       <nav className="flex-1 overflow-y-auto py-2 px-2 space-y-0.5">
+        {/* Welcome — own section, first item for authenticated users */}
+        {isAuthenticated && (
+          <div className="space-y-0.5 mb-1">
+            {items.filter(i => i.key === 'home').map(renderItem)}
+          </div>
+        )}
+
         {/* Main navigation */}
         <div className="space-y-0.5">
-          {items.filter(i => !i.citizenOnly).map(renderItem)}
+          {items.filter(i => !i.citizenOnly && i.key !== 'home').map(renderItem)}
         </div>
 
-        {/* Citizen-only section */}
+        {/* Citizen-only section (excludes Welcome which is above) */}
         {isAuthenticated && (
           <>
             <div className={`my-3 ${collapsed ? 'mx-2' : 'mx-1'}`}>
               <div className="h-px bg-gray-200 dark:bg-white/5" />
               {!collapsed && (
-                <span className="text-[9px] font-bold text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-widest mt-2 block px-1">{t('layout.sidebar.myAccount', lang)}</span>
+                <span className="text-[9px] font-bold text-gray-400 dark:text-gray-300 uppercase tracking-widest mt-2 block px-1">{t('layout.sidebar.myAccount', lang)}</span>
               )}
             </div>
             <div className="space-y-0.5">
-              {items.filter(i => i.citizenOnly).map(renderItem)}
+              {items.filter(i => i.citizenOnly && i.key !== 'home').map(renderItem)}
             </div>
           </>
         )}
@@ -227,7 +235,7 @@ export default function Sidebar({
       {/* Tablet sidebar toggle button */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="hidden md:flex lg:hidden fixed top-[68px] left-3 z-30 w-10 h-10 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg items-center justify-center text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+        className="hidden md:flex lg:hidden fixed top-[68px] left-3 z-30 w-10 h-10 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
         aria-label={t('layout.sidebar.openNavigation', lang)}
       >
         <ChevronRight className="w-5 h-5" />
@@ -237,15 +245,15 @@ export default function Sidebar({
       {mobileOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
-          <aside className="absolute top-0 left-0 bottom-0 w-[260px] bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-white/5 shadow-2xl animate-slide-in-left flex flex-col pt-[56px]">
+          <aside className="absolute top-0 left-0 bottom-0 w-[280px] max-w-[85vw] bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-white/5 shadow-2xl animate-slide-in-left flex flex-col pt-[56px]">
             <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 dark:border-white/5">
-              <span className="text-xs font-bold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-widest">{t('layout.sidebar.menu', lang)}</span>
+              <span className="text-xs font-bold text-gray-500 dark:text-gray-300 uppercase tracking-widest">{t('layout.sidebar.menu', lang)}</span>
               <button
                 onClick={() => setMobileOpen(false)}
-                className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-600 transition-colors"
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 text-gray-400 dark:text-gray-300 hover:text-gray-600 transition-colors"
                 aria-label={t('layout.sidebar.closeMenu', lang)}
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
             <nav className="flex-1 overflow-y-auto py-2 px-2 space-y-0.5">
@@ -254,7 +262,7 @@ export default function Sidebar({
                 <>
                   <div className="my-3 mx-1">
                     <div className="h-px bg-gray-200 dark:bg-white/5" />
-                    <span className="text-[9px] font-bold text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-widest mt-2 block px-1">{t('layout.sidebar.myAccount', lang)}</span>
+                    <span className="text-[9px] font-bold text-gray-400 dark:text-gray-300 uppercase tracking-widest mt-2 block px-1">{t('layout.sidebar.myAccount', lang)}</span>
                   </div>
                   {items.filter(i => i.citizenOnly).map(renderItem)}
                 </>
@@ -293,8 +301,3 @@ export default function Sidebar({
 }
 
 export { NAV_ITEM_CONFIG, CITIZEN_EXTRA_ITEM_CONFIG }
-
-
-
-
-

@@ -54,3 +54,4 @@ class PublicSafetyModule extends BaseIncidentModule {
 }
 
 export default new PublicSafetyModule()
+

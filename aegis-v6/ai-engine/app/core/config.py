@@ -1,7 +1,5 @@
 """
-═══════════════════════════════════════════════════════════════════════════════
  AEGIS AI ENGINE — Configuration Management
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from pydantic_settings import BaseSettings
@@ -40,11 +38,11 @@ class Settings(BaseSettings):
     
     # API Security
     API_SECRET_KEY: str = Field(
-        default="your-super-secret-key-change-in-production",
+        default="",  # REQUIRED in production - no default
         env="API_SECRET_KEY"
     )
     ALLOWED_ORIGINS: List[str] = Field(
-        default=["http://localhost:3001", "http://localhost:5173"],
+        default=["http://localhost:3001", "http://localhost:5173", "http://127.0.0.1:3001", "http://127.0.0.1:5173"],
         env="ALLOWED_ORIGINS"
     )
     ENABLE_CORS: bool = Field(default=True, env="ENABLE_CORS")
@@ -106,10 +104,38 @@ class Settings(BaseSettings):
             return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",")]
         return self.ALLOWED_ORIGINS
 
-
 # Global settings instance
 settings = Settings()
 
 # Override ALLOWED_ORIGINS if it was a string
 if isinstance(settings.ALLOWED_ORIGINS, str):
     settings.ALLOWED_ORIGINS = settings.get_allowed_origins_list()
+
+# STRICT STARTUP VALIDATION — refuse to boot in production without API key
+if settings.ENV == "production":
+    _startup_errors = []
+    if not settings.API_SECRET_KEY or len(settings.API_SECRET_KEY) < 16:
+        _startup_errors.append(
+            "API_SECRET_KEY must be set to a strong value (16+ chars) in production"
+        )
+    if settings.DATABASE_URL.startswith("postgresql://postgres:password@"):
+        _startup_errors.append(
+            "DATABASE_URL is using the default placeholder password — must change for production"
+        )
+    if settings.DEBUG:
+        _startup_errors.append(
+            "DEBUG=True in production — set DEBUG=False"
+        )
+    if _startup_errors:
+        import sys
+        print("\n  [ERR] FATAL AI ENGINE CONFIGURATION ERRORS:", file=sys.stderr)
+        for e in _startup_errors:
+            print(f"     • {e}", file=sys.stderr)
+        print("", file=sys.stderr)
+        sys.exit(1)
+elif not settings.API_SECRET_KEY:
+    import warnings
+    warnings.warn(
+        "[AI ENGINE] API_SECRET_KEY not set — endpoints are unprotected (dev only)",
+        stacklevel=1,
+    )

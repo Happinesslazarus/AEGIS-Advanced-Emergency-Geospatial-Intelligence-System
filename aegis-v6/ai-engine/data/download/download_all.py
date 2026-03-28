@@ -47,7 +47,6 @@ def _register_provider_modules() -> None:
         except Exception as exc:
             print(f"Warning: could not load provider module {module_name}: {exc}")
 
-
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="AEGIS universal download orchestrator")
     parser.add_argument("--region", default="scotland", help="Region id or 'all'")
@@ -59,13 +58,11 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--force", action="store_true")
     return parser.parse_args()
 
-
 def _regions_from_arg(region_arg: str) -> list[str]:
     if region_arg == "all":
         return [r.region_id for r in get_enabled_regions()]
     get_region(region_arg)
     return [region_arg]
-
 
 def _run_provider(provider_name: str, region_id: str, start: str, end: str, force: bool) -> DownloadResult:
     out_dir = Path("data/raw") / region_id / provider_name
@@ -119,7 +116,6 @@ def _run_provider(provider_name: str, region_id: str, start: str, end: str, forc
         error=None,
     )
 
-
 def main() -> None:
     args = _parse_args()
     _register_provider_modules()
@@ -162,7 +158,6 @@ def main() -> None:
             f"{result.provider:24} | {result.region_id:10} | {result.rows:6d} | "
             f"{str(result.is_synthetic):9} | {result.sha256[:8]:8} | {result.elapsed_s:7.2f}s | {status}"
         )
-
 
 if __name__ == "__main__":
     main()

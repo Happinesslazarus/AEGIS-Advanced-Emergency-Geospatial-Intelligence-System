@@ -1,0 +1,43 @@
+﻿# AEGIS v6.9 — Production Override
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Differences from base:
+# SEED_DATA=false  → seed files are NOT applied
+# Server restart policy tightened
+# HTTPS enabled with Let's Encrypt certs
+# Certbot volume for ACME challenge
+
+services:
+  migration:
+    environment:
+      SEED_DATA: "false"
+
+  server:
+    restart: always
+
+  client:
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./client/nginx-ssl.conf:/etc/nginx/conf.d/default.conf:ro
+      - letsencrypt:/etc/letsencrypt:ro
+      - certbot_www:/var/www/certbot:ro
+
+  # Certbot (cert renewal sidecar)
+  certbot:
+    image: certbot/certbot:latest
+    volumes:
+      - letsencrypt:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+    # Renew certs every 12 hours (certbot skips if not due)
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 43200; done'"
+    restart: unless-stopped
+    depends_on:
+      - client
+
+volumes:
+  letsencrypt:
+  certbot_www:

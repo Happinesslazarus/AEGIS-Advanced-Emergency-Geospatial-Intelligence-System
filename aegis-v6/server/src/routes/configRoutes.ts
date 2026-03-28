@@ -11,34 +11,97 @@
  *   GET /api/config/health      — Extended health check
  */
 
-import { Router, Request, Response } from 'express'
+import { Router, Request, Response, NextFunction } from 'express'
 import { getActiveRegion, listRegionIds, REGIONS } from '../config/regions.js'
 import { getEnabledHazards, HAZARD_MODULES } from '../config/hazards.js'
 import { listIncidentTypes, upsertIncidentType } from '../config/incidentTypes.js'
 import { getProviderStatus } from '../services/llmRouter.js'
 import { authMiddleware, requireRole } from '../middleware/auth.js'
+import { regionRegistry } from '../adapters/regions/RegionRegistry.js'
 import pool from '../models/db.js'
+import { AppError } from '../utils/AppError.js'
 
 const router = Router()
 
-/** GET /api/config/region — Active region configuration */
+/* GET /api/config/region — Active region configuration */
 router.get('/region', (_req: Request, res: Response) => {
   const region = getActiveRegion()
-  res.json(region)
+  // Augment with adapter metadata for richer frontend config
+  try {
+    const adapter = regionRegistry.getActiveRegion()
+    const meta = adapter.getMetadata()
+    const llmCtx = adapter.getLLMContext()
+    res.json({
+      ...region,
+      adapter: {
+        regionId: meta.regionId,
+        name: meta.name,
+        country: meta.country,
+        countryCode: meta.countryCode,
+        timezone: meta.timezone,
+        centre: meta.centre,
+        zoom: meta.zoom,
+        bounds: meta.bounds,
+        emergencyNumber: meta.emergencyNumber,
+        floodAuthority: meta.floodAuthority,
+        weatherAuthority: meta.weatherAuthority,
+        languages: meta.languages,
+        units: meta.units,
+        emergencyContacts: adapter.getEmergencyContacts(),
+        phoneFormat: {
+          countryCode: adapter.getPhoneFormat().countryCode,
+          dialCode: adapter.getPhoneFormat().dialCode,
+          nationalFormat: adapter.getPhoneFormat().nationalFormat,
+          example: adapter.getPhoneFormat().example,
+        },
+        floodZones: adapter.getFloodZones(),
+        supportedHazardTypes: adapter.getSupportedHazardTypes(),
+        monitoredCities: adapter.getMonitoredCities(),
+        llmContext: {
+          floodAuthority: llmCtx.floodAuthority,
+          weatherAuthority: llmCtx.weatherAuthority,
+          officialSourceAdvice: llmCtx.officialSourceAdvice,
+          crisisResources: llmCtx.crisisResources,
+        },
+      },
+    })
+  } catch {
+    // Adapter not available — return legacy config only
+    res.json(region)
+  }
 })
 
-/** GET /api/config/regions — All available regions */
+/* GET /api/config/regions — All available regions (legacy + adapter-backed) */
 router.get('/regions', (_req: Request, res: Response) => {
-  const regions = listRegionIds().map((id) => ({
+  // Legacy region configs
+  const legacyRegions = listRegionIds().map((id) => ({
     id,
     name: REGIONS[id].name,
     country: REGIONS[id].country,
     center: REGIONS[id].center,
   }))
-  res.json({ regions })
+
+  // Adapter-backed regions with richer metadata
+  const adapterRegions = regionRegistry.listRegions().map((id) => {
+    const adapter = regionRegistry.getRegion(id)
+    if (!adapter) return null
+    const meta = adapter.getMetadata()
+    return {
+      id: meta.regionId,
+      name: meta.name,
+      country: meta.country,
+      countryCode: meta.countryCode,
+      centre: meta.centre,
+      zoom: meta.zoom,
+      emergencyNumber: meta.emergencyNumber,
+    }
+  }).filter(Boolean)
+
+  const activeId = regionRegistry.getActiveRegion().regionId
+  res.json({ regions: legacyRegions, adapterRegions, activeRegion: activeId })
 })
 
-/** GET /api/config/hazards — All hazard modules with enabled status */
+/* GET /api/config/hazards — All hazard modules with enabled status */
 router.get('/hazards', (_req: Request, res: Response) => {
   res.json({
     hazards: Object.values(HAZARD_MODULES),
@@ -46,29 +109,28 @@ router.get('/hazards', (_req: Request, res: Response) => {
   })
 })
 
-/** GET /api/config/incidents — Incident type definitions (schema, widgets, AI mapping, thresholds) */
+/* GET /api/config/incidents — Incident type definitions (schema, widgets, AI mapping, thresholds) */
 router.get('/incidents', (_req: Request, res: Response) => {
   res.json({ incidents: listIncidentTypes() })
 })
 
-/** PUT /api/config/incidents/:incidentId — Upsert incident type definition (admin only) */
-router.put('/incidents/:incidentId', authMiddleware, requireRole('admin'), (req: Request, res: Response) => {
+/* PUT /api/config/incidents/:incidentId — Upsert incident type definition (admin only) */
+router.put('/incidents/:incidentId', authMiddleware, requireRole('admin'), (req: Request, res: Response, next: NextFunction) => {
   try {
     const incidentId = String(req.params.incidentId || '').trim().toLowerCase()
     if (!incidentId) {
-      res.status(400).json({ error: 'incidentId is required.' })
-      return
+      throw AppError.badRequest('incidentId is required.')
     }
 
     const updated = upsertIncidentType(incidentId, req.body || {})
     res.json({ incident: updated })
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to update incident type.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-/** GET /api/config/shelters — Active emergency shelters */
-router.get('/shelters', async (req: Request, res: Response) => {
+/* GET /api/config/shelters — Active emergency shelters */
+router.get('/shelters', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const lat = parseFloat(req.query.lat as string)
     const lng = parseFloat(req.query.lng as string)
@@ -97,13 +159,13 @@ router.get('/shelters', async (req: Request, res: Response) => {
 
     const { rows } = await pool.query(query, params)
     res.json({ shelters: rows })
-  } catch (err: any) {
-    res.status(500).json({ error: 'Failed to load shelters.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-/** GET /api/config/health — Extended health check with service status */
-router.get('/health', async (_req: Request, res: Response) => {
+/* GET /api/config/health — Extended health check with service status */
+router.get('/health', async (_req: Request, res: Response, next: NextFunction) => {
   const checks: Record<string, string> = {}
 
   // Database
@@ -135,3 +197,4 @@ router.get('/health', async (_req: Request, res: Response) => {
 })
 
 export default router
+

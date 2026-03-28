@@ -35,7 +35,7 @@ export const wildfireConfig: IncidentRegistryEntry = {
 }
 
 export const WILDFIRE_RISK_FACTORS = {
-  temperatureThreshold: 30, // °C
+  temperatureThreshold: 30, // —C
   humidityThreshold: 30, // %
   windSpeedThreshold: 25, // km/h
   vegetationDryness: 0.7 // normalized 0-1
@@ -46,3 +46,4 @@ export const NASA_FIRMS_CONFIG = {
   confidence: 80, // minimum confidence
   lookbackHours: 24
 }
+

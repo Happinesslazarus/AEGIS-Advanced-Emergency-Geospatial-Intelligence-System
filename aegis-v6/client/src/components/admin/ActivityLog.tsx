@@ -1,3 +1,4 @@
+/// AEGIS Admin - Activity Log Component
 import { useState } from 'react'
 import { Clock, CheckCircle, AlertTriangle, Flag, Bell, Shield, Download, Printer } from 'lucide-react'
 import { t } from '../../utils/i18n'
@@ -7,7 +8,7 @@ export interface ActivityEntry {
   id: number; action: string; reportId?: string; operator: string
   timestamp: string; type: 'verify' | 'flag' | 'urgent' | 'alert' | 'deploy' | 'login' | 'print' | 'export'
 }
-
+/// Mock activity log for demonstration purposes
 const INITIAL_LOG: ActivityEntry[] = [
   { id: 1, action: 'Logged in to AEGIS Admin', operator: 'System Administrator', timestamp: new Date(Date.now() - 3600000).toISOString(), type: 'login' },
   { id: 2, action: 'Verified report', reportId: 'RPT-001', operator: 'System Administrator', timestamp: new Date(Date.now() - 3000000).toISOString(), type: 'verify' },
@@ -36,12 +37,8 @@ const ICONS: Record<ActivityEntry['type'], typeof Clock> = {
   verify: CheckCircle, flag: Flag, urgent: AlertTriangle,
   alert: Bell, deploy: Shield, login: Clock, print: Printer, export: Download,
 }
-const COLORS: Record<ActivityEntry['type'], string> = {
-  verify: 'text-green-500 bg-green-50', flag: 'text-orange-500 bg-orange-50',
-  urgent: 'text-red-500 bg-red-50', alert: 'text-red-600 bg-red-50',
-  deploy: 'text-blue-500 bg-blue-50', login: 'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 bg-gray-50',
-  print: 'text-purple-500 bg-purple-50', export: 'text-cyan-500 bg-cyan-50',
-}
+import { ACTIVITY_COLORS } from '../../utils/colorTokens'
+const COLORS: Record<ActivityEntry['type'], string> = ACTIVITY_COLORS as Record<ActivityEntry['type'], string>
 
 export default function ActivityLog(): JSX.Element {
   const [log] = useActivityLog()
@@ -52,7 +49,7 @@ export default function ActivityLog(): JSX.Element {
       <div className="space-y-1.5 max-h-96 overflow-y-auto">
         {log.map(entry => {
           const Icon = ICONS[entry.type] || Clock
-          const color = COLORS[entry.type] || 'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 bg-gray-50'
+          const color = COLORS[entry.type] || 'text-gray-500 dark:text-gray-300 bg-gray-50'
           const [textColor, bgColor] = color.split(' ')
           const time = new Date(entry.timestamp)
           const ago = Math.round((Date.now() - time.getTime()) / 60000)
@@ -63,8 +60,8 @@ export default function ActivityLog(): JSX.Element {
                 <Icon className={`w-3.5 h-3.5 ${textColor}`} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-gray-900 dark:text-gray-100">{entry.action}{entry.reportId && <span className="text-[10px] font-mono text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 ml-1">({entry.reportId})</span>}</p>
-                <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{entry.operator} · {timeStr}</p>
+                <p className="text-xs font-medium text-gray-900 dark:text-gray-100">{entry.action}{entry.reportId && <span className="text-[10px] font-mono text-gray-500 dark:text-gray-300 ml-1">({entry.reportId})</span>}</p>
+                <p className="text-[10px] text-gray-500 dark:text-gray-300">{entry.operator} · {timeStr}</p>
               </div>
             </div>
           )
@@ -73,7 +70,3 @@ export default function ActivityLog(): JSX.Element {
     </div>
   )
 }
-
-
-
-

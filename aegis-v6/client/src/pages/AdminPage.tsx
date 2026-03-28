@@ -1,6 +1,7 @@
-/* AdminPage.tsx � Operator dashboard with reports, alerts, analytics, and messaging. */
+/* AdminPage.tsx ? Operator dashboard with reports, alerts, analytics, and messaging. */
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
+import { lazy, Suspense } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Shield, AlertTriangle, CheckCircle, Clock, Users, Activity, TrendingUp,
@@ -19,10 +20,13 @@ import { useLocation } from '../contexts/LocationContext'
 import { LOCATIONS } from '../contexts/LocationContext'
 import { getSession, logout, validateTokenOrRedirect } from '../utils/auth'
 import { exportReportsCSV, exportReportJSON as exportReportsJSON } from '../utils/exportData'
-import { apiLogActivity, apiCreateAlert, apiGetAuditLog, apiAuditLog, apiGetPredictions, apiSendPreAlert, apiGetDeployments, apiDeployResources, apiRecallResources, apiRunPrediction, apiGetHeatmapData, apiGetUsers, apiUpdateUser, apiSuspendUser, apiActivateUser, apiResetUserPassword, apiDeleteUser, apiGetCommandCenterAnalytics, apiBulkUpdateReportStatus, apiUpdateProfile } from '../utils/api'
-import DisasterMap from '../components/shared/DisasterMap'
+import { apiLogActivity, apiCreateAlert, apiGetAuditLog, apiAuditLog, apiGetPredictions, apiSendPreAlert, apiGetDeployments, apiDeployResources, apiRecallResources, apiRunPrediction, apiGetHeatmapData, apiGetUsers, apiUpdateUser, apiSuspendUser, apiActivateUser, apiResetUserPassword, apiDeleteUser, apiGetCommandCenterAnalytics, apiBulkUpdateReportStatus, apiUpdateProfile, apiUpdateReportNotes, getToken } from '../utils/api'
+const DisasterMap = lazy(() => import('../components/shared/DisasterMap'))
 import ReportCard from '../components/shared/ReportCard'
 import LoginPage from '../components/admin/LoginPage'
+import TwoFactorSettings from '../components/admin/TwoFactorSettings'
+import SetupWizard from './SetupWizard'
+import { useSetupStatus } from '../hooks/useSetupStatus'
 import AnalyticsDashboard from '../components/admin/AnalyticsDashboard'
 import AdminMessaging from '../components/admin/AdminMessaging'
 import DeliveryDashboard from '../components/admin/DeliveryDashboard'
@@ -37,36 +41,41 @@ import IntelligenceDashboard from '../components/shared/IntelligenceDashboard'
 import RiverLevelPanel from '../components/shared/RiverLevelPanel'
 import FloodLayerControl from '../components/shared/FloodLayerControl'
 import FloodPredictionTimeline from '../components/shared/FloodPredictionTimeline'
-import LiveMap from '../components/shared/LiveMap'
-import { lazy, Suspense } from 'react'
+const LiveMap = lazy(() => import('../components/shared/LiveMap'))
 const Map3DView = lazy(() => import('../components/shared/Map3DView'))
 import DistressPanel from '../components/admin/DistressPanel'
+import SecurityDashboard from '../components/admin/SecurityDashboard'
 import SystemHealthPanel from '../components/admin/SystemHealthPanel'
 import ClimateRiskDashboard from '../components/shared/ClimateRiskDashboard'
 import LanguageSelector from '../components/shared/LanguageSelector'
 import IncidentFilterPanel from '../components/shared/IncidentFilterPanel'
 import IncidentCommandConsole from '../components/admin/IncidentCommandConsole'
 import CommandCenter from '../components/admin/CommandCenter'
+import WelcomeDashboard from '../components/admin/WelcomeDashboard'
 import AllReportsManager from '../components/admin/AllReportsManager'
-import LiveOperationsMap from '../components/admin/LiveOperationsMap'
+const LiveOperationsMap = lazy(() => import('../components/admin/LiveOperationsMap'))
 import AnalyticsCenter from '../components/admin/AnalyticsCenter'
 import AITransparencyConsole from '../components/admin/AITransparencyConsole'
 import ResourceDeploymentConsole from '../components/admin/ResourceDeploymentConsole'
 import UserAccessManagement from '../components/admin/UserAccessManagement'
-import CrowdDensityHeatmap from '../components/citizen/CrowdDensityHeatmap'
+const CrowdDensityHeatmap = lazy(() => import('../components/citizen/CrowdDensityHeatmap'))
 import type { Report, Operator } from '../types'
 import ThemeSelector from '../components/ui/ThemeSelector'
 import AdminLayout from '../components/layout/AdminLayout'
 import IncidentQueue from '../components/admin/IncidentQueue'
 import { t } from '../utils/i18n'
+import { escapeHtml } from '../utils/helpers'
 import { useLanguage } from '../hooks/useLanguage'
 import { useIncidents } from '../contexts/IncidentContext'
+import { SkeletonTable, SkeletonChart, SkeletonCard, SkeletonList } from '../components/ui/Skeleton'
+import { EmptyAdminTable } from '../components/ui/EmptyState'
 
-const SEV_COLORS: Record<string, string> = { High: 'bg-red-500', Medium: 'bg-aegis-400', Low: 'bg-blue-400' }
-const STA_COLORS: Record<string, string> = { Urgent: 'bg-red-600', Unverified: 'bg-gray-400', Verified: 'bg-green-500', Flagged: 'bg-aegis-500', Resolved: 'bg-gray-300', Archived: 'bg-slate-500', False_Report: 'bg-rose-700' }
+import { SEVERITY_BG_PILL, STATUS_BG_PILL } from '../utils/colorTokens'
+const SEV_COLORS: Record<string, string> = SEVERITY_BG_PILL
+const STA_COLORS: Record<string, string> = STATUS_BG_PILL
 const CATEGORY_ICONS: Record<string, any> = { natural_disaster: Droplets, infrastructure: Building2, public_safety: ShieldAlert, community_safety: Users, environmental: Flame, medical: HeartPulse }
 
-type View = 'dashboard'|'reports'|'map'|'analytics'|'ai_models'|'history'|'audit'|'alert_send'|'resources'|'predictions'|'users'|'messaging'|'community'|'system_health'|'delivery'|'crowd'
+type View = 'home'|'dashboard'|'reports'|'map'|'analytics'|'ai_models'|'history'|'audit'|'alert_send'|'resources'|'predictions'|'users'|'messaging'|'community'|'system_health'|'delivery'|'crowd'|'security'
 
 export default function AdminPage(): JSX.Element {
   const lang = useLanguage()
@@ -76,9 +85,10 @@ export default function AdminPage(): JSX.Element {
   const { dark, toggle } = useTheme()
   const { filter: incidentFilter } = useIncidents()
   const selectedTypes = incidentFilter?.types ?? []
+  const { loading: setupLoading, status: setupStatus, refetch: setupRefetch } = useSetupStatus()
 
   const [user, setUser] = useState<Operator|null>(()=>getSession())
-  const [view, setView] = useState<View>('dashboard')
+  const [view, setView] = useState<View>('home')
   const [searchTerm, setSearchTerm] = useState('')
   const [selReport, setSelReport] = useState<Report|null>(null)
   const [galleryOpen, setGalleryOpen] = useState(false)
@@ -105,6 +115,9 @@ export default function AdminPage(): JSX.Element {
   const [suspendForm, setSuspendForm] = useState<{until:string,reason:string}>({until:'',reason:''})
   const [communityUnread, setCommunityUnread] = useState(0)
   const [showChatbot, setShowChatbot] = useState(false)
+  const [notesDraft, setNotesDraft] = useState('')
+  const [notesEditing, setNotesEditing] = useState(false)
+  const [notesSaving, setNotesSaving] = useState(false)
   // Listen for global logout events and clear stored user
   React.useEffect(() => {
     const handler = () => setUser(null)
@@ -166,20 +179,17 @@ export default function AdminPage(): JSX.Element {
 
   // Validate token on mount - redirect to login if invalid/expired
   useEffect(() => {
-    console.log('[AdminPage] Validating token...')
     if (!validateTokenOrRedirect()) {
-      console.warn('[AdminPage] Token validation failed')
       return
     }
-    console.log('[AdminPage] Token valid')
   }, [])
 
   // Lightweight socket for receiving community chat notifications (global broadcast)
   useEffect(() => {
-    const token = localStorage.getItem('aegis-token')
+    const token = getToken()
     if (!token || !user) return
 
-    const s = io('http://localhost:3001', {
+    const s = io((import.meta as any).env?.VITE_SOCKET_URL || 'http://localhost:3001', {
       auth: { token },
       transports: ['websocket', 'polling'],
       reconnection: true,
@@ -256,7 +266,7 @@ export default function AdminPage(): JSX.Element {
   useEffect(()=>{
     if(user){
       apiGetPredictions().then((raw: any[]) => {
-        // Deduplicate by area name � keep highest probability per area
+        // Deduplicate by area name ? keep highest probability per area
         const byArea: Record<string, any> = {}
         for (const p of raw) {
           const key = (p.area || '').toLowerCase().trim()
@@ -276,7 +286,7 @@ export default function AdminPage(): JSX.Element {
   // Load users for user management view
   useEffect(()=>{
     if(user && view === 'users'){
-      apiGetUsers().then(d=>setUsers(d.users||[])).catch((err: any)=>{
+      apiGetUsers().then(d=>setUsers((d as any).users||d||[])).catch((err: any)=>{
         const msg = err?.response?.data?.error || err?.message || 'Failed to load users'
         pushNotification(msg,'error')
         console.error('[AdminPage] Failed to load users:', msg)
@@ -284,7 +294,7 @@ export default function AdminPage(): JSX.Element {
     }
   },[user, view])
 
-  // Smart filter parser � must be declared before filtered useMemo
+  // Smart filter parser ? must be declared before filtered useMemo
   const parseSmartFilter=(query:string,reps:Report[]):Report[]=>{    if(!query.trim())return reps
     const q=query.toLowerCase()
     let result=[...reps]
@@ -337,7 +347,7 @@ export default function AdminPage(): JSX.Element {
     flagged: reports.filter(r=>r.status==='Flagged').length, resolved: reports.filter(r=>r.status==='Resolved').length,
     archived: reports.filter(r=>r.status==='Archived').length, falseReport: reports.filter(r=>r.status==='False_Report').length,
     high: reports.filter(r=>r.severity==='High').length, medium: reports.filter(r=>r.severity==='Medium').length, low: reports.filter(r=>r.severity==='Low').length,
-    avgConf: reports.length>0?Math.round(reports.reduce((s,r)=>s+(r.confidence||0),0)/reports.length):0,
+    avgConf: reports.length>0?Math.round(reports.reduce((s,r)=>{const c=Number(r.confidence);return s+(isNaN(c)?0:c)},0)/reports.length):0,
     withMedia: reports.filter(r=>r.hasMedia).length, trapped: reports.filter(r=>r.trappedPersons==='yes').length,
     verifyRate: reports.length>0?Math.round((reports.filter(r=>r.status==='Verified').length/reports.length)*100):0,
   }),[reports])
@@ -406,13 +416,12 @@ export default function AdminPage(): JSX.Element {
   const doBulkArchive=()=>askConfirm(t('admin.bulk.archiveTitle',lang),t('admin.bulk.archiveMsg',lang).replace('{n}',String(selectedReportIds.size)),'warning',async()=>{const ids=Array.from(selectedReportIds);await runBulkAction(ids,'Archived',t('admin.bulk.archiveSuccess',lang).replace('{n}',String(ids.length)),'success')})
   const doBulkFalseReport=()=>askConfirm(t('admin.bulk.falseTitle',lang),t('admin.bulk.falseMsg',lang).replace('{n}',String(selectedReportIds.size)),'danger',async()=>{const ids=Array.from(selectedReportIds);await runBulkAction(ids,'False_Report',t('admin.bulk.falseSuccess',lang).replace('{n}',String(ids.length)),'warning')})
 
-
   const toggleSelection=(id:string)=>{setSelectedReportIds(prev=>{const next=new Set(prev);if(next.has(id)){next.delete(id)}else{next.add(id)};return next})}
   const toggleSelectAll=()=>{if(selectedReportIds.size===filtered.length){setSelectedReportIds(new Set())}else{setSelectedReportIds(new Set(filtered.map(r=>r.id)))}}
 
-  const handlePrint=()=>{const w=window.open('','','width=800,height=600');if(!w){pushNotification(t('admin.print.allowPopups',lang),'warning');return}w.document.write('<html><head><title>AEGIS Report</title><style>body{font-family:Arial;padding:20px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:12px}th{background:#1a4480;color:white}.header{text-align:center;margin-bottom:20px}</style></head><body>');w.document.write(`<div class="header"><h1>AEGIS Emergency Report</h1><p>Generated: ${new Date().toLocaleString()} by ${user?.displayName}</p><p>${filtered.length} reports</p></div>`);w.document.write('<table><tr><th>ID</th><th>Type</th><th>Severity</th><th>Status</th><th>Location</th><th>AI%</th><th>Time</th></tr>');filtered.forEach(r=>{w.document.write(`<tr><td>${r.reportNumber||''}</td><td>${r.type||''}</td><td>${r.severity}</td><td>${r.status}</td><td>${r.location||''}</td><td>${r.confidence||0}%</td><td>${new Date(r.timestamp).toLocaleString()}</td></tr>`)});w.document.write('</table><p style="margin-top:20px;font-size:10px;color:#666">AEGIS Emergency Response System � OFFICIAL USE ONLY</p></body></html>');w.document.close();w.focus();w.print()}
+  const handlePrint=()=>{const w=window.open('','','width=800,height=600');if(!w){pushNotification(t('admin.print.allowPopups',lang),'warning');return}w.document.write('<html><head><title>AEGIS Report</title><style>body{font-family:Arial;padding:20px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:12px}th{background:#1a4480;color:white}.header{text-align:center;margin-bottom:20px}</style></head><body>');w.document.write(`<div class="header"><h1>AEGIS Emergency Report</h1><p>Generated: ${new Date().toLocaleString()} by ${escapeHtml(user?.displayName||'')}</p><p>${filtered.length} reports</p></div>`);w.document.write('<table><tr><th>ID</th><th>Type</th><th>Severity</th><th>Status</th><th>Location</th><th>AI%</th><th>Time</th></tr>');filtered.forEach(r=>{w.document.write(`<tr><td>${escapeHtml(r.reportNumber||'')}</td><td>${escapeHtml(r.type||'')}</td><td>${escapeHtml(r.severity)}</td><td>${escapeHtml(r.status)}</td><td>${escapeHtml(r.location||'')}</td><td>${r.confidence||0}%</td><td>${new Date(r.timestamp).toLocaleString()}</td></tr>`)});w.document.write('</table><p style="margin-top:20px;font-size:10px;color:#666">AEGIS Emergency Response System - OFFICIAL USE ONLY</p></body></html>');w.document.close();w.focus();w.print()}
 
-  const printSingleReport=(r:Report)=>{const w=window.open('','',`width=800,height=600`);if(!w){pushNotification(t('admin.print.allowPopupSingle',lang),'warning');return}const ai:any=r.aiAnalysis||{};const panicLvl=ai.panicLevel||ai.panic_level||'Moderate';const fakePrb=ai.fakeProbability??ai.fake_probability??0;const photoV=ai.photoVerified||ai.photo_verified;const wDepth=ai.estimatedWaterDepth||ai.water_depth||'N/A';const sources=(ai.crossReferenced||[]).join(', ')||ai.sources||'N/A';w.document.write(`<html><head><title>AEGIS Report ${r.reportNumber}</title><style>body{font-family:Arial,sans-serif;padding:30px;max-width:750px;margin:0 auto}h1{color:#1a4480;border-bottom:3px solid #1a4480;padding-bottom:8px}table{width:100%;border-collapse:collapse;margin:15px 0}th,td{border:1px solid #ddd;padding:10px;text-align:left;font-size:13px}th{background:#f5f5f5;font-weight:600;width:35%}.header{display:flex;justify-content:space-between;align-items:flex-start}.meta{text-align:right;font-size:12px;color:#666}.severity-high{color:#dc2626;font-weight:bold}.severity-medium{color:#d97706}.severity-low{color:#2563eb}.section{margin-top:20px}.section h2{font-size:16px;color:#333;border-bottom:1px solid #eee;padding-bottom:5px}.footer{margin-top:30px;text-align:center;font-size:10px;color:#999;border-top:1px solid #eee;padding-top:10px}</style></head><body>`);w.document.write(`<div style="font-size:11px;color:#666">${new Date().toLocaleString()}<span style="float:right">AEGIS Report ${r.reportNumber}</span></div>`);w.document.write(`<div class="header"><h1>AEGIS Emergency Report</h1><div class="meta">Report ID: ${r.reportNumber}<br>Generated: ${new Date().toLocaleString()}</div></div>`);w.document.write(`<table><tr><th>Type</th><td>${r.type||r.incidentCategory||'Emergency Incident'}</td></tr><tr><th>Location</th><td>${r.location||''}</td></tr><tr><th>Severity</th><td class="severity-${(r.severity||'').toLowerCase()}">${r.severity}</td></tr><tr><th>Status</th><td>${r.status}</td></tr><tr><th>Time</th><td>${r.displayTime||new Date(r.timestamp).toLocaleString()}</td></tr><tr><th>Reporter</th><td>${r.reporter||'Anonymous Citizen'}</td></tr><tr><th>Trapped Persons</th><td>${r.trappedPersons||'no'}</td></tr><tr><th>Media</th><td>${r.hasMedia?'Yes'+(r.mediaType?' ('+r.mediaType+')':' (undefined)'):'No'}</td></tr><tr><th>AI Confidence</th><td>${r.confidence?r.confidence+'%':'Pending'}</td></tr></table>`);w.document.write(`<div class="section"><h2>Description</h2><p style="font-size:13px;line-height:1.6">${r.description||'No description provided.'}</p></div>`);w.document.write(`<div class="section"><h2>AI Analysis</h2><table><tr><th>Panic Level</th><td>${panicLvl}</td></tr><tr><th>Fake Probability</th><td>${fakePrb}%</td></tr><tr><th>Photo Verified</th><td>${photoV?'Yes':'Pending'}</td></tr><tr><th>Water Depth</th><td>${wDepth}</td></tr><tr><th>Sources</th><td>${sources}</td></tr></table></div>`);w.document.write(`<div class="section"><h2>AI Reasoning</h2><p style="font-size:13px;line-height:1.6">${ai.reasoning||'Report analysed using NLP sentiment analysis (score: '+(ai.sentimentScore||0.7).toFixed(2)+') and cross-referenced with regional emergency authority data. Location matches active risk area. Multiple corroborating reports within 500m radius. Confidence level: '+(r.confidence||75)+'%.'}</p></div>`);w.document.write(`<div class="section"><h2>Recommended Actions</h2><ul style="font-size:13px;line-height:1.8">${r.severity==='High'?'<li>Immediate deployment of emergency services</li><li>Evacuate affected area within 500m radius</li><li>Activate incident mitigation measures</li><li>Issue public alert via all channels</li>':r.severity==='Medium'?'<li>Monitor area closely for escalation</li><li>Pre-position resources nearby</li><li>Issue advisory to local residents</li>':'<li>Continue monitoring</li><li>Log for historical analysis</li>'}</ul></div>`);w.document.write(`<div class="section"><h2>Metadata</h2><table><tr><th>GPS Coordinates</th><td>${r.coordinates?r.coordinates.join(', '):'N/A'}</td></tr><tr><th>Reporter Type</th><td>Anonymous Citizen</td></tr><tr><th>Submission</th><td>AEGIS Citizen Portal</td></tr><tr><th>Generated</th><td>${new Date().toISOString()}</td></tr></table></div>`);w.document.write(`<div class="footer">AEGIS Emergency Response System � Printed by ${user?.displayName||'System Administrator'} � OFFICIAL USE ONLY<br>This document may contain sensitive emergency data. Handle accordingly.</div>`);w.document.write(`</body></html>`);w.document.close();w.focus();w.print()}
+  const printSingleReport=(r:Report)=>{const w=window.open('','',`width=800,height=600`);if(!w){pushNotification(t('admin.print.allowPopupSingle',lang),'warning');return}const ai:any=r.aiAnalysis||{};const panicLvl=escapeHtml(String(ai.panicLevel||ai.panic_level||'Moderate'));const fakePrb=ai.fakeProbability??ai.fake_probability??0;const photoV=ai.photoVerified||ai.photo_verified;const wDepth=escapeHtml(String(ai.estimatedWaterDepth||ai.water_depth||'N/A'));const sources=escapeHtml((ai.crossReferenced||[]).join(', ')||ai.sources||'N/A');w.document.write(`<html><head><title>AEGIS Report ${escapeHtml(r.reportNumber||'')}</title><style>body{font-family:Arial,sans-serif;padding:30px;max-width:750px;margin:0 auto}h1{color:#1a4480;border-bottom:3px solid #1a4480;padding-bottom:8px}table{width:100%;border-collapse:collapse;margin:15px 0}th,td{border:1px solid #ddd;padding:10px;text-align:left;font-size:13px}th{background:#f5f5f5;font-weight:600;width:35%}.header{display:flex;justify-content:space-between;align-items:flex-start}.meta{text-align:right;font-size:12px;color:#666}.severity-high{color:#dc2626;font-weight:bold}.severity-medium{color:#d97706}.severity-low{color:#2563eb}.section{margin-top:20px}.section h2{font-size:16px;color:#333;border-bottom:1px solid #eee;padding-bottom:5px}.footer{margin-top:30px;text-align:center;font-size:10px;color:#999;border-top:1px solid #eee;padding-top:10px}</style></head><body>`);w.document.write(`<div style="font-size:11px;color:#666">${new Date().toLocaleString()}<span style="float:right">AEGIS Report ${escapeHtml(r.reportNumber||'')}</span></div>`);w.document.write(`<div class="header"><h1>AEGIS Emergency Report</h1><div class="meta">Report ID: ${escapeHtml(r.reportNumber||'')}<br>Generated: ${new Date().toLocaleString()}</div></div>`);w.document.write(`<table><tr><th>Type</th><td>${escapeHtml(r.type||r.incidentCategory||'Emergency Incident')}</td></tr><tr><th>Location</th><td>${escapeHtml(r.location||'')}</td></tr><tr><th>Severity</th><td class="severity-${escapeHtml((r.severity||'').toLowerCase())}">${escapeHtml(r.severity||'')}</td></tr><tr><th>Status</th><td>${escapeHtml(r.status||'')}</td></tr><tr><th>Time</th><td>${escapeHtml(r.displayTime||new Date(r.timestamp).toLocaleString())}</td></tr><tr><th>Reporter</th><td>${escapeHtml(r.reporter||'Anonymous Citizen')}</td></tr><tr><th>Trapped Persons</th><td>${escapeHtml(String(r.trappedPersons||'no'))}</td></tr><tr><th>Media</th><td>${r.hasMedia?'Yes'+(r.mediaType?' ('+escapeHtml(r.mediaType)+')':' (undefined)'):'No'}</td></tr><tr><th>AI Confidence</th><td>${r.confidence?r.confidence+'%':'Pending'}</td></tr></table>`);w.document.write(`<div class="section"><h2>Description</h2><p style="font-size:13px;line-height:1.6">${escapeHtml(r.description||'No description provided.')}</p></div>`);w.document.write(`<div class="section"><h2>AI Analysis</h2><table><tr><th>Panic Level</th><td>${panicLvl}</td></tr><tr><th>Fake Probability</th><td>${fakePrb}%</td></tr><tr><th>Photo Verified</th><td>${photoV?'Yes':'Pending'}</td></tr><tr><th>Water Depth</th><td>${wDepth}</td></tr><tr><th>Sources</th><td>${sources}</td></tr></table></div>`);w.document.write(`<div class="section"><h2>AI Reasoning</h2><p style="font-size:13px;line-height:1.6">${escapeHtml(ai.reasoning||'Report analysed using NLP sentiment analysis (score: '+(ai.sentimentScore||0.7).toFixed(2)+') and cross-referenced with regional emergency authority data. Location matches active risk area. Multiple corroborating reports within 500m radius. Confidence level: '+(r.confidence||75)+'%.')}</p></div>`);w.document.write(`<div class="section"><h2>Recommended Actions</h2><ul style="font-size:13px;line-height:1.8">${r.severity==='High'?'<li>Immediate deployment of emergency services</li><li>Evacuate affected area within 500m radius</li><li>Activate incident mitigation measures</li><li>Issue public alert via all channels</li>':r.severity==='Medium'?'<li>Monitor area closely for escalation</li><li>Pre-position resources nearby</li><li>Issue advisory to local residents</li>':'<li>Continue monitoring</li><li>Log for historical analysis</li>'}</ul></div>`);w.document.write(`<div class="section"><h2>Metadata</h2><table><tr><th>GPS Coordinates</th><td>${r.coordinates?r.coordinates.join(', '):'N/A'}</td></tr><tr><th>Reporter Type</th><td>Anonymous Citizen</td></tr><tr><th>Submission</th><td>AEGIS Citizen Portal</td></tr><tr><th>Generated</th><td>${new Date().toISOString()}</td></tr></table></div>`);w.document.write(`<div class="footer">AEGIS Emergency Response System - Printed by ${escapeHtml(user?.displayName||'System Administrator')} - OFFICIAL USE ONLY<br>This document may contain sensitive emergency data. Handle accordingly.</div>`);w.document.write(`</body></html>`);w.document.close();w.focus();w.print()}
 
   const handleShareReport = async (r: Report): Promise<void> => {
     const url = `${window.location.origin}/report/${r.id}`
@@ -491,7 +500,18 @@ export default function AdminPage(): JSX.Element {
 
   if(!user) return <LoginPage onLogin={u=>setUser(u)}/>
 
+  // Role guard: only admin/operator roles may access this page
+  if (user.role !== 'admin' && user.role !== 'operator') {
+    return <LoginPage onLogin={u=>setUser(u)}/>
+  }
+
+  // First-run setup guard
+  if (!setupLoading && setupStatus && !setupStatus.setupCompleted && user.role === 'admin') {
+    return <SetupWizard user={user} setupStatus={setupStatus} onComplete={() => { setupRefetch() }} />
+  }
+
   const NAV: {id:View;label:string;icon:any}[] = [
+    {id:'home',label:'Welcome',icon:Home},
     {id:'dashboard',label:t('admin.dashboard', lang),icon:BarChart3},{id:'reports',label:t('admin.allReports', lang),icon:FileText},{id:'map',label:t('admin.liveMap', lang),icon:Map},
     {id:'analytics',label:t('admin.analytics', lang),icon:Activity},{id:'ai_models',label:t('admin.models', lang),icon:Brain},{id:'resources',label:t('admin.resources', lang),icon:Navigation},
     ...(user.role === 'admin' ? [{id:'users' as View,label:t('admin.users', lang),icon:Users}] : []),
@@ -533,11 +553,11 @@ export default function AdminPage(): JSX.Element {
 
       {/* Profile dropdown */}
       {showProfile && (
-        <div className="fixed top-16 right-4 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700/60 w-72 z-50 overflow-hidden">
+        <div className="fixed top-16 right-2 sm:right-4 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700/60 w-72 max-w-[calc(100vw-1rem)] z-50 overflow-hidden">
           {/* Header */}
           <div className="bg-gradient-to-r from-aegis-600 to-aegis-800 px-4 pt-4 pb-6 relative">
-            <button onClick={() => setShowProfile(false)} className="absolute top-3 right-3 p-1 rounded-lg bg-white/15 hover:bg-white/25 transition-colors">
-              <X className="w-3.5 h-3.5 text-white"/>
+            <button onClick={() => setShowProfile(false)} className="absolute top-2 right-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg bg-white/15 hover:bg-white/25 transition-colors">
+              <X className="w-4 h-4 text-white"/>
             </button>
             <div className="flex items-center gap-3">
               {user.avatarUrl
@@ -558,22 +578,48 @@ export default function AdminPage(): JSX.Element {
                 <input className="w-full px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-aegis-500/30" placeholder={t('admin.profile.email',lang)} value={profileForm.email} onChange={e => setProfileForm(f => ({...f, email: e.target.value}))}/>
                 <input className="w-full px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-aegis-500/30" placeholder={t('admin.profile.phone',lang)} value={profileForm.phone} onChange={e => setProfileForm(f => ({...f, phone: e.target.value}))}/>
                 <div className="flex gap-2 pt-1">
-                  <button onClick={() => setProfileEditing(false)} className="flex-1 text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">{t('general.cancel', lang)}</button>
+                  <button onClick={() => setProfileEditing(false)} className="flex-1 text-xs text-gray-500 dark:text-gray-300 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">{t('general.cancel', lang)}</button>
                   <button onClick={() => { apiUpdateProfile(user!.id, profileForm).then(() => { pushNotification(t('admin.profileUpdated', lang), 'success'); setProfileEditing(false); apiAuditLog({operator_name: user?.displayName, action: 'Updated profile', action_type: 'profile_edit', target_type: 'operator', target_id: user?.id}).catch(() => {}) }).catch(() => pushNotification(t('admin.profile.updateFailed',lang), 'error')) }} className="flex-1 text-xs text-white py-2 rounded-xl bg-aegis-600 hover:bg-aegis-700 transition-colors font-semibold">{t('admin.save', lang)}</button>
                 </div>
               </div>
             ) : (
               <div className="flex gap-2">
                 <button onClick={() => { setProfileForm({displayName: user.displayName || '', email: user.email || '', phone: user.phone || '', department: user.department || ''}); setProfileEditing(true) }} className="flex-1 text-xs font-semibold text-aegis-600 dark:text-aegis-400 py-2 rounded-xl bg-aegis-50 dark:bg-aegis-950/20 hover:bg-aegis-100 dark:hover:bg-aegis-950/40 transition-colors">{t('admin.editProfile', lang)}</button>
-                <button onClick={() => setShowProfile(false)} className="flex-1 text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">{t('general.close', lang)}</button>
+                <button onClick={() => setShowProfile(false)} className="flex-1 text-xs text-gray-500 dark:text-gray-300 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">{t('general.close', lang)}</button>
               </div>
             )}
+            {/* Two-Factor Authentication*/}
+            <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+              <TwoFactorSettings />
+            </div>
           </div>
         </div>
       )}
 
-        {/* --- DASHBOARD � Command Center --- */}
-        {view==='dashboard'&&(
+        {/* WELCOME HOME */}
+        {view==='home'&&(
+          <WelcomeDashboard
+            user={user}
+            stats={stats}
+            alerts={alerts}
+            reports={reports}
+            lang={lang}
+            onNavigate={(v) => setView(v as View)}
+          />
+        )}
+
+        {/* DASHBOARD - Command Center */}
+        {view==='dashboard'&&(loading && reports.length === 0 ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <SkeletonChart height={200} /><SkeletonTable rows={5} cols={4} />
+            </div>
+            <SkeletonList count={4} />
+          </div>
+        ) : (
           <CommandCenter
             stats={stats}
             commandCenter={commandCenter}
@@ -593,10 +639,17 @@ export default function AdminPage(): JSX.Element {
             activityShowAll={activityShowAll}
             setActivityShowAll={setActivityShowAll}
           />
-        )}
+        ))}
 
-        {/* --- REPORTS � Professional Incident Manager --- */}
-        {view==='reports'&&(
+        {/* REPORTS — Professional Incident Manager */}
+        {view==='reports'&&(loading && reports.length === 0 ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard />
+            </div>
+            <SkeletonTable rows={8} cols={6} />
+          </div>
+        ) : (
           <AllReportsManager
             reports={reports}
             filtered={filtered}
@@ -630,10 +683,11 @@ export default function AdminPage(): JSX.Element {
             onBulkArchive={doBulkArchive}
             pushNotification={(msg, type) => pushNotification(msg, (type as any) ?? 'info')}
           />
-        )}
+        ))}
 
-        {/* --- MAP � Tactical Common Operating Picture --- */}
+        {/* MAP — Tactical Common Operating Picture */}
         {view==='map'&&(
+          <Suspense fallback={<div className="h-64 animate-pulse bg-gray-200 dark:bg-gray-800 rounded" />}>
           <LiveOperationsMap
             filtered={filtered}
             reports={reports}
@@ -651,10 +705,21 @@ export default function AdminPage(): JSX.Element {
             setActiveLocation={setActiveLocation}
             availableLocations={availableLocations}
           />
+          </Suspense>
         )}
 
-        {/* --- ANALYTICS --- */}
-        {view==='analytics'&&(
+        {/* ANALYTICS */}
+        {view==='analytics'&&(loading && reports.length === 0 ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <SkeletonChart height={240} /><SkeletonChart height={240} />
+            </div>
+            <SkeletonChart height={200} />
+          </div>
+        ) : (
           <AnalyticsCenter
             reports={reports}
             stats={stats}
@@ -665,9 +730,9 @@ export default function AdminPage(): JSX.Element {
             onSelectReport={r=>setSelReport(r)}
             pushNotification={(msg, type) => pushNotification(msg, (type as any) ?? 'info')}
           />
-        )}
+        ))}
 
-        {/* --- AI MODELS --- */}
+        {/* AI MODELS */}
         {view==='ai_models'&&(
           <AITransparencyConsole
             predictions={predictions}
@@ -689,13 +754,13 @@ export default function AdminPage(): JSX.Element {
           />
         )}
 
-        {/* --- HISTORY --- */}
+        {/* HISTORY */}
         {view==='history'&&<AdminHistoricalIntelligence />}
 
-        {/* --- AUDIT TRAIL --- */}
+        {/* AUDIT TRAIL */}
         {view==='audit'&&<AdminAuditTrail auditLog={auditLog} setAuditLog={setAuditLog} />}
 
-        {/* --- RESOURCES --- */}
+        {/* RESOURCES */}
         {view==='resources'&&(
           <ResourceDeploymentConsole
             deployments={deployments}
@@ -714,7 +779,7 @@ export default function AdminPage(): JSX.Element {
           />
         )}
 
-        {/* --- CITIZEN MESSAGING --- */}
+        {/* CITIZEN MESSAGING */}
         {view==='messaging'&&(
           <div className="space-y-4 animate-fade-in">
             <h2 className="font-bold text-xl flex items-center gap-2"><MessageSquare className="w-6 h-6 text-aegis-600"/> {t('admin.citizenMessages',lang)}</h2>
@@ -722,26 +787,26 @@ export default function AdminPage(): JSX.Element {
           </div>
         )}
 
-        {/* --- COMMUNITY HUB --- */}
+        {/* COMMUNITY HUB */}
         {view==='community'&&(
           <AdminCommunityHub />
         )}
 
-        {/* --- SYSTEM HEALTH --- */}
+        {/* SYSTEM HEALTH */}
         {view==='system_health'&&(
           <div className="animate-fade-in">
             <SystemHealthPanel />
           </div>
         )}
 
-        {/* --- DELIVERY LOGS --- */}
+        {/* DELIVERY LOGS */}
         {view==='delivery'&&(
           <div className="animate-fade-in">
             <DeliveryDashboard />
           </div>
         )}
 
-        {/* --- CROWD DENSITY (Sensitive � Operator Only) --- */}
+        {/* CROWD DENSITY (Sensitive — Operator Only) */}
         {view==='crowd'&&(
           <div className="animate-fade-in space-y-4">
             <div className="flex items-center gap-3">
@@ -750,15 +815,26 @@ export default function AdminPage(): JSX.Element {
               </div>
               <div>
                 <h2 className="text-lg font-extrabold text-gray-900 dark:text-white">{t('admin.crowdDensityAnalysis',lang)}</h2>
-                <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('admin.sensitiveData',lang)}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-300">{t('admin.sensitiveData',lang)}</p>
               </div>
             </div>
-            <CrowdDensityHeatmap />
+            <Suspense fallback={<div className="h-64 animate-pulse bg-gray-200 dark:bg-gray-800 rounded" />}>
+              <CrowdDensityHeatmap />
+            </Suspense>
           </div>
         )}
 
-        {/* --- USER & ACCESS MANAGEMENT --- */}
-        {view==='users'&&user.role==='admin'&&(
+        {/* SECURITY DASHBOARD */}
+        {view==='security'&&user.role==='admin'&&(
+          <SecurityDashboard />
+        )}
+
+        {/* USER & ACCESS MANAGEMENT */}
+        {view==='users'&&user.role==='admin'&&(users.length === 0 && !auditLog.length ? (
+          <div className="space-y-4">
+            <SkeletonTable rows={6} cols={5} />
+          </div>
+        ) : (
           <UserAccessManagement
             users={users} setUsers={setUsers}
             auditLog={auditLog} setAuditLog={setAuditLog}
@@ -769,9 +845,9 @@ export default function AdminPage(): JSX.Element {
             apiResetUserPassword={apiResetUserPassword} apiDeleteUser={apiDeleteUser}
             apiAuditLog={apiAuditLog} apiGetAuditLog={apiGetAuditLog}
           />
-        )}
+        ))}
 
-        {/* --- SEND ALERT --- */}
+        {/* SEND ALERT */}
         {view==='alert_send'&&(
           <AdminAlertBroadcast
             alerts={alerts}
@@ -785,7 +861,7 @@ export default function AdminPage(): JSX.Element {
           />
         )}
 
-      {/* --- REPORT DETAIL MODAL � Professional Glassmorphism Design --- */}
+      {/* REPORT DETAIL MODAL — Professional Glassmorphism Design */}
       {selReport&&(()=>{
         const mediaItems = selReport.media && selReport.media.length > 0
           ? selReport.media
@@ -798,7 +874,7 @@ export default function AdminPage(): JSX.Element {
           Flagged:{bg:'bg-aegis-100 dark:bg-aegis-950/40',text:'text-aegis-700 dark:text-aegis-300',dot:'bg-aegis-500'},
           Resolved:{bg:'bg-slate-100 dark:bg-slate-800/40',text:'text-slate-600 dark:text-slate-300',dot:'bg-slate-400'},
           Unverified:{bg:'bg-sky-100 dark:bg-sky-950/40',text:'text-sky-700 dark:text-sky-300',dot:'bg-sky-500'},
-          Archived:{bg:'bg-gray-200 dark:bg-gray-800/40',text:'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300',dot:'bg-gray-400'},
+          Archived:{bg:'bg-gray-200 dark:bg-gray-800/40',text:'text-gray-500 dark:text-gray-300',dot:'bg-gray-400'},
           False_Report:{bg:'bg-rose-100 dark:bg-rose-950/40',text:'text-rose-700 dark:text-rose-300',dot:'bg-rose-600'},
         }
         const sc = statusConfig[selReport.status] || statusConfig.Unverified
@@ -841,11 +917,11 @@ export default function AdminPage(): JSX.Element {
         }
 
         return <>
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-start sm:items-center justify-center p-0 sm:p-4 z-[70] animate-fade-in" onClick={()=>{setSelReport(null);setGalleryOpen(false)}}>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-start sm:items-center justify-center p-0 sm:p-4 z-[70] animate-fade-in" onClick={()=>{setSelReport(null);setGalleryOpen(false);setNotesEditing(false)}}>
           <div className={`bg-white dark:bg-gray-900 sm:rounded-2xl shadow-2xl ${sevGlow} w-full max-w-2xl h-full sm:h-auto sm:max-h-[92vh] overflow-hidden flex flex-col`} onClick={e=>e.stopPropagation()}>
             {/* Gradient Header with severity-based theming */}
-            <div className={`bg-gradient-to-r ${sevGradient} p-4 sm:p-5 relative overflow-hidden`}>
-              <div className="absolute inset-0 opacity-10"><div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/20 blur-2xl"/><div className="absolute -bottom-10 -left-10 w-32 h-32 rounded-full bg-white/10 blur-2xl"/></div>
+            <div className={`bg-gradient-to-r ${sevGradient} p-4 sm:p-5 relative`}>
+              <div className="absolute inset-0 overflow-hidden opacity-10"><div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/20 blur-2xl"/><div className="absolute -bottom-10 -left-10 w-32 h-32 rounded-full bg-white/10 blur-2xl"/></div>
               <div className="relative flex items-start justify-between">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1.5">
@@ -853,15 +929,15 @@ export default function AdminPage(): JSX.Element {
                     <span className="text-slate-600 dark:text-white/70 text-[10px] font-mono tracking-wider uppercase">{selReport.reportNumber}</span>
                   </div>
                   <h3 className="font-bold text-white text-base sm:text-lg leading-tight truncate">{selReport.type || selReport.incidentCategory}</h3>
-                  <p className="text-slate-600 dark:text-white/60 text-xs mt-1 flex items-center gap-3">
+                  <p className="text-slate-600 dark:text-white/60 text-xs mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
                     <span className="flex items-center gap-1"><Clock className="w-3 h-3"/>{new Date(selReport.timestamp).toLocaleString()}</span>
-                    <span className="flex items-center gap-1"><MapPin className="w-3 h-3"/>{selReport.location?.substring(0,40)}{(selReport.location?.length||0)>40?'...':''}</span>
+                    <span className="flex items-center gap-1"><MapPin className="w-3 h-3"/>{selReport.location?.substring(0,120)}{(selReport.location?.length||0)>120?'...':''}</span>
                   </p>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <button onClick={()=>handleShareReport(selReport)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/20 hover:bg-white/30 text-white transition-all" title={t('admin.detail.shareReport',lang)}><Share2 className="w-4 h-4"/></button>
                   <button onClick={()=>printSingleReport(selReport)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/20 hover:bg-white/30 text-white transition-all" title={t('admin.detail.printReport',lang)}><Printer className="w-4 h-4"/></button>
-                  <button onClick={()=>{setSelReport(null);setGalleryOpen(false)}} className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/20 hover:bg-white/30 text-white transition-all"><X className="w-4 h-4"/></button>
+                  <button onClick={()=>{setSelReport(null);setGalleryOpen(false);setNotesEditing(false)}} className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/20 hover:bg-white/30 text-white transition-all"><X className="w-4 h-4"/></button>
                 </div>
               </div>
               {/* Status & Severity pills */}
@@ -884,7 +960,7 @@ export default function AdminPage(): JSX.Element {
                   {icon:Globe,label:t('admin.detail.gps',lang),value:selReport.coordinates?`${selReport.coordinates[0].toFixed(4)}, ${selReport.coordinates[1].toFixed(4)}`:'N/A'},
                 ].map((item,i)=>(
                   <div key={i} className="bg-gray-50/80 dark:bg-gray-800/50 rounded-xl p-2.5 border border-gray-100 dark:border-gray-800">
-                    <div className="flex items-center gap-1.5 mb-1"><item.icon className="w-3 h-3 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300"/><span className="text-[9px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-bold uppercase tracking-wider">{item.label}</span></div>
+                    <div className="flex items-center gap-1.5 mb-1"><item.icon className="w-3 h-3 text-gray-400 dark:text-gray-300"/><span className="text-[9px] text-gray-400 dark:text-gray-300 font-bold uppercase tracking-wider">{item.label}</span></div>
                     <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate">{item.value}</p>
                   </div>
                 ))}
@@ -893,16 +969,16 @@ export default function AdminPage(): JSX.Element {
               {/* Location & Description */}
               <div className="space-y-3">
                 <div className="bg-gray-50/80 dark:bg-gray-800/50 rounded-xl p-3 border border-gray-100 dark:border-gray-800">
-                  <p className="text-[9px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><MapPin className="w-3 h-3"/>{t('admin.detail.location',lang)}</p>
+                  <p className="text-[9px] text-gray-400 dark:text-gray-300 font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><MapPin className="w-3 h-3"/>{t('admin.detail.location',lang)}</p>
                   <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{selReport.location||t('admin.detail.notSpecified',lang)}</p>
                 </div>
                 <div className="bg-gray-50/80 dark:bg-gray-800/50 rounded-xl p-3 border border-gray-100 dark:border-gray-800">
-                  <p className="text-[9px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><FileText className="w-3 h-3"/>{t('admin.detail.description',lang)}</p>
-                  <p className="text-sm text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 leading-relaxed">{selReport.description||t('admin.detail.noDescription',lang)}</p>
+                  <p className="text-[9px] text-gray-400 dark:text-gray-300 font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><FileText className="w-3 h-3"/>{t('admin.detail.description',lang)}</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{selReport.description||t('admin.detail.noDescription',lang)}</p>
                 </div>
               </div>
 
-              {/* AI Analysis � Professional Card */}
+              {/* AI Analysis ? Professional Card */}
               <div className="bg-gradient-to-br from-indigo-50/80 via-blue-50/40 to-purple-50/80 dark:from-indigo-950/30 dark:via-blue-950/20 dark:to-purple-950/30 rounded-xl p-4 border border-indigo-100/60 dark:border-indigo-800/30">
                 <h4 className="text-xs font-extrabold flex items-center gap-2 text-indigo-800 dark:text-indigo-200 mb-3"><Brain className="w-4 h-4 text-indigo-500"/>{t('admin.detail.aiAnalysis',lang)}</h4>
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
@@ -915,7 +991,7 @@ export default function AdminPage(): JSX.Element {
                     {label:t('admin.detail.aiDepth',lang),value:selReport.aiAnalysis?.estimatedWaterDepth||selReport.aiAnalysis?.water_depth||'N/A',color:'text-gray-800 dark:text-gray-200'},
                   ].map((m,i)=>(
                     <div key={i} className="text-center bg-white/60 dark:bg-gray-900/40 rounded-lg p-2 border border-white/50 dark:border-gray-700/30">
-                      <p className="text-[8px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-bold uppercase">{m.label}</p>
+                      <p className="text-[8px] text-gray-400 dark:text-gray-300 font-bold uppercase">{m.label}</p>
                       <p className={`text-sm font-extrabold ${m.color}`}>{m.value}</p>
                     </div>
                   ))}
@@ -941,33 +1017,33 @@ export default function AdminPage(): JSX.Element {
                     <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-semibold">Cat: {selReport.aiAnalysis.predictedCategory}</span>
                   )}
                 </div>
-                {selReport.aiAnalysis?.reasoning&&<div className="mt-2 bg-white/40 dark:bg-gray-900/30 rounded-lg p-2 border border-indigo-100/40 dark:border-indigo-800/20"><p className="text-[10px] font-bold text-indigo-700 dark:text-indigo-300 mb-0.5">{t('admin.detail.aiReasoning',lang)}</p><p className="text-[11px] text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 leading-relaxed">{selReport.aiAnalysis.reasoning}</p></div>}
+                {selReport.aiAnalysis?.reasoning&&<div className="mt-2 bg-white/40 dark:bg-gray-900/30 rounded-lg p-2 border border-indigo-100/40 dark:border-indigo-800/20"><p className="text-[10px] font-bold text-indigo-700 dark:text-indigo-300 mb-0.5">{t('admin.detail.aiReasoning',lang)}</p><p className="text-[11px] text-gray-600 dark:text-gray-300 leading-relaxed">{selReport.aiAnalysis.reasoning}</p></div>}
                 {selReport.aiAnalysis?.photoValidation&&<div className="mt-2 bg-blue-50/60 dark:bg-blue-950/20 rounded-lg p-2 border border-blue-200/40 dark:border-blue-800/20"><p className="text-[10px] font-bold text-blue-700 dark:text-blue-300">{t('admin.detail.detected',lang)}: {selReport.aiAnalysis.photoValidation.objectsDetected?.join(', ')||'N/A'}</p></div>}
               </div>
 
-              {/* Recommended Actions � Category-Specific */}
+              {/* Recommended Actions ? Category-Specific */}
               <div className="bg-gradient-to-br from-emerald-50/80 to-green-50/80 dark:from-emerald-950/30 dark:to-green-950/30 rounded-xl p-3 border border-emerald-100/60 dark:border-emerald-800/30">
                 <h4 className="text-xs font-extrabold flex items-center gap-2 text-emerald-800 dark:text-emerald-200 mb-2"><CheckCircle className="w-3.5 h-3.5 text-emerald-500"/>{t('admin.detail.recommendedActions',lang)}</h4>
                 <ul className="space-y-1">
                   {getRecommendedActions().map((action,i)=>(
-                    <li key={i} className="text-[11px] text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex items-start gap-2"><CircleDot className="w-3 h-3 text-emerald-400 mt-0.5 flex-shrink-0"/><span>{action}</span></li>
+                    <li key={i} className="text-[11px] text-gray-700 dark:text-gray-300 flex items-start gap-2"><CircleDot className="w-3 h-3 text-emerald-400 mt-0.5 flex-shrink-0"/><span>{action}</span></li>
                   ))}
                 </ul>
               </div>
 
               {/* Status Timeline */}
               <div className="bg-gray-50/80 dark:bg-gray-800/50 rounded-xl p-3 border border-gray-100 dark:border-gray-800">
-                <h4 className="text-xs font-extrabold flex items-center gap-2 text-gray-700 dark:text-gray-200 mb-2"><Clock className="w-3.5 h-3.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300"/>{t('admin.detail.statusTimeline',lang)}</h4>
+                <h4 className="text-xs font-extrabold flex items-center gap-2 text-gray-700 dark:text-gray-200 mb-2"><Clock className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300"/>{t('admin.detail.statusTimeline',lang)}</h4>
                 <div className="space-y-2 border-l-2 border-gray-200 dark:border-gray-700 pl-4 ml-1">
-                  <div className="relative"><div className="absolute -left-[21px] top-0.5 w-3 h-3 rounded-full bg-blue-500 border-2 border-white dark:border-gray-900 shadow-sm"/><p className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{new Date(selReport.timestamp).toLocaleString()}</p><p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('admin.detail.timelineSubmitted',lang)}</p></div>
-                  <div className="relative"><div className="absolute -left-[21px] top-0.5 w-3 h-3 rounded-full bg-purple-500 border-2 border-white dark:border-gray-900 shadow-sm"/><p className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{new Date(new Date(selReport.timestamp).getTime()+30000).toLocaleString()}</p><p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('admin.detail.timelineAi',lang).replace('{pct}',String(selReport.confidence||0))}</p></div>
-                  {selReport.verifiedAt&&<div className="relative"><div className="absolute -left-[21px] top-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-white dark:border-gray-900 shadow-sm"/><p className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{new Date(selReport.verifiedAt).toLocaleString()}</p><p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('admin.detail.timelineVerified',lang)}</p></div>}
-                  {selReport.status!=='Unverified'&&!selReport.verifiedAt&&<div className="relative"><div className="absolute -left-[21px] top-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-white dark:border-gray-900 shadow-sm"/><p className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{new Date(new Date(selReport.timestamp).getTime()+120000).toLocaleString()}</p><p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('admin.detail.timelineChanged',lang)} {selReport.status === 'False_Report' ? t('admin.filters.status.falseReport',lang) : selReport.status}</p></div>}
-                  {selReport.resolvedAt&&<div className="relative"><div className="absolute -left-[21px] top-0.5 w-3 h-3 rounded-full bg-slate-400 border-2 border-white dark:border-gray-900 shadow-sm"/><p className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{new Date(selReport.resolvedAt).toLocaleString()}</p><p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('admin.detail.timelineResolved',lang)}</p></div>}
+                  <div className="relative"><div className="absolute -left-[21px] top-0.5 w-3 h-3 rounded-full bg-blue-500 border-2 border-white dark:border-gray-900 shadow-sm"/><p className="text-[10px] text-gray-400 dark:text-gray-300">{new Date(selReport.timestamp).toLocaleString()}</p><p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">{t('admin.detail.timelineSubmitted',lang)}</p></div>
+                  <div className="relative"><div className="absolute -left-[21px] top-0.5 w-3 h-3 rounded-full bg-purple-500 border-2 border-white dark:border-gray-900 shadow-sm"/><p className="text-[10px] text-gray-400 dark:text-gray-300">{new Date(new Date(selReport.timestamp).getTime()+30000).toLocaleString()}</p><p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">{t('admin.detail.timelineAi',lang).replace('{pct}',String(selReport.confidence||0))}</p></div>
+                  {selReport.verifiedAt&&<div className="relative"><div className="absolute -left-[21px] top-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-white dark:border-gray-900 shadow-sm"/><p className="text-[10px] text-gray-400 dark:text-gray-300">{new Date(selReport.verifiedAt).toLocaleString()}</p><p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">{t('admin.detail.timelineVerified',lang)}</p></div>}
+                  {selReport.status!=='Unverified'&&!selReport.verifiedAt&&<div className="relative"><div className="absolute -left-[21px] top-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-white dark:border-gray-900 shadow-sm"/><p className="text-[10px] text-gray-400 dark:text-gray-300">{new Date(new Date(selReport.timestamp).getTime()+120000).toLocaleString()}</p><p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">{t('admin.detail.timelineChanged',lang)} {selReport.status === 'False_Report' ? t('admin.filters.status.falseReport',lang) : selReport.status}</p></div>}
+                  {selReport.resolvedAt&&<div className="relative"><div className="absolute -left-[21px] top-0.5 w-3 h-3 rounded-full bg-slate-400 border-2 border-white dark:border-gray-900 shadow-sm"/><p className="text-[10px] text-gray-400 dark:text-gray-300">{new Date(selReport.resolvedAt).toLocaleString()}</p><p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">{t('admin.detail.timelineResolved',lang)}</p></div>}
                 </div>
               </div>
 
-              {/* Evidence Gallery � Enhanced with Animations */}
+              {/* Evidence Gallery ? Enhanced with Animations */}
               {mediaItems.length > 0 && (
                 <div className="bg-gradient-to-br from-purple-50/80 to-pink-50/80 dark:from-purple-950/30 dark:to-pink-950/30 rounded-xl p-3 border border-purple-100/60 dark:border-purple-800/30">
                   <h4 className="text-xs font-extrabold flex items-center gap-2 text-purple-800 dark:text-purple-200 mb-2"><Camera className="w-3.5 h-3.5 text-purple-500"/>{t('admin.detail.evidenceGallery',lang)} <span className="text-purple-400 font-normal">({mediaItems.length} photo{mediaItems.length!==1?'s':''})</span></h4>
@@ -990,9 +1066,9 @@ export default function AdminPage(): JSX.Element {
                       {mediaItems.filter((m:any)=>m.aiAnalysis).map((m:any,i:number)=>(
                         <div key={i} className="flex items-center gap-2 bg-white/40 dark:bg-gray-900/30 rounded-lg px-2 py-1 text-[9px]">
                           <span className="text-purple-500 font-bold">{t('admin.detail.photo',lang)} {i+1}:</span>
-                          {m.aiAnalysis.classification&&<span className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">Class: <strong>{m.aiAnalysis.classification}</strong></span>}
-                          {m.aiAnalysis.waterDepth&&<span className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">Depth: <strong>{m.aiAnalysis.waterDepth}</strong></span>}
-                          {m.aiAnalysis.authenticityScore!==undefined&&<span className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">Auth: <strong>{m.aiAnalysis.authenticityScore}%</strong></span>}
+                          {m.aiAnalysis.classification&&<span className="text-gray-600 dark:text-gray-300">Class: <strong>{m.aiAnalysis.classification}</strong></span>}
+                          {m.aiAnalysis.waterDepth&&<span className="text-gray-600 dark:text-gray-300">Depth: <strong>{m.aiAnalysis.waterDepth}</strong></span>}
+                          {m.aiAnalysis.authenticityScore!==undefined&&<span className="text-gray-600 dark:text-gray-300">Auth: <strong>{m.aiAnalysis.authenticityScore}%</strong></span>}
                         </div>
                       ))}
                     </div>
@@ -1000,16 +1076,54 @@ export default function AdminPage(): JSX.Element {
                 </div>
               )}
               {mediaItems.length===0&&selReport.hasMedia&&(
-                <div className="text-center py-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 text-xs italic">{t('admin.detail.mediaNotAvailable',lang)}</div>
+                <div className="text-center py-4 text-gray-400 dark:text-gray-300 text-xs italic">{t('admin.detail.mediaNotAvailable',lang)}</div>
               )}
 
-              {/* Operator Notes � Inline Edit */}
+              {/* Operator Notes — Inline Edit */}
               <div className="bg-gray-50/80 dark:bg-gray-800/50 rounded-xl p-3 border border-gray-100 dark:border-gray-800">
-                <h4 className="text-xs font-extrabold flex items-center gap-2 text-gray-700 dark:text-gray-200 mb-2"><Edit2 className="w-3.5 h-3.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300"/>{t('admin.detail.operatorNotes',lang)}</h4>
-                <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 italic">{selReport.operatorNotes || t('admin.detail.noOperatorNotes',lang)}</p>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-xs font-extrabold flex items-center gap-2 text-gray-700 dark:text-gray-200"><Edit2 className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300"/>{t('admin.detail.operatorNotes',lang)}</h4>
+                  {!notesEditing && (
+                    <button onClick={()=>{setNotesDraft(selReport.operatorNotes||'');setNotesEditing(true)}} className="text-[10px] px-2 py-0.5 rounded-lg bg-aegis-100 dark:bg-aegis-900/30 text-aegis-700 dark:text-aegis-300 border border-aegis-200 dark:border-aegis-800/40 hover:bg-aegis-200 dark:hover:bg-aegis-800/40 transition-all font-semibold flex items-center gap-1">
+                      <Edit2 className="w-2.5 h-2.5"/>{selReport.operatorNotes ? 'Edit' : 'Add note'}
+                    </button>
+                  )}
+                </div>
+                {notesEditing ? (
+                  <div className="space-y-2">
+                    <textarea
+                      value={notesDraft}
+                      onChange={e=>setNotesDraft(e.target.value)}
+                      placeholder="Add operator notes…"
+                      rows={3}
+                      className="w-full text-xs rounded-lg border border-aegis-200 dark:border-aegis-700/50 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 p-2 resize-none focus:outline-none focus:ring-2 focus:ring-aegis-400 dark:focus:ring-aegis-500"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        disabled={notesSaving}
+                        onClick={async()=>{
+                          setNotesSaving(true)
+                          try {
+                            await apiUpdateReportNotes(selReport.id, notesDraft.trim())
+                            setSelReport(prev=>prev?{...prev,operatorNotes:notesDraft.trim()||null}:null)
+                            refreshReports()
+                            setNotesEditing(false)
+                          } catch(e:any){ pushNotification(e.message||'Failed to save notes','error') }
+                          finally{ setNotesSaving(false) }
+                        }}
+                        className="text-[11px] px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center gap-1 transition-all disabled:opacity-60"
+                      >
+                        <CheckCircle className="w-3 h-3"/>{notesSaving ? 'Saving…' : 'Save'}
+                      </button>
+                      <button onClick={()=>setNotesEditing(false)} className="text-[11px] px-3 py-1.5 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-semibold transition-all">Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-500 dark:text-gray-300 italic">{selReport.operatorNotes || t('admin.detail.noOperatorNotes',lang)}</p>
+                )}
               </div>
 
-              {/* Action Buttons � Status-locked once decided, super-admin can override */}
+              {/* Action Buttons ? Status-locked once decided, super-admin can override */}
               {(()=>{
                 const decided = ['Verified','Urgent','False_Report','Resolved','Archived'].includes(selReport.status)
                 const isSuperAdmin = user?.role === 'admin' || user?.department === 'Command & Control'
@@ -1035,7 +1149,7 @@ export default function AdminPage(): JSX.Element {
                       <button onClick={()=>canAct&&doResolve(selReport.id)} disabled={!canAct} className="group text-[11px] bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-700/40 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/40 py-2.5 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all hover:shadow-md hover:shadow-slate-500/10 disabled:cursor-not-allowed"><CheckCircle2 className="w-4 h-4 group-hover:scale-110 transition-transform"/> {t('admin.action.resolve',lang)}</button>
                     </div>
                     <div className={`grid grid-cols-2 gap-2 ${!canAct ? 'opacity-40 pointer-events-none' : ''}`}>
-                      <button onClick={()=>canAct&&doArchive(selReport.id)} disabled={!canAct} className="group text-[11px] bg-gray-50 dark:bg-gray-800/40 hover:bg-gray-100 dark:hover:bg-gray-700/40 text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 border border-gray-200 dark:border-gray-700/40 py-2 rounded-xl font-semibold flex items-center justify-center gap-1.5 transition-all hover:shadow-md disabled:cursor-not-allowed"><Archive className="w-3.5 h-3.5 group-hover:scale-110 transition-transform"/> {t('admin.action.archive',lang)}</button>
+                      <button onClick={()=>canAct&&doArchive(selReport.id)} disabled={!canAct} className="group text-[11px] bg-gray-50 dark:bg-gray-800/40 hover:bg-gray-100 dark:hover:bg-gray-700/40 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700/40 py-2 rounded-xl font-semibold flex items-center justify-center gap-1.5 transition-all hover:shadow-md disabled:cursor-not-allowed"><Archive className="w-3.5 h-3.5 group-hover:scale-110 transition-transform"/> {t('admin.action.archive',lang)}</button>
                       <button onClick={()=>canAct&&doFalseReport(selReport.id)} disabled={!canAct} className="group text-[11px] bg-rose-50 dark:bg-rose-950/20 hover:bg-rose-100 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800/40 py-2 rounded-xl font-semibold flex items-center justify-center gap-1.5 transition-all hover:shadow-md disabled:cursor-not-allowed"><XCircle className="w-3.5 h-3.5 group-hover:scale-110 transition-transform"/> {t('admin.action.falseReport',lang)}</button>
                     </div>
                   </div>
@@ -1045,7 +1159,7 @@ export default function AdminPage(): JSX.Element {
           </div>
         </div>
 
-        {/* --- FULLSCREEN PHOTO GALLERY OVERLAY --- */}
+        {/* FULLSCREEN PHOTO GALLERY OVERLAY */}
         {galleryOpen && mediaItems.length > 0 && (
           <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[70] flex flex-col animate-fade-in" onClick={()=>setGalleryOpen(false)}>
             {/* Gallery Header */}
@@ -1054,7 +1168,7 @@ export default function AdminPage(): JSX.Element {
                 <Camera className="w-5 h-5 text-purple-400"/>
                 <div>
                   <p className="text-slate-900 dark:text-white text-sm font-bold">{t('admin.gallery.evidencePhoto',lang)} {galleryIndex+1} {t('admin.gallery.of',lang)} {mediaItems.length}</p>
-                  <p className="text-white/50 text-[10px]">{selReport.reportNumber} � {selReport.type}</p>
+                  <p className="text-white/50 text-[10px]">{selReport.reportNumber} ? {selReport.type}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -1100,21 +1214,21 @@ export default function AdminPage(): JSX.Element {
         </>
       })()}
 
-      {/* --- CONFIRMATION MODAL --- */}
+      {/* CONFIRMATION MODAL */}
       {confirmModal&&(
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[90]">
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm p-5 space-y-4">
             <h3 className="font-bold text-sm">{confirmModal.title}</h3>
-            <p className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{confirmModal.message}</p>
+            <p className="text-xs text-gray-600 dark:text-gray-300">{confirmModal.message}</p>
             {(confirmModal.type==='warning'||confirmModal.type==='danger')&&!confirmModal.title.includes('Suspend')&&<textarea className="w-full px-3 py-2 text-xs bg-gray-100 dark:bg-gray-800 rounded-lg min-h-[60px] border-none" placeholder={t('admin.confirm.justification',lang)} value={justification} onChange={e=>setJustification(e.target.value)}/>}
             {confirmModal.title.includes('Suspend')&&(
               <div className="space-y-2">
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 block mb-1">{t('admin.suspend.reasonLabel',lang)}</label>
+                  <label className="text-xs font-semibold text-gray-600 dark:text-gray-300 block mb-1">{t('admin.suspend.reasonLabel',lang)}</label>
                   <textarea className="w-full px-3 py-2 text-xs bg-gray-100 dark:bg-gray-800 rounded-lg min-h-[60px] border border-gray-200 dark:border-gray-700" placeholder={t('admin.suspend.reasonPlaceholder',lang)} value={suspendForm.reason} onChange={e=>setSuspendForm(f=>({...f,reason:e.target.value}))} required/>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 block mb-1">{t('admin.suspend.durationLabel',lang)}</label>
+                  <label className="text-xs font-semibold text-gray-600 dark:text-gray-300 block mb-1">{t('admin.suspend.durationLabel',lang)}</label>
                   <div className="flex flex-wrap gap-1.5 mb-2">
                     {[{label:t('admin.suspend.1day',lang),days:1},{label:t('admin.suspend.3days',lang),days:3},{label:t('admin.suspend.1week',lang),days:7},{label:t('admin.suspend.1month',lang),days:30},{label:t('admin.suspend.indefiniteBtn',lang),days:0}].map(({label,days})=>(
                       <button key={label} type="button" onClick={()=>{if(days===0){setSuspendForm(f=>({...f,until:''}))}else{const d=new Date();d.setDate(d.getDate()+days);setSuspendForm(f=>({...f,until:d.toISOString().slice(0,10)}))}}} className="text-[10px] px-2 py-1 rounded-md bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-900/40 transition-colors">{label}</button>
@@ -1122,11 +1236,11 @@ export default function AdminPage(): JSX.Element {
                   </div>
                   <input type="date" min={new Date().toISOString().slice(0,10)} className="w-full px-3 py-2 text-xs bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700" value={suspendForm.until} onChange={e=>setSuspendForm(f=>({...f,until:e.target.value}))}/>
                   {suspendForm.until&&<p className="text-[10px] text-aegis-600 dark:text-aegis-400 mt-1">{t('admin.suspend.suspendedUntil',lang)}: {new Date(suspendForm.until).toLocaleDateString('en-GB',{dateStyle:'long'})}</p>}
-                  {!suspendForm.until&&<p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-1">{t('admin.suspend.indefinite',lang)}</p>}
+                  {!suspendForm.until&&<p className="text-[10px] text-gray-500 dark:text-gray-300 mt-1">{t('admin.suspend.indefinite',lang)}</p>}
                 </div>
               </div>
             )}
-            {(confirmModal.title.includes('Deploy')||confirmModal.title.includes('Recall'))&&<div><label className="text-xs font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('admin.deploy.reasonLabel',lang)}</label><textarea className="w-full mt-1 px-3 py-2 text-xs bg-gray-100 dark:bg-gray-800 rounded-lg min-h-[60px] border border-gray-200 dark:border-gray-700" placeholder={t('admin.deploy.reasonPlaceholder',lang)} value={deployReason} onChange={e=>setDeployReason(e.target.value)} required/></div>}
+            {(confirmModal.title.includes('Deploy')||confirmModal.title.includes('Recall'))&&<div><label className="text-xs font-semibold text-gray-600 dark:text-gray-300">{t('admin.deploy.reasonLabel',lang)}</label><textarea className="w-full mt-1 px-3 py-2 text-xs bg-gray-100 dark:bg-gray-800 rounded-lg min-h-[60px] border border-gray-200 dark:border-gray-700" placeholder={t('admin.deploy.reasonPlaceholder',lang)} value={deployReason} onChange={e=>setDeployReason(e.target.value)} required/></div>}
             <div className="flex gap-3">
               <button onClick={()=>{setConfirmModal(null);setJustification('');setDeployReason('');setSuspendForm({until:'',reason:''})}} className="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 rounded-xl py-2.5 text-sm font-semibold">{t('general.cancel',lang)}</button>
               <button onClick={()=>{if((confirmModal.title.includes('Deploy')||confirmModal.title.includes('Recall'))&&!deployReason.trim()){return}if(confirmModal.title.includes('Suspend')&&!suspendForm.reason.trim()){return}confirmModal.action();setConfirmModal(null);setJustification('');setDeployReason('');setSuspendForm({until:'',reason:''})}} disabled={((confirmModal.title.includes('Deploy')||confirmModal.title.includes('Recall'))&&!deployReason.trim())||(confirmModal.title.includes('Suspend')&&!suspendForm.reason.trim())} className={`flex-1 text-white rounded-xl py-2.5 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed ${confirmModal.type==='danger'?'bg-red-600 hover:bg-red-700':confirmModal.type==='warning'?'bg-aegis-600 hover:bg-aegis-700':'bg-aegis-600 hover:bg-aegis-700'}`}>{t('general.confirm',lang)}</button>
@@ -1135,17 +1249,17 @@ export default function AdminPage(): JSX.Element {
         </div>
       )}
 
-      {/* --- FLOATING AI CHATBOT --- */}
+      {/* FLOATING AI CHATBOT */}
       {showChatbot && (
         <div className="fixed bottom-20 right-4 z-[70] w-[380px] max-w-[calc(100vw-2rem)] animate-fade-in">
-          <Chatbot onClose={() => setShowChatbot(false)} lang={lang} anchor="right" />
+          <Chatbot onClose={() => setShowChatbot(false)} lang={lang} anchor="right" adminMode />
         </div>
       )}
-      <button onClick={() => setShowChatbot(v => !v)} title="AI Emergency Assistant"
+      <button onClick={() => setShowChatbot(v => !v)} title="AEGIS Command AI"
         className={`fixed bottom-4 right-4 z-[70] w-14 h-14 rounded-2xl shadow-xl flex items-center justify-center transition-all duration-300 hover:scale-110 ${
           showChatbot
             ? 'bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 rotate-0'
-            : 'bg-gradient-to-br from-purple-600 to-indigo-600 text-white shadow-purple-500/30 animate-bounce-slow'
+            : 'bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-indigo-500/30 animate-bounce-slow'
         }`}>
         {showChatbot ? <X className="w-6 h-6" /> : <MessageSquare className="w-6 h-6" />}
         {!showChatbot && <span className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white dark:border-gray-900 animate-pulse" />}
@@ -1175,9 +1289,7 @@ export default function AdminPage(): JSX.Element {
   )
 }
 
-// -------------------------------------------------------------------------------
-// MAP VIEW � Live Operations Map with 2D Leaflet + 3D Deck.gl toggle
-// -------------------------------------------------------------------------------
+// MAP VIEW ? Live Operations Map with 2D Leaflet + 3D Deck.gl toggle
 
 function MapView({ filtered, loc, filterSeverity, setFilterSeverity, filterStatus, setFilterStatus, socket, user, setSelReport, activeLocation, setActiveLocation, availableLocations }: {
   filtered: any[]; loc: any; filterSeverity: string; setFilterSeverity: (v: string) => void; filterStatus: string; setFilterStatus: (v: string) => void; socket: any; user: any; setSelReport: (r: any) => void;
@@ -1227,12 +1339,12 @@ function MapView({ filtered, loc, filterSeverity, setFilterSeverity, filterStatu
             </div>
             <div>
               <h2 className="font-bold text-sm leading-tight text-gray-900 dark:text-white">{t('admin.mapView.title',lang)}</h2>
-              <p className="text-[9px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-medium">{t('admin.mapView.subtitle',lang)}</p>
+              <p className="text-[9px] text-gray-500 dark:text-gray-300 font-medium">{t('admin.mapView.subtitle',lang)}</p>
             </div>
           </div>
         </div>
         <div className="flex gap-2 items-center flex-wrap">
-          {/* Panel Toggles � glassmorphism pill */}
+          {/* Panel Toggles ? glassmorphism pill */}
           <div className="flex bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-lg p-0.5 ring-1 ring-gray-200/60 dark:ring-gray-700/40 shadow-sm">
             <button onClick={()=>setShowLeftPanel(!showLeftPanel)} className={`px-2.5 py-1.5 text-[10px] font-bold rounded-md transition-all ${showLeftPanel?'bg-blue-600 text-white shadow-md':'text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white'}`} title="Toggle Intelligence Panel">
               <span className="flex items-center gap-1"><Brain className="w-3 h-3"/> {t('admin.mapView.intel',lang)}</span>
@@ -1241,7 +1353,7 @@ function MapView({ filtered, loc, filterSeverity, setFilterSeverity, filterStatu
               <span className="flex items-center gap-1"><Layers className="w-3 h-3"/> {t('admin.mapView.layers',lang)}</span>
             </button>
           </div>
-          {/* Region Selector � styled */}
+          {/* Region Selector ? styled */}
           <select
             value={activeLocation}
             onChange={e => setActiveLocation(e.target.value)}
@@ -1251,14 +1363,14 @@ function MapView({ filtered, loc, filterSeverity, setFilterSeverity, filterStatu
               <option key={l.key} value={l.key}>{l.name}</option>
             ))}
           </select>
-          {/* 2D / 3D Toggle � enhanced */}
+          {/* 2D / 3D Toggle ? enhanced */}
           <div className="flex bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-lg p-0.5 ring-1 ring-gray-200/60 dark:ring-gray-700/40 shadow-sm">
             <button
               onClick={() => setMapMode('2d')}
               className={`px-3 py-1.5 text-[10px] font-bold rounded-md transition-all ${
                 mapMode === '2d'
                   ? 'bg-blue-600 text-white shadow-md'
-                  : 'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'
+                  : 'text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300'
               }`}
             >
               2D
@@ -1268,25 +1380,26 @@ function MapView({ filtered, loc, filterSeverity, setFilterSeverity, filterStatu
               className={`px-3 py-1.5 text-[10px] font-bold rounded-md transition-all ${
                 mapMode === '3d'
                   ? 'bg-purple-600 text-white shadow-md'
-                  : 'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'
+                  : 'text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300'
               }`}
             >
               3D
             </button>
           </div>
-          {/* Filters � styled */}
+          {/* Filters ? styled */}
           <select value={filterSeverity} onChange={e=>setFilterSeverity(e.target.value)} className="text-xs bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm px-2 py-1.5 rounded-lg ring-1 ring-gray-200/60 dark:ring-gray-700/40 shadow-sm"><option value="all">All Severity</option><option value="High">High</option><option value="Medium">Medium</option><option value="Low">Low</option></select>
           <select value={filterStatus} onChange={e=>setFilterStatus(e.target.value)} className="text-xs bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm px-2 py-1.5 rounded-lg ring-1 ring-gray-200/60 dark:ring-gray-700/40 shadow-sm"><option value="all">All Status</option><option value="Urgent">Urgent</option><option value="Verified">Verified</option></select>
           {/* Fullscreen Toggle */}
-          <button onClick={toggleFullscreen} className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm ring-1 ring-gray-200/60 dark:ring-gray-700/40 shadow-sm text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 transition-all" title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}>
+          <button onClick={toggleFullscreen} className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm ring-1 ring-gray-200/60 dark:ring-gray-700/40 shadow-sm text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300 transition-all" title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}>
             {isFullscreen ? <Minimize2 className="w-3.5 h-3.5"/> : <Maximize2 className="w-3.5 h-3.5"/>}
           </button>
         </div>
       </div>
       <div className={`relative ${isFullscreen ? 'h-[calc(100vh-56px)]' : 'h-[calc(100vh-220px)]'}`}>
 
-        {/* -- MAP fills 100% -- */}
+        {/* MAP fills 100% */}
         {mapMode === '2d' ? (
+          <Suspense fallback={<div className="h-64 animate-pulse bg-gray-200 dark:bg-gray-800 rounded" />}>
           <LiveMap
             reports={filtered}
             center={loc.center}
@@ -1296,8 +1409,9 @@ function MapView({ filtered, loc, filterSeverity, setFilterSeverity, filterStatu
             showEvacuationRoutes={showEvacuationRoutes}
             onReportClick={setSelReport}
           />
+          </Suspense>
         ) : (
-          <Suspense fallback={<div className="w-full h-full bg-gray-900 flex items-center justify-center"><div className="text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 text-sm animate-pulse">Loading 3D Engine...</div></div>}>
+          <Suspense fallback={<div className="w-full h-full bg-gray-900 flex items-center justify-center"><div className="text-gray-400 dark:text-gray-300 text-sm animate-pulse">Loading 3D Engine...</div></div>}>
             <Map3DView
               reports={filtered}
               center={loc.center}
@@ -1310,7 +1424,7 @@ function MapView({ filtered, loc, filterSeverity, setFilterSeverity, filterStatu
           </Suspense>
         )}
 
-        {/* -- LEFT HUD: Intel + River + Distress -- */}
+        {/* LEFT HUD: Intel + River + Distress */}
         {showLeftPanel && (
           <div className="absolute top-3 left-3 z-[900] flex flex-col gap-2 w-[260px] max-h-[calc(100%-1.5rem)] overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent pointer-events-auto">
             <IntelligenceDashboard socket={socket} collapsed={true} />
@@ -1319,7 +1433,7 @@ function MapView({ filtered, loc, filterSeverity, setFilterSeverity, filterStatu
           </div>
         )}
 
-        {/* -- RIGHT HUD: Flood Layers + Prediction -- */}
+        {/* RIGHT HUD: Flood Layers + Prediction */}
         {showRightPanel && (
           <div className="absolute top-3 right-3 z-[900] flex flex-col gap-2 w-[240px] max-h-[calc(100%-1.5rem)] overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent pointer-events-auto">
             <FloodLayerControl onLayerChange={handleLayerChange} />
@@ -1332,11 +1446,6 @@ function MapView({ filtered, loc, filterSeverity, setFilterSeverity, filterStatu
     </div>
   )
 }
-// -------------------------------------------------------------------------------
-// ADMIN COMMUNITY SECTION � Live Chat + Posts Feed with sub-tabs + moderation
-// -------------------------------------------------------------------------------
+// ADMIN COMMUNITY SECTION ? Live Chat + Posts Feed with sub-tabs + moderation
 // AdminCommunitySection replaced by AdminCommunityHub component
-
-
-
 

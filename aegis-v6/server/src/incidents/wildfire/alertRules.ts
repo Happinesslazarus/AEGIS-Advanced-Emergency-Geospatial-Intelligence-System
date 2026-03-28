@@ -5,7 +5,7 @@
 import type { AlertRuleContext, AlertRuleResult } from '../types.js'
 
 export class WildfireAlertRules {
-  /**
+   /**
    * Evaluate wildfire alert rules based on context
    */
   static evaluate(context: AlertRuleContext): AlertRuleResult[] {

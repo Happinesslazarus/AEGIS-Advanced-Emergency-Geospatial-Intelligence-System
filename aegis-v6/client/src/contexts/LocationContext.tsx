@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, ReactNode } from 'react'
+import { createContext, useContext, useState, useMemo, ReactNode } from 'react'
 import type { LocationConfig, LocationOption } from '../types'
+import { COUNTRY_DATA } from '../data/worldRegions'
 
 interface LocationContextType {
   location: LocationConfig
@@ -11,9 +12,9 @@ interface LocationContextType {
 }
 
 export const LOCATIONS: Record<string, LocationConfig> = {
-  // ── GLOBAL ──
+  // GLOBAL
   world: {
-    name: '🌍 Global Overview', center: [20, 0], zoom: 2,
+    name: 'Global Overview', center: [20, 0], zoom: 2,
     bounds: [[-85, -180], [85, 180]], rivers: ['Nile', 'Amazon', 'Yangtze', 'Mississippi', 'Ganges', 'Congo', 'Mekong', 'Danube'],
     floodZones: [
       { name: 'South Asia Monsoon Belt', coords: [23, 80], risk: 'high' },
@@ -23,9 +24,9 @@ export const LOCATIONS: Record<string, LocationConfig> = {
     ],
     emergencyContacts: { emergency: '112', nhs: '', nonEmergency: '' },
   },
-  // ── CONTINENTAL ──
+  // CONTINENTAL
   asia: {
-    name: '🌏 Asia', center: [28, 90], zoom: 3,
+    name: 'Asia', center: [28, 90], zoom: 3,
     bounds: [[-10, 40], [55, 150]], rivers: ['Ganges', 'Brahmaputra', 'Yangtze', 'Mekong', 'Indus', 'Yellow River'],
     floodZones: [
       { name: 'Bangladesh Delta', coords: [23.7, 90.4], risk: 'high' },
@@ -36,7 +37,7 @@ export const LOCATIONS: Record<string, LocationConfig> = {
     emergencyContacts: { emergency: '112', nhs: '', nonEmergency: '' },
   },
   europe: {
-    name: '🌍 Europe', center: [50, 10], zoom: 4,
+    name: 'Europe', center: [50, 10], zoom: 4,
     bounds: [[35, -12], [72, 45]], rivers: ['Rhine', 'Danube', 'Thames', 'Seine', 'Elbe', 'Po', 'Oder'],
     floodZones: [
       { name: 'Rhine Delta', coords: [51.9, 4.5], risk: 'high' },
@@ -47,7 +48,7 @@ export const LOCATIONS: Record<string, LocationConfig> = {
     emergencyContacts: { emergency: '112', nhs: '', nonEmergency: '' },
   },
   africa: {
-    name: '🌍 Africa', center: [5, 20], zoom: 3,
+    name: 'Africa', center: [5, 20], zoom: 3,
     bounds: [[-35, -20], [37, 52]], rivers: ['Nile', 'Niger', 'Congo', 'Zambezi', 'Limpopo'],
     floodZones: [
       { name: 'Niger Delta', coords: [5.3, 6.5], risk: 'high' },
@@ -58,7 +59,7 @@ export const LOCATIONS: Record<string, LocationConfig> = {
     emergencyContacts: { emergency: '112', nhs: '', nonEmergency: '' },
   },
   northamerica: {
-    name: '🌎 North America', center: [40, -100], zoom: 3,
+    name: 'North America', center: [40, -100], zoom: 3,
     bounds: [[10, -170], [72, -50]], rivers: ['Mississippi', 'Missouri', 'Colorado', 'Sacramento', 'Hudson'],
     floodZones: [
       { name: 'Gulf Coast', coords: [29.8, -95.4], risk: 'high' },
@@ -69,7 +70,7 @@ export const LOCATIONS: Record<string, LocationConfig> = {
     emergencyContacts: { emergency: '911', nhs: '', nonEmergency: '311' },
   },
   southamerica: {
-    name: '🌎 South America', center: [-15, -55], zoom: 3,
+    name: 'South America', center: [-15, -55], zoom: 3,
     bounds: [[-56, -82], [13, -34]], rivers: ['Amazon', 'Paraná', 'Orinoco', 'São Francisco'],
     floodZones: [
       { name: 'Amazon Basin', coords: [-3.1, -60], risk: 'high' },
@@ -80,7 +81,7 @@ export const LOCATIONS: Record<string, LocationConfig> = {
     emergencyContacts: { emergency: '911', nhs: '', nonEmergency: '' },
   },
   oceania: {
-    name: '🌏 Oceania', center: [-25, 145], zoom: 4,
+    name: 'Oceania', center: [-25, 145], zoom: 4,
     bounds: [[-47, 110], [-10, 180]], rivers: ['Murray-Darling', 'Brisbane', 'Fitzroy'],
     floodZones: [
       { name: 'Brisbane-Lismore', coords: [-27.5, 153], risk: 'high' },
@@ -89,9 +90,8 @@ export const LOCATIONS: Record<string, LocationConfig> = {
     ],
     emergencyContacts: { emergency: '000', nhs: '', nonEmergency: '' },
   },
-  // ── MAJOR CITIES ── Asia
   mumbai: {
-    name: '🇮🇳 Mumbai', center: [19.076, 72.878], zoom: 12,
+    name: 'Mumbai', center: [19.076, 72.878], zoom: 12,
     bounds: [[18.89, 72.77], [19.27, 72.99]], rivers: ['Mithi River'],
     floodZones: [
       { name: 'Dharavi Low Ground', coords: [19.044, 72.855], risk: 'high' },
@@ -102,7 +102,7 @@ export const LOCATIONS: Record<string, LocationConfig> = {
     emergencyContacts: { emergency: '112', nhs: '108', nonEmergency: '100' },
   },
   dhaka: {
-    name: '🇧🇩 Dhaka', center: [23.810, 90.413], zoom: 12,
+    name: 'Dhaka', center: [23.810, 90.413], zoom: 12,
     bounds: [[23.67, 90.30], [23.92, 90.53]], rivers: ['Buriganga', 'Turag'],
     floodZones: [
       { name: 'Old Dhaka Waterfront', coords: [23.709, 90.406], risk: 'high' },
@@ -113,7 +113,7 @@ export const LOCATIONS: Record<string, LocationConfig> = {
     emergencyContacts: { emergency: '999', nhs: '', nonEmergency: '' },
   },
   shanghai: {
-    name: '🇨🇳 Shanghai', center: [31.230, 121.474], zoom: 11,
+    name: 'Shanghai', center: [31.230, 121.474], zoom: 11,
     bounds: [[30.98, 121.10], [31.52, 121.98]], rivers: ['Huangpu', 'Yangtze Estuary'],
     floodZones: [
       { name: 'Pudong Low Zone', coords: [31.235, 121.535], risk: 'high' },
@@ -123,7 +123,7 @@ export const LOCATIONS: Record<string, LocationConfig> = {
     emergencyContacts: { emergency: '110', nhs: '120', nonEmergency: '' },
   },
   tokyo: {
-    name: '🇯🇵 Tokyo', center: [35.681, 139.767], zoom: 11,
+    name: 'Tokyo', center: [35.681, 139.767], zoom: 11,
     bounds: [[35.52, 139.55], [35.85, 140.00]], rivers: ['Arakawa', 'Sumida', 'Edogawa'],
     floodZones: [
       { name: 'Koto Ward Zero-Metre Zone', coords: [35.673, 139.817], risk: 'high' },
@@ -133,7 +133,7 @@ export const LOCATIONS: Record<string, LocationConfig> = {
     emergencyContacts: { emergency: '110', nhs: '119', nonEmergency: '' },
   },
   jakarta: {
-    name: '🇮🇩 Jakarta', center: [-6.208, 106.846], zoom: 12,
+    name: 'Jakarta', center: [-6.208, 106.846], zoom: 12,
     bounds: [[-6.38, 106.68], [-6.09, 107.00]], rivers: ['Ciliwung', 'Cisadane'],
     floodZones: [
       { name: 'North Jakarta Subsidence', coords: [-6.125, 106.825], risk: 'high' },
@@ -144,7 +144,7 @@ export const LOCATIONS: Record<string, LocationConfig> = {
     emergencyContacts: { emergency: '112', nhs: '119', nonEmergency: '' },
   },
   manila: {
-    name: '🇵🇭 Manila', center: [14.599, 120.984], zoom: 12,
+    name: 'Manila', center: [14.599, 120.984], zoom: 12,
     bounds: [[14.45, 120.90], [14.73, 121.10]], rivers: ['Pasig', 'Marikina'],
     floodZones: [
       { name: 'Marikina Valley', coords: [14.651, 121.109], risk: 'high' },
@@ -154,7 +154,7 @@ export const LOCATIONS: Record<string, LocationConfig> = {
     emergencyContacts: { emergency: '911', nhs: '', nonEmergency: '' },
   },
   bangkok: {
-    name: '🇹🇭 Bangkok', center: [13.756, 100.502], zoom: 11,
+    name: 'Bangkok', center: [13.756, 100.502], zoom: 11,
     bounds: [[13.55, 100.30], [13.96, 100.72]], rivers: ['Chao Phraya'],
     floodZones: [
       { name: 'Don Muang-Rangsit', coords: [13.920, 100.590], risk: 'high' },
@@ -163,9 +163,8 @@ export const LOCATIONS: Record<string, LocationConfig> = {
     ],
     emergencyContacts: { emergency: '191', nhs: '1669', nonEmergency: '' },
   },
-  // ── MAJOR CITIES ── Europe
   amsterdam: {
-    name: '🇳🇱 Amsterdam', center: [52.370, 4.895], zoom: 12,
+    name: 'Amsterdam', center: [52.370, 4.895], zoom: 12,
     bounds: [[52.29, 4.73], [52.43, 5.05]], rivers: ['Amstel', 'IJ'],
     floodZones: [
       { name: 'IJburg Polder', coords: [52.355, 5.010], risk: 'high' },
@@ -175,7 +174,7 @@ export const LOCATIONS: Record<string, LocationConfig> = {
     emergencyContacts: { emergency: '112', nhs: '', nonEmergency: '' },
   },
   venice: {
-    name: '🇮🇹 Venice', center: [45.438, 12.335], zoom: 13,
+    name: 'Venice', center: [45.438, 12.335], zoom: 13,
     bounds: [[45.38, 12.26], [45.48, 12.42]], rivers: [],
     floodZones: [
       { name: 'Piazza San Marco', coords: [45.434, 12.339], risk: 'high' },
@@ -185,7 +184,7 @@ export const LOCATIONS: Record<string, LocationConfig> = {
     emergencyContacts: { emergency: '112', nhs: '118', nonEmergency: '' },
   },
   cologne: {
-    name: '🇩🇪 Cologne-Rhine', center: [50.937, 6.960], zoom: 12,
+    name: 'Cologne-Rhine', center: [50.937, 6.960], zoom: 12,
     bounds: [[50.86, 6.82], [51.01, 7.10]], rivers: ['Rhine'],
     floodZones: [
       { name: 'Altstadt Rhine Bank', coords: [50.940, 6.965], risk: 'high' },
@@ -195,7 +194,7 @@ export const LOCATIONS: Record<string, LocationConfig> = {
     emergencyContacts: { emergency: '112', nhs: '116117', nonEmergency: '' },
   },
   paris: {
-    name: '🇫🇷 Paris', center: [48.857, 2.352], zoom: 12,
+    name: 'Paris', center: [48.857, 2.352], zoom: 12,
     bounds: [[48.80, 2.22], [48.92, 2.47]], rivers: ['Seine', 'Marne'],
     floodZones: [
       { name: 'Île de la Cité', coords: [48.855, 2.347], risk: 'high' },
@@ -205,7 +204,7 @@ export const LOCATIONS: Record<string, LocationConfig> = {
     emergencyContacts: { emergency: '112', nhs: '15', nonEmergency: '' },
   },
   budapest: {
-    name: '🇭🇺 Budapest', center: [47.498, 19.040], zoom: 12,
+    name: 'Budapest', center: [47.498, 19.040], zoom: 12,
     bounds: [[47.40, 18.92], [47.60, 19.18]], rivers: ['Danube'],
     floodZones: [
       { name: 'Óbuda Island', coords: [47.554, 19.043], risk: 'high' },
@@ -214,9 +213,8 @@ export const LOCATIONS: Record<string, LocationConfig> = {
     ],
     emergencyContacts: { emergency: '112', nhs: '104', nonEmergency: '' },
   },
-  // ── MAJOR CITIES ── Americas
   houston: {
-    name: '🇺🇸 Houston', center: [29.760, -95.370], zoom: 11,
+    name: 'Houston', center: [29.760, -95.370], zoom: 11,
     bounds: [[29.55, -95.65], [29.97, -95.07]], rivers: ['Buffalo Bayou', 'San Jacinto', 'Brays Bayou'],
     floodZones: [
       { name: 'Addicks-Barker Reservoirs', coords: [29.778, -95.622], risk: 'high' },
@@ -227,7 +225,7 @@ export const LOCATIONS: Record<string, LocationConfig> = {
     emergencyContacts: { emergency: '911', nhs: '', nonEmergency: '311' },
   },
   neworleans: {
-    name: '🇺🇸 New Orleans', center: [29.951, -90.072], zoom: 12,
+    name: 'New Orleans', center: [29.951, -90.072], zoom: 12,
     bounds: [[29.87, -90.18], [30.04, -89.95]], rivers: ['Mississippi', 'Lake Pontchartrain'],
     floodZones: [
       { name: 'Lower 9th Ward', coords: [29.960, -89.987], risk: 'high' },
@@ -238,7 +236,7 @@ export const LOCATIONS: Record<string, LocationConfig> = {
     emergencyContacts: { emergency: '911', nhs: '', nonEmergency: '311' },
   },
   miami: {
-    name: '🇺🇸 Miami', center: [25.762, -80.192], zoom: 11,
+    name: 'Miami', center: [25.762, -80.192], zoom: 11,
     bounds: [[25.60, -80.38], [25.93, -80.05]], rivers: ['Miami River'],
     floodZones: [
       { name: 'Miami Beach', coords: [25.790, -80.131], risk: 'high' },
@@ -248,7 +246,7 @@ export const LOCATIONS: Record<string, LocationConfig> = {
     emergencyContacts: { emergency: '911', nhs: '', nonEmergency: '311' },
   },
   portoalegre: {
-    name: '🇧🇷 Porto Alegre', center: [-30.034, -51.230], zoom: 12,
+    name: 'Porto Alegre', center: [-30.034, -51.230], zoom: 12,
     bounds: [[-30.18, -51.38], [-29.92, -51.05]], rivers: ['Guaíba', 'Jacuí', 'Gravataí'],
     floodZones: [
       { name: 'Centro Histórico', coords: [-30.032, -51.230], risk: 'high' },
@@ -258,9 +256,8 @@ export const LOCATIONS: Record<string, LocationConfig> = {
     ],
     emergencyContacts: { emergency: '190', nhs: '192', nonEmergency: '' },
   },
-  // ── MAJOR CITIES ── Africa
   lagos: {
-    name: '🇳🇬 Lagos', center: [6.524, 3.379], zoom: 11,
+    name: 'Lagos', center: [6.524, 3.379], zoom: 11,
     bounds: [[6.39, 3.20], [6.66, 3.55]], rivers: ['Lagos Lagoon'],
     floodZones: [
       { name: 'Victoria Island', coords: [6.428, 3.423], risk: 'high' },
@@ -271,7 +268,7 @@ export const LOCATIONS: Record<string, LocationConfig> = {
     emergencyContacts: { emergency: '112', nhs: '', nonEmergency: '' },
   },
   khartoum: {
-    name: '🇸🇩 Khartoum', center: [15.501, 32.560], zoom: 12,
+    name: 'Khartoum', center: [15.501, 32.560], zoom: 12,
     bounds: [[15.40, 32.42], [15.65, 32.70]], rivers: ['Blue Nile', 'White Nile'],
     floodZones: [
       { name: 'Tuti Island Confluence', coords: [15.621, 32.521], risk: 'high' },
@@ -280,9 +277,8 @@ export const LOCATIONS: Record<string, LocationConfig> = {
     ],
     emergencyContacts: { emergency: '999', nhs: '', nonEmergency: '' },
   },
-  // ── MAJOR CITIES ── Oceania
   brisbane: {
-    name: '🇦🇺 Brisbane', center: [-27.469, 153.024], zoom: 12,
+    name: 'Brisbane', center: [-27.469, 153.024], zoom: 12,
     bounds: [[-27.62, 152.87], [-27.33, 153.17]], rivers: ['Brisbane River'],
     floodZones: [
       { name: 'Milton-Auchenflower', coords: [-27.473, 152.990], risk: 'high' },
@@ -292,9 +288,9 @@ export const LOCATIONS: Record<string, LocationConfig> = {
     ],
     emergencyContacts: { emergency: '000', nhs: '', nonEmergency: '' },
   },
-  // ── UK & SCOTLAND ──
+  // UK & SCOTLAND
   uk: {
-    name: '🇬🇧 United Kingdom', center: [54.5, -2.5], zoom: 6,
+    name: 'United Kingdom', center: [54.5, -2.5], zoom: 6,
     bounds: [[49.5, -8.5], [59, 2]], rivers: ['Thames', 'Severn', 'Trent', 'Clyde', 'Dee', 'Don'],
     floodZones: [
       { name: 'Thames Estuary', coords: [51.5, 0.5], risk: 'high' },
@@ -305,7 +301,7 @@ export const LOCATIONS: Record<string, LocationConfig> = {
     emergencyContacts: { emergency: '999', nhs: '111', nonEmergency: '101' },
   },
   scotland: {
-    name: '🏴󠁧󠁢󠁳󠁣󠁴󠁿 Scotland', center: [56.49, -4.20], zoom: 7,
+    name: 'Scotland', center: [56.49, -4.20], zoom: 7,
     bounds: [[54.6, -7.5], [58.7, -0.7]], rivers: ['River Tay', 'River Clyde', 'River Dee', 'River Don', 'River Spey', 'River Forth'],
     floodZones: [
       { name: 'Central Belt', coords: [55.95, -3.6], risk: 'high' },
@@ -316,7 +312,7 @@ export const LOCATIONS: Record<string, LocationConfig> = {
     emergencyContacts: { emergency: '999', nhs: '111', nonEmergency: '101' },
   },
   aberdeen: {
-    name: '🏴󠁧󠁢󠁳󠁣󠁴󠁿 Aberdeen', center: [57.1497, -2.0943], zoom: 13,
+    name: 'Aberdeen', center: [57.1497, -2.0943], zoom: 13,
     bounds: [[57.10, -2.20], [57.20, -1.95]], rivers: ['River Dee', 'River Don'],
     floodZones: [
       { name: 'River Don Floodplain', coords: [57.165, -2.095], risk: 'high' },
@@ -327,7 +323,7 @@ export const LOCATIONS: Record<string, LocationConfig> = {
     emergencyContacts: { emergency: '999', nhs: '111', nonEmergency: '101' },
   },
   edinburgh: {
-    name: '🏴󠁧󠁢󠁳󠁣󠁴󠁿 Edinburgh', center: [55.9533, -3.1883], zoom: 13,
+    name: 'Edinburgh', center: [55.9533, -3.1883], zoom: 13,
     bounds: [[55.90, -3.30], [56.00, -3.05]], rivers: ['Water of Leith', 'River Almond'],
     floodZones: [
       { name: 'Water of Leith Corridor', coords: [55.948, -3.215], risk: 'high' },
@@ -338,7 +334,7 @@ export const LOCATIONS: Record<string, LocationConfig> = {
     emergencyContacts: { emergency: '999', nhs: '111', nonEmergency: '101' },
   },
   glasgow: {
-    name: '🏴󠁧󠁢󠁳󠁣󠁴󠁿 Glasgow', center: [55.8642, -4.2518], zoom: 13,
+    name: 'Glasgow', center: [55.8642, -4.2518], zoom: 13,
     bounds: [[55.82, -4.38], [55.91, -4.12]], rivers: ['River Clyde', 'River Kelvin', 'White Cart Water'],
     floodZones: [
       { name: 'Clyde Waterfront', coords: [55.858, -4.270], risk: 'high' },
@@ -350,7 +346,7 @@ export const LOCATIONS: Record<string, LocationConfig> = {
     emergencyContacts: { emergency: '999', nhs: '111', nonEmergency: '101' },
   },
   dundee: {
-    name: '🏴󠁧󠁢󠁳󠁣󠁴󠁿 Dundee', center: [56.4620, -2.9707], zoom: 13,
+    name: 'Dundee', center: [56.4620, -2.9707], zoom: 13,
     bounds: [[56.43, -3.08], [56.50, -2.85]], rivers: ['River Tay', 'Dighty Water'],
     floodZones: [
       { name: 'Tay Estuary', coords: [56.455, -2.960], risk: 'high' },
@@ -360,10 +356,36 @@ export const LOCATIONS: Record<string, LocationConfig> = {
     emergencyContacts: { emergency: '999', nhs: '111', nonEmergency: '101' },
   },
   generic: {
-    name: '📍 Custom Location', center: [54.0, -2.0], zoom: 6,
+    name: 'Custom Location', center: [54.0, -2.0], zoom: 6,
     bounds: [[49.0, -8.0], [59.0, 2.0]], rivers: [], floodZones: [],
     emergencyContacts: { emergency: '999', nhs: '111', nonEmergency: '101' },
   },
+}
+
+function boundsFromCenter(center: [number, number], zoom: number): [[number, number], [number, number]] {
+  const latOffset = 180 / Math.pow(2, zoom)
+  const lngOffset = 360 / Math.pow(2, zoom)
+  return [
+    [center[0] - latOffset, center[1] - lngOffset],
+    [center[0] + latOffset, center[1] + lngOffset],
+  ]
+}
+
+function getLocationConfig(key: string): LocationConfig {
+  if (LOCATIONS[key]) return LOCATIONS[key]
+  const country = COUNTRY_DATA[key]
+  if (country) {
+    return {
+      name: country.name,
+      center: country.center,
+      zoom: country.zoom,
+      bounds: boundsFromCenter(country.center, country.zoom),
+      rivers: [],
+      floodZones: [],
+      emergencyContacts: { emergency: country.emergency, nhs: '', nonEmergency: '' },
+    }
+  }
+  return LOCATIONS['world']
 }
 
 const LocationContext = createContext<LocationContextType | null>(null)
@@ -418,10 +440,18 @@ export function LocationProvider({ children }: { children: ReactNode }): JSX.Ele
     )
   }
 
+  const allAvailableLocations = useMemo(() => {
+    const fromLocations = Object.entries(LOCATIONS).map(([key, val]) => ({ key, name: val.name }))
+    const fromCountryData = Object.entries(COUNTRY_DATA)
+      .filter(([key]) => !LOCATIONS[key])
+      .map(([key, val]) => ({ key, name: val.name }))
+    return [...fromLocations, ...fromCountryData]
+  }, [])
+
   return (
     <LocationContext.Provider value={{
-      location: LOCATIONS[activeLocation], activeLocation, setActiveLocation,
-      availableLocations: Object.entries(LOCATIONS).map(([key, val]) => ({ key, name: val.name })),
+      location: getLocationConfig(activeLocation), activeLocation, setActiveLocation,
+      availableLocations: allAvailableLocations,
       userPosition, detectUserLocation,
     }}>
       {children}

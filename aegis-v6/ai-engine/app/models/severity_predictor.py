@@ -1,5 +1,4 @@
 """
-═══════════════════════════════════════════════════════════════════════════════
  AEGIS AI ENGINE — ML-Based Severity Predictor v2.0
 
  REPLACES the rule-v1.0.0 (keyword/score) approach with:
@@ -12,7 +11,6 @@
  Training data source: PostgreSQL `reports` table (5000+ real citizen reports).
  Minimum requirement: 200 reports with severity labels.
  80/20 stratified split. Hyperparameter tuning via Optuna.
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 import os
@@ -30,7 +28,6 @@ from loguru import logger
 _xgb = None
 _tfidf = None
 _shap = None
-
 
 def _lazy_imports():
     """Lazy-load heavy ML libraries on first use."""
@@ -51,10 +48,7 @@ def _lazy_imports():
         except ImportError:
             pass
 
-
-# ═══════════════════════════════════════════════════════════════════════════════
 # §1  CONSTANTS
-# ═══════════════════════════════════════════════════════════════════════════════
 
 MODEL_DIR = Path(__file__).parent.parent.parent / "model_registry" / "severity"
 MODEL_DIR.mkdir(parents=True, exist_ok=True)
@@ -64,10 +58,7 @@ SEVERITY_MAP = {label: idx for idx, label in enumerate(SEVERITY_CLASSES)}
 MIN_TRAINING_SAMPLES = 200
 MIN_SAMPLES_PER_CLASS = 20
 
-
-# ═══════════════════════════════════════════════════════════════════════════════
 # §2  ML SEVERITY PREDICTOR
-# ═══════════════════════════════════════════════════════════════════════════════
 
 class SeverityPredictor:
     """
@@ -490,7 +481,7 @@ class SeverityPredictor:
             with open(version_dir / "severity_metrics.json", 'w') as f:
                 json.dump(metrics, f, indent=2, default=str)
 
-            # ── Model Governance: register candidate & compare ──
+            # Model Governance: register candidate & compare
             promoted = False
             try:
                 from app.core.governance import governance

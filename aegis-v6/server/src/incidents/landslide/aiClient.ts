@@ -4,9 +4,10 @@
  */
 
 import type { IncidentPrediction } from '../types.js'
+import { logger } from '../../services/logger.js'
 
 export class LandslideAIClient {
-  /**
+   /**
    * Get statistical predictions for landslides
    * Uses statistical analysis of rainfall and geological factors
    */
@@ -52,13 +53,13 @@ export class LandslideAIClient {
         confidence: 0.5,
         confidenceSource: 'statistical',
         region,
-        description: `Landslide risk based on rainfall (${rainfall24h}mm/24h), soil moisture (${soilMoisture}%), slope (${slopeAngle}°)`,
+        description: `Landslide risk based on rainfall (${rainfall24h}mm/24h), soil moisture (${soilMoisture}%), slope (${slopeAngle}—)`,
         advisoryText: this.getLandslideAdvisory(severity),
         generatedAt: new Date().toISOString(),
         dataSourcesUsed: ['rainfall_statistical_model', 'geological_data']
       }]
     } catch (error) {
-      console.error(`Landslide statistical model error: ${error}`)
+      logger.error({ err: error }, '[Landslide/AIClient] Statistical model error')
       return []
     }
   }

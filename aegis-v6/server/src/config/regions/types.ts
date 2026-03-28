@@ -1,4 +1,4 @@
-/**
+﻿/**
  * config/regions/types.ts — Region configuration type definitions
  *
  * Defines the structure of a city-level region configuration.
@@ -14,7 +14,7 @@ export interface RiverStation {
   name: string
   dataProvider: 'SEPA' | 'EA' | 'OpenMeteo' | 'USGS' | 'custom'
   stationId: string
-  /** Historical flood level used for dynamic threshold calibration */
+  /* Historical flood level used for dynamic threshold calibration */
   historicalFloodLevel?: number
   floodThresholds: {
     normal: number
@@ -36,18 +36,18 @@ export interface WMSLayerDef {
   riskLevel?: 'low' | 'medium' | 'high'
 }
 
-/** Per-incident regional configuration */
+/* Per-incident regional configuration */
 export interface RegionIncidentConfig {
   enabled: boolean
-  /** Thresholds for alert generation in this region */
+  /* Thresholds for alert generation in this region */
   alertThresholds?: {
     advisory: number
     warning: number
     critical: number
   }
-  /** Custom data sources for this incident type in this region */
+  /* Custom data sources for this incident type in this region */
   dataSources?: string[]
-  /** Custom notes for operators about this incident type in this region */
+  /* Custom notes for operators about this incident type in this region */
   notes?: string
 }
 
@@ -61,9 +61,9 @@ export interface CityRegionConfig {
   name: string
   country: string
   timezone: string
-  /** Primary language code for this region */
+  /* Primary language code for this region */
   language?: string
-  /** Unit system: 'metric' | 'imperial' */
+  /* Unit system: 'metric' | 'imperial' */
   units?: 'metric' | 'imperial'
   centre: { lat: number; lng: number }
   zoom: number
@@ -84,31 +84,31 @@ export interface CityRegionConfig {
   populationDensity: 'urban' | 'suburban' | 'rural' | 'mixed'
   wmsLayers?: WMSLayerDef[]
   shelterSearchRadiusKm?: number
-  /** Flood extent GeoJSON file paths keyed by river name */
+  /* Flood extent GeoJSON file paths keyed by river name */
   floodExtentFiles?: Record<string, string>
-  /** Pre-calculated evacuation route file paths */
+  /* Pre-calculated evacuation route file paths */
   evacuationRouteFiles?: Record<string, string>
 
-  // ── Multi-Incident Configuration ──────────────────────────────
-  /** Per-incident type configuration for this region */
+  // Multi-Incident Configuration
+  /* Per-incident type configuration for this region */
   enabledIncidents?: Partial<Record<IncidentTypeId, RegionIncidentConfig>>
-  /** Emergency contacts beyond the primary number */
+  /* Emergency contacts beyond the primary number */
   emergencyContacts?: Array<{
     name: string
     number: string
     type: 'police' | 'fire' | 'ambulance' | 'coast_guard' | 'utility' | 'other'
   }>
-  /** Alert authority hierarchy for different incident types */
+  /* Alert authority hierarchy for different incident types */
   alertAuthorities?: Partial<Record<IncidentTypeId, string>>
 }
 
-/**
+ /**
  * River flood status derived from dynamic threshold calibration.
  * Uses percentage of historical flood level for self-calibrating behaviour.
  */
 export type FloodStatus = 'NORMAL' | 'ELEVATED' | 'HIGH' | 'CRITICAL'
 
-/**
+ /**
  * Threat level for the intelligence dashboard.
  */
 export type ThreatLevel = 'GREEN' | 'AMBER' | 'RED' | 'CRITICAL'

@@ -7,7 +7,7 @@ import type { IncidentPrediction } from '../types.js'
 import { heatwaveConfig, HEATWAVE_TEMPERATURE_THRESHOLDS } from './config.js'
 
 export class HeatwaveService {
-  /**
+   /**
    * Get heatwave risk score based on temperature data
    */
   static async calculateHeatwaveRisk(region: string): Promise<number> {
@@ -28,7 +28,7 @@ export class HeatwaveService {
     }
   }
 
-  /**
+   /**
    * Get heatwave predictions for a region
    */
   static async getHeatwavePredictions(region: string): Promise<IncidentPrediction[]> {
@@ -54,7 +54,7 @@ export class HeatwaveService {
     }]
   }
 
-  /**
+   /**
    * Get heatwave advisory text based on severity
    */
   static getHeatwaveAdvisory(severity: string): string {
@@ -70,7 +70,7 @@ export class HeatwaveService {
     }
   }
 
-  /**
+   /**
    * Calculate heat index
    */
   static calculateHeatIndex(temperature: number, humidity: number): number {

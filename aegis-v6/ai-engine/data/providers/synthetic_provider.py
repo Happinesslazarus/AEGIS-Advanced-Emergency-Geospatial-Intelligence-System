@@ -1,88 +1,171 @@
+"""
+Real river-gauge data provider backed by SEPA KiWIS + EA Flood Monitoring APIs.
+Replaces the former SyntheticProvider — NO synthetic/random data is generated.
+"""
+
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
-from datetime import datetime
-import hashlib
+from typing import Any, Dict, List, Optional
 
-import numpy as np
+import aiohttp
 import pandas as pd
+from loguru import logger
 
 from registry.region_registry import get_region
 
+SEPA_BASE = "https://timeseries.sepa.org.uk/KiWIS/KiWIS"
+EA_BASE = "https://environment.data.gov.uk/flood-monitoring"
 
-GLOBAL_SEED = 42
-
+async def _fetch_json(
+    session: aiohttp.ClientSession,
+    url: str,
+    params: Optional[Dict[str, Any]] = None,
+    timeout: int = 30,
+) -> Any:
+    try:
+        async with session.get(url, params=params, timeout=aiohttp.ClientTimeout(total=timeout)) as resp:
+            if resp.status != 200:
+                return None
+            return await resp.json(content_type=None)
+    except Exception:
+        return None
 
 @dataclass
-class SyntheticProvider:
+class RealDataProvider:
     source_name: str
 
     def generate(self, region_id: str, start: str, end: str) -> pd.DataFrame:
+        """Fetch REAL river gauge data from SEPA + EA APIs for the given region/period."""
+        return asyncio.get_event_loop().run_until_complete(
+            self._fetch_real(region_id, start, end)
+        )
+
+    async def _fetch_real(self, region_id: str, start: str, end: str) -> pd.DataFrame:
         region = get_region(region_id)
-        ts = pd.date_range(start=start, end=end, freq="1h", tz="UTC")
-        if len(ts) == 0:
-            return pd.DataFrame(
-                columns=[
-                    "station_id",
-                    "station_name",
-                    "river_name",
-                    "latitude",
-                    "longitude",
-                    "timestamp",
-                    "level_m",
-                    "flow_m3s",
-                    "typical_high_m",
-                    "bankfull_m",
-                    "trend",
-                    "region_id",
-                    "is_synthetic",
-                ]
+        lat_s, lon_w, lat_n, lon_e = region.bbox
+        rows: List[Dict[str, object]] = []
+
+        async with aiohttp.ClientSession() as session:
+            # SEPA KiWIS
+            try:
+                ts_list = await _fetch_json(session, SEPA_BASE, params={
+                    "service": "kisters",
+                    "type": "queryServices",
+                    "request": "getTimeseriesList",
+                    "datasource": 0,
+                    "format": "json",
+                    "parametertype_name": "Water Level",
+                    "ts_name": "15min.Cmd.O",
+                    "returnfields": "ts_id,station_no,station_name,station_latitude,station_longitude",
+                }, timeout=60)
+
+                if ts_list and len(ts_list) > 1:
+                    for row in ts_list[1:21]:
+                        s_lat, s_lon = float(row[3]), float(row[4])
+                        if not (lat_s <= s_lat <= lat_n and lon_w <= s_lon <= lon_e):
+                            continue
+                        ts_id = row[0]
+                        readings = await _fetch_json(session, SEPA_BASE, params={
+                            "service": "kisters",
+                            "type": "queryServices",
+                            "request": "getTimeseriesValues",
+                            "datasource": 0,
+                            "format": "json",
+                            "ts_id": ts_id,
+                            "from": start,
+                            "to": end,
+                            "returnfields": "Timestamp,Value",
+                        }, timeout=90)
+                        if readings and readings[0].get("data"):
+                            for pt in readings[0]["data"]:
+                                if pt[1] is None:
+                                    continue
+                                level = float(pt[1])
+                                rows.append({
+                                    "station_id": row[1],
+                                    "station_name": row[2],
+                                    "river_name": row[2],
+                                    "latitude": s_lat,
+                                    "longitude": s_lon,
+                                    "timestamp": pd.to_datetime(pt[0]),
+                                    "level_m": level,
+                                    "flow_m3s": None,
+                                    "typical_high_m": None,
+                                    "bankfull_m": None,
+                                    "trend": None,
+                                    "region_id": region_id,
+                                    "is_synthetic": False,
+                                })
+            except Exception as e:
+                logger.warning(f"SEPA fetch failed: {e}")
+
+            # EA Flood Monitoring
+            try:
+                ea_stations = await _fetch_json(session, f"{EA_BASE}/id/stations", params={
+                    "parameter": "level",
+                    "status": "Active",
+                    "_limit": "30",
+                })
+                if ea_stations and ea_stations.get("items"):
+                    for stn in ea_stations["items"]:
+                        s_lat = stn.get("lat")
+                        s_lon = stn.get("long")
+                        if s_lat is None or not (lat_s <= s_lat <= lat_n and lon_w <= s_lon <= lon_e):
+                            continue
+                        ref = stn.get("stationReference")
+                        readings = await _fetch_json(
+                            session,
+                            f"{EA_BASE}/id/stations/{ref}/readings",
+                            params={"since": start, "_limit": "10000", "_sorted": ""},
+                            timeout=90,
+                        )
+                        if readings and readings.get("items"):
+                            for item in readings["items"]:
+                                val = item.get("value")
+                                if val is None:
+                                    continue
+                                rows.append({
+                                    "station_id": ref,
+                                    "station_name": stn.get("label", ref),
+                                    "river_name": stn.get("riverName", ""),
+                                    "latitude": s_lat,
+                                    "longitude": s_lon,
+                                    "timestamp": pd.to_datetime(item["dateTime"]),
+                                    "level_m": float(val),
+                                    "flow_m3s": None,
+                                    "typical_high_m": None,
+                                    "bankfull_m": None,
+                                    "trend": None,
+                                    "region_id": region_id,
+                                    "is_synthetic": False,
+                                })
+            except Exception as e:
+                logger.warning(f"EA fetch failed: {e}")
+
+        if not rows:
+            raise RuntimeError(
+                f"TRAINING ABORTED: No real river data from SEPA/EA for region '{region_id}' "
+                f"({start} to {end}). Check network connectivity. Cannot proceed with synthetic data."
             )
 
-        seed_input = f"{self.source_name}:{region_id}:{start}:{end}:{GLOBAL_SEED}".encode()
-        seed = int(hashlib.sha256(seed_input).hexdigest()[:8], 16)
-        rng = np.random.default_rng(seed)
+        df = pd.DataFrame(rows).sort_values("timestamp").reset_index(drop=True)
 
-        lat_s, lon_w, lat_n, lon_e = region.bbox
-        station_count = 8
-        rows: list[dict[str, object]] = []
+        # Compute trend from sequential readings per station
+        for sid in df["station_id"].unique():
+            mask = df["station_id"] == sid
+            levels = df.loc[mask, "level_m"]
+            deltas = levels.diff().fillna(0)
+            df.loc[mask, "trend"] = deltas.apply(
+                lambda d: "rising" if d > 0.03 else ("falling" if d < -0.03 else "steady")
+            )
 
-        for station_idx in range(station_count):
-            station_id = f"SYN-{region_id[:3].upper()}-{station_idx:03d}"
-            station_name = f"Synthetic Station {station_idx + 1}"
-            river_name = f"River {station_idx + 1}"
-            latitude = float(rng.uniform(lat_s, lat_n))
-            longitude = float(rng.uniform(lon_w, lon_e))
-            base_level = float(rng.uniform(0.7, 2.2))
-            typical_high = float(base_level + rng.uniform(0.5, 1.0))
-            bankfull = float(typical_high * region.bankfull_multiplier)
+        logger.info(
+            f"RealDataProvider: {len(df)} readings from "
+            f"{df['station_id'].nunique()} stations for region '{region_id}'"
+        )
+        return df
 
-            noise = rng.normal(0, 0.15, size=len(ts))
-            seasonal = 0.3 * np.sin(np.linspace(0, 6 * np.pi, len(ts)))
-            series = np.clip(base_level + seasonal + noise, 0.1, None)
-
-            for idx, timestamp in enumerate(ts):
-                current_level = float(series[idx])
-                prev_level = float(series[idx - 1]) if idx > 0 else current_level
-                delta = current_level - prev_level
-                trend = "rising" if delta > 0.03 else "falling" if delta < -0.03 else "steady"
-
-                rows.append(
-                    {
-                        "station_id": station_id,
-                        "station_name": station_name,
-                        "river_name": river_name,
-                        "latitude": latitude,
-                        "longitude": longitude,
-                        "timestamp": timestamp.to_pydatetime(),
-                        "level_m": current_level,
-                        "flow_m3s": float(max(0.0, current_level * rng.uniform(2.0, 15.0))),
-                        "typical_high_m": typical_high,
-                        "bankfull_m": bankfull,
-                        "trend": trend,
-                        "region_id": region_id,
-                        "is_synthetic": True,
-                    }
-                )
-
-        return pd.DataFrame(rows)
+# Backward-compatible alias
+SyntheticProvider = RealDataProvider

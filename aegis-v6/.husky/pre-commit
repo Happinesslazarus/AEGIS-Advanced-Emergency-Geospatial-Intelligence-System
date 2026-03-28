@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# Husky pre-commit hook: scan staged files for secrets patterns
+
+set -e
+
+echo "[husky] scanning staged files for potential secrets..."
+
+# Get list of staged files
+STAGED=$(git diff --cached --name-only --diff-filter=ACM)
+
+# Patterns to detect (add more as needed)
+PATTERNS=(
+  "API_SECRET_KEY"
+  "JWT_SECRET"
+  "REFRESH_TOKEN_SECRET"
+  "GEMINI_API_KEY"
+  "GROQ_API_KEY"
+  "OPENROUTER_API_KEY"
+  "HF_API_KEY"
+  "VITE_MAPBOX_TOKEN"
+  "DB_PASSWORD"
+  "POSTGRES_PASSWORD"
+  "SMTP_PASS"
+  "TWILIO_AUTH_TOKEN"
+  "-----BEGIN PRIVATE KEY-----"
+  "pk."
+)
+
+FOUND=0
+for file in $STAGED; do
+  # Only check text files
+  if [ -f "$file" ]; then
+    for pat in "${PATTERNS[@]}"; do
+      if git show :"$file" | grep -q --line-number -E "$pat"; then
+        echo "[husky] Potential secret detected in $file (pattern: $pat)"
+        FOUND=1
+      fi
+    done
+  fi
+done
+
+if [ "$FOUND" -eq 1 ]; then
+  echo "\nCommit aborted: potential secrets found in staged files.\nRemove secrets from the commit (use git rm --cached) or move them to a secure store, then try again."
+  exit 1
+fi
+
+echo "[husky] OK: no obvious secrets in staged files"
+exit 0

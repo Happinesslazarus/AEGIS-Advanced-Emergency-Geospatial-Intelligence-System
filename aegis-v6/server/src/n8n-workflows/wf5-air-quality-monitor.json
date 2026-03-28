@@ -10,7 +10,7 @@
     },
     {
       "parameters": {
-        "url": "https://air-quality-api.open-meteo.com/v1/air-quality?latitude=57.15&longitude=-2.09&hourly=pm2_5,pm10,nitrogen_dioxide,european_aqi&forecast_days=2&timezone=Europe/London",
+        "url": "={{ 'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=' + ($env.AEGIS_DEFAULT_LAT || '0') + '&longitude=' + ($env.AEGIS_DEFAULT_LON || '0') + '&hourly=pm2_5,pm10,nitrogen_dioxide,european_aqi&forecast_days=2&timezone=' + ($env.AEGIS_TIMEZONE || 'UTC') }}",
         "options": { "timeout": 15000 },
         "headerParametersJson": "{ \"User-Agent\": \"AEGIS-n8n/1.0\" }"
       },

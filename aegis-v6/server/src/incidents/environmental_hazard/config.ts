@@ -46,3 +46,4 @@ export const OPENAQ_CONFIG = {
   radiusKm: 50,
   parameters: ['pm25', 'pm10', 'o3', 'no2', 'so2', 'co']
 }
+

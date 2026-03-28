@@ -1,18 +1,18 @@
-/*
+﻿ /*
  * CommunityChat.tsx — Community Discussion Board (Advanced UI)
- *
  * Features:
- *   - Modern social-media-style post feed
- *   - Lucide icon system (no Unicode emojis)
- *   - Report posts with reason selection
- *   - Admin can delete only reported posts
- *   - Animated like interactions
- *   - Glassmorphism cards and gradients
- *   - Skeleton loading, rich post creation
- *   - Beautiful comment section
- */
+ * Modern social-media-style post feed
+ * Lucide icon system (no Unicode emojis)
+ * Report posts with reason selection
+ * Admin can delete only reported posts
+ * Animated like interactions
+ * Glassmorphism cards and gradients
+ * Skeleton loading, rich post creation
+ * Beautiful comment section
+  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { getAnyToken } from '../../utils/api'
 import {
   MessageSquare, Send, Search, Heart, MessageCircle,
   Share2, Loader2, X, AlertCircle, ZoomIn, MapPin, User,
@@ -163,7 +163,7 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   const authHeaders = useCallback(() => ({
-    Authorization: `Bearer ${localStorage.getItem('aegis-citizen-token') || localStorage.getItem('aegis-token') || localStorage.getItem('token')}`
+    Authorization: `Bearer ${getAnyToken() || ''}`
   }), [])
 
   // Close dropdown on click outside
@@ -185,7 +185,7 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
     }
   }, [successMsg])
 
-  // ─── Real-time Socket Listeners for Likes & Comments ───────────────
+  //  Real-time Socket Listeners for Likes & Comments
   useEffect(() => {
     if (!parentSocket) return
 
@@ -457,7 +457,7 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
       })
       if (!res.ok) {
         const data = await res.json()
-        throw new Error(data.error || t('communityChat.reportFailed', lang))
+        throw new Error(typeof data.error === 'string' ? data.error : data.error?.message || t('communityChat.reportFailed', lang))
       }
       const data = await res.json()
       setPosts(prev => prev.map(p =>
@@ -484,7 +484,7 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
       })
       if (!res.ok) {
         const data = await res.json()
-        throw new Error(data.error || t('communityChat.deleteFailed', lang))
+        throw new Error(typeof data.error === 'string' ? data.error : data.error?.message || t('communityChat.deleteFailed', lang))
       }
       setPosts(prev => prev.filter(p => p.id !== deleteModal.postId))
       setDeleteModal(null)
@@ -515,7 +515,7 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
       })
       if (!res.ok) {
         const data = await res.json()
-        throw new Error(data.error || t('communityChat.editFailed', lang))
+        throw new Error(typeof data.error === 'string' ? data.error : data.error?.message || t('communityChat.editFailed', lang))
       }
       const data = await res.json()
       setPosts(prev => prev.map(p =>
@@ -551,7 +551,7 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
         </div>
       )}
 
-      {/* ═══ CREATE POST CARD ═══ */}
+      {/*  CREATE POST CARD  */}
       <div className="bg-white dark:bg-gray-900/80 rounded-2xl border border-gray-100 dark:border-gray-800/60 shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden backdrop-blur-sm">
         <div className="p-5 pb-0">
           <div className="flex items-center gap-3 mb-4">
@@ -560,7 +560,7 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">{userName}</p>
-              <p className="text-xs text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex items-center gap-1">
+              <p className="text-xs text-gray-400 dark:text-gray-300 flex items-center gap-1">
                 <Globe className="w-3 h-3" />
                 {t('communityChat.shareWithCommunity', lang)}
               </p>
@@ -576,7 +576,7 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
               rows={3}
             />
             {charCount > 0 && (
-              <div className={`absolute bottom-1 right-0 text-[10px] font-medium transition-colors ${charCount > maxChars * 0.9 ? 'text-amber-500' : 'text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-600'}`}>
+              <div className={`absolute bottom-1 right-0 text-[10px] font-medium transition-colors ${charCount > maxChars * 0.9 ? 'text-amber-500' : 'text-gray-300 dark:text-gray-600'}`}>
                 {charCount}/{maxChars}
               </div>
             )}
@@ -616,7 +616,7 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
               </div>
             </label>
             <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-300" />
               <input
                 type="text"
                 value={location}
@@ -655,7 +655,7 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
               className={`p-2.5 rounded-xl transition-all duration-200 group ${showCreateAdvanced ? 'bg-aegis-50 dark:bg-aegis-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'}`}
               title={t('communityChat.moreOptions', lang)}
             >
-              <Sparkles className={`w-5 h-5 transition-colors ${showCreateAdvanced ? 'text-aegis-600' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 group-hover:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`} />
+              <Sparkles className={`w-5 h-5 transition-colors ${showCreateAdvanced ? 'text-aegis-600' : 'text-gray-400 dark:text-gray-300 group-hover:text-gray-500 dark:text-gray-300'}`} />
             </button>
             <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
           </div>
@@ -673,14 +673,14 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
         </div>
       </div>
 
-      {/* ═══ FILTER PILLS + SEARCH ═══ */}
+      {/*  FILTER PILLS + SEARCH  */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-1.5 flex-1 overflow-x-auto">
           <button
             onClick={() => setFilterMode('all')}
             className={`flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl whitespace-nowrap transition-all duration-200 ${filterMode === 'all'
               ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-sm'
-              : 'bg-gray-100 dark:bg-gray-800/60 text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700/60'}`}
+              : 'bg-gray-100 dark:bg-gray-800/60 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700/60'}`}
           >
             <Flame className="w-3.5 h-3.5" />
             {t('communityChat.allPosts', lang)}
@@ -716,7 +716,7 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
             onClick={() => setSearchTerm(searchTerm ? '' : ' ')}
             className="p-2.5 rounded-xl bg-gray-100 dark:bg-gray-800/60 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all"
           >
-            <Search className="w-4 h-4 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
+            <Search className="w-4 h-4 text-gray-500 dark:text-gray-300" />
           </button>
         </div>
       </div>
@@ -724,7 +724,7 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
       {/* Search Bar */}
       {searchTerm !== '' && (
         <div className="relative">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-300" />
           <input
             type="text"
             placeholder={t('communityChat.searchPosts', lang)}
@@ -734,12 +734,12 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
             className="w-full pl-10 pr-10 py-2.5 text-sm bg-white dark:bg-gray-900/80 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-aegis-500/30 focus:border-aegis-500 transition-all shadow-sm"
           />
           <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
-            <X className="w-3.5 h-3.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
+            <X className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300" />
           </button>
         </div>
       )}
 
-      {/* ═══ POST FEED ═══ */}
+      {/*  POST FEED  */}
       <div className="space-y-4">
         {isInitialLoad ? (
           <div className="space-y-4">
@@ -750,16 +750,16 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
         ) : filteredPosts.length === 0 ? (
           <div className="text-center py-16">
             <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-800/50 flex items-center justify-center shadow-inner">
-              <MessageSquare className="w-8 h-8 text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-600" />
+              <MessageSquare className="w-8 h-8 text-gray-300 dark:text-gray-600" />
             </div>
-            <h3 className="text-base font-semibold text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-1">
+            <h3 className="text-base font-semibold text-gray-700 dark:text-gray-300 mb-1">
               {filterMode === 'hazards'
                 ? t('communityChat.noHazardUpdates', lang)
                 : filterMode === 'reported'
                   ? t('communityChat.noReportedPosts', lang)
                   : t('communityChat.noPostsYet', lang)}
             </h3>
-            <p className="text-sm text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 max-w-xs mx-auto">
+            <p className="text-sm text-gray-400 dark:text-gray-300 max-w-xs mx-auto">
               {filterMode === 'all' ? t('communityChat.firstShare', lang) : t('communityChat.nothingForFilter', lang)}
             </p>
           </div>
@@ -813,7 +813,7 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-1.5 text-[11px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-0.5 flex-wrap">
+                        <div className="flex items-center gap-1.5 text-[11px] text-gray-400 dark:text-gray-300 mt-0.5 flex-wrap">
                           <span>{timeAgo(post.created_at)}</span>
                           {post.location && (
                             <>
@@ -837,7 +837,7 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
                         onClick={() => setShowDropdown(showDropdown === post.id ? null : post.id)}
                         className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all opacity-0 group-hover/card:opacity-100 focus:opacity-100"
                       >
-                        <MoreHorizontal className="w-5 h-5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
+                        <MoreHorizontal className="w-5 h-5 text-gray-400 dark:text-gray-300" />
                       </button>
 
                       {showDropdown === post.id && (
@@ -845,7 +845,7 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
                           {isOwner && (
                             <button
                               onClick={() => openEditModal(post)}
-                              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                             >
                               <Pencil className="w-4 h-4" />
                               {t('communityChat.editPost', lang)}
@@ -872,14 +872,14 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
                           {!isOwner && !post.is_reported_by_user && (
                             <button
                               onClick={() => { setReportModal({ postId: post.id }); setShowDropdown(null) }}
-                              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                             >
                               <Flag className="w-4 h-4" />
                               {t('communityChat.reportPost', lang)}
                             </button>
                           )}
                           {!isOwner && post.is_reported_by_user && (
-                            <div className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+                            <div className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-400 dark:text-gray-300">
                               <CheckCircle2 className="w-4 h-4 text-amber-500" />
                               {t('communityChat.alreadyReported', lang)}
                             </div>
@@ -894,7 +894,7 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
                 <div className="px-4 pt-3 pb-2">
                   <p className="text-[15px] leading-relaxed text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words">{displayPostContent}</p>
                   {post.updated_at && post.updated_at !== post.created_at && new Date(post.updated_at).getTime() - new Date(post.created_at).getTime() > 2000 && (
-                    <span className="inline-flex items-center gap-1 mt-1.5 text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 italic">
+                    <span className="inline-flex items-center gap-1 mt-1.5 text-[10px] text-gray-400 dark:text-gray-300 italic">
                       <Pencil className="w-2.5 h-2.5" /> {t('communityChat.edited', lang)}
                     </span>
                   )}
@@ -919,7 +919,7 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
 
                 {/* Engagement Stats */}
                 {(Number(post.likes_count) > 0 || Number(post.comments_count) > 0) && (
-                  <div className="px-4 pb-2 flex items-center justify-between text-[11px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+                  <div className="px-4 pb-2 flex items-center justify-between text-[11px] text-gray-400 dark:text-gray-300">
                     {Number(post.likes_count) > 0 && (
                       <div className="flex items-center gap-1">
                         <div className="w-4 h-4 rounded-full bg-gradient-to-br from-pink-500 to-red-500 flex items-center justify-center">
@@ -947,14 +947,14 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
                     onClick={() => handleLikePost(post.id)}
                     className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg transition-all duration-200 text-[13px] font-medium group/btn ${post.is_liked_by_user
                       ? 'text-pink-600 dark:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-900/15'
-                      : 'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-pink-500'}`}
+                      : 'text-gray-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-pink-500'}`}
                   >
                     <Heart className={`w-[18px] h-[18px] transition-all duration-300 ${post.is_liked_by_user ? 'fill-pink-500 text-pink-500' : 'group-hover/btn:scale-110'} ${likeAnimating === post.id ? 'scale-125' : ''}`} />
                     <span>{post.is_liked_by_user ? t('common.liked', lang) : t('common.like', lang)}</span>
                   </button>
                   <button
                     onClick={() => { setExpandedPost(expandedPost === post.id ? null : post.id); if (!comments[post.id]) fetchComments(post.id) }}
-                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/15 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200 text-[13px] font-medium"
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-gray-500 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/15 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200 text-[13px] font-medium"
                   >
                     <MessageCircle className="w-[18px] h-[18px]" />
                     <span>{t('common.comment', lang)}</span>
@@ -964,7 +964,7 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
                       const text = `${post.author_name}: ${displayPostContent.slice(0, 100)}${displayPostContent.length > 100 ? '...' : ''}`
                       navigator.clipboard.writeText(text).then(() => setSuccessMsg(t('communityChat.copied', lang))).catch(() => {})
                     }}
-                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/15 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all duration-200 text-[13px] font-medium"
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-gray-500 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/15 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all duration-200 text-[13px] font-medium"
                   >
                     <Share2 className="w-[18px] h-[18px]" />
                     <span>{t('common.share', lang)}</span>
@@ -977,10 +977,10 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
                     <div className="px-4 pt-3 space-y-3 max-h-72 overflow-y-auto">
                       {!comments[post.id] ? (
                         <div className="flex items-center justify-center py-4">
-                          <Loader2 className="w-4 h-4 animate-spin text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
+                          <Loader2 className="w-4 h-4 animate-spin text-gray-400 dark:text-gray-300" />
                         </div>
                       ) : comments[post.id].length === 0 ? (
-                        <p className="text-center text-xs text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 py-4">{t('communityChat.noCommentsYet', lang)}</p>
+                        <p className="text-center text-xs text-gray-400 dark:text-gray-300 py-4">{t('communityChat.noCommentsYet', lang)}</p>
                       ) : (
                         comments[post.id].map((comment) => (
                           <div key={comment.id} className="flex gap-2.5">
@@ -990,12 +990,12 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
                             <div className="flex-1 min-w-0">
                               <div className="inline-block bg-white dark:bg-gray-800 rounded-2xl rounded-tl-md px-3.5 py-2 shadow-sm border border-gray-100 dark:border-gray-700/50">
                                 <p className="text-xs font-semibold text-gray-900 dark:text-gray-100">{comment.author_name}</p>
-                                <p className="text-[13px] text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-0.5 break-words">{contentTranslations[comment.content] || comment.content}</p>
+                                <p className="text-[13px] text-gray-700 dark:text-gray-300 mt-0.5 break-words">{contentTranslations[comment.content] || comment.content}</p>
                               </div>
                               <div className="flex items-center gap-3 mt-1 ml-1">
-                                <span className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{timeAgo(comment.created_at)}</span>
-                                <button className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-semibold transition-colors">{t('common.like', lang)}</button>
-                                <button className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-semibold transition-colors">{t('common.reply', lang)}</button>
+                                <span className="text-[10px] text-gray-400 dark:text-gray-300">{timeAgo(comment.created_at)}</span>
+                                <button className="text-[10px] text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-300 dark:text-gray-300 font-semibold transition-colors">{t('common.like', lang)}</button>
+                                <button className="text-[10px] text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-300 dark:text-gray-300 font-semibold transition-colors">{t('common.reply', lang)}</button>
                               </div>
                             </div>
                           </div>
@@ -1013,7 +1013,7 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
                           onChange={(e) => setCommentInput(prev => ({ ...prev, [post.id]: e.target.value }))}
                           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handlePostComment(post.id) } }}
                           placeholder={t('communityChat.writeComment', lang)}
-                          className="w-full px-4 py-2.5 pr-10 text-[13px] bg-white dark:bg-gray-800 rounded-full border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-aegis-500/30 focus:border-aegis-500 transition-all placeholder:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300"
+                          className="w-full px-4 py-2.5 pr-10 text-[13px] bg-white dark:bg-gray-800 rounded-full border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-aegis-500/30 focus:border-aegis-500 transition-all placeholder:text-gray-400 dark:text-gray-300"
                         />
                         <button
                           onClick={() => handlePostComment(post.id)}
@@ -1032,7 +1032,7 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
         )}
       </div>
 
-      {/* ═══ IMAGE ZOOM MODAL ═══ */}
+      {/*  IMAGE ZOOM MODAL  */}
       {imageZoom && (
         <div
           className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50"
@@ -1050,7 +1050,7 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
         </div>
       )}
 
-      {/* ═══ REPORT POST MODAL ═══ */}
+      {/*  REPORT POST MODAL  */}
       {reportModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => { setReportModal(null); setReportReason(''); setReportDetails('') }}>
           <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden" onClick={(e) => e.stopPropagation()}>
@@ -1062,16 +1062,16 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
                   </div>
                   <div>
                     <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">{t('communityChat.reportPostTitle', lang)}</h3>
-                    <p className="text-xs text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('communityChat.keepCommunitySafe', lang)}</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-300">{t('communityChat.keepCommunitySafe', lang)}</p>
                   </div>
                 </div>
                 <button onClick={() => { setReportModal(null); setReportReason(''); setReportDetails('') }} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors">
-                  <X className="w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
+                  <X className="w-4 h-4 text-gray-400 dark:text-gray-300" />
                 </button>
               </div>
             </div>
             <div className="p-5 space-y-2 max-h-[50vh] overflow-y-auto">
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-wider mb-3">{t('communityChat.selectReason', lang)}</p>
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider mb-3">{t('communityChat.selectReason', lang)}</p>
               {getReportReasons(lang).map((r) => {
                 const Icon = r.icon
                 return (
@@ -1082,12 +1082,12 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
                       ? 'border-red-300 dark:border-red-700 bg-red-50/50 dark:bg-red-900/15 ring-1 ring-red-200 dark:ring-red-800'
                       : 'border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50'}`}
                   >
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${reportReason === r.value ? 'bg-red-100 dark:bg-red-900/30 text-red-600' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`}>
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${reportReason === r.value ? 'bg-red-100 dark:bg-red-900/30 text-red-600' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-300'}`}>
                       <Icon className="w-4 h-4" />
                     </div>
                     <div className="flex-1">
-                      <p className={`text-sm font-medium ${reportReason === r.value ? 'text-red-700 dark:text-red-300' : 'text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`}>{r.label}</p>
-                      <p className="text-[11px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{r.desc}</p>
+                      <p className={`text-sm font-medium ${reportReason === r.value ? 'text-red-700 dark:text-red-300' : 'text-gray-700 dark:text-gray-300'}`}>{r.label}</p>
+                      <p className="text-[11px] text-gray-400 dark:text-gray-300">{r.desc}</p>
                     </div>
                     {reportReason === r.value && <CheckCircle2 className="w-5 h-5 text-red-500 flex-shrink-0" />}
                   </button>
@@ -1106,7 +1106,7 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
               )}
             </div>
             <div className="p-5 pt-3 border-t border-gray-100 dark:border-gray-800 flex items-center gap-3">
-              <button onClick={() => { setReportModal(null); setReportReason(''); setReportDetails('') }} className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+              <button onClick={() => { setReportModal(null); setReportReason(''); setReportDetails('') }} className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
                 {t('common.cancel', lang)}
               </button>
               <button
@@ -1122,7 +1122,7 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
         </div>
       )}
 
-      {/* ═══ EDIT POST MODAL ═══ */}
+      {/*  EDIT POST MODAL  */}
       {editModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => { setEditModal(null); setEditContent(''); setEditLocation('') }}>
           <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-lg shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden" onClick={(e) => e.stopPropagation()}>
@@ -1134,17 +1134,17 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
                   </div>
                   <div>
                     <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">{t('communityChat.editPostTitle', lang)}</h3>
-                    <p className="text-xs text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('communityChat.updatePostContent', lang)}</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-300">{t('communityChat.updatePostContent', lang)}</p>
                   </div>
                 </div>
                 <button onClick={() => { setEditModal(null); setEditContent(''); setEditLocation('') }} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors">
-                  <X className="w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
+                  <X className="w-4 h-4 text-gray-400 dark:text-gray-300" />
                 </button>
               </div>
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className="text-xs font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-wider mb-2 block">{t('communityChat.content', lang)}</label>
+                <label className="text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider mb-2 block">{t('communityChat.content', lang)}</label>
                 <textarea
                   value={editContent}
                   onChange={(e) => { if (e.target.value.length <= maxChars) setEditContent(e.target.value) }}
@@ -1152,15 +1152,15 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
                   rows={4}
                 />
                 <div className="flex justify-end mt-1">
-                  <span className={`text-[10px] font-medium ${editContent.length > maxChars * 0.9 ? 'text-amber-500' : 'text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-600'}`}>
+                  <span className={`text-[10px] font-medium ${editContent.length > maxChars * 0.9 ? 'text-amber-500' : 'text-gray-300 dark:text-gray-600'}`}>
                     {editContent.length}/{maxChars}
                   </span>
                 </div>
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-wider mb-2 block">{t('communityChat.locationLabel', lang)}</label>
+                <label className="text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider mb-2 block">{t('communityChat.locationLabel', lang)}</label>
                 <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-300" />
                   <input
                     type="text"
                     value={editLocation}
@@ -1172,7 +1172,7 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
               </div>
             </div>
             <div className="p-5 pt-3 border-t border-gray-100 dark:border-gray-800 flex items-center gap-3">
-              <button onClick={() => { setEditModal(null); setEditContent(''); setEditLocation('') }} className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+              <button onClick={() => { setEditModal(null); setEditContent(''); setEditLocation('') }} className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
                 {t('common.cancel', lang)}
               </button>
               <button
@@ -1188,7 +1188,7 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
         </div>
       )}
 
-      {/* ═══ DELETE CONFIRMATION MODAL ═══ */}
+      {/*  DELETE CONFIRMATION MODAL  */}
       {deleteModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setDeleteModal(null)}>
           <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-sm shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden" onClick={(e) => e.stopPropagation()}>
@@ -1199,13 +1199,13 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
               <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">
                 {deleteModal.isOwner ? t('communityChat.deleteYourPost', lang) : t('communityChat.removeReportedPost', lang)}
               </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-6 leading-relaxed">
+              <p className="text-sm text-gray-500 dark:text-gray-300 mb-6 leading-relaxed">
                 {deleteModal.isOwner
                   ? t('communityChat.deletePostWarning', lang)
                   : t('communityChat.removeReportedWarning', lang)}
               </p>
               <div className="flex items-center gap-3">
-                <button onClick={() => setDeleteModal(null)} className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                <button onClick={() => setDeleteModal(null)} className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
                   {t('common.cancel', lang)}
                 </button>
                 <button
@@ -1224,7 +1224,4 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
     </div>
   )
 }
-
-
-
-
+

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * services/regionConfigService.ts — Enhanced Region Configuration Service
  *
  * Provides a unified API for querying region-specific incident configuration,
@@ -15,7 +15,7 @@ import {
 } from '../config/regions/index.js'
 import type { CityRegionConfig, IncidentTypeId, RegionIncidentConfig } from '../config/regions/types.js'
 
-// ─── Default incident enablement per region ─────────────────────────────
+// Default incident enablement per region
 // If a region doesn't specify enabledIncidents, all 10 types are enabled.
 const ALL_INCIDENT_TYPES: IncidentTypeId[] = [
   'flood', 'severe_storm', 'heatwave', 'wildfire', 'landslide',
@@ -28,9 +28,9 @@ const DEFAULT_INCIDENT_CONFIG: RegionIncidentConfig = {
   alertThresholds: { advisory: 0.3, warning: 0.6, critical: 0.85 },
 }
 
-// ─── Service API ────────────────────────────────────────────────────────
+// Service API
 
-/**
+ /**
  * Get the full region config for a given region ID.
  * Returns active region if no ID specified.
  */
@@ -41,7 +41,7 @@ export function getRegion(regionId?: string): CityRegionConfig {
   return getActiveCityRegion()
 }
 
-/**
+ /**
  * Check if a specific incident type is enabled in a region.
  */
 export function isIncidentEnabledForRegion(
@@ -54,7 +54,7 @@ export function isIncidentEnabledForRegion(
   return cfg ? cfg.enabled : true
 }
 
-/**
+ /**
  * Get all incident types enabled for a specific region.
  */
 export function getEnabledIncidentsForRegion(regionId?: string): IncidentTypeId[] {
@@ -66,7 +66,7 @@ export function getEnabledIncidentsForRegion(regionId?: string): IncidentTypeId[
   })
 }
 
-/**
+ /**
  * Get the incident-specific config for a region (thresholds, data sources, etc.)
  */
 export function getIncidentConfigForRegion(
@@ -80,7 +80,7 @@ export function getIncidentConfigForRegion(
   return { ...DEFAULT_INCIDENT_CONFIG, ...region.enabledIncidents[incidentType] }
 }
 
-/**
+ /**
  * Get alert thresholds for a specific incident type in a region.
  */
 export function getAlertThresholds(
@@ -91,7 +91,7 @@ export function getAlertThresholds(
   return cfg.alertThresholds || DEFAULT_INCIDENT_CONFIG.alertThresholds!
 }
 
-/**
+ /**
  * Get the alerting authority for a specific incident type.
  * Falls back to the region's default alertingAuthority.
  */
@@ -106,7 +106,7 @@ export function getAlertAuthority(
   return region.alertingAuthority
 }
 
-/**
+ /**
  * Get emergency contacts for a region, optionally filtered by type.
  */
 export function getEmergencyContacts(
@@ -121,21 +121,21 @@ export function getEmergencyContacts(
   return all
 }
 
-/**
+ /**
  * Get the language configured for a region.
  */
 export function getRegionLanguage(regionId?: string): string {
   return getRegion(regionId).language || 'en'
 }
 
-/**
+ /**
  * Get the unit system for a region.
  */
 export function getRegionUnits(regionId?: string): 'metric' | 'imperial' {
   return getRegion(regionId).units || 'metric'
 }
 
-/**
+ /**
  * Get a summary of all regions and their incident support.
  */
 export function getRegionSummary(): Array<{
@@ -162,7 +162,7 @@ export function getRegionSummary(): Array<{
   })
 }
 
-/**
+ /**
  * Validate that a region has all required configuration for an incident type.
  */
 export function validateRegionIncidentSupport(

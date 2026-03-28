@@ -12,6 +12,5 @@ from registry.region_registry import (
     get_region,
 )
 
-
 def is_region_enabled(region_id: str) -> bool:
     return get_region(region_id).enabled

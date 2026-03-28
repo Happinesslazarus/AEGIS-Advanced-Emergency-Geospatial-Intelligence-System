@@ -1,22 +1,20 @@
-/**
+﻿ /*
  * ClimateRiskDashboard.tsx — Climate risk analytics component that
  * aggregates data from multiple real APIs to present a unified climate
  * risk assessment for the active region.
- *
  * Data sources (all real — zero hardcoded data):
- *  - /api/predictions — AI flood predictions from AEGIS ML models
- *  - /api/alerts — Active emergency alerts from the database
- *  - /api/weather/current — Real-time weather from OpenWeather API
- *  - /api/reports — Community reports with severity distribution
- *  - /api/analytics/risk-summary — Aggregated risk statistics
- *
+ * /api/predictions — AI flood predictions from AEGIS ML models
+ * /api/alerts — Active emergency alerts from the database
+ * /api/weather/current — Real-time weather from OpenWeather API
+ * /api/reports — Community reports with severity distribution
+ * /api/analytics/risk-summary — Aggregated risk statistics
  * Displays:
- *  - Overall risk score (computed from live data)
- *  - Prediction summary with severity breakdown
- *  - Weather-to-risk correlation
- *  - Historical trend (from reports table)
- *  - Contributing factors breakdown
- */
+ * Overall risk score (computed from live data)
+ * Prediction summary with severity breakdown
+ * Weather-to-risk correlation
+ * Historical trend (from reports table)
+ * Contributing factors breakdown
+  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
@@ -27,9 +25,7 @@ import {
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Types
-// ═══════════════════════════════════════════════════════════════════════════════
 
 interface Prediction {
   area: string
@@ -49,12 +45,12 @@ interface Alert {
 }
 
 interface WeatherData {
-  temp: number
+  temperature: number
   description: string
-  wind_speed: number
+  windSpeed: number
   humidity: number
   pressure?: number
-  rain_1h?: number
+  rain?: number
 }
 
 interface ReportSummary {
@@ -69,20 +65,17 @@ interface Props {
   className?: string
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Risk Score Computation
-// ═══════════════════════════════════════════════════════════════════════════════
 
-/**
+ /*
  * Compute an overall risk score (0-100) from live data inputs.
  * This is a transparent, deterministic algorithm — not a black box.
- *
  * Weights:
- *  - Flood predictions: 40% (highest probability × 100)
- *  - Active alerts: 25% (scaled by severity)
- *  - Weather conditions: 20% (rain, wind, humidity)
- *  - Report density: 15% (recent reports indicate active situations)
- */
+ * Flood predictions: 40% (highest probability × 100)
+ * Active alerts: 25% (scaled by severity)
+ * Weather conditions: 20% (rain, wind, humidity)
+ * Report density: 15% (recent reports indicate active situations)
+  */
 function computeRiskScore(
   predictions: Prediction[],
   alerts: Alert[],
@@ -105,8 +98,8 @@ function computeRiskScore(
   // Weather component (0-100, weight 20%)
   let weatherScore = 0
   if (weather) {
-    const rainFactor = Math.min(50, (weather.rain_1h || 0) * 10)
-    const windFactor = Math.min(25, (weather.wind_speed ?? 0) * 2.5)
+    const rainFactor = Math.min(50, (weather.rain || 0) * 10)
+    const windFactor = Math.min(25, (weather.windSpeed ?? 0) * 2.5)
     const humidityFactor = weather.humidity > 80 ? 25 : weather.humidity > 60 ? 15 : 0
     weatherScore = rainFactor + windFactor + humidityFactor
   }
@@ -145,9 +138,7 @@ function riskLevel(score: number): { label: string; color: string; bg: string } 
   return { label: 'dashboard.riskLow', color: 'text-green-600 dark:text-green-400', bg: 'bg-green-500' }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Component
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Element {
   const lang = useLanguage()
@@ -262,7 +253,7 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
         </h2>
         <button
           onClick={fetchData}
-          className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-700 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:hover:text-gray-200 flex items-center gap-1 transition"
+          className="text-xs text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:text-gray-300 dark:hover:text-gray-200 flex items-center gap-1 transition"
           disabled={loading}
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
@@ -297,7 +288,7 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
             <div className="flex items-center gap-2">
               <p className="text-sm font-semibold text-gray-900 dark:text-white">{t('dashboard.overallRisk', lang)}</p>
               <span className={`flex items-center gap-0.5 text-xs font-medium ${
-                risk.trend === 'rising' ? 'text-red-500' : risk.trend === 'falling' ? 'text-green-500' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'
+                risk.trend === 'rising' ? 'text-red-500' : risk.trend === 'falling' ? 'text-green-500' : 'text-gray-400 dark:text-gray-300'
               }`}>
                 <TrendIcon className="w-3.5 h-3.5" />
                 {risk.trend}
@@ -306,7 +297,7 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
             <div className="space-y-1.5">
               {Object.entries(risk.breakdown).map(([label, value]) => (
                 <div key={label} className="flex items-center gap-2">
-                  <span className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 w-28 flex-shrink-0">{t(label, lang)}</span>
+                  <span className="text-[10px] text-gray-500 dark:text-gray-300 w-28 flex-shrink-0">{t(label, lang)}</span>
                   <div className="flex-1 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all duration-500 ${
@@ -315,7 +306,7 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
                       style={{ width: `${Math.min(100, (value || 0) * 2.5)}%` }}
                     />
                   </div>
-                  <span className="text-[10px] font-mono text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 w-6 text-right">{isNaN(value) ? '-' : value.toFixed(1)}</span>
+                  <span className="text-[10px] font-mono text-gray-500 dark:text-gray-300 w-6 text-right">{isNaN(value) ? '-' : value.toFixed(1)}</span>
                 </div>
               ))}
             </div>
@@ -352,10 +343,10 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
         />
         <StatCard
           label="Weather Risk"
-          value={weather ? `${Math.round(weather.temp)}°C` : 'N/A'}
+          value={weather ? `${Math.round(weather.temperature ?? 0)}°C` : 'N/A'}
           icon={Thermometer}
           color="text-purple-600 bg-purple-50 dark:bg-purple-950/30"
-          sub={weather ? `${weather.wind_speed} m/s wind, ${weather.humidity}% humid` : 'Loading...'}
+          sub={weather ? `${weather.windSpeed} m/s wind, ${weather.humidity}% humid` : 'Loading...'}
         />
       </div>
 
@@ -377,7 +368,7 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
                 <div key={i} className="px-4 py-3 flex items-center gap-3">
                   <div className="flex-1">
                     <p className="text-sm font-semibold text-gray-900 dark:text-white">{p.area}</p>
-                    <div className="flex items-center gap-3 text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-0.5">
+                    <div className="flex items-center gap-3 text-[10px] text-gray-500 dark:text-gray-300 mt-0.5">
                       <span>{t('dashboard.severity', lang)}: {p.severity}</span>
                       <span>{t('dashboard.confidence', lang)}: {Math.round(confSafe)}%</span>
                       {p.time_to_flood && <span>{t('dashboard.eta', lang)}: {p.time_to_flood}</span>}
@@ -409,10 +400,10 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
               <div key={i} className="bg-gray-50 dark:bg-gray-800 rounded-lg p-2.5">
                 <p className="text-xs font-medium text-gray-900 dark:text-white truncate">{f.factor}</p>
                 <div className="flex items-end justify-between mt-1">
-                  <span className="text-lg font-bold text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+                  <span className="text-lg font-bold text-gray-700 dark:text-gray-300">
                     {isNaN(f.value) ? '—' : f.value.toFixed(1)}{f.unit ? ` ${f.unit}` : ''}
                   </span>
-                  <span className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+                  <span className="text-[10px] text-gray-500 dark:text-gray-300">
                     {t('dashboard.importance', lang)}: {isNaN(f.importance) ? '—' : (f.importance * 100).toFixed(0)}%
                   </span>
                 </div>
@@ -429,14 +420,14 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
       )}
 
       {/* Methodology note */}
-      <p className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-600 leading-relaxed">
+      <p className="text-[10px] text-gray-400 dark:text-gray-600 leading-relaxed">
         {t('dashboard.methodology', lang)}
       </p>
     </div>
   )
 }
 
-// ─── StatCard ────────────────────────────────────────────────────────────────
+//  StatCard
 
 function StatCard({ label, value, icon: Icon, color, sub }: {
   label: string; value: string | number; icon: React.ElementType; color: string; sub: string
@@ -447,15 +438,11 @@ function StatCard({ label, value, icon: Icon, color, sub }: {
         <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${color}`}>
           <Icon className="w-4 h-4" />
         </div>
-        <span className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{label}</span>
+        <span className="text-[10px] text-gray-500 dark:text-gray-300">{label}</span>
       </div>
       <p className="text-xl font-bold text-gray-900 dark:text-white">{value}</p>
-      <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-0.5">{sub}</p>
+      <p className="text-[10px] text-gray-500 dark:text-gray-300 mt-0.5">{sub}</p>
     </div>
   )
 }
-
-
-
-
 

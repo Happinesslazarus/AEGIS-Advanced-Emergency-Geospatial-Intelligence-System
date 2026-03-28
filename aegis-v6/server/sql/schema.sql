@@ -1,16 +1,11 @@
--- ═══════════════════════════════════════════════════════════════════════════════
 --  AEGIS v6.1 — Production Database Schema
 --  PostgreSQL 14+ with PostGIS
---
 --  Advanced Emergency Geospatial Intelligence System
 --  AI-enabled disaster reporting, alerting, and community response platform
---
 --  Author  : Happiness Ada Lazarus (2238282)
 --  Module  : CM4134 Honours Project — Robert Gordon University
 --  Date    : 2026
---
 --  This schema creates all tables needed for the AEGIS platform:
---
 --      operators            Admin / operator / viewer accounts (bcrypt auth)
 --      departments          Organisational units for operator assignment
 --      reports              Citizen-submitted emergency reports (PostGIS Point)
@@ -21,15 +16,12 @@
 --      flood_zones          PostGIS spatial data from SEPA / QGIS exports
 --      community_help       Citizen-to-citizen mutual aid offers and requests
 --      alert_subscriptions  Citizen multi-channel alert preferences
---
 --  Prerequisites:
 --      • PostgreSQL 14 or later
 --      • PostGIS extension available on the server
---
 --  Usage:
 --      createdb aegis
 --      psql -U postgres -d aegis -f schema.sql
---
 --  Design decisions:
 --      • ENUM types replace CHECK constraints — type-safe, indexable, and
 --        enforced at the catalog level rather than per-row evaluation.
@@ -41,25 +33,18 @@
 --        by a BEFORE INSERT OR UPDATE trigger with weighted lexemes.
 --      • All timestamps are TIMESTAMPTZ (UTC-aware); all JSON is JSONB.
 --      • updated_at columns are maintained by a shared trigger function.
--- ═══════════════════════════════════════════════════════════════════════════════
 
-
--- ─────────────────────────────────────────────────────────────────────────────
 -- §0  EXTENSIONS
--- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE EXTENSION IF NOT EXISTS postgis;          -- spatial queries (ST_*)
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";      -- uuid_generate_v4()
+CREATE EXTENSION IF NOT EXISTS pgcrypto;         -- gen_random_uuid()
 
-
--- ─────────────────────────────────────────────────────────────────────────────
 -- §1  ENUM TYPES
---
 --     Centralised domain values.  Safer than CHECK constraints because the
 --     allowed set is defined once in the catalog and shared across every
 --     column that references the type.  Adding a new value is a single
 --     ALTER TYPE … ADD VALUE statement with no table rewrite.
--- ─────────────────────────────────────────────────────────────────────────────
 
 DO $$ BEGIN
 
@@ -171,17 +156,11 @@ DO $$ BEGIN
 
 END $$;
 
-
--- ─────────────────────────────────────────────────────────────────────────────
 -- §2  TABLES
--- ─────────────────────────────────────────────────────────────────────────────
 
-
--- ╔══════════════════════════════════════════════════════════════════════════╗
--- ║  departments                                                            ║
--- ║  Organisational units for operator assignment.                          ║
--- ║  Seeded with ten UK-standard emergency management departments.          ║
--- ╚══════════════════════════════════════════════════════════════════════════╝
+--   departments
+--   Organisational units for operator assignment.
+--   Seeded with ten UK-standard emergency management departments.
 
 CREATE TABLE IF NOT EXISTS departments (
     id              UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -192,14 +171,11 @@ CREATE TABLE IF NOT EXISTS departments (
     CONSTRAINT uq_departments_name UNIQUE (name)
 );
 
-
--- ╔══════════════════════════════════════════════════════════════════════════╗
--- ║  operators                                                              ║
--- ║  Admin / operator / viewer accounts.                                    ║
--- ║  Passwords are stored as bcrypt hashes — never in plaintext.            ║
--- ║  Supports soft-delete: a deleted operator's email becomes available     ║
--- ║  again thanks to the partial unique index below.                        ║
--- ╚══════════════════════════════════════════════════════════════════════════╝
+--   operators
+--   Admin / operator / viewer accounts.
+--   Passwords are stored as bcrypt hashes — never in plaintext.
+--   Supports soft-delete: a deleted operator's email becomes available
+--   again thanks to the partial unique index below.
 
 CREATE TABLE IF NOT EXISTS operators (
     id              UUID            PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -238,13 +214,10 @@ CREATE INDEX IF NOT EXISTS idx_operators_department
     ON operators (department)
     WHERE deleted_at IS NULL;
 
-
--- ╔══════════════════════════════════════════════════════════════════════════╗
--- ║  reports                                                                ║
--- ║  Citizen-submitted emergency reports with PostGIS coordinates.          ║
--- ║  Core table of the platform — heavily indexed for dashboard,            ║
--- ║  map-tile, and full-text search queries.                                ║
--- ╚══════════════════════════════════════════════════════════════════════════╝
+--   reports
+--   Citizen-submitted emergency reports with PostGIS coordinates.
+--   Core table of the platform — heavily indexed for dashboard,
+--   map-tile, and full-text search queries.
 
 CREATE TABLE IF NOT EXISTS reports (
     id                  UUID                    PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -257,32 +230,32 @@ CREATE TABLE IF NOT EXISTS reports (
     status              report_status           NOT NULL DEFAULT 'unverified',
     trapped_persons     VARCHAR(20)             NOT NULL DEFAULT 'no',
 
-    -- Location ──────────────────────────────────────────
+    -- Location
     location_text       VARCHAR(500)            NOT NULL,
     coordinates         GEOMETRY(Point, 4326)   NOT NULL,
 
-    -- Evidence ──────────────────────────────────────────
+    -- Evidence
     has_media           BOOLEAN                 NOT NULL DEFAULT false,
     media_type          VARCHAR(10),
     media_url           VARCHAR(500),
 
-    -- Reporter metadata ─────────────────────────────────
+    -- Reporter metadata
     reporter_name       VARCHAR(100)            NOT NULL DEFAULT 'Anonymous Citizen',
     reporter_ip         VARCHAR(45),
 
-    -- AI analysis (JSONB for flexibility) ───────────────
+    -- AI analysis (JSONB for flexibility)
     ai_confidence       INTEGER                 NOT NULL DEFAULT 0
                             CHECK (ai_confidence BETWEEN 0 AND 100),
     ai_analysis         JSONB                   NOT NULL DEFAULT '{}'::jsonb,
 
-    -- Operator workflow ─────────────────────────────────
+    -- Operator workflow
     operator_notes      TEXT,
     assigned_to         UUID,
     verified_by         UUID,
     verified_at         TIMESTAMPTZ,
     resolved_at         TIMESTAMPTZ,
 
-    -- Soft-delete bookkeeping ───────────────────────────
+    -- Soft-delete bookkeeping
     deleted_at          TIMESTAMPTZ,
     deleted_by          UUID,
 
@@ -292,7 +265,7 @@ CREATE TABLE IF NOT EXISTS reports (
     created_at          TIMESTAMPTZ             NOT NULL DEFAULT now(),
     updated_at          TIMESTAMPTZ             NOT NULL DEFAULT now(),
 
-    -- Constraints ───────────────────────────────────────
+    -- Constraints
     CONSTRAINT uq_reports_report_number
         UNIQUE (report_number),
 
@@ -336,12 +309,9 @@ CREATE INDEX IF NOT EXISTS idx_reports_search_vector
 CREATE INDEX IF NOT EXISTS idx_reports_ai_confidence
     ON reports (ai_confidence);
 
-
--- ╔══════════════════════════════════════════════════════════════════════════╗
--- ║  alerts                                                                 ║
--- ║  Operator-generated warnings broadcast to citizens.                     ║
--- ║  Includes optional PostGIS point + radius for geographic targeting.     ║
--- ╚══════════════════════════════════════════════════════════════════════════╝
+--   alerts
+--   Operator-generated warnings broadcast to citizens.
+--   Includes optional PostGIS point + radius for geographic targeting.
 
 CREATE TABLE IF NOT EXISTS alerts (
     id              UUID                    PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -388,13 +358,10 @@ CREATE INDEX IF NOT EXISTS idx_alerts_coordinates
     ON alerts USING GIST (coordinates)
     WHERE coordinates IS NOT NULL;
 
-
--- ╔══════════════════════════════════════════════════════════════════════════╗
--- ║  activity_log                                                           ║
--- ║  Immutable operator action audit trail.                                 ║
--- ║  Every verify, flag, alert, login, export, and print is recorded.       ║
--- ║  NO soft-delete — audit records must never be removed or altered.        ║
--- ╚══════════════════════════════════════════════════════════════════════════╝
+--   activity_log
+--   Immutable operator action audit trail.
+--   Every verify, flag, alert, login, export, and print is recorded.
+--   NO soft-delete — audit records must never be removed or altered.
 
 CREATE TABLE IF NOT EXISTS activity_log (
     id              SERIAL                  PRIMARY KEY,
@@ -434,13 +401,10 @@ CREATE INDEX IF NOT EXISTS idx_activity_log_report
     ON activity_log (report_id)
     WHERE report_id IS NOT NULL;
 
-
--- ╔══════════════════════════════════════════════════════════════════════════╗
--- ║  audit_log                                                              ║
--- ║  Extended compliance audit trail with before/after state capture.        ║
--- ║  Records WHO did WHAT to WHICH record, WHEN, and from WHERE.            ║
--- ║  NO soft-delete — compliance records are immutable by design.           ║
--- ╚══════════════════════════════════════════════════════════════════════════╝
+--   audit_log
+--   Extended compliance audit trail with before/after state capture.
+--   Records WHO did WHAT to WHICH record, WHEN, and from WHERE.
+--   NO soft-delete — compliance records are immutable by design.
 
 CREATE TABLE IF NOT EXISTS audit_log (
     id              UUID            PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -479,13 +443,10 @@ CREATE INDEX IF NOT EXISTS idx_audit_log_target
     ON audit_log (target_type, target_id)
     WHERE target_type IS NOT NULL;
 
-
--- ╔══════════════════════════════════════════════════════════════════════════╗
--- ║  ai_model_metrics                                                       ║
--- ║  AI transparency dashboard data.                                        ║
--- ║  Stores accuracy, precision, recall, F1, confusion matrices, and        ║
--- ║  feature importance vectors for each model version.                     ║
--- ╚══════════════════════════════════════════════════════════════════════════╝
+--   ai_model_metrics
+--   AI transparency dashboard data.
+--   Stores accuracy, precision, recall, F1, confusion matrices, and
+--   feature importance vectors for each model version.
 
 CREATE TABLE IF NOT EXISTS ai_model_metrics (
     id                      SERIAL          PRIMARY KEY,
@@ -508,12 +469,9 @@ CREATE TABLE IF NOT EXISTS ai_model_metrics (
 CREATE INDEX IF NOT EXISTS idx_ai_model_metrics_model
     ON ai_model_metrics (model_name, model_version);
 
-
--- ╔══════════════════════════════════════════════════════════════════════════╗
--- ║  flood_zones                                                            ║
--- ║  PostGIS spatial data imported from SEPA via QGIS GeoJSON exports.      ║
--- ║  Used for point-in-polygon flood risk checks (ST_Contains / ST_Within). ║
--- ╚══════════════════════════════════════════════════════════════════════════╝
+--   flood_zones
+--   PostGIS spatial data imported from SEPA via QGIS GeoJSON exports.
+--   Used for point-in-polygon flood risk checks (ST_Contains / ST_Within).
 
 CREATE TABLE IF NOT EXISTS flood_zones (
     id              SERIAL                      PRIMARY KEY,
@@ -534,12 +492,9 @@ CREATE INDEX IF NOT EXISTS idx_flood_zones_geometry
 CREATE INDEX IF NOT EXISTS idx_flood_zones_type_prob
     ON flood_zones (flood_type, probability);
 
-
--- ╔══════════════════════════════════════════════════════════════════════════╗
--- ║  community_help                                                         ║
--- ║  Citizen-to-citizen mutual aid offers and requests.                     ║
--- ║  Categories: shelter, food, transport, medical, clothing, other.        ║
--- ╚══════════════════════════════════════════════════════════════════════════╝
+--   community_help
+--   Citizen-to-citizen mutual aid offers and requests.
+--   Categories: shelter, food, transport, medical, clothing, other.
 
 CREATE TABLE IF NOT EXISTS community_help (
     id              UUID                        PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -575,12 +530,9 @@ CREATE INDEX IF NOT EXISTS idx_community_help_type
 CREATE INDEX IF NOT EXISTS idx_community_help_category
     ON community_help (category);
 
-
--- ╔══════════════════════════════════════════════════════════════════════════╗
--- ║  alert_subscriptions                                                    ║
--- ║  Citizen multi-channel alert delivery preferences.                      ║
--- ║  Channels: email, SMS, Telegram, WhatsApp, web push.                   ║
--- ╚══════════════════════════════════════════════════════════════════════════╝
+--   alert_subscriptions
+--   Citizen multi-channel alert delivery preferences.
+--   Channels: email, SMS, Telegram, WhatsApp, web push.
 
 CREATE TABLE IF NOT EXISTS alert_subscriptions (
     id                  UUID            PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -612,18 +564,14 @@ CREATE INDEX IF NOT EXISTS idx_alert_subscriptions_verified
     ON alert_subscriptions (verified)
     WHERE verified = true;
 
-
--- ─────────────────────────────────────────────────────────────────────────────
 -- §3  FUNCTIONS & TRIGGERS
--- ─────────────────────────────────────────────────────────────────────────────
 
+--   3a. Auto-generate report numbers: RPT-001, RPT-002, …
+--   Fires BEFORE INSERT.  Only when report_number is NULL or empty.
+--   Uses a dedicated sequence to avoid MAX()+1 race conditions under
+--   concurrent inserts.
 
--- ┌──────────────────────────────────────────────────────────────────────────┐
--- │  3a. Auto-generate report numbers: RPT-001, RPT-002, …                  │
--- │                                                                          │
--- │  Fires BEFORE INSERT.  Only when report_number is NULL or empty.         │
--- │  Finds the current maximum numeric suffix and increments.                │
--- └──────────────────────────────────────────────────────────────────────────┘
+CREATE SEQUENCE IF NOT EXISTS report_number_seq START 1;
 
 CREATE OR REPLACE FUNCTION generate_report_number()
 RETURNS TRIGGER
@@ -632,13 +580,7 @@ AS $$
 DECLARE
     next_num INTEGER;
 BEGIN
-    SELECT COALESCE(
-               MAX(CAST(SUBSTRING(report_number FROM 5) AS INTEGER)),
-               0
-           ) + 1
-      INTO next_num
-      FROM reports;
-
+    next_num := nextval('report_number_seq');
     NEW.report_number := 'RPT-' || LPAD(next_num::TEXT, 3, '0');
     RETURN NEW;
 END;
@@ -652,12 +594,8 @@ CREATE TRIGGER trg_report_number
     WHEN (NEW.report_number IS NULL OR NEW.report_number = '')
     EXECUTE FUNCTION generate_report_number();
 
-
--- ┌──────────────────────────────────────────────────────────────────────────┐
--- │  3b. Generic updated_at timestamp trigger                                │
--- │                                                                          │
--- │  Shared across every mutable table that carries an updated_at column.    │
--- └──────────────────────────────────────────────────────────────────────────┘
+--   3b. Generic updated_at timestamp trigger
+--   Shared across every mutable table that carries an updated_at column.
 
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER
@@ -697,18 +635,13 @@ CREATE TRIGGER trg_alert_subscriptions_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION set_updated_at();
 
-
--- ┌──────────────────────────────────────────────────────────────────────────┐
--- │  3c. Full-text search vector auto-population for reports                 │
--- │                                                                          │
--- │  Combines three weighted columns into a single tsvector:                 │
--- │      A (highest) — description        (what happened)                    │
--- │      B (medium)  — display_type       (incident type label)              │
--- │      C (lowest)  — location_text      (where it happened)               │
--- │                                                                          │
--- │  Usage:  SELECT * FROM reports                                           │
--- │          WHERE search_vector @@ plainto_tsquery('english', 'flooding');   │
--- └──────────────────────────────────────────────────────────────────────────┘
+--   3c. Full-text search vector auto-population for reports
+--   Combines three weighted columns into a single tsvector:
+--       A (highest) — description        (what happened)
+--       B (medium)  — display_type       (incident type label)
+--       C (lowest)  — location_text      (where it happened)
+--   Usage:  SELECT * FROM reports
+--           WHERE search_vector @@ plainto_tsquery('english', 'flooding');
 
 CREATE OR REPLACE FUNCTION reports_search_vector_update()
 RETURNS TRIGGER
@@ -731,13 +664,9 @@ CREATE TRIGGER trg_reports_search_vector
     FOR EACH ROW
     EXECUTE FUNCTION reports_search_vector_update();
 
-
--- ─────────────────────────────────────────────────────────────────────────────
 -- §4  SEED DATA — Departments
---
 --     Ten UK-standard emergency management departments.
 --     ON CONFLICT ensures idempotent re-runs.
--- ─────────────────────────────────────────────────────────────────────────────
 
 INSERT INTO departments (name, description) VALUES
     ('Emergency Operations',    'Central emergency coordination'),
@@ -752,22 +681,14 @@ INSERT INTO departments (name, description) VALUES
     ('Command & Control',       'Senior leadership and strategy')
 ON CONFLICT (name) DO NOTHING;
 
-
--- ═══════════════════════════════════════════════════════════════════════════════
 -- END OF SCHEMA
--- ═══════════════════════════════════════════════════════════════════════════════
 
-
--- ═══════════════════════════════════════════════════════════════════════════════
 --  AEGIS v6.2 — Schema Extensions
 --  Additional tables for report media, flood predictions, resource deployments
--- ═══════════════════════════════════════════════════════════════════════════════
 
--- ╔══════════════════════════════════════════════════════════════════════════╗
--- ║  report_media                                                            ║
--- ║  Relational evidence storage for citizen-submitted report images.        ║
--- ║  Separate from reports table — supports multi-image per report.          ║
--- ╚══════════════════════════════════════════════════════════════════════════╝
+--   report_media
+--   Relational evidence storage for citizen-submitted report images.
+--   Separate from reports table — supports multi-image per report.
 
 CREATE TABLE IF NOT EXISTS report_media (
     id                      UUID                    PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -796,12 +717,9 @@ CREATE TABLE IF NOT EXISTS report_media (
 CREATE INDEX IF NOT EXISTS idx_report_media_report_id
     ON report_media (report_id);
 
-
--- ╔══════════════════════════════════════════════════════════════════════════╗
--- ║  flood_predictions                                                       ║
--- ║  AI-generated flood prediction records for operator pre-alerting.        ║
--- ║  Linked to AI model version for traceability.                            ║
--- ╚══════════════════════════════════════════════════════════════════════════╝
+--   flood_predictions
+--   AI-generated flood prediction records for operator pre-alerting.
+--   Linked to AI model version for traceability.
 
 CREATE TABLE IF NOT EXISTS flood_predictions (
     id                      UUID                    PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -837,12 +755,9 @@ CREATE INDEX IF NOT EXISTS idx_flood_predictions_coordinates
     ON flood_predictions USING GIST (coordinates)
     WHERE coordinates IS NOT NULL;
 
-
--- ╔══════════════════════════════════════════════════════════════════════════╗
--- ║  resource_deployments                                                    ║
--- ║  Zone-based resource tracking with AI recommendations.                   ║
--- ║  Supports operator deploy/recall workflow.                               ║
--- ╚══════════════════════════════════════════════════════════════════════════╝
+--   resource_deployments
+--   Zone-based resource tracking with AI recommendations.
+--   Supports operator deploy/recall workflow.
 
 CREATE TABLE IF NOT EXISTS resource_deployments (
     id                      UUID                    PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -871,13 +786,9 @@ CREATE TABLE IF NOT EXISTS resource_deployments (
 CREATE INDEX IF NOT EXISTS idx_resource_deployments_zone
     ON resource_deployments (zone);
 
-
--- ═══════════════════════════════════════════════════════════════════════════════
 --  AEGIS v6.2 — Extended Schema: Account Governance, Delivery, AI, Spatial
--- ═══════════════════════════════════════════════════════════════════════════════
 
 -- §A  ACCOUNT GOVERNANCE — Suspension support
--- ─────────────────────────────────────────────────────────────────────────────
 
 ALTER TABLE operators
     ADD COLUMN IF NOT EXISTS is_suspended    BOOLEAN     NOT NULL DEFAULT false,
@@ -886,10 +797,7 @@ ALTER TABLE operators
     ADD COLUMN IF NOT EXISTS anonymised_at   TIMESTAMPTZ,
     ADD COLUMN IF NOT EXISTS anonymised_by   UUID REFERENCES operators(id) ON DELETE SET NULL;
 
-
--- ─────────────────────────────────────────────────────────────────────────────
 -- §B  ALERT DELIVERY LOG — Track every channel delivery attempt
--- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS alert_delivery_log (
     id              UUID            PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -918,10 +826,7 @@ CREATE INDEX IF NOT EXISTS idx_alert_delivery_status
 CREATE INDEX IF NOT EXISTS idx_alert_delivery_channel
     ON alert_delivery_log (channel);
 
-
--- ─────────────────────────────────────────────────────────────────────────────
 -- §C  AI EXECUTION LOG — Every AI model invocation is logged
--- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS ai_executions (
     id                UUID            PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -946,10 +851,7 @@ CREATE INDEX IF NOT EXISTS idx_ai_executions_created
 CREATE INDEX IF NOT EXISTS idx_ai_executions_target
     ON ai_executions (target_type, target_id);
 
-
--- ─────────────────────────────────────────────────────────────────────────────
 -- §D  PREDICTION RECORDS — Stored results from AI prediction engine
--- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS prediction_records (
     id                  UUID            PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -980,10 +882,7 @@ CREATE INDEX IF NOT EXISTS idx_prediction_records_created
 CREATE INDEX IF NOT EXISTS idx_prediction_records_geo
     ON prediction_records USING GIST (coordinates);
 
-
--- ─────────────────────────────────────────────────────────────────────────────
 -- §E  SPATIAL INTELLIGENCE — Risk layers, heatmaps, overlays
--- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS risk_layers (
     id              UUID            PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -1003,7 +902,6 @@ CREATE INDEX IF NOT EXISTS idx_risk_layers_geo
 CREATE INDEX IF NOT EXISTS idx_risk_layers_type
     ON risk_layers (layer_type);
 
-
 CREATE TABLE IF NOT EXISTS heatmap_layers (
     id              UUID            PRIMARY KEY DEFAULT uuid_generate_v4(),
     name            VARCHAR(255)    NOT NULL,
@@ -1017,10 +915,7 @@ CREATE TABLE IF NOT EXISTS heatmap_layers (
 CREATE INDEX IF NOT EXISTS idx_heatmap_layers_source
     ON heatmap_layers (source);
 
-
--- ─────────────────────────────────────────────────────────────────────────────
 -- §F  REPORT STATUS HISTORY — Track every status change
--- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS report_status_history (
     id              UUID            PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -1043,10 +938,7 @@ CREATE INDEX IF NOT EXISTS idx_report_status_history_report
 CREATE INDEX IF NOT EXISTS idx_report_status_history_created
     ON report_status_history (created_at DESC);
 
-
--- ─────────────────────────────────────────────────────────────────────────────
 -- §G  SYSTEM EVENTS — Application-level event log
--- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS system_events (
     id              UUID            PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -1068,4 +960,4 @@ CREATE INDEX IF NOT EXISTS idx_system_events_actor
 
 CREATE INDEX IF NOT EXISTS idx_system_events_created
     ON system_events (created_at DESC);
-
+

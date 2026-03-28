@@ -61,8 +61,8 @@ export default function CountrySearch({ countries, selected, onChange, className
       >
         <span className="text-base leading-none">{selected.flag}</span>
         <span className="font-medium text-aegis-600 dark:text-aegis-400">{selected.dial}</span>
-        <span className="text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 truncate text-xs flex-1 text-left">{selected.name}</span>
-        <ChevronDown className={`w-3.5 h-3.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex-shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+        <span className="text-gray-700 dark:text-gray-300 truncate text-xs flex-1 text-left">{selected.name}</span>
+        <ChevronDown className={`w-3.5 h-3.5 text-gray-400 dark:text-gray-300 flex-shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {/* Dropdown */}
@@ -70,7 +70,7 @@ export default function CountrySearch({ countries, selected, onChange, className
         <div className="absolute z-50 top-full mt-1 left-0 w-72 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl overflow-hidden">
           {/* Search input */}
           <div className="p-2 border-b border-gray-100 dark:border-gray-800 flex items-center gap-2">
-            <Search className="w-3.5 h-3.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex-shrink-0" />
+            <Search className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300 flex-shrink-0" />
             <input
               ref={inputRef}
               type="text"
@@ -81,7 +81,7 @@ export default function CountrySearch({ countries, selected, onChange, className
               style={{ colorScheme: themeDark ? 'dark' : 'light' }}
             />
             {query && (
-              <button onClick={() => setQuery('')} className="text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-600">
+              <button onClick={() => setQuery('')} className="text-gray-400 dark:text-gray-300 hover:text-gray-600">
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
@@ -89,7 +89,7 @@ export default function CountrySearch({ countries, selected, onChange, className
           {/* Country list */}
           <div className="max-h-56 overflow-y-auto">
             {filtered.length === 0 ? (
-              <p className="text-xs text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 text-center py-4">{t('country.noResults', lang)}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-300 text-center py-4">{t('country.noResults', lang)}</p>
             ) : (
                 filtered.map(c => (
                 <button
@@ -100,15 +100,15 @@ export default function CountrySearch({ countries, selected, onChange, className
                 >
                   <span className="text-base leading-none w-6 flex-shrink-0">{c.flag}</span>
                   <span className="font-medium text-aegis-600 dark:text-aegis-400 w-12 flex-shrink-0 text-xs">{c.dial}</span>
-                  <span className="truncate text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 text-xs">{c.name}</span>
+                  <span className="truncate text-gray-700 dark:text-gray-300 text-xs">{c.name}</span>
                   {c.code === selected.code && (
-                    <span className="ml-auto text-blue-500 text-[10px] font-bold flex-shrink-0">✓</span>
+                    <span className="ml-auto text-blue-500 text-[10px] font-bold flex-shrink-0">?</span>
                   )}
                 </button>
               ))
             )}
           </div>
-          <div className="text-[9px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 text-center py-1 border-t border-gray-100 dark:border-gray-800">
+          <div className="text-[9px] text-gray-400 dark:text-gray-300 text-center py-1 border-t border-gray-100 dark:border-gray-800">
             {filtered.length} / {countries.length} {t('country.countries', lang)}
           </div>
         </div>
@@ -116,7 +116,4 @@ export default function CountrySearch({ countries, selected, onChange, className
     </div>
   )
 }
-
-
-
-
+

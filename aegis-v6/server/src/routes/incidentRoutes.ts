@@ -1,5 +1,5 @@
-/**
- * routes/incidentRoutes.ts â€” Unified v1 incident API
+﻿/**
+ * routes/incidentRoutes.ts — Unified v1 incident API
  *
  * Dynamically mounts routes for all registered incident modules.
  *
@@ -16,7 +16,7 @@
  *   GET  /api/v1/incidents/registry
  */
 
-import { Router, Request, Response } from 'express'
+import { Router, Request, Response, NextFunction } from 'express'
 import { authMiddleware } from '../middleware/auth.js'
 import {
   getAllIncidentModules,
@@ -26,15 +26,20 @@ import {
   getDashboardSummary,
   listIncidentIds,
 } from '../incidents/index.js'
+import { AppError } from '../utils/AppError.js'
+import { regionRegistry } from '../adapters/regions/RegionRegistry.js'
 
 const router = Router()
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// Cross-incident endpoints
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* Resolve region from request query, env, or active adapter */
+function getRequestRegion(req: Request): string {
+  return String(req.query.region || process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId)
+}
 
-/**
- * GET /api/v1/incidents/registry â€” List all registered incident types with metadata
+// Cross-incident endpoints
+
+ /**
+ * GET /api/v1/incidents/registry — List all registered incident types with metadata
  */
 router.get('/registry', (_req: Request, res: Response) => {
   const registries = getAllIncidentRegistries()
@@ -45,25 +50,25 @@ router.get('/registry', (_req: Request, res: Response) => {
   })
 })
 
-/**
- * GET /api/v1/incidents/all/dashboard â€” Cross-incident dashboard summary
+ /**
+ * GET /api/v1/incidents/all/dashboard — Cross-incident dashboard summary
  */
-router.get('/all/dashboard', authMiddleware, async (req: Request, res: Response) => {
+router.get('/all/dashboard', authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const region = String(req.query.region || process.env.REGION_ID || 'aberdeen_scotland_uk')
+    const region = getRequestRegion(req)
     const summary = await getDashboardSummary(region)
     res.json({ region, ...summary })
-  } catch (err: any) {
-    res.status(500).json({ error: 'Failed to generate dashboard summary', details: err.message })
+  } catch (err) {
+    next(err)
   }
 })
 
-/**
- * GET /api/v1/incidents/all/predictions â€” All predictions across incident types
+ /**
+ * GET /api/v1/incidents/all/predictions — All predictions across incident types
  */
-router.get('/all/predictions', authMiddleware, async (req: Request, res: Response) => {
+router.get('/all/predictions', authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const region = String(req.query.region || process.env.REGION_ID || 'aberdeen_scotland_uk')
+    const region = getRequestRegion(req)
     const modules = getOperationalModules()
     const allPredictions = await Promise.all(
       modules.map(async (mod) => {
@@ -77,17 +82,17 @@ router.get('/all/predictions', authMiddleware, async (req: Request, res: Respons
     )
     const flat = allPredictions.flat()
     res.json({ region, predictions: flat, count: flat.length })
-  } catch (err: any) {
-    res.status(500).json({ error: 'Failed to fetch all predictions', details: err.message })
+  } catch (err) {
+    next(err)
   }
 })
 
-/**
- * GET /api/v1/incidents/all/alerts â€” All alerts across incident types
+ /**
+ * GET /api/v1/incidents/all/alerts — All alerts across incident types
  */
-router.get('/all/alerts', async (req: Request, res: Response) => {
+router.get('/all/alerts', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const region = String(req.query.region || process.env.REGION_ID || 'aberdeen_scotland_uk')
+    const region = getRequestRegion(req)
     const modules = getOperationalModules()
     const allAlerts = await Promise.all(
       modules.map(async (mod) => {
@@ -100,17 +105,17 @@ router.get('/all/alerts', async (req: Request, res: Response) => {
     )
     const flat = allAlerts.flat()
     res.json({ region, alerts: flat, count: flat.length })
-  } catch (err: any) {
-    res.status(500).json({ error: 'Failed to fetch all alerts', details: err.message })
+  } catch (err) {
+    next(err)
   }
 })
 
-/**
- * GET /api/v1/incidents/all/map-data â€” Combined map data for all incidents
+ /**
+ * GET /api/v1/incidents/all/map-data — Combined map data for all incidents
  */
-router.get('/all/map-data', async (req: Request, res: Response) => {
+router.get('/all/map-data', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const region = String(req.query.region || process.env.REGION_ID || 'aberdeen_scotland_uk')
+    const region = getRequestRegion(req)
     const modules = getOperationalModules()
     const allMapData = await Promise.all(
       modules.map(async (mod) => {
@@ -123,15 +128,12 @@ router.get('/all/map-data', async (req: Request, res: Response) => {
       })
     )
     res.json({ region, layers: allMapData })
-  } catch (err: any) {
-    res.status(500).json({ error: 'Failed to fetch map data', details: err.message })
+  } catch (err) {
+    next(err)
   }
 })
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// Dynamic per-incident routing â€” mounts each module's router
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-
+// Dynamic per-incident routing — mounts each module's router
 
 router.post('/:type/report', authMiddleware, (_req: Request, _res: Response, next) => next())
 router.get('/:type/predictions', authMiddleware, (_req: Request, _res: Response, next) => next())

@@ -40,3 +40,4 @@ export const LANDSLIDE_RISK_THRESHOLDS = {
   slopeAngleCritical: 35, // degrees
   soilMoistureCritical: 80 // %
 }
+

@@ -47,3 +47,4 @@ export const FLOOD_SEVERITY_MAPPING = {
   'Flood Alert': 'Medium',
   'No Longer In Force': 'Low'
 }
+

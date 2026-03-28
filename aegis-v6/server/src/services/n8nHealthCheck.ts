@@ -11,6 +11,7 @@
 
 import { activateFallbackJobs, deactivateFallbackJobs } from './cronJobs.js'
 import { tryRegisterWorkflows, resetRegistration } from './n8nWorkflowService.js'
+import { logger } from './logger.js'
 
 export interface N8nHealthState {
   isHealthy: boolean
@@ -48,7 +49,7 @@ function n8nHeaders(): Record<string, string> {
   return headers
 }
 
-/**
+ /**
  * Check if n8n is reachable and fetch version/workflow stats.
  */
 async function checkN8nHealth(): Promise<boolean> {
@@ -112,7 +113,7 @@ async function checkN8nHealth(): Promise<boolean> {
   }
 }
 
-/**
+ /**
  * Main health check loop iteration
  */
 async function runCheck(): Promise<void> {
@@ -131,7 +132,7 @@ async function runCheck(): Promise<void> {
 
     if (wasDown && state.fallbackActive) {
       // n8n recovered — deactivate fallback
-      console.log(`[n8n] ✅ n8n recovered — deactivating fallback cron jobs`)
+      logger.info('[n8n] n8n recovered — deactivating fallback cron jobs')
       state.fallbackActive = false
       deactivateFallbackJobs()
     }
@@ -142,17 +143,17 @@ async function runCheck(): Promise<void> {
 
     if (state.consecutiveFailures >= MAX_FAILURES_BEFORE_FALLBACK && !state.fallbackActive) {
       // n8n has been down for 3+ checks — activate fallback
-      console.warn(`[n8n] ⚠️ n8n unreachable for ${state.consecutiveFailures} consecutive checks — activating fallback cron jobs`)
+      logger.warn({ failures: state.consecutiveFailures }, '[n8n] n8n unreachable — activating fallback cron jobs')
       state.fallbackActive = true
       resetRegistration() // re-register workflows when n8n recovers
       activateFallbackJobs()
     } else if (state.consecutiveFailures < MAX_FAILURES_BEFORE_FALLBACK) {
-      console.warn(`[n8n] ⚠️ n8n health check failed (${state.consecutiveFailures}/${MAX_FAILURES_BEFORE_FALLBACK})`)
+      logger.warn({ failures: state.consecutiveFailures, maxFailures: MAX_FAILURES_BEFORE_FALLBACK }, '[n8n] Health check failed')
     }
   }
 }
 
-/**
+ /**
  * Start the n8n health monitor.
  * Called from server startup (index.ts).
  */
@@ -161,7 +162,7 @@ export function startN8nHealthMonitor(): void {
 
   // If N8N_BASE_URL is not configured, immediately activate fallback
   if (!process.env.N8N_BASE_URL) {
-    console.log('[n8n] N8N_BASE_URL not configured — running in fallback mode (cron jobs active)')
+    logger.info('[n8n] N8N_BASE_URL not configured — running in fallback mode (cron jobs active)')
     state.isHealthy = false
     state.fallbackActive = true
     state.lastChecked = new Date()
@@ -170,7 +171,7 @@ export function startN8nHealthMonitor(): void {
     return
   }
 
-  console.log(`[n8n] Starting health monitor (checking every ${CHECK_INTERVAL_MS / 1000}s, fallback after ${MAX_FAILURES_BEFORE_FALLBACK} failures)`)
+  logger.info({ intervalSec: CHECK_INTERVAL_MS / 1000, maxFailures: MAX_FAILURES_BEFORE_FALLBACK }, '[n8n] Starting health monitor')
 
   // Initial check
   runCheck()
@@ -179,7 +180,7 @@ export function startN8nHealthMonitor(): void {
   intervalId = setInterval(runCheck, CHECK_INTERVAL_MS)
 }
 
-/**
+ /**
  * Stop the health monitor (for graceful shutdown).
  */
 export function stopN8nHealthMonitor(): void {
@@ -189,7 +190,7 @@ export function stopN8nHealthMonitor(): void {
   }
 }
 
-/**
+ /**
  * Get current n8n health state for the System Health dashboard.
  */
 export function getN8nHealthState(): N8nHealthState {

@@ -1,7 +1,5 @@
--- ═══════════════════════════════════════════════════════════════════
 -- Seed risk_layers with real UK flood risk zone polygons
 -- Based on EA/SEPA known flood zones (PostGIS geometry)
--- ═══════════════════════════════════════════════════════════════════
 
 -- Aberdeen — River Don floodplain (Bridge of Don to Seaton)
 INSERT INTO risk_layers (name, layer_type, geometry_data, properties, model_version)

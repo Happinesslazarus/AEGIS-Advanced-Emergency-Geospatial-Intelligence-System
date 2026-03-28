@@ -33,7 +33,6 @@ from .evaluator import ModelEvaluator
 from .hyperparameter_tuner import HyperparameterTuner
 from .experiment_tracker import ExperimentTracker
 
-
 class TrainingPipeline:
     """
     Orchestrate complete model training pipeline.
@@ -50,7 +49,7 @@ class TrainingPipeline:
         # Initialize components
         self.data_loader = DataLoader(config_path)
         self.feature_extractor = FeatureExtractor(config_path)
-        self.feature_engineer = FeatureEngineer(config_path)
+        self.feature_engineer = FeatureEngineer()
         self.model_trainer = ModelTrainer(config_path)
         self.evaluator = ModelEvaluator(config_path)
         self.hp_tuner = HyperparameterTuner(config_path)
@@ -188,18 +187,14 @@ class TrainingPipeline:
                 logger.error(error_msg)
                 raise ValueError(error_msg)
             
-            # Time series split or random split
-            if self.validation_config['strategy'] == 'time_series_split':
-                # Use last 20% as validation
-                split_idx = int(len(X) * 0.8)
-                X_train, X_val = X.iloc[:split_idx], X.iloc[split_idx:]
-                y_train, y_val = y[:split_idx], y[split_idx:]
-            else:
-                X_train, X_val, y_train, y_val = train_test_split(
-                    X, y,
-                    test_size=self.validation_config['test_size'],
-                    random_state=self.seed
-                )
+            # Stratified split to ensure both classes appear in train and validation
+            # Time-series split is inappropriate when data is concatenated pos+neg reports
+            X_train, X_val, y_train, y_val = train_test_split(
+                X, y,
+                test_size=self.validation_config['test_size'],
+                random_state=self.seed,
+                stratify=y
+            )
             
             logger.info(f"✓ Train/test split complete:")
             logger.info(f"  • Training set: {len(X_train)} samples ({len(X_train)/len(X)*100:.1f}%)")
@@ -488,4 +483,4 @@ class TrainingPipeline:
         comparison_df = pd.DataFrame(comparison_data)
         
         return comparison_df
-
+

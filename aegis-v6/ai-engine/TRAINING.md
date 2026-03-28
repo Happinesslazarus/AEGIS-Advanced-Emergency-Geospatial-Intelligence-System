@@ -1,15 +1,11 @@
-"""
-═══════════════════════════════════════════════════════════════════════════════
+﻿"""
  AEGIS PRODUCTION ML IMPLEMENTATION GUIDE
  Real ML Models Trained on Historical Database Reports
-═══════════════════════════════════════════════════════════════════════════════
 
 CRITICAL RULE: NO synthetic data, NO heuristics, ONLY real ML trained on production data
 """
 
-# ═══════════════════════════════════════════════════════════════════════════════
 # PHASE 1: REPORT CLASSIFICATION (HAZARD TYPE)
-# ═══════════════════════════════════════════════════════════════════════════════
 
 ## STATUS: ✅ READY TO TRAIN
 
@@ -50,9 +46,7 @@ curl -X POST http://localhost:8000/api/classify-report \
 ```
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
 # PHASE 2: SEVERITY PREDICTION
-# ═══════════════════════════════════════════════════════════════════════════════
 
 ## STATUS: ✅ READY TO TRAIN
 
@@ -87,15 +81,15 @@ curl -X POST http://localhost:8000/api/predict-severity \
 ```
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# PHASE 3: IMAGE CLASSIFICATION (FUTURE)
-# ═══════════════════════════════════════════════════════════════════════════════
+# PHASE 3: IMAGE CLASSIFICATION (VISION PROGRAM)
 
 ## STATUS: ⏳ REQUIRES LABELING
 
 ## AVAILABLE DATA:
 - ~3,000 reports have media_url (images)
-- NOT YET LABELED BY HAZARD TYPE
+- Internal AEGIS benchmark exists, but it is only a smoke test
+- External multi-source data should be merged through data/vision_dataset_sources.json
+- Use scripts/build_vision_dataset_manifest.py to build the unified manifest
 
 ## WORKFLOW:
 1. Export images for labeling:
@@ -103,34 +97,59 @@ curl -X POST http://localhost:8000/api/predict-severity \
    python -m app.training.data_labeling_pipeline export-images
    ```
 
-2. This creates: labeled_data/images_for_labeling.csv
+2. Profile the local stack and choose the dataset drive:
+   ```bash
+   python scripts/profile_local_stack.py
+   ```
+
+3. Bootstrap the curated external dataset workspace:
+   ```bash
+   python scripts/bootstrap_vision_sources.py --dataset-root D:/aegis-datasets
+   ```
+
+4. Optional: download direct-download sources such as CrisisMMD:
+   ```bash
+   python scripts/bootstrap_vision_sources.py --dataset-root D:/aegis-datasets --download crisismmd --extract
+   ```
+
+5. This creates: labeled_data/images_for_labeling.csv
    With columns: id, report_number, display_type, media_url, created_at
 
-3. MANUAL LABELING (8-16 hours):
-   - Download each image from media_url
-   - Classify as: flood | wildfire | drought | heatwave | storm | other
-   - Add "hazard_type" column to CSV
+6. CURATION STRATEGY:
+   - Keep internal AEGIS citizen-photo data as the highest-priority source
+   - Add CrisisMMD for social-media-style disaster imagery
+   - Add FloodNet as an auxiliary flood source
+   - Add xBD/xView2 as auxiliary damage/disaster imagery
+   - Keep evaluation separate from training
+   - Target at least 1,000 held-out evaluation images and 12,000+ training images
+   - Store external datasets on the drive with the most free space, then point the manifest builder at that root with AEGIS_VISION_DATASET_ROOT
 
-4. Import labeled data:
+7. Build the unified manifest:
+   ```bash
+   set AEGIS_VISION_DATASET_ROOT=D:/aegis-datasets
+   python scripts/build_vision_dataset_manifest.py
+   ```
+
+8. Import labeled data:
    ```bash
    python -m app.training.data_labeling_pipeline import-images labeled_data/images_for_labeling.csv
    ```
 
-5. Train model:
+9. Train model:
    ```bash
    python -m app.training.ml_pipeline train_image_classifier
    ```
 
 ## TECHNOLOGY:
-- ResNet50 or EfficientNet (transfer learning)
-- Fine-tuned on 300+ labeled disaster images
-- PyTorch or TensorFlow
+- Keep CLIP zero-shot as the local baseline
+- Build a normalized manifest first, then train on the merged dataset
+- Favor CLIP or SigLIP embedding classifiers before heavier custom CNN work
+- Use small CNN baselines only after the dataset is large enough to justify them
+- For this 8GB RTX 2060 SUPER profile, keep the main chat model and the vision model separate
 - Results: model_registry/image_classifier/model_*.pt
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
 # PHASE 4: FAKE DETECTION (FUTURE)
-# ═══════════════════════════════════════════════════════════════════════════════
 
 ## STATUS: ⏳ REQUIRES LABELING
 
@@ -180,9 +199,7 @@ curl -X POST http://localhost:8000/api/predict-severity \
 - Results: model_registry/fake_detector/model_*.pkl
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
 # PHASE 5: MODEL DRIFT DETECTION
-# ═══════════════════════════════════════════════════════════════════════════════
 
 ## STATUS: 🔄 IN PROGRESS
 
@@ -215,9 +232,7 @@ When drift detected:
 6. If better, promote to production
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
 # PHASE 6: A/B TESTING FRAMEWORK
-# ═══════════════════════════════════════════════════════════════════════════════
 
 ## STATUS: 🔄 IN PROGRESS
 
@@ -240,9 +255,9 @@ result = tester.predict(
 )
 
 # Result includes:
-# - prediction
-# - model_version (v1 or v2)
-# - metrics tracked for comparison
+# prediction
+# model_version (v1 or v2)
+# metrics tracked for comparison
 ```
 
 ## METRICS TRACKED:
@@ -252,9 +267,7 @@ result = tester.predict(
 - Downstream task success
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
 # PHASE 7: WEBSOCKET REAL-TIME PREDICTIONS
-# ═══════════════════════════════════════════════════════════════════════════════
 
 ## STATUS: 🔄 IN PROGRESS
 
@@ -298,9 +311,7 @@ ws.send(JSON.stringify({
 - Can integrate with map visualization
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
 # QUICK START CHECKLIST
-# ═══════════════════════════════════════════════════════════════════════════════
 
 - [x] Report Classifier (Ready to train now)
 - [x] Severity Predictor (Ready to train now)
@@ -340,9 +351,7 @@ curl http://localhost:8000/api/classify-report -X POST -d '...'
 - Auto-retrain triggers
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
 # DATABASE SCHEMA NOTES
-# ═══════════════════════════════════════════════════════════════════════════════
 
 REPORTS TABLE STRUCTURE:
 - id (UUID)
@@ -369,9 +378,7 @@ AI_PREDICTIONS TABLE:
 - generated_at (TIMESTAMPTZ)
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
 # PRODUCTION DEPLOYMENT CHECKLIST
-# ═══════════════════════════════════════════════════════════════════════════════
 
 Before deploying to production:
 
@@ -392,3 +399,4 @@ SIGN-OFF REQUIRED FROM:
 - [ ] Operations team
 - [ ] Legal/Compliance (for false positive rates)
 """
+

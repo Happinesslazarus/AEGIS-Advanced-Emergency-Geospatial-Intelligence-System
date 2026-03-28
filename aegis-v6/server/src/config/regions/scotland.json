@@ -1,0 +1,139 @@
+{
+  "regionId": "scotland",
+  "name": "Scotland",
+  "country": "United Kingdom",
+  "countryCode": "GB",
+  "timezone": "Europe/London",
+  "languages": ["en"],
+  "units": "metric",
+  "currency": "GBP",
+
+  "centre": { "lat": 56.49, "lng": -4.20 },
+  "zoom": 7,
+  "bounds": { "north": 60.86, "south": 54.63, "east": -0.73, "west": -8.65 },
+
+  "emergencyNumber": "999",
+  "floodAuthority": "SEPA",
+  "weatherAuthority": "Met Office",
+
+  "emergencyContacts": [
+    { "name": "Emergency Services", "number": "999", "type": "police" },
+    { "name": "Police Scotland (non-emergency)", "number": "101", "type": "police" },
+    { "name": "Scottish Fire & Rescue", "number": "999", "type": "fire" },
+    { "name": "NHS 24", "number": "111", "type": "ambulance" },
+    { "name": "SSEN Power Outages", "number": "105", "type": "utility" },
+    { "name": "Scottish Water", "number": "0800 077 8778", "type": "utility" },
+    { "name": "SEPA Floodline", "number": "0345 988 1188", "type": "flood_authority" },
+    { "name": "Samaritans", "number": "116 123", "type": "mental_health", "available": "24/7" },
+    { "name": "NHS 24 Mental Health", "number": "111", "type": "mental_health" },
+    { "name": "CALM", "number": "0800 585858", "type": "mental_health" }
+  ],
+
+  "phoneFormat": {
+    "countryCode": "GB",
+    "dialCode": "+44",
+    "nationalFormat": "07xxx xxxxxx",
+    "nationalRegex": "^0[1-9]\\d{8,9}$",
+    "example": "+447700900123"
+  },
+
+  "ingestionEndpoints": {
+    "flood_warnings": "https://floodline.sepa.org.uk/floodmap/rest/flood/warnings",
+    "flood_warnings_fallback": "https://environment.data.gov.uk/flood-monitoring/id/floods?_limit=50",
+    "gauge_data": "https://timeseries.sepa.org.uk/KiWIS/KiWIS",
+    "flood_rss": "https://www.sepa.org.uk/rss/current-flood-warnings.rss",
+    "weather_warnings_api": "https://api-proxy.metoffice.gov.uk/map-material/weather/maps/warnings",
+    "weather_warnings_rss": "https://www.metoffice.gov.uk/public/data/PWSCache/WarningsRSS/Region/UK"
+  },
+
+  "floodZones": [
+    {
+      "id": "sepa_fluvial_high",
+      "name": "SEPA Flood Map — River (High)",
+      "riskLevel": "high",
+      "source": "SEPA",
+      "wmsUrl": "https://map.sepa.org.uk/floodmap/wms",
+      "wmsLayers": "sepa:fld_FluvialHighLikelihood",
+      "attribution": "© SEPA"
+    },
+    {
+      "id": "sepa_fluvial_medium",
+      "name": "SEPA Flood Map — River (Medium)",
+      "riskLevel": "medium",
+      "source": "SEPA",
+      "wmsUrl": "https://map.sepa.org.uk/floodmap/wms",
+      "wmsLayers": "sepa:fld_FluvialMediumLikelihood",
+      "attribution": "© SEPA"
+    },
+    {
+      "id": "sepa_pluvial",
+      "name": "SEPA Flood Map — Surface Water",
+      "riskLevel": "high",
+      "source": "SEPA",
+      "wmsUrl": "https://map.sepa.org.uk/floodmap/wms",
+      "wmsLayers": "sepa:fld_PluvialHighLikelihood",
+      "attribution": "© SEPA"
+    },
+    {
+      "id": "sepa_coastal",
+      "name": "SEPA Flood Map — Coastal",
+      "riskLevel": "medium",
+      "source": "SEPA",
+      "wmsUrl": "https://map.sepa.org.uk/floodmap/wms",
+      "wmsLayers": "sepa:fld_CoastalHighLikelihood",
+      "attribution": "© SEPA"
+    }
+  ],
+
+  "supportedHazardTypes": [
+    "flood", "severe_storm", "heatwave", "landslide",
+    "power_outage", "water_supply", "infrastructure_damage",
+    "public_safety", "environmental_hazard"
+  ],
+
+  "monitoredCities": [
+    { "name": "Aberdeen", "lat": 57.1497, "lng": -2.0943, "cityRegionId": "aberdeen_scotland_uk" },
+    { "name": "Glasgow", "lat": 55.8642, "lng": -4.2518, "cityRegionId": "glasgow_scotland_uk" },
+    { "name": "Edinburgh", "lat": 55.9533, "lng": -3.1883 },
+    { "name": "Dundee", "lat": 56.4620, "lng": -2.9707 },
+    { "name": "Inverness", "lat": 57.4778, "lng": -4.2247 },
+    { "name": "Perth", "lat": 56.3950, "lng": -3.4308 },
+    { "name": "Stirling", "lat": 56.1165, "lng": -3.9369 },
+    { "name": "Dumfries", "lat": 55.0700, "lng": -3.6052 },
+    { "name": "Fort William", "lat": 56.8198, "lng": -5.1052 },
+    { "name": "Oban", "lat": 56.4152, "lng": -5.4722 }
+  ],
+
+  "llmContext": {
+    "floodAuthority": "SEPA",
+    "weatherAuthority": "Met Office",
+    "floodAuthorityUrl": "https://www.sepa.org.uk/environment/water/flooding/",
+    "weatherWarningsUrl": "",
+    "exampleLocations": ["Bridge of Don, Aberdeen", "Riverside Drive", "Glasgow City Centre"],
+    "crisisResources": [
+      { "name": "Samaritans", "number": "116 123" },
+      { "name": "NHS 24", "number": "111" },
+      { "name": "CALM", "number": "0800 585858" }
+    ],
+    "officialSourceAdvice": "Visit SEPA (sepa.org.uk) or Met Office (metoffice.gov.uk) for official warnings."
+  },
+
+  "rivers": [
+    "River Tay", "River Dee", "River Don", "River Spey",
+    "River Clyde", "River Forth", "River Tweed", "River Ness",
+    "River Findhorn", "River Deveron"
+  ],
+
+  "propagationMap": {
+    "River Don Corridor": ["King Street", "Tillydrone", "Seaton", "Bridge of Don"],
+    "Riverside / Dee Valley": ["Riverside Drive", "Duthie Park", "Torry"],
+    "Central Belt": ["River Clyde", "River Kelvin"],
+    "Highland Rivers": ["River Ness", "River Findhorn", "River Spey"]
+  },
+
+  "historicalFloodEvents": [
+    { "name": "Aberdeen Storm Frank", "year": 2015, "river": "River Don", "lat": 57.17, "lng": -2.10, "peakLevelM": 4.01 },
+    { "name": "Perth Floods", "year": 1993, "river": "River Tay", "lat": 56.39, "lng": -3.43, "peakLevelM": 5.20 },
+    { "name": "Inverness Floods", "year": 2011, "river": "River Ness", "lat": 57.48, "lng": -4.22, "peakLevelM": 3.90 }
+  ]
+}

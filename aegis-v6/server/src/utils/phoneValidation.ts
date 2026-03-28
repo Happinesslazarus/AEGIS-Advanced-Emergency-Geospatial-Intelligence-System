@@ -3,34 +3,42 @@
  * 
  * Validates and normalizes phone numbers to E.164 format
  * Required for Twilio SMS/WhatsApp delivery
+ * Default country code is loaded from the active region adapter.
  */
 
-/**
+import { regionRegistry } from '../adapters/regions/RegionRegistry.js'
+
+/* Get default country code from the active region adapter */
+function getDefaultCountryCode(): string {
+  try { return regionRegistry.getActiveRegion().getPhoneFormat().countryCode } catch { return '44' }
+}
+
+ /**
  * Validates if a phone number is in E.164 format
  * E.164 format: +[country code][subscriber number]
  * Examples: +447700900123 (UK), +14155552671 (US)
  * 
  * Rules:
- * - Must start with +
- * - Contains only digits after +
- * - Length between 8-15 characters (including +)
- * - No spaces, dashes, or parentheses
+ * Must start with +
+ * Contains only digits after +
+ * Length between 8-15 characters (including +)
+ * No spaces, dashes, or parentheses
  */
 export function isValidE164(phone: string): boolean {
   const e164Pattern = /^\+[1-9]\d{7,14}$/
   return e164Pattern.test(phone)
 }
 
-/**
+ /**
  * Attempts to normalize a phone number to E.164 format
  * Handles common UK formats:
- * - 07700 900123 → +447700900123
- * - +44 (0) 7700 900123 → +447700900123
- * - 00447700900123 → +447700900123
+ * 07700 900123 ? +447700900123
+ * +44 (0) 7700 900123 ? +447700900123
+ * 00447700900123 ? +447700900123
  * 
  * For other countries, assumes +1 (US/Canada) if no country code
  */
-export function normalizeToE164(phone: string, defaultCountryCode: string = '44'): string {
+export function normalizeToE164(phone: string, defaultCountryCode: string = getDefaultCountryCode()): string {
   // Remove all whitespace, parentheses, dashes
   let cleaned = phone.replace(/[\s\-\(\)]/g, '')
 
@@ -67,9 +75,9 @@ export function normalizeToE164(phone: string, defaultCountryCode: string = '44'
   throw new Error(`Invalid phone number: ${phone}. Must be in E.164 format like +447700900123`)
 }
 
-/**
+ /**
  * Formats a phone number for display
- * +447700900123 → +44 7700 900123
+ * +447700900123 ? +44 7700 900123
  */
 export function formatPhoneDisplay(phone: string): string {
   if (!isValidE164(phone)) return phone
@@ -94,7 +102,7 @@ export function formatPhoneDisplay(phone: string): string {
   return `+${countryCode} ${number}`
 }
 
-/**
+ /**
  * Example usage and test cases
  */
 export const PHONE_EXAMPLES = {

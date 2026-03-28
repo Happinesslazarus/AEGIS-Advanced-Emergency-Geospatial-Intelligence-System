@@ -38,3 +38,4 @@ export const DROUGHT_THRESHOLDS = {
   DROUGHT_CRITICAL_MM: 20,        // <20mm = critical
   TEMP_UPLIFT_C: 20,              // temperatures above this worsen risk
 }
+

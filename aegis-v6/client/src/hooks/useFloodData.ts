@@ -14,6 +14,7 @@ interface UseFloodDataResult {
 
 /**
  * React hook for fetching and managing flood monitoring data
+/**
  * Provides flood areas, stations, alerts, and risk overlay with region switching
  */
 export function useFloodData(initialRegion = 'scotland'): UseFloodDataResult {
@@ -75,3 +76,4 @@ export function useFloodData(initialRegion = 'scotland'): UseFloodDataResult {
     refresh,
   }
 }
+

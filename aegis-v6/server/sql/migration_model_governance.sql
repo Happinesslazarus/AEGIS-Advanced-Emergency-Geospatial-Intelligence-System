@@ -1,7 +1,5 @@
--- ═══════════════════════════════════════════════════════════════════════════════
 -- AEGIS Phase 5: Model Governance, Drift Detection, and Automatic Safeguards
 -- Migration script — run against the aegis database
--- ═══════════════════════════════════════════════════════════════════════════════
 
 -- §1 Model Governance Registry
 -- Every trained model version is tracked with status lifecycle:

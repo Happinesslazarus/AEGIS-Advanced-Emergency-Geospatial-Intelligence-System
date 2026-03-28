@@ -2,11 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ══════════════════════════════════════════════════════════
    AEGIS 8-THEME SYSTEM — CSS Variables
    Each theme sets the aegis-* accent palette + surface colors
    that guarantee readability in both light and dark modes.
-   ══════════════════════════════════════════════════════════ */
 
 /* HSU — Dark Blue (site default)
    Default theme now uses the dark-blue aegis palette so the "HSU"
@@ -27,9 +25,8 @@
   --glow-gold: 251 191 36;
 }
 
-/* Blue (used by "dark" and "light" themes) */
+/* Blue (used by default and light themes) */
 :root,
-[data-theme="dark"],
 [data-theme="light"] {
   --aegis-50:  238 247 255;
   --aegis-100: 217 237 255;
@@ -131,24 +128,24 @@
   --glow-gold: 251 191 36;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   SURFACE TOKENS  —  per-theme CSS variable assignments
+/*
+  SURFACE TOKENS  —  per-theme CSS variable assignments
 
-   CASCADE ORDER IS CRITICAL:
-     1. :root          → light-mode fallback (before JS sets data-theme)
-     2. Dark block     → explicit [data-theme] selectors; NO :root so it
-                         never overrides [data-theme="light/sunset"].
-     3. Light block    → comes AFTER dark block; wins for light themes
-                         because "light"/"sunset" don't match the dark
-                         selectors, and [attr] specificity equals :root so
-                         later position wins.
+  CASCADE ORDER IS CRITICAL:
+    1. :root          → light-mode fallback (before JS sets data-theme)
+    2. Dark block     → explicit [data-theme] selectors; NO :root so it
+                 never overrides [data-theme="light/sunset"].
+    3. Light block    → comes AFTER dark block; wins for light themes
+                 because "light"/"sunset" don't match the dark
+                 selectors, and [attr] specificity equals :root so
+                 later position wins.
 
-   Bug that was here: :root was inside the dark block. Since :root and
-   [data-theme="light"] share the same CSS specificity [0,1,0], and the
-   dark block came last, dark tokens leaked into the light theme.
-   ═══════════════════════════════════════════════════════════════ */
+  Bug that was here: :root was inside the dark block. Since :root and
+  [data-theme="light"] share the same CSS specificity [0,1,0], and the
+  dark block came last, dark tokens leaked into the light theme.
+*/
 
-/* ── :root fallback — light values, applied before JS sets data-theme ── */
+/*  :root fallback — light values, applied before JS sets data-theme  */
 :root {
   --surface-primary:   248 250 252;   /* slate-50   #f8fafc */
   --surface-secondary: 255 255 255;   /* white      #ffffff */
@@ -183,13 +180,28 @@
   --accent-success:    22 163 74;
   --accent-warning:    217 119 6;
   --accent-danger:     220 38 38;
+  --accent-info:       37 99 235;
   --border-subtle:     226 232 240;
+  --surface-ultra-dark: 248 250 252;  /* light fallback — maps to surface-primary */
+  /*  Feedback surface / text tokens (light defaults)  */
+  --success-surface:   240 253 244;   /* green-50   #f0fdf4 */
+  --success-text:      20 83 45;      /* green-900  #14532d */
+  --warning-surface:   255 251 235;   /* amber-50   #fffbeb */
+  --warning-text:      120 53 15;     /* amber-900  #78350f */
+  --danger-surface:    254 242 242;   /* red-50     #fef2f2 */
+  --danger-text:       127 29 29;     /* red-900    #7f1d1d */
+  --info-surface:      239 246 255;   /* blue-50    #eff6ff */
+  --info-text:         30 58 138;     /* blue-900   #1e3a8a */
+  /*  Elevated / overlay / focus tokens  */
+  --surface-elevated:  255 255 255;   /* white — cards lifted above base */
+  --surface-overlay:   0 0 0;         /* overlay base (use with alpha) */
+  --border-muted:      241 245 249;   /* slate-100  #f1f5f9 */
+  --focus-ring:        37 99 235;     /* blue-600 — default focus ring */
 }
 
-/* ── Dark-theme surface overrides ──
+/*  Dark-theme surface overrides
    IMPORTANT: no :root here — prevents leaking dark tokens into light themes. */
 [data-theme="default"],
-[data-theme="dark"],
 [data-theme="midnight"],
 [data-theme="ocean"],
 [data-theme="forest"],
@@ -202,7 +214,7 @@
   --text-muted:        148 163 184;   /* slate-400  #94a3b8   */
   --border-default:    30  41  59;    /* slate-800  #1e293b   */
   --border-strong:     51  65  85;    /* slate-700  #334155   */
-  /* ── Component-level tokens (dark) ── */
+  /*  Component-level tokens (dark)  */
   --clr-nav-bg:        9   9   15;
   --clr-nav-fg:        248 250 252;
   --clr-nav-fg-muted:  148 163 184;
@@ -221,19 +233,36 @@
   --clr-sidebar-fg:    248 250 252;
   --clr-tag-bg:        30  41  59;
   --clr-tag-fg:        203 213 225;
-  /* ── Icon tokens (dark) ── */
+  /*  Icon tokens (dark)  */
   --icon-primary:      248 250 252;   /* slate-50   #f8fafc   */
   --icon-muted:        148 163 184;   /* slate-400  #94a3b8   */
   --icon-on-accent:    255 255 255;
-  /* ── Semantic accent tokens ── */
+  /*  Semantic accent tokens  */
   --text-on-accent:    255 255 255;
   --accent-success:    22 163 74;
   --accent-warning:    217 119 6;
   --accent-danger:     220 38 38;
+  --accent-info:       37 99 235;
   --border-subtle:     30  41  59;
+  /*  Ultra-dark surface for sidebar/admin deep backgrounds  */
+  --surface-ultra-dark: 8 8 16;       /* ~#080810 */
+  /*  Feedback surface / text tokens (dark)  */
+  --success-surface:   5 46 22;       /* green-950  #052e16 */
+  --success-text:      187 247 208;   /* green-200  #bbf7d0 */
+  --warning-surface:   69 26 3;       /* amber-950  #451a03 */
+  --warning-text:      253 230 138;   /* amber-200  #fde68a */
+  --danger-surface:    69 10 10;      /* red-950    #450a0a */
+  --danger-text:       254 202 202;   /* red-200    #fecaca */
+  --info-surface:      23 37 84;      /* blue-950   #172554 */
+  --info-text:         191 219 254;   /* blue-200   #bfdbfe */
+  /*  Elevated / overlay / focus tokens  */
+  --surface-elevated:  30 41 59;      /* slate-800  #1e293b */
+  --surface-overlay:   0 0 0;         /* overlay base (use with alpha) */
+  --border-muted:      30 41 59;      /* slate-800  #1e293b */
+  --focus-ring:        96 165 250;    /* blue-400 — visible on dark bg */
 }
 
-/* ── Light-theme surface overrides ──
+/*  Light-theme surface overrides
    Placed AFTER dark block so these theme-specific values win in the cascade.
    (Themes "light" and "sunset" match no dark-block selectors, so there is
     no conflict — this ordering just guarantees future-proofing.) */
@@ -247,7 +276,7 @@
   --text-muted:        100 116 139;   /* slate-500  #64748b */
   --border-default:    226 232 240;   /* slate-200  #e2e8f0 */
   --border-strong:     203 213 225;   /* slate-300  #cbd5e1 */
-  /* ── Component-level tokens (light) ── */
+  /*  Component-level tokens (light)  */
   --clr-nav-bg:        255 255 255;
   --clr-nav-fg:        15  23  42;
   --clr-nav-fg-muted:  100 116 139;
@@ -266,16 +295,32 @@
   --clr-sidebar-fg:    15  23  42;
   --clr-tag-bg:        241 245 249;
   --clr-tag-fg:        51  65  85;
-  /* ── Icon tokens (light) ── */
+  /*  Icon tokens (light)  */
   --icon-primary:      30  41  59;    /* slate-800  #1e293b */
   --icon-muted:        100 116 139;
   --icon-on-accent:    255 255 255;
-  /* ── Semantic accent tokens ── */
+  /*  Semantic accent tokens  */
   --text-on-accent:    255 255 255;
   --accent-success:    22 163 74;
   --accent-warning:    217 119 6;
   --accent-danger:     220 38 38;
+  --accent-info:       37 99 235;
   --border-subtle:     226 232 240;
+  --surface-ultra-dark: 248 250 252;  /* light fallback */
+  /*  Feedback surface / text tokens (light override)  */
+  --success-surface:   240 253 244;   /* green-50   #f0fdf4 */
+  --success-text:      20 83 45;      /* green-900  #14532d */
+  --warning-surface:   255 251 235;   /* amber-50   #fffbeb */
+  --warning-text:      120 53 15;     /* amber-900  #78350f */
+  --danger-surface:    254 242 242;   /* red-50     #fef2f2 */
+  --danger-text:       127 29 29;     /* red-900    #7f1d1d */
+  --info-surface:      239 246 255;   /* blue-50    #eff6ff */
+  --info-text:         30 58 138;     /* blue-900   #1e3a8a */
+  /*  Elevated / overlay / focus tokens  */
+  --surface-elevated:  255 255 255;   /* white */
+  --surface-overlay:   0 0 0;
+  --border-muted:      241 245 249;   /* slate-100  #f1f5f9 */
+  --focus-ring:        37 99 235;     /* blue-600 */
 }
 
 @layer base {
@@ -291,11 +336,11 @@
   .skip-link { @apply absolute -top-10 left-4 bg-aegis-600 text-white px-4 py-2 rounded-b-lg z-[100] transition-all; }
   .skip-link:focus { @apply top-0; }
 
-  /* ── Option elements: explicit colors so every browser renders legibly ── */
+  /*  Option elements: explicit colors so every browser renders legibly  */
   option { color: #0f172a; background-color: #ffffff; }
   .dark option { color: #f8fafc; background-color: #1e293b; }
 
-  /* ── Light theme global text fixes ── */
+  /*  Light theme global text fixes  */
   :not(.dark) h1,:not(.dark) h2,:not(.dark) h3,:not(.dark) h4,:not(.dark) h5,:not(.dark) h6 { color: #0f172a; }
   :not(.dark) td,:not(.dark) th { color: #0f172a; }
 
@@ -305,7 +350,7 @@
     html.dark h1, html.dark h2, html.dark h3, html.dark h4 { color: #ffffff !important; }
     html:not(.dark) h1, html:not(.dark) h2, html:not(.dark) h3, html:not(.dark) h4 { color: #0f172a; }
 
-  /* ── Input / select text safety ──
+  /*  Input / select text safety
      Only set background on elements that DON'T have an explicit Tailwind
      bg-* utility class (utilities layer wins over base layer). This rule
      acts as a fallback preventing transparent/dark inherited backgrounds
@@ -323,7 +368,7 @@
     color-scheme: light;
   }
 
-  /* ── Semantic text utility tokens (use these in markup for important content) ──
+  /*  Semantic text utility tokens (use these in markup for important content)
      These ensure primary/secondary/muted text follow theme tokens and cannot
      be accidentally faded by parent opacity or muted rules. Use `text-primary`
      on all important headings, nav labels, map titles, emergency contacts, and
@@ -337,21 +382,26 @@
   .icon-primary { color: rgb(var(--icon-primary)) !important; }
   .icon-muted   { color: rgb(var(--icon-muted)) !important; }
 
-    /* ── Light-mode safety-net for Tailwind utilities that use `text-white` ──
-      Some components relied on `text-white` (and `text-white/<alpha>`) for
-      dark-theme designs; when the page is rendered in light mode these
-      classes produce unreadable pale text. Map them to accessible dark
-      colors in non-dark pages. */
-    :not(.dark) .text-white { color: #0f172a !important; }
-    :not(.dark) .text-white\/60 { color: #475569 !important; }
-    :not(.dark) .text-white\/70 { color: #334155 !important; }
-    :not(.dark) .text-white\/50 { color: #6b7280 !important; }
-    :not(.dark) .text-white\/80 { color: #0f172a !important; }
+    /*  Light-mode text-white safety-net — SCOPED only to glass/card containers
+      where white text on an assumed-dark bg becomes invisible on light themes.
+      Does NOT apply globally — buttons, badges, and colored-bg elements keep
+      their explicit white text intact. */
+    :not(.dark) .glass .text-white,
+    :not(.dark) .glass-card .text-white,
+    :not(.dark) .card .text-white { color: rgb(var(--clr-card-fg)) !important; }
+    :not(.dark) .glass .text-white\/60,
+    :not(.dark) .glass-card .text-white\/60 { color: #475569 !important; }
+    :not(.dark) .glass .text-white\/70,
+    :not(.dark) .glass-card .text-white\/70 { color: #334155 !important; }
+    :not(.dark) .glass .text-white\/50,
+    :not(.dark) .glass-card .text-white\/50 { color: #6b7280 !important; }
+    :not(.dark) .glass .text-white\/80,
+    :not(.dark) .glass-card .text-white\/80 { color: rgb(var(--clr-card-fg)) !important; }
 
-    /* Nav safety-net: high-contrast nav text via token — scoped to direct text
-       nodes, NOT forced on child components that manage their own colors. */
-    nav { background-color: rgba(var(--clr-nav-bg), 1) !important; }
-    .dark nav { background-color: rgb(var(--clr-nav-bg)) !important; }
+    /* Nav safety-net: theme-aware background — no !important so glass-nav
+       and component-level overrides still work. */
+    nav { background-color: rgba(var(--clr-nav-bg), 1); }
+    .dark nav { background-color: rgb(var(--clr-nav-bg)); }
     /* Scoped: only headings and direct anchors — NOT inner utility controls */
     nav > .nav-brand, nav > .nav-links > a { color: rgb(var(--clr-nav-fg)); }
 
@@ -364,19 +414,34 @@
 @layer components {
   .badge { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide; }
   .badge-critical {
-    background-color: rgba(220,38,38,0.32);
-    color: #ffffff;
-    border: 1px solid rgba(220,38,38,0.50);
+    background-color: rgba(220,38,38,0.15);
+    color: #991b1b;
+    border: 1px solid rgba(220,38,38,0.30);
+  }
+  .dark .badge-critical {
+    background-color: rgba(220,38,38,0.25);
+    color: #fca5a5;
+    border: 1px solid rgba(220,38,38,0.40);
   }
   .badge-medium {
-    background-color: rgba(217,119,6,0.28);
-    color: #ffffff;
-    border: 1px solid rgba(217,119,6,0.45);
+    background-color: rgba(217,119,6,0.15);
+    color: #92400e;
+    border: 1px solid rgba(217,119,6,0.30);
+  }
+  .dark .badge-medium {
+    background-color: rgba(217,119,6,0.22);
+    color: #fcd34d;
+    border: 1px solid rgba(217,119,6,0.40);
   }
   .badge-low {
-    background-color: rgba(22,163,74,0.28);
-    color: #ffffff;
-    border: 1px solid rgba(22,163,74,0.45);
+    background-color: rgba(22,163,74,0.15);
+    color: #166534;
+    border: 1px solid rgba(22,163,74,0.30);
+  }
+  .dark .badge-low {
+    background-color: rgba(22,163,74,0.22);
+    color: #86efac;
+    border: 1px solid rgba(22,163,74,0.40);
   }
   .badge-info { @apply bg-gray-100 text-gray-800 border border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700; }
   .badge-verified { @apply bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300; }
@@ -391,7 +456,7 @@
     @apply bg-white rounded-xl border border-gray-200 shadow-sm dark:bg-gray-900 dark:border-gray-800;
     color: rgb(var(--clr-card-fg));
   }
-  .card-hover { @apply card transition-all duration-200 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-700; }
+  .card-hover { @apply card transition-all duration-200 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-700 active:scale-[0.99]; }
   .card-glow {
     @apply card;
     color: rgb(var(--clr-card-fg));
@@ -410,23 +475,23 @@
     border-color: rgba(var(--glow-gold), 0.25);
     box-shadow: 0 0 0 1px rgba(var(--glow-gold), 0.1), 0 4px 30px rgba(var(--glow-gold), 0.12);
   }
-  /* ── Light-mode low-contrast safety-net ──
+  /*  Light-mode low-contrast safety-net
      Some components intentionally use muted utility classes for subtle UI
      elements. When the app is in the light theme these can become too faint
      (e.g., `text-gray-300`). Enforce a stronger color for those utilities in
-     light mode so text remains readable without changing every component.
-  */
+     light mode so text remains readable without changing every component. */
   :not(.dark) .text-gray-300,
-  :not(.dark) .text-gray-400,
+  :not(.dark) .text-gray-400 {
+    color: #475569 !important;   /* slate-600 — readable on white without going full-dark */
+  }
   :not(.dark) .text-gray-500 {
-    color: #0f172a !important;
+    color: #334155 !important;   /* slate-700 — slightly darker than gray-500's native value */
   }
 
-  /* ── Dark-mode utility safety-net ──
+  /*  Dark-mode utility safety-net
      Ensure common muted utility classes (`text-gray-300/400/500`) map to
      accessible colors in dark themes even if components forget `dark:`
-     variants. These use theme tokens so different themes remain consistent.
-  */
+     variants. These use theme tokens so different themes remain consistent. */
   html.dark .text-gray-300,
   html.dark .text-gray-400 {
     color: rgb(var(--text-secondary)) !important;
@@ -436,7 +501,7 @@
   }
 
   /* Buttons — theme-aware */
-  .btn { @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed; }
+  .btn { @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100; }
   .btn-xs { @apply btn px-2.5 py-1.5 text-xs gap-1 rounded-md; }
   .btn-sm { @apply btn px-3 py-2 text-xs gap-1.5; }
   .btn-lg { @apply btn px-6 py-3 text-base gap-2.5 rounded-xl; }
@@ -458,9 +523,19 @@
   .btn-outline { @apply btn border-2 border-gray-300 text-secondary hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800; }
   .btn-outline-primary { @apply btn border-2 border-aegis-500 text-aegis-600 hover:bg-aegis-50 dark:border-aegis-600 dark:text-aegis-400 dark:hover:bg-aegis-950/20; }
   .btn-outline-danger { @apply btn border-2 border-red-400 text-red-600 hover:bg-red-50 dark:border-red-600 dark:text-red-400 dark:hover:bg-red-950/20; }
-  .btn-icon { @apply inline-flex items-center justify-center p-2 rounded-lg transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed; }
+  .btn-icon { @apply inline-flex items-center justify-center p-2 rounded-lg transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.92] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100; }
   .btn-icon-sm { @apply btn-icon p-1.5; }
   .btn-pill { @apply btn rounded-full; }
+
+  /*  Sunset theme: aegis-600 (#D97706) is too light for white text (3.13:1).
+     Darken the resting state to aegis-700 (#B45309 → 4.55:1 AA pass). */
+  [data-theme="sunset"] .btn-primary {
+    background-color: rgb(var(--aegis-700));
+    box-shadow: 0 2px 8px rgba(var(--glow-color), 0.25);
+  }
+  [data-theme="sunset"] .btn-primary:hover {
+    background-color: rgb(var(--aegis-800));
+  }
 
   /* Gold-glow button */
   .btn-gold {
@@ -475,10 +550,10 @@
   }
 
   /* Inputs */
-  .input { @apply w-full px-4 py-3 rounded-lg border-2 border-gray-200 bg-white text-primary placeholder-gray-400 transition-colors duration-200 focus:border-aegis-500 focus:outline-none dark:bg-gray-900 dark:border-gray-700; }
+  .input { @apply w-full px-4 py-3 rounded-lg border-2 border-gray-200 bg-white text-primary placeholder-gray-400 transition-colors duration-200 focus:border-aegis-500 focus:outline-none focus:ring-2 focus:ring-aegis-500/20 dark:bg-gray-900 dark:border-gray-700; }
   .input-error { @apply border-red-500 focus:border-red-500; }
 
-  /* ── Theme-adaptive utility classes ──
+  /*  Theme-adaptive utility classes
      Use these on container/wrapper elements to get automatic
      light/dark switching via CSS variables. */
   .text-adaptive         { color: rgb(var(--text-primary)); }
@@ -490,14 +565,14 @@
   .border-adaptive       { border-color: rgb(var(--border-default)); }
   .border-adaptive-strong { border-color: rgb(var(--border-strong)); }
 
-  /* ── Card adaptive shorthand ── */
+  /*  Card adaptive shorthand  */
   .card-adaptive {
     background-color: rgb(var(--clr-card-bg));
     color:            rgb(var(--clr-card-fg));
     border:           1px solid rgb(var(--clr-card-border));
     border-radius:    1rem;
   }
-  /* ── Input adaptive shorthand ── */
+  /*  Input adaptive shorthand  */
   .input-adaptive {
     background-color: rgb(var(--clr-input-bg));
     color:            rgb(var(--clr-input-fg));
@@ -512,7 +587,7 @@
   .map-wrapper .leaflet-top, .map-wrapper .leaflet-bottom { z-index: 1 !important; }
   .map-legend { z-index: 2 !important; }
 
-  /* ── Map layer controls: prevent overlap with modals/nav ── */
+  /*  Map layer controls: prevent overlap with modals/nav  */
   .map-wrapper .leaflet-control-layers { z-index: 3 !important; max-height: 60vh; overflow-y: auto; }
   .map-wrapper .leaflet-popup { z-index: 5 !important; }
   .map-wrapper .leaflet-tooltip { z-index: 4 !important; }
@@ -520,12 +595,12 @@
   /* Force maps to never exceed their container height */
   .map-wrapper .leaflet-container { max-height: 100%; }
 
-  /* ── Nav tab strip (admin/shared) ── */
+  /*  Nav tab strip (admin/shared)  */
   .nav-tab-strip {
     @apply flex gap-0.5 min-w-max;
   }
   .nav-tab {
-    @apply relative flex items-center gap-2 px-4 py-2.5 text-xs font-semibold whitespace-nowrap rounded-t-lg transition-all duration-200;
+    @apply relative flex items-center gap-2 px-4 py-2.5 text-xs font-semibold whitespace-nowrap rounded-t-lg transition-all duration-200 active:scale-[0.97];
     border-bottom: 2px solid transparent;
   }
   .nav-tab:hover:not(.nav-tab-active) {
@@ -545,6 +620,38 @@
   }
 }
 
+/* 
+   TYPOGRAPHY HIERARCHY – Semantic classes for consistent type sizing.
+   Use these on headings & body copy so the type scale stays unified.
+   Each class bundles font-size, line-height, weight, and tracking. */
+.text-page-title    { @apply text-display font-bold tracking-tight; }
+.text-section-title { @apply text-heading-lg font-semibold tracking-tight; }
+.text-card-title    { @apply text-heading-sm font-semibold; }
+.text-body-default  { @apply text-body leading-relaxed; }
+.text-body-small    { @apply text-body-sm leading-snug; }
+.text-caption-text  { @apply text-caption leading-tight text-muted; }
+.text-micro-text    { @apply text-micro leading-tight; }
+
+/* Card padding tiers
+   Standardize the p-3 / p-4 / p-6 split so cards reference a tier. */
+.card-compact  { @apply p-3; }     /* tight: stat cards, sidebar cards */
+.card-standard { @apply p-4; }     /* default: most dashboard cards */
+.card-relaxed  { @apply p-5 sm:p-6; }  /* roomy: detail panels, forms */
+
+/* Minimum text-size accessibility floor
+   Any text below 10px (0.625rem) is unreadable for most users.
+   This safety net catches arbitrary text-[6px]…text-[9px] classes
+   that slipped through component code and lifts them to 10px.
+   SVG <text> elements are excluded (they scale with viewBox). */
+:where([class*="text-\[5"]:not(svg *):not(text),
+[class*="text-\[6"]:not(svg *):not(text),
+[class*="text-\[7"]:not(svg *):not(text),
+[class*="text-\[8"]:not(svg *):not(text),
+[class*="text-\[9px"]:not(svg *):not(text)) {
+  font-size: max(var(--tw-fs, 0.625rem), 0.625rem) !important;   /* floor at 10px */
+  line-height: max(var(--tw-lh, 0.875rem), 0.875rem) !important;  /* floor at 14px */
+}
+
 /* Accessibility modes */
 .high-contrast * { border-color: currentColor !important; }
 .high-contrast body { @apply bg-white text-black; }
@@ -559,6 +666,19 @@
 
 .reduce-motion *, .reduce-motion *::before, .reduce-motion *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 
+  /* OS-level reduced-motion preference
+     Respects the user's system "Reduce motion" toggle automatically.
+     The existing .reduce-motion class above handles the manual UI
+     toggle; this @media rule catches users who never visit settings. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
 .focus-highlight *:focus-visible { outline: 4px solid #ff6600 !important; outline-offset: 3px !important; }
 
 /* Mobile responsive helpers */
@@ -566,6 +686,26 @@
   .btn { @apply px-3 py-2 text-xs; }
   .input { @apply px-3 py-2.5 text-sm; }
   .card { @apply rounded-lg; }
+
+  /* Prevent horizontal overflow on mobile */
+  body { overflow-x: hidden; }
+
+  /* Ensure all fixed/absolute dropdowns don't exceed viewport */
+  [class*="absolute"][class*="w-"] { max-width: calc(100vw - 1rem); }
+
+  /* Touch-friendly tap targets: ensure interactive elements meet 44px min */
+  button, a, [role="button"], select {
+    min-height: 32px;
+  }
+
+  /* Better table handling on mobile */
+  table { font-size: 0.7rem; }
+  th, td { padding: 0.375rem 0.5rem; }
+}
+
+/* Disable tap highlight for cleaner mobile UX */
+@media (hover: none) and (pointer: coarse) {
+  * { -webkit-tap-highlight-color: transparent; }
 }
 
 /* Print styles */
@@ -586,7 +726,7 @@
   100% { opacity: 1; transform: translateY(0); }
 }
 
-/* ═══ Advanced Dashboard Animations ═══ */
+/*  Advanced Dashboard Animations  */
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
@@ -652,7 +792,7 @@
   50% { box-shadow: 0 0 20px rgba(var(--glow-color), 0.4), 0 0 6px rgba(var(--glow-gold), 0.1); }
 }
 
-/* ══ GLASSMORPHISM — theme-aware with explicit text inheritance anchoring ══
+/*  GLASSMORPHISM — theme-aware with explicit text inheritance anchoring
    Setting `color` here ensures all child text without an explicit color
    class correctly inherits the theme-appropriate foreground color.
    Elements with explicit Tailwind color classes (.text-white, etc.) are
@@ -688,7 +828,7 @@
   -webkit-backdrop-filter: blur(20px) saturate(200%);
 }
 
-/* ── Gold glass card — add text anchor ── */
+/*  Gold glass card — add text anchor  */
 .glass-gold {
   backdrop-filter: blur(14px) saturate(160%);
   -webkit-backdrop-filter: blur(14px) saturate(160%);
@@ -757,14 +897,14 @@
   background-clip: text;
 }
 
-/* ── Marquee for alert tickers ── */
+/*  Marquee for alert tickers  */
 @keyframes marquee {
   0% { transform: translateX(0); }
   100% { transform: translateX(-50%); }
 }
 .animate-marquee { animation: marquee 30s linear infinite; }
 
-/* ── Report detail modal — prevent photo cramping ── */
+/*  Report detail modal — prevent photo cramping  */
 .report-detail-modal { max-height: 90vh; overflow-y: auto; }
 .report-detail-modal .media-gallery { max-height: 300px; overflow: hidden; border-radius: 0.75rem; }
 .report-detail-modal .media-gallery img { object-fit: contain; max-height: 280px; width: auto; margin: 0 auto; }
@@ -781,7 +921,7 @@
   width: 100%;
 }
 
-/* ── Map control spacing fix ── */
+/*  Map control spacing fix  */
 .leaflet-top.leaflet-right { right: 10px !important; }
 .leaflet-top.leaflet-right .leaflet-control { margin-bottom: 6px !important; }
 .map-wrapper .spatial-toolbar { z-index: 6 !important; }
@@ -797,6 +937,31 @@
 }
 .dark .hover-lift:hover {
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+}
+
+/* Interactive utility classes
+   Re-usable micro-interaction primitives that any element can opt in to.
+   These complement the .btn / .card-hover / .nav-tab component classes
+   by providing mix-and-match interaction feedback. */
+
+/* Press-scale: subtle inward press on click */
+.press-scale { @apply active:scale-[0.97] transition-transform duration-150; }
+.press-scale-sm { @apply active:scale-[0.95] transition-transform duration-150; }
+
+/* Hover-color safety net: any element with a hover background should
+   transition smoothly. This catches ad-hoc hover:bg-* that forgot to
+   add a transition class. Scoped to interactive elements only. */
+button:not([class*="transition"]),
+a:not([class*="transition"]),
+[role="button"]:not([class*="transition"]) {
+  transition-property: color, background-color, border-color, opacity;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Focus-ring: standardized visible focus indicator for custom controls */
+.focus-ring {
+  @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aegis-500;
 }
 
 /* Smooth scrollbar */
@@ -824,9 +989,8 @@
   .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
 }
 
-/* ══════════════════════════════════════════════════════════════════
+/*
    CRITICAL CONTRAST SAFETY NET (unlayered — highest cascade tier)
-   ══════════════════════════════════════════════════════════════════
 
    CSS Cascade Level 5: unlayered rules beat rules in any @layer block,
    regardless of specificity. This section fixes the most common contrast
@@ -837,7 +1001,7 @@
    Intentional decorative white text (buttons, badges, icons on colored
    bg) is protected by the fact that those elements have their OWN
    explicit Tailwind color class, which wins over inheritance.
-   ══════════════════════════════════════════════════════════════════ */
+*/
 
 /* 1. Ensure all native form fields use theme-appropriate colors */
 html:not(.dark) input:not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]),
@@ -886,10 +1050,9 @@ html:not(.dark) .card h4 {
   color: #111827;
 }
 
-
-/* ══════════════════════════════════════════════════════════════════
+/*
    WCAG AA CONTRAST SAFETY NET — TWO-PHASE APPROACH
-   ══════════════════════════════════════════════════════════════════
+
    PHASE 1: Boost ALL gray/slate text in dark mode unconditionally.
    These rules are unlayered + !important so they beat every Tailwind
    @layer utilities rule regardless of specificity.
@@ -903,13 +1066,16 @@ html:not(.dark) .card h4 {
      • Elements with only text-gray-* → boosted by Phase 1 ✓
      • Elements with text-gray-* + dark:text-white → white (Phase 2) ✓
      • Elements with text-gray-* + dark:text-gray-300 → slate-300 (Phase 2) ✓
-     • dim dark:text-gray-400/500 → boosted by Phase 2 upgrade ✓
+*/
+
+/*
+     dim dark:text-gray-400/500 → boosted by Phase 2 upgrade ✓
 
    Contrast on #0f172a (slate-900):
      slate-400 #94a3b8 → 6.0:1 ✓ AA   slate-300 #cbd5e1 → 10:1 ✓ AAA
-   ══════════════════════════════════════════════════════════════════ */
+*/
 
-/* ── PHASE 1: Boost all dim gray/slate text in dark mode ── */
+/*  PHASE 1: Boost all dim gray/slate text in dark mode  */
 html.dark .text-gray-300 { color: #94a3b8 !important; }
 html.dark .text-gray-400 { color: #94a3b8 !important; }
 html.dark .text-gray-500 { color: #94a3b8 !important; }
@@ -921,16 +1087,16 @@ html.dark .text-slate-400 { color: #94a3b8 !important; }
 html.dark .text-slate-500 { color: #94a3b8 !important; }
 html.dark .text-slate-600 { color: #94a3b8 !important; }
 
-/* ── LIGHT MODE: gray-400/300 on white fails WCAG — boost to gray-600 ── */
+/*  LIGHT MODE: gray-400/300 on white fails WCAG — boost to gray-600  */
 html:not(.dark) .text-gray-400 { color: #6b7280 !important; }
 html:not(.dark) .text-gray-300 { color: #6b7280 !important; }
 
-/* ══════════════════════════════════════════════════════════════════
-   PHASE 2: Restore proper colors for correctly-specified dark variants.
-   These come AFTER Phase 1; equal specificity means later wins.
-   ══════════════════════════════════════════════════════════════════ */
+/*
+  PHASE 2: Restore proper colors for correctly-specified dark variants.
+  These come AFTER Phase 1; equal specificity means later wins.
+*/
 
-/* ── White & near-white (intentionally bright text) ── */
+/*  White & near-white (intentionally bright text)  */
 html.dark .dark\:text-white      { color: #ffffff !important; }
 html.dark .dark\:text-gray-50    { color: #f9fafb !important; }
 html.dark .dark\:text-gray-100   { color: #f3f4f6 !important; }
@@ -940,20 +1106,20 @@ html.dark .dark\:text-slate-100  { color: #f1f5f9 !important; }
 html.dark .dark\:text-slate-200  { color: #e2e8f0 !important; }
 html.dark .dark\:text-slate-300  { color: #cbd5e1 !important; }
 
-/* ── Gray variants — upgrade dim ones, keep bright ones ── */
+/*  Gray variants — upgrade dim ones, keep bright ones  */
 html.dark .dark\:text-gray-400   { color: #94a3b8 !important; }  /* upgrade: was #9ca3af */
 html.dark .dark\:text-gray-500   { color: #94a3b8 !important; }  /* upgrade: was #6b7280 */
 html.dark .dark\:text-gray-600   { color: #94a3b8 !important; }  /* upgrade: was #4b5563 */
 html.dark .dark\:text-slate-400  { color: #94a3b8 !important; }
 html.dark .dark\:text-slate-500  { color: #94a3b8 !important; }
 
-/* ── Aegis accent colors (must be preserved exactly) ── */
+/*  Aegis accent colors (must be preserved exactly)  */
 html.dark .dark\:text-aegis-200  { color: rgb(var(--aegis-200)) !important; }
 html.dark .dark\:text-aegis-300  { color: rgb(var(--aegis-300)) !important; }
 html.dark .dark\:text-aegis-400  { color: rgb(var(--aegis-400)) !important; }
 html.dark .dark\:text-aegis-500  { color: rgb(var(--aegis-500)) !important; }
 
-/* ── Semantic / status colors (must stay their own hue) ── */
+/*  Semantic / status colors (must stay their own hue)  */
 html.dark .dark\:text-red-300    { color: #fca5a5 !important; }
 html.dark .dark\:text-red-400    { color: #f87171 !important; }
 html.dark .dark\:text-red-500    { color: #ef4444 !important; }
@@ -984,7 +1150,7 @@ html.dark .dark\:text-purple-400 { color: #c084fc !important; }
 html.dark .dark\:text-rose-300   { color: #fda4af !important; }
 html.dark .dark\:text-rose-400   { color: #fb7185 !important; }
 
-/* ── Opacity-modified white variants (semi-transparent) ── */
+/*  Opacity-modified white variants (semi-transparent)  */
 html.dark .dark\:text-white\/40  { color: rgba(255,255,255,0.55) !important; }
 html.dark .dark\:text-white\/50  { color: rgba(255,255,255,0.65) !important; }
 html.dark .dark\:text-white\/60  { color: rgba(255,255,255,0.72) !important; }
@@ -992,9 +1158,31 @@ html.dark .dark\:text-white\/70  { color: rgba(255,255,255,0.80) !important; }
 html.dark .dark\:text-white\/80  { color: rgba(255,255,255,0.88) !important; }
 html.dark .dark\:text-white\/90  { color: rgba(255,255,255,0.94) !important; }
 
-/* ── Fix placeholder text contrast in dark mode ── */
+/*  Fix placeholder text contrast in dark mode  */
 html.dark ::placeholder           { color: rgba(148,163,184,0.7) !important; }
 
-/* ── Fix opacity modifiers that reduce marginal text contrast ── */
+/*  Fix opacity modifiers that reduce marginal text contrast  */
 html.dark .opacity-70 .text-gray-400,
 html.dark .opacity-70 .text-gray-500 { opacity: 1 !important; }
+
+/* Compact view — reduce spacing/padding globally when user enables compact mode */
+html.compact-view .glass-card { padding: 0.75rem !important; }
+html.compact-view .space-y-6 > * + * { margin-top: 0.75rem !important; }
+html.compact-view .space-y-4 > * + * { margin-top: 0.5rem !important; }
+html.compact-view .rounded-2xl { border-radius: 0.75rem !important; }
+html.compact-view .gap-4 { gap: 0.5rem !important; }
+html.compact-view .gap-3 { gap: 0.375rem !important; }
+html.compact-view .py-3\.5 { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; }
+html.compact-view .text-2xl { font-size: 1.25rem !important; }
+html.compact-view .text-3xl { font-size: 1.5rem !important; }
+
+/* Caption overlay font sizes — set via data-caption-size attribute on <html> */
+:root { --caption-font-size: 1rem; }
+html[data-caption-size="small"]  { --caption-font-size: 0.75rem; }
+html[data-caption-size="medium"] { --caption-font-size: 1rem; }
+html[data-caption-size="large"]  { --caption-font-size: 1.25rem; }
+html[data-caption-size="xlarge"] { --caption-font-size: 1.5rem; }
+/* Any element with .caption-overlay uses the CSS variable */
+.caption-overlay { font-size: var(--caption-font-size) !important; line-height: 1.4; }
+/* Settings preview: shows current caption size */
+.caption-size-preview { font-size: var(--caption-font-size); transition: font-size 0.2s ease; }

@@ -1,0 +1,76 @@
+{
+  "total": 6,
+  "evaluated": 0,
+  "errors": 0,
+  "type_accuracy": 0,
+  "severity_exact_accuracy": 0,
+  "severity_close_accuracy": 0,
+  "avg_confidence": 0,
+  "avg_time_ms": 0,
+  "false_positives": 0,
+  "false_negatives": 0,
+  "timestamp": "2026-03-26T06:56:48.762835",
+  "results": [
+    {
+      "id": "wf-001",
+      "url": "https://images.pexels.com/photos/51951/forest-fire-fire-smoke-conservation-51951.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/wf-001.jpg",
+      "expected_type": "wildfire",
+      "expected_severity": "high",
+      "description": "Forest fire with flames and smoke",
+      "status": "rate_limited",
+      "elapsed_ms": 2819
+    },
+    {
+      "id": "wf-002",
+      "url": "https://images.pexels.com/photos/3552472/pexels-photo-3552472.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/wf-002.jpg",
+      "expected_type": "wildfire",
+      "expected_severity": "critical",
+      "description": "Wildfire engulfing trees at night",
+      "status": "rate_limited",
+      "elapsed_ms": 2411
+    },
+    {
+      "id": "wf-003",
+      "url": "https://images.pexels.com/photos/266487/pexels-photo-266487.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/wf-003.jpg",
+      "expected_type": "wildfire",
+      "expected_severity": "high",
+      "description": "Fire burning in dry grassland",
+      "status": "rate_limited",
+      "elapsed_ms": 2790
+    },
+    {
+      "id": "wf-004",
+      "url": "https://images.pexels.com/photos/5504656/pexels-photo-5504656.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/wf-004.jpg",
+      "expected_type": "wildfire",
+      "expected_severity": "critical",
+      "description": "Large wildfire with thick smoke plume",
+      "status": "rate_limited",
+      "elapsed_ms": 2599
+    },
+    {
+      "id": "wf-005",
+      "url": "https://images.pexels.com/photos/3867212/pexels-photo-3867212.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/wf-005.jpg",
+      "expected_type": "wildfire",
+      "expected_severity": "high",
+      "description": "Burning vegetation hillside fire",
+      "status": "rate_limited",
+      "elapsed_ms": 1936
+    },
+    {
+      "id": "wf-006",
+      "url": "https://images.pexels.com/photos/9319890/pexels-photo-9319890.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/wf-006.jpg",
+      "expected_type": "wildfire",
+      "expected_severity": "moderate",
+      "description": "Smoldering aftermath of fire",
+      "status": "rate_limited",
+      "elapsed_ms": 2746
+    }
+  ],
+  "per_category": {}
+}

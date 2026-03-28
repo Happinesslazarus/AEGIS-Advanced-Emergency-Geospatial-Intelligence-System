@@ -1,21 +1,19 @@
-/**
+﻿ /*
  * notificationService.ts - Alert Delivery Service
- * 
  * Handles multi-channel alert delivery via:
- * - Email (SMTP via nodemailer)
- * - SMS (Twilio)
- * - WhatsApp (Twilio)
- * - Telegram (Bot API)
- * - Web Push (VAPID)
- */
+ * Email (SMTP via nodemailer)
+ * SMS (Twilio)
+ * WhatsApp (Twilio)
+ * Telegram (Bot API)
+ * Web Push (VAPID)
+  */
 
 import nodemailer from 'nodemailer'
 import twilio from 'twilio'
 import webPush from 'web-push'
+import { logger } from './logger.js'
 
-// ═══════════════════════════════════════════════════════════
 // Configuration
-// ═══════════════════════════════════════════════════════════
 
 const SMTP_CONFIG = {
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
@@ -49,9 +47,7 @@ const EMAIL_FROM_NAME = process.env.SMTP_FROM_NAME || 'AEGIS Alert System'
 const EMAIL_REPLY_TO = process.env.SMTP_REPLY_TO || process.env.SUPPORT_EMAIL || EMAIL_FROM
 const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || EMAIL_REPLY_TO
 
-// ═══════════════════════════════════════════════════════════
 // Clients
-// ═══════════════════════════════════════════════════════════
 
 let emailTransporter: nodemailer.Transporter | null = null
 let twilioClient: twilio.Twilio | null = null
@@ -59,26 +55,26 @@ let twilioClient: twilio.Twilio | null = null
 // Initialize email transporter
 if (SMTP_CONFIG.auth.user && SMTP_CONFIG.auth.pass) {
   emailTransporter = nodemailer.createTransport(SMTP_CONFIG)
-  console.log('✅ Email transporter initialized')
+  logger.info('Email transporter initialized')
 } else {
-  console.warn('⚠️  SMTP credentials not configured - email alerts disabled')
+  logger.warn('SMTP credentials not configured - email alerts disabled')
 }
 
 // Initialize Twilio client
 if (TWILIO_CONFIG.accountSid && TWILIO_CONFIG.authToken) {
   twilioClient = twilio(TWILIO_CONFIG.accountSid, TWILIO_CONFIG.authToken)
-  console.log('✅ Twilio client initialized')
+  logger.info('Twilio client initialized')
 } else {
-  console.warn('⚠️  Twilio credentials not configured - SMS/WhatsApp alerts disabled')
+  logger.warn('Twilio credentials not configured - SMS/WhatsApp alerts disabled')
 }
 
 // Telegram Bot API base URL
 const TELEGRAM_API_BASE = `https://api.telegram.org/bot${TELEGRAM_CONFIG.botToken}`
 
 if (TELEGRAM_CONFIG.botToken) {
-  console.log('✅ Telegram bot token configured')
+  logger.info('Telegram bot token configured')
 } else {
-  console.warn('⚠️  Telegram bot token not configured - Telegram alerts disabled')
+  logger.warn('Telegram bot token not configured - Telegram alerts disabled')
 }
 
 // Initialize Web Push (VAPID)
@@ -90,7 +86,7 @@ if (!VAPID_CONFIG.publicKey || !VAPID_CONFIG.privateKey) {
       publicKey: generated.publicKey,
       privateKey: generated.privateKey,
     }
-    console.warn('⚠️  VAPID keys not found in env. Generated ephemeral keys for development runtime.')
+    logger.warn('VAPID keys not found in env. Generated ephemeral keys for development runtime.')
   }
 }
 
@@ -100,14 +96,12 @@ if (VAPID_CONFIG.publicKey && VAPID_CONFIG.privateKey) {
     VAPID_CONFIG.publicKey,
     VAPID_CONFIG.privateKey
   )
-  console.log('✅ Web Push (VAPID) configured')
+  logger.info('Web Push (VAPID) configured')
 } else {
-  console.warn('⚠️  VAPID keys not configured - Web Push alerts disabled')
+  logger.warn('VAPID keys not configured - Web Push alerts disabled')
 }
 
-// ═══════════════════════════════════════════════════════════
 // Alert Types & Interfaces
-// ═══════════════════════════════════════════════════════════
 
 export interface Alert {
   id: string
@@ -162,16 +156,14 @@ async function retry<T>(fn: () => Promise<T>, attempts?: number, baseDelayMs?: n
   throw lastErr
 }
 
-// ═══════════════════════════════════════════════════════════
 // Email Delivery
-// ═══════════════════════════════════════════════════════════
 
 export async function sendEmailAlert(
   recipient: string,
   alert: Alert
 ): Promise<DeliveryResult> {
   const startTime = Date.now()
-  
+
   if (!emailTransporter) {
     return {
       channel: 'email',
@@ -195,7 +187,7 @@ export async function sendEmailAlert(
       priority: alert.severity === 'critical' ? 'high' : 'normal',
     })
 
-    console.log(`✅ Email sent to ${recipient} in ${Date.now() - startTime}ms (${info.messageId})`)
+    logger.info({ recipient, messageId: info.messageId, durationMs: Date.now() - startTime }, 'Email sent')
 
     return {
       channel: 'email',
@@ -204,7 +196,7 @@ export async function sendEmailAlert(
       timestamp: new Date(),
     }
   } catch (error: any) {
-    console.error(`❌ Email delivery failed to ${recipient}:`, error.message)
+    logger.error({ recipient, err: error }, 'Email delivery failed')
     return {
       channel: 'email',
       success: false,
@@ -217,25 +209,21 @@ export async function sendEmailAlert(
 function generateEmailHTML(alert: Alert): string {
   const severityColors: Record<string, string> = {
     critical: '#dc2626',
-    warning: '#f59e0b',
-    info: '#3b82f6',
+    high: '#ea580c',
+    warning: '#d97706',
+    info: '#2563eb',
   }
 
   const severityBg: Record<string, string> = {
-    critical: '#fee2e2',
-    warning: '#fef3c7',
-    info: '#dbeafe',
+    critical: '#fef2f2',
+    high: '#fff7ed',
+    warning: '#fffbeb',
+    info: '#eff6ff',
   }
 
-  const severityIcon: Record<string, string> = {
-    critical: '&#9888;',  /* HTML warning sign */
-    warning: '&#9888;',
-    info: '&#8505;',      /* HTML info sign */
-  }
-
-  const color = severityColors[alert.severity] || '#3b82f6'
-  const bg = severityBg[alert.severity] || '#dbeafe'
-  const icon = severityIcon[alert.severity] || '&#8505;'
+  const color = severityColors[alert.severity] || '#2563eb'
+  const bg = severityBg[alert.severity] || '#eff6ff'
+  const timestamp = new Date().toLocaleString('en-GB', { dateStyle: 'full', timeStyle: 'short' })
 
   return `
 <!DOCTYPE html>
@@ -248,32 +236,38 @@ function generateEmailHTML(alert: Alert): string {
   <div style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);">
 
     <!-- Header -->
-    <div style="background-color: ${color}; color: #ffffff; padding: 28px 24px; text-align: center;">
-      <div style="font-size: 28px; margin-bottom: 4px;">${icon}</div>
-      <h1 style="margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.3px;">${alert.severity.toUpperCase()} ALERT</h1>
-      <p style="margin: 6px 0 0 0; font-size: 13px; opacity: 0.85;">AEGIS Emergency Management System</p>
+    <div style="background-color: ${color}; color: #ffffff; padding: 28px 24px;">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+        <td><h1 style="margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.3px;">${alert.severity.toUpperCase()} ALERT</h1></td>
+        <td style="text-align: right;"><span style="font-size: 12px; opacity: 0.85;">AEGIS Emergency Management</span></td>
+      </tr></table>
+      <p style="margin: 8px 0 0 0; font-size: 12px; opacity: 0.8;">Issued: ${timestamp}</p>
     </div>
 
-    <!-- Alert Badge -->
-    <div style="background-color: ${bg}; border-left: 4px solid ${color}; padding: 18px 20px; margin: 24px;">
-      <h2 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 700; color: ${color};">${alert.title}</h2>
-      <p style="margin: 0; font-size: 13px; color: #6b7280;">Location: ${alert.area}</p>
+    <!-- Alert Title & Location -->
+    <div style="background-color: ${bg}; border-left: 4px solid ${color}; padding: 18px 20px; margin: 20px 24px;">
+      <h2 style="margin: 0 0 10px 0; font-size: 18px; font-weight: 700; color: ${color};">${alert.title}</h2>
+      <table cellpadding="0" cellspacing="0" border="0" style="font-size: 13px; color: #4b5563;">
+        <tr><td style="padding: 2px 12px 2px 0; font-weight: 600; color: #374151;">Location:</td><td>${alert.area}</td></tr>
+        <tr><td style="padding: 2px 12px 2px 0; font-weight: 600; color: #374151;">Type:</td><td style="text-transform: capitalize;">${alert.type}</td></tr>
+        <tr><td style="padding: 2px 12px 2px 0; font-weight: 600; color: #374151;">Severity:</td><td style="text-transform: uppercase; font-weight: 600; color: ${color};">${alert.severity}</td></tr>
+      </table>
     </div>
 
     <!-- Message Body -->
-    <div style="padding: 0 24px 24px 24px;">
-      <p style="font-size: 15px; color: #374151; margin: 0 0 16px 0; line-height: 1.7;">${alert.message}</p>
+    <div style="padding: 0 24px 20px 24px;">
+      <p style="font-size: 14px; color: #374151; margin: 0 0 16px 0; line-height: 1.7;">${alert.message}</p>
 
       ${alert.actionRequired ? `
-      <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; margin: 16px 0; border-radius: 6px;">
-        <p style="margin: 0; font-weight: 700; color: #92400e; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Action Required</p>
-        <p style="margin: 8px 0 0 0; color: #78350f; font-size: 14px;">${alert.actionRequired}</p>
+      <div style="background-color: #fef3c7; border-left: 4px solid #d97706; padding: 14px 16px; margin: 16px 0; border-radius: 6px;">
+        <p style="margin: 0; font-weight: 700; color: #92400e; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Action Required</p>
+        <p style="margin: 6px 0 0 0; color: #78350f; font-size: 13px; line-height: 1.6;">${alert.actionRequired}</p>
       </div>
       ` : ''}
 
       ${alert.expiresAt ? `
       <p style="font-size: 12px; color: #6b7280; margin: 16px 0 0 0; padding: 8px 12px; background: #f9fafb; border-radius: 6px;">
-        Expires: <strong>${new Date(alert.expiresAt).toLocaleString('en-GB')}</strong>
+        This alert expires: <strong>${new Date(alert.expiresAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}</strong>
       </p>
       ` : ''}
     </div>
@@ -281,8 +275,8 @@ function generateEmailHTML(alert: Alert): string {
     <!-- Footer -->
     <div style="background-color: #f9fafb; padding: 18px 24px; border-top: 1px solid #e5e7eb;">
       <p style="margin: 0; font-size: 11px; color: #9ca3af; text-align: center; line-height: 1.6;">
-        Automated alert from the AEGIS Emergency Management System.<br>
-        For assistance, contact <strong>${SUPPORT_EMAIL}</strong> or your local emergency services.
+        AEGIS Emergency Management System<br>
+        For assistance, contact <strong>${SUPPORT_EMAIL}</strong> or call your local emergency services.
       </p>
     </div>
 
@@ -293,28 +287,26 @@ function generateEmailHTML(alert: Alert): string {
 }
 
 function generateEmailText(alert: Alert): string {
+  const timestamp = new Date().toLocaleString('en-GB', { dateStyle: 'full', timeStyle: 'short' })
   return `
-========================================================
-${alert.severity.toUpperCase()} ALERT — AEGIS Emergency Management
-========================================================
+AEGIS EMERGENCY MANAGEMENT
+${alert.severity.toUpperCase()} ALERT
+Issued: ${timestamp}
 
 ${alert.title}
 
 Location: ${alert.area}
+Type: ${alert.type}
+Severity: ${alert.severity.toUpperCase()}
 
 ${alert.message}
-
-${alert.actionRequired ? `ACTION REQUIRED:\n${alert.actionRequired}\n` : ''}
-${alert.expiresAt ? `Alert expires: ${new Date(alert.expiresAt).toLocaleString('en-GB')}\n` : ''}
---------------------------------------------------------
-Automated alert from the AEGIS Emergency Management System.
-For assistance, contact ${SUPPORT_EMAIL} or your local emergency services.
+${alert.actionRequired ? `\nACTION REQUIRED\n${alert.actionRequired}\n` : ''}${alert.expiresAt ? `\nThis alert expires: ${new Date(alert.expiresAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}\n` : ''}
+AEGIS Emergency Management System
+For assistance, contact ${SUPPORT_EMAIL} or call your local emergency services.
   `.trim()
 }
 
-// ═══════════════════════════════════════════════════════════
 // SMS Delivery (Twilio)
-// ═══════════════════════════════════════════════════════════
 
 export async function sendSMSAlert(
   recipient: string,
@@ -351,7 +343,7 @@ export async function sendSMSAlert(
       })
     }, 2, 300)
 
-    console.log(`✅ SMS sent to ${recipient} in ${Date.now() - startTime}ms (${message.sid})`)
+    logger.info({ recipient, sid: message.sid, durationMs: Date.now() - startTime }, 'SMS sent')
 
     return {
       channel: 'sms',
@@ -360,7 +352,7 @@ export async function sendSMSAlert(
       timestamp: new Date(),
     }
   } catch (error: any) {
-    console.error(`❌ SMS delivery failed to ${recipient}:`, error?.message || error)
+    logger.error({ recipient, err: error }, 'SMS delivery failed')
     // Helpful hint for Twilio trial accounts
     const hint = (error?.message || '').includes('Invalid') ? ' (check E.164 format or Twilio trial restrictions)' : ''
     return {
@@ -373,12 +365,10 @@ export async function sendSMSAlert(
 }
 
 function generateSMSText(alert: Alert): string {
-  return `AEGIS ${alert.severity.toUpperCase()} ALERT\n\n${alert.title}\nArea: ${alert.area}\n\n${alert.message}${alert.actionRequired ? `\n\nACTION: ${alert.actionRequired}` : ''}`
+  return `AEGIS ${alert.severity.toUpperCase()} ALERT\n${alert.title}\nLocation: ${alert.area}\nType: ${alert.type}\n\n${alert.message}${alert.actionRequired ? `\n\nACTION REQUIRED: ${alert.actionRequired}` : ''}${alert.expiresAt ? `\nExpires: ${new Date(alert.expiresAt).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}` : ''}`
 }
 
-// ═══════════════════════════════════════════════════════════
 // WhatsApp Delivery (Twilio)
-// ═══════════════════════════════════════════════════════════
 
 export async function sendWhatsAppAlert(
   recipient: string,
@@ -418,7 +408,7 @@ export async function sendWhatsAppAlert(
       })
     }, 2, 300)
 
-    console.log(`✅ WhatsApp sent to ${recipient} in ${Date.now() - startTime}ms (${message.sid})`)
+    logger.info({ recipient, sid: message.sid, durationMs: Date.now() - startTime }, 'WhatsApp sent')
 
     return {
       channel: 'whatsapp',
@@ -427,7 +417,7 @@ export async function sendWhatsAppAlert(
       timestamp: new Date(),
     }
   } catch (error: any) {
-    console.error(`❌ WhatsApp delivery failed to ${recipient}:`, error?.message || error)
+    logger.error({ recipient, err: error }, 'WhatsApp delivery failed')
     return {
       channel: 'whatsapp',
       success: false,
@@ -438,20 +428,22 @@ export async function sendWhatsAppAlert(
 }
 
 function generateWhatsAppText(alert: Alert): string {
-  return `*AEGIS ALERT* [${alert.severity.toUpperCase()}]
+  const timestamp = new Date().toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })
+  return `*AEGIS ${alert.severity.toUpperCase()} ALERT*
+_Issued: ${timestamp}_
 
 *${alert.title}*
-Area: ${alert.area}
+
+Location: ${alert.area}
+Type: ${alert.type}
+Severity: ${alert.severity.toUpperCase()}
 
 ${alert.message}
-
-${alert.actionRequired ? `*ACTION REQUIRED:*\n${alert.actionRequired}\n\n` : ''}${alert.expiresAt ? `Expires: ${new Date(alert.expiresAt).toLocaleString('en-GB')}\n\n` : ''}---
-_Automated alert from the AEGIS Emergency Management System._`
+${alert.actionRequired ? `\n*ACTION REQUIRED*\n${alert.actionRequired}\n` : ''}${alert.expiresAt ? `\n_Expires: ${new Date(alert.expiresAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}_\n` : ''}
+_AEGIS Emergency Management System_`
 }
 
-// ═══════════════════════════════════════════════════════════
 // Telegram Delivery (Bot API)
-// ═══════════════════════════════════════════════════════════
 
 export async function sendTelegramAlert(
   chatId: string,
@@ -498,7 +490,7 @@ export async function sendTelegramAlert(
               if (from?.username?.toLowerCase() === username && from.id) {
                 sendTo = from.id
                 resolved = true
-                console.log(`📡 Resolved @${username} → ${from.id} via getUpdates`)
+                logger.info({ username, resolvedId: from.id }, 'Resolved Telegram username via getUpdates')
                 break
               }
             }
@@ -528,7 +520,7 @@ export async function sendTelegramAlert(
       throw new Error(data.description || 'Telegram API error')
     }
 
-    console.log(`✅ Telegram sent to ${chatId} in ${Date.now() - startTime}ms (${data.result.message_id})`)
+    logger.info({ chatId, messageId: data.result.message_id, durationMs: Date.now() - startTime }, 'Telegram sent')
 
     return {
       channel: 'telegram',
@@ -537,7 +529,7 @@ export async function sendTelegramAlert(
       timestamp: new Date(),
     }
   } catch (error: any) {
-    console.error(`❌ Telegram delivery failed to ${chatId}:`, error?.message || error)
+    logger.error({ chatId, err: error }, 'Telegram delivery failed')
     const desc = (error?.message || '').toString()
     let hint = ''
     if (desc.includes('bot is not a member')) {
@@ -563,23 +555,25 @@ function generateTelegramText(alert: Alert): string {
   const area = escapeMdV2(alert.area)
   const message = escapeMdV2(alert.message)
   const severity = escapeMdV2(alert.severity.toUpperCase())
+  const type = escapeMdV2(alert.type)
+  const timestamp = escapeMdV2(new Date().toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }))
 
-  let text = `*AEGIS ALERT* \\[${severity}\\]\n\n*${title}*\nArea: ${area}\n\n${message}`
+  let text = `*AEGIS ${severity} ALERT*\n_Issued: ${timestamp}_\n\n*${title}*\n\nLocation: ${area}\nType: ${type}\nSeverity: ${severity}`
+
+  text += `\n\n${message}`
 
   if (alert.actionRequired) {
-    text += `\n\n*ACTION REQUIRED:*\n${escapeMdV2(alert.actionRequired)}`
+    text += `\n\n*ACTION REQUIRED*\n${escapeMdV2(alert.actionRequired)}`
   }
   if (alert.expiresAt) {
-    text += `\n\nExpires: ${escapeMdV2(new Date(alert.expiresAt).toLocaleString('en-GB'))}`
+    text += `\n\n_Expires: ${escapeMdV2(new Date(alert.expiresAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }))}_`
   }
 
-  text += `\n\n\\-\\-\\-\n_Automated alert from the AEGIS Emergency Management System\\._`
+  text += `\n\n_AEGIS Emergency Management System_`
   return text
 }
 
-// ═══════════════════════════════════════════════════════════
 // Web Push Delivery (VAPID)
-// ═══════════════════════════════════════════════════════════
 
 export async function sendWebPushAlert(
   subscription: webPush.PushSubscription,
@@ -602,7 +596,7 @@ export async function sendWebPushAlert(
 
     const payload = JSON.stringify({
       title: `AEGIS ${severityLabel}: ${alert.title}`,
-      body: `Area: ${alert.area}\n${alert.message}${alert.actionRequired ? '\n\nAction: ' + alert.actionRequired : ''}`,
+      body: `Location: ${alert.area}\nType: ${alert.type}\n\n${alert.message}${alert.actionRequired ? '\n\nAction Required: ' + alert.actionRequired : ''}`,
       icon: '/icons/icon-192x192.png',
       badge: '/icons/icon-96x96.png',
       tag: alert.id,
@@ -617,7 +611,7 @@ export async function sendWebPushAlert(
 
     const result = await webPush.sendNotification(subscription, payload)
 
-    console.log(`✅ Web Push sent in ${Date.now() - startTime}ms (status ${result.statusCode})`)
+    logger.info({ statusCode: result.statusCode, durationMs: Date.now() - startTime }, 'Web Push sent')
 
     return {
       channel: 'web',
@@ -626,7 +620,7 @@ export async function sendWebPushAlert(
       timestamp: new Date(),
     }
   } catch (error: any) {
-    console.error(`❌ Web Push delivery failed:`, error.message)
+    logger.error({ err: error }, 'Web Push delivery failed')
     return {
       channel: 'web',
       success: false,
@@ -636,9 +630,7 @@ export async function sendWebPushAlert(
   }
 }
 
-// ═══════════════════════════════════════════════════════════
 // Multi-Channel Delivery
-// ═══════════════════════════════════════════════════════════
 
 export async function sendMultiChannelAlert(
   recipient: AlertRecipient,
@@ -689,40 +681,58 @@ export async function sendMultiChannelAlert(
   // Log summary
   const successful = results.filter(r => r.success).length
   const failed = results.length - successful
-  console.log(`📊 Alert ${alert.id} delivery: ${successful} successful, ${failed} failed`)
+  logger.info({ alertId: alert.id, successful, failed }, 'Alert delivery summary')
 
   return results
 }
 
-// ═══════════════════════════════════════════════════════════
 // Subscription Matching & Batch Delivery
-// ═══════════════════════════════════════════════════════════
 
+ /*
+ * Broadcast an alert to all subscribers with concurrency-limited parallel delivery.
+ * Uses a semaphore pattern (p-limit style via Promise pool) so we don't open
+ * thousands of simultaneous connections during a major incident alert.
+ * Default concurrency: 50 simultaneous deliveries (configurable via
+ * NOTIFICATION_CONCURRENCY env var). With 50 concurrent and 5000 subscribers,
+ * total delivery time ≈ (5000/50) × avg_latency_per_batch.
+  */
 export async function sendAlertToSubscribers(
   alert: Alert,
   subscriptions: any[]
 ): Promise<{ total: number; successful: number; failed: number; results: DeliveryResult[] }> {
-  console.log(`📢 Broadcasting alert ${alert.id} to ${subscriptions.length} subscribers...`)
+  const concurrency = parseInt(process.env.NOTIFICATION_CONCURRENCY || '50', 10)
+  logger.info({ alertId: alert.id, subscribers: subscriptions.length, concurrency }, 'Broadcasting alert to subscribers')
 
   const allResults: DeliveryResult[] = []
 
-  // Send to each subscriber
-  for (const sub of subscriptions) {
-    const recipient: AlertRecipient = {
-      email: sub.email,
-      phone: sub.phone,
-      telegram_id: sub.telegram_id,
-      whatsapp: sub.whatsapp,
-    }
+  // Process in batches of `concurrency` to avoid exhausting OS socket limits
+  for (let i = 0; i < subscriptions.length; i += concurrency) {
+    const batch = subscriptions.slice(i, i + concurrency)
 
-    const results = await sendMultiChannelAlert(recipient, alert, sub.channels || ['email'])
-    allResults.push(...results)
+    const batchPromises = batch.map((sub) => {
+      const recipient: AlertRecipient = {
+        email: sub.email,
+        phone: sub.phone,
+        telegram_id: sub.telegram_id,
+        whatsapp: sub.whatsapp,
+      }
+      return sendMultiChannelAlert(recipient, alert, sub.channels || ['email'])
+    })
+
+    const batchSettled = await Promise.allSettled(batchPromises)
+    for (const settled of batchSettled) {
+      if (settled.status === 'fulfilled') {
+        allResults.push(...settled.value)
+      } else {
+        logger.error({ err: settled.reason }, '[Notifications] Batch delivery error')
+      }
+    }
   }
 
   const successful = allResults.filter(r => r.success).length
   const failed = allResults.length - successful
 
-  console.log(`✅ Broadcast complete: ${successful}/${allResults.length} deliveries successful`)
+  logger.info({ successful, total: allResults.length, failed }, 'Broadcast complete')
 
   return {
     total: allResults.length,
@@ -732,9 +742,7 @@ export async function sendAlertToSubscribers(
   }
 }
 
-// ═══════════════════════════════════════════════════════════
 // Health Check
-// ═══════════════════════════════════════════════════════════
 
 export function getNotificationServiceStatus() {
   return {
@@ -761,3 +769,4 @@ export function getNotificationServiceStatus() {
     },
   }
 }
+

@@ -1,0 +1,63 @@
+{
+  "uid": "aegis-distress",
+  "title": "AEGIS — Distress Response",
+  "tags": ["aegis", "distress", "sos"],
+  "timezone": "browser",
+  "refresh": "10s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    {
+      "title": "Active Distress Calls",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "fieldConfig": {
+        "defaults": { "thresholds": { "steps": [{ "value": 0, "color": "green" }, { "value": 1, "color": "orange" }, { "value": 3, "color": "red" }] } }
+      },
+      "targets": [{ "expr": "distress_active_count", "legendFormat": "Active", "refId": "A" }]
+    },
+    {
+      "title": "Distress Events (rate/min)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 6, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [
+        { "expr": "sum(rate(distress_events_total{event=\"activate\"}[5m])) * 60", "legendFormat": "Activations", "refId": "A" },
+        { "expr": "sum(rate(distress_events_total{event=\"acknowledge\"}[5m])) * 60", "legendFormat": "Acknowledgements", "refId": "B" },
+        { "expr": "sum(rate(distress_events_total{event=\"resolve\"}[5m])) * 60", "legendFormat": "Resolutions", "refId": "C" },
+        { "expr": "sum(rate(distress_events_total{event=\"cancel\"}[5m])) * 60", "legendFormat": "Cancellations", "refId": "D" },
+        { "expr": "sum(rate(distress_events_total{event=\"activate_error\"}[5m])) * 60", "legendFormat": "Errors", "refId": "E" }
+      ]
+    },
+    {
+      "title": "Acknowledgement Errors",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "fieldConfig": {
+        "defaults": { "thresholds": { "steps": [{ "value": 0, "color": "green" }, { "value": 1, "color": "red" }] } }
+      },
+      "targets": [{ "expr": "sum(increase(distress_events_total{event=\"activate_error\"}[1h])) or vector(0)", "legendFormat": "Errors (1h)", "refId": "A" }]
+    },
+    {
+      "title": "Response Latency (activation → acknowledgement)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [
+        { "expr": "histogram_quantile(0.50, sum(rate(distress_response_seconds_bucket[15m])) by (le))", "legendFormat": "p50", "refId": "A" },
+        { "expr": "histogram_quantile(0.95, sum(rate(distress_response_seconds_bucket[15m])) by (le))", "legendFormat": "p95", "refId": "B" },
+        { "expr": "histogram_quantile(0.99, sum(rate(distress_response_seconds_bucket[15m])) by (le))", "legendFormat": "p99", "refId": "C" }
+      ]
+    },
+    {
+      "title": "Distress Events Total",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [
+        { "expr": "sum(increase(distress_events_total[1h])) by (event)", "legendFormat": "{{ event }}", "refId": "A" }
+      ]
+    }
+  ]
+}

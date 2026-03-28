@@ -100,21 +100,21 @@ export const HAZARD_MODULES: Record<string, HazardConfig> = {
   },
 }
 
-/**
+ /**
  * Get enabled hazard types for the current deployment.
  */
 export function getEnabledHazards(): HazardConfig[] {
   return Object.values(HAZARD_MODULES).filter((h) => h.enabled)
 }
 
-/**
+ /**
  * Get a specific hazard config by type key.
  */
 export function getHazardConfig(type: string): HazardConfig | undefined {
   return HAZARD_MODULES[type]
 }
 
-/**
+ /**
  * List all hazard type keys regardless of enabled state.
  */
 export function listHazardTypes(): string[] {

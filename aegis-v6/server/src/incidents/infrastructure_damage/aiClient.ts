@@ -5,9 +5,10 @@
 
 import type { IncidentPrediction } from '../types.js'
 import pool from '../../models/db.js'
+import { logger } from '../../services/logger.js'
 
 export class InfrastructureDamageAIClient {
-  /**
+   /**
    * Get rule-based predictions for infrastructure damage
    * Uses report clustering and severity analysis
    */
@@ -56,7 +57,7 @@ export class InfrastructureDamageAIClient {
         dataSourcesUsed: ['citizen_reports', 'emergency_services']
       }]
     } catch (error) {
-      console.error(`Infrastructure damage rule-based model error: ${error}`)
+      logger.error({ err: error }, '[InfrastructureDamage/AIClient] Rule-based model error')
       return []
     }
   }

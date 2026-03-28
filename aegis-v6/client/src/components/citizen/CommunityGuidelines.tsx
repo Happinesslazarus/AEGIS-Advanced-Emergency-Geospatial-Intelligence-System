@@ -48,7 +48,7 @@ export function CommunityGuidelines({ isOpen, onClose }: GuidelinesModalProps) {
               </div>
               <div>
                 <h3 className="font-bold text-gray-900 dark:text-white mb-1">{t('community.beRespectful', lang)}</h3>
-                <ul className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 space-y-1">
+                <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
                   <li>• {t('community.respectBullet1', lang)}</li>
                   <li>• {t('community.respectBullet2', lang)}</li>
                   <li>• {t('community.respectBullet3', lang)}</li>
@@ -66,8 +66,8 @@ export function CommunityGuidelines({ isOpen, onClose }: GuidelinesModalProps) {
               </div>
               <div>
                 <h3 className="font-bold text-gray-900 dark:text-white mb-1">{t('community.prohibitedContent', lang)}</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-2">{t('community.doNotPost', lang)}</p>
-                <ul className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 space-y-1">
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">{t('community.doNotPost', lang)}</p>
+                <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
                   <li>• {t('community.prohibitedBullet1', lang)}</li>
                   <li>• {t('community.prohibitedBullet2', lang)}</li>
                   <li>• {t('community.prohibitedBullet3', lang)}</li>
@@ -88,7 +88,7 @@ export function CommunityGuidelines({ isOpen, onClose }: GuidelinesModalProps) {
               </div>
               <div>
                 <h3 className="font-bold text-gray-900 dark:text-white mb-1">{t('community.postAccurate', lang)}</h3>
-                <ul className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 space-y-1">
+                <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
                   <li>• {t('community.accurateBullet1', lang)}</li>
                   <li>• {t('community.accurateBullet2', lang)}</li>
                   <li>• {t('community.accurateBullet3', lang)}</li>
@@ -107,7 +107,7 @@ export function CommunityGuidelines({ isOpen, onClose }: GuidelinesModalProps) {
               </div>
               <div>
                 <h3 className="font-bold text-gray-900 dark:text-white mb-1">{t('community.protectPrivacy', lang)}</h3>
-                <ul className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 space-y-1">
+                <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
                   <li>• {t('community.privacyBullet1', lang)}</li>
                   <li>• {t('community.privacyBullet2', lang)}</li>
                   <li>• {t('community.privacyBullet3', lang)}</li>
@@ -120,7 +120,7 @@ export function CommunityGuidelines({ isOpen, onClose }: GuidelinesModalProps) {
           {/* Section 5: Community Values */}
           <section className="space-y-3 bg-aegis-50 dark:bg-aegis-900/20 rounded-lg p-4 border border-aegis-200 dark:border-aegis-800">
             <h3 className="font-bold text-gray-900 dark:text-white">{t('community.ourValues', lang)}</h3>
-            <ul className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 space-y-1">
+            <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
               <li>✓ <strong>{t('community.valueSafetyFirstTitle', lang)}:</strong> {t('community.valueSafetyFirstDesc', lang)}</li>
               <li>✓ <strong>{t('community.valueTransparencyTitle', lang)}:</strong> {t('community.valueTransparencyDesc', lang)}</li>
               <li>✓ <strong>{t('community.valueInclusivityTitle', lang)}:</strong> {t('community.valueInclusivityDesc', lang)}</li>
@@ -146,7 +146,7 @@ export function CommunityGuidelines({ isOpen, onClose }: GuidelinesModalProps) {
               onChange={e => setUnderstood(e.target.checked)}
               className="w-4 h-4 rounded accent-aegis-600"
             />
-            <span className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+            <span className="text-sm text-gray-600 dark:text-gray-300">
               {t('community.guidelinesAcknowledge', lang)}
             </span>
           </label>
@@ -164,7 +164,4 @@ export function CommunityGuidelines({ isOpen, onClose }: GuidelinesModalProps) {
 }
 
 export default CommunityGuidelines
-
-
-
-
+

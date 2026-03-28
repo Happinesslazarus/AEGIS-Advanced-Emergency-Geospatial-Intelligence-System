@@ -1,0 +1,67 @@
+{
+  "total": 3,
+  "evaluated": 3,
+  "errors": 0,
+  "type_accuracy": 33.3,
+  "severity_exact_accuracy": 33.3,
+  "severity_close_accuracy": 66.7,
+  "avg_confidence": 65.0,
+  "avg_time_ms": 28449,
+  "false_positives": 0,
+  "false_negatives": 2,
+  "timestamp": "2026-03-26T06:42:09.099778",
+  "results": [
+    {
+      "id": "wf-001",
+      "url": "https://images.pexels.com/photos/51951/forest-fire-fire-smoke-conservation-51951.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/wf-001.jpg",
+      "expected_type": "wildfire",
+      "expected_severity": "high",
+      "description": "Forest fire with flames and smoke",
+      "status": "ok",
+      "predicted_type": "wildfire",
+      "predicted_severity": "high",
+      "predicted_confidence": 95,
+      "type_correct": true,
+      "severity_distance": 0,
+      "elapsed_ms": 32631
+    },
+    {
+      "id": "wf-002",
+      "url": "https://images.pexels.com/photos/3552472/pexels-photo-3552472.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/wf-002.jpg",
+      "expected_type": "wildfire",
+      "expected_severity": "critical",
+      "description": "Wildfire engulfing trees at night",
+      "status": "ok",
+      "predicted_type": "unknown",
+      "predicted_severity": "the",
+      "predicted_confidence": 50,
+      "type_correct": false,
+      "severity_distance": 2,
+      "elapsed_ms": 30011
+    },
+    {
+      "id": "wf-003",
+      "url": "https://images.pexels.com/photos/266487/pexels-photo-266487.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/wf-003.jpg",
+      "expected_type": "wildfire",
+      "expected_severity": "high",
+      "description": "Fire burning in dry grassland",
+      "status": "ok",
+      "predicted_type": "unknown",
+      "predicted_severity": "moderate",
+      "predicted_confidence": 50,
+      "type_correct": false,
+      "severity_distance": 1,
+      "elapsed_ms": 22705
+    }
+  ],
+  "per_category": {
+    "wildfire": {
+      "total": 3,
+      "correct": 1,
+      "accuracy": 33.3
+    }
+  }
+}

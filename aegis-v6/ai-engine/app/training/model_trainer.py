@@ -56,7 +56,6 @@ except ImportError:
     TORCH_AVAILABLE = False
     logger.warning("PyTorch not available, deep learning models disabled")
 
-
 class ModelTrainer:
     """
     Unified interface for training different model types.
@@ -479,4 +478,4 @@ class ModelTrainer:
         
         logger.success(f"Model loaded from {path}")
         return model
-
+

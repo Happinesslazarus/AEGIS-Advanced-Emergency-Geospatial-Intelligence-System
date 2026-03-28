@@ -1,5 +1,4 @@
-/**
- * i18n batch processing script
+﻿ * i18n batch processing script
  * Adds useLanguage() hook call to component functions that have the import but don't call it.
  * Also replaces common hardcoded patterns with t() calls.
  */
@@ -82,3 +81,4 @@ for (const d of DIRS) {
 }
 
 console.log(`\nProcessed ${totalFiles} files, added useLanguage() to ${hookAdded} files`)
+

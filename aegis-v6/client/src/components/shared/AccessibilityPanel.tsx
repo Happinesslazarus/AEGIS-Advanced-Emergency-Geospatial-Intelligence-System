@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+﻿import { useState, useEffect, useCallback, useRef } from 'react'
 import { Accessibility, X, Eye, Type, Contrast, Monitor, MousePointer, Volume2 } from 'lucide-react'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
@@ -6,7 +6,7 @@ import { useLanguage } from '../../hooks/useLanguage'
 interface A11y { screenReader: boolean; highContrast: boolean; largeText: boolean; dyslexiaFont: boolean; reducedMotion: boolean; colourBlind: string; focusHighlight: boolean }
 const DEF: A11y = { screenReader: false, highContrast: false, largeText: false, dyslexiaFont: false, reducedMotion: false, colourBlind: 'none', focusHighlight: false }
 
-/** Read text aloud via Web Speech API */
+/* Read text aloud via Web Speech API */
 function speak(text: string, rate = 1.0): void {
   if (!('speechSynthesis' in window) || !text.trim()) return
   window.speechSynthesis.cancel()
@@ -116,8 +116,8 @@ export default function AccessibilityPanel(): JSX.Element {
           <div className="p-3 space-y-2 max-h-[55vh] overflow-y-auto">
             {items.map(({ key, icon: Icon, title, desc }) => (
               <button key={key} onClick={() => tog(key)} className={`w-full flex items-center gap-2.5 p-2.5 rounded-xl border-2 text-left ${s[key] ? 'border-aegis-500 bg-aegis-50 dark:bg-aegis-950/30' : 'border-gray-200 dark:border-gray-700'}`}>
-                <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${s[key] ? 'bg-aegis-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`}><Icon className="w-4 h-4" /></div>
-                <div className="flex-1 min-w-0"><p className="font-semibold text-xs">{title}</p><p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 truncate">{desc}</p></div>
+                <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${s[key] ? 'bg-aegis-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-300'}`}><Icon className="w-4 h-4" /></div>
+                <div className="flex-1 min-w-0"><p className="font-semibold text-xs">{title}</p><p className="text-[10px] text-gray-500 dark:text-gray-300 truncate">{desc}</p></div>
                 <div className={`w-9 h-5 rounded-full flex-shrink-0 ${s[key] ? 'bg-aegis-600' : 'bg-gray-300'}`}><div className={`w-4 h-4 bg-white rounded-full shadow mt-0.5 transition-all ${s[key] ? 'ml-[18px]' : 'ml-0.5'}`} /></div>
               </button>
             ))}
@@ -134,7 +134,4 @@ export default function AccessibilityPanel(): JSX.Element {
     </>
   )
 }
-
-
-
-
+

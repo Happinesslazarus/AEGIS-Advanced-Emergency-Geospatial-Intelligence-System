@@ -1,13 +1,14 @@
 /**
- * incidents/wildfire/service.ts â€” Wildfire incident business logic
+ * incidents/wildfire/service.ts — Wildfire incident business logic
  */
 
 import pool from '../../models/db.js'
 import type { IncidentPrediction } from '../types.js'
 import { wildfireConfig, WILDFIRE_RISK_FACTORS } from './config.js'
+import { logger } from '../../services/logger.js'
 
 export class WildfireService {
-  /**
+   /**
    * Get wildfire risk score
    */
   static async calculateWildfireRisk(region: string): Promise<number> {
@@ -28,7 +29,7 @@ export class WildfireService {
     }
   }
 
-  /**
+   /**
    * Get wildfire predictions for a region
    */
   static async getWildfirePredictions(region: string): Promise<IncidentPrediction[]> {
@@ -55,7 +56,7 @@ export class WildfireService {
     }]
   }
 
-  /**
+   /**
    * Get wildfire advisory text based on severity
    */
   static getWildfireAdvisory(severity: string): string {
@@ -71,7 +72,7 @@ export class WildfireService {
     }
   }
 
-  /**
+   /**
    * Analyze fire hotspots
    */
   static async analyzeFireHotspots(region: string, lat = 57.15, lon = -2.11): Promise<{ hotspotCount: number; totalFRP: number; nearUrban: number }> {
@@ -83,7 +84,7 @@ export class WildfireService {
       }
       const apiKey = process.env.NASA_FIRMS_API_KEY
       if (!apiKey) {
-        console.warn('NASA FIRMS API key not configured — cannot analyze hotspots')
+        logger.warn('[WildfireService] NASA FIRMS API key not configured — cannot analyze hotspots')
         return { hotspotCount: 0, totalFRP: 0, nearUrban: 0 }
       }
       const source = 'VIIRS_NOAA20_NRT'
@@ -108,7 +109,7 @@ export class WildfireService {
       }
       return { hotspotCount: hotspots.length, totalFRP: Math.round(totalFRP * 100) / 100, nearUrban }
     } catch (error) {
-      console.error('Fire hotspot analysis error:', error)
+      logger.error({ err: error }, '[WildfireService] Fire hotspot analysis error')
       return { hotspotCount: 0, totalFRP: 0, nearUrban: 0 }
     }
   }

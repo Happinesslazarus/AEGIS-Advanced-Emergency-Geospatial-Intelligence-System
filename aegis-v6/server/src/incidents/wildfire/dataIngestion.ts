@@ -4,17 +4,17 @@
  */
 
 import { NASA_FIRMS_CONFIG } from './config.js'
+import { logger } from '../../services/logger.js'
 
 export class WildfireDataIngestion {
-  /**
+   /**
    * Ingest wildfire hotspot data from NASA FIRMS API
    */
   static async ingestFireData(region: string, lat = 57.15, lon = -2.11, radius = 100): Promise<{ recordsIngested: number; source: string }> {
     try {
       const apiKey = process.env.NASA_FIRMS_API_KEY
       if (!apiKey) {
-        console.warn('??  NASA FIRMS API key not configured — wildfire satellite data disabled. Set NASA_FIRMS_API_KEY in .env')
-        console.warn('   Get a free API key from: https://firms.modaps.eosdis.nasa.gov/api/area/')
+        logger.warn('[Wildfire] NASA FIRMS API key not configured â€” wildfire satellite data disabled. Set NASA_FIRMS_API_KEY in .env. Get a free key from: https://firms.modaps.eosdis.nasa.gov/api/area/')
         return { recordsIngested: 0, source: 'NASA FIRMS (no API key)' }
       }
 
@@ -31,7 +31,7 @@ export class WildfireDataIngestion {
       })
 
       if (!response.ok) {
-        console.warn(`NASA FIRMS API returned ${response.status}`)
+        logger.warn({ status: response.status }, '[Wildfire] NASA FIRMS API returned non-OK status')
         return { recordsIngested: 0, source: 'NASA FIRMS (failed)' }
       }
 
@@ -39,19 +39,19 @@ export class WildfireDataIngestion {
       const lines = csvData.split('\n').filter(line => line.trim())
       const recordCount = Math.max(0, lines.length - 1) // Subtract header row
 
-      console.log(`Ingested ${recordCount} fire hotspots from NASA FIRMS`)
+      logger.info({ recordCount }, '[Wildfire] Ingested fire hotspots from NASA FIRMS')
       
       return {
         recordsIngested: recordCount,
         source: 'NASA FIRMS'
       }
     } catch (error) {
-      console.error(`Wildfire data ingestion error: ${error}`)
+      logger.error({ err: error }, '[Wildfire] Data ingestion error')
       return { recordsIngested: 0, source: 'NASA FIRMS (error)' }
     }
   }
 
-  /**
+   /**
    * Parse NASA FIRMS CSV data
    */
   static parseFireHotspots(csvData: string): Record<string, unknown>[] {
@@ -75,7 +75,7 @@ export class WildfireDataIngestion {
     return hotspots
   }
 
-  /**
+   /**
    * Schedule periodic data ingestion
    */
   static scheduleIngestion(intervalMinutes = 60): NodeJS.Timer {

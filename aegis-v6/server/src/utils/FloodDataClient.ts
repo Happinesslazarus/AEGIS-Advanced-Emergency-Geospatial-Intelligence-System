@@ -36,7 +36,7 @@ export const REGION_APIS: Readonly<Record<string, RegionApiConfig>> = {
     alertApiUrl: 'https://environment.data.gov.uk/flood-monitoring/id/floods',
     watchGeoJsonUrl: 'https://environment.data.gov.uk/flood-monitoring/id/floodAreas.geojson',
     warningGeoJsonUrl: 'https://environment.data.gov.uk/flood-monitoring/id/floodAreas.geojson',
-    enabled: false,
+    enabled: true,
   },
   wales: {
     regionId: 'wales',

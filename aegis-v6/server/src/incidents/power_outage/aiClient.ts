@@ -5,9 +5,10 @@
 
 import type { IncidentPrediction } from '../types.js'
 import pool from '../../models/db.js'
+import { logger } from '../../services/logger.js'
 
 export class PowerOutageAIClient {
-  /**
+   /**
    * Get rule-based predictions for power outages
    * Uses report clustering and density analysis
    */
@@ -50,7 +51,7 @@ export class PowerOutageAIClient {
         dataSourcesUsed: ['citizen_reports', 'report_clustering']
       }]
     } catch (error) {
-      console.error(`Power outage rule-based model error: ${error}`)
+      logger.error({ err: error }, '[PowerOutage/AIClient] Rule-based model error')
       return []
     }
   }

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
+import { STATUS_HEX } from '../../utils/colorTokens'
 
 const API = ''
 
@@ -40,12 +41,7 @@ interface Props {
   className?: string
 }
 
-const STATUS_COLOURS: Record<string, string> = {
-  CRITICAL: '#dc2626',
-  HIGH: '#f97316',
-  ELEVATED: '#eab308',
-  NORMAL: '#3b82f6',
-}
+const STATUS_COLOURS: Record<string, string> = STATUS_HEX
 
 export default function FloodPredictionTimeline({ onTimeChange, className = '' }: Props): JSX.Element {
   const lang = useLanguage()
@@ -57,18 +53,26 @@ export default function FloodPredictionTimeline({ onTimeChange, className = '' }
   const playIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const timePoints = [0, 1, 2, 4, 6]
+  const abortRef = useRef<AbortController | null>(null)
 
   const fetchPredictions = useCallback(async (retries = 2) => {
+    // Cancel any in-flight request before starting a new one
+    abortRef.current?.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
+
     setLoading(true)
     try {
-      const res = await fetch(`${API}/api/incidents/flood/prediction`)
+      const res = await fetch(`${API}/api/incidents/flood/prediction`, { signal: controller.signal })
       if (res.status === 429 && retries > 0) {
-        await new Promise(r => setTimeout(r, 2000))
+        await new Promise<void>((resolve, reject) => {
+          const id = setTimeout(resolve, 2000)
+          controller.signal.addEventListener('abort', () => { clearTimeout(id); reject(new DOMException('Aborted', 'AbortError')) })
+        })
         return fetchPredictions(retries - 1)
       }
       if (res.ok) {
         const data = await res.json()
-        // Map API field names to component interface
         const mapped = (data.predictions || []).map((river: any) => ({
           stationId: river.stationId || '',
           riverName: river.riverName || '',
@@ -87,11 +91,19 @@ export default function FloodPredictionTimeline({ onTimeChange, className = '' }
         }))
         setPredictions(mapped)
       }
-    } catch {}
-    setLoading(false)
+    } catch (err: any) {
+      if (err?.name !== 'AbortError') {
+        console.error('[FloodPredictionTimeline] Failed to fetch predictions:', err?.message)
+      }
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
-  useEffect(() => { fetchPredictions() }, [fetchPredictions])
+  useEffect(() => {
+    fetchPredictions()
+    return () => { abortRef.current?.abort() }
+  }, [fetchPredictions])
 
   // Auto-play animation
   useEffect(() => {
@@ -160,9 +172,9 @@ export default function FloodPredictionTimeline({ onTimeChange, className = '' }
         </div>
         <div className="flex-1 text-left">
           <h3 className="text-sm font-bold text-gray-900 dark:text-white">{t('floodPred.floodPrediction', lang)}</h3>
-          <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{predictions.length} {t('floodPred.riversMonitored', lang)}</p>
+          <p className="text-[10px] text-gray-500 dark:text-gray-300">{predictions.length} {t('floodPred.riversMonitored', lang)}</p>
         </div>
-        <ChevronDown className={`w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 transition-transform duration-200 ${collapsed ? '-rotate-90' : ''}`} />
+        <ChevronDown className={`w-4 h-4 text-gray-400 dark:text-gray-300 transition-transform duration-200 ${collapsed ? '-rotate-90' : ''}`} />
       </button>
 
       {/* Body — hidden when collapsed */}
@@ -171,13 +183,13 @@ export default function FloodPredictionTimeline({ onTimeChange, className = '' }
       {/* Timeline slider */}
       <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700/30">
         <div className="flex items-center gap-2 mb-2">
-          <button onClick={stepBack} className="p-1 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition disabled:opacity-30" disabled={selectedHour === 0}>
+          <button onClick={stepBack} className="p-1 text-gray-500 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition disabled:opacity-30" disabled={selectedHour === 0}>
             <SkipBack className="w-4 h-4" />
           </button>
           <button onClick={() => setIsPlaying(!isPlaying)} className="p-1.5 bg-blue-600 rounded-lg text-white hover:bg-blue-500 transition">
             {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
           </button>
-          <button onClick={stepForward} className="p-1 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition disabled:opacity-30" disabled={selectedHour === 6}>
+          <button onClick={stepForward} className="p-1 text-gray-500 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition disabled:opacity-30" disabled={selectedHour === 6}>
             <SkipForward className="w-4 h-4" />
           </button>
           <div className="flex-1" />
@@ -213,7 +225,7 @@ export default function FloodPredictionTimeline({ onTimeChange, className = '' }
         </div>
         <div className="flex justify-between mt-1">
           {timePoints.map(tp => (
-            <span key={tp} className="text-[9px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{tp === 0 ? 'Now' : `+${tp}h`}</span>
+            <span key={tp} className="text-[9px] text-gray-500 dark:text-gray-300">{tp === 0 ? 'Now' : `+${tp}h`}</span>
           ))}
         </div>
       </div>
@@ -222,19 +234,19 @@ export default function FloodPredictionTimeline({ onTimeChange, className = '' }
       <div className="px-4 py-2 grid grid-cols-4 gap-2">
         <div className="text-center">
           <div className="text-lg font-bold text-gray-900 dark:text-white">{currentStats.criticalRivers}</div>
-          <div className="text-[9px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex items-center justify-center gap-0.5"><AlertTriangle className="w-2.5 h-2.5" /> {t('floodPred.atRisk', lang)}</div>
+          <div className="text-[9px] text-gray-500 dark:text-gray-300 flex items-center justify-center gap-0.5"><AlertTriangle className="w-2.5 h-2.5" /> {t('floodPred.atRisk', lang)}</div>
         </div>
         <div className="text-center">
           <div className="text-lg font-bold text-gray-900 dark:text-white">{currentStats.totalProperties.toLocaleString()}</div>
-          <div className="text-[9px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex items-center justify-center gap-0.5"><Home className="w-2.5 h-2.5" /> {t('floodPred.properties', lang)}</div>
+          <div className="text-[9px] text-gray-500 dark:text-gray-300 flex items-center justify-center gap-0.5"><Home className="w-2.5 h-2.5" /> {t('floodPred.properties', lang)}</div>
         </div>
         <div className="text-center">
           <div className="text-lg font-bold text-gray-900 dark:text-white">{currentStats.totalPeople.toLocaleString()}</div>
-          <div className="text-[9px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex items-center justify-center gap-0.5"><Users className="w-2.5 h-2.5" /> {t('floodPred.people', lang)}</div>
+          <div className="text-[9px] text-gray-500 dark:text-gray-300 flex items-center justify-center gap-0.5"><Users className="w-2.5 h-2.5" /> {t('floodPred.people', lang)}</div>
         </div>
         <div className="text-center">
           <div className="text-lg font-bold text-gray-900 dark:text-white">{currentStats.avgConfidence}%</div>
-          <div className="text-[9px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('floodPred.confidence', lang)}</div>
+          <div className="text-[9px] text-gray-500 dark:text-gray-300">{t('floodPred.confidence', lang)}</div>
         </div>
       </div>
 
@@ -252,7 +264,7 @@ export default function FloodPredictionTimeline({ onTimeChange, className = '' }
                 <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: colour }} />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-gray-900 dark:text-white truncate">{river.riverName}</p>
-                  <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{river.stationName}</p>
+                  <p className="text-[10px] text-gray-500 dark:text-gray-300">{river.stationName}</p>
                 </div>
                 <div className="text-right flex-shrink-0">
                   <div className="text-sm font-mono font-bold text-gray-900 dark:text-white">{pred.predictedLevel?.toFixed(2)}m</div>
@@ -267,7 +279,7 @@ export default function FloodPredictionTimeline({ onTimeChange, className = '' }
       )}
 
       {loading && (
-        <div className="px-4 py-4 text-center text-xs text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+        <div className="px-4 py-4 text-center text-xs text-gray-400 dark:text-gray-300">
           {t('floodPred.loadingPredictions', lang)}
         </div>
       )}
@@ -276,7 +288,4 @@ export default function FloodPredictionTimeline({ onTimeChange, className = '' }
     </div>
   )
 }
-
-
-
-
+

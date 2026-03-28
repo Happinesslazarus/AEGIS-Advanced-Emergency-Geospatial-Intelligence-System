@@ -1,15 +1,12 @@
 """
-═══════════════════════════════════════════════════════════════════════════════
  AEGIS AI ENGINE — Fake/Spam Detection Module
  ML-based detection of fraudulent disaster reports
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from typing import Dict, Optional, List
 import re
 from datetime import datetime, timedelta
 from loguru import logger
-
 
 class FakeDetector:
     """

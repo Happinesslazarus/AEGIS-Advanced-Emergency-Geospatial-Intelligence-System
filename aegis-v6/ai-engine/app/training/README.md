@@ -1,4 +1,4 @@
-# AEGIS AI Engine - Training Pipeline
+﻿# AEGIS AI Engine - Training Pipeline
 
 Complete machine learning training infrastructure for the AEGIS multi-hazard prediction system.
 
@@ -299,6 +299,6 @@ Core dependencies:
 4. Set up automated retraining pipeline
 5. Add drift detection monitoring
 
----
 
 **For production deployment**, see main AEGIS documentation.
+

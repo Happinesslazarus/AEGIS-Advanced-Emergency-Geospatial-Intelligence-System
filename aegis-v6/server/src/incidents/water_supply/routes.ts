@@ -3,12 +3,13 @@
  */
 
 import { Router, Request, Response } from 'express'
+import { regionRegistry } from '../../adapters/regions/RegionRegistry.js'
 
 export function setupWaterSupplyRoutes(router: Router): void {
   // GET /disruption-map — water supply disruption coverage map
   router.get('/disruption-map', async (req: Request, res: Response) => {
     try {
-      const region = String(req.query.region || process.env.REGION_ID || 'aberdeen_scotland_uk')
+      const region = String(req.query.region || process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId)
       res.json({
         incidentType: 'water_supply',
         region,
@@ -24,7 +25,7 @@ export function setupWaterSupplyRoutes(router: Router): void {
   // GET /affected-count — estimated affected households
   router.get('/affected-count', async (req: Request, res: Response) => {
     try {
-      const region = String(req.query.region || process.env.REGION_ID || 'aberdeen_scotland_uk')
+      const region = String(req.query.region || process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId)
       res.json({
         incidentType: 'water_supply',
         region,
@@ -40,7 +41,7 @@ export function setupWaterSupplyRoutes(router: Router): void {
   // GET /water-quality — water quality alerts
   router.get('/water-quality', async (req: Request, res: Response) => {
     try {
-      const region = String(req.query.region || process.env.REGION_ID || 'aberdeen_scotland_uk')
+      const region = String(req.query.region || process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId)
       res.json({
         incidentType: 'water_supply',
         region,
@@ -53,3 +54,4 @@ export function setupWaterSupplyRoutes(router: Router): void {
     }
   })
 }
+

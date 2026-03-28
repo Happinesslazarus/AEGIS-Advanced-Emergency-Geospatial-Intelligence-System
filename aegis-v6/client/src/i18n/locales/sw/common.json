@@ -229,6 +229,23 @@
     "terms": "Masharti ya huduma",
     "contact": "Wasiliana",
     "about": "Kuhusu AEGIS",
-    "accessibility": "Upatikanaji"
+    "accessibility": "Upatikanaji",
+    "cookiePreferences": "Mapendeleo ya vidakuzi"
+  },
+  "cookieConsent": {
+    "title": "Mapendeleo ya vidakuzi",
+    "description": "Tunatumia vidakuzi kuhakikisha kazi muhimu za jukwaa na, kwa idhini yako, kuboresha uzoefu wako. Unaweza kubadilisha mapendeleo yako wakati wowote.",
+    "acceptAll": "Kubali zote",
+    "essentialOnly": "Muhimu tu",
+    "managePreferences": "Dhibiti mapendeleo",
+    "savePreferences": "Hifadhi mapendeleo",
+    "cat": {
+      "essential": "Muhimu",
+      "essentialDesc": "Uthibitishaji, ulinzi wa CSRF na vidakuzi vya usalama. Daima hai.",
+      "preferences": "Mapendeleo",
+      "preferencesDesc": "Uchaguzi wa lugha, mipangilio ya mandhari na mapendeleo ya kiolesura.",
+      "analytics": "Uchambuzi",
+      "analyticsDesc": "Uchambuzi wa matumizi na ufuatiliaji wa utendaji kuboresha jukwaa."
+    }
   }
 }

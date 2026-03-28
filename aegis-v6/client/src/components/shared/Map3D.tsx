@@ -1,17 +1,17 @@
-/**
+﻿/**
  * Map3D.tsx — Full 3D Disaster Map with Mapbox GL JS
  *
  * Features:
- *   - 3D terrain (Mapbox DEM) with building extrusions
- *   - All report markers with severity-coloured pins
- *   - River gauge station markers
- *   - Flood prediction polygon overlays with animated opacity
- *   - Evacuation route polylines
- *   - Distress beacon markers (pulsing red)
- *   - Shelter markers
- *   - 2D/3D toggle with smooth pitch animation
- *   - Satellite/street basemap switcher
- *   - Mini compass + zoom controls
+ * 3D terrain (Mapbox DEM) with building extrusions
+ * All report markers with severity-coloured pins
+ * River gauge station markers
+ * Flood prediction polygon overlays with animated opacity
+ * Evacuation route polylines
+ * Distress beacon markers (pulsing red)
+ * Shelter markers
+ * 2D/3D toggle with smooth pitch animation
+ * Satellite/street basemap switcher
+ * Mini compass + zoom controls
  *
  * Falls back to Leaflet DisasterMap if Mapbox token is not configured.
  */
@@ -28,6 +28,16 @@ import { useLanguage } from '../../hooks/useLanguage'
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || ''
 const API = ''
+
+/* Escape user-supplied strings before injecting into popup HTML to prevent XSS. */
+function esc(str: string | null | undefined): string {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+}
 
 // Default centre: Aberdeen
 const DEFAULT_CENTER: [number, number] = [-2.0943, 57.1497]
@@ -67,11 +77,8 @@ interface Props {
   onReportClick?: (r: Report) => void
 }
 
-const SEVERITY_COLOURS: Record<string, string> = {
-  High: '#ef4444',
-  Medium: '#f59e0b',
-  Low: '#3b82f6',
-}
+import { SEVERITY_HEX_TITLE } from '../../utils/colorTokens'
+const SEVERITY_COLOURS: Record<string, string> = SEVERITY_HEX_TITLE
 
 export default function Map3D({
   reports = [],
@@ -97,7 +104,7 @@ export default function Map3D({
   const [floodPredictions, setFloodPredictions] = useState<any>(null)
   const [evacuationRoutes, setEvacuationRoutes] = useState<any>(null)
 
-  // ── Fetch flood predictions and evacuation routes ──
+  // Fetch flood predictions and evacuation routes
   const fetchOverlays = useCallback(async () => {
     try {
       if (showFloodPredictions) {
@@ -119,7 +126,7 @@ export default function Map3D({
 
   useEffect(() => { fetchOverlays() }, [fetchOverlays])
 
-  // ── Initialize map ──
+  // Initialize map
   useEffect(() => {
     if (!mapContainer.current || !MAPBOX_TOKEN) return
 
@@ -207,7 +214,7 @@ export default function Map3D({
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Update report markers ──
+  // Update report markers
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return
 
@@ -224,16 +231,10 @@ export default function Map3D({
       const colour = SEVERITY_COLOURS[report.severity] || '#6b7280'
       const el = document.createElement('div')
       el.className = 'map3d-marker'
-      el.innerHTML = `
-        <div style="
-          width: 28px; height: 28px; border-radius: 50%;
-          background: ${colour}; border: 2px solid white;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-          display: flex; align-items: center; justify-content: center;
-          cursor: pointer; transition: transform 0.2s;
-          font-size: 12px; color: white; font-weight: bold;
-        ">!</div>
-      `
+      const pin = document.createElement('div')
+      pin.style.cssText = `width:28px;height:28px;border-radius:50%;background:${esc(colour)};border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform 0.2s;font-size:12px;color:white;font-weight:bold;`
+      pin.textContent = '!'
+      el.appendChild(pin)
       el.addEventListener('mouseenter', () => { el.style.transform = 'scale(1.3)' })
       el.addEventListener('mouseleave', () => { el.style.transform = 'scale(1)' })
 
@@ -243,12 +244,12 @@ export default function Map3D({
           new mapboxgl.Popup({ offset: 20, className: 'map3d-popup' })
             .setHTML(`
               <div style="padding:8px; max-width:220px; font-family:system-ui;">
-                <h4 style="margin:0 0 4px; font-size:13px; font-weight:600;">${report.type}</h4>
-                <p style="margin:0; font-size:11px; color:#aaa;">${report.location}</p>
-                <p style="margin:4px 0 0; font-size:11px;">${report.description?.substring(0, 100) || ''}</p>
+                <h4 style="margin:0 0 4px; font-size:13px; font-weight:600;">${esc(report.type)}</h4>
+                <p style="margin:0; font-size:11px; color:#aaa;">${esc(report.location)}</p>
+                <p style="margin:4px 0 0; font-size:11px;">${esc(report.description?.substring(0, 100) || '')}</p>
                 <div style="margin-top:6px; display:flex; gap:6px;">
-                  <span style="font-size:10px; padding:2px 6px; border-radius:999px; background:${colour}; color:white;">${report.severity}</span>
-                  <span style="font-size:10px; padding:2px 6px; border-radius:999px; background:#334155; color:#94a3b8;">${report.status}</span>
+                  <span style="font-size:10px; padding:2px 6px; border-radius:999px; background:${esc(colour)}; color:white;">${esc(report.severity)}</span>
+                  <span style="font-size:10px; padding:2px 6px; border-radius:999px; background:#334155; color:#94a3b8;">${esc(report.status)}</span>
                 </div>
               </div>
             `)
@@ -266,16 +267,10 @@ export default function Map3D({
     distressMarkers.forEach(dm => {
       const el = document.createElement('div')
       el.className = 'distress-marker-3d'
-      el.innerHTML = `
-        <div style="
-          width: 32px; height: 32px; border-radius: 50%;
-          background: #dc2626; border: 3px solid white;
-          box-shadow: 0 0 16px rgba(220,38,38,0.6), 0 0 32px rgba(220,38,38,0.3);
-          animation: distress-pulse 1s ease-out infinite;
-          display: flex; align-items: center; justify-content: center;
-          cursor: pointer; font-size: 14px; color: white; font-weight: bold;
-        ">SOS</div>
-      `
+      const sosDot = document.createElement('div')
+      sosDot.style.cssText = 'width:32px;height:32px;border-radius:50%;background:#dc2626;border:3px solid white;box-shadow:0 0 16px rgba(220,38,38,0.6),0 0 32px rgba(220,38,38,0.3);animation:distress-pulse 1s ease-out infinite;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;color:white;font-weight:bold;'
+      sosDot.textContent = 'SOS'
+      el.appendChild(sosDot)
 
       const marker = new mapboxgl.Marker({ element: el })
         .setLngLat([dm.longitude, dm.latitude])
@@ -283,10 +278,10 @@ export default function Map3D({
           new mapboxgl.Popup({ offset: 20 })
             .setHTML(`
               <div style="padding:8px; font-family:system-ui;">
-                <h4 style="margin:0 0 4px; font-size:13px; font-weight:600; color:#dc2626;">🚨 ${t('map.distressBeacon', lang)}</h4>
-                <p style="margin:0; font-size:12px;">${dm.citizenName}</p>
-                <p style="margin:2px 0; font-size:10px; color:#aaa;">${dm.isVulnerable ? `⚠️ ${t('map.vulnerablePerson', lang)}` : ''}</p>
-                <p style="margin:2px 0; font-size:10px; color:#aaa;">${t('map.status', lang)}: ${dm.status}</p>
+                <h4 style="margin:0 0 4px; font-size:13px; font-weight:600; color:#dc2626;">?? ${esc(t('map.distressBeacon', lang))}</h4>
+                <p style="margin:0; font-size:12px;">${esc(dm.citizenName)}</p>
+                <p style="margin:2px 0; font-size:10px; color:#aaa;">${dm.isVulnerable ? `?? ${esc(t('map.vulnerablePerson', lang))}` : ''}</p>
+                <p style="margin:2px 0; font-size:10px; color:#aaa;">${esc(t('map.status', lang))}: ${esc(dm.status)}</p>
               </div>
             `)
         )
@@ -296,7 +291,7 @@ export default function Map3D({
     })
   }, [reports, distressMarkers, mapLoaded, onReportClick])
 
-  // ── Add flood prediction GeoJSON layers ──
+  // Add flood prediction GeoJSON layers
   useEffect(() => {
     if (!mapRef.current || !mapLoaded || !floodPredictions) return
     const map = mapRef.current
@@ -361,7 +356,7 @@ export default function Map3D({
     }
   }, [floodPredictions, mapLoaded])
 
-  // ── Add evacuation route lines ──
+  // Add evacuation route lines
   useEffect(() => {
     if (!mapRef.current || !mapLoaded || !evacuationRoutes) return
     const map = mapRef.current
@@ -397,7 +392,7 @@ export default function Map3D({
     }
   }, [evacuationRoutes, mapLoaded])
 
-  // ── 2D / 3D toggle ──
+  // 2D / 3D toggle
   const toggle3D = () => {
     if (!mapRef.current) return
     const next = !is3D
@@ -409,7 +404,7 @@ export default function Map3D({
     })
   }
 
-  // ── Basemap toggle ──
+  // Basemap toggle
   const toggleBasemap = () => {
     if (!mapRef.current) return
     const next = !isSatellite
@@ -421,7 +416,7 @@ export default function Map3D({
     )
   }
 
-  // ── Reset view ──
+  // Reset view
   const resetView = () => {
     if (!mapRef.current) return
     const mapCenter = center
@@ -436,11 +431,11 @@ export default function Map3D({
     })
   }
 
-  // ── No token fallback ──
+  // No token fallback
   if (!MAPBOX_TOKEN) {
     return (
       <div className={`relative flex items-center justify-center bg-gray-900 ${className}`} style={{ height }}>
-        <div className="text-center text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+        <div className="text-center text-gray-400 dark:text-gray-300">
           <Map className="w-12 h-12 mx-auto mb-3 opacity-50" />
           <p className="text-sm">{t('map3d.requiresToken', lang)}</p>
           <p className="text-xs mt-1 opacity-60">{t('map3d.setTokenEnv', lang)}</p>
@@ -471,7 +466,7 @@ export default function Map3D({
         {/* 3D/2D toggle */}
         <button
           onClick={toggle3D}
-          className="w-9 h-9 bg-gray-900/90 backdrop-blur-md border border-gray-700/60 rounded-lg flex items-center justify-center text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-white hover:bg-gray-800/90 transition shadow-lg"
+          className="w-9 h-9 bg-gray-900/90 backdrop-blur-md border border-gray-700/60 rounded-lg flex items-center justify-center text-gray-300 dark:text-gray-300 hover:text-white hover:bg-gray-800/90 transition shadow-lg"
           title={is3D ? t('map3d.switchTo2D', lang) : t('map3d.switchTo3D', lang)}
         >
           {is3D ? <Square className="w-4 h-4" /> : <Box className="w-4 h-4" />}
@@ -480,7 +475,7 @@ export default function Map3D({
         {/* Satellite/Street toggle */}
         <button
           onClick={toggleBasemap}
-          className="w-9 h-9 bg-gray-900/90 backdrop-blur-md border border-gray-700/60 rounded-lg flex items-center justify-center text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-white hover:bg-gray-800/90 transition shadow-lg"
+          className="w-9 h-9 bg-gray-900/90 backdrop-blur-md border border-gray-700/60 rounded-lg flex items-center justify-center text-gray-300 dark:text-gray-300 hover:text-white hover:bg-gray-800/90 transition shadow-lg"
           title={isSatellite ? t('map3d.streetMap', lang) : t('map.satellite', lang)}
         >
           {isSatellite ? <Map className="w-4 h-4" /> : <Satellite className="w-4 h-4" />}
@@ -489,7 +484,7 @@ export default function Map3D({
         {/* Reset view */}
         <button
           onClick={resetView}
-          className="w-9 h-9 bg-gray-900/90 backdrop-blur-md border border-gray-700/60 rounded-lg flex items-center justify-center text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-white hover:bg-gray-800/90 transition shadow-lg"
+          className="w-9 h-9 bg-gray-900/90 backdrop-blur-md border border-gray-700/60 rounded-lg flex items-center justify-center text-gray-300 dark:text-gray-300 hover:text-white hover:bg-gray-800/90 transition shadow-lg"
           title={t('map.resetView', lang)}
         >
           <RotateCcw className="w-4 h-4" />
@@ -501,15 +496,15 @@ export default function Map3D({
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-red-500" />
-            <span className="text-[10px] text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('map.highSeverity', lang)}</span>
+            <span className="text-[10px] text-gray-300 dark:text-gray-300">{t('map.highSeverity', lang)}</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-amber-500" />
-            <span className="text-[10px] text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('map.mediumSeverity', lang)}</span>
+            <span className="text-[10px] text-gray-300 dark:text-gray-300">{t('map.mediumSeverity', lang)}</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-blue-500" />
-            <span className="text-[10px] text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('map.lowSeverity', lang)}</span>
+            <span className="text-[10px] text-gray-300 dark:text-gray-300">{t('map.lowSeverity', lang)}</span>
           </div>
           {distressMarkers.length > 0 && (
             <div className="flex items-center gap-2">
@@ -522,14 +517,11 @@ export default function Map3D({
 
       {/* 3D indicator badge */}
       <div className="absolute top-3 left-3 z-10">
-        <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${is3D ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`}>
+        <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${is3D ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 dark:text-gray-300'}`}>
           {is3D ? '3D' : '2D'}
         </span>
       </div>
     </div>
   )
 }
-
-
-
-
+

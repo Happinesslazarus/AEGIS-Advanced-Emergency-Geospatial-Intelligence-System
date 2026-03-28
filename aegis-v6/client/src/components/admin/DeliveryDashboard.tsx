@@ -1,6 +1,6 @@
 /*
  * DeliveryDashboard.tsx — Advanced Alert Delivery Control Center
- * Multi-channel delivery tracking: Email · SMS · WhatsApp · Telegram · Web Push
+ * Multi-channel delivery tracking: Email — SMS — WhatsApp — Telegram — Web Push
  * Features: live stats, SVG charts, grouped/flat views, per-row retry, bulk retry, CSV export
  */
 import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react'
@@ -11,9 +11,10 @@ import {
   X, Info, Layers, Loader2,
 } from 'lucide-react'
 import { getLanguage, t } from '../../utils/i18n'
+import { getToken as _getToken, clearToken } from '../../utils/api'
 import { useLanguage } from '../../hooks/useLanguage'
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// Types
 
 interface DeliveryRow {
   id: string
@@ -66,7 +67,7 @@ interface Stats {
   recent_errors: { channel: string; error_message: string; count: number }[]
 }
 
-// ─── Channel Config ───────────────────────────────────────────────────────────
+// Channel Config
 
 const CH: Record<string, { labelKey: string; icon: React.ElementType; color: string; bg: string; ring: string; hex: string }> = {
   email:    { labelKey: 'delivery.channelEmail',    icon: Mail,          color: 'text-rose-400',    bg: 'bg-rose-500/15',    ring: 'ring-rose-500/30',    hex: '#f87171' },
@@ -76,7 +77,7 @@ const CH: Record<string, { labelKey: string; icon: React.ElementType; color: str
   web:      { labelKey: 'delivery.channelWebPush',  icon: Bell,          color: 'text-violet-400',  bg: 'bg-violet-500/15',  ring: 'ring-violet-500/30',  hex: '#a78bfa' },
   webpush:  { labelKey: 'delivery.channelWebPush',  icon: Bell,          color: 'text-violet-400',  bg: 'bg-violet-500/15',  ring: 'ring-violet-500/30',  hex: '#a78bfa' },
 }
-const chCfg = (ch: string) => CH[ch] ?? { labelKey: '', icon: Zap, color: 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300', bg: 'bg-gray-500/15', ring: 'ring-gray-500/30', hex: '#9ca3af' }
+const chCfg = (ch: string) => CH[ch] ?? { labelKey: '', icon: Zap, color: 'text-gray-400 dark:text-gray-300', bg: 'bg-gray-500/15', ring: 'ring-gray-500/30', hex: '#9ca3af' }
 const getChannelLabel = (ch: string, lang: string) => {
   const cfg = chCfg(ch)
   return cfg.labelKey ? t(cfg.labelKey, lang) : ch
@@ -88,7 +89,7 @@ const SEV_BADGE: Record<string, string> = {
   info:     'bg-blue-500/20 text-blue-300 ring-1 ring-blue-500/40',
 }
 
-// ─── Tiny helpers ─────────────────────────────────────────────────────────────
+// Tiny helpers
 
 function StatusBadge({ status }: { status: string }) {
   const lang = getLanguage()
@@ -107,7 +108,7 @@ function ChanIcon({ ch, size = 'sm' }: { ch: string; size?: 'xs' | 'sm' | 'md' }
   return <span className={`inline-flex items-center justify-center rounded-md ${wrap} ${cfg.bg} ${cfg.color} ring-1 ${cfg.ring}`}><Icon className={ico}/></span>
 }
 
-// ─── SVG charts ──────────────────────────────────────────────────────────────
+// SVG charts
 
 function DonutChart({ slices, size = 120 }: { slices: { value: number; color: string }[]; size?: number }) {
   const total = slices.reduce((s, x) => s + x.value, 0)
@@ -162,7 +163,7 @@ function MiniSparkline({ data, color = '#10b981' }: { data: number[]; color?: st
   return <svg width={W} height={H} className="flex-shrink-0"><polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// Sub-components
 
 function StatCard({ label, value, sub, icon: Icon, color, accent, trend }: {
   label: string; value: string | number; sub?: string
@@ -177,8 +178,8 @@ function StatCard({ label, value, sub, icon: Icon, color, accent, trend }: {
         {trend && <MiniSparkline data={trend}/>}
       </div>
       <p className="text-2xl font-black text-gray-900 dark:text-white tabular-nums leading-none">{value}</p>
-      <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-wider mt-1">{label}</p>
-      {sub && <p className="text-[10px] text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-0.5">{sub}</p>}
+      <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider mt-1">{label}</p>
+      {sub && <p className="text-[10px] text-gray-600 dark:text-gray-300 mt-0.5">{sub}</p>}
     </div>
   )
 }
@@ -204,7 +205,7 @@ function ChannelHealthCard({ stat, onFilter }: { stat: ChannelStat; onFilter: (c
       <div>
         <p className={`text-[10px] font-bold ${cfg.color} leading-tight`}>{getChannelLabel(stat.channel, lang)}</p>
         <p className="text-sm font-black text-gray-900 dark:text-white tabular-nums">{rate}%</p>
-        <p className="text-[9px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 tabular-nums">{Number(stat.total).toLocaleString()} {t('delivery.sentLower', lang)}</p>
+        <p className="text-[9px] text-gray-500 dark:text-gray-300 tabular-nums">{Number(stat.total).toLocaleString()} {t('delivery.sentLower', lang)}</p>
         {Number(stat.failed) > 0 && <p className="text-[9px] text-red-400 font-bold">{stat.failed} {t('delivery.failed', lang).toLowerCase()}</p>}
       </div>
     </button>
@@ -218,14 +219,14 @@ function AlertGroupRow({ group, onRetry, onRetryAll, retrying }: {
   const [open, setOpen] = useState(false)
   const allOk = group.failed === 0 && group.pending === 0
   const hasFail = group.failed > 0
-  const sev = SEV_BADGE[group.alert_severity || ''] || 'bg-gray-500/20 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 ring-1 ring-gray-500/30'
+  const sev = SEV_BADGE[group.alert_severity || ''] || 'bg-gray-500/20 text-gray-400 dark:text-gray-300 ring-1 ring-gray-500/30'
   return (
     <div className={`rounded-2xl ring-1 overflow-hidden transition-all ${hasFail ? 'ring-red-500/20 bg-red-950/8' : allOk ? 'ring-emerald-500/15 bg-emerald-950/5' : 'ring-amber-500/15 bg-amber-950/5'}`}>
       <div role="button" tabIndex={0} onClick={() => setOpen(o => !o)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(o => !o) } }} className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-white/3 transition-colors cursor-pointer">
-        <ChevronRight className={`w-4 h-4 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex-shrink-0 transition-transform ${open ? 'rotate-90' : ''}`}/>
+        <ChevronRight className={`w-4 h-4 text-gray-500 dark:text-gray-300 flex-shrink-0 transition-transform ${open ? 'rotate-90' : ''}`}/>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-bold text-gray-900 dark:text-white truncate max-w-[280px]">{group.alert_title || group.alert_id.slice(0, 10) + '…'}</span>
+            <span className="text-sm font-bold text-gray-900 dark:text-white truncate max-w-[280px]">{group.alert_title || group.alert_id.slice(0, 10) + '—'}</span>
             {group.alert_severity && <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase ${sev}`}>{group.alert_severity}</span>}
             {group.alert_type && <span className="text-[9px] text-gray-600 font-mono">{group.alert_type}</span>}
           </div>
@@ -272,18 +273,18 @@ function AlertGroupRow({ group, onRetry, onRetryAll, retrying }: {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className={`text-xs font-semibold ${cfg.color}`}>{getChannelLabel(d.channel, lang)}</span>
                     <StatusBadge status={d.status}/>
-                    {d.retry_count > 0 && <span className="text-[9px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 ring-1 ring-gray-300 dark:ring-gray-700 px-1.5 py-0.5 rounded-full">{d.retry_count}× {t('delivery.retried', lang)}</span>}
+                    {d.retry_count > 0 && <span className="text-[9px] text-gray-500 dark:text-gray-300 ring-1 ring-gray-300 dark:ring-gray-700 px-1.5 py-0.5 rounded-full">{d.retry_count}— {t('delivery.retried', lang)}</span>}
                     {d.provider_id && <span className="text-[9px] text-gray-600 font-mono truncate max-w-[100px]">{d.provider_id}</span>}
                   </div>
-                  <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 truncate mt-0.5 font-mono">{d.recipient || '—'}</p>
-                  {d.error_message && <p className="text-[10px] text-red-400 mt-0.5 truncate">⚠ {d.error_message}</p>}
+                  <p className="text-[10px] text-gray-500 dark:text-gray-300 truncate mt-0.5 font-mono">{d.recipient || '—'}</p>
+                  {d.error_message && <p className="text-[10px] text-red-400 mt-0.5 truncate">? {d.error_message}</p>}
                   {d.sent_at && <p className="text-[9px] text-gray-600 mt-0.5">{new Date(d.sent_at).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'medium' })}</p>}
                 </div>
                 {!ok && d.channel !== 'web' && d.retry_count < 3 ? (
                   <button onClick={() => onRetry(d.id)} disabled={isRetrying}
-                    className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-gray-100 dark:bg-white/5 ring-1 ring-gray-200 dark:ring-white/10 text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 text-[10px] font-bold hover:bg-gray-200 dark:hover:bg-white/10 disabled:opacity-40 transition-all">
+                    className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-gray-100 dark:bg-white/5 ring-1 ring-gray-200 dark:ring-white/10 text-gray-600 dark:text-gray-300 text-[10px] font-bold hover:bg-gray-200 dark:hover:bg-white/10 disabled:opacity-40 transition-all">
                     <RotateCcw className={`w-3 h-3 ${isRetrying ? 'animate-spin' : ''}`}/>
-                    {isRetrying ? '…' : t('delivery.retry', lang)}
+                    {isRetrying ? '—' : t('delivery.retry', lang)}
                   </button>
                 ) : d.retry_count >= 3 ? (
                   <span className="text-[9px] text-gray-600 ring-1 ring-gray-300 dark:ring-gray-700 px-1.5 py-0.5 rounded-full flex-shrink-0">{t('delivery.maxRetries', lang)}</span>
@@ -304,9 +305,9 @@ function FlatTable({ rows, onRetry, retrying, onSort, sortCol, sortDir }: {
   const lang = getLanguage()
   const Th = ({ col, children }: { col: string; children: React.ReactNode }) => (
     <th onClick={() => onSort(col)}
-      className="px-3 py-2.5 text-left text-[10px] font-bold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:text-gray-900 dark:hover:text-white transition-colors select-none whitespace-nowrap">
+      className="px-3 py-2.5 text-left text-[10px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:text-gray-900 dark:hover:text-white transition-colors select-none whitespace-nowrap">
       <span className="flex items-center gap-1">{children}
-        {sortCol === col && <span className="text-violet-400">{sortDir === 'asc' ? '↑' : '↓'}</span>}
+        {sortCol === col && <span className="text-violet-400">{sortDir === 'asc' ? '?' : '?'}</span>}
       </span>
     </th>
   )
@@ -321,7 +322,7 @@ function FlatTable({ rows, onRetry, retrying, onSort, sortCol, sortDir }: {
             <Th col="recipient">{t('delivery.recipient', lang)}</Th>
             <Th col="status">{t('common.status', lang)}</Th>
             <Th col="retry_count">{t('delivery.retries', lang)}</Th>
-            <th className="px-3 py-2.5 text-left text-[10px] font-bold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-wider">{t('delivery.error', lang)}</th>
+            <th className="px-3 py-2.5 text-left text-[10px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">{t('delivery.error', lang)}</th>
             <th className="px-3 py-2.5 w-16"/>
           </tr>
         </thead>
@@ -332,7 +333,7 @@ function FlatTable({ rows, onRetry, retrying, onSort, sortCol, sortDir }: {
             const isRetrying = retrying.has(r.id)
             return (
               <tr key={r.id || i} className={`hover:bg-gray-50 dark:hover:bg-white/3 transition-colors ${!ok && r.status !== 'pending' ? 'bg-red-50 dark:bg-red-950/5' : ''}`}>
-                <td className="px-3 py-2 text-[11px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 whitespace-nowrap font-mono">
+                <td className="px-3 py-2 text-[11px] text-gray-500 dark:text-gray-300 whitespace-nowrap font-mono">
                   {r.created_at ? new Date(r.created_at).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'medium' }) : '—'}
                 </td>
                 <td className="px-3 py-2 max-w-[180px]">
@@ -340,7 +341,7 @@ function FlatTable({ rows, onRetry, retrying, onSort, sortCol, sortDir }: {
                     {r.alert_severity && (
                       <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${r.alert_severity === 'critical' ? 'bg-red-400' : r.alert_severity === 'warning' ? 'bg-amber-400' : 'bg-blue-400'}`}/>
                     )}
-                    <span className="text-xs text-gray-600 dark:text-gray-200 truncate">{r.alert_title || <span className="font-mono text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{r.alert_id?.slice(0, 8)}</span>}</span>
+                    <span className="text-xs text-gray-600 dark:text-gray-200 truncate">{r.alert_title || <span className="font-mono text-gray-400 dark:text-gray-300">{r.alert_id?.slice(0, 8)}</span>}</span>
                   </div>
                 </td>
                 <td className="px-3 py-2">
@@ -350,7 +351,7 @@ function FlatTable({ rows, onRetry, retrying, onSort, sortCol, sortDir }: {
                   </div>
                 </td>
                 <td className="px-3 py-2 max-w-[180px]">
-                  <span className="text-[11px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-mono truncate block">{r.recipient || '—'}</span>
+                  <span className="text-[11px] text-gray-500 dark:text-gray-300 font-mono truncate block">{r.recipient || '—'}</span>
                 </td>
                 <td className="px-3 py-2"><StatusBadge status={r.status}/></td>
                 <td className="px-3 py-2 text-center">
@@ -366,9 +367,9 @@ function FlatTable({ rows, onRetry, retrying, onSort, sortCol, sortDir }: {
                 <td className="px-3 py-2">
                   {!ok && r.channel !== 'web' && r.retry_count < 3 && (
                     <button onClick={() => onRetry(r.id)} disabled={isRetrying}
-                      className="flex items-center gap-1 px-2 py-1 rounded-lg bg-gray-100 dark:bg-white/5 ring-1 ring-gray-200 dark:ring-white/8 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 text-[10px] hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/10 disabled:opacity-40 transition-all whitespace-nowrap">
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg bg-gray-100 dark:bg-white/5 ring-1 ring-gray-200 dark:ring-white/8 text-gray-500 dark:text-gray-300 text-[10px] hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/10 disabled:opacity-40 transition-all whitespace-nowrap">
                       <RotateCcw className={`w-3 h-3 ${isRetrying ? 'animate-spin' : ''}`}/>
-                      {isRetrying ? '…' : t('delivery.retry', lang)}
+                      {isRetrying ? '—' : t('delivery.retry', lang)}
                     </button>
                   )}
                 </td>
@@ -384,9 +385,9 @@ function FlatTable({ rows, onRetry, retrying, onSort, sortCol, sortDir }: {
   )
 }
 
-// ─── API ──────────────────────────────────────────────────────────────────────
+// API
 
-const getToken = () => localStorage.getItem('aegis-token') || ''
+const getToken = () => _getToken() || ''
 async function apiFetch(path: string, opts: RequestInit = {}) {
   const res = await fetch(path, {
     ...opts,
@@ -394,16 +395,15 @@ async function apiFetch(path: string, opts: RequestInit = {}) {
   })
   if (res.status === 401) {
     // Token expired — clear and redirect to login
-    localStorage.removeItem('aegis-token')
-    localStorage.removeItem('aegis-user')
+    clearToken()
     window.location.href = '/admin'
     throw new Error('Session expired. Please log in again.')
   }
-  if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || `HTTP ${res.status}`) }
+  if (!res.ok) { const d = await res.json().catch(() => ({})); const errMsg = typeof d.error === 'string' ? d.error : d.error?.message || d.message || `HTTP ${res.status}`; throw new Error(errMsg) }
   return res.json()
 }
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
+// Main
 
 const CHANNEL_OPTS = ['email', 'sms', 'whatsapp', 'telegram', 'web']
 const STATUS_OPTS  = ['sent', 'delivered', 'failed', 'pending']
@@ -564,7 +564,7 @@ export default function DeliveryDashboard() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white p-4 md:p-6 space-y-5">
 
-      {/* ── Toast ── */}
+      {/* Toast*/}
       {toast && (
         <div className={`fixed top-5 right-5 z-50 flex items-center gap-2.5 px-4 py-3 rounded-2xl shadow-2xl ring-1 text-sm font-semibold animate-fade-in pointer-events-none ${toast.ok ? 'bg-emerald-900/95 ring-emerald-500/40 text-emerald-100' : 'bg-red-900/95 ring-red-500/40 text-red-100'}`}>
           {toast.ok ? <CheckCircle className="w-4 h-4 flex-shrink-0"/> : <XCircle className="w-4 h-4 flex-shrink-0"/>}
@@ -572,20 +572,20 @@ export default function DeliveryDashboard() {
         </div>
       )}
 
-      {/* ── Error modal ── */}
+      {/* Error modal*/}
       {errorModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={() => setErrorModal(null)}>
           <div className="bg-white dark:bg-gray-900 ring-1 ring-red-500/30 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-bold text-red-600 dark:text-red-300 flex items-center gap-2"><AlertTriangle className="w-4 h-4"/>{t('common.error', lang)}</h3>
-              <button onClick={() => setErrorModal(null)} className="text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"><X className="w-4 h-4"/></button>
+              <button onClick={() => setErrorModal(null)} className="text-gray-500 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"><X className="w-4 h-4"/></button>
             </div>
-            <pre className="text-xs text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 bg-gray-100 dark:bg-black/50 rounded-xl p-4 overflow-auto max-h-64 whitespace-pre-wrap">{errorModal}</pre>
+            <pre className="text-xs text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-black/50 rounded-xl p-4 overflow-auto max-h-64 whitespace-pre-wrap">{errorModal}</pre>
           </div>
         </div>
       )}
 
-      {/* ── Header ── */}
+      {/* Header*/}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-xl font-black tracking-tight text-gray-900 dark:text-white flex items-center gap-2.5">
@@ -594,14 +594,14 @@ export default function DeliveryDashboard() {
             </span>
             {t('delivery.title', lang)}
           </h1>
-          <p className="text-[11px] text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-0.5 ml-12">
+          <p className="text-[11px] text-gray-600 dark:text-gray-300 mt-0.5 ml-12">
             {t('delivery.subtitle', lang)}
-            <span className="ml-2">· {lastRefresh.toLocaleTimeString('en-GB', { timeStyle: 'medium' })}</span>
+            <span className="ml-2">— {lastRefresh.toLocaleTimeString('en-GB', { timeStyle: 'medium' })}</span>
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={refresh} disabled={loading}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gray-100 dark:bg-white/5 ring-1 ring-gray-200 dark:ring-white/10 text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 text-xs font-semibold hover:bg-gray-200 dark:hover:bg-white/10 transition-all disabled:opacity-50">
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gray-100 dark:bg-white/5 ring-1 ring-gray-200 dark:ring-white/10 text-gray-600 dark:text-gray-300 text-xs font-semibold hover:bg-gray-200 dark:hover:bg-white/10 transition-all disabled:opacity-50">
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`}/>{t('common.refresh', lang)}
           </button>
           <button onClick={handleExportCSV} disabled={exportingCSV}
@@ -612,7 +612,7 @@ export default function DeliveryDashboard() {
         </div>
       </div>
 
-      {/* ── Stats ── */}
+      {/* Stats*/}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <StatCard label={t('delivery.attempted', lang)} value={Number(s?.total ?? 0).toLocaleString()} icon={Layers}     color="text-violet-400" accent="bg-violet-500/15" trend={hourlyTrend}/>
         <StatCard label={t('delivery.successRate', lang)} value={s ? successRate + '%' : '—'} sub={s ? `${s.sent} ${t('delivery.delivered', lang).toLowerCase()}` : undefined} icon={TrendingUp} color={successRate >= 95 ? 'text-emerald-400' : successRate >= 80 ? 'text-amber-400' : 'text-red-400'} accent={successRate >= 95 ? 'bg-emerald-500/15' : successRate >= 80 ? 'bg-amber-500/15' : 'bg-red-500/15'}/>
@@ -621,11 +621,11 @@ export default function DeliveryDashboard() {
         <StatCard label={t('delivery.pending', lang)} value={Number(s?.pending ?? 0).toLocaleString()} icon={Clock}       color="text-amber-400" accent="bg-amber-500/15"/>
       </div>
 
-      {/* ── Charts ── */}
+      {/* Charts*/}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Donut */}
         <div className="bg-white dark:bg-gray-900/60 ring-1 ring-gray-100 dark:ring-white/5 rounded-2xl p-4 shadow-lg">
-          <h3 className="text-[11px] font-bold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+          <h3 className="text-[11px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider mb-3 flex items-center gap-1.5">
             <BarChart2 className="w-3.5 h-3.5"/>{t('delivery.channelResults', lang)}
           </h3>
           <div className="flex items-center gap-4">
@@ -637,7 +637,7 @@ export default function DeliveryDashboard() {
                 return (
                   <div key={c.channel} className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: cfg.hex }}/>
-                    <span className="text-[11px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex-1 truncate">{getChannelLabel(c.channel, lang)}</span>
+                    <span className="text-[11px] text-gray-500 dark:text-gray-300 flex-1 truncate">{getChannelLabel(c.channel, lang)}</span>
                     <span className="text-[11px] font-bold text-gray-900 dark:text-white tabular-nums">{Number(c.total).toLocaleString()}</span>
                     <span className={`text-[10px] font-bold tabular-nums ${rate >= 95 ? 'text-emerald-400' : rate >= 80 ? 'text-amber-400' : 'text-red-400'}`}>{rate}%</span>
                   </div>
@@ -651,11 +651,11 @@ export default function DeliveryDashboard() {
         {/* Hourly bars */}
         <div className="lg:col-span-2 bg-white dark:bg-gray-900/60 ring-1 ring-gray-100 dark:ring-white/5 rounded-2xl p-4 shadow-lg flex flex-col gap-3">
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <h3 className="text-[11px] font-bold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
+            <h3 className="text-[11px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
               <Activity className="w-3.5 h-3.5"/>{t('allReports.activityTimeline', lang)}
               {statsLoading && <Loader2 className="w-3 h-3 animate-spin text-violet-400"/>}
             </h3>
-            <div className="flex items-center gap-3 text-[10px] text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+            <div className="flex items-center gap-3 text-[10px] text-gray-600 dark:text-gray-300">
               <span className="flex items-center gap-1"><span className="w-2 h-1.5 rounded-sm bg-emerald-500 inline-block"/>{t('common.sent', lang)}</span>
               <span className="flex items-center gap-1"><span className="w-2 h-1.5 rounded-sm bg-red-500 inline-block"/>{t('delivery.failed', lang)}</span>
               <span className="flex items-center gap-1"><span className="w-2 h-1.5 rounded-sm bg-gray-700 inline-block"/>{t('common.total', lang)}</span>
@@ -670,10 +670,10 @@ export default function DeliveryDashboard() {
         </div>
       </div>
 
-      {/* ── Channel Health ── */}
+      {/* Channel Health*/}
       {(stats?.by_channel?.length ?? 0) > 0 && (
         <div>
-          <h3 className="text-[11px] font-bold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+          <h3 className="text-[11px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
             <Zap className="w-3.5 h-3.5"/>{t('delivery.channelPerformance', lang)}
           </h3>
           <div className="flex gap-2.5 flex-wrap">
@@ -684,7 +684,7 @@ export default function DeliveryDashboard() {
         </div>
       )}
 
-      {/* ── Top Failures ── */}
+      {/* Top Failures*/}
       {(stats?.top_failing?.length ?? 0) > 0 && (
         <div className="bg-white dark:bg-gray-900/60 ring-1 ring-red-500/15 rounded-2xl p-4 shadow-lg">
           <h3 className="text-[11px] font-bold text-red-400/80 uppercase tracking-wider mb-3 flex items-center gap-1.5">
@@ -694,9 +694,9 @@ export default function DeliveryDashboard() {
             {stats!.top_failing.map(f => (
               <div key={f.alert_id} className="flex items-center gap-3 py-2 px-3 rounded-xl bg-red-950/20 ring-1 ring-red-500/10">
                 <XCircle className="w-4 h-4 text-red-400 flex-shrink-0"/>
-                <span className="text-xs text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex-1 truncate">{f.alert_title || f.alert_id.slice(0, 12) + '…'}</span>
+                <span className="text-xs text-gray-700 dark:text-gray-300 flex-1 truncate">{f.alert_title || f.alert_id.slice(0, 12) + '—'}</span>
                 {f.severity && <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${SEV_BADGE[f.severity] || ''}`}>{f.severity}</span>}
-                <span className="text-xs font-black text-red-400 tabular-nums flex-shrink-0">{f.fail_count}×</span>
+                <span className="text-xs font-black text-red-400 tabular-nums flex-shrink-0">{f.fail_count}—</span>
                 <button onClick={() => handleRetryAll(f.alert_id)}
                   className="flex items-center gap-1 px-2 py-1 rounded-lg bg-red-500/15 ring-1 ring-red-500/25 text-red-300 text-[10px] font-bold hover:bg-red-500/25 transition-colors">
                   <RotateCcw className={`w-3 h-3 ${retrying.has('bulk-' + f.alert_id) ? 'animate-spin' : ''}`}/>{t('delivery.retry', lang)}
@@ -707,12 +707,12 @@ export default function DeliveryDashboard() {
         </div>
       )}
 
-      {/* ── Filters ── */}
+      {/* Filters*/}
       <div className="bg-white dark:bg-gray-900/60 ring-1 ring-gray-100 dark:ring-white/5 rounded-2xl p-4 shadow-lg">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-[11px] font-bold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5"><Filter className="w-3.5 h-3.5"/>{t('common.filter', lang)}</h3>
+          <h3 className="text-[11px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5"><Filter className="w-3.5 h-3.5"/>{t('common.filter', lang)}</h3>
           {filterActive && (
-            <button onClick={clearFilters} className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white flex items-center gap-1 transition-colors">
+            <button onClick={clearFilters} className="text-[10px] text-gray-500 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white flex items-center gap-1 transition-colors">
               <X className="w-3 h-3"/>{t('common.clear', lang)}
             </button>
           )}
@@ -739,7 +739,7 @@ export default function DeliveryDashboard() {
             <Calendar className="w-3.5 h-3.5 text-gray-600 flex-shrink-0"/>
             <input type="datetime-local" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
               className="px-2.5 py-2 text-xs bg-gray-100 dark:bg-gray-800/60 ring-1 ring-gray-200 dark:ring-white/8 rounded-xl text-gray-800 dark:text-gray-200 focus:ring-violet-500/50 focus:outline-none"/>
-            <span className="text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 text-xs">→</span>
+            <span className="text-gray-400 dark:text-gray-300 text-xs">?</span>
             <input type="datetime-local" value={dateTo} onChange={e => setDateTo(e.target.value)}
               className="px-2.5 py-2 text-xs bg-gray-100 dark:bg-gray-800/60 ring-1 ring-gray-200 dark:ring-white/8 rounded-xl text-gray-800 dark:text-gray-200 focus:ring-violet-500/50 focus:outline-none"/>
           </div>
@@ -750,13 +750,13 @@ export default function DeliveryDashboard() {
         </div>
       </div>
 
-      {/* ── View Toggle + Data ── */}
+      {/* View Toggle + Data*/}
       <div className="space-y-3">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-900/60 ring-1 ring-gray-200 dark:ring-white/5 rounded-xl p-1">
             {([['grouped', t('delivery.grouped', lang), Layers], ['flat', t('delivery.flat', lang), List]] as const).map(([v, label, Icon]) => (
               <button key={v} onClick={() => setViewMode(v as ViewMode)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${viewMode === v ? 'bg-violet-600 text-white shadow-md' : 'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}>
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${viewMode === v ? 'bg-violet-600 text-white shadow-md' : 'text-gray-500 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}>
                 <Icon className="w-3.5 h-3.5"/>{label}
               </button>
             ))}
@@ -796,22 +796,22 @@ export default function DeliveryDashboard() {
         {totalPages > 1 && (
           <div className="flex items-center justify-center gap-2 pt-2">
             <button disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}
-              className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-gray-100 dark:bg-white/5 ring-1 ring-gray-200 dark:ring-white/8 text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 disabled:opacity-30 hover:bg-gray-200 dark:hover:bg-white/10 transition-all">
+              className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-gray-100 dark:bg-white/5 ring-1 ring-gray-200 dark:ring-white/8 text-gray-600 dark:text-gray-300 disabled:opacity-30 hover:bg-gray-200 dark:hover:bg-white/10 transition-all">
               {t('common.previous', lang)}
             </button>
             <span className="text-xs text-gray-600 tabular-nums">{currentPage + 1} / {totalPages}</span>
             <button disabled={currentPage >= totalPages - 1} onClick={() => setPage(currentPage + 1)}
-              className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-gray-100 dark:bg-white/5 ring-1 ring-gray-200 dark:ring-white/8 text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 disabled:opacity-30 hover:bg-gray-200 dark:hover:bg-white/10 transition-all">
+              className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-gray-100 dark:bg-white/5 ring-1 ring-gray-200 dark:ring-white/8 text-gray-600 dark:text-gray-300 disabled:opacity-30 hover:bg-gray-200 dark:hover:bg-white/10 transition-all">
               {t('common.next', lang)}
             </button>
           </div>
         )}
       </div>
 
-      {/* ── Error Patterns ── */}
+      {/* Error Patterns*/}
       {(stats?.recent_errors?.length ?? 0) > 0 && (
         <div className="bg-white dark:bg-gray-900/60 ring-1 ring-gray-100 dark:ring-white/5 rounded-2xl p-4 shadow-lg">
-          <h3 className="text-[11px] font-bold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+          <h3 className="text-[11px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider mb-3 flex items-center gap-1.5">
             <Info className="w-3.5 h-3.5"/>{t('delivery.errorPatternsLast7Days', lang)}
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -821,11 +821,11 @@ export default function DeliveryDashboard() {
                 <div key={i} className="flex items-start gap-2.5 p-2.5 rounded-xl bg-red-950/15 ring-1 ring-red-500/10">
                   <ChanIcon ch={e.channel} size="xs"/>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 truncate">{e.error_message}</p>
-                    <p className={`text-[9px] font-bold mt-0.5 ${cfg.color}`}>{getChannelLabel(e.channel, lang)} · {e.count}×</p>
+                    <p className="text-[10px] text-gray-400 dark:text-gray-300 truncate">{e.error_message}</p>
+                    <p className={`text-[9px] font-bold mt-0.5 ${cfg.color}`}>{getChannelLabel(e.channel, lang)} — {e.count}—</p>
                   </div>
                   <button onClick={() => setErrorModal(`Channel: ${getChannelLabel(e.channel, lang)}\n\nError:\n${e.error_message}\n\nOccurrences: ${e.count}`)}
-                    className="text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 transition-colors flex-shrink-0">
+                    className="text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-300 dark:text-gray-300 transition-colors flex-shrink-0">
                     <Eye className="w-3.5 h-3.5"/>
                   </button>
                 </div>
@@ -837,8 +837,4 @@ export default function DeliveryDashboard() {
     </div>
   )
 }
-
-
-
-
-
+

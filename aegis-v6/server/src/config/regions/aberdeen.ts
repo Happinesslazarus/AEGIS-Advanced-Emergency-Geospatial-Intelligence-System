@@ -1,4 +1,4 @@
-/**
+﻿/**
  * config/regions/aberdeen.ts — Aberdeen city region configuration
  *
  * Defines Aberdeen-specific geographic data, river stations (Don & Dee),
@@ -60,7 +60,7 @@ const aberdeen: CityRegionConfig = {
       layers: 'sepa:fld_FluvialHighLikelihood',
       format: 'image/png',
       transparent: true,
-      attribution: '© SEPA',
+      attribution: '— SEPA',
       opacity: 0.5,
       riskLevel: 'high',
     },
@@ -70,7 +70,7 @@ const aberdeen: CityRegionConfig = {
       layers: 'sepa:fld_FluvialMediumLikelihood',
       format: 'image/png',
       transparent: true,
-      attribution: '© SEPA',
+      attribution: '— SEPA',
       opacity: 0.4,
       riskLevel: 'medium',
     },
@@ -80,7 +80,7 @@ const aberdeen: CityRegionConfig = {
       layers: 'sepa:fld_PluvialHighLikelihood',
       format: 'image/png',
       transparent: true,
-      attribution: '© SEPA',
+      attribution: '— SEPA',
       opacity: 0.35,
       riskLevel: 'low',
     },
@@ -90,7 +90,7 @@ const aberdeen: CityRegionConfig = {
       layers: 'sepa:fld_CoastalHighLikelihood',
       format: 'image/png',
       transparent: true,
-      attribution: '© SEPA',
+      attribution: '— SEPA',
       opacity: 0.35,
       riskLevel: 'medium',
     },
@@ -103,7 +103,7 @@ const aberdeen: CityRegionConfig = {
     aberdeen: 'aberdeen_routes.json',
   },
 
-  // ── Multi-Incident Configuration ──────────────────────────────
+  // Multi-Incident Configuration
   language: 'en',
   units: 'metric',
   enabledIncidents: {
@@ -136,3 +136,4 @@ const aberdeen: CityRegionConfig = {
 }
 
 export default aberdeen
+

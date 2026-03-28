@@ -1,4 +1,4 @@
-/* CrowdDensityHeatmap.tsx � Professional-grade crowd-density visualization
+﻿/* CrowdDensityHeatmap.tsx — Professional-grade crowd-density visualization
    Features: sparkline trends, capacity model, heatmap grid view, LIVE pulse,
    delta comparisons, sort/filter, peak-hour prediction, density distribution */
 
@@ -12,7 +12,7 @@ import { forwardGeocode, getDeviceLocation, reverseGeocode } from '../../utils/l
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 
-/* ================================================ TYPES ================================================ */
+/* TYPES */
 
 interface DensityZone {
   id: string
@@ -33,7 +33,7 @@ type ViewMode = 'list' | 'grid' | 'chart'
 type SortKey = 'density' | 'name' | 'trend' | 'risk'
 type FilterLevel = 'all' | 'low' | 'moderate' | 'high' | 'critical'
 
-/* ================================================ CONFIG ================================================ */
+/* CONFIG */
 
 const RISK_CONFIG = {
   low:      { labelKey: 'common.low', bg: 'bg-emerald-50 dark:bg-emerald-950/30', border: 'border-emerald-200/60 dark:border-emerald-800/40', text: 'text-emerald-700 dark:text-emerald-300', dot: 'bg-emerald-500', hex: '#10b981' },
@@ -50,7 +50,7 @@ const PEAK_HOURS: Record<number, string> = {
   21: 'settling', 22: 'quiet', 23: 'quiet',
 }
 
-/* ================================================ HELPERS ================================================ */
+/* HELPERS */
 
 function getRiskLevel(d: number): 'low' | 'moderate' | 'high' | 'critical' {
   if (d < 30) return 'low'
@@ -132,7 +132,7 @@ function formatRefreshAgo(lastRefresh: Date, lang: string): string {
   if (seconds < 60) return `${seconds}${t('common.secondsShort', lang)} ${t('common.ago', lang)}`
   return `${Math.floor(seconds / 60)}${t('common.minutesShort', lang)} ${t('common.ago', lang)}`
 }
-/* ================================================ SVG COMPONENTS ================================================ */
+/* SVG COMPONENTS */
 
 function Sparkline({ data, color, width = 64, height = 22 }: { data: number[]; color: string; width?: number; height?: number }) {
   if (data.length < 2) return null
@@ -204,7 +204,7 @@ function DistributionBar({ zones, lang }: { zones: DensityZone[]; lang: string }
       </div>
       <div className="flex gap-3 mt-1.5 flex-wrap">
         {segments.map(s => (
-          <span key={s.key} className="flex items-center gap-1 text-[8px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-medium">
+          <span key={s.key} className="flex items-center gap-1 text-[8px] text-gray-500 dark:text-gray-300 font-medium">
             <span className={`w-1.5 h-1.5 rounded-full ${s.color}`} />
             {s.count} {getRiskLabel(s.key as keyof typeof RISK_CONFIG, lang)}
           </span>
@@ -213,7 +213,7 @@ function DistributionBar({ zones, lang }: { zones: DensityZone[]; lang: string }
     </div>
   )
 }
-/* ================================================ GRID HEATMAP VIEW ================================================ */
+/* GRID HEATMAP VIEW */
 
 function HeatmapGrid({ zones, selectedZone, onSelect, lang }: { zones: DensityZone[]; selectedZone: string | null; onSelect: (id: string | null) => void; lang: string }) {
   return (
@@ -225,14 +225,14 @@ function HeatmapGrid({ zones, selectedZone, onSelect, lang }: { zones: DensityZo
           <button key={zone.id} onClick={() => onSelect(isSelected ? null : zone.id)}
             className={`relative rounded-xl p-2 border transition-all duration-300 text-center group ${cfg.bg} ${cfg.border} ${isSelected ? 'ring-2 ring-orange-400/60 shadow-lg scale-[1.03]' : 'hover:scale-[1.02] hover:shadow-md'}`}>
             <div className={`text-lg font-black ${cfg.text}`}>{zone.density}</div>
-            <div className="text-[6px] font-bold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-widest">{getRiskLabel(zone.riskLevel, lang)}</div>
+            <div className="text-micro font-bold text-gray-500 dark:text-gray-300 uppercase tracking-widest">{getRiskLabel(zone.riskLevel, lang)}</div>
             <div className="w-full h-1 bg-gray-200/60 dark:bg-gray-700/40 rounded-full mt-1.5 overflow-hidden">
               <div className={`h-full rounded-full ${zone.riskLevel === 'critical' ? 'bg-red-500' : zone.riskLevel === 'high' ? 'bg-orange-500' : zone.riskLevel === 'moderate' ? 'bg-amber-400' : 'bg-emerald-400'}`}
                 style={{ width: `${zone.density}%` }} />
             </div>
-            <div className="text-[8px] text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-medium mt-1 truncate">{zone.name}</div>
+            <div className="text-[8px] text-gray-600 dark:text-gray-300 font-medium mt-1 truncate">{zone.name}</div>
             {zone.delta !== 0 && (
-              <span className={`absolute -top-1 -right-1 text-[7px] font-bold px-1 py-0.5 rounded-full ${zone.delta > 0 ? 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400' : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400'}`}>
+              <span className={`absolute -top-1 -right-1 text-micro font-bold px-1 py-0.5 rounded-full ${zone.delta > 0 ? 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400' : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400'}`}>
                 {zone.delta > 0 ? '+' : ''}{zone.delta}
               </span>
             )}
@@ -243,7 +243,7 @@ function HeatmapGrid({ zones, selectedZone, onSelect, lang }: { zones: DensityZo
   )
 }
 
-/* ================================================ CHART VIEW ================================================ */
+/* CHART VIEW */
 
 function ChartView({ zones }: { zones: DensityZone[] }) {
   return (
@@ -252,7 +252,7 @@ function ChartView({ zones }: { zones: DensityZone[] }) {
         const cfg = RISK_CONFIG[zone.riskLevel]
         return (
           <div key={zone.id} className="flex items-center gap-2">
-            <span className="text-[9px] font-medium text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 w-28 truncate text-right">{zone.name}</span>
+            <span className="text-[9px] font-medium text-gray-600 dark:text-gray-300 w-28 truncate text-right">{zone.name}</span>
             <div className="flex-1 h-5 bg-gray-100 dark:bg-gray-800/60 rounded-md overflow-hidden relative">
               <div className={`h-full rounded-md transition-all duration-1000 ${
                 zone.riskLevel === 'critical' ? 'bg-gradient-to-r from-red-600 to-red-400' :
@@ -262,7 +262,7 @@ function ChartView({ zones }: { zones: DensityZone[] }) {
               }`} style={{ width: `${zone.density}%` }} />
               <span className="absolute inset-y-0 right-2 flex items-center text-[9px] font-bold text-gray-700 dark:text-gray-200">{zone.density}%</span>
             </div>
-            <span className={`text-[8px] font-bold w-7 text-right ${zone.delta > 0 ? 'text-red-500' : zone.delta < 0 ? 'text-emerald-500' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`}>
+            <span className={`text-[8px] font-bold w-7 text-right ${zone.delta > 0 ? 'text-red-500' : zone.delta < 0 ? 'text-emerald-500' : 'text-gray-400 dark:text-gray-300'}`}>
               {zone.delta > 0 ? `+${zone.delta}` : zone.delta < 0 ? `${zone.delta}` : String.fromCharCode(8212)}
             </span>
           </div>
@@ -270,7 +270,7 @@ function ChartView({ zones }: { zones: DensityZone[] }) {
       })}
       <div className="flex items-center gap-2 pt-1.5 border-t border-gray-200/50 dark:border-gray-700/40">
         <span className="w-28" />
-        <div className="flex-1 flex justify-between text-[7px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-medium">
+        <div className="flex-1 flex justify-between text-micro text-gray-400 dark:text-gray-300 font-medium">
           <span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>
         </div>
         <span className="w-7" />
@@ -278,7 +278,7 @@ function ChartView({ zones }: { zones: DensityZone[] }) {
     </div>
   )
 }
-/* ================================================ MAIN COMPONENT ================================================ */
+/* MAIN COMPONENT */
 
 export default function CrowdDensityHeatmap(): JSX.Element {
   const lang = useLanguage()
@@ -419,8 +419,8 @@ export default function CrowdDensityHeatmap(): JSX.Element {
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-medium">{locationName}</p>
-                {refreshAgo && <span className="text-[8px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">· {refreshAgo}</span>}
+                <p className="text-[10px] text-gray-500 dark:text-gray-300 font-medium">{locationName}</p>
+                {refreshAgo && <span className="text-[8px] text-gray-400 dark:text-gray-300">· {refreshAgo}</span>}
               </div>
             </div>
           </div>
@@ -430,10 +430,10 @@ export default function CrowdDensityHeatmap(): JSX.Element {
               GPS
             </button>
             <button onClick={() => { if (userLat != null && userLng != null) loadData(userLat, userLng) }} disabled={loading || userLat == null} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-30" title={t('common.refresh', lang)}>
-              {loading ? <Loader2 className="w-3.5 h-3.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />}
+              {loading ? <Loader2 className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300" />}
             </button>
             <button onClick={() => setExpanded(!expanded)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all">
-              {expanded ? <ChevronUp className="w-3.5 h-3.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" /> : <ChevronDown className="w-3.5 h-3.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />}
+              {expanded ? <ChevronUp className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300" /> : <ChevronDown className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300" />}
             </button>
           </div>
         </div>
@@ -456,36 +456,36 @@ export default function CrowdDensityHeatmap(): JSX.Element {
             <div className="grid grid-cols-5 gap-1.5">
               <div className="bg-gray-50 dark:bg-gray-800/60 rounded-xl p-2 text-center border border-gray-100 dark:border-gray-700/40">
                 <div className="text-sm font-black text-gray-900 dark:text-white">{zones.length}</div>
-                <div className="text-[6px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-bold uppercase tracking-widest mt-0.5">{t('resource.zones', lang)}</div>
+                <div className="text-micro text-gray-500 dark:text-gray-300 font-bold uppercase tracking-widest mt-0.5">{t('resource.zones', lang)}</div>
               </div>
               <div className="bg-gray-50 dark:bg-gray-800/60 rounded-xl p-2 text-center border border-gray-100 dark:border-gray-700/40">
                 <div className="text-sm font-black text-gray-900 dark:text-white">
                   {summary.totalPeople >= 1000 ? `${(summary.totalPeople / 1000).toFixed(1)}k` : summary.totalPeople}
                 </div>
-                <div className="text-[6px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-bold uppercase tracking-widest mt-0.5">{t('crowd.people', lang)}</div>
+                <div className="text-micro text-gray-500 dark:text-gray-300 font-bold uppercase tracking-widest mt-0.5">{t('crowd.people', lang)}</div>
               </div>
               <div className="bg-gray-50 dark:bg-gray-800/60 rounded-xl p-2 text-center border border-gray-100 dark:border-gray-700/40">
                 <div className={`text-sm font-black ${summary.avgDensity >= 70 ? 'text-red-500' : summary.avgDensity >= 50 ? 'text-orange-500' : summary.avgDensity >= 30 ? 'text-amber-500' : 'text-emerald-500'}`}>
                   {summary.avgDensity}%
                 </div>
-                <div className="text-[6px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-bold uppercase tracking-widest mt-0.5">{t('crowd.density', lang)}</div>
+                <div className="text-micro text-gray-500 dark:text-gray-300 font-bold uppercase tracking-widest mt-0.5">{t('crowd.density', lang)}</div>
               </div>
               <div className={`rounded-xl p-2 text-center border ${summary.critical + summary.high > 0 ? 'bg-red-50 dark:bg-red-950/20 border-red-200/60 dark:border-red-800/40' : 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-800/40'}`}>
                 <div className={`text-sm font-black ${summary.critical + summary.high > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>{summary.critical + summary.high}</div>
-                <div className="text-[6px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-bold uppercase tracking-widest mt-0.5">{t('command.alerts', lang)}</div>
+                <div className="text-micro text-gray-500 dark:text-gray-300 font-bold uppercase tracking-widest mt-0.5">{t('command.alerts', lang)}</div>
               </div>
               <div className="bg-gray-50 dark:bg-gray-800/60 rounded-xl p-2 text-center border border-gray-100 dark:border-gray-700/40">
                 <div className={`text-sm font-black ${summary.risingCount > 2 ? 'text-red-500' : summary.risingCount > 0 ? 'text-amber-500' : 'text-emerald-500'}`}>{summary.risingCount}</div>
-                <div className="text-[6px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-bold uppercase tracking-widest mt-0.5">{t('crowd.rising', lang)}</div>
+                <div className="text-micro text-gray-500 dark:text-gray-300 font-bold uppercase tracking-widest mt-0.5">{t('crowd.rising', lang)}</div>
               </div>
             </div>
 
             {/* Capacity utilisation */}
             <div>
               <div className="flex justify-between items-baseline mb-1">
-                <span className="text-[9px] font-semibold text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('crowd.totalCapacityUtilisation', lang)}</span>
+                <span className="text-[9px] font-semibold text-gray-600 dark:text-gray-300">{t('crowd.totalCapacityUtilisation', lang)}</span>
                 <span className="text-[9px] font-bold text-gray-900 dark:text-white">
-                  {summary.totalPeople.toLocaleString()} <span className="text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-normal">/ {summary.totalCapacity.toLocaleString()}</span>
+                  {summary.totalPeople.toLocaleString()} <span className="text-gray-400 dark:text-gray-300 font-normal">/ {summary.totalCapacity.toLocaleString()}</span>
                 </span>
               </div>
               <div className="w-full h-2 bg-gray-200/80 dark:bg-gray-700/60 rounded-full overflow-hidden">
@@ -505,10 +505,10 @@ export default function CrowdDensityHeatmap(): JSX.Element {
               <div className="flex items-center gap-2">
                 <Zap className="w-3.5 h-3.5 text-amber-500" />
                 <span className="text-[10px] font-semibold text-gray-700 dark:text-gray-200">
-                  {t('crowd.current', lang)} <span className={`${peakLabelKey === 'peak' || peakLabelKey === 'peakLunch' || peakLabelKey === 'rushHour' ? 'text-red-500' : peakLabelKey === 'high' ? 'text-orange-500' : 'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`}>{peakLabel}</span>
+                  {t('crowd.current', lang)} <span className={`${peakLabelKey === 'peak' || peakLabelKey === 'peakLunch' || peakLabelKey === 'rushHour' ? 'text-red-500' : peakLabelKey === 'high' ? 'text-orange-500' : 'text-gray-500 dark:text-gray-300'}`}>{peakLabel}</span>
                 </span>
               </div>
-              <span className="text-[9px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('crowd.nextPeakIn', lang)} ~{nextPeakIn}{t('common.hoursShort', lang)}</span>
+              <span className="text-[9px] text-gray-400 dark:text-gray-300">{t('crowd.nextPeakIn', lang)} ~{nextPeakIn}{t('common.hoursShort', lang)}</span>
             </div>
           </div>
 
@@ -522,7 +522,7 @@ export default function CrowdDensityHeatmap(): JSX.Element {
               ]).map(({ mode, icon: Icon, label }) => (
                 <button key={mode} onClick={() => setViewMode(mode)}
                   className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-bold transition-all ${
-                    viewMode === mode ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'
+                    viewMode === mode ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300'
                   }`}>
                   <Icon className="w-3 h-3" /> {label}
                 </button>
@@ -531,24 +531,24 @@ export default function CrowdDensityHeatmap(): JSX.Element {
             <div className="flex items-center gap-1.5">
               <div className="relative">
                 <select value={filterLevel} onChange={e => setFilterLevel(e.target.value as FilterLevel)}
-                  className="appearance-none bg-gray-100 dark:bg-gray-800/60 text-[9px] font-bold text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 rounded-lg pl-5 pr-2 py-1.5 border-0 focus:ring-1 focus:ring-orange-400/40 cursor-pointer">
+                  className="appearance-none bg-gray-100 dark:bg-gray-800/60 text-[9px] font-bold text-gray-600 dark:text-gray-300 rounded-lg pl-5 pr-2 py-1.5 border-0 focus:ring-1 focus:ring-orange-400/40 cursor-pointer">
                   <option value="all">{t('common.all', lang)}</option>
                   <option value="critical">{t('common.critical', lang)}</option>
                   <option value="high">{t('common.high', lang)}</option>
                   <option value="moderate">{t('common.moderate', lang)}</option>
                   <option value="low">{t('common.low', lang)}</option>
                 </select>
-                <Filter className="w-3 h-3 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 absolute left-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <Filter className="w-3 h-3 text-gray-400 dark:text-gray-300 absolute left-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
               <div className="relative">
                 <select value={sortKey} onChange={e => setSortKey(e.target.value as SortKey)}
-                  className="appearance-none bg-gray-100 dark:bg-gray-800/60 text-[9px] font-bold text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 rounded-lg pl-5 pr-2 py-1.5 border-0 focus:ring-1 focus:ring-orange-400/40 cursor-pointer">
+                  className="appearance-none bg-gray-100 dark:bg-gray-800/60 text-[9px] font-bold text-gray-600 dark:text-gray-300 rounded-lg pl-5 pr-2 py-1.5 border-0 focus:ring-1 focus:ring-orange-400/40 cursor-pointer">
                   <option value="density">{t('crowd.density', lang)}</option>
                   <option value="name">{t('crowd.name', lang)}</option>
                   <option value="trend">{t('crowd.trend', lang)}</option>
                   <option value="risk">{t('crowd.risk', lang)}</option>
                 </select>
-                <ArrowUpDown className="w-3 h-3 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 absolute left-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <ArrowUpDown className="w-3 h-3 text-gray-400 dark:text-gray-300 absolute left-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             </div>
           </div>
@@ -561,8 +561,8 @@ export default function CrowdDensityHeatmap(): JSX.Element {
             <div className="p-3 space-y-2 max-h-[460px] overflow-y-auto custom-scrollbar">
               {processedZones.length === 0 ? (
                 <div className="py-6 text-center">
-                  <Filter className="w-6 h-6 text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-600 mx-auto mb-2" />
-                  <p className="text-xs text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('crowd.noZonesMatch', lang)}</p>
+                  <Filter className="w-6 h-6 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                  <p className="text-xs text-gray-400 dark:text-gray-300">{t('crowd.noZonesMatch', lang)}</p>
                 </div>
               ) : (
                 processedZones.map(zone => {
@@ -579,7 +579,7 @@ export default function CrowdDensityHeatmap(): JSX.Element {
                             <span className="text-xs font-bold text-gray-900 dark:text-white truncate flex-1 mr-2">{zone.name}</span>
                             <div className="flex items-center gap-2 flex-shrink-0">
                               <Sparkline data={zone.history} color={cfg.hex} width={52} height={18} />
-                              <span className={`text-[7px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-full whitespace-nowrap ${cfg.text} ${zone.riskLevel === 'critical' ? 'bg-red-200/60 dark:bg-red-900/40 animate-pulse' : zone.riskLevel === 'high' ? 'bg-orange-200/60 dark:bg-orange-900/40' : ''}`}>
+                              <span className={`text-micro font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-full whitespace-nowrap ${cfg.text} ${zone.riskLevel === 'critical' ? 'bg-red-200/60 dark:bg-red-900/40 animate-pulse' : zone.riskLevel === 'high' ? 'bg-orange-200/60 dark:bg-orange-900/40' : ''}`}>
                                 {getRiskLabel(zone.riskLevel, lang)}
                               </span>
                             </div>
@@ -592,19 +592,19 @@ export default function CrowdDensityHeatmap(): JSX.Element {
                               'bg-gradient-to-r from-emerald-600 via-emerald-500 to-emerald-400'
                             }`} style={{ width: `${zone.density}%`, boxShadow: zone.riskLevel === 'critical' ? '0 0 8px rgba(239,68,68,0.35)' : zone.riskLevel === 'high' ? '0 0 6px rgba(249,115,22,0.25)' : 'none' }} />
                           </div>
-                          <div className="flex items-center justify-between text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+                          <div className="flex items-center justify-between text-[10px] text-gray-500 dark:text-gray-300">
                             <span className="flex items-center gap-1">
                               <Users className="w-3 h-3" /> ~{zone.crowdEstimate.toLocaleString()}
-                              <span className="text-[8px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">/ {zone.capacity.toLocaleString()}</span>
+                              <span className="text-[8px] text-gray-400 dark:text-gray-300">/ {zone.capacity.toLocaleString()}</span>
                             </span>
                             <span className={`flex items-center gap-1 font-semibold ${zone.trend === 'rising' ? 'text-red-500' : zone.trend === 'falling' ? 'text-emerald-500' : 'text-amber-500'}`}>
                               {zone.trend === 'rising' && <><TrendingUp className="w-3 h-3" /> {t('crowd.rising', lang)}</>}
                               {zone.trend === 'falling' && <><TrendingDown className="w-3 h-3" /> {t('crowd.falling', lang)}</>}
                               {zone.trend === 'stable' && <><Minus className="w-3 h-3" /> {t('crowd.stable', lang)}</>}
                             </span>
-                            <span className={`text-[9px] font-bold ${zone.delta > 0 ? 'text-red-500' : zone.delta < 0 ? 'text-emerald-500' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`}>
+                            <span className={`text-[9px] font-bold ${zone.delta > 0 ? 'text-red-500' : zone.delta < 0 ? 'text-emerald-500' : 'text-gray-400 dark:text-gray-300'}`}>
                               {zone.delta > 0 ? `+${zone.delta}` : zone.delta < 0 ? `${zone.delta}` : '\u2014'}
-                              <span className="text-[7px] font-normal text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 ml-0.5">1h</span>
+                              <span className="text-micro font-normal text-gray-400 dark:text-gray-300 ml-0.5">1h</span>
                             </span>
                           </div>
                         </div>
@@ -614,7 +614,7 @@ export default function CrowdDensityHeatmap(): JSX.Element {
                         <div className="mt-3 pt-3 border-t border-gray-200/60 dark:border-gray-600/30 space-y-2.5">
                           <div>
                             <div className="flex justify-between items-baseline mb-1">
-                              <span className="text-[9px] font-semibold text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex items-center gap-1">
+                              <span className="text-[9px] font-semibold text-gray-600 dark:text-gray-300 flex items-center gap-1">
                                 <Shield className="w-3 h-3" /> {t('crowd.capacity', lang)}
                               </span>
                               <span className={`text-[9px] font-bold ${capacityPct > 80 ? 'text-red-500' : capacityPct > 60 ? 'text-orange-500' : 'text-emerald-500'}`}>
@@ -627,28 +627,28 @@ export default function CrowdDensityHeatmap(): JSX.Element {
                           </div>
                           <div className="grid grid-cols-4 gap-1.5 text-center">
                             <div className="bg-white/60 dark:bg-gray-900/40 rounded-lg p-1.5">
-                              <MapPin className="w-3 h-3 mx-auto text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-0.5" />
-                              <div className="text-[8px] font-mono text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{zone.lat.toFixed(4)}</div>
-                              <div className="text-[8px] font-mono text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{zone.lng.toFixed(4)}</div>
+                              <MapPin className="w-3 h-3 mx-auto text-gray-400 dark:text-gray-300 mb-0.5" />
+                              <div className="text-[8px] font-mono text-gray-600 dark:text-gray-300">{zone.lat.toFixed(4)}</div>
+                              <div className="text-[8px] font-mono text-gray-600 dark:text-gray-300">{zone.lng.toFixed(4)}</div>
                             </div>
                             <div className="bg-white/60 dark:bg-gray-900/40 rounded-lg p-1.5">
-                              <Clock className="w-3 h-3 mx-auto text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-0.5" />
-                              <div className="text-[8px] font-medium text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{zone.lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                              <div className="text-[6px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('crowd.updated', lang)}</div>
+                              <Clock className="w-3 h-3 mx-auto text-gray-400 dark:text-gray-300 mb-0.5" />
+                              <div className="text-[8px] font-medium text-gray-600 dark:text-gray-300">{zone.lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                              <div className="text-micro text-gray-400 dark:text-gray-300">{t('crowd.updated', lang)}</div>
                             </div>
                             <div className="bg-white/60 dark:bg-gray-900/40 rounded-lg p-1.5">
-                              <Radio className="w-3 h-3 mx-auto text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-0.5" />
-                              <div className="text-[8px] font-medium text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{zone.density >= 80 ? t('common.disperse', lang) : zone.density >= 55 ? t('common.monitor', lang) : t('crowd.actionNormal', lang)}</div>
-                              <div className="text-[6px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('crowd.action', lang)}</div>
+                              <Radio className="w-3 h-3 mx-auto text-gray-400 dark:text-gray-300 mb-0.5" />
+                              <div className="text-[8px] font-medium text-gray-600 dark:text-gray-300">{zone.density >= 80 ? t('common.disperse', lang) : zone.density >= 55 ? t('common.monitor', lang) : t('crowd.actionNormal', lang)}</div>
+                              <div className="text-micro text-gray-400 dark:text-gray-300">{t('crowd.action', lang)}</div>
                             </div>
                             <div className="bg-white/60 dark:bg-gray-900/40 rounded-lg p-1.5">
-                              <Activity className="w-3 h-3 mx-auto text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-0.5" />
-                              <div className="text-[8px] font-medium text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{zone.history.length} {t('crowd.pointsShort', lang)}</div>
-                              <div className="text-[6px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('crowd.history', lang)}</div>
+                              <Activity className="w-3 h-3 mx-auto text-gray-400 dark:text-gray-300 mb-0.5" />
+                              <div className="text-[8px] font-medium text-gray-600 dark:text-gray-300">{zone.history.length} {t('crowd.pointsShort', lang)}</div>
+                              <div className="text-micro text-gray-400 dark:text-gray-300">{t('crowd.history', lang)}</div>
                             </div>
                           </div>
                           <div className="bg-white/50 dark:bg-gray-900/30 rounded-lg p-2">
-                            <div className="text-[8px] font-bold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-1 uppercase tracking-wider">{t('crowd.densityTrendLast8', lang)}</div>
+                            <div className="text-[8px] font-bold text-gray-500 dark:text-gray-300 mb-1 uppercase tracking-wider">{t('crowd.densityTrendLast8', lang)}</div>
                             <Sparkline data={zone.history} color={cfg.hex} width={280} height={36} />
                           </div>
                           {zone.riskLevel === 'critical' && (
@@ -674,15 +674,15 @@ export default function CrowdDensityHeatmap(): JSX.Element {
           {loading ? (
             <div className="flex flex-col items-center justify-center py-10 gap-3">
               <div className="w-12 h-12 rounded-full border-4 border-orange-200 dark:border-orange-800/30 border-t-orange-500 animate-spin" />
-              <span className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-medium">{t('crowd.scanningAreaDensity', lang)}</span>
+              <span className="text-xs text-gray-500 dark:text-gray-300 font-medium">{t('crowd.scanningAreaDensity', lang)}</span>
             </div>
           ) : locationError ? (
             <div className="py-8 text-center space-y-3">
               <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 flex items-center justify-center mx-auto">
-                <MapPin className="w-7 h-7 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
+                <MapPin className="w-7 h-7 text-gray-400 dark:text-gray-300" />
               </div>
               <p className="text-sm font-bold text-gray-700 dark:text-gray-200">{t('crowd.searchOrUseGps', lang)}</p>
-              <p className="text-xs text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{locationError}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-300">{locationError}</p>
               <button onClick={requestGPS} className="text-xs font-bold bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-400 hover:to-red-400 text-white px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-orange-500/20">
                 <MapPin className="w-3.5 h-3.5 inline mr-1.5" /> {t('crowd.useGps', lang)}
               </button>
@@ -693,7 +693,7 @@ export default function CrowdDensityHeatmap(): JSX.Element {
                 <Users className="w-7 h-7 text-orange-500" />
               </div>
               <p className="text-sm font-bold text-gray-700 dark:text-gray-200">{t('crowd.searchToBegin', lang)}</p>
-              <p className="text-xs text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('crowd.enterLocationHint', lang)}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-300">{t('crowd.enterLocationHint', lang)}</p>
             </div>
           )}
         </div>
@@ -701,7 +701,3 @@ export default function CrowdDensityHeatmap(): JSX.Element {
     </div>
   )
 }
-
-
-
-

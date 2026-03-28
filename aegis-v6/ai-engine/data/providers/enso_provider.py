@@ -8,7 +8,6 @@ import pandas as pd
 
 from .base_provider import DataProvider
 
-
 class ENSOProvider(DataProvider):
     @property
     def name(self) -> str:

@@ -12,7 +12,6 @@ import pandas as pd
 from registry.region_registry import get_region
 from .base_provider import DataProvider
 
-
 class SEPAProvider(DataProvider):
     @property
     def name(self) -> str:

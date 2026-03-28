@@ -1,8 +1,6 @@
-"""
-═══════════════════════════════════════════════════════════════════════════════
+﻿"""
  AEGIS AI ENGINE — Feature Store
  Centralized feature engineering and caching for all hazard modules
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from typing import Dict, List, Optional, Any
@@ -13,6 +11,7 @@ from loguru import logger
 from pathlib import Path
 import json
 
+from app.core.data_providers import fetch_live_features
 
 class FeatureStore:
     """
@@ -51,7 +50,8 @@ class FeatureStore:
         self,
         latitude: float,
         longitude: float,
-        region_id: str
+        region_id: str,
+        overrides: Optional[Dict[str, float]] = None,
     ) -> Dict[str, float]:
         """
         Extract static features for a location.
@@ -64,10 +64,10 @@ class FeatureStore:
         """
         
         # In production, this would query:
-        # - DEM (Digital Elevation Model) for elevation, slope
-        # - Soil databases for soil properties
-        # - Land use databases (Corine Land Cover, etc.)
-        # - Catchment boundary data
+        # DEM (Digital Elevation Model) for elevation, slope
+        # Soil databases for soil properties
+        # Land use databases (Corine Land Cover, etc.)
+        # Catchment boundary data
         
         # For now, return stub features with realistic defaults
         features = {
@@ -83,6 +83,12 @@ class FeatureStore:
             "impervious_surface_ratio": 0.25,  # 0-1 scale
             "vegetation_class_encoded": 2,  # sparse=0, moderate=1, dense=2
         }
+
+        # Apply live overrides (e.g. elevation from Open-Elevation API)
+        if overrides:
+            for key, value in overrides.items():
+                if key in features and value is not None:
+                    features[key] = float(value)
         
         logger.debug(f"Static features extracted for ({latitude}, {longitude})")
         return features
@@ -149,7 +155,8 @@ class FeatureStore:
         latitude: float,
         longitude: float,
         region_id: str,
-        timestamp: Optional[datetime] = None
+        timestamp: Optional[datetime] = None,
+        overrides: Optional[Dict[str, float]] = None,
     ) -> Dict[str, float]:
         """
         Extract climate & macro-scale features.
@@ -171,9 +178,15 @@ class FeatureStore:
         features = {
             "seasonal_anomaly": seasonal_anomaly,
             "climate_zone_encoding": self._get_climate_zone(latitude),
-            "enso_index": 0.2,  # Would fetch from NOAA
+            "enso_index": 0.2,  # Default — overwritten by live NOAA data when available
             "long_term_rainfall_anomaly": 0.15,  # Deviation from 30-year average
         }
+
+        # Apply any live climate overrides (e.g. enso_index from NOAA)
+        if overrides:
+            for key, value in overrides.items():
+                if key in features and value is not None:
+                    features[key] = float(value)
         
         logger.debug(f"Climate features extracted")
         return features
@@ -189,15 +202,39 @@ class FeatureStore:
         """
         Get complete feature set (static + dynamic + climate).
         Returns the universal feature schema.
-        Pass `feature_overrides` to inject real observed values (river level,
-        rainfall, etc.) rather than relying on hardcoded defaults.
+
+        If no ``feature_overrides`` are provided the store automatically
+        fetches live data from SEPA, EA Flood, Open-Meteo, NOAA, etc.
+        The live results are cached for 10 minutes per grid-cell to avoid
+        hammering the upstream APIs.
         """
 
-        static = self.get_static_features(latitude, longitude, region_id)
+        # Auto-fetch from live APIs when no overrides given
+        if not feature_overrides:
+            cache_key = f"{round(latitude, 2)}_{round(longitude, 2)}"
+            cached = self.cache.get(cache_key)
+            now = datetime.utcnow()
+            if cached and (now - cached["ts"]).total_seconds() < 600:
+                feature_overrides = cached["overrides"]
+                logger.debug(f"[FeatureStore] Using cached live data for {cache_key}")
+            else:
+                try:
+                    live = await fetch_live_features(latitude, longitude, region_id)
+                    feature_overrides = live.get("feature_overrides", {})
+                    self.cache[cache_key] = {"overrides": feature_overrides, "ts": now}
+                    logger.info(
+                        f"[FeatureStore] Live data: {live.get('live_feature_count', 0)} "
+                        f"features fetched for ({latitude:.4f}, {longitude:.4f})"
+                    )
+                except Exception as exc:
+                    logger.warning(f"[FeatureStore] Live data fetch failed, using defaults: {exc}")
+                    feature_overrides = {}
+
+        static = self.get_static_features(latitude, longitude, region_id, overrides=feature_overrides)
         dynamic = await self.get_dynamic_features(
             latitude, longitude, region_id, timestamp, overrides=feature_overrides
         )
-        climate = self.get_climate_features(latitude, longitude, region_id, timestamp)
+        climate = self.get_climate_features(latitude, longitude, region_id, timestamp, overrides=feature_overrides)
         
         # Combine all features
         all_features = {**static, **dynamic, **climate}
@@ -273,3 +310,4 @@ class FeatureStore:
         logger.info("Cleaning up feature store...")
         self.cache.clear()
         logger.success("Feature store cleanup complete")
+

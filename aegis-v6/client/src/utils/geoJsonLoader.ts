@@ -52,7 +52,7 @@ export async function loadAllFloodLayers(): Promise<FloodLayer[]> {
   return Promise.all(FLOOD_LAYERS.map(loadFloodLayer))
 }
 
-/**
+ /**
  * Check if a coordinate falls inside any flood polygon
  * Used by AI confidence scoring
  */
@@ -78,7 +78,7 @@ export function checkPointInFloodZone(
   return { inZone: zones.length > 0, zones, highestRisk }
 }
 
-/**
+ /**
  * Ray-casting algorithm for point-in-polygon check
  */
 function pointInPolygon(lat: number, lng: number, geometry: GeoJSON.Geometry): boolean {
@@ -103,7 +103,7 @@ function pointInRing(lat: number, lng: number, ring: number[][]): boolean {
   return inside
 }
 
-/**
+ /**
  * SEPA WMS URL for direct Leaflet integration
  * This loads flood maps directly from SEPA servers without downloading
  */
@@ -125,7 +125,7 @@ export const SEPA_WMS = {
   attribution: '&copy; SEPA 2025, Open Government Licence v3.0',
 }
 
-/**
+ /**
  * Confidence boost when report location matches SEPA flood zone
  */
 export function getFloodZoneConfidenceBoost(result: ReturnType<typeof checkPointInFloodZone>): number {

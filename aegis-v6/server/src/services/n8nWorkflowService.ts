@@ -12,6 +12,7 @@
 import { readFileSync, readdirSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
+import { logger } from './logger.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -38,7 +39,7 @@ function n8nHeaders(): Record<string, string> {
   return headers
 }
 
-/**
+ /**
  * Load all workflow JSON files from the n8n-workflows directory.
  */
 function loadWorkflowDefinitions(): WorkflowDef[] {
@@ -49,16 +50,16 @@ function loadWorkflowDefinitions(): WorkflowDef[] {
       return JSON.parse(content) as WorkflowDef
     })
   } catch (err: any) {
-    console.warn(`[n8n-workflows] Cannot read workflow directory: ${err.message}`)
+    logger.warn({ err }, '[n8n-workflows] Cannot read workflow directory')
     return []
   }
 }
 
-/**
+ /**
  * Fetch existing workflows from n8n.
  */
 async function getExistingWorkflows(baseUrl: string): Promise<Map<string, string>> {
-  const map = new Map<string, string>() // name → id
+  const map = new Map<string, string>() // name ? id
   try {
     const res = await fetch(`${baseUrl}/api/v1/workflows?limit=200`, {
       headers: n8nHeaders(),
@@ -73,12 +74,12 @@ async function getExistingWorkflows(baseUrl: string): Promise<Map<string, string
       }
     }
   } catch (err: any) {
-    console.warn(`[n8n-workflows] Error fetching existing workflows: ${err.message}`)
+    logger.warn({ err }, '[n8n-workflows] Error fetching existing workflows')
   }
   return map
 }
 
-/**
+ /**
  * Create a workflow in n8n.
  */
 async function createWorkflow(baseUrl: string, def: WorkflowDef): Promise<string | null> {
@@ -106,18 +107,18 @@ async function createWorkflow(baseUrl: string, def: WorkflowDef): Promise<string
     })
     if (!res.ok) {
       const errText = await res.text().catch(() => '')
-      console.warn(`[n8n-workflows] Failed to create "${def.name}": HTTP ${res.status} — ${errText}`)
+      logger.warn({ name: def.name, status: res.status, error: errText }, '[n8n-workflows] Failed to create workflow')
       return null
     }
     const data = await res.json()
     return String(data.id || '')
   } catch (err: any) {
-    console.warn(`[n8n-workflows] Error creating "${def.name}": ${err.message}`)
+    logger.warn({ err, name: def.name }, '[n8n-workflows] Error creating workflow')
     return null
   }
 }
 
-/**
+ /**
  * Activate a workflow in n8n.
  */
 async function activateWorkflow(baseUrl: string, id: string): Promise<void> {
@@ -130,7 +131,7 @@ async function activateWorkflow(baseUrl: string, id: string): Promise<void> {
   } catch { /* activation is optional */ }
 }
 
-/**
+ /**
  * Register all AEGIS workflows into n8n (skipping existing ones).
  * Called by n8nHealthCheck when n8n transitions to 'connected'.
  */
@@ -144,7 +145,7 @@ export async function registerWorkflows(): Promise<{
 
   const definitions = loadWorkflowDefinitions()
   if (definitions.length === 0) {
-    console.log('[n8n-workflows] No workflow definitions found — skipping registration')
+    logger.info('[n8n-workflows] No workflow definitions found — skipping registration')
     return { registered: 0, skipped: 0, failed: 0 }
   }
 
@@ -155,14 +156,14 @@ export async function registerWorkflows(): Promise<{
 
   for (const def of definitions) {
     if (existing.has(def.name)) {
-      console.log(`[n8n-workflows] "${def.name}" already exists (id=${existing.get(def.name)}) — skipping`)
+      logger.info({ name: def.name, id: existing.get(def.name) }, '[n8n-workflows] Workflow already exists — skipping')
       skipped++
       continue
     }
 
     const id = await createWorkflow(baseUrl, def)
     if (id) {
-      console.log(`[n8n-workflows] Created "${def.name}" (id=${id})`)
+      logger.info({ name: def.name, id }, '[n8n-workflows] Created workflow')
       if (def.active) {
         await activateWorkflow(baseUrl, id)
       }
@@ -172,11 +173,11 @@ export async function registerWorkflows(): Promise<{
     }
   }
 
-  console.log(`[n8n-workflows] Registration complete: ${registered} created, ${skipped} skipped, ${failed} failed`)
+  logger.info({ registered, skipped, failed }, '[n8n-workflows] Registration complete')
   return { registered, skipped, failed }
 }
 
-/**
+ /**
  * Try to register workflows (called once when n8n becomes healthy).
  * Safe to call multiple times — only runs once unless reset.
  */
@@ -187,19 +188,19 @@ export async function tryRegisterWorkflows(): Promise<void> {
   try {
     await registerWorkflows()
   } catch (err: any) {
-    console.error(`[n8n-workflows] Registration error: ${err.message}`)
+    logger.error({ err }, '[n8n-workflows] Registration error')
     registrationDone = false // allow retry on next health check
   }
 }
 
-/**
+ /**
  * Reset registration state (called when n8n goes down, so we re-register on recovery).
  */
 export function resetRegistration(): void {
   registrationDone = false
 }
 
-/**
+ /**
  * Get list of available workflow definitions (for the dashboard).
  */
 export function getWorkflowDefinitions(): Array<{ name: string; nodeCount: number; active: boolean }> {

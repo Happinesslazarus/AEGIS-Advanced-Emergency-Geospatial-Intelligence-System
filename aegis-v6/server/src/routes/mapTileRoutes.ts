@@ -1,4 +1,5 @@
-import { Router, type Request, type Response } from 'express'
+import { Router, type Request, type Response, NextFunction } from 'express'
+import { AppError } from '../utils/AppError.js'
 
 const router = Router()
 
@@ -15,7 +16,7 @@ function isValidNumberSegment(value: string): boolean {
   return /^\d+$/.test(value)
 }
 
-router.get('/:provider/:z/:x/:y', async (req: Request, res: Response) => {
+router.get('/:provider/:z/:x/:y', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const provider = String(req.params.provider || '').toLowerCase() as ProviderKey
     const z = String(req.params.z || '')
@@ -24,13 +25,11 @@ router.get('/:provider/:z/:x/:y', async (req: Request, res: Response) => {
     const y = yRaw.replace(/\.(png|jpg|jpeg|webp)$/i, '')
 
     if (!PROVIDER_URLS[provider]) {
-      res.status(400).json({ error: 'Unknown map tile provider' })
-      return
+      throw AppError.badRequest('Unknown map tile provider')
     }
 
     if (![z, x, y].every(isValidNumberSegment)) {
-      res.status(400).json({ error: 'Invalid tile coordinates' })
-      return
+      throw AppError.badRequest('Invalid tile coordinates')
     }
 
     const tileUrl = PROVIDER_URLS[provider](z, x, y)

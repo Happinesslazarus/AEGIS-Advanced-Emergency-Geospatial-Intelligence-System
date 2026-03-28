@@ -1,19 +1,17 @@
-/**
+﻿ /*
  * services/riverLevelService.ts — Live river level monitoring service
- *
  * Central service for fetching, caching, storing, and broadcasting
  * river level data. Uses the adapter pattern: primary data provider
  * (SEPA for Scotland) with automatic fallback to OpenMeteo, then to
  * realistic mock data so the map always renders.
- *
  * Features:
- *   - 5 minute polling with in-memory cache
- *   - Trend calculation (rising/falling/stable)
- *   - Dynamic threshold calibration via percentage of historical flood level
- *   - Every reading stored in river_levels table for historical analysis
- *   - Socket.IO broadcast on update so clients refresh without page reload
- *   - Falls back gracefully through SEPA → OpenMeteo → mock data
- */
+ * 5 minute polling with in-memory cache
+ * Trend calculation (rising/falling/stable)
+ * Dynamic threshold calibration via percentage of historical flood level
+ * Every reading stored in river_levels table for historical analysis
+ * Socket.IO broadcast on update so clients refresh without page reload
+ * Falls back gracefully through SEPA → OpenMeteo → mock data
+  */
 
 import pool from '../models/db.js'
 import { getActiveCityRegion } from '../config/regions/index.js'
@@ -21,10 +19,9 @@ import { fetchWithFallback, fetchHistoryWithFallback } from '../adapters/riverDa
 import { calculateFloodStatus, calculateTrend } from '../utils/floodStatus.js'
 import type { RiverStation, FloodStatus } from '../config/regions/types.js'
 import type { Server as IOServer } from 'socket.io'
+import { logger } from './logger.js'
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Types
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export interface RiverLevelReading {
   stationId: string
@@ -42,9 +39,7 @@ export interface RiverLevelReading {
   coordinates?: { lat: number; lng: number }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // In-Memory Cache (5 minute TTL)
-// ═══════════════════════════════════════════════════════════════════════════════
 
 const CACHE_TTL_MS = 5 * 60 * 1000
 
@@ -59,14 +54,12 @@ function isCacheValid(): boolean {
   return levelCache !== null && Date.now() - levelCache.fetchedAt < CACHE_TTL_MS
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Core Functions
-// ═══════════════════════════════════════════════════════════════════════════════
 
-/**
+ /*
  * Fetch current levels for all rivers in the active region.
  * Uses cache if fresh, otherwise fetches from providers.
- */
+  */
 export async function getCurrentLevels(forceRefresh = false): Promise<RiverLevelReading[]> {
   if (!forceRefresh && isCacheValid()) {
     return levelCache!.data
@@ -80,7 +73,7 @@ export async function getCurrentLevels(forceRefresh = false): Promise<RiverLevel
       const reading = await fetchSingleRiverLevel(river, region.id)
       if (reading) readings.push(reading)
     } catch (err: any) {
-      console.error(`[RiverService] Failed to fetch ${river.name}: ${err.message}`)
+      logger.error({ err, river: river.name }, '[RiverService] Failed to fetch')
     }
   }
 
@@ -90,10 +83,10 @@ export async function getCurrentLevels(forceRefresh = false): Promise<RiverLevel
   return readings
 }
 
-/**
+ /*
  * Fetch a single river's current level, calculate status and trend,
  * and store the reading in the database.
- */
+  */
 async function fetchSingleRiverLevel(
   station: RiverStation,
   regionId: string,
@@ -134,15 +127,15 @@ async function fetchSingleRiverLevel(
 
   // Store in database (non-blocking)
   storeReading(result, regionId).catch(err => {
-    console.error(`[RiverService] DB store failed for ${station.stationId}: ${err.message}`)
+    logger.error({ err, stationId: station.stationId }, '[RiverService] DB store failed')
   })
 
   return result
 }
 
-/**
+ /*
  * Get the most recent level for a station from the database.
- */
+  */
 async function getPreviousLevel(stationId: string): Promise<number | null> {
   try {
     const { rows } = await pool.query(
@@ -157,9 +150,9 @@ async function getPreviousLevel(stationId: string): Promise<number | null> {
   }
 }
 
-/**
+ /*
  * Store a reading in the river_levels table.
- */
+  */
 async function storeReading(reading: RiverLevelReading, regionId: string): Promise<void> {
   await pool.query(
     `INSERT INTO river_levels
@@ -185,9 +178,9 @@ async function storeReading(reading: RiverLevelReading, regionId: string): Promi
   )
 }
 
-/**
+ /*
  * Get current levels for a specific station with history.
- */
+  */
 export async function getStationWithHistory(
   stationId: string,
   hours = 24,
@@ -235,9 +228,9 @@ export async function getStationWithHistory(
   return { current, history: [] }
 }
 
-/**
+ /*
  * Get historical readings from the database for a station.
- */
+  */
 export async function getStationHistory(
   stationId: string,
   hours = 24,
@@ -257,9 +250,7 @@ export async function getStationHistory(
   }))
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Cron Integration — called every 5 minutes
-// ═══════════════════════════════════════════════════════════════════════════════
 
 let ioInstance: IOServer | null = null
 
@@ -267,9 +258,9 @@ export function setIOInstance(io: IOServer): void {
   ioInstance = io
 }
 
-/**
+ /*
  * Scheduled task: fetch all river levels, store in DB, emit Socket.IO event.
- */
+  */
 export async function fetchAndBroadcastLevels(): Promise<number> {
   const levels = await getCurrentLevels(true)
 
@@ -284,3 +275,4 @@ export async function fetchAndBroadcastLevels(): Promise<number> {
 
   return levels.length
 }
+

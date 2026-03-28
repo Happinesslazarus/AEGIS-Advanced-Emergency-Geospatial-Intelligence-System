@@ -9,9 +9,21 @@
  */
 
 import type { RiverDataAdapter, RiverReading, RiverHistory } from './RiverDataAdapter.js'
+import { logger } from '../../services/logger.js'
 
 const SEPA_BASE = process.env.SEPA_API_BASE || 'https://timeseries.sepa.org.uk/KiWIS/KiWIS'
 const TIMEOUT_MS = 15_000
+const LOG_SUPPRESSION_MS = 10 * 60 * 1000
+const recentStationErrorLog = new Map<string, number>()
+
+function shouldLogStationError(stationId: string, reason: string): boolean {
+  const key = `${stationId}:${reason}`
+  const now = Date.now()
+  const last = recentStationErrorLog.get(key) || 0
+  if (now - last < LOG_SUPPRESSION_MS) return false
+  recentStationErrorLog.set(key, now)
+  return true
+}
 
 export class SEPAAdapter implements RiverDataAdapter {
   readonly name = 'SEPA'
@@ -41,7 +53,9 @@ export class SEPAAdapter implements RiverDataAdapter {
       })
 
       if (!res.ok) {
-        console.warn(`[SEPA] HTTP ${res.status} for station ${stationId}`)
+        if (shouldLogStationError(stationId, `http_${res.status}`)) {
+          logger.warn({ status: res.status, stationId }, '[SEPA] HTTP error for station (suppressing repeats for 10m)')
+        }
         return null
       }
 
@@ -50,7 +64,9 @@ export class SEPAAdapter implements RiverDataAdapter {
       const values = series?.data || series?.values || []
 
       if (!values.length) {
-        console.warn(`[SEPA] No data for station ${stationId}`)
+        if (shouldLogStationError(stationId, 'no_data')) {
+          logger.warn({ stationId }, '[SEPA] No data for station (suppressing repeats for 10m)')
+        }
         return null
       }
 
@@ -104,7 +120,9 @@ export class SEPAAdapter implements RiverDataAdapter {
         rawResponse: typeof data === 'object' ? { sepa: data } : {},
       }
     } catch (err: any) {
-      console.error(`[SEPA] Failed to fetch station ${stationId}: ${err.message}`)
+      if (shouldLogStationError(stationId, 'fetch_failed')) {
+        logger.error({ err, stationId }, '[SEPA] Failed to fetch station (suppressing repeats for 10m)')
+      }
       return null
     }
   }
@@ -144,7 +162,7 @@ export class SEPAAdapter implements RiverDataAdapter {
 
       return { stationId, readings }
     } catch (err: any) {
-      console.error(`[SEPA] History fetch failed for ${stationId}: ${err.message}`)
+      logger.error({ err, stationId }, '[SEPA] History fetch failed')
       return null
     }
   }
@@ -159,3 +177,4 @@ export class SEPAAdapter implements RiverDataAdapter {
       .filter((r): r is RiverReading => r !== null)
   }
 }
+

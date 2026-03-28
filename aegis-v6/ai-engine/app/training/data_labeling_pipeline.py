@@ -1,8 +1,6 @@
 """
-═══════════════════════════════════════════════════════════════════════════════
  AEGIS AI ENGINE — Data Labeling Pipeline
  Interactive labeling tool for creating training datasets
-═══════════════════════════════════════════════════════════════════════════════
 
 This module provides tools for:
 1. Image labeling - download images from reports, manually label hazard type
@@ -28,7 +26,6 @@ import pandas as pd
 from loguru import logger
 
 import asyncpg
-
 
 class DataLabelingPipeline:
     """Interactive data labeling for ML training."""
@@ -274,7 +271,6 @@ class DataLabelingPipeline:
             logger.error(f"Severity export failed: {e}")
             raise
 
-
 # CLI for labeling workflow
 if __name__ == '__main__':
     import sys
@@ -287,9 +283,7 @@ if __name__ == '__main__':
     pipeline = DataLabelingPipeline(db_url)
     
     print("""
-    ═══════════════════════════════════════════════════════════════════════
      AEGIS Data Labeling Pipeline
-    ═══════════════════════════════════════════════════════════════════════
     
     USAGE:
       python data_labeling_pipeline.py [command]
@@ -315,7 +309,6 @@ if __name__ == '__main__':
       4. python data_labeling_pipeline.py import-fake
       5. python ml_pipeline.py train_fake_detector
     
-    ═══════════════════════════════════════════════════════════════════════
     """)
     
     if len(sys.argv) < 2:

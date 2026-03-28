@@ -7,7 +7,7 @@ import type { IncidentPrediction } from '../types.js'
 import { publicSafetyConfig, PUBLIC_SAFETY_PRIORITY_KEYWORDS } from './config.js'
 
 export class PublicSafetyService {
-  /**
+   /**
    * Get public safety risk score
    */
   static async calculateSafetyRisk(region: string): Promise<number> {
@@ -28,7 +28,7 @@ export class PublicSafetyService {
     }
   }
 
-  /**
+   /**
    * Get public safety predictions for a region
    */
   static async getPublicSafetyPredictions(region: string): Promise<IncidentPrediction[]> {
@@ -54,7 +54,7 @@ export class PublicSafetyService {
     }]
   }
 
-  /**
+   /**
    * Get public safety advisory text based on severity
    */
   static getPublicSafetyAdvisory(severity: string): string {
@@ -70,7 +70,7 @@ export class PublicSafetyService {
     }
   }
 
-  /**
+   /**
    * Identify safety hotspots
    */
   static async identifySafetyHotspots(region: string): Promise<Record<string, unknown>[]> {

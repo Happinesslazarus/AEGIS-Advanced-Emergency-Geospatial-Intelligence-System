@@ -2,7 +2,12 @@
 -- Adds edited_at column for message editing and reports table for reporting.
 
 -- 1. Add edited_at column to community_chat_messages
-ALTER TABLE community_chat_messages ADD COLUMN IF NOT EXISTS edited_at TIMESTAMPTZ DEFAULT NULL;
+DO $$
+BEGIN
+  ALTER TABLE community_chat_messages ADD COLUMN IF NOT EXISTS edited_at TIMESTAMPTZ DEFAULT NULL;
+EXCEPTION WHEN undefined_table THEN
+  RAISE NOTICE 'community_chat_messages not present; skipping edited_at patch.';
+END $$;
 
 -- 2. Create community_reports table
 CREATE TABLE IF NOT EXISTS community_reports (

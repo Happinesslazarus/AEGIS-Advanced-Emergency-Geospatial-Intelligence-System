@@ -229,6 +229,23 @@
     "terms": "Términos de Servicio",
     "contact": "Contacto",
     "about": "Acerca de AEGIS",
-    "accessibility": "Accesibilidad"
+    "accessibility": "Accesibilidad",
+    "cookiePreferences": "Preferencias de cookies"
+  },
+  "cookieConsent": {
+    "title": "Preferencias de cookies",
+    "description": "Utilizamos cookies para garantizar las funciones esenciales de la plataforma y, con su consentimiento, para mejorar su experiencia. Puede cambiar sus preferencias en cualquier momento.",
+    "acceptAll": "Aceptar todo",
+    "essentialOnly": "Solo esenciales",
+    "managePreferences": "Gestionar preferencias",
+    "savePreferences": "Guardar preferencias",
+    "cat": {
+      "essential": "Esenciales",
+      "essentialDesc": "Autenticación, protección CSRF y cookies de seguridad. Siempre activas.",
+      "preferences": "Preferencias",
+      "preferencesDesc": "Selección de idioma, configuración de tema y preferencias de interfaz.",
+      "analytics": "Analíticas",
+      "analyticsDesc": "Análisis de uso y monitoreo de rendimiento para mejorar la plataforma."
+    }
   }
 }

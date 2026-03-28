@@ -2,12 +2,12 @@
  * useDistress.ts — React hook for Personal Distress Beacon / SOS
  *
  * Manages:
- *   - SOS activation with 5-second countdown
- *   - Live GPS tracking via watchPosition
- *   - Socket.IO real-time location broadcasting
- *   - Dead-man switch heartbeat (every 30s)
- *   - Acknowledgement listening
- *   - Cancellation
+ * SOS activation with 5-second countdown
+ * Live GPS tracking via watchPosition
+ * Socket.IO real-time location broadcasting
+ * Dead-man switch heartbeat (every 30s)
+ * Acknowledgement listening
+ * Cancellation
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react'
@@ -15,7 +15,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 interface DistressState {
   isActive: boolean
   distressId: string | null
-  status: 'idle' | 'countdown' | 'active' | 'acknowledged' | 'resolved' | 'cancelled'
+  status: 'idle' | 'countdown' | 'activating' | 'active' | 'acknowledged' | 'resolved' | 'cancelled'
   countdownSeconds: number
   latitude: number | null
   longitude: number | null
@@ -58,7 +58,7 @@ export function useDistress({ socket, citizenId, citizenName, onActivated, onAck
   const latRef = useRef<number | null>(null)
   const lngRef = useRef<number | null>(null)
 
-  // ── Start 5-second countdown ──
+  // Start 5-second countdown
   const startCountdown = useCallback(() => {
     setState(prev => ({ ...prev, status: 'countdown', countdownSeconds: 5, error: null }))
 
@@ -95,7 +95,7 @@ export function useDistress({ socket, citizenId, citizenName, onActivated, onAck
     }, 1000)
   }, [])
 
-  // ── Cancel countdown ──
+  // Cancel countdown
   const cancelCountdown = useCallback(() => {
     if (countdownRef.current) {
       clearInterval(countdownRef.current)
@@ -104,7 +104,7 @@ export function useDistress({ socket, citizenId, citizenName, onActivated, onAck
     setState(prev => ({ ...prev, status: 'idle', countdownSeconds: 0 }))
   }, [])
 
-  // ── Activate SOS ──
+  // Activate SOS
   const activateSOS = useCallback(() => {
     if (!socket) {
       setState(prev => ({ ...prev, error: 'No connection', status: 'idle' }))
@@ -120,7 +120,7 @@ export function useDistress({ socket, citizenId, citizenName, onActivated, onAck
       return
     }
 
-    setState(prev => ({ ...prev, status: 'active' }))
+    setState(prev => ({ ...prev, status: 'activating', error: null }))
 
     socket.emit('distress:activate', {
       latitude: lat,
@@ -144,7 +144,7 @@ export function useDistress({ socket, citizenId, citizenName, onActivated, onAck
     })
   }, [socket, onActivated])
 
-  // ── GPS tracking ──
+  // GPS tracking
   const startGPSTracking = useCallback((distressId: string) => {
     if (!navigator.geolocation || !socket) return
 
@@ -169,7 +169,7 @@ export function useDistress({ socket, citizenId, citizenName, onActivated, onAck
     )
   }, [socket])
 
-  // ── Dead-man switch heartbeat ──
+  // Dead-man switch heartbeat
   const startHeartbeat = useCallback((distressId: string) => {
     heartbeatRef.current = setInterval(() => {
       if (socket) {
@@ -178,7 +178,7 @@ export function useDistress({ socket, citizenId, citizenName, onActivated, onAck
     }, 30000)
   }, [socket])
 
-  // ── Cancel SOS ──
+  // Cancel SOS
   const cancelSOS = useCallback(() => {
     if (!socket || !state.distressId) return
 
@@ -195,7 +195,7 @@ export function useDistress({ socket, citizenId, citizenName, onActivated, onAck
     })
   }, [socket, state.distressId])
 
-  // ── Cleanup ──
+  // Cleanup
   const cleanup = useCallback(() => {
     if (watchIdRef.current != null) {
       navigator.geolocation.clearWatch(watchIdRef.current)
@@ -211,7 +211,7 @@ export function useDistress({ socket, citizenId, citizenName, onActivated, onAck
     }
   }, [])
 
-  // ── Socket listeners ──
+  // Socket listeners
   useEffect(() => {
     if (!socket) return
 
@@ -254,11 +254,20 @@ export function useDistress({ socket, citizenId, citizenName, onActivated, onAck
     return () => { cleanup() }
   }, [cleanup])
 
+  // Retry activation after error
+  const retryActivation = useCallback(() => {
+    if (state.status !== 'idle' || !state.error) return
+    setState(prev => ({ ...prev, error: null }))
+    startCountdown()
+  }, [state.status, state.error, startCountdown])
+
   return {
     ...state,
     status: state.status as DistressState['status'],
     startCountdown,
     cancelCountdown,
     cancelSOS,
+    retryActivation,
   }
 }
+

@@ -1,0 +1,55 @@
+﻿# AEGIS v6 — Alertmanager Configuration
+# Routes Prometheus alerts to notification channels.
+#
+# Customise the receivers below before deploying:
+# Slack: set ALERTMANAGER_SLACK_WEBHOOK_URL env var or replace the URL below
+# PagerDuty / email: add receivers as needed
+#
+# Docs: https://prometheus.io/docs/alerting/latest/configuration/
+
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: default-webhook
+  group_by: ['alertname', 'severity']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+  routes:
+    # Critical alerts route immediately with short repeat
+    - match:
+        severity: critical
+      receiver: critical-webhook
+      group_wait: 10s
+      repeat_interval: 1h
+
+receivers:
+  # Default receiver for warning-level alerts
+  - name: default-webhook
+    webhook_configs:
+      - url: 'http://server:3001/api/internal/alerts/webhook'
+        send_resolved: true
+
+  # Critical receiver — configure Slack or PagerDuty in production
+  - name: critical-webhook
+    webhook_configs:
+      - url: 'http://server:3001/api/internal/alerts/webhook'
+        send_resolved: true
+    # Uncomment and configure for Slack:
+    # slack_configs:
+    # api_url: '${ALERTMANAGER_SLACK_WEBHOOK_URL}'
+    #     channel: '#aegis-alerts'
+    #     title: '{{ .CommonAnnotations.summary }}'
+    #     text: '{{ .CommonAnnotations.description }}'
+    #     send_resolved: true
+
+inhibit_rules:
+  # If a service is down (critical), suppress warning-level alerts for the same service
+  - source_match:
+      severity: critical
+    target_match:
+      severity: warning
+    equal: ['alertname']
+

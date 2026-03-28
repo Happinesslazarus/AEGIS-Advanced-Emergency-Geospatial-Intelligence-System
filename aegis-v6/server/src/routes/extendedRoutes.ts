@@ -1,19 +1,21 @@
-/*
- * extendedRoutes.ts - Additional API routes for production features
- *
+﻿ /*
+ * extendedRoutes.ts - Additional API routes for production features (SECURED)
  * Handles:
- *   - Department listing
- *   - Alert subscriptions (subscribe, verify, unsubscribe)
- *   - Audit trail (log actions, query history)
- *   - Community help (offers/requests CRUD)
- *   - Alert delivery via multi-channel notifications
- *   - Data ingestion pipeline
- *   - ML training pipeline
- *   - RAG knowledge base expansion
- *   - Resilience monitoring
- */
-import { Router, Request, Response } from 'express'
-import { authMiddleware, AuthRequest } from '../middleware/auth.js'
+ * Department listing (public)
+ * Alert subscriptions (subscribe, verify, unsubscribe) (public)
+ * Audit trail (log actions, query history) (admin only)
+ * Community help (offers/requests CRUD) (authenticated)
+ * Alert delivery via multi-channel notifications (admin only)
+ * Data ingestion pipeline (admin only)
+ * ML training pipeline (admin only)
+ * RAG knowledge base expansion (admin only)
+ * Resilience monitoring (operator only)
+ *
+ * SECURITY: Sensitive endpoints require admin authentication
+  */
+import { Router, Request, Response, NextFunction } from 'express'
+import { authMiddleware, AuthRequest, verifyToken } from '../middleware/auth.js'
+import { requireAdmin, requireOperator, operatorOnly } from '../middleware/internalAuth.js'
 import pool from '../models/db.js'
 import crypto from 'crypto'
 import fs from 'fs/promises'
@@ -29,60 +31,53 @@ import { ensureIngestionSchema, runFullIngestion, ingestEAFloodData, ingestNASAP
 import { expandRAGKnowledgeBase, ragRetrieve } from '../services/ragExpansionService.js'
 import { trainAllModels, trainFusionWeights } from '../services/mlTrainingPipeline.js'
 import { getResilienceStatus } from '../services/resilienceLayer.js'
+import { regionRegistry } from '../adapters/regions/RegionRegistry.js'
+import { AppError } from '../utils/AppError.js'
+import { logger } from '../services/logger.js'
 
 const router = Router()
 
-/* ══════════════════════════════════════
-   DEPARTMENTS
-   ══════════════════════════════════════ */
+// DEPARTMENTS
 
-router.get('/departments', async (_req: Request, res: Response) => {
+router.get('/departments', async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const { rows } = await pool.query('SELECT id, name, description FROM departments ORDER BY name')
     res.json(rows)
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to load departments.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-/* ══════════════════════════════════════
-   ALERT SUBSCRIPTIONS
-   ══════════════════════════════════════ */
+// ALERT SUBSCRIPTIONS
 
 // Subscribe to alerts
-router.post('/subscriptions', async (req: Request, res: Response) => {
+router.post('/subscriptions', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, phone, telegram_id, whatsapp, channels, location_lat, location_lng, radius_km, severity_filter, topic_filter } = req.body
     const normalizedChannels = normalizeChannels(channels)
 
     if (normalizedChannels.length === 0) {
-      res.status(400).json({ error: 'At least one channel must be selected.' })
-      return
+      throw AppError.badRequest('At least one channel must be selected.')
     }
 
     if (phone && !isValidE164(phone)) {
-      res.status(400).json({ error: 'Phone number must be in E.164 format (e.g. +447700900123).' })
-      return
+      throw AppError.badRequest('Phone number must be in E.164 format (e.g. +447700900123).')
     }
 
     if (whatsapp && !isValidE164(whatsapp)) {
-      res.status(400).json({ error: 'WhatsApp number must be in E.164 format (e.g. +447700900123).' })
-      return
+      throw AppError.badRequest('WhatsApp number must be in E.164 format (e.g. +447700900123).')
     }
 
     // Validate required contact info for channels (more flexible)
     if (normalizedChannels.includes('email') && !email) {
-      res.status(400).json({ error: 'Email is required for email notifications.' })
-      return
+      throw AppError.badRequest('Email is required for email notifications.')
     }
     if (normalizedChannels.includes('sms') && !phone) {
-      res.status(400).json({ error: 'Phone number is required for SMS.' })
-      return
+      throw AppError.badRequest('Phone number is required for SMS.')
     }
     // WhatsApp can use either whatsapp or phone field
     if (normalizedChannels.includes('whatsapp') && !whatsapp && !phone) {
-      res.status(400).json({ error: 'Phone/WhatsApp number is required for WhatsApp.' })
-      return
+      throw AppError.badRequest('Phone/WhatsApp number is required for WhatsApp.')
     }
     // Telegram requires telegram_id but we'll allow empty for now to let users subscribe first
     // (they can update it later)
@@ -130,7 +125,7 @@ router.post('/subscriptions', async (req: Request, res: Response) => {
           devLog(`Email send failed (${emailResult.error}), auto-verifying subscription`)
         }
       } catch (emailError: any) {
-        console.error('Failed to send verification email:', emailError.message)
+        logger.error({ err: emailError }, 'Failed to send verification email')
       }
 
       // If email couldn't be sent (SMTP not configured), auto-verify so the subscriber
@@ -145,18 +140,17 @@ router.post('/subscriptions', async (req: Request, res: Response) => {
     }
 
     res.status(201).json({ subscription: rows[0], verificationToken })
-  } catch (err: any) {
-    res.status(500).json({ error: 'Failed to create subscription.' })
+  } catch (err) {
+    next(err)
   }
 })
 
 // Verify subscription
-router.post('/subscriptions/verify', async (req: Request, res: Response) => {
+router.post('/subscriptions/verify', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { token } = req.body
     if (!token) {
-      res.status(400).json({ error: 'Verification token is required.' })
-      return
+      throw AppError.badRequest('Verification token is required.')
     }
 
     const { rows } = await pool.query(
@@ -168,18 +162,17 @@ router.post('/subscriptions/verify', async (req: Request, res: Response) => {
     )
 
     if (rows.length === 0) {
-      res.status(404).json({ error: 'Invalid verification token.' })
-      return
+      throw AppError.notFound('Invalid verification token.')
     }
 
     res.json({ verified: true, subscription: rows[0] })
-  } catch {
-    res.status(500).json({ error: 'Failed to verify subscription.' })
+  } catch (err) {
+    next(err)
   }
 })
 
 // Get subscriptions by email
-router.get('/subscriptions', async (req: Request, res: Response) => {
+router.get('/subscriptions', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email } = req.query
     const { rows } = await pool.query(
@@ -187,27 +180,25 @@ router.get('/subscriptions', async (req: Request, res: Response) => {
       [email]
     )
     res.json(rows)
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to load subscriptions.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-// Unsubscribe
-router.delete('/subscriptions/:id', async (req: Request, res: Response) => {
+// Unsubscribe (requires auth to prevent IDOR)
+router.delete('/subscriptions/:id', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     await pool.query('DELETE FROM alert_subscriptions WHERE id = $1', [req.params.id])
     res.json({ deleted: true })
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to delete subscription.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-/* ══════════════════════════════════════
-   AUDIT LOG
-   ══════════════════════════════════════ */
+// AUDIT LOG
 
 // Log an action
-router.post('/audit', async (req: Request, res: Response) => {
+router.post('/audit', authMiddleware, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { operator_id, operator_name, action, action_type, target_type, target_id, before_state, after_state } = req.body
     const ip = req.ip || req.headers['x-forwarded-for'] || 'unknown'
@@ -219,13 +210,13 @@ router.post('/audit', async (req: Request, res: Response) => {
       [operator_id, operator_name, action, action_type, target_type, target_id, before_state ? JSON.stringify(before_state) : null, after_state ? JSON.stringify(after_state) : null, ip, ua]
     )
     res.status(201).json(rows[0])
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to write audit log.' })
+  } catch (err) {
+    next(err)
   }
 })
 
 // Get audit log with filtering
-router.get('/audit', async (req: Request, res: Response) => {
+router.get('/audit', authMiddleware, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { action_type, operator_id, limit, offset } = req.query
     let query = 'SELECT * FROM audit_log WHERE 1=1'
@@ -239,17 +230,15 @@ router.get('/audit', async (req: Request, res: Response) => {
 
     const { rows } = await pool.query(query, params)
     res.json(rows)
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to load audit log.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-/* ══════════════════════════════════════
-   COMMUNITY HELP
-   ══════════════════════════════════════ */
+// COMMUNITY HELP
 
 // List all active help offers/requests
-router.get('/community', async (req: Request, res: Response) => {
+router.get('/community', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { type, category, status } = req.query
     let query = 'SELECT * FROM community_help WHERE 1=1'
@@ -263,27 +252,24 @@ router.get('/community', async (req: Request, res: Response) => {
 
     const { rows } = await pool.query(query, params)
     res.json(rows)
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to load community data.' })
+  } catch (err) {
+    next(err)
   }
 })
 
 // Create a help offer or request (requires authentication)
-router.post('/community', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.post('/community', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { type, category, title, description, location_text, location_lat, location_lng, contact_info, capacity, consent_given } = req.body
 
     if (!type || !['offer', 'request'].includes(type)) {
-      res.status(400).json({ error: 'Type must be "offer" or "request".' })
-      return
+      throw AppError.badRequest('Type must be "offer" or "request".')
     }
     if (!title || typeof title !== 'string' || title.length < 3 || title.length > 200) {
-      res.status(400).json({ error: 'Title is required (3-200 characters).' })
-      return
+      throw AppError.badRequest('Title is required (3-200 characters).')
     }
     if (!description || typeof description !== 'string' || description.length > 2000) {
-      res.status(400).json({ error: 'Description required (max 2000 characters).' })
-      return
+      throw AppError.badRequest('Description required (max 2000 characters).')
     }
 
     const { rows } = await pool.query(
@@ -292,18 +278,17 @@ router.post('/community', authMiddleware, async (req: AuthRequest, res: Response
       [type, category || null, title, description, location_text || null, location_lat || null, location_lng || null, contact_info || null, capacity || null, consent_given || false, req.user!.id]
     )
     res.status(201).json(rows[0])
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to create community entry.' })
+  } catch (err) {
+    next(err)
   }
 })
 
 // Update status (fulfil, cancel, expire) — requires authentication
-router.put('/community/:id/status', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.put('/community/:id/status', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { status } = req.body
     if (!status || !['fulfilled', 'cancelled', 'expired', 'active'].includes(status)) {
-      res.status(400).json({ error: 'Invalid status.' })
-      return
+      throw AppError.badRequest('Invalid status.')
     }
     // #5 — Ownership check: only the creator (or an operator) can update status
     const userId = req.user?.id
@@ -316,21 +301,18 @@ router.put('/community/:id/status', authMiddleware, async (req: AuthRequest, res
       isOperator ? [status, req.params.id] : [status, req.params.id, userId]
     )
     if (rows.length === 0) {
-      res.status(404).json({ error: 'Entry not found or you do not have permission to update it.' })
-      return
+      throw AppError.notFound('Entry not found or you do not have permission to update it.')
     }
     res.json(rows[0])
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to update community status.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-/* ══════════════════════════════════════
-   FLOOD PREDICTIONS
-   ══════════════════════════════════════ */
+// FLOOD PREDICTIONS
 
 // Get all active flood predictions — deduplicated: latest per area only
-router.get('/predictions', async (_req: Request, res: Response) => {
+router.get('/predictions', async (_req: Request, res: Response, next: NextFunction) => {
   // Reusable SQL fragment: DISTINCT ON (area) keeps the most recent run per area
   const latestPerAreaSQL = `
     SELECT id, area, probability, time_to_flood, matched_pattern, next_areas,
@@ -362,7 +344,7 @@ router.get('/predictions', async (_req: Request, res: Response) => {
         res.json(fresh.rows)
         return
       } catch (genErr: any) {
-        console.warn('[Predictions] Auto-regeneration failed:', genErr.message)
+        logger.warn({ err: genErr }, '[Predictions] Auto-regeneration failed')
         // Fall back to absolute latest regardless of age, still deduplicated
         const fallback = await pool.query(
           `SELECT id, area, probability, time_to_flood, matched_pattern, next_areas,
@@ -387,16 +369,16 @@ router.get('/predictions', async (_req: Request, res: Response) => {
     }
 
     res.json(rows)
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to load predictions.' })
+  } catch (err) {
+    next(err)
   }
 })
 
 // Send pre-alert for a prediction
-router.post('/predictions/:id/pre-alert', async (req: Request, res: Response) => {
+router.post('/predictions/:id/pre-alert', authMiddleware, requireOperator, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { operator_id, operator_name } = req.body
-    
+
     // Get prediction details
     const predictionResult = await pool.query(
       `SELECT *,
@@ -408,8 +390,7 @@ router.post('/predictions/:id/pre-alert', async (req: Request, res: Response) =>
     )
 
     if (predictionResult.rows.length === 0) {
-      res.status(404).json({ error: 'Prediction not found' })
-      return
+      throw AppError.notFound('Prediction not found')
     }
 
     const prediction = predictionResult.rows[0]
@@ -453,9 +434,9 @@ router.post('/predictions/:id/pre-alert', async (req: Request, res: Response) =>
 
     if (subscriptions.rows.length === 0) {
       devLog('No verified subscriptions found for alert')
-      res.json({ 
-        id: req.params.id, 
-        pre_alert_sent: true, 
+      res.json({
+        id: req.params.id,
+        pre_alert_sent: true,
         subscribers_notified: 0,
         message: 'Alert marked as sent but no verified subscribers found'
       })
@@ -496,7 +477,7 @@ router.post('/predictions/:id/pre-alert', async (req: Request, res: Response) =>
         'alert_sent',
         'flood_prediction',
         req.params.id,
-        JSON.stringify({ 
+        JSON.stringify({
           total: deliveryResults.total,
           successful: deliveryResults.successful,
           failed: deliveryResults.failed
@@ -504,8 +485,8 @@ router.post('/predictions/:id/pre-alert', async (req: Request, res: Response) =>
       ]
     )
 
-    res.json({ 
-      id: req.params.id, 
+    res.json({
+      id: req.params.id,
       pre_alert_sent: true,
       pre_alert_sent_at: new Date().toISOString(),
       delivery_summary: {
@@ -515,23 +496,18 @@ router.post('/predictions/:id/pre-alert', async (req: Request, res: Response) =>
         subscribers_notified: subscriptions.rows.length
       }
     })
-  } catch (error: any) {
-    console.error('Pre-alert sending failed:', error)
-    res.status(500).json({ 
-      error: 'Failed to send pre-alert',
-      message: error.message 
-    })
+  } catch (err) {
+    next(err)
   }
 })
 
 // Test notification service (admin only)
-router.post('/notifications/test', async (req: Request, res: Response) => {
+router.post('/notifications/test', authMiddleware, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { channel, recipient } = req.body
 
     if (!channel || !recipient) {
-      res.status(400).json({ error: 'channel and recipient are required' })
-      return
+      throw AppError.badRequest('channel and recipient are required')
     }
 
     // Create test alert
@@ -562,22 +538,17 @@ router.post('/notifications/test', async (req: Request, res: Response) => {
         result = await notificationService.sendTelegramAlert(recipient, testAlert)
         break
       default:
-        res.status(400).json({ error: 'Invalid channel. Use: email, sms, whatsapp, telegram' })
-        return
+        throw AppError.badRequest('Invalid channel. Use: email, sms, whatsapp, telegram')
     }
 
-    res.json({ 
+    res.json({
       test_complete: true,
       channel,
       recipient,
-      result 
+      result
     })
-  } catch (error: any) {
-    console.error('Test notification failed:', error)
-    res.status(500).json({ 
-      error: 'Test failed',
-      message: error.message 
-    })
+  } catch (err) {
+    next(err)
   }
 })
 
@@ -588,7 +559,7 @@ router.get('/notifications/status', (_req: Request, res: Response) => {
 })
 
 // Subscribe to Web Push notifications
-router.post('/notifications/subscribe', async (req: Request, res: Response) => {
+router.post('/notifications/subscribe', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { subscription, email } = req.body
 
@@ -597,26 +568,24 @@ router.post('/notifications/subscribe', async (req: Request, res: Response) => {
     const authHeader = req.headers.authorization
     if (authHeader?.startsWith('Bearer ')) {
       try {
-        const jwt = await import('jsonwebtoken')
-        const decoded = jwt.default.verify(authHeader.slice(7), process.env.JWT_SECRET!) as any
+        const decoded = verifyToken<any>(authHeader.slice(7))
         user_id = decoded.userId || decoded.id || null
       } catch { /* anonymous subscription */ }
     }
 
     if (!subscription || !subscription.endpoint) {
-      res.status(400).json({ error: 'Invalid push subscription object' })
-      return
+      throw AppError.badRequest('Invalid push subscription object')
     }
 
     // Check if table exists, if not create it
     try {
       const checkTable = await pool.query(`
         SELECT EXISTS (
-          SELECT 1 FROM information_schema.tables 
+          SELECT 1 FROM information_schema.tables
           WHERE table_name = 'push_subscriptions'
         )
       `)
-      
+
       if (!checkTable.rows[0].exists) {
         // Create table if it doesn't exist
         await pool.query(`
@@ -637,7 +606,7 @@ router.post('/notifications/subscribe', async (req: Request, res: Response) => {
         devLog('Created push_subscriptions table')
       }
     } catch (tableErr: any) {
-      console.warn('Table check failed, attempting to use existing table:', tableErr.message)
+      logger.warn({ err: tableErr }, 'Table check failed, attempting to use existing table')
     }
 
     // Store push subscription in database
@@ -659,24 +628,22 @@ router.post('/notifications/subscribe', async (req: Request, res: Response) => {
     if (process.env.NODE_ENV !== 'production') {
       devLog(`[Push] Subscription saved: ${subscription.endpoint.substring(0, 50)}...`)
     }
-    res.status(201).json({ 
+    res.status(201).json({
       subscription: { id: rows[0].id, active: rows[0].active },
       message: 'Push subscription saved successfully'
     })
-  } catch (err: any) {
-    console.error('Push subscription error:', err.message)
-    res.status(500).json({ error: 'Failed to save push subscription', details: err.message })
+  } catch (err) {
+    next(err)
   }
 })
 
 // Unsubscribe from Web Push
-router.post('/notifications/unsubscribe', async (req: Request, res: Response) => {
+router.post('/notifications/unsubscribe', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { endpoint } = req.body
 
     if (!endpoint) {
-      res.status(400).json({ error: 'Endpoint is required' })
-      return
+      throw AppError.badRequest('Endpoint is required')
     }
 
     await pool.query(
@@ -685,21 +652,21 @@ router.post('/notifications/unsubscribe', async (req: Request, res: Response) =>
     )
 
     res.json({ message: 'Push subscription removed successfully' })
-  } catch (err: any) {
-    res.status(500).json({ error: 'Failed to remove push subscription' })
+  } catch (err) {
+    next(err)
   }
 })
 
 // Broadcast custom alert (admin only)
-router.post('/alerts/broadcast', async (req: Request, res: Response) => {
+router.post('/alerts/broadcast', authMiddleware, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { 
-      operator_id, 
+    const {
+      operator_id,
       operator_name,
       alert_type,
-      severity, 
-      title, 
-      message, 
+      severity,
+      title,
+      message,
       area,
       action_required,
       expires_at,
@@ -709,13 +676,11 @@ router.post('/alerts/broadcast', async (req: Request, res: Response) => {
 
     // Validation
     if (!title || !message || !severity || !area) {
-      res.status(400).json({ error: 'title, message, severity, and area are required' })
-      return
+      throw AppError.badRequest('title, message, severity, and area are required')
     }
 
     if (!['critical', 'warning', 'info'].includes(severity)) {
-      res.status(400).json({ error: 'severity must be: critical, warning, or info' })
-      return
+      throw AppError.badRequest('severity must be: critical, warning, or info')
     }
 
     // Get matching subscriptions (filter by severity AND topic if specified)
@@ -731,7 +696,7 @@ router.post('/alerts/broadcast', async (req: Request, res: Response) => {
     )
 
     if (subscriptions.rows.length === 0) {
-      res.status(400).json({ 
+      res.status(400).json({
         error: 'No verified subscribers match the alert criteria',
         matching_subscribers: 0
       })
@@ -758,9 +723,8 @@ router.post('/alerts/broadcast', async (req: Request, res: Response) => {
         ]
       )
       alertId = alertRows[0].id
-    } catch (err: any) {
-      console.error('Failed to persist broadcast alert:', err.message)
-      res.status(500).json({ error: 'Failed to create alert record' })
+    } catch (err) {
+      next(err)
       return
     }
 
@@ -803,7 +767,7 @@ router.post('/alerts/broadcast', async (req: Request, res: Response) => {
         }
       }
     } catch (pushErr: any) {
-      console.warn('Web Push broadcast error:', pushErr.message)
+      logger.warn({ err: pushErr }, 'Web Push broadcast error')
     }
 
     // Log each delivery result to alert_delivery_log
@@ -828,7 +792,7 @@ router.post('/alerts/broadcast', async (req: Request, res: Response) => {
         'alert_broadcast',
         'broadcast',
         alertId,
-        JSON.stringify({ 
+        JSON.stringify({
           alert_title: title,
           area,
           total: deliveryResults.total,
@@ -838,7 +802,7 @@ router.post('/alerts/broadcast', async (req: Request, res: Response) => {
       ]
     )
 
-    res.json({ 
+    res.json({
       success: true,
       alert_id: alertId,
       broadcast_at: new Date().toISOString(),
@@ -849,18 +813,12 @@ router.post('/alerts/broadcast', async (req: Request, res: Response) => {
         failed_deliveries: deliveryResults.failed,
       }
     })
-  } catch (error: any) {
-    console.error('Alert broadcast failed:', error)
-    res.status(500).json({ 
-      error: 'Failed to broadcast alert',
-      message: error.message 
-    })
+  } catch (err) {
+    next(err)
   }
 })
 
-/* ══════════════════════════════════════════════════════════════
-   ALERT DELIVERY LOG — Advanced multi-channel delivery tracking
-   ══════════════════════════════════════════════════════════════ */
+// ALERT DELIVERY LOG — Advanced multi-channel delivery tracking
 
 function buildDeliveryWhere(q: Record<string, any>): { where: string; params: any[]; nextIdx: number } {
   const clauses: string[] = []
@@ -878,7 +836,7 @@ function buildDeliveryWhere(q: Record<string, any>): { where: string; params: an
 }
 
 // GET /api/alerts/delivery — paginated, filtered, joined with alert title
-router.get('/alerts/delivery', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.get('/alerts/delivery', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) { res.status(403).json({ error: 'Insufficient permissions.' }); return }
   try {
     const limit  = Math.min(parseInt(String(req.query.limit  || '100')), 1000)
@@ -897,14 +855,13 @@ router.get('/alerts/delivery', authMiddleware, async (req: AuthRequest, res: Res
         [...params, limit, offset]),
     ])
     res.json({ rows: dataRes.rows, total: parseInt(countRes.rows[0].count), limit, offset })
-  } catch (err: any) {
-    console.error('[Delivery] Load failed:', err)
-    res.status(500).json({ error: 'Failed to load delivery logs.' })
+  } catch (err) {
+    next(err)
   }
 })
 
 // GET /api/alerts/delivery/stats — analytics dashboard data
-router.get('/alerts/delivery/stats', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.get('/alerts/delivery/stats', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) { res.status(403).json({ error: 'Insufficient permissions.' }); return }
   try {
     const [overall, byChannel, hourly, topFailing, recentErrors] = await Promise.all([
@@ -936,14 +893,13 @@ router.get('/alerts/delivery/stats', authMiddleware, async (req: AuthRequest, re
         GROUP BY channel,error_message ORDER BY count DESC LIMIT 10`),
     ])
     res.json({ overall: overall.rows[0], by_channel: byChannel.rows, hourly_trend: hourly.rows, top_failing: topFailing.rows, recent_errors: recentErrors.rows })
-  } catch (err: any) {
-    console.error('[Delivery/Stats] Failed:', err)
-    res.status(500).json({ error: 'Failed to load delivery stats.' })
+  } catch (err) {
+    next(err)
   }
 })
 
 // GET /api/alerts/delivery/grouped — per-alert summary with all channel deliveries
-router.get('/alerts/delivery/grouped', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.get('/alerts/delivery/grouped', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) { res.status(403).json({ error: 'Insufficient permissions.' }); return }
   try {
     const limit  = Math.min(parseInt(String(req.query.limit  || '50')), 200)
@@ -975,14 +931,13 @@ router.get('/alerts/delivery/grouped', authMiddleware, async (req: AuthRequest, 
       pool.query(`SELECT COUNT(DISTINCT adl.alert_id) FROM alert_delivery_log adl LEFT JOIN alerts a ON a.id=adl.alert_id ${whereStr}`, params),
     ])
     res.json({ groups: dataRes.rows, total: parseInt(countRes.rows[0].count), limit, offset })
-  } catch (err: any) {
-    console.error('[Delivery/Grouped] Failed:', err)
-    res.status(500).json({ error: 'Failed to load grouped delivery logs.' })
+  } catch (err) {
+    next(err)
   }
 })
 
 // POST /api/alerts/delivery/:id/retry — retry a single failed delivery
-router.post('/alerts/delivery/:id/retry', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.post('/alerts/delivery/:id/retry', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) { res.status(403).json({ error: 'Insufficient permissions.' }); return }
   try {
     const { rows } = await pool.query(
@@ -1000,13 +955,13 @@ router.post('/alerts/delivery/:id/retry', authMiddleware, async (req: AuthReques
     await pool.query(`UPDATE alert_delivery_log SET status=$1,error_message=$2,sent_at=$3,retry_count=COALESCE(retry_count,0)+1,last_retry_at=NOW() WHERE id=$4`,
       [newStatus, r.error||null, r.success?new Date():null, req.params.id])
     res.json({ success: r.success, status: newStatus, error: r.error||null })
-  } catch (err: any) {
-    res.status(500).json({ error: 'Retry failed.', message: err.message })
+  } catch (err) {
+    next(err)
   }
 })
 
 // POST /api/alerts/delivery/retry-failed — bulk retry failed deliveries
-router.post('/alerts/delivery/retry-failed', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.post('/alerts/delivery/retry-failed', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) { res.status(403).json({ error: 'Insufficient permissions.' }); return }
   try {
     const { alert_id, channel } = req.body
@@ -1032,13 +987,13 @@ router.post('/alerts/delivery/retry-failed', authMiddleware, async (req: AuthReq
         [r.success?'sent':'failed', r.error||null, r.success?new Date():null, e.id])
     }
     res.json({ attempted: failed.length, succeeded, failed: failedCount })
-  } catch (err: any) {
-    res.status(500).json({ error: 'Bulk retry failed.' })
+  } catch (err) {
+    next(err)
   }
 })
 
 // GET /api/alerts/delivery/export.csv — stream CSV download to browser
-router.get('/alerts/delivery/export.csv', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.get('/alerts/delivery/export.csv', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) { res.status(403).json({ error: 'Insufficient permissions.' }); return }
   try {
     const { where, params, nextIdx } = buildDeliveryWhere(req.query as any)
@@ -1054,20 +1009,17 @@ router.get('/alerts/delivery/export.csv', authMiddleware, async (req: AuthReques
     res.setHeader('Content-Type','text/csv')
     res.setHeader('Content-Disposition',`attachment; filename="delivery_log_${Date.now()}.csv"`)
     res.send(csv)
-  } catch (err: any) {
-    res.status(500).json({ error: 'CSV export failed.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-/* ══════════════════════════════════════
-   RESOURCE DEPLOYMENTS
-   ══════════════════════════════════════ */
+// RESOURCE DEPLOYMENTS
 
 // Get all resource deployments
-router.get('/deployments', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.get('/deployments', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) {
-    res.status(403).json({ error: 'Insufficient permissions.' })
-    return
+    throw AppError.forbidden('Insufficient permissions.')
   }
   try {
     const { rows } = await pool.query(
@@ -1080,16 +1032,15 @@ router.get('/deployments', authMiddleware, async (req: AuthRequest, res: Respons
          CASE priority WHEN 'Critical' THEN 0 WHEN 'High' THEN 1 WHEN 'Medium' THEN 2 ELSE 3 END`
     )
     res.json(rows)
-  } catch (err: any) {
-    res.status(500).json({ error: 'Failed to load deployments.' })
+  } catch (err) {
+    next(err)
   }
 })
 
 // Deploy resources to a zone
-router.post('/deployments/:id/deploy', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.post('/deployments/:id/deploy', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) {
-    res.status(403).json({ error: 'Insufficient permissions for deployment operations.' })
-    return
+    throw AppError.forbidden('Insufficient permissions for deployment operations.')
   }
   try {
     const { reason, report_id } = req.body
@@ -1097,12 +1048,10 @@ router.post('/deployments/:id/deploy', authMiddleware, async (req: AuthRequest, 
     const operator_name = req.user!.displayName || 'Operator'
     const trimmedReason = (reason || '').toString().trim()
     if (!trimmedReason) {
-      res.status(400).json({ error: 'Deployment reason is required.' })
-      return
+      throw AppError.badRequest('Deployment reason is required.')
     }
     if (trimmedReason.length > 500) {
-      res.status(400).json({ error: 'Reason must be 500 characters or less.' })
-      return
+      throw AppError.badRequest('Reason must be 500 characters or less.')
     }
 
     const { rows } = await pool.query(
@@ -1125,17 +1074,15 @@ router.post('/deployments/:id/deploy', authMiddleware, async (req: AuthRequest, 
     )
 
     res.json(rows[0] || { id: req.params.id, deployed: true })
-  } catch (err: any) {
-    console.error('[Deploy] Error:', err)
-    res.status(500).json({ error: 'Failed to process deployment request.' })
+  } catch (err) {
+    next(err)
   }
 })
 
 // Recall resources
-router.post('/deployments/:id/recall', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.post('/deployments/:id/recall', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) {
-    res.status(403).json({ error: 'Insufficient permissions for deployment operations.' })
-    return
+    throw AppError.forbidden('Insufficient permissions for deployment operations.')
   }
   try {
     const { reason, outcome_summary, report_id } = req.body
@@ -1144,12 +1091,10 @@ router.post('/deployments/:id/recall', authMiddleware, async (req: AuthRequest, 
     const trimmedReason = (reason || '').toString().trim()
     const trimmedOutcome = (outcome_summary || '').toString().trim()
     if (!trimmedReason || !trimmedOutcome) {
-      res.status(400).json({ error: 'reason and outcome_summary are required for recall.' })
-      return
+      throw AppError.badRequest('reason and outcome_summary are required for recall.')
     }
     if (trimmedReason.length > 500 || trimmedOutcome.length > 1000) {
-      res.status(400).json({ error: 'reason must be ≤500 chars, outcome_summary ≤1000 chars.' })
-      return
+      throw AppError.badRequest('reason must be ≤500 chars, outcome_summary ≤1000 chars.')
     }
 
     const { rows } = await pool.query(
@@ -1172,18 +1117,15 @@ router.post('/deployments/:id/recall', authMiddleware, async (req: AuthRequest, 
     )
 
     res.json(rows[0] || { id: req.params.id, deployed: false })
-  } catch (err: any) {
-    console.error('[Recall] Error:', err)
-    res.status(500).json({ error: 'Failed to process recall request.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-/* ══════════════════════════════════════
-   REPORT MEDIA
-   ══════════════════════════════════════ */
+// REPORT MEDIA
 
 // Get media for a specific report
-router.get('/reports/:id/media', async (req: Request, res: Response) => {
+router.get('/reports/:id/media', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { rows } = await pool.query(
       `SELECT id, file_url, file_type, file_size, ai_processed,
@@ -1193,17 +1135,15 @@ router.get('/reports/:id/media', async (req: Request, res: Response) => {
       [req.params.id]
     )
     res.json(rows)
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to load report media.' })
+  } catch (err) {
+    next(err)
   }
 })
 
-/* ══════════════════════════════════════
-   AI MODEL STATUS — MOVED to aiRoutes.ts (Phase 5 Governance)
-   GET /api/ai/models now served by aiRoutes with live AI engine data
-   ══════════════════════════════════════ */
+// AI MODEL STATUS — MOVED to aiRoutes.ts (Phase 5 Governance)
+// GET /api/ai/models now served by aiRoutes with live AI engine data
 
-router.get('/ai/status', async (_req: Request, res: Response) => {
+router.get('/ai/status', async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const available = await aiClient.isAvailable()
     if (!available) {
@@ -1218,52 +1158,50 @@ router.get('/ai/status', async (_req: Request, res: Response) => {
   }
 })
 
-// ═══════════════════════════════════════════════════════════════════
 //  AI GOVERNANCE ENDPOINTS (Features #30-34)
-// ═══════════════════════════════════════════════════════════════════
 
 // GET /api/ai/governance/models — Model metrics from PostgreSQL ai_model_metrics table
 // Used by AITransparencyDashboard to show real accuracy, F1, confusion matrix, XAI weights
-router.get('/ai/governance/models', async (_req: Request, res: Response) => {
+router.get('/ai/governance/models', authMiddleware, requireOperator, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const metrics = await getModelMetrics()
     res.json(metrics)
-  } catch (err: any) {
-    res.status(500).json({ error: err.message })
+  } catch (err) {
+    next(err)
   }
 })
 
 // GET /api/ai/governance/drift — Model drift detection from PostgreSQL
-router.get('/ai/governance/drift', async (_req: Request, res: Response) => {
+router.get('/ai/governance/drift', authMiddleware, requireOperator, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const drift = await checkModelDrift()
     res.json(drift)
-  } catch (err: any) {
-    res.status(500).json({ error: err.message })
+  } catch (err) {
+    next(err)
   }
 })
 
 // GET /api/ai/confidence-distribution — Computed from real predictions
-router.get('/ai/confidence-distribution', async (req: Request, res: Response) => {
+router.get('/ai/confidence-distribution', authMiddleware, requireOperator, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { model } = req.query
     const distribution = await computeConfidenceDistribution(model as string | undefined)
     res.json(distribution)
-  } catch (err: any) {
-    res.status(500).json({ error: err.message })
+  } catch (err) {
+    next(err)
   }
 })
 
 // GET /api/ai/audit — AI execution audit log
-router.get('/ai/audit', async (req: Request, res: Response) => {
+router.get('/ai/audit', authMiddleware, requireOperator, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const limit = parseInt(req.query.limit as string) || 50
     const offset = parseInt(req.query.offset as string) || 0
     const model = req.query.model as string | undefined
     const result = await getExecutionAuditLog(limit, offset, model)
     res.json(result)
-  } catch (err: any) {
-    res.status(500).json({ error: err.message })
+  } catch (err) {
+    next(err)
   }
 })
 
@@ -1282,17 +1220,14 @@ function normalizeChannels(channels: unknown): string[] {
 
 // Phone validation is now imported from utils/phoneValidation.ts
 
-
-// ═══════════════════════════════════════════════════════════════════
 //  ACCOUNT GOVERNANCE ENDPOINTS
-// ═══════════════════════════════════════════════════════════════════
 
 // Deactivate operator account
-router.post('/operators/:id/deactivate', async (req: Request, res: Response) => {
+router.post('/operators/:id/deactivate', authMiddleware, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params
     const { reason, actorId, actorName } = req.body
-    if (!reason) return res.status(400).json({ error: 'Reason is required' })
+    if (!reason) throw AppError.badRequest('Reason is required')
 
     await pool.query(
       `UPDATE operators SET is_active = false, updated_at = NOW() WHERE id = $1`, [id]
@@ -1311,13 +1246,13 @@ router.post('/operators/:id/deactivate', async (req: Request, res: Response) => 
       ]
     )
     res.json({ success: true })
-  } catch (err: any) {
-    res.status(500).json({ error: err.message })
+  } catch (err) {
+    next(err)
   }
 })
 
 // Reactivate operator account
-router.post('/operators/:id/reactivate', async (req: Request, res: Response) => {
+router.post('/operators/:id/reactivate', authMiddleware, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params
     const { reason, actorId, actorName } = req.body
@@ -1330,17 +1265,17 @@ router.post('/operators/:id/reactivate', async (req: Request, res: Response) => 
       [actorId, actorName, id, JSON.stringify({ reason: reason || '' }), JSON.stringify({ is_active: true, is_suspended: false })]
     )
     res.json({ success: true })
-  } catch (err: any) {
-    res.status(500).json({ error: err.message })
+  } catch (err) {
+    next(err)
   }
 })
 
 // Suspend operator temporarily
-router.post('/operators/:id/suspend', async (req: Request, res: Response) => {
+router.post('/operators/:id/suspend', authMiddleware, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params
     const { reason, actorId, actorName, until } = req.body
-    if (!reason) return res.status(400).json({ error: 'Reason is required' })
+    if (!reason) throw AppError.badRequest('Reason is required')
     await pool.query(
       `UPDATE operators SET is_suspended = true, suspended_until = $1, suspended_by = $2, updated_at = NOW() WHERE id = $3`,
       [until || null, actorId, id]
@@ -1351,13 +1286,13 @@ router.post('/operators/:id/suspend', async (req: Request, res: Response) => {
       [actorId, actorName, id, JSON.stringify({ reason }), JSON.stringify({ is_suspended: true, suspended_until: until || null })]
     )
     res.json({ success: true })
-  } catch (err: any) {
-    res.status(500).json({ error: err.message })
+  } catch (err) {
+    next(err)
   }
 })
 
 // GDPR-safe anonymise operator (preferred over hard delete)
-router.post('/operators/:id/anonymise', async (req: Request, res: Response) => {
+router.post('/operators/:id/anonymise', authMiddleware, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params
     const { actorId, actorName, reason } = req.body
@@ -1385,26 +1320,26 @@ router.post('/operators/:id/anonymise', async (req: Request, res: Response) => {
       ]
     )
     res.json({ success: true })
-  } catch (err: any) {
-    res.status(500).json({ error: err.message })
+  } catch (err) {
+    next(err)
   }
 })
 
 // List all operators (for admin management)
-router.get('/operators', async (_req: Request, res: Response) => {
+router.get('/operators', authMiddleware, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const result = await pool.query(
       `SELECT id, email, display_name, role, department, phone, is_active, is_suspended, suspended_until, last_login, created_at
        FROM operators WHERE deleted_at IS NULL ORDER BY created_at DESC`
     )
     res.json(result.rows)
-  } catch (err: any) {
-    res.status(500).json({ error: err.message })
+  } catch (err) {
+    next(err)
   }
 })
 
 // Update operator profile
-router.put('/operators/:id/profile', async (req: Request, res: Response) => {
+router.put('/operators/:id/profile', authMiddleware, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params
     const { displayName, email, phone } = req.body
@@ -1417,32 +1352,28 @@ router.put('/operators/:id/profile', async (req: Request, res: Response) => {
        WHERE id = $4`, [displayName, email, phone, id]
     )
     res.json({ success: true })
-  } catch (err: any) {
-    res.status(500).json({ error: err.message })
+  } catch (err) {
+    next(err)
   }
 })
 
-
-// ═══════════════════════════════════════════════════════════════════
 //  AI PREDICTION ENGINE — Plug & Play Architecture
-// ═══════════════════════════════════════════════════════════════════
 
 // POST /api/predictions/run — Production-ready prediction endpoint
-router.post('/predictions/run', async (req: Request, res: Response) => {
+router.post('/predictions/run', authMiddleware, requireOperator, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { area, latitude, longitude, weather_data, historical_indicators, region_id } = req.body
     const startTime = Date.now()
 
     if (typeof latitude !== 'number' || typeof longitude !== 'number') {
-      res.status(400).json({ error: 'latitude and longitude are required numeric fields.' })
-      return
+      throw AppError.badRequest('latitude and longitude are required numeric fields.')
     }
 
     const safeLat = Math.max(-90, Math.min(90, latitude))
     const safeLng = Math.max(-180, Math.min(180, longitude))
     const resolvedRegionId = typeof region_id === 'string' && region_id.trim().length > 0
       ? region_id.trim()
-      : 'uk-default'
+      : regionRegistry.getActiveRegion().getMetadata().regionId
 
     const predictionResponse = await aiClient.predict({
       hazard_type: 'flood',
@@ -1517,13 +1448,10 @@ router.post('/predictions/run', async (req: Request, res: Response) => {
   }
 })
 
-
-// ═══════════════════════════════════════════════════════════════════
 //  SPATIAL INTELLIGENCE — GeoJSON endpoints for QGIS + Heatmaps
-// ═══════════════════════════════════════════════════════════════════
 
 // GET /api/map/risk-layer — Returns structured GeoJSON risk layer
-router.get('/map/risk-layer', async (_req: Request, res: Response) => {
+router.get('/map/risk-layer', async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await pool.query(
       `SELECT id, name, layer_type, ST_AsGeoJSON(geometry_data) as geojson, properties, model_version, valid_from
@@ -1536,13 +1464,13 @@ router.get('/map/risk-layer', async (_req: Request, res: Response) => {
       properties: { ...r.properties, id: r.id, name: r.name, layer_type: r.layer_type, model_version: r.model_version }
     }))
     res.json({ type: 'FeatureCollection', features })
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to load risk layer.' })
+  } catch (err) {
+    next(err)
   }
 })
 
 // GET /api/map/heatmap-data — Returns dynamically computed heatmap intensity data
-router.get('/map/heatmap-data', async (_req: Request, res: Response) => {
+router.get('/map/heatmap-data', async (_req: Request, res: Response, next: NextFunction) => {
   try {
     // First try live computation from historical + report data
     const computed = await computeRiskHeatmap()
@@ -1565,13 +1493,13 @@ router.get('/map/heatmap-data', async (_req: Request, res: Response) => {
     } else {
       res.status(404).json({ error: 'No heatmap data available. Historical events needed for computation.' })
     }
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to load heatmap data.' })
+  } catch (err) {
+    next(err)
   }
 })
 
 // GET /api/ai/status/detail — Returns detailed DB execution analytics
-router.get('/ai/status/detail', async (_req: Request, res: Response) => {
+router.get('/ai/status/detail', authMiddleware, requireOperator, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const models = await pool.query(
       `SELECT model_name, MAX(model_version) as version, COUNT(*) as executions,
@@ -1581,8 +1509,8 @@ router.get('/ai/status/detail', async (_req: Request, res: Response) => {
     res.json({
       execution_history: models.rows
     })
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to load AI status detail.' })
+  } catch (err) {
+    next(err)
   }
 })
 
@@ -1590,22 +1518,21 @@ router.get('/ai/status/detail', async (_req: Request, res: Response) => {
 // Now served by aiRoutes with live AI engine drift detection
 
 // POST /api/ai/labels — Add training label (human-in-the-loop)
-router.post('/ai/labels', async (req: Request, res: Response) => {
+router.post('/ai/labels', authMiddleware, requireOperator, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { report_id, label_type, label_value, operator_id, confidence } = req.body
     if (!report_id || !label_type || !label_value || !operator_id) {
-      res.status(400).json({ error: 'report_id, label_type, label_value, and operator_id are required' })
-      return
+      throw AppError.badRequest('report_id, label_type, label_value, and operator_id are required')
     }
     await addTrainingLabel(report_id, label_type, label_value, operator_id, confidence)
     res.json({ success: true })
-  } catch (err: any) {
-    res.status(500).json({ error: err.message })
+  } catch (err) {
+    next(err)
   }
 })
 
 // POST /api/ai/damage-estimate — Economic damage estimation model
-router.post('/ai/damage-estimate', async (req: Request, res: Response) => {
+router.post('/ai/damage-estimate', authMiddleware, requireOperator, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { severity, affected_area_km2, population_density, duration_hours, water_depth_m } = req.body
     const estimate = await estimateDamageCost(
@@ -1616,22 +1543,19 @@ router.post('/ai/damage-estimate', async (req: Request, res: Response) => {
       water_depth_m || 0.5,
     )
     res.json(estimate)
-  } catch (err: any) {
-    res.status(500).json({ error: err.message })
+  } catch (err) {
+    next(err)
   }
 })
 
-// ═══════════════════════════════════════════════════════════════════
 //  MULTI-SOURCE FUSION ENGINE (Features #16-25)
-// ═══════════════════════════════════════════════════════════════════
 
-// POST /api/fusion/run — Run full 10-source fusion analysis
-router.post('/fusion/run', async (req: Request, res: Response) => {
+// POST /api/fusion/run — Run full 10-source fusion analysis (ADMIN ONLY)
+router.post('/fusion/run', requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { region_id, latitude, longitude } = req.body
     if (!region_id || latitude === undefined || longitude === undefined) {
-      res.status(400).json({ error: 'region_id, latitude, and longitude are required' })
-      return
+      throw AppError.badRequest('region_id, latitude, and longitude are required')
     }
 
     // Gather live data from all sources
@@ -1639,49 +1563,44 @@ router.post('/fusion/run', async (req: Request, res: Response) => {
     // Run weighted fusion algorithm
     const result = await runFusion(fusionInput)
     res.json(result)
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Fusion engine failed' })
+  } catch (err) {
+    next(err)
   }
 })
 
-// ═══════════════════════════════════════════════════════════════════
 //  FLOOD FINGERPRINTING ENGINE (Features #26-27)
-// ═══════════════════════════════════════════════════════════════════
 
-// POST /api/fingerprint/run — Run cosine-similarity flood fingerprinting
-router.post('/fingerprint/run', async (req: Request, res: Response) => {
+// POST /api/fingerprint/run — Run cosine-similarity flood fingerprinting (OPERATOR ONLY)
+router.post('/fingerprint/run', requireOperator, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { region_id, latitude, longitude, area } = req.body
     if (!region_id || latitude === undefined || longitude === undefined) {
-      res.status(400).json({ error: 'region_id, latitude, and longitude are required' })
-      return
+      throw AppError.badRequest('region_id, latitude, and longitude are required')
     }
 
     const prediction = await runFingerprinting(
       region_id, latitude, longitude, area || 'Unknown Area',
     )
     res.json(prediction)
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Fingerprinting failed' })
+  } catch (err) {
+    next(err)
   }
 })
 
-// ═══════════════════════════════════════════════════════════════════
-//  DATA INGESTION PIPELINE
-// ═══════════════════════════════════════════════════════════════════
+//  DATA INGESTION PIPELINE (ADMIN ONLY)
 
-// POST /api/ingestion/run — Run full data ingestion from all sources
-router.post('/ingestion/run', async (_req: Request, res: Response) => {
+// POST /api/ingestion/run — Run full data ingestion from all sources (ADMIN ONLY)
+router.post('/ingestion/run', requireAdmin, async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await runFullIngestion()
     res.json(result)
-  } catch (err: any) {
-    res.status(500).json({ error: err.message })
+  } catch (err) {
+    next(err)
   }
 })
 
-// POST /api/ingestion/source/:source — Run single source ingestion
-router.post('/ingestion/source/:source', async (req: Request, res: Response) => {
+// POST /api/ingestion/source/:source — Run single source ingestion (ADMIN ONLY)
+router.post('/ingestion/source/:source', requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const source = req.params.source
     let result
@@ -1692,17 +1611,16 @@ router.post('/ingestion/source/:source', async (req: Request, res: Response) => 
       case 'floodhistory': result = await ingestUKFloodHistory(); break
       case 'wikipedia': result = await ingestWikipediaFloodKnowledge(); break
       default:
-        res.status(400).json({ error: `Unknown source: ${source}. Valid: ea, nasa, openmeteo, floodhistory, wikipedia` })
-        return
+        throw AppError.badRequest(`Unknown source: ${source}. Valid: ea, nasa, openmeteo, floodhistory, wikipedia`)
     }
     res.json(result)
-  } catch (err: any) {
-    res.status(500).json({ error: err.message })
+  } catch (err) {
+    next(err)
   }
 })
 
 // GET /api/ingestion/status — Get ingestion history and table counts
-router.get('/ingestion/status', async (_req: Request, res: Response) => {
+router.get('/ingestion/status', async (_req: Request, res: Response, next: NextFunction) => {
   try {
     await ensureIngestionSchema()
 
@@ -1734,80 +1652,72 @@ router.get('/ingestion/status', async (_req: Request, res: Response) => {
     } catch { /* table may not exist */ }
 
     res.json({ tableCounts: counts, recentIngestions: logs, totalRows: Object.values(counts).reduce((a, b) => a + b, 0) })
-  } catch (err: any) {
-    res.status(500).json({ error: err.message })
+  } catch (err) {
+    next(err)
   }
 })
 
-// ═══════════════════════════════════════════════════════════════════
-//  ML TRAINING PIPELINE
-// ═══════════════════════════════════════════════════════════════════
+//  ML TRAINING PIPELINE (ADMIN ONLY)
 
-// POST /api/training/run — Train all ML models
-router.post('/training/run', async (_req: Request, res: Response) => {
+// POST /api/training/run — Train all ML models (ADMIN ONLY)
+router.post('/training/run', requireAdmin, async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await trainAllModels()
     res.json(result)
-  } catch (err: any) {
-    res.status(500).json({ error: err.message })
+  } catch (err) {
+    next(err)
   }
 })
 
-// POST /api/training/fusion-weights — Train fusion weight optimizer
-router.post('/training/fusion-weights', async (_req: Request, res: Response) => {
+// POST /api/training/fusion-weights — Train fusion weight optimizer (ADMIN ONLY)
+router.post('/training/fusion-weights', requireAdmin, async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await trainFusionWeights()
     res.json(result)
-  } catch (err: any) {
-    res.status(500).json({ error: err.message })
+  } catch (err) {
+    next(err)
   }
 })
 
-// ═══════════════════════════════════════════════════════════════════
-//  RAG KNOWLEDGE BASE
-// ═══════════════════════════════════════════════════════════════════
+//  RAG KNOWLEDGE BASE (ADMIN ONLY)
 
-// POST /api/rag/expand — Expand RAG knowledge base
-router.post('/rag/expand', async (_req: Request, res: Response) => {
+// POST /api/rag/expand — Expand RAG knowledge base (ADMIN ONLY)
+router.post('/rag/expand', requireAdmin, async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await expandRAGKnowledgeBase()
     res.json(result)
-  } catch (err: any) {
-    res.status(500).json({ error: err.message })
+  } catch (err) {
+    next(err)
   }
 })
 
 // POST /api/rag/query — Query RAG knowledge base
-router.post('/rag/query', async (req: Request, res: Response) => {
+router.post('/rag/query', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { query, limit } = req.body
     if (!query) { res.status(400).json({ error: 'query is required' }); return }
     const results = await ragRetrieve(query, limit || 5)
     res.json({ query, results, count: results.length })
-  } catch (err: any) {
-    res.status(500).json({ error: err.message })
+  } catch (err) {
+    next(err)
   }
 })
 
-// ═══════════════════════════════════════════════════════════════════
-//  RESILIENCE MONITORING
-// ═══════════════════════════════════════════════════════════════════
+//  RESILIENCE MONITORING (OPERATOR ONLY)
 
-// GET /api/resilience/status — Get cache, rate limit, circuit breaker status
-router.get('/resilience/status', (_req: Request, res: Response) => {
+// GET /api/resilience/status — Get cache, rate limit, circuit breaker status (OPERATOR ONLY)
+router.get('/resilience/status', requireOperator, (_req: Request, res: Response, next: NextFunction) => {
   try {
     res.json(getResilienceStatus())
-  } catch (err: any) {
-    res.status(500).json({ error: err.message })
+  } catch (err) {
+    next(err)
   }
 })
 
-// ═══════════════════════════════════════════════════════════════════
-//  SYSTEM REPORT
-// ═══════════════════════════════════════════════════════════════════
+//  SYSTEM REPORT (OPERATOR ONLY)
 
-// GET /api/system/report — Generate comprehensive system status report
-router.get('/system/report', async (_req: Request, res: Response) => {
+// GET /api/system/report — Generate comprehensive system status report (OPERATOR ONLY)
+router.get('/system/report', requireOperator, async (_req: Request, res: Response, next: NextFunction) => {
   try {
     // Table row counts
     const tables = [
@@ -1878,7 +1788,8 @@ router.get('/system/report', async (_req: Request, res: Response) => {
         features: 37,
       },
     })
-  } catch (err: any) {
-    res.status(500).json({ error: err.message })
+  } catch (err) {
+    next(err)
   }
 })
+

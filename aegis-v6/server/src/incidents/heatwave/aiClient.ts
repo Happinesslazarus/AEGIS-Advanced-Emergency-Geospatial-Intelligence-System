@@ -4,9 +4,10 @@
  */
 
 import type { IncidentPrediction } from '../types.js'
+import { logger } from '../../services/logger.js'
 
 export class HeatwaveAIClient {
-  /**
+   /**
    * Get statistical predictions for heatwaves
    * Uses statistical analysis of temperature patterns
    */
@@ -49,13 +50,13 @@ export class HeatwaveAIClient {
         confidence: 0.6,
         confidenceSource: 'statistical',
         region,
-        description: `Heatwave risk based on temperature (${forecastTemp}°C), humidity (${humidity}%), duration (${consecutiveDays} days)`,
+        description: `Heatwave risk based on temperature (${forecastTemp}—C), humidity (${humidity}%), duration (${consecutiveDays} days)`,
         advisoryText: this.getHeatwaveAdvisory(severity),
         generatedAt: new Date().toISOString(),
         dataSourcesUsed: ['temperature_statistical_model', 'weather_forecast']
       }]
     } catch (error) {
-      console.error(`Heatwave statistical model error: ${error}`)
+      logger.error({ err: error }, '[Heatwave/AIClient] Statistical model error')
       return []
     }
   }

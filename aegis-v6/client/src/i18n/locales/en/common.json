@@ -205,6 +205,7 @@
       "currentlyActive": "Currently active"
     },
     "sidebar": {
+      "home": "Welcome",
       "communitySupport": "Community Support",
       "safetyCheckIn": "Safety Check-in",
       "myProfile": "My Profile",
@@ -229,6 +230,23 @@
     "terms": "Terms of Service",
     "contact": "Contact",
     "about": "About AEGIS",
-    "accessibility": "Accessibility"
+    "accessibility": "Accessibility",
+    "cookiePreferences": "Cookie Preferences"
+  },
+  "cookieConsent": {
+    "title": "Cookie Preferences",
+    "description": "We use cookies to ensure essential platform functions and, with your consent, to improve your experience. You can change your preferences at any time.",
+    "acceptAll": "Accept All",
+    "essentialOnly": "Essential Only",
+    "managePreferences": "Manage Preferences",
+    "savePreferences": "Save Preferences",
+    "cat": {
+      "essential": "Essential",
+      "essentialDesc": "Authentication, CSRF protection, and security cookies. Always active.",
+      "preferences": "Preferences",
+      "preferencesDesc": "Language selection, theme settings, and UI preferences.",
+      "analytics": "Analytics",
+      "analyticsDesc": "Usage analytics and performance monitoring to improve the platform."
+    }
   }
 }

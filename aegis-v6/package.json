@@ -6,12 +6,21 @@
   "author": "Happiness Ada Lazarus (2238282)",
   "license": "ISC",
   "scripts": {
-    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev": "node start-dev.mjs",
+    "dev:all": "node start-dev.mjs all",
     "dev:server": "cd server && npm run dev",
     "dev:client": "cd client && npm run dev",
+    "dev:ai": "cd ai-engine && python -m uvicorn main:app --reload",
+    "dev:concurrent": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "build": "cd client && npm run build",
     "setup:db": "cd server && npm run db:setup",
-    "start": "cd server && npm start"
+    "start": "cd server && npm start",
+    "test": "npm run test:server && npm run test:client",
+    "test:server": "cd server && npm test",
+    "test:client": "cd client && npm test",
+    "lint": "npm run lint:server && npm run lint:client",
+    "lint:server": "cd server && npm run lint",
+    "lint:client": "cd client && npm run lint"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

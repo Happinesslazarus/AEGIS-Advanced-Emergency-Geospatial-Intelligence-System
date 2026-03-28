@@ -1,5 +1,6 @@
 import crypto from 'crypto'
 import pool from '../models/db.js'
+import { logger } from './logger.js'
 
 export interface TranslationResult {
   originalText: string
@@ -652,7 +653,7 @@ async function translateWithFallbacks(
       }
     } catch (error) {
       if (process.env.NODE_ENV !== 'production') {
-        console.warn(`[Translation] ${provider.name} failed:`, error instanceof Error ? error.message : error)
+        logger.warn({ err: error, provider: provider.name }, '[Translation] Provider failed')
       }
     }
   }

@@ -4,9 +4,10 @@
  */
 
 import { OPENAQ_CONFIG } from './config.js'
+import { logger } from '../../services/logger.js'
 
 export class EnvironmentalHazardDataIngestion {
-  /**
+   /**
    * Ingest air quality data from OpenAQ API
    */
   static async ingestAirQualityData(region: string, lat = 57.15, lon = -2.11): Promise<{ recordsIngested: number; source: string }> {
@@ -24,26 +25,26 @@ export class EnvironmentalHazardDataIngestion {
       })
 
       if (!response.ok) {
-        console.warn(`OpenAQ API returned ${response.status}`)
+        logger.warn({ status: response.status }, '[EnvironmentalHazard] OpenAQ API returned non-OK status')
         return { recordsIngested: 0, source: 'OpenAQ (failed)' }
       }
 
       const data = await response.json()
       const results = data.results || []
 
-      console.log(`Ingested ${results.length} air quality readings from OpenAQ`)
+      logger.info({ count: results.length }, '[EnvironmentalHazard] Ingested air quality readings from OpenAQ')
       
       return {
         recordsIngested: results.length,
         source: 'OpenAQ Air Quality API'
       }
     } catch (error) {
-      console.error(`Environmental hazard data ingestion error: ${error}`)
+      logger.error({ err: error }, '[EnvironmentalHazard] Data ingestion error')
       return { recordsIngested: 0, source: 'OpenAQ (error)' }
     }
   }
 
-  /**
+   /**
    * Fetch latest air quality measurements
    */
   static async fetchLatestAirQuality(lat = 57.15, lon = -2.11): Promise<Record<string, unknown>[]> {
@@ -66,12 +67,12 @@ export class EnvironmentalHazardDataIngestion {
       const data = await response.json()
       return data.results || []
     } catch (error) {
-      console.error(`Air quality fetch error: ${error}`)
+      logger.error({ err: error }, '[EnvironmentalHazard] Air quality fetch error')
       return []
     }
   }
 
-  /**
+   /**
    * Parse air quality measurements into standardized format
    */
   static parseAirQualityData(results: Record<string, unknown>[]): Record<string, number> {
@@ -99,7 +100,7 @@ export class EnvironmentalHazardDataIngestion {
     return averages
   }
 
-  /**
+   /**
    * Schedule periodic data ingestion
    */
   static scheduleIngestion(intervalMinutes = 60): NodeJS.Timer {

@@ -1,8 +1,6 @@
 """
-═══════════════════════════════════════════════════════════════════════════════
  AEGIS AI ENGINE — Production ML Training Pipeline
  Real ML models trained on historical database reports
-═══════════════════════════════════════════════════════════════════════════════
 
 Architecture:
 1. Load real report data from PostgreSQL
@@ -36,7 +34,6 @@ from sklearn.metrics import (
     accuracy_score, precision_score, recall_score, f1_score,
     roc_auc_score, confusion_matrix, classification_report
 )
-
 
 class ProductionMLPipeline:
     """
@@ -78,7 +75,7 @@ class ProductionMLPipeline:
             rows = await conn.fetch(query)
             await conn.close()
             
-            df = pd.DataFrame(rows)
+            df = pd.DataFrame([dict(r) for r in rows])
             logger.info(f"Loaded {len(df)} reports from database")
             
             return df
@@ -378,7 +375,6 @@ class ProductionMLPipeline:
         logger.success("=" * 80)
         logger.success("PRODUCTION ML MODELS TRAINED AND SAVED")
         logger.success("=" * 80)
-
 
 # CLI entry point
 if __name__ == '__main__':

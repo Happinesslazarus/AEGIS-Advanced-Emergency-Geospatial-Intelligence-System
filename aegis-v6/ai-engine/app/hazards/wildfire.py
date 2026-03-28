@@ -1,4 +1,4 @@
-"""
+﻿"""
 AEGIS AI ENGINE - Wildfire Prediction Module
 """
 
@@ -9,7 +9,7 @@ from loguru import logger
 from app.schemas.predictions import *
 from app.core.model_registry import ModelRegistry
 from app.core.feature_store import FeatureStore
-
+from app.hazards.shap_explainer import explain_prediction
 
 class WildfirePredictor:
     """
@@ -25,6 +25,9 @@ class WildfirePredictor:
         self.model_registry = model_registry
         self.feature_store = feature_store
         self.hazard_type = HazardType.WILDFIRE
+        self._last_shap = None
+        self._model_type_label = None
+        self._label_strategy = None
         logger.info("Wildfire prediction module initialized")
     async def predict(self, request: PredictionRequest) -> PredictionResponse:
         """Generate wildfire prediction."""
@@ -99,12 +102,13 @@ class WildfirePredictor:
             data_sources=["fire_danger_index", "weather_api", "ndvi_satellite", "citizen_reports"],
             warnings=[
                 "Rule-based prediction -- no wildfire ML model available. Confidence is indicative."
-            ]
+            ] if not model_metadata else [],
+            model_type_label=self._model_type_label or ("rule_based" if not model_metadata else "weakly_supervised"),
+            shap_explanation=self._last_shap,
+            label_strategy=self._label_strategy,
         )
 
-    # -------------------------------------------------------------------------
     # Model-based prediction (future path when an ML model is registered)
-    # -------------------------------------------------------------------------
 
     async def _predict_with_model(
         self, model: Any, features: Dict[str, float], metadata: Any
@@ -122,15 +126,20 @@ class WildfirePredictor:
 
             probability = float(np.clip(probability, 0.0, 1.0))
             confidence = metadata.performance_metrics.get("roc_auc", 0.75)
+
+            # SHAP explanation
+            self._last_shap = explain_prediction(model, feature_vector, list(metadata.feature_names))
+            # Model transparency from metadata
+            self._model_type_label = getattr(metadata, 'model_type_label', None)
+            self._label_strategy = getattr(metadata, 'label_strategy', None)
+
             return probability, confidence
 
         except Exception as e:
             logger.error(f"Wildfire model prediction failed: {e}")
             return self._stub_prediction(features)
 
-    # -------------------------------------------------------------------------
     # Physics-based stub (McArthur-style FFDI)
-    # -------------------------------------------------------------------------
 
     def _stub_prediction(self, features: Dict[str, float]) -> Tuple[float, float]:
         """
@@ -186,9 +195,7 @@ class WildfirePredictor:
 
         return probability, confidence
 
-    # -------------------------------------------------------------------------
     # Classification helpers
-    # -------------------------------------------------------------------------
 
     def _classify_risk(self, probability: float) -> RiskLevel:
         """Classify wildfire risk level."""
@@ -306,3 +313,4 @@ class WildfirePredictor:
 
         factors.sort(key=lambda f: f.importance, reverse=True)
         return factors[:6]
+

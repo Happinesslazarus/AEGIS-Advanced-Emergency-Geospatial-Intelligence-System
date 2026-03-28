@@ -2,7 +2,6 @@ import asyncio
 from datetime import datetime, timedelta
 from app.training.training_pipeline import TrainingPipeline
 
-
 async def main() -> None:
     pipeline = TrainingPipeline("config.yaml")
     end = datetime.utcnow()
@@ -19,7 +18,6 @@ async def main() -> None:
             experiment_name=f"{hazard}_rf_prod",
         )
         print(hazard, result.get("metrics", {}))
-
 
 if __name__ == "__main__":
     asyncio.run(main())

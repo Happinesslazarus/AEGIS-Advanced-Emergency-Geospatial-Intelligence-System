@@ -1,12 +1,12 @@
-/**
+﻿/**
  * IncidentCommandConsole.tsx — Multi-incident operations command view
  *
  * Real-time dashboard panel for the Admin UI that shows:
- * - Live status of all 11 incident types with prediction/alert counts
- * - Per-incident AI tier badge (rule_based / statistical / ml)
- * - Quick filter to drill into a single incident type
- * - Cross-incident correlation warnings (compound events)
- * - n8n + cron health in sidebar
+ * Live status of all 11 incident types with prediction/alert counts
+ * Per-incident AI tier badge (rule_based / statistical / ml)
+ * Quick filter to drill into a single incident type
+ * Cross-incident correlation warnings (compound events)
+ * n8n + cron health in sidebar
  */
 
 import { useState, useEffect, useCallback } from 'react'
@@ -24,7 +24,7 @@ import {
 } from '../../utils/incidentApi'
 import { useLanguage } from '../../hooks/useLanguage'
 
-// ─── Incident type icons ────────────────────────────────────────────────
+// Incident type icons
 const INCIDENT_ICONS: Record<string, React.ElementType> = {
   flood: Droplets,
   severe_storm: CloudLightning,
@@ -42,7 +42,7 @@ const INCIDENT_ICONS: Record<string, React.ElementType> = {
 const AI_TIER_BADGE: Record<string, { label: string; color: string }> = {
   ml: { label: 'ML', color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' },
   statistical: { label: 'STAT', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
-  rule_based: { label: 'RULE', color: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300' },
+  rule_based: { label: 'RULE', color: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300' },
 }
 
 const STATUS_DOT: Record<string, string> = {
@@ -73,7 +73,8 @@ interface Props {
 export default function IncidentCommandConsole({
   onSelectIncident,
   selectedIncidentId,
-}: Props): JSX.Element {  const lang = useLanguage()
+}: Props): JSX.Element {
+  const lang = useLanguage()
 
   const { t } = useTranslation(['dashboard', 'incidents', 'common'])
   const { registry, registryLoading } = useIncidents()
@@ -189,21 +190,21 @@ export default function IncidentCommandConsole({
             <h2 className="text-base font-bold text-gray-900 dark:text-white">
               {t('dashboard:admin.incidentConsole')}
             </h2>
-            <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
-              {stats.length} incident types monitored • {totalAlerts} alerts • {totalPredictions} predictions
+            <p className="text-xs text-gray-500 dark:text-gray-300">
+              {stats.length || registry.length} incident types monitored — {totalAlerts} alerts — {totalPredictions} predictions
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           {lastUpdated && (
-            <span className="text-xs text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hidden sm:block">
+            <span className="text-xs text-gray-400 dark:text-gray-300 hidden sm:block">
               {lastUpdated.toLocaleTimeString()}
             </span>
           )}
           <button
             onClick={refresh}
             disabled={loading}
-            className="p-1.5 rounded-lg text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+            className="p-1.5 rounded-lg text-gray-400 dark:text-gray-300 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
             title={t('common:actions.refresh')}
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -236,7 +237,7 @@ export default function IncidentCommandConsole({
           <div key={label} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-center">
             <Icon className={`w-5 h-5 ${color} mx-auto mb-1`} />
             <p className="text-xl font-bold text-gray-900 dark:text-white">{value}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{label}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-300">{label}</p>
           </div>
         ))}
       </div>
@@ -319,7 +320,7 @@ export default function IncidentCommandConsole({
       </div>
 
       {/* Footer: automation status */}
-      <div className="flex items-center gap-4 pt-2 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+      <div className="flex items-center gap-4 pt-2 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-300">
         <div className="flex items-center gap-1">
           <Workflow className="w-3.5 h-3.5" />
           <span>n8n: 15 workflows</span>
@@ -336,7 +337,4 @@ export default function IncidentCommandConsole({
     </div>
   )
 }
-
-
-
 

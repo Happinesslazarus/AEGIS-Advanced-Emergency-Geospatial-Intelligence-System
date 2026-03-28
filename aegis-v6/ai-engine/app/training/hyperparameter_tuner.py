@@ -23,7 +23,6 @@ from loguru import logger
 import yaml
 import numpy as np
 
-
 class HyperparameterTuner:
     """
     Automated hyperparameter tuning using Optuna.
@@ -388,4 +387,4 @@ class HyperparameterTuner:
                 raise optuna.TrialPruned()
         
         return objective
-
+

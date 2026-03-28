@@ -1,8 +1,6 @@
 """
-═══════════════════════════════════════════════════════════════════════════════
  AEGIS AI ENGINE — Real ML Fake Report Detector  
  XGBoost trained on report metadata + text features from PostgreSQL
-═══════════════════════════════════════════════════════════════════════════════
 
 Training pipeline:
   1. Fetch reports from PostgreSQL
@@ -22,11 +20,9 @@ from typing import Dict, List, Any, Optional
 from datetime import datetime
 from loguru import logger
 
-
 MODEL_DIR = Path(__file__).parent.parent.parent / "model_registry" / "fake_detector"
 DB_URL = os.getenv('DATABASE_URL', 'postgresql://localhost:5432/aegis')
 MIN_TRAINING_SAMPLES = 50
-
 
 class FakeDetectorTrainable:
     """
@@ -64,7 +60,6 @@ class FakeDetectorTrainable:
                 logger.error(f"Failed to load fake detector: {e}")
                 self.model = None
 
-    # ─── Feature Engineering ──────────────────────────────────
     @staticmethod
     def _extract_features(
         text: str,
@@ -129,7 +124,6 @@ class FakeDetectorTrainable:
             similar_reports_count,
         ], dtype=np.float64)
 
-    # ─── Detect ───────────────────────────────────────────────
     def detect(
         self,
         text: str,
@@ -228,7 +222,6 @@ class FakeDetectorTrainable:
             'detected_at': datetime.utcnow().isoformat()
         }
 
-    # ─── Train ────────────────────────────────────────────────
     def train(self, db_url: str = DB_URL) -> Dict[str, Any]:
         """Train fake detector on real reports from PostgreSQL (sync wrapper)."""
         import asyncio
@@ -403,7 +396,7 @@ class FakeDetectorTrainable:
             with open(version_dir / "fake_metrics.json", 'w') as f:
                 json.dump(metrics, f, indent=2, default=str)
 
-            # ── Model Governance: register candidate & compare ──
+            # Model Governance: register candidate & compare
             promoted = False
             try:
                 from app.core.governance import governance

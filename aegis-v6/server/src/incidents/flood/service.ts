@@ -1,13 +1,14 @@
 /**
- * incidents/flood/service.ts Ã¢â‚¬â€ Flood incident business logic
+ * incidents/flood/service.ts â€” Flood incident business logic
  */
 
 import pool from '../../models/db.js'
 import type { IncidentPrediction } from '../types.js'
 import { floodConfig } from './config.js'
+import { logger } from '../../services/logger.js'
 
 export class FloodService {
-  /**
+   /**
    * Get flood risk score based on recent reports and environmental data
    */
   static async calculateFloodRisk(region: string): Promise<number> {
@@ -19,7 +20,7 @@ export class FloodService {
           WHEN severity = 'Medium' THEN 2
           ELSE 1 END) as avg_severity
          FROM reports
-         WHERE incident_type = 'flood'
+         WHERE incident_category = 'flood'
            AND created_at >= NOW() - interval '48 hours'
            AND status NOT IN ('resolved', 'closed', 'rejected', 'archived')`,
         []
@@ -34,7 +35,7 @@ export class FloodService {
     }
   }
 
-  /**
+   /**
    * Get flood predictions for a region
    */
   static async getFloodPredictions(region: string): Promise<IncidentPrediction[]> {
@@ -61,7 +62,7 @@ export class FloodService {
     }]
   }
 
-  /**
+   /**
    * Get flood advisory text based on severity
    */
   static getFloodAdvisory(severity: string): string {
@@ -77,7 +78,7 @@ export class FloodService {
     }
   }
 
-  /**
+   /**
    * Analyze river gauge trends
    */
   static async analyzeRiverGauges(region: string): Promise<{ gaugeCount: number; aboveWarning: number; maxLevel: number; averageLevel: number }> {
@@ -112,19 +113,19 @@ export class FloodService {
         averageLevel: Math.round(averageLevel * 100) / 100
       }
     } catch (error) {
-      console.error('River gauge analysis error:', error)
+      logger.error({ err: error }, '[FloodService] River gauge analysis error')
       return { gaugeCount: 0, aboveWarning: 0, maxLevel: 0, averageLevel: 0 }
     }
   }
 
-  /**
+   /**
    * Get historical flood data
    */
   static async getHistoricalFloodData(region: string, days: number): Promise<Record<string, unknown>[]> {
     try {
       const result = await pool.query(
         `SELECT * FROM reports
-         WHERE incident_type = 'flood'
+         WHERE incident_category = 'flood'
            AND created_at >= NOW() - ($1 || ' days')::interval
          ORDER BY created_at DESC`,
         [days]

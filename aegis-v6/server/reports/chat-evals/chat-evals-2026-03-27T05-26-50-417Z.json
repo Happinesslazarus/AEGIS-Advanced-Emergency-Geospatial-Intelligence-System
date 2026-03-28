@@ -1,0 +1,231 @@
+{
+  "createdAt": "2026-03-27T05:26:50.416Z",
+  "baseUrl": "http://localhost:3001",
+  "providerRequested": "ollama-primary",
+  "summary": {
+    "scenarioCount": 5,
+    "passed": 4,
+    "failed": 1,
+    "passRate": 80
+  },
+  "results": [
+    {
+      "id": "anon-flood-emergency",
+      "title": "Anonymous flood emergency triage",
+      "auth": "anonymous",
+      "passed": true,
+      "passCount": 3,
+      "checkCount": 3,
+      "sessionId": "b4a4c039-9c68-48ea-8f19-27879550a0ae",
+      "providerRequested": "ollama-primary",
+      "finalModel": "qwen3:8b",
+      "finalReply": "⚠️ **FLOOD EMERGENCY DETECTED** ⚠️\n\n**Immediate actions:**\n• Call 112 if in immediate danger\n• Move to higher ground IMMEDIATELY\n• Do NOT walk or drive through flood water\n• Turn off electricity and gas if safe to do so\n• If trapped upstairs, signal from a window\n• Avoid contact with flood water — it may be contaminated\n\n---\n\n**🚨 Immediate Actions for Flooded Road**  \n**1. Call 112 (Emergency Services)**  \n- **Tell them**: Your exact location, how many people are with you, and whether anyone is injured.  \n\n**2. Get Out of the Car Immediately**  \n- **Do not attempt to drive through floodwater**. Even 6 inches of fast-moving water can knock you off your feet. Two feet of water will float your car.  \n\n**3. Move to Higher Ground**  \n- **Walk to safety** (not swim). If the road is impassable, head to the nearest hill, building, or shelter. Avoid low-lying areas or basements.  \n\n**4. Abandon the Car if Stalled**  \n- If your car stalls in floodwater, **leave it**. Do not risk your life to retrieve belongings.  \n\n**5. Stay Visible and Signal for Help**  \n- Use a **flashlight**, **whistle**, or **phone** to signal rescuers. If stranded, stay with your car and avoid moving in the water.  \n\n**⚠️ Critical Risks**  \n- **Electrical hazards**: Avoid touching metal objects or using electronic devices in water.  \n- **Contamination**: Floodwater may contain chemicals or sewage. Do not drink or touch it.  \n\n**✅ Next Steps**  \n- **Stay with your car** if you cannot move immediately.  \n- **Do not re-enter the car** if it’s submerged or floating.  \n- **Wait for rescue** if you’re stranded.  \n\n**Time is critical**—act now to ensure your safety.",
+      "finalLatencyMs": 23561,
+      "checks": [
+        {
+          "description": "Mentions emergency escalation or urgent flood action",
+          "passed": true,
+          "detail": "Matched \"higher ground\"."
+        },
+        {
+          "description": "Anonymous chat should not be marked personalized",
+          "passed": true,
+          "detail": "Expected false, got false."
+        },
+        {
+          "description": "Provides a substantive operational answer",
+          "passed": true,
+          "detail": "Reply length 1650, minimum 80."
+        }
+      ],
+      "turns": [
+        {
+          "turn": 1,
+          "message": "Flood water is rising around my car and the road ahead is covered. What should I do right now?",
+          "latencyMs": 23561,
+          "status": 200,
+          "model": "qwen3:8b",
+          "replyPreview": "⚠️ **FLOOD EMERGENCY DETECTED** ⚠️\n\n**Immediate actions:**\n• Call 112 if in immediate danger\n• Move to higher ground IMMEDIATELY\n• Do NOT walk or drive through flood water\n• Turn off electricity and g"
+        }
+      ]
+    },
+    {
+      "id": "anon-rewrite-task",
+      "title": "Anonymous rewrite should not be treated as an emergency",
+      "auth": "anonymous",
+      "passed": true,
+      "passCount": 2,
+      "checkCount": 2,
+      "sessionId": "61f309a3-c8d1-4b7c-b842-1196d3854b88",
+      "providerRequested": "ollama-primary",
+      "finalModel": "qwen3:8b",
+      "finalReply": "**Please be advised:** The road is currently closed to traffic due to floodwater. For your safety, avoid the area and do not attempt to cross or drive through it. Check for updates on local advisories for further guidance.",
+      "finalLatencyMs": 13304,
+      "checks": [
+        {
+          "description": "Produces a rewritten notice with the core content intact",
+          "passed": true,
+          "detail": "Matched \"road\"."
+        },
+        {
+          "description": "Does not over-escalate a rewrite request",
+          "passed": true,
+          "detail": "No excluded phrases found."
+        }
+      ],
+      "turns": [
+        {
+          "turn": 1,
+          "message": "Rewrite this clearly and calmly: road closed because flood water is on it avoid the area",
+          "latencyMs": 13304,
+          "status": 200,
+          "model": "qwen3:8b",
+          "replyPreview": "**Please be advised:** The road is currently closed to traffic due to floodwater. For your safety, avoid the area and do not attempt to cross or drive through it. Check for updates on local advisories"
+        }
+      ]
+    },
+    {
+      "id": "anon-flood-kit",
+      "title": "Anonymous preparedness answer covers the essentials",
+      "auth": "anonymous",
+      "passed": true,
+      "passCount": 4,
+      "checkCount": 4,
+      "sessionId": "7ec0cc42-491f-43ca-9360-0da0ec10ee6b",
+      "providerRequested": "ollama-primary",
+      "finalModel": "qwen3:8b",
+      "finalReply": "Here’s a **comprehensive flood emergency kit checklist** for a family of four, organized into categories for clarity and practicality. Adjust quantities based on your specific needs and local guidelines:\n\n---\n\n### **1. Essentials for Survival (4 people x 3 days = 12 days minimum)**  \n- **Water**: 1 gallon per person per day (4 gallons for 3 days). Store in sealed, unbreakable containers.  \n- **Food**: Non-perishable items (canned goods, energy bars, dried fruits, peanut butter, trail mix). Include a manual can opener.  \n- **Medications**: A 7-day supply of all prescription medications, over-the-counter meds (e.g., pain relievers, antihistamines), and a list of all family members’ medical conditions.  \n- **Baby/Child Supplies**: Formula, diapers, baby food, and extra clothes if applicable.  \n- **Diabetic Supplies**: Glucose meters, test strips, insulin, and snacks for blood sugar management.  \n\n---\n\n### **2. Tools and Supplies**  \n- **Lighting**: Flashlight (with extra batteries), headlamp, and a portable power bank.  \n- **Communication**: Battery-powered or hand-crank radio, charged phone with a portable charger, and a backup power source (e.g., solar charger).  \n **Whistle** for signaling emergencies.  \n- **First Aid Kit**: Bandages, antiseptic wipes, tweezers, adhesive tape, pain relievers, and a thermometer.  \n- **Hygiene Items**: Wet wipes, hand sanitizer, biodegradable soap, and a small towel.  \n- **Tools**: Multi-tool, knife, duct tape, plastic sheeting, and a wrench for turning off utilities.  \n\n---\n\n### **3. Documents and Important Items**  \n- **Waterproof Container**: IDs, passports, insurance documents, medical records, and a list of emergency contacts.  \n- **Pet Supplies**: Collars, leashes, food, and water for pets.  \n- **Cash and Cards**: Small amount of cash, credit cards, and a list of bank account details.  \n- **Family Plan**: Emergency contact list, evacuation routes, and a designated meeting spot.  \n\n---\n\n### **4. Clothing and Gear**  \n- **Water-Resistant Clothing**: Quick-dry clothes, rain gear, and sturdy shoes.  \n- **Sleeping Gear**: Blankets, sleeping bags, or a warm coat.  \n- **Extra Clothes**: 1–2 sets per person for emergencies.  \n- **Personal Items**: Toothbrush, toothpaste, and a small towel.  \n\n---\n\n### **5. Special Considerations**  \n- **Elderly/Disabled Members**: Include mobility aids, extra medications, and a list of care instructions.  \n- **Pets**: A pet emergency kit with food, water, and a carrier.  \n- **Local Resources**: Notes on nearby shelters, evacuation routes, and community aid centers.  \n\n---\n\n### **6. Optional Add-Ons**  \n- **Camping Gear**: Tent, sleeping bags, or a portable stove.  \n- **Toys/Books**: For children to keep calm during emergencies.  \n- **Local Maps**: Printed maps of your area and nearby shelters.  \n\n---\n\n### **7. Maintenance Tips**  \n- **Check and Rotate Supplies**: Replace expired items every 6 months.  \n- **Store in an Accessible Location**: Keep the kit in a dry, elevated area (e.g., a closet or under the bed).  \n- **Practice Drills**: Conduct a family flood drill to ensure everyone knows the plan.  \n\n---\n\n### **Example Kit Layout**  \n| Category         | Items                                                                 |  \n||----------------|  \n| Water            | 4 gallons (3 days)                                                   |  \n| Food             | 10 non-perishable meals, 2 energy bars per person                   |  \n| Medications      | 7-day supply, list of conditions, baby meds                          |  \n| Tools            | Flashlight, radio, whistle, multi-tool                              |  \n| Documents        | Waterproof container with IDs, insurance, and contact list           |  \n| Clothing         | 4 sets of dry clothes, 2 blankets                                   |  \n| Hygiene          | Wet wipes, hand sanitizer, biodegradable soap                       |  \n\n---\n\n**Final Note**: Customize your kit based on your family’s needs and local flood risks. Regularly review and update it to ensure readiness. For regional guidance, check your **local flood authority** or **national meteorological service** for specific recommendations.",
+      "finalLatencyMs": 31935,
+      "checks": [
+        {
+          "description": "Mentions water or hydration supplies",
+          "passed": true,
+          "detail": "Matched \"water\"."
+        },
+        {
+          "description": "Mentions light source supplies",
+          "passed": true,
+          "detail": "Matched \"flashlight\"."
+        },
+        {
+          "description": "Mentions medicines or first aid",
+          "passed": true,
+          "detail": "Matched \"medication\"."
+        },
+        {
+          "description": "Mentions important documents",
+          "passed": true,
+          "detail": "Matched \"documents\"."
+        }
+      ],
+      "turns": [
+        {
+          "turn": 1,
+          "message": "What should go in a flood emergency kit for a family of four?",
+          "latencyMs": 31935,
+          "status": 200,
+          "model": "qwen3:8b",
+          "replyPreview": "Here’s a **comprehensive flood emergency kit checklist** for a family of four, organized into categories for clarity and practicality. Adjust quantities based on your specific needs and local guidelin"
+        }
+      ]
+    },
+    {
+      "id": "citizen-context-heatwave",
+      "title": "Signed-in citizen context survives across turns",
+      "auth": "citizen",
+      "passed": true,
+      "passCount": 4,
+      "checkCount": 4,
+      "sessionId": "c86ff2f0-d66c-48ce-8f6d-d2a8e82b70e4",
+      "providerRequested": "ollama-primary",
+      "finalModel": "qwen3:8b",
+      "finalReply": "줏\n\n</think>\n\n**Heatwave Preparedness Plan — Short and Actionable**  \n\n**1. Stay Hydrated**  \n- Keep a full water bottle with you at all times.  \n- Avoid sugary or alcoholic drinks, which can dehydrate you.  \n- Set reminders to drink water every 30 minutes.  \n\n**2. Cool Your Home**  \n- Close blinds and curtains during the day to block out heat.  \n- Use fans or air conditioners if available.  \n- If you don’t have AC, consider using a damp cloth on your skin or taking cool showers.  \n\n**3. Protect Vulnerable Family Members**  \n- Ensure elderly family members or those with health conditions have access to cool, shaded areas.  \n- Check on them daily and offer help with hydration and cooling.  \n\n**4. Limit Outdoor Activity**  \n- Avoid going outside during peak heat (10 AM to 4 PM).  \n- If you must go out, wear a wide-brimmed hat, loose clothing, and sunscreen.  \n\n**5. Emergency Kit Essentials**  \n- Include water, electrolyte tablets, ice packs, and a first-aid kit.  \n- Keep a phone charged and a list of emergency contacts handy.  \n\n**6. Stay Informed**  \n- Check local weather updates for heat advisories.  \n- Know the nearest cooling centers or shaded public areas.  \n\n**Final Tip:** If you or anyone in your care feels dizzy, confused, or excessively thirsty, move to a cool place and seek medical help immediately.  \n\nStay safe — and stay cool!",
+      "finalLatencyMs": 10675,
+      "checks": [
+        {
+          "description": "Signed-in citizen flow should be marked personalized",
+          "passed": true,
+          "detail": "Expected true, got true."
+        },
+        {
+          "description": "Adapts guidance to an older or vulnerable person",
+          "passed": true,
+          "detail": "Matched \"elderly\"."
+        },
+        {
+          "description": "Mentions hydration",
+          "passed": true,
+          "detail": "Matched \"water\"."
+        },
+        {
+          "description": "Mentions cooling or shade",
+          "passed": true,
+          "detail": "Matched \"shade\"."
+        }
+      ],
+      "turns": [
+        {
+          "turn": 1,
+          "message": "For this chat, remember that I am caring for my elderly mother and we both need a concise checklist.",
+          "latencyMs": 24930,
+          "status": 200,
+          "model": "qwen3:8b",
+          "replyPreview": "**Emergency Preparedness Checklist for Elderly Care**  \n\n**1. Immediate Needs**  \n- **Medications**: Ensure a 7-day supply of all prescriptions (include a printed list).  \n- **Emergency Contacts**: Ke"
+        },
+        {
+          "turn": 2,
+          "message": "There is a heatwave tomorrow. Give me a short plan for us.",
+          "latencyMs": 10675,
+          "status": 200,
+          "model": "qwen3:8b",
+          "replyPreview": "줏\n\n</think>\n\n**Heatwave Preparedness Plan — Short and Actionable**  \n\n**1. Stay Hydrated**  \n- Keep a full water bottle with you at all times.  \n- Avoid sugary or alcoholic drinks, which can dehydrate"
+        }
+      ]
+    },
+    {
+      "id": "operator-brief",
+      "title": "Operator brief is structured and action-oriented",
+      "auth": "operator",
+      "passed": false,
+      "passCount": 3,
+      "checkCount": 4,
+      "sessionId": "33c738ec-a565-4133-a14f-ba32b1ed3b42",
+      "providerRequested": "ollama-primary",
+      "finalModel": "qwen3:8b",
+      "finalReply": "**OPERATIONAL BRIEF: RIVER FLOODING IN ABERDEEN, POWER OUTAGES IN TORRY, AND SHIELD PRESSURE ACROSS THE CITY**  \n**Timestamp: 2026-03-27T05:26:07.293Z**  \n\n---\n\n### **1. CURRENT SITUATION**  \n- **Aberdeen River Flooding**:  \n  - **Threat Trend**: Stable (no recent alerts).  \n  - **Key Areas**: Monitor flood-prone zones in Aberdeen and adjacent areas (including Keep).  \n  - **Shelter Capacity**: 3,000 spaces available across 5 shelters (0% utilized).  \n\n- **Torry Power Outages**:  \n  - **Grid Status**: Partial outages reported; prioritize critical infrastructure (hospitals, emergency services).  \n  - **Impact**: Potential disruption to communication and utility services.  \n\n- **City-Wide Shelter Pressure**:  \n  - **Current Load**: No immediate pressure; shelters are underutilized.  \n  - **Risk**: Rapid influx due to flooding or power outages.  \n\n---\n\n### **2. THREATS & RISKS**  \n- **Flood Risk**:  \n  - Rising water levels in Aberdeen and Keep could strain infrastructure.  \n  - Contamination risks in flood-affected areas.  \n\n- **Power Outages**:  \n  - Risk of prolonged outages impacting emergency response and shelter operations.  \n  - Potential for cascading failures (e.g., medical equipment, communication systems).  \n\n- **Shelter Pressure**:  \n  - Unpredictable surge in demand due to flooding or power outages.  \n  - Risk of overcrowding if shelters are not scaled up.  \n\n---\n\n### **3. ACTION PLAN**  \n**A. Aberdeen River Flooding**  \n- **Immediate Actions**:  \n  - Deploy flood monitoring teams to Aberdeen and Keep.  \n  - Stock sandbags and barriers in high-risk zones.  \n  - Coordinate with the **Aberdeen Flood Authority** for real-time updates.  \n\n- **Communication**:  \n  - Alert residents in flood-prone areas via SMS and local media.  \n  - Ensure evacuation routes are clear and marked.  \n\n**B. Torry Power Outages**  \n- **Immediate Actions**:  \n  - Prioritize restoring power to hospitals, emergency services, and shelters.  \n  - Set up mobile power units for critical facilities.  \n  - Assess grid damage and report to **Scottish Power Grid Control Center**.  \n\n- **Communication**:  \n  - Inform residents of outages via social media and emergency alerts.  \n  - Provide guidance on emergency lighting and alternative power sources.  \n\n**C. Shelter Pressure Management**  \n- **Immediate Actions**:  \n  - Monitor shelter occupancy in real-time.  \n  - Prepare to open **additional shelters** in Torry and Keep if needed.  \n  - Ensure shelters have backup generators and medical supplies.  \n\n- **Coordination**:  \n  - Liaise with **Aberdeen City Council** and **Torry Community Services** for resource allocation.  \n  - Establish a **shelter overflow plan** for potential mass influx.  \n\n---\n\n### **4. COORDINATION & RESOURCES**  \n- **Inter-Agency Coordination**:  \n  - Use **ICS/NIMS frameworks** to unify efforts between emergency services, local councils, and utility providers.  \n  - Assign a **Joint Operations Center** to track progress and adjust priorities.  \n\n- **Resource Allocation**:  \n  - Deploy **mobile response units** to Aberdeen and Torry.  \n  - Allocate **generator units** to shelters and critical infrastructure.  \n\n- **Public Communication**:  \n  - Use **social media, radio, and local media** to disseminate updates.  \n  - Provide clear instructions for residents on evacuation, shelter locations, and safety.  \n\n---\n\n### **5. MONITORING & FOLLOW-UP**  \n- **Situational Awareness**:  \n  - Reassess flood levels, power status, and shelter occupancy **every 2 hours**.  \n  - Update the **city’s emergency dashboard** with real-time data.  \n\n- **Escalation Criteria**:  \n  - If flood levels rise beyond thresholds in Aberdeen or Keep, activate **Tier 2 flood response**.  \n  - If power outages exceed 48 hours, declare a **power emergency** and activate backup systems.  \n\n- **Next Steps**:  \n  - Conduct a **rapid assessment** of Torry’s power grid by 08:00.  \n  - Prepare for shelter expansion by 10:00.  \n\n--- \n\n**END OF BRIEF**  \n**Prepared by: [Your Name/Team]**  \n**Confidence Level**: High (based on current data and historical trends).  \n**Next Review**: 08:00.  \n\n**Note**: Maintain vigilance for cascading risks (e.g., flood → power outage → shelter strain) and adjust priorities accordingly.",
+      "finalLatencyMs": 43145,
+      "checks": [
+        {
+          "description": "Operator flow should be marked personalized",
+          "passed": true,
+          "detail": "Expected true, got true."
+        },
+        {
+          "description": "Includes a current-state style section",
+          "passed": true,
+          "detail": "Matched \"current situation\"."
+        },
+        {
+          "description": "Includes recommendations",
+          "passed": false,
+          "detail": "Expected one of: recommendation, recommended actions, next actions"
+        },
+        {
+          "description": "Includes risk framing",
+          "passed": true,
+          "detail": "Matched \"risk\"."
+        }
+      ],
+      "turns": [
+        {
+          "turn": 1,
+          "message": "Prepare an operational brief for river flooding in Aberdeen, power outages in Torry, and shelter pressure across the city. Keep it actionable.",
+          "latencyMs": 43145,
+          "status": 200,
+          "model": "qwen3:8b",
+          "replyPreview": "**OPERATIONAL BRIEF: RIVER FLOODING IN ABERDEEN, POWER OUTAGES IN TORRY, AND SHIELD PRESSURE ACROSS THE CITY**  \n**Timestamp: 2026-03-27T05:26:07.293Z**  \n\n---\n\n### **1. CURRENT SITUATION**  \n- **Aber"
+        }
+      ]
+    }
+  ]
+}

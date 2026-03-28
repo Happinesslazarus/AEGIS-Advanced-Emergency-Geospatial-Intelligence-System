@@ -2,7 +2,7 @@
  * auth.ts - Authentication utilities
  * Wraps the JWT token/user stored in localStorage
  */
-import { getUser, clearToken, setUser } from './api'
+import { getUser, clearToken, setUser, getAnyToken } from './api'
 import type { Operator } from '../types'
 
 export function getSession(): Operator | null {
@@ -10,7 +10,6 @@ export function getSession(): Operator | null {
 }
 
 export async function logout(): Promise<void> {
-  console.log('[Auth] Logging out user')
 
   // Try admin logout endpoint, then citizen logout endpoint. Ignore errors.
   try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }) } catch {}
@@ -21,8 +20,6 @@ export async function logout(): Promise<void> {
 
   try {
     localStorage.removeItem('aegis-user')
-    localStorage.removeItem('aegis-token')
-    localStorage.removeItem('aegis-citizen-token')
     localStorage.removeItem('aegis-citizen-user')
     localStorage.removeItem('token')
   } catch {}
@@ -57,14 +54,13 @@ export async function logout(): Promise<void> {
   try { window.location.href = isAdminPath ? '/admin' : '/citizen/login' } catch {}
 }
 
-/**
+ /**
  * Check if the current token is valid by attempting to decode it
  * Returns true if token appears valid (not expired), false otherwise
  */
 export function isTokenValid(): boolean {
-  const token = localStorage.getItem('aegis-token') || localStorage.getItem('aegis-citizen-token')
+  const token = getAnyToken()
   if (!token) {
-    console.warn('[Auth] No token found')
     return false
   }
 
@@ -72,7 +68,6 @@ export function isTokenValid(): boolean {
     // Decode JWT to check expiration (format: header.payload.signature)
     const parts = token.split('.')
     if (parts.length !== 3) {
-      console.error('[Auth] Invalid token format')
       return false
     }
 
@@ -80,7 +75,6 @@ export function isTokenValid(): boolean {
     const exp = payload.exp
     
     if (!exp) {
-      console.warn('[Auth] Token has no expiration')
       return true // If no expiration, assume valid
     }
 
@@ -88,19 +82,16 @@ export function isTokenValid(): boolean {
     const isValid = exp > now
     
     if (!isValid) {
-      console.warn('[Auth] Token expired:', new Date(exp * 1000).toISOString())
-    } else {
-      console.log('[Auth] Token valid, expires:', new Date(exp * 1000).toISOString())
+      // Token expired
     }
     
     return isValid
   } catch (err) {
-    console.error('[Auth] Error validating token:', err)
     return false
   }
 }
 
-/**
+ /**
  * Validate token and redirect to login if invalid
  */
 export function validateTokenOrRedirect(): boolean {

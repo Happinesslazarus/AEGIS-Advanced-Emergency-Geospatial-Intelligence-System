@@ -1,115 +1,72 @@
 /* LoginPage.tsx — Operator authentication with login, register, and password reset forms. */
 
-import { useState, useEffect, useMemo } from 'react'
-import { Link } from 'react-router-dom'
-import { Shield, Lock, Mail, Camera, User, Building2, Phone, LogIn, UserPlus, CheckCircle, Eye, EyeOff, X as XIcon, Check, ArrowLeft, Home, Loader2, AlertCircle, Fingerprint, Radio, Zap } from 'lucide-react'
-import { apiLogin, apiRegister, apiGetDepartments, apiForgotPassword, setToken, setUser } from '../../utils/api'
+import { useState, useRef, useEffect } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { Shield, Lock, Mail, LogIn, CheckCircle, Eye, EyeOff, X as XIcon, Check, ArrowLeft, Home, Loader2, AlertCircle, Fingerprint, Radio, Zap, ChevronDown, Users, ArrowRight, Globe, Info, Menu, X } from 'lucide-react'
+import { apiLogin, apiForgotPassword, setToken, setUser } from '../../utils/api'
 import type { Operator } from '../../types'
 import LanguageSelector from '../shared/LanguageSelector'
 import ThemeSelector from '../../components/ui/ThemeSelector'
+import TwoFactorChallenge from './TwoFactorChallenge'
 import { useLanguage } from '../../hooks/useLanguage'
 import { useTheme } from '../../contexts/ThemeContext'
 
 import { t } from '../../utils/i18n'
-
-const DEFAULT_DEPARTMENTS = [
-  'Emergency Operations', 'Fire & Rescue', 'Police', 'Health & Medical',
-  'Infrastructure', 'Environmental', 'Community Liaison', 'IT & Communications',
-  'Logistics', 'Command & Control'
-]
+import { API_BASE } from '../../utils/helpers'
 
 interface Props { onLogin: (user: Operator) => void }
 
 export default function LoginPage({ onLogin }: Props): JSX.Element {
   const lang = useLanguage()
   const { dark } = useTheme()
-  const [mode, setMode] = useState<'login'|'register'>('login')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const sessionExpired = searchParams.get('session') === 'expired'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [displayName, setDisplayName] = useState('')
-  const [department, setDepartment] = useState('')
-  const [phone, setPhone] = useState('')
-  const [avatar, setAvatar] = useState<File|null>(null)
-  const [avatarPreview, setAvatarPreview] = useState('')
   const [error, setError] = useState('')
   const [regSuccess, setRegSuccess] = useState('')
   const [loading, setLoading] = useState(false)
-  const [departments, setDepartments] = useState<string[]>(DEFAULT_DEPARTMENTS)
+  const [twoFactorRequired, setTwoFactorRequired] = useState(false)
+  const [tempToken, setTempToken] = useState('')
+  const [navDropdownOpen, setNavDropdownOpen] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const navDropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    apiGetDepartments().then(deps => {
-      if (deps?.length > 0) setDepartments(deps.map((d: any) => d.name))
-    }).catch(() => {})
+    const handleClick = (e: MouseEvent) => {
+      if (navDropdownRef.current && !navDropdownRef.current.contains(e.target as Node)) setNavDropdownOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
-  // Live password validation
-  const pwChecks = useMemo(() => ({
-    length: password.length >= 8,
-    upper: /[A-Z]/.test(password),
-    lower: /[a-z]/.test(password),
-    number: /[0-9]/.test(password),
-    special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(password),
-  }), [password])
-
-  const allValid = Object.values(pwChecks).every(Boolean)
   const featureHighlights = [
     { icon: Radio, title: t('login.realTimeMonitoring', lang), desc: t('login.liveIncidentTracking', lang) },
     { icon: Zap, title: t('login.aiPoweredAnalysis', lang), desc: t('login.automatedSeverity', lang) },
     { icon: Fingerprint, title: t('login.secureAccess', lang), desc: t('login.endToEndEncrypted', lang) },
   ]
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setAvatar(file)
-      const reader = new FileReader()
-      reader.onload = (ev) => setAvatarPreview(ev.target?.result as string)
-      reader.readAsDataURL(file)
-    }
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setLoading(true)
     try {
-      if (mode === 'login') {
-        const res = await apiLogin(email, password) as { token: string; user: any }
-        setToken(res.token)
-        setUser(res.user)
-        onLogin(res.user)
-      } else {
-        if (!displayName) { setError(t('login.nameRequired', lang)); setLoading(false); return }
-        if (!allValid) { setError(t('login.passwordRequirements', lang)); setLoading(false); return }
-        if (password !== confirmPassword) { setError(t('login.passwordsMismatchError', lang)); setLoading(false); return }
-        const formData = new FormData()
-        formData.append('email', email)
-        formData.append('password', password)
-        formData.append('displayName', displayName)
-        formData.append('department', department)
-        formData.append('phone', phone)
-        if (avatar) formData.append('avatar', avatar)
-        await apiRegister(formData)
-        setMode('login'); setError('')
-        setRegSuccess(t('login.accountCreated', lang))
-        setEmail(email); setPassword(''); setConfirmPassword('')
-        setDisplayName(''); setDepartment(''); setPhone('')
-        setAvatar(null); setAvatarPreview('')
+      const res = await apiLogin(email, password)
+      if (res.requires2FA && res.tempToken) {
+        // 2FA required — show challenge screen
+        setTwoFactorRequired(true)
+        setTempToken(res.tempToken)
+        setLoading(false)
+        return
       }
+      setToken(res.token!)
+      setUser(res.user!)
+      onLogin(res.user!)
     } catch (err: any) {
       setError(err.message || t('admin.login.invalidCredentials', lang))
     } finally { setLoading(false) }
   }
-
-  const PwCheck = ({ ok, label }: { ok: boolean; label: string }) => (
-    <div className="flex items-center gap-1.5">
-      {ok ? <Check className="w-3.5 h-3.5 text-green-500" /> : <XIcon className="w-3.5 h-3.5 text-red-400" />}
-      <span className={`text-xs ${ok ? 'text-green-500' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`}>{label}</span>
-    </div>
-  )
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50 dark:from-gray-950 dark:via-slate-900 dark:to-gray-950 flex flex-col relative overflow-hidden">
@@ -126,45 +83,129 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
         <div className="absolute -bottom-24 left-1/4 w-80 h-80 bg-indigo-300/6 dark:bg-indigo-500/4 rounded-full blur-3xl" style={{ animation: 'aegis-float 35s ease-in-out infinite 2s' }} />
       </div>
       {/* Navigation */}
-      <nav className="relative bg-white/98 dark:bg-[#09090f] backdrop-blur-2xl text-gray-900 dark:text-white px-4 h-14 flex items-center justify-between shadow-md shadow-gray-200/50 dark:shadow-2xl dark:shadow-black/70 border-b border-gray-200 dark:border-aegis-500/15">
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-aegis-400/40 dark:via-aegis-400/60 to-transparent pointer-events-none" />
+      <nav className="relative z-50 bg-white/98 dark:bg-surface-ultra-dark backdrop-blur-2xl text-gray-900 dark:text-white shadow-md shadow-gray-200/50 dark:shadow-2xl dark:shadow-black/70 border-b border-gray-200 dark:border-aegis-500/15">
+        {/* Top accent gradient bar */}
+        <div className="h-[2px] bg-gradient-to-r from-aegis-600 via-amber-400 to-aegis-600 dark:from-aegis-500/60 dark:via-amber-400/80 dark:to-aegis-500/60" />
+        <div className="px-4 sm:px-6 h-14 flex items-center justify-between">
+        <div className="flex items-center gap-3">
         <Link to="/" className="flex items-center gap-2.5 group">
-          <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-aegis-500 to-aegis-700 flex items-center justify-center shadow-lg shadow-aegis-500/30 group-hover:shadow-aegis-400/60 transition-all group-hover:scale-105">
+          <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-aegis-500 via-aegis-600 to-aegis-700 flex items-center justify-center shadow-lg shadow-aegis-500/30 group-hover:shadow-aegis-400/60 transition-all group-hover:scale-105">
             <Shield className="w-5 h-5 text-white drop-shadow-sm" />
             <div className="absolute inset-0 rounded-xl bg-gradient-to-tr from-white/25 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-400 border-2 border-white dark:border-surface-ultra-dark" />
+            </span>
           </div>
           <div className="hidden sm:block leading-none">
-            <span className="font-black text-sm tracking-wide">
-              <span className="text-aegis-600 dark:text-aegis-400">AEGIS</span>
-              {' '}<span className="text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-white/80">OPS</span>
-            </span>
-            <span className="block text-[9px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-aegis-300 tracking-widest uppercase">{t('admin.portal.title', lang)}</span>
+            <div className="flex items-center gap-2">
+              <span className="font-black text-sm tracking-wide">
+                <span className="text-aegis-600 dark:text-aegis-400">AEGIS</span>
+                {' '}<span className="text-gray-500 dark:text-white/80">OPS</span>
+              </span>
+              <span className="text-[7px] font-bold bg-aegis-100 dark:bg-aegis-900/40 text-aegis-700 dark:text-aegis-300 px-1.5 py-0.5 rounded tracking-widest">v6</span>
+            </div>
+            <span className="block text-[9px] text-gray-400 dark:text-aegis-300 tracking-[0.2em] uppercase mt-0.5">{t('admin.portal.title', lang)}</span>
           </div>
         </Link>
-        <div className="flex items-center gap-1.5">
+        {/* Separator + System Status */}
+        <div className="hidden md:block w-px h-8 bg-gradient-to-b from-transparent via-gray-300 dark:via-white/10 to-transparent" />
+        <div className="hidden md:flex items-center gap-2">
+          <div className="flex items-center gap-1.5 bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/20 px-2.5 py-1 rounded-lg">
+            <span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" /><span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" /></span>
+            <span className="text-[10px] font-bold text-green-600 dark:text-green-400">SYSTEM ONLINE</span>
+          </div>
+          <div className="flex items-center gap-1.5 bg-aegis-50 dark:bg-aegis-500/10 border border-aegis-200 dark:border-aegis-500/20 px-2.5 py-1 rounded-lg">
+            <Lock className="w-3 h-3 text-aegis-500" />
+            <span className="text-[10px] font-bold text-aegis-600 dark:text-aegis-400">ENCRYPTED</span>
+          </div>
+        </div>
+        </div>
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <LanguageSelector darkNav={dark} />
           <ThemeSelector darkNav={dark} />
-          <Link to="/citizen" className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-white/50 hover:text-aegis-600 dark:hover:text-aegis-300 bg-gray-100 dark:bg-white/5 hover:bg-aegis-50 dark:hover:bg-aegis-500/10 border border-gray-200 dark:border-white/8 hover:border-aegis-300 dark:hover:border-aegis-500/25 px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5">
-            <Home className="w-3.5 h-3.5" /> {t('admin.citizenPage', lang)}
-          </Link>
-          <Link to="/citizen/auth" className="relative text-xs font-bold px-3.5 py-1.5 rounded-xl overflow-hidden group bg-aegis-600 hover:bg-aegis-700 shadow-lg shadow-aegis-600/20 hover:shadow-aegis-400/40 transition-all hover:scale-[1.03] active:scale-[0.97] text-white">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out" />
-            <span className="relative z-10">{t('auth.login', lang)}</span>
-          </Link>
+
+          {/* Navigate dropdown */}
+          <div className="relative" ref={navDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setNavDropdownOpen(v => !v)}
+              className="flex items-center gap-2 text-xs font-bold px-3.5 sm:px-4 py-2.5 rounded-xl bg-aegis-600 hover:bg-aegis-700 active:bg-aegis-800 shadow-lg shadow-aegis-600/20 hover:shadow-aegis-500/40 transition-all hover:scale-[1.02] active:scale-[0.97] text-white cursor-pointer select-none min-h-[40px]">
+              <Menu className="w-4 h-4" />
+              <span className="hidden sm:inline">Navigate</span>
+              <ChevronDown className={`w-3.5 h-3.5 opacity-80 transition-transform duration-200 ${navDropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {navDropdownOpen && (
+              <div className="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-white/10 rounded-2xl shadow-2xl shadow-black/15 dark:shadow-black/50 overflow-hidden z-[60]" style={{ animation: 'aegis-fade-up 0.18s ease-out' }}>
+                <div className="px-4 py-3 bg-gradient-to-r from-aegis-50 to-blue-50/50 dark:from-aegis-950/40 dark:to-blue-950/20 border-b border-gray-200/60 dark:border-white/8">
+                  <p className="text-[10px] text-aegis-600 dark:text-aegis-400 font-extrabold uppercase tracking-[0.18em]">Quick Navigation</p>
+                </div>
+                <div className="p-2 space-y-0.5">
+                  <Link to="/" onClick={() => setNavDropdownOpen(false)}
+                    className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 transition-all duration-150 group cursor-pointer">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200/80 dark:from-white/10 dark:to-white/5 flex items-center justify-center group-hover:from-aegis-100 group-hover:to-aegis-200/80 dark:group-hover:from-aegis-500/15 dark:group-hover:to-aegis-600/10 transition-all duration-150 flex-shrink-0">
+                      <Globe className="w-[18px] h-[18px] text-gray-500 dark:text-white/60 group-hover:text-aegis-600 dark:group-hover:text-aegis-400 transition-colors duration-150" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-bold text-gray-900 dark:text-white group-hover:text-aegis-700 dark:group-hover:text-aegis-300 transition-colors">Home</p>
+                      <p className="text-[10px] text-gray-400 dark:text-white/40 mt-0.5 leading-tight">Return to the main landing page</p>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-gray-300 dark:text-white/15 group-hover:text-aegis-500 dark:group-hover:text-aegis-400 group-hover:translate-x-1 transition-all duration-150 flex-shrink-0" />
+                  </Link>
+                  <Link to="/citizen" onClick={() => setNavDropdownOpen(false)}
+                    className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-blue-50/70 dark:hover:bg-blue-500/5 transition-all duration-150 group cursor-pointer">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100/80 dark:from-blue-500/10 dark:to-blue-600/5 flex items-center justify-center group-hover:from-blue-100 group-hover:to-blue-200/80 dark:group-hover:from-blue-500/20 dark:group-hover:to-blue-600/10 transition-all duration-150 flex-shrink-0">
+                      <Users className="w-[18px] h-[18px] text-blue-500 dark:text-blue-400 group-hover:text-blue-600 dark:group-hover:text-blue-300 transition-colors duration-150" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-bold text-gray-900 dark:text-white group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors">Citizen Portal</p>
+                      <p className="text-[10px] text-gray-400 dark:text-white/40 mt-0.5 leading-tight">Public safety dashboard & services</p>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-gray-300 dark:text-white/15 group-hover:text-blue-500 dark:group-hover:text-blue-400 group-hover:translate-x-1 transition-all duration-150 flex-shrink-0" />
+                  </Link>
+                </div>
+                <div className="px-4 py-2.5 border-t border-gray-100 dark:border-white/5 flex items-center gap-2">
+                  <span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" /><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500" /></span>
+                  <span className="text-[9px] font-bold text-green-600/70 dark:text-green-400/60">ONLINE</span>
+                  <span className="text-gray-200 dark:text-white/10">·</span>
+                  <Lock className="w-2.5 h-2.5 text-aegis-400/50" />
+                  <span className="text-[9px] font-bold text-aegis-500/50 dark:text-aegis-400/40">ENCRYPTED</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
         </div>
       </nav>
 
       <div className="flex-1 flex items-center justify-center p-4 relative z-10">
-      <div className="w-full max-w-5xl flex lg:flex-row flex-col gap-8 items-center">
-        {/* Left — Branding Hero (desktop only) */}
-        <div className="hidden lg:flex flex-col flex-1 max-w-sm">
+      {/* 2FA Challenge Screen */}
+      {twoFactorRequired && tempToken ? (
+        <TwoFactorChallenge
+          tempToken={tempToken}
+          onSuccess={(token, user) => {
+            setToken(token)
+            setUser(user as Operator)
+            onLogin(user as Operator)
+          }}
+          onCancel={() => {
+            setTwoFactorRequired(false)
+            setTempToken('')
+            setPassword('')
+            setError('')
+          }}
+        />
+      ) : (
+      <div className="w-full max-w-6xl flex lg:flex-row flex-col gap-6 sm:gap-12 items-center">
+        {/* Left — Branding Hero */}
+        <div className="hidden lg:flex flex-col flex-1 max-w-md">
           <div className="mb-8">
             <div className="w-20 h-20 bg-gradient-to-br from-aegis-500 to-aegis-700 rounded-2xl flex items-center justify-center mb-6 shadow-2xl shadow-aegis-600/30">
               <Shield className="w-11 h-11 text-white" />
             </div>
             <h1 className="text-3xl font-black text-gray-900 dark:text-white leading-tight">{t('admin.portal.title', lang)}</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-3 leading-relaxed">
-              {mode === 'login' ? t('admin.portal.signin', lang) : t('admin.portal.register', lang)}
+            <p className="text-sm text-gray-500 dark:text-gray-300 mt-3 leading-relaxed">
+              {t('admin.portal.signin', lang)}
             </p>
           </div>
           <div className="space-y-4">
@@ -175,79 +216,75 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-gray-900 dark:text-white">{f.title}</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-0.5">{f.desc}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-300 mt-0.5">{f.desc}</p>
                 </div>
               </div>
             ))}
           </div>
           <div className="mt-8 pt-6 border-t border-gray-200/60 dark:border-gray-800/60">
-            <p className="text-[11px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 leading-relaxed">
+            <p className="text-[11px] text-gray-400 dark:text-gray-300 leading-relaxed">
               {t('admin.login.protectedSystem', lang)}
             </p>
           </div>
         </div>
 
         {/* Right — Auth Form */}
-        <div className="w-full lg:max-w-md flex-1">
-        <div className="text-center mb-6 lg:hidden">
-          <div className="w-16 h-16 bg-gradient-to-br from-aegis-500 to-aegis-700 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-aegis-600/30">
-            <Shield className="w-9 h-9 text-white" />
+        <div className="w-full lg:max-w-lg flex-1">
+        {/* Mobile/Tablet: compact branding + feature highlights */}
+        <div className="mb-6 lg:hidden">
+          <div className="text-center mb-4">
+            <div className="w-16 h-16 bg-gradient-to-br from-aegis-500 to-aegis-700 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-aegis-600/30">
+              <Shield className="w-9 h-9 text-white" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('admin.portal.title', lang)}</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-300 dark:text-aegis-200 mt-1">{t('admin.portal.signin', lang)}</p>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('admin.portal.title', lang)}</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-aegis-200 mt-1">{mode === 'login' ? t('admin.portal.signin', lang) : t('admin.portal.register', lang)}</p>
+          {/* Compact feature highlights for mobile */}
+          <div className="grid grid-cols-3 gap-2 mt-4">
+            {featureHighlights.map((f, i) => (
+              <div key={i} className="bg-white/60 dark:bg-white/[0.03] backdrop-blur-sm rounded-xl border border-gray-200/60 dark:border-white/[0.06] p-3 text-center">
+                <div className="w-8 h-8 rounded-lg bg-aegis-50 dark:bg-aegis-500/10 border border-aegis-200/50 dark:border-aegis-500/20 flex items-center justify-center mx-auto mb-2">
+                  <f.icon className="w-4 h-4 text-aegis-600 dark:text-aegis-400" />
+                </div>
+                <h3 className="text-[10px] font-bold text-gray-900 dark:text-white leading-tight">{f.title}</h3>
+                <p className="text-[9px] text-gray-400 dark:text-gray-300 mt-0.5 leading-tight hidden sm:block">{f.desc}</p>
+              </div>
+            ))}
+          </div>
         </div>
 
-        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/80 dark:border-gray-700/50 shadow-2xl shadow-gray-300/20 dark:shadow-black/40 p-6" style={{ animation: 'aegis-fade-up 0.6s ease-out' }}>
-          <div className="flex mb-5 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
-            <button onClick={() => { setMode('login'); setError(''); setRegSuccess('') }} className={`flex-1 py-2 text-sm font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all ${mode === 'login' ? 'bg-white dark:bg-gray-700 shadow text-aegis-700' : 'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`}>
-              <LogIn className="w-4 h-4" /> {t('login.signIn', lang)}
-            </button>
-            <button onClick={() => { setMode('register'); setError(''); setRegSuccess('') }} className={`flex-1 py-2 text-sm font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all ${mode === 'register' ? 'bg-white dark:bg-gray-700 shadow text-aegis-700' : 'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`}>
-              <UserPlus className="w-4 h-4" /> {t('login.register', lang)}
-            </button>
+        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/80 dark:border-gray-700/50 shadow-2xl shadow-gray-300/20 dark:shadow-black/40 p-8 sm:p-10" style={{ animation: 'aegis-fade-up 0.6s ease-out' }}>
+          <div className="flex mb-6 items-center justify-center gap-2.5">
+            <LogIn className="w-5 h-5 text-aegis-600" />
+            <span className="text-base font-semibold text-aegis-700 dark:text-aegis-300">{t('login.signIn', lang)}</span>
           </div>
 
+          {sessionExpired && (
+            <div role="status" aria-live="polite" className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 px-3 py-2.5 rounded-xl text-sm mb-4 flex items-center gap-2" style={{ animation: 'aegis-fade-up 0.4s ease-out' }}>
+              <AlertCircle className="w-4 h-4 flex-shrink-0"/>Your session has expired. Please sign in again.
+              <button onClick={() => { searchParams.delete('session'); setSearchParams(searchParams, { replace: true }) }} className="ml-auto text-amber-500 hover:text-amber-700 dark:hover:text-amber-200 transition-colors" aria-label="Dismiss">&times;</button>
+            </div>
+          )}
           {regSuccess && <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 px-3 py-2.5 rounded-xl text-sm mb-4 flex items-center gap-2"><CheckCircle className="w-4 h-4 flex-shrink-0"/>{regSuccess}</div>}
           {error && <div key={error} role="alert" aria-live="assertive" className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-3 py-2.5 rounded-xl text-sm mb-4 flex items-center gap-2" style={{ animation: 'aegis-shake 0.5s ease-in-out' }}><AlertCircle className="w-4 h-4 flex-shrink-0"/>{error}</div>}
 
-          <form onSubmit={handleSubmit} className="space-y-3">
-            {mode === 'register' && (
-              <div className="flex justify-center mb-2">
-                <label className="cursor-pointer relative group">
-                  <div className="w-20 h-20 rounded-full border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center overflow-hidden bg-gray-50 dark:bg-gray-800 group-hover:border-aegis-400 transition-colors">
-                    {avatarPreview ? <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" /> : <Camera className="w-6 h-6 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />}
-                  </div>
-                  <div className="absolute bottom-0 right-0 w-6 h-6 bg-aegis-500 rounded-full flex items-center justify-center shadow"><Camera className="w-3 h-3 text-white" /></div>
-                  <input type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
-                </label>
-              </div>
-            )}
-
-            {mode === 'register' && (
-              <div className="relative">
-                <User className="absolute left-3 top-3 w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
-                <input type="text" placeholder={`${t('login.fullName', lang)} *`} value={displayName} onChange={e => setDisplayName(e.target.value)}
-                  className="w-full pl-10 pr-3 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:border-aegis-500 focus:ring-1 focus:ring-aegis-500 outline-none" />
-              </div>
-            )}
-
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="relative">
-              <Mail className="absolute left-3 top-3 w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
+              <Mail className="absolute left-3.5 top-3.5 w-4.5 h-4.5 text-gray-400 dark:text-gray-300" />
               <input type="email" placeholder={t('login.email', lang)} value={email} onChange={e => setEmail(e.target.value)} required
-                className="w-full pl-10 pr-3 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:border-aegis-500 focus:ring-1 focus:ring-aegis-500 outline-none" />
+                className="w-full pl-11 pr-4 py-3 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:border-aegis-500 focus:ring-1 focus:ring-aegis-500 outline-none" />
             </div>
 
             <div>
-              {mode === 'register' && <label className="block text-xs font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-1">{t('login.password', lang)}</label>}
               <div className="relative">
-                <Lock className="absolute left-3 top-3 w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
-                <input type={showPassword ? 'text' : 'password'} placeholder={mode === 'register' ? t('login.createPassword', lang) : t('login.password', lang)} value={password} onChange={e => setPassword(e.target.value)} required
-                  className="w-full pl-10 pr-10 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:border-aegis-500 focus:ring-1 focus:ring-aegis-500 outline-none" />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-600" aria-label={showPassword ? t('admin.login.hidePassword', lang) : t('admin.login.showPassword', lang)}>
+                <Lock className="absolute left-3.5 top-3.5 w-4.5 h-4.5 text-gray-400 dark:text-gray-300" />
+                <input type={showPassword ? 'text' : 'password'} placeholder={t('login.password', lang)} value={password} onChange={e => setPassword(e.target.value)} required
+                  className="w-full pl-11 pr-11 py-3 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:border-aegis-500 focus:ring-1 focus:ring-aegis-500 outline-none" />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3.5 top-3.5 text-gray-400 dark:text-gray-300 hover:text-gray-600" aria-label={showPassword ? t('admin.login.hidePassword', lang) : t('admin.login.showPassword', lang)}>
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-              {mode === 'login' && (
+              {(
                 <div className="mt-1 text-right">
                   <button
                     type="button"
@@ -269,76 +306,46 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
                   </button>
                 </div>
               )}
-              {password.length > 0 && (
-                <div className="mt-2 space-y-0.5">
-                  <PwCheck ok={pwChecks.length} label="8+ chars" />
-                  <PwCheck ok={pwChecks.upper} label="Uppercase" />
-                  <PwCheck ok={pwChecks.lower} label="Lowercase" />
-                  <PwCheck ok={pwChecks.number} label="Number" />
-                  <PwCheck ok={pwChecks.special} label="Special" />
-                </div>
-              )}
             </div>
 
-            {mode === 'register' && (
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
-                <input type={showConfirmPassword ? 'text' : 'password'} placeholder={t('login.confirmPassword', lang)} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required
-                  className="w-full pl-10 pr-10 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:border-aegis-500 focus:ring-1 focus:ring-aegis-500 outline-none" />
-                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-3 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-600" aria-label={showConfirmPassword ? t('admin.login.hidePassword', lang) : t('admin.login.showPassword', lang)}>
-                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-                {confirmPassword && password !== confirmPassword && <p className="text-xs text-red-400 mt-1 flex items-center gap-1"><XIcon className="w-3 h-3" /> {t('login.passwordsMismatch', lang)}</p>}
-                {confirmPassword && password === confirmPassword && password.length > 0 && <p className="text-xs text-green-500 mt-1 flex items-center gap-1"><Check className="w-3 h-3" /> {t('login.passwordsMatch', lang)}</p>}
-              </div>
-            )}
-
-            {mode === 'register' && (
-              <>
-                <div className="relative">
-                  <Building2 className="absolute left-3 top-3 w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
-                  <select value={department} onChange={e => setDepartment(e.target.value)}
-                    className="w-full pl-10 pr-3 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:border-aegis-500 appearance-none">
-                    <option value="">{t('users.department', lang)}</option>
-                    {departments.map(d => <option key={d} value={d}>{d}</option>)}
-                  </select>
-                </div>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-3 w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
-                  <input type="tel" placeholder={`${t('common.phone', lang)} (${t('citizen.auth.optional', lang)})`} value={phone} onChange={e => setPhone(e.target.value)}
-                    className="w-full pl-10 pr-3 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:border-aegis-500 outline-none" />
-                </div>
-              </>
-            )}
-
-            <button type="submit" disabled={loading || (mode === 'register' && !allValid)}
-              className="w-full bg-gradient-to-r from-aegis-600 to-aegis-700 hover:from-aegis-500 hover:to-aegis-600 disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed py-3 rounded-xl font-bold text-sm text-white transition-all shadow-lg shadow-aegis-600/25 flex items-center justify-center gap-2">
+            <button type="submit" disabled={loading}
+              className="w-full bg-gradient-to-r from-aegis-600 to-aegis-700 hover:from-aegis-500 hover:to-aegis-600 disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed py-3.5 rounded-xl font-bold text-sm text-white transition-all shadow-lg shadow-aegis-600/25 flex items-center justify-center gap-2 mt-2">
               {loading
-                ? <><Loader2 className="w-4 h-4 animate-spin" /> {mode === 'login' ? t('admin.login.signingIn', lang) : t('citizen.auth.creating', lang)}</>
-                : mode === 'login'
-                  ? t('login.signIn', lang)
-                  : t('citizen.auth.createAccount', lang)}
+                ? <><Loader2 className="w-4 h-4 animate-spin" /> {t('admin.login.signingIn', lang)}</>
+                : t('login.signIn', lang)}
             </button>
           </form>
 
-          {mode === 'login' && <p className="text-center text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-3">{t('admin.portal.signin', lang)}</p>}
+          {/*  OAuth Divider & Google Sign-In  */}
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200 dark:border-gray-700" /></div>
+            <div className="relative flex justify-center text-xs">
+              <span className="px-3 bg-white dark:bg-gray-900 text-gray-400 dark:text-gray-300">or continue with</span>
+            </div>
+          </div>
+          <a
+            href={`${API_BASE}/api/auth/google`}
+            className="w-full flex items-center justify-center gap-3 py-2.5 px-4 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors text-sm font-medium text-gray-700 dark:text-gray-200 shadow-sm"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+            <span>Sign in with Google</span>
+          </a>
 
-          <div className="flex items-center justify-center gap-3 mt-4 pt-3 border-t border-gray-100 dark:border-gray-800">
-            <span className="flex items-center gap-1 text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300"><Lock className="w-3 h-3"/>{t('admin.login.secureConnection', lang)}</span>
-            <span className="text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-700">·</span>
-            <span className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('users.sessions', lang)}</span>
-            <span className="text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-700">·</span>
-            <span className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('admin.login.protectedSystem', lang)}</span>
+          <p className="text-center text-[10px] text-gray-400 dark:text-gray-300 mt-4">{t('admin.portal.signin', lang)}</p>
+
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 mt-5 pt-4 border-t border-gray-100 dark:border-gray-800">
+            <span className="flex items-center gap-1 text-[10px] text-gray-400 dark:text-gray-300 whitespace-nowrap"><Lock className="w-3 h-3 flex-shrink-0"/>{t('admin.login.secureConnection', lang)}</span>
+            <span className="text-gray-300 dark:text-gray-700 hidden sm:inline">·</span>
+            <span className="text-[10px] text-gray-400 dark:text-gray-300 whitespace-nowrap">{t('users.sessions', lang)}</span>
+            <span className="text-gray-300 dark:text-gray-700 hidden sm:inline">·</span>
+            <span className="text-[10px] text-gray-400 dark:text-gray-300 whitespace-nowrap text-center">{t('admin.login.protectedSystem', lang)}</span>
           </div>
         </div>
         </div>
       </div>
+      )}
       </div>
     </div>
   )
 }
-
-
-
-
-
+

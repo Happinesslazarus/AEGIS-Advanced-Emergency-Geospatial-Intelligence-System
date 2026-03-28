@@ -5,7 +5,7 @@
  * across ALL 11 incident types with live Socket.IO updates.
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Shield, AlertTriangle, Droplets, Users,
   Activity, TrendingUp, TrendingDown, RefreshCw,
@@ -13,7 +13,9 @@ import {
   CloudRain, Sun, Construction, Eye, Leaf
 } from 'lucide-react'
 import { t } from '../../utils/i18n'
+import { getAnyToken } from '../../utils/api'
 import { useLanguage } from '../../hooks/useLanguage'
+import { RISK_CLASSES, INCIDENT_CLASSES } from '../../utils/colorTokens'
 
 const API = ''
 
@@ -61,6 +63,9 @@ interface CascadingInsight {
   chain: string[]
   confidence: number
   recommended_actions: string[]
+  likely_within_minutes?: number
+  impact_score?: number
+  confidence_band?: { p50: number; p90: number }
 }
 
 interface IncidentObject {
@@ -87,26 +92,29 @@ interface IncidentExplanation {
   trace: Array<{ step: string; value: string }>
 }
 
+interface IncidentTimelinePoint {
+  window_minutes: number
+  snapshot_at: string
+  present: boolean
+  lifecycle_state: 'weak' | 'possible' | 'probable' | 'high' | 'confirmed' | null
+  confidence: number | null
+  evidence_count: number
+}
+
 interface Props {
   socket?: any
   className?: string
   collapsed?: boolean
 }
 
-const RISK_COLORS: Record<string, string> = {
-  CRITICAL: 'text-red-600 dark:text-red-400',
-  HIGH:     'text-orange-600 dark:text-orange-400',
-  MEDIUM:   'text-amber-600 dark:text-amber-400',
-  LOW:      'text-blue-600 dark:text-blue-400',
-  NONE:     'text-green-600 dark:text-green-400',
-}
+const RISK_COLORS: Record<string, string> = RISK_CLASSES
 
 const THREAT_CONFIG: Record<string, { bg: string; border: string; text: string; pulse?: boolean }> = {
-  CRITICAL: { bg: 'bg-red-100 dark:bg-red-900/60',   border: 'border-red-500',   text: 'text-red-600 dark:text-red-400',   pulse: true },
-  RED:      { bg: 'bg-red-50 dark:bg-red-900/40',   border: 'border-red-600',   text: 'text-red-600 dark:text-red-400',   pulse: true },
-  AMBER:    { bg: 'bg-amber-50 dark:bg-amber-900/40', border: 'border-amber-600', text: 'text-amber-600 dark:text-amber-400' },
+  CRITICAL: { bg: 'bg-danger-surface',    border: 'border-red-500',   text: 'text-danger-text',   pulse: true },
+  RED:      { bg: 'bg-danger-surface',    border: 'border-red-600',   text: 'text-danger-text',   pulse: true },
+  AMBER:    { bg: 'bg-warning-surface',   border: 'border-amber-600', text: 'text-warning-text' },
   HIGH:     { bg: 'bg-orange-50 dark:bg-orange-900/40',border: 'border-orange-600',text: 'text-orange-600 dark:text-orange-400' },
-  GREEN:    { bg: 'bg-green-50 dark:bg-green-900/30', border: 'border-green-700', text: 'text-green-600 dark:text-green-400' },
+  GREEN:    { bg: 'bg-success-surface',   border: 'border-green-700', text: 'text-success-text' },
 }
 
 const INCIDENT_ICONS: Record<string, any> = {
@@ -125,21 +133,7 @@ const INCIDENT_ICONS: Record<string, any> = {
   drought:                Sun,
 }
 
-const INCIDENT_COLORS: Record<string, string> = {
-  flood:                  'text-blue-600 dark:text-blue-400',
-  severe_storm:           'text-purple-600 dark:text-purple-400',
-  heatwave:               'text-red-600 dark:text-red-400',
-  wildfire:               'text-orange-600 dark:text-orange-400',
-  landslide:              'text-yellow-700 dark:text-yellow-600',
-  power_outage:           'text-yellow-600 dark:text-yellow-400',
-  water_supply:           'text-cyan-600 dark:text-cyan-400',
-  water_supply_disruption:'text-cyan-600 dark:text-cyan-400',
-  infrastructure_damage:  'text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300',
-  public_safety:          'text-red-600 dark:text-red-500',
-  public_safety_incident: 'text-red-600 dark:text-red-500',
-  environmental_hazard:   'text-green-600 dark:text-green-400',
-  drought:                'text-amber-600 dark:text-amber-500',
-}
+const INCIDENT_COLORS: Record<string, string> = INCIDENT_CLASSES
 
 function riskToScore(level: string): number {
   const map: Record<string, number> = { Critical: 92, HIGH: 72, High: 72, AMBER: 45, Medium: 45, Low: 15, NONE: 5, GREEN: 5 }
@@ -169,11 +163,13 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
   const [incidentChanges, setIncidentChanges] = useState<IncidentChangeFeed | null>(null)
   const [selectedIncidentId, setSelectedIncidentId] = useState<string | null>(null)
   const [selectedExplanation, setSelectedExplanation] = useState<IncidentExplanation | null>(null)
+  const [selectedTimeline, setSelectedTimeline] = useState<IncidentTimelinePoint[]>([])
   const [loading, setLoading] = useState(true)
   const [collapsed, setCollapsed] = useState(initCollapsed)
+  const fetchAbortRef = useRef<AbortController | null>(null)
 
   const getAuthContext = useCallback((): { token: string | null; role: string | null } => {
-    const token = localStorage.getItem('aegis-token') || localStorage.getItem('aegis-citizen-token')
+    const token = getAnyToken()
     const rawUser = localStorage.getItem('aegis-user') || localStorage.getItem('aegis-citizen-user')
     let role: string | null = null
     try {
@@ -190,12 +186,18 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
       // Optional intelligence endpoints may be unavailable by role or backend version.
       if ([401, 403, 404].includes(res.status)) return null
       return res
-    } catch {
+    } catch (err: any) {
+      if (err?.name !== 'AbortError') console.error('[Intelligence] fetch error:', err?.message)
       return null
     }
   }, [])
 
   const fetchAll = useCallback(async () => {
+    fetchAbortRef.current?.abort()
+    const controller = new AbortController()
+    fetchAbortRef.current = controller
+    const signal = controller.signal
+
     setLoading(true)
     try {
       const { token, role } = getAuthContext()
@@ -204,13 +206,13 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
       const canReadDistress = ['admin', 'operator', 'manager'].includes(String(role || ''))
 
       const [dashRes, riverRes, distressRes, clusterRes, cascadeRes, incidentsRes, changesRes] = await Promise.all([
-        isAuthenticated ? safeFetch(`${API}/api/v1/incidents/all/dashboard`, { headers: authHeaders }) : Promise.resolve(null),
-        safeFetch(`${API}/api/rivers/levels`),
-        canReadDistress ? safeFetch(`${API}/api/distress/active`, { headers: authHeaders }) : Promise.resolve(null),
-        safeFetch(`${API}/api/reports/clusters?minutes=180&radiusMeters=1000&minReports=3`, { headers: authHeaders }),
-        safeFetch(`${API}/api/reports/cascading-insights?windowMinutes=180`, { headers: authHeaders }),
-        safeFetch(`${API}/api/reports/incident-objects?minutes=180&radiusMeters=1000&minReports=3`, { headers: authHeaders }),
-        safeFetch(`${API}/api/reports/incident-objects/changes?minutes=15&baselineMinutes=15&radiusMeters=1000&minReports=3`, { headers: authHeaders }),
+        isAuthenticated ? safeFetch(`${API}/api/v1/incidents/all/dashboard`, { headers: authHeaders, signal }) : Promise.resolve(null),
+        safeFetch(`${API}/api/rivers/levels`, { signal }),
+        canReadDistress ? safeFetch(`${API}/api/distress/active`, { headers: authHeaders, signal }) : Promise.resolve(null),
+        safeFetch(`${API}/api/reports/clusters?minutes=180&radiusMeters=1000&minReports=3`, { headers: authHeaders, signal }),
+        safeFetch(`${API}/api/reports/cascading-insights?windowMinutes=180`, { headers: authHeaders, signal }),
+        safeFetch(`${API}/api/reports/incident-objects?minutes=180&radiusMeters=1000&minReports=3`, { headers: authHeaders, signal }),
+        safeFetch(`${API}/api/reports/incident-objects/changes?minutes=15&baselineMinutes=15&radiusMeters=1000&minReports=3`, { headers: authHeaders, signal }),
       ])
 
       if (dashRes?.ok) {
@@ -288,6 +290,7 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
   useEffect(() => {
     if (!selectedIncidentId) {
       setSelectedExplanation(null)
+      setSelectedTimeline([])
       return
     }
     const { token } = getAuthContext()
@@ -299,9 +302,19 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
         if (data?.explanation) setSelectedExplanation(data.explanation)
       })
       .catch(() => setSelectedExplanation(null))
+
+    safeFetch(`${API}/api/reports/incident-objects/${encodeURIComponent(selectedIncidentId)}/timeline`, { headers })
+      .then((r) => (r?.ok ? r.json() : null))
+      .then((data) => {
+        if (Array.isArray(data?.data)) setSelectedTimeline(data.data)
+      })
+      .catch(() => setSelectedTimeline([]))
   }, [getAuthContext, safeFetch, selectedIncidentId])
 
-  useEffect(() => { fetchAll() }, [fetchAll])
+  useEffect(() => {
+    fetchAll()
+    return () => { fetchAbortRef.current?.abort() }
+  }, [fetchAll])
 
   // Auto-refresh every 60s
   useEffect(() => {
@@ -364,7 +377,7 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
   const TrendIcon = ({ trend }: { trend: string }) => {
     if (trend === 'rising')  return <TrendingUp   className="w-3 h-3 text-red-400" />
     if (trend === 'falling') return <TrendingDown className="w-3 h-3 text-green-400" />
-    return <Activity className="w-3 h-3 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
+    return <Activity className="w-3 h-3 text-gray-400 dark:text-gray-300" />
   }
 
   const threatDescMap: Record<string, string> = {
@@ -392,10 +405,10 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
                 {threatLevel}
               </span>
             </div>
-            <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-0.5">{threatDescMap[threatLevel]}</p>
+            <p className="text-[10px] text-gray-500 dark:text-gray-300 mt-0.5">{threatDescMap[threatLevel]}</p>
           </div>
         </div>
-        {collapsed ? <ChevronDown className="w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" /> : <ChevronUp className="w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />}
+        {collapsed ? <ChevronDown className="w-4 h-4 text-gray-400 dark:text-gray-300" /> : <ChevronUp className="w-4 h-4 text-gray-400 dark:text-gray-300" />}
       </button>
 
       {!collapsed && (
@@ -404,7 +417,7 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
           {/* Composite threat score bar */}
           <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700/30">
             <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('intel.compositeScore', lang)}</span>
+            <span className="text-[10px] text-gray-500 dark:text-gray-300">{t('intel.compositeScore', lang)}</span>
               <span className="text-xs font-mono font-bold text-gray-900 dark:text-white">{score}/100</span>
             </div>
             <div className="w-full h-2.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
@@ -423,60 +436,60 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
           {/* Cross-incident stats */}
           <div className="px-4 py-3 grid grid-cols-3 md:grid-cols-6 gap-2 border-b border-gray-100 dark:border-gray-700/30">
             <div className="text-center p-2 bg-gray-100 dark:bg-gray-800/40 rounded-lg">
-              <div className={`text-lg font-bold ${(dashboard?.totalActiveIncidents ?? 0) > 0 ? 'text-red-400' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`}>
+              <div className={`text-lg font-bold ${(dashboard?.totalActiveIncidents ?? 0) > 0 ? 'text-red-400' : 'text-gray-400 dark:text-gray-300'}`}>
                 {dashboard?.totalActiveIncidents ?? 0}
               </div>
-              <div className="text-[9px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('intel.active', lang)}</div>
+              <div className="text-[9px] text-gray-500 dark:text-gray-300">{t('intel.active', lang)}</div>
             </div>
             <div className="text-center p-2 bg-gray-100 dark:bg-gray-800/40 rounded-lg">
-              <div className={`text-lg font-bold ${(dashboard?.totalAlerts ?? 0) > 0 ? 'text-amber-400' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`}>
+              <div className={`text-lg font-bold ${(dashboard?.totalAlerts ?? 0) > 0 ? 'text-amber-400' : 'text-gray-400 dark:text-gray-300'}`}>
                 {dashboard?.totalAlerts ?? 0}
               </div>
-              <div className="text-[9px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('intel.alerts', lang)}</div>
+              <div className="text-[9px] text-gray-500 dark:text-gray-300">{t('intel.alerts', lang)}</div>
             </div>
             <div className="text-center p-2 bg-gray-100 dark:bg-gray-800/40 rounded-lg">
               <div className={`text-lg font-bold ${criticalRivers > 0 ? 'text-red-400' : 'text-blue-400'}`}>
                 {criticalRivers}
               </div>
-              <div className="text-[9px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex items-center justify-center gap-0.5">
+              <div className="text-[9px] text-gray-500 dark:text-gray-300 flex items-center justify-center gap-0.5">
                 <Droplets className="w-2.5 h-2.5" /> {t('intel.rivers', lang)}
               </div>
             </div>
             <div className="text-center p-2 bg-gray-100 dark:bg-gray-800/40 rounded-lg">
-              <div className={`text-lg font-bold ${distressCount > 0 ? 'text-red-400 animate-pulse' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`}>
+              <div className={`text-lg font-bold ${distressCount > 0 ? 'text-red-400 animate-pulse' : 'text-gray-400 dark:text-gray-300'}`}>
                 {distressCount}
               </div>
-              <div className="text-[9px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex items-center justify-center gap-0.5">
+              <div className="text-[9px] text-gray-500 dark:text-gray-300 flex items-center justify-center gap-0.5">
                 <Radio className="w-2.5 h-2.5" /> SOS
               </div>
             </div>
             <div className="text-center p-2 bg-gray-100 dark:bg-gray-800/40 rounded-lg">
-              <div className={`text-lg font-bold ${incidentClusters.length > 0 ? 'text-lime-400' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`}>
+              <div className={`text-lg font-bold ${incidentClusters.length > 0 ? 'text-lime-400' : 'text-gray-400 dark:text-gray-300'}`}>
                 {incidentClusters.length}
               </div>
-              <div className="text-[9px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('intel.clusters', lang)}</div>
+              <div className="text-[9px] text-gray-500 dark:text-gray-300">{t('intel.clusters', lang)}</div>
             </div>
             <div className="text-center p-2 bg-gray-100 dark:bg-gray-800/40 rounded-lg">
-              <div className={`text-lg font-bold ${cascadingInsights.length > 0 ? 'text-fuchsia-400' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`}>
+              <div className={`text-lg font-bold ${cascadingInsights.length > 0 ? 'text-fuchsia-400' : 'text-gray-400 dark:text-gray-300'}`}>
                 {cascadingInsights.length}
               </div>
-              <div className="text-[9px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('intel.cascades', lang)}</div>
+              <div className="text-[9px] text-gray-500 dark:text-gray-300">{t('intel.cascades', lang)}</div>
             </div>
           </div>
 
           {/* Active incident types breakdown */}
           {activeIncidents.length > 0 && (
             <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700/30">
-              <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-2 uppercase tracking-wide">{t('intel.activeByType', lang)}</p>
+              <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-300 mb-2 uppercase tracking-wide">{t('intel.activeByType', lang)}</p>
               <div className="space-y-1">
                 {activeIncidents.map(inc => {
                   const Icon = INCIDENT_ICONS[inc.id] || Eye
-                  const color = INCIDENT_COLORS[inc.id] || 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'
+                  const color = INCIDENT_COLORS[inc.id] || 'text-gray-400 dark:text-gray-300'
                   return (
                     <div key={inc.id} className="flex items-center gap-2 py-0.5">
                       <Icon className={`w-3 h-3 flex-shrink-0 ${color}`} />
-                      <span className="text-[10px] text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex-1 truncate">{incidentLabel(inc.id)}</span>
-                      <span className={`text-[10px] font-bold ${RISK_COLORS[inc.maxSeverity] || 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`}>{inc.maxSeverity}</span>
+                      <span className="text-[10px] text-gray-600 dark:text-gray-300 flex-1 truncate">{incidentLabel(inc.id)}</span>
+                      <span className={`text-[10px] font-bold ${RISK_COLORS[inc.maxSeverity] || 'text-gray-400 dark:text-gray-300'}`}>{inc.maxSeverity}</span>
                       <span className="text-[10px] font-mono text-gray-800 dark:text-white bg-gray-100 dark:bg-gray-700/60 px-1.5 py-0.5 rounded">{inc.activeCount}</span>
                     </div>
                   )
@@ -487,28 +500,28 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
 
           {incidentChanges && (
             <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700/30">
-              <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-2 uppercase tracking-wide">{t('intel.whatChanged', lang)}</p>
+              <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-300 mb-2 uppercase tracking-wide">{t('intel.whatChanged', lang)}</p>
               <div className="grid grid-cols-4 gap-2 mb-2">
                 <div className="text-center p-1.5 bg-gray-100 dark:bg-gray-800/40 rounded">
                   <p className="text-sm font-bold text-emerald-400">{incidentChanges.totals.new_count}</p>
-                  <p className="text-[9px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('intel.new', lang)}</p>
+                  <p className="text-[9px] text-gray-500 dark:text-gray-300">{t('intel.new', lang)}</p>
                 </div>
                 <div className="text-center p-1.5 bg-gray-100 dark:bg-gray-800/40 rounded">
                   <p className="text-sm font-bold text-red-400">{incidentChanges.totals.escalated_count}</p>
-                  <p className="text-[9px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('intel.escalated', lang)}</p>
+                  <p className="text-[9px] text-gray-500 dark:text-gray-300">{t('intel.escalated', lang)}</p>
                 </div>
                 <div className="text-center p-1.5 bg-gray-100 dark:bg-gray-800/40 rounded">
                   <p className="text-sm font-bold text-amber-400">{incidentChanges.totals.downgraded_count}</p>
-                  <p className="text-[9px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('intel.downgraded', lang)}</p>
+                  <p className="text-[9px] text-gray-500 dark:text-gray-300">{t('intel.downgraded', lang)}</p>
                 </div>
                 <div className="text-center p-1.5 bg-gray-100 dark:bg-gray-800/40 rounded">
                   <p className="text-sm font-bold text-blue-400">{incidentChanges.totals.resolved_count}</p>
-                  <p className="text-[9px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('intel.resolved', lang)}</p>
+                  <p className="text-[9px] text-gray-500 dark:text-gray-300">{t('intel.resolved', lang)}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 {(['weak', 'possible', 'probable', 'high', 'confirmed'] as const).map((state) => (
-                  <span key={state} className="text-[9px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+                  <span key={state} className="text-[9px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
                     {t(`intel.lifecycle.${state}`, lang)}: {lifecycleCounts[state] || 0}
                   </span>
                 ))}
@@ -518,7 +531,7 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
 
           {incidentObjects.length > 0 && (
             <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700/30">
-              <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-2 uppercase tracking-wide">{t('intel.whyConfidence', lang)}</p>
+              <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-300 mb-2 uppercase tracking-wide">{t('intel.whyConfidence', lang)}</p>
               <div className="space-y-1 max-h-[90px] overflow-y-auto mb-2">
                 {incidentObjects.slice(0, 4).map((incident) => (
                   <button
@@ -526,16 +539,39 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
                     onClick={() => setSelectedIncidentId(incident.incident_id)}
                     className={`w-full text-left rounded px-2 py-1 text-[10px] border ${selectedIncidentId === incident.incident_id ? 'border-aegis-500 bg-gray-100 dark:bg-gray-800' : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 hover:bg-gray-100 dark:hover:bg-gray-800/60'}`}
                   >
-                    {incidentLabel(incident.incident_type)} · {Math.round(incident.confidence * 100)}% · {incident.lifecycle_state}
+                    {incidentLabel(incident.incident_type)} — {Math.round(incident.confidence * 100)}% — {incident.lifecycle_state}
                   </button>
                 ))}
               </div>
               {selectedExplanation && (
                 <div className="rounded bg-gray-100 dark:bg-gray-800/50 p-2">
                   <p className="text-[10px] text-gray-800 dark:text-gray-200 font-semibold">{selectedExplanation.summary}</p>
-                  <p className="text-[9px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-1">
+                  <p className="text-[9px] text-gray-500 dark:text-gray-300 mt-1">
                     {selectedExplanation.drivers?.slice(0, 2).join(' | ') || t('intel.noDrivers', lang)}
                   </p>
+                </div>
+              )}
+              {selectedTimeline.length > 0 && (
+                <div className="rounded bg-gray-100 dark:bg-gray-800/50 p-2 mt-2">
+                  <p className="text-[10px] text-gray-800 dark:text-gray-200 font-semibold mb-2">Incident evolution timeline</p>
+                  <div className="space-y-1.5">
+                    {selectedTimeline.map((point) => {
+                      const pct = Math.round((point.confidence || 0) * 100)
+                      const bar = Math.max(6, pct)
+                      return (
+                        <div key={point.window_minutes} className="grid grid-cols-[46px_1fr_52px] gap-2 items-center">
+                          <span className="text-[9px] text-gray-500 dark:text-gray-400">{point.window_minutes}m</span>
+                          <div className="h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                            <div
+                              className={`h-full ${point.lifecycle_state === 'confirmed' ? 'bg-emerald-500' : point.lifecycle_state === 'high' ? 'bg-green-500' : point.lifecycle_state === 'probable' ? 'bg-amber-500' : point.lifecycle_state === 'possible' ? 'bg-orange-500' : 'bg-gray-400'}`}
+                              style={{ width: `${bar}%` }}
+                            />
+                          </div>
+                          <span className="text-[9px] text-gray-600 dark:text-gray-300 text-right">{point.present ? `${pct}%` : 'N/A'}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
               )}
             </div>
@@ -544,14 +580,14 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
           {/* Live alerts feed (Socket.IO pushed) */}
           {liveAlerts.length > 0 && (
             <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700/30">
-              <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-2 uppercase tracking-wide">{t('intel.liveAlerts', lang)}</p>
+              <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-300 mb-2 uppercase tracking-wide">{t('intel.liveAlerts', lang)}</p>
               <div className="space-y-1 max-h-[100px] overflow-y-auto">
                 {liveAlerts.map((a, i) => (
                   <div key={i} className="flex items-start gap-1.5 bg-gray-100 dark:bg-gray-800/40 rounded px-2 py-1">
                     <AlertTriangle className={`w-2.5 h-2.5 mt-0.5 flex-shrink-0 ${a.riskLevel === 'Critical' ? 'text-red-400 animate-pulse' : 'text-amber-400'}`} />
                     <div className="min-w-0 flex-1">
                       <p className="text-[10px] font-semibold text-gray-900 dark:text-white truncate">{a.title}</p>
-                      <p className="text-[9px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{incidentLabel(a.incidentType)} · {a.riskLevel}</p>
+                      <p className="text-[9px] text-gray-500 dark:text-gray-300">{incidentLabel(a.incidentType)} — {a.riskLevel}</p>
                     </div>
                   </div>
                 ))}
@@ -561,14 +597,19 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
 
           {cascadingInsights.length > 0 && (
             <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700/30">
-              <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-2 uppercase tracking-wide">{t('intel.cascadingChains', lang)}</p>
+              <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-300 mb-2 uppercase tracking-wide">{t('intel.cascadingChains', lang)}</p>
               <div className="space-y-1 max-h-[110px] overflow-y-auto">
                 {cascadingInsights.slice(0, 4).map((insight, i) => (
                   <div key={i} className="flex items-start gap-1.5 bg-gray-100 dark:bg-gray-800/40 rounded px-2 py-1">
                     <AlertTriangle className={`w-2.5 h-2.5 mt-0.5 flex-shrink-0 ${insight.confidence >= 0.8 ? 'text-red-400 animate-pulse' : 'text-amber-400'}`} />
                     <div className="min-w-0 flex-1">
                       <p className="text-[10px] font-semibold text-gray-900 dark:text-white truncate">{insight.chain.join(' -> ')}</p>
-                      <p className="text-[9px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">Confidence {Math.round(insight.confidence * 100)}%</p>
+                      <p className="text-[9px] text-gray-500 dark:text-gray-300">
+                        Confidence {Math.round(insight.confidence * 100)}%{insight.confidence_band ? ` — P50 ${Math.round(insight.confidence_band.p50 * 100)}% — P90 ${Math.round(insight.confidence_band.p90 * 100)}%` : ''}
+                      </p>
+                      {insight.likely_within_minutes && (
+                        <p className="text-[9px] text-gray-500 dark:text-gray-400">Likely within {insight.likely_within_minutes} min{insight.impact_score ? ` — Impact ${insight.impact_score}/100` : ''}</p>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -579,7 +620,7 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
           {/* River gauge list (flood intelligence — kept) */}
           {rivers.length > 0 && (
             <div className="max-h-[160px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600">
-              <p className="px-4 py-1 text-[10px] font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-wide border-b border-gray-100 dark:border-gray-700/20">{t('intel.riverGauges', lang)}</p>
+              <p className="px-4 py-1 text-[10px] font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wide border-b border-gray-100 dark:border-gray-700/20">{t('intel.riverGauges', lang)}</p>
               {rivers.map(river => (
                 <div key={river.stationId} className="px-4 py-2 flex items-center gap-3 border-b border-gray-100 dark:border-gray-700/20 last:border-b-0 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
                   <div className={`w-2 h-2 rounded-full flex-shrink-0 ${river.status === 'CRITICAL' ? 'bg-red-500 animate-pulse' : river.status === 'HIGH' ? 'bg-orange-500' : river.status === 'ELEVATED' ? 'bg-amber-400' : 'bg-blue-500'}`} />
@@ -607,8 +648,4 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
     </div>
   )
 }
-
-
-
-
-
+

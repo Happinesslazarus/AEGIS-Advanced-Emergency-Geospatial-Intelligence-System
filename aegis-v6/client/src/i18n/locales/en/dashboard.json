@@ -54,6 +54,33 @@
     "regionalOverview": "Regional Overview",
     "publicGuidance": "Public Guidance"
   },
+  "incidentFilter": {
+    "label": "Filter Incidents",
+    "all": "All",
+    "active": "Active Only",
+    "byType": "By Type",
+    "bySeverity": "By Severity",
+    "byRegion": "By Region"
+  },
+  "stats": {
+    "totalActive": "Active",
+    "criticalAlerts": "Critical Alerts",
+    "predictedRisks": "Predicted Risks",
+    "regionsAffected": "Regions Affected",
+    "reportsToday": "Reports Today",
+    "averageResponse": "Average Response Time",
+    "systemUptime": "System Uptime",
+    "aiAccuracy": "AI Accuracy"
+  },
+  "incidents": {
+    "active": "Active Incidents",
+    "monitoring": "Types Monitored",
+    "status": "Incident Status",
+    "normal": "Normal"
+  },
+  "predictions": {
+    "active": "Predictions"
+  },
   "widgets": {
     "threatLevel": "Threat Level",
     "riverGauges": "River Gauges",

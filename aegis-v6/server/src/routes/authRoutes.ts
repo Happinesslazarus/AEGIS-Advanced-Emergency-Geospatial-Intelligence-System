@@ -1,4 +1,4 @@
-/*
+﻿/*
  * authRoutes.ts - Authentication and operator management API
  *
  * Handles all auth-related endpoints:
@@ -11,13 +11,27 @@
  * JWTs are issued on successful login and expire after 24 hours.
  */
 
-import { Router, Response } from 'express'
+import { Router, Response, NextFunction } from 'express'
 import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import rateLimit from 'express-rate-limit'
 import pool from '../models/db.js'
-import { authMiddleware, generateToken, generateRefreshToken, verifyRefreshToken, AuthRequest } from '../middleware/auth.js'
-import { uploadAvatar } from '../middleware/upload.js'
+import { authMiddleware, adminOnly, generateToken, generateRefreshToken, verifyRefreshToken, AuthRequest, createSession, validateSession, rotateRefreshToken, revokeAllSessions } from '../middleware/auth.js'
+import { uploadAvatar, validateMagicBytes } from '../middleware/upload.js'
+import * as notificationService from '../services/notificationService.js'
+import {
+  validatePasswordStrength, hashToken, generateSecureToken, timingSafeCompare,
+  checkLockout, recordFailedLogin, resetFailedLogins, recordPasswordHistory,
+  isPasswordReused, getClientIp, LOCKOUT_DURATION_MINUTES,
+} from '../utils/securityUtils.js'
+import { generateTempToken, hashTempToken } from '../utils/twoFactorCrypto.js'
+import { sendVerificationEmail, sendLockoutNotification, sendPasswordResetEmail } from '../services/emailService.js'
+import { logSecurityEvent, checkSuspiciousActivity } from '../services/securityLogger.js'
+import { isDeviceTrusted } from '../services/deviceTrustService.js'
+import { assessLoginRisk } from '../services/riskAuthService.js'
+import { alertAccountLocked, alertRepeatedFailures, alertSuspiciousAccess } from '../services/securityAlertService.js'
+import { AppError } from '../utils/AppError.js'
+import { logger } from '../services/logger.js'
 
 const router = Router()
 
@@ -30,26 +44,43 @@ const loginLimiter = rateLimit({
   legacyHeaders: false,
 })
 
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10, // 10 registrations per hour
+  message: { error: 'Too many registration attempts. Please try again in 1 hour.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+})
+
+const resetPasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // 10 attempts per 15 minutes
+  message: { error: 'Too many password reset attempts. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+})
+
 /*
- * POST /api/auth/register
- * Creates a new operator account in the database.
- * Accepts multipart form data to allow avatar upload during registration.
- * Returns a JWT token so the user is immediately logged in.
+ * POST /api/auth/invite
+ * Creates a new operator account (admin-only invite flow).
+ * Only authenticated admins can create new operator accounts.
+ * The invited operator receives a verification email to set up their account.
+ * Role is always 'operator' — admin promotion requires a separate super-admin action.
  */
-router.post('/register', uploadAvatar, async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/invite', authMiddleware, adminOnly, registerLimiter, uploadAvatar, validateMagicBytes, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { email, password, displayName, department, phone } = req.body
+    const { email, password, displayName, department, phone, role } = req.body
     const normalizedEmail = String(email || '').trim().toLowerCase()
 
     // Validate required fields
     if (!email || !password || !displayName) {
-      res.status(400).json({ error: 'Email, password, and display name are required.' })
-      return
+      throw AppError.badRequest('Email, password, and display name are required.')
     }
 
-    // Check password strength (minimum 8 characters)
-    if (password.length < 8) {
-      res.status(400).json({ error: 'Password must be at least 8 characters.' })
+    // Check password strength (enterprise policy: 12 chars, complexity)
+    const pwResult = validatePasswordStrength(password, email)
+    if (!pwResult.valid) {
+      res.status(400).json({ error: pwResult.errors[0] })
       return
     }
 
@@ -61,8 +92,7 @@ router.post('/register', uploadAvatar, async (req: AuthRequest, res: Response): 
       [normalizedEmail]
     )
     if (exists.rows.length > 0) {
-      res.status(409).json({ error: 'An account with this email already exists.' })
-      return
+      throw AppError.conflict('An account with this email already exists.')
     }
 
     // Hash password with bcrypt (12 rounds for strong security)
@@ -71,16 +101,25 @@ router.post('/register', uploadAvatar, async (req: AuthRequest, res: Response): 
     // Build avatar URL if a file was uploaded
     const avatarUrl = req.file ? `/uploads/${req.file.filename}` : null
 
-    const assignedRole = String(department || '').trim().toLowerCase() === 'command & control'
-      ? 'admin'
+    // Only allow 'operator' or 'manager' roles via invite. Admin promotion is a separate action.
+    const allowedRoles = ['operator', 'manager']
+    const assignedRole = allowedRoles.includes(String(role || '').trim().toLowerCase())
+      ? String(role).trim().toLowerCase()
       : 'operator'
+
+    // Generate email verification token (store HASH, send raw)
+    const rawVerificationToken = generateSecureToken()
+    const verificationTokenHash = hashToken(rawVerificationToken)
+    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
 
     // Insert new operator into the database
     const result = await pool.query(
-      `INSERT INTO operators (email, password_hash, display_name, role, department, phone, avatar_url)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO operators (email, password_hash, display_name, role, department, phone, avatar_url,
+                              verification_token_hash, verification_expires, password_changed_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
        RETURNING id, email, display_name, role, avatar_url, department`,
-      [normalizedEmail, passwordHash, displayName, assignedRole, department || null, phone || null, avatarUrl]
+      [normalizedEmail, passwordHash, displayName, assignedRole, department || null, phone || null, avatarUrl,
+       verificationTokenHash, verificationExpires]
     )
 
     const user = result.rows[0]
@@ -89,27 +128,37 @@ router.post('/register', uploadAvatar, async (req: AuthRequest, res: Response): 
     await pool.query(
       `INSERT INTO activity_log (action, action_type, operator_id, operator_name)
        VALUES ($1, $2, $3, $4)`,
-      [`New operator registered: ${displayName}`, 'register', user.id, displayName]
+      [`New operator invited by ${req.user!.displayName}: ${displayName} (${assignedRole})`, 'register', user.id, displayName]
     )
 
-    // Generate JWT and return it with the user profile
-    const token = generateToken({
-      id: user.id, email: user.email,
-      role: user.role, displayName: user.display_name,
-      department: user.department,
+    // Record initial password in history
+    await recordPasswordHistory(user.id, 'operator', passwordHash)
+
+    // Send verification email
+    try {
+      await sendVerificationEmail(normalizedEmail, rawVerificationToken, 'operator')
+    } catch (emailErr: any) {
+      logger.error({ err: emailErr }, '[Auth] Failed to send verification email')
+    }
+
+    // Log security event
+    const clientIp = getClientIp(req)
+    await logSecurityEvent({
+      userId: user.id, userType: 'operator', eventType: 'register',
+      ipAddress: clientIp, userAgent: req.headers['user-agent'] as string,
+      metadata: { email: normalizedEmail, role: assignedRole, invitedBy: req.user!.id },
     })
 
     res.status(201).json({
-      token,
       user: {
         id: user.id, email: user.email,
         displayName: user.display_name, role: user.role,
         avatarUrl: user.avatar_url, department: user.department,
       },
+      message: 'Operator account created. Verification email sent.',
     })
-  } catch (err: any) {
-    console.error('[Auth] Register error:', err.message)
-    res.status(500).json({ error: 'Registration failed. Please try again.' })
+  } catch (err) {
+    next(err)
   }
 })
 
@@ -118,39 +167,55 @@ router.post('/register', uploadAvatar, async (req: AuthRequest, res: Response): 
  * Authenticates an operator with email and password.
  * Returns a JWT token valid for 24 hours.
  */
-router.post('/login', loginLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { email, password } = req.body
     const normalizedEmail = String(email || '').trim().toLowerCase()
+    const clientIp = getClientIp(req)
+    const userAgent = req.headers['user-agent'] as string
 
     if (!email || !password) {
-      res.status(400).json({ error: 'Email and password are required.' })
-      return
+      throw AppError.badRequest('Email and password are required.')
     }
 
-    // Look up the operator by email
+    // Look up the operator by email (include 2FA status)
     const result = await pool.query(
-      `SELECT id, email, password_hash, display_name, role, avatar_url, department, is_active, is_suspended, suspended_until
+      `SELECT id, email, password_hash, display_name, role, avatar_url, department,
+              is_active, is_suspended, suspended_until, failed_login_attempts, locked_until,
+              two_factor_enabled
        FROM operators WHERE LOWER(email) = LOWER($1)`,
       [normalizedEmail]
     )
 
     if (result.rows.length === 0) {
-      res.status(401).json({ error: 'This account does not exist.' })
-      return
+      await logSecurityEvent({ eventType: 'login_failed', ipAddress: clientIp, userAgent, metadata: { reason: 'unknown_email' } })
+      throw AppError.unauthorized('Invalid email or password.')
     }
 
     const user = result.rows[0]
 
+    // Check account lockout
+    const lockoutStatus = checkLockout(user.failed_login_attempts, user.locked_until)
+    if (lockoutStatus.locked) {
+      await logSecurityEvent({
+        userId: user.id, userType: 'operator', eventType: 'login_failed',
+        ipAddress: clientIp, userAgent, metadata: { reason: 'account_locked', remaining_minutes: lockoutStatus.remainingMinutes },
+      })
+      res.status(423).json({
+        error: `Account is temporarily locked. Try again in ${lockoutStatus.remainingMinutes} minute(s).`,
+        code: 'ACCOUNT_LOCKED',
+        retryAfterMinutes: lockoutStatus.remainingMinutes,
+      })
+      return
+    }
+
     // Check if account is suspended
     if (user.is_suspended) {
       if (!user.suspended_until) {
-        res.status(403).json({ error: 'Account is suspended indefinitely. Contact system administrator.' })
-        return
+        throw AppError.forbidden('Account is suspended indefinitely. Contact system administrator.')
       }
       if (new Date(user.suspended_until) > new Date()) {
-        res.status(403).json({ error: `Account is suspended until ${new Date(user.suspended_until).toUTCString()}. Contact system administrator.` })
-        return
+        throw AppError.forbidden(`Account is suspended until ${new Date(user.suspended_until).toUTCString()}. Contact system administrator.`)
       }
       // Suspension expired — auto-lift it
       await pool.query('UPDATE operators SET is_suspended = false, suspended_until = NULL WHERE id = $1', [user.id])
@@ -158,16 +223,152 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response): Pro
 
     // Check if account is active
     if (!user.is_active) {
-      res.status(403).json({ error: 'Account is deactivated. Contact system administrator.' })
-      return
+      throw AppError.forbidden('Account is deactivated. Contact system administrator.')
     }
 
     // Verify password against stored hash
     const valid = await bcrypt.compare(password, user.password_hash)
     if (!valid) {
-      res.status(401).json({ error: 'Invalid email or password.' })
+      const newLockout = await recordFailedLogin('operators', user.id)
+
+      await logSecurityEvent({
+        userId: user.id, userType: 'operator', eventType: 'login_failed',
+        ipAddress: clientIp, userAgent, metadata: { attempts: newLockout.attempts },
+      })
+
+      await checkSuspiciousActivity(user.id, 'operator', clientIp)
+
+      if (newLockout.locked) {
+        await logSecurityEvent({
+          userId: user.id, userType: 'operator', eventType: 'account_locked',
+          ipAddress: clientIp, userAgent, metadata: { duration_minutes: LOCKOUT_DURATION_MINUTES },
+        })
+        sendLockoutNotification(user.email, LOCKOUT_DURATION_MINUTES).catch(() => {})
+        alertAccountLocked(user.id, LOCKOUT_DURATION_MINUTES, clientIp).catch(() => {})
+        res.status(423).json({
+          error: `Account locked for ${LOCKOUT_DURATION_MINUTES} minutes due to too many failed attempts.`,
+          code: 'ACCOUNT_LOCKED',
+          retryAfterMinutes: LOCKOUT_DURATION_MINUTES,
+        })
+        return
+      }
+
+      // Alert on repeated failures (5+ attempts)
+      if (newLockout.attempts >= 5) {
+        alertRepeatedFailures(user.id, newLockout.attempts, clientIp).catch(() => {})
+      }
+
+      throw AppError.unauthorized('Invalid email or password.')
+    }
+
+    // Successful password verification — reset failed attempts
+    await resetFailedLogins('operators', user.id)
+
+    // 2FA Gate
+    // If operator has 2FA enabled, check trusted device first.
+    // Trusted device → skip 2FA challenge. Otherwise issue a temp token.
+    if (user.two_factor_enabled) {
+      // Check if this device is already trusted (30-day remember-me)
+      const trustedDevice = await isDeviceTrusted(user.id, userAgent || '', clientIp).catch(() => null)
+
+      if (trustedDevice) {
+        // Trusted device — skip 2FA, issue full JWT
+        await pool.query('UPDATE operators SET last_login = NOW() WHERE id = $1', [user.id])
+
+        await logSecurityEvent({
+          userId: user.id, userType: 'operator', eventType: 'login_success',
+          ipAddress: clientIp, userAgent,
+          metadata: { two_fa_skipped: true, trusted_device: trustedDevice.deviceName },
+        })
+
+        await pool.query(
+          `INSERT INTO activity_log (action, action_type, operator_id, operator_name)
+           VALUES ($1, $2, $3, $4)`,
+          ['Logged in to AEGIS Admin (trusted device)', 'login', user.id, user.display_name]
+        )
+
+        const token = generateToken({
+          id: user.id, email: user.email,
+          role: user.role, displayName: user.display_name,
+          department: user.department,
+        })
+        const refreshToken = generateRefreshToken({ id: user.id, role: user.role })
+        await createSession({
+          userId: user.id, userType: 'operator', refreshToken,
+          ipAddress: clientIp, userAgent, ttlDays: 30,
+        }).catch(() => {})
+
+        res.cookie('aegis_refresh', refreshToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 30 * 24 * 60 * 60 * 1000,
+          path: '/api/auth',
+        })
+
+        res.json({
+          token,
+          user: {
+            id: user.id, email: user.email,
+            displayName: user.display_name, role: user.role,
+            avatarUrl: user.avatar_url, department: user.department,
+          },
+          trustedDevice: true,
+        })
+        return
+      }
+
+      // Not a trusted device — issue temp token for 2FA challenge
+      const tempTokenRaw = generateTempToken()
+      const tempTokenHash = hashTempToken(tempTokenRaw)
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000) // 5 minutes
+
+      // Use a transaction to atomically invalidate old tokens and create new one
+      const client = await pool.connect()
+      try {
+        await client.query('BEGIN')
+
+        // Invalidate any existing unconsumed temp tokens for this user
+        await client.query(
+          `UPDATE two_factor_temp_tokens SET consumed = true
+           WHERE user_id = $1 AND consumed = false`,
+          [user.id]
+        )
+
+        // Store new temp token bound to IP + User-Agent (anti-hijacking)
+        await client.query(
+          `INSERT INTO two_factor_temp_tokens (user_id, token_hash, expires_at, ip_address, user_agent)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [user.id, tempTokenHash, expiresAt, clientIp, userAgent || null]
+        )
+
+        await client.query('COMMIT')
+      } catch (txErr) {
+        await client.query('ROLLBACK')
+        throw txErr
+      } finally {
+        client.release()
+      }
+
+      // Assess login risk for the dashboard
+      const risk = await assessLoginRisk(user.id, clientIp, userAgent || '').catch(() => null)
+      if (risk?.alertAdmin) {
+        alertSuspiciousAccess(user.id, `High-risk login attempt (score: ${risk.score})`, clientIp).catch(() => {})
+      }
+
+      await logSecurityEvent({
+        userId: user.id, userType: 'operator', eventType: 'login_success',
+        ipAddress: clientIp, userAgent, metadata: { requires_2fa: true, risk_score: risk?.score },
+      })
+
+      res.json({
+        requires2FA: true,
+        tempToken: tempTokenRaw,
+      })
       return
     }
+
+    // Standard login (no 2FA)
 
     // Update last login timestamp
     await pool.query('UPDATE operators SET last_login = NOW() WHERE id = $1', [user.id])
@@ -179,13 +380,25 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response): Pro
       ['Logged in to AEGIS Admin', 'login', user.id, user.display_name]
     )
 
-    // Generate access token (8h) + refresh token (30d)
+    // Generate access token (15min) + refresh token (30d)
     const token = generateToken({
       id: user.id, email: user.email,
       role: user.role, displayName: user.display_name,
       department: user.department,
     })
     const refreshToken = generateRefreshToken({ id: user.id, role: user.role })
+
+    // Create session
+    await createSession({
+      userId: user.id, userType: 'operator', refreshToken,
+      ipAddress: clientIp, userAgent, ttlDays: 30,
+    }).catch(() => {})
+
+    // Log successful login
+    await logSecurityEvent({
+      userId: user.id, userType: 'operator', eventType: 'login_success',
+      ipAddress: clientIp, userAgent,
+    })
 
     // Refresh token lives in an httpOnly cookie — JS cannot read or steal it
     res.cookie('aegis_refresh', refreshToken, {
@@ -204,9 +417,8 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response): Pro
         avatarUrl: user.avatar_url, department: user.department,
       },
     })
-  } catch (err: any) {
-    console.error('[Auth] Login error:', err.message)
-    res.status(500).json({ error: 'Login failed. Please try again.' })
+  } catch (err) {
+    next(err)
   }
 })
 
@@ -214,12 +426,11 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response): Pro
  * POST /api/auth/forgot-password
  * Generates password reset token and records reset attempt.
  */
-router.post('/forgot-password', async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/forgot-password', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { email } = req.body
     if (!email) {
-      res.status(400).json({ error: 'Email is required.' })
-      return
+      throw AppError.badRequest('Email is required.')
     }
 
     const userResult = await pool.query(
@@ -247,18 +458,34 @@ router.post('/forgot-password', async (req: AuthRequest, res: Response): Promise
       const resetBase = process.env.RESET_PASSWORD_URL || `${process.env.CLIENT_URL || 'http://localhost:5173'}/reset-password`
       const resetLink = `${resetBase}?token=${rawToken}`
 
+      // SECURITY: Send reset link via email only, never return it in the response
+      try {
+        await notificationService.sendEmailAlert(user.email, {
+          id: `reset-${Date.now()}`,
+          type: 'general',
+          severity: 'info',
+          title: 'Password Reset Request',
+          message: `Click the link below to reset your password. This link expires in 30 minutes.\n\n${resetLink}\n\nIf you did not request this reset, please ignore this email.`,
+          area: 'AEGIS Security',
+        })
+        logger.info({ email: user.email }, '[Auth] Password reset email sent')
+      } catch (emailErr: any) {
+        logger.error({ err: emailErr, email: user.email }, '[Auth] Failed to send reset email')
+        // Don't fail the request - user will see generic success message
+      }
+
+      // Return generic success message (never expose token or link)
       res.json({
         success: true,
-        message: 'If the email exists, a reset link has been generated.',
-        resetLink
+        message: 'If the email exists in our system, a password reset link has been sent.'
       })
       return
     }
 
-    res.json({ success: true, message: 'If the email exists, a reset link has been generated.' })
-  } catch (err: any) {
-    console.error('[Auth] Forgot password error:', err.message)
-    res.status(500).json({ error: 'Failed to process password reset request.' })
+    // Same response for non-existent accounts (prevents user enumeration)
+    res.json({ success: true, message: 'If the email exists in our system, a password reset link has been sent.' })
+  } catch (err) {
+    next(err)
   }
 })
 
@@ -266,16 +493,19 @@ router.post('/forgot-password', async (req: AuthRequest, res: Response): Promise
  * POST /api/auth/reset-password
  * Resets password using one-time token.
  */
-router.post('/reset-password', async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/reset-password', resetPasswordLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { token, password } = req.body
     if (!token || !password) {
-      res.status(400).json({ error: 'Token and new password are required.' })
-      return
+      throw AppError.badRequest('Token and new password are required.')
     }
 
-    if (password.length < 8) {
-      res.status(400).json({ error: 'Password must be at least 8 characters.' })
+    if (password.length < 12) {
+      throw AppError.badRequest('Password must be at least 12 characters.')
+    }
+    const pwResult = validatePasswordStrength(password)
+    if (!pwResult.valid) {
+      res.status(400).json({ error: pwResult.errors[0] })
       return
     }
 
@@ -289,8 +519,7 @@ router.post('/reset-password', async (req: AuthRequest, res: Response): Promise<
     )
 
     if (tokenResult.rows.length === 0) {
-      res.status(400).json({ error: 'Invalid or expired reset token.' })
-      return
+      throw AppError.badRequest('Invalid or expired reset token.')
     }
 
     const resetToken = tokenResult.rows[0]
@@ -303,19 +532,32 @@ router.post('/reset-password', async (req: AuthRequest, res: Response): Promise<
     if (opCheck.rows.length > 0) {
       const op = opCheck.rows[0]
       if (op.banned_at) {
-        res.status(403).json({ error: 'Account is permanently banned.' })
-        return
+        throw AppError.forbidden('Account is permanently banned.')
       }
       if (op.is_suspended && op.suspended_until && new Date(op.suspended_until) > new Date()) {
-        res.status(403).json({ error: 'Account is suspended. Password reset is not available during suspension.' })
-        return
+        throw AppError.forbidden('Account is suspended. Password reset is not available during suspension.')
       }
+    }
+
+    // Prevent reuse of last 5 passwords
+    const reused = await isPasswordReused(resetToken.operator_id, 'operator', password)
+    if (reused) {
+      throw AppError.badRequest('You cannot reuse any of your last 5 passwords.')
     }
 
     const passwordHash = await bcrypt.hash(password, 12)
 
-    await pool.query('UPDATE operators SET password_hash = $1, updated_at = NOW() WHERE id = $2', [passwordHash, resetToken.operator_id])
+    await pool.query('UPDATE operators SET password_hash = $1, updated_at = NOW(), password_changed_at = NOW() WHERE id = $2', [passwordHash, resetToken.operator_id])
     await pool.query('UPDATE password_reset_tokens SET used_at = NOW() WHERE id = $1', [resetToken.id])
+
+    // Record in password history & revoke all sessions
+    await recordPasswordHistory(resetToken.operator_id, 'operator', passwordHash)
+    await revokeAllSessions(resetToken.operator_id, 'password_reset')
+
+    await logSecurityEvent({
+      userId: resetToken.operator_id, userType: 'operator', eventType: 'password_reset_completed',
+      ipAddress: getClientIp(req), userAgent: req.headers['user-agent'] as string,
+    })
 
     await pool.query(
       `INSERT INTO activity_log (action, action_type, operator_id, metadata)
@@ -324,9 +566,8 @@ router.post('/reset-password', async (req: AuthRequest, res: Response): Promise<
     ).catch(() => {})
 
     res.json({ success: true, message: 'Password reset successful. You can now log in.' })
-  } catch (err: any) {
-    console.error('[Auth] Reset password error:', err.message)
-    res.status(500).json({ error: 'Failed to reset password.' })
+  } catch (err) {
+    next(err)
   }
 })
 
@@ -334,26 +575,26 @@ router.post('/reset-password', async (req: AuthRequest, res: Response): Promise<
  * GET /api/auth/me
  * Returns the current operator's profile (requires authentication).
  */
-router.get('/me', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
+router.get('/me', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const result = await pool.query(
-      `SELECT id, email, display_name, role, avatar_url, department, phone, created_at, last_login
+      `SELECT id, email, display_name, role, avatar_url, department, phone, created_at, last_login,
+              two_factor_enabled
        FROM operators WHERE id = $1`,
       [req.user!.id]
     )
     if (result.rows.length === 0) {
-      res.status(404).json({ error: 'Operator not found.' })
-      return
+      throw AppError.notFound('Operator not found.')
     }
     const u = result.rows[0]
     res.json({
       id: u.id, email: u.email, displayName: u.display_name,
       role: u.role, avatarUrl: u.avatar_url, department: u.department,
       phone: u.phone, createdAt: u.created_at, lastLogin: u.last_login,
+      twoFactorEnabled: u.two_factor_enabled,
     })
-  } catch (err: any) {
-    console.error('[Auth] Profile error:', err.message)
-    res.status(500).json({ error: 'Failed to load profile.' })
+  } catch (err) {
+    next(err)
   }
 })
 
@@ -361,7 +602,7 @@ router.get('/me', authMiddleware, async (req: AuthRequest, res: Response): Promi
  * PUT /api/auth/profile
  * Updates operator profile including avatar upload.
  */
-router.put('/profile', authMiddleware, uploadAvatar, async (req: AuthRequest, res: Response): Promise<void> => {
+router.put('/profile', authMiddleware, uploadAvatar, validateMagicBytes, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { displayName, department, phone } = req.body
     const avatarUrl = req.file ? `/uploads/${req.file.filename}` : undefined
@@ -377,8 +618,7 @@ router.put('/profile', authMiddleware, uploadAvatar, async (req: AuthRequest, re
     if (avatarUrl) { sets.push(`avatar_url = $${idx++}`); vals.push(avatarUrl) }
 
     if (sets.length === 0) {
-      res.status(400).json({ error: 'No fields to update.' })
-      return
+      throw AppError.badRequest('No fields to update.')
     }
 
     vals.push(req.user!.id)
@@ -393,31 +633,36 @@ router.put('/profile', authMiddleware, uploadAvatar, async (req: AuthRequest, re
       id: u.id, email: u.email, displayName: u.display_name,
       role: u.role, avatarUrl: u.avatar_url, department: u.department,
     })
-  } catch (err: any) {
-    console.error('[Auth] Profile update error:', err.message)
-    res.status(500).json({ error: 'Failed to update profile.' })
+  } catch (err) {
+    next(err)
   }
 })
 
 /*
  * POST /api/auth/refresh
- * Issues a new 8h access token using the httpOnly refresh cookie.
- * Also rotates the refresh token (new 30d cookie) to extend the session.
+ * Issues a new 15min access token using the httpOnly refresh cookie.
+ * Validates the session in DB and rotates the refresh token.
  */
-router.post('/refresh', async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/refresh', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const refreshToken = req.cookies?.aegis_refresh
-    if (!refreshToken) {
-      res.status(401).json({ error: 'No refresh token.' })
-      return
+    const refreshCookie = req.cookies?.aegis_refresh
+    if (!refreshCookie) {
+      throw AppError.unauthorized('No refresh token.')
     }
 
     let payload: { id: string; role: string }
     try {
-      payload = verifyRefreshToken(refreshToken) as { id: string; role: string }
+      payload = verifyRefreshToken(refreshCookie) as { id: string; role: string }
     } catch {
-      res.status(401).json({ error: 'Invalid or expired refresh token. Please log in again.' })
-      return
+      res.clearCookie('aegis_refresh', { path: '/api/auth' })
+      throw AppError.unauthorized('Invalid or expired refresh token. Please log in again.')
+    }
+
+    // Validate session exists in DB and is not revoked
+    const session = await validateSession(refreshCookie)
+    if (!session) {
+      res.clearCookie('aegis_refresh', { path: '/api/auth' })
+      throw AppError.unauthorized('Session expired or revoked. Please log in again.')
     }
 
     // Fetch fresh user data
@@ -427,8 +672,8 @@ router.post('/refresh', async (req: AuthRequest, res: Response): Promise<void> =
       [payload.id]
     )
     if (result.rows.length === 0 || !result.rows[0].is_active || result.rows[0].is_suspended) {
-      res.status(401).json({ error: 'Account is inactive or suspended.' })
-      return
+      res.clearCookie('aegis_refresh', { path: '/api/auth' })
+      throw AppError.unauthorized('Account is inactive or suspended.')
     }
 
     const user = result.rows[0]
@@ -437,8 +682,17 @@ router.post('/refresh', async (req: AuthRequest, res: Response): Promise<void> =
       role: user.role, displayName: user.display_name,
       department: user.department,
     })
-    // Rotate refresh token
+
+    // Rotate refresh token (revoke old, issue new)
     const newRefreshToken = generateRefreshToken({ id: user.id, role: user.role })
+    const clientIp = getClientIp(req)
+    await rotateRefreshToken({
+      oldToken: refreshCookie, newToken: newRefreshToken,
+      userId: user.id, userType: 'operator',
+      ipAddress: clientIp, userAgent: req.headers['user-agent'] as string,
+      ttlDays: 30,
+    }).catch(() => {})
+
     res.cookie('aegis_refresh', newRefreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -448,19 +702,119 @@ router.post('/refresh', async (req: AuthRequest, res: Response): Promise<void> =
     })
 
     res.json({ token: newAccessToken })
-  } catch (err: any) {
-    console.error('[Auth] Refresh error:', err.message)
-    res.status(500).json({ error: 'Token refresh failed.' })
+  } catch (err) {
+    res.clearCookie('aegis_refresh', { path: '/api/auth' })
+    next(err)
   }
 })
 
 /*
  * POST /api/auth/logout
- * Clears the refresh token cookie.
+ * Clears the refresh token cookie and revokes the session.
  */
-router.post('/logout', (_req, res: Response) => {
+router.post('/logout', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  const refreshCookie = req.cookies?.aegis_refresh
+  if (refreshCookie) {
+    const { hashRefreshToken } = await import('../middleware/auth.js')
+    const tokenHash = hashRefreshToken(refreshCookie)
+    await pool.query(
+      `UPDATE user_sessions SET revoked = true, revoked_reason = 'logout'
+       WHERE refresh_token_hash = $1`,
+      [tokenHash]
+    ).catch(() => {})
+  }
   res.clearCookie('aegis_refresh', { path: '/api/auth' })
   res.json({ ok: true })
+})
+
+/*
+ * GET /api/auth/verify-email?token=xxx
+ * Verify operator email address using hashed token.
+ */
+router.get('/verify-email', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { token } = req.query
+    if (!token || typeof token !== 'string' || token.length !== 64) {
+      throw AppError.badRequest('Invalid verification token.')
+    }
+
+    const tokenHash = hashToken(token)
+
+    const result = await pool.query(
+      `UPDATE operators SET email_verified = true, verification_token_hash = NULL, verification_expires = NULL
+       WHERE verification_token_hash = $1 AND email_verified = false
+       AND (verification_expires IS NULL OR verification_expires > NOW())
+       RETURNING id, email, display_name`,
+      [tokenHash]
+    )
+
+    if (result.rows.length === 0) {
+      throw AppError.badRequest('Invalid, expired, or already-used verification token.')
+    }
+
+    await logSecurityEvent({
+      userId: result.rows[0].id, userType: 'operator', eventType: 'email_verified',
+      ipAddress: getClientIp(req), userAgent: req.headers['user-agent'] as string,
+    })
+
+    res.json({ success: true, message: 'Email verified successfully!' })
+  } catch (err) {
+    next(err)
+  }
+})
+
+/*
+ * POST /api/auth/resend-verification
+ * Resend email verification for operators (rate-limited).
+ */
+const operatorResendLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 3,
+  message: { error: 'Too many verification emails requested. Please try again later.' },
+})
+
+router.post('/resend-verification', authMiddleware, operatorResendLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const userId = req.user!.id
+
+    const op = await pool.query(
+      'SELECT id, email, email_verified FROM operators WHERE id = $1',
+      [userId]
+    )
+
+    if (op.rows.length === 0) {
+      throw AppError.notFound('Account not found.')
+    }
+
+    if (op.rows[0].email_verified) {
+      res.json({ success: true, message: 'Email is already verified.' })
+      return
+    }
+
+    const rawToken = generateSecureToken()
+    const tokenHash = hashToken(rawToken)
+    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000)
+
+    await pool.query(
+      'UPDATE operators SET verification_token_hash = $1, verification_expires = $2 WHERE id = $3',
+      [tokenHash, expires, userId]
+    )
+
+    try {
+      await sendVerificationEmail(op.rows[0].email, rawToken, 'operator')
+    } catch (emailErr: any) {
+      logger.error({ err: emailErr }, '[Auth] Failed to send verification email')
+    }
+
+    await logSecurityEvent({
+      userId, userType: 'operator', eventType: 'email_verification_sent',
+      ipAddress: getClientIp(req), userAgent: req.headers['user-agent'] as string,
+    })
+
+    res.json({ success: true, message: 'Verification email has been sent.' })
+  } catch (err) {
+    next(err)
+  }
 })
 
 export default router

@@ -1,8 +1,6 @@
 """
-═══════════════════════════════════════════════════════════════════════════════
  AEGIS AI ENGINE — Real ML Report Classifier
  XGBoost + TF-IDF trained on real disaster reports from PostgreSQL
-═══════════════════════════════════════════════════════════════════════════════
 
 Replaces the keyword-based heuristic with a real trained ML model.
 Training pipeline:
@@ -23,16 +21,12 @@ from typing import Dict, List, Any, Optional
 from datetime import datetime
 from loguru import logger
 
-
-# ═══════════════════════════════════════════════════════════════
 # Lazy imports for heavy ML dependencies
-# ═══════════════════════════════════════════════════════════════
 
 _sklearn_loaded = False
 _tfidf = None
 _xgb = None
 _pd = None
-
 
 def _lazy_imports():
     global _sklearn_loaded, _tfidf, _xgb, _pd
@@ -57,7 +51,6 @@ def _lazy_imports():
         _pd = None
     _sklearn_loaded = True
 
-
 # Constants
 MODEL_DIR = Path(__file__).parent.parent.parent / "model_registry" / "report_classifier"
 MIN_TRAINING_SAMPLES = 100
@@ -66,7 +59,6 @@ HAZARD_TYPES = ['flood', 'drought', 'heatwave', 'wildfire', 'storm', 'other']
 HAZARD_MAP = {h: i for i, h in enumerate(HAZARD_TYPES)}
 
 DB_URL = os.getenv('DATABASE_URL', 'postgresql://localhost:5432/aegis')
-
 
 class ReportClassifierTrainable:
     """
@@ -84,7 +76,6 @@ class ReportClassifierTrainable:
         self._load_model()
         logger.info(f"Report classifier initialized: {self.model_version}")
 
-    # ─── Paths ────────────────────────────────────────────────
     def _model_path(self) -> Path:
         return MODEL_DIR / "classifier_xgb_model.pkl"
 
@@ -94,7 +85,6 @@ class ReportClassifierTrainable:
     def _metrics_path(self) -> Path:
         return MODEL_DIR / "classifier_metrics.json"
 
-    # ─── Load ─────────────────────────────────────────────────
     def _load_model(self):
         mp = self._model_path()
         vp = self._vectorizer_path()
@@ -115,7 +105,6 @@ class ReportClassifierTrainable:
                 logger.error(f"Failed to load classifier model: {e}")
                 self.model = None
 
-    # ─── Classify ─────────────────────────────────────────────
     def classify(self, text: str, description: str = "", location: str = "") -> Dict[str, Any]:
         """Classify a disaster report into hazard type."""
         full_text = f"{text} {description} {location}".lower().strip()
@@ -197,7 +186,6 @@ class ReportClassifierTrainable:
             'classified_at': datetime.utcnow().isoformat()
         }
 
-    # ─── Train ────────────────────────────────────────────────
     def train(self, db_url: str = DB_URL) -> Dict[str, Any]:
         """Train classifier on real reports from PostgreSQL (sync wrapper)."""
         import asyncio
@@ -383,7 +371,7 @@ class ReportClassifierTrainable:
             with open(version_dir / "classifier_metrics.json", 'w') as f:
                 json.dump(metrics, f, indent=2, default=str)
 
-            # ── Model Governance: register candidate & compare ──
+            # Model Governance: register candidate & compare
             promoted = False
             try:
                 from app.core.governance import governance

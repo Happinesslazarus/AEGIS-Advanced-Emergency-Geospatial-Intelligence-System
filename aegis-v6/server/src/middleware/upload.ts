@@ -10,9 +10,9 @@
  * filenames generated using UUID to prevent collisions.
  * 
  * Security measures:
- *   - File size limit: 10MB for evidence, 2MB for avatars
- *   - Allowed types: JPEG, PNG, WebP, GIF, MP4 for evidence
- *   - Allowed types: JPEG, PNG, WebP for avatars
+ * File size limit: 10MB for evidence, 2MB for avatars
+ * Allowed types: JPEG, PNG, WebP, GIF, MP4 for evidence
+ * Allowed types: JPEG, PNG, WebP for avatars
  */
 
 import multer from 'multer'
@@ -33,7 +33,7 @@ const MAGIC_BYTES: Record<string, Buffer[]> = {
   '.mov':  [Buffer.from([0x00, 0x00, 0x00])],
 }
 
-/**
+ /**
  * Post-upload middleware that validates magic bytes of uploaded files.
  * Deletes files that don't match expected signatures.
  */

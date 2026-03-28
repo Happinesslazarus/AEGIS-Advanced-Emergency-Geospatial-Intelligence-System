@@ -1,12 +1,12 @@
-/**
+﻿/**
  * IncidentContext — React context for multi-incident state management
  *
  * Provides:
- * - Incident registry (types, status, AI tiers)
- * - Active incident filtering for dashboards
- * - Cross-incident dashboard summary
- * - Real-time socket.io integration for incident:alert events
- * - Loading/error state
+ * Incident registry (types, status, AI tiers)
+ * Active incident filtering for dashboards
+ * Cross-incident dashboard summary
+ * Real-time socket.io integration for incident:alert events
+ * Loading/error state
  */
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
@@ -20,7 +20,7 @@ import {
   type IncidentDashboardSummary,
 } from '../utils/incidentApi'
 
-// ─── Types ──────────────────────────────────────────────────────────────
+// Types
 export type IncidentTypeId =
   | 'flood' | 'severe_storm' | 'heatwave' | 'wildfire' | 'landslide'
   | 'power_outage' | 'water_supply' | 'infrastructure_damage'
@@ -32,7 +32,6 @@ export interface IncidentFilter {
   activeOnly: boolean
   region: string | null
 }
-
 
 export interface LiveIncidentAlert {
   incidentType: string
@@ -93,7 +92,7 @@ export function IncidentProvider({ children }: { children: ReactNode }): JSX.Ele
     setRegistryLoading(true)
     try {
       const data = await apiGetIncidentRegistry()
-      setRegistry(data.modules || [])
+      setRegistry(data.modules || data.incidents || [])
     } catch (err) {
       console.error('[IncidentContext] Failed to load registry:', err)
     } finally {
@@ -204,3 +203,4 @@ export function useIncidents(): IncidentContextType {
   if (!ctx) throw new Error('useIncidents must be used within IncidentProvider')
   return ctx
 }
+

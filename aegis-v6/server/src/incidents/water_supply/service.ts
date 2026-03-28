@@ -7,7 +7,7 @@ import type { IncidentPrediction } from '../types.js'
 import { waterSupplyConfig, WATER_SUPPLY_PRIORITY_LEVELS } from './config.js'
 
 export class WaterSupplyService {
-  /**
+   /**
    * Get water supply disruption risk score
    */
   static async calculateDisruptionRisk(region: string): Promise<number> {
@@ -28,7 +28,7 @@ export class WaterSupplyService {
     }
   }
 
-  /**
+   /**
    * Get water supply predictions for a region
    */
   static async getWaterSupplyPredictions(region: string): Promise<IncidentPrediction[]> {
@@ -54,7 +54,7 @@ export class WaterSupplyService {
     }]
   }
 
-  /**
+   /**
    * Get water supply advisory text based on severity
    */
   static getWaterSupplyAdvisory(severity: string): string {
@@ -70,7 +70,7 @@ export class WaterSupplyService {
     }
   }
 
-  /**
+   /**
    * Estimate affected households
    */
   static async estimateAffectedHouseholds(region: string): Promise<number> {

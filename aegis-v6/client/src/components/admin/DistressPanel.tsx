@@ -2,15 +2,16 @@
  * DistressPanel.tsx — Operator Distress Beacon Management Panel
  *
  * Shows all active distress calls with:
- *   - Live GPS position on mini map
- *   - Triage classification (low / medium / high / critical)
- *   - Acknowledge + Resolve actions
- *   - Dead-man switch heartbeat monitoring
- *   - Vulnerable person priority flagging
- *   - Audio alarm on new distress calls
+ * Live GPS position on mini map
+ * Triage classification (low / medium / high / critical)
+ * Acknowledge + Resolve actions
+ * Dead-man switch heartbeat monitoring
+ * Vulnerable person priority flagging
+ * Audio alarm on new distress calls
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { getToken } from '../../utils/api'
 import {
   Radio, Shield, MapPin, Phone, Clock, AlertTriangle,
   Check, X, Users, RefreshCw, ChevronDown, ChevronUp,
@@ -72,7 +73,7 @@ export default function DistressPanel({ socket, operatorId, operatorName, classN
   const fetchActive = useCallback(async () => {
     setLoading(true)
     try {
-      const token = localStorage.getItem('aegis-token')
+      const token = getToken()
       const res = await fetch(`${API}/api/distress/active`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       })
@@ -203,7 +204,7 @@ export default function DistressPanel({ socket, operatorId, operatorName, classN
           </div>
           <div className="text-left">
             <h3 className="text-sm font-bold text-gray-900 dark:text-white">{t('distress.beaconMonitor', lang)}</h3>
-            <p className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+            <p className="text-[10px] text-gray-400 dark:text-gray-300">
               {distressCalls.length > 0 ? `${distressCalls.length} ${t('distress.activeBeacons', lang)}` : t('distress.noCalls', lang)}
             </p>
           </div>
@@ -214,12 +215,12 @@ export default function DistressPanel({ socket, operatorId, operatorName, classN
           )}
           <button
             onClick={(e) => { e.stopPropagation(); setAlarmEnabled(!alarmEnabled) }}
-            className="p-1 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition"
+            className="p-1 text-gray-500 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition"
             title={alarmEnabled ? t('distress.muteAlarm', lang) : t('distress.audioAlarm', lang)}
           >
             {alarmEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
           </button>
-          {collapsed ? <ChevronDown className="w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" /> : <ChevronUp className="w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />}
+          {collapsed ? <ChevronDown className="w-4 h-4 text-gray-400 dark:text-gray-300" /> : <ChevronUp className="w-4 h-4 text-gray-400 dark:text-gray-300" />}
         </div>
       </div>
 
@@ -227,14 +228,14 @@ export default function DistressPanel({ socket, operatorId, operatorName, classN
         <div className="border-t border-gray-200 dark:border-gray-700/40 max-h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600">
           {loading && distressCalls.length === 0 ? (
             <div className="px-4 py-6 text-center">
-              <Loader2 className="w-6 h-6 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 animate-spin mx-auto mb-2" />
-              <p className="text-xs text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('common.loading', lang)}</p>
+              <Loader2 className="w-6 h-6 text-gray-400 dark:text-gray-300 animate-spin mx-auto mb-2" />
+              <p className="text-xs text-gray-400 dark:text-gray-300">{t('common.loading', lang)}</p>
             </div>
           ) : distressCalls.length === 0 ? (
             <div className="px-4 py-8 text-center">
               <Shield className="w-8 h-8 text-green-500/40 mx-auto mb-2" />
-              <p className="text-xs text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('distress.noActiveBeacons', lang)}</p>
-              <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-1">{t('admin.distress.noDistressDesc', lang)}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-300">{t('distress.noActiveBeacons', lang)}</p>
+              <p className="text-[10px] text-gray-500 dark:text-gray-300 mt-1">{t('admin.distress.noDistressDesc', lang)}</p>
             </div>
           ) : (
             distressCalls.map(dc => {
@@ -259,7 +260,7 @@ export default function DistressPanel({ socket, operatorId, operatorName, classN
                             <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-red-600 text-white">{t('distress.vulnerable', lang)}</span>
                           )}
                         </div>
-                        <p className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{timeAgo(dc.created_at)} • {dc.latitude.toFixed(4)}, {dc.longitude.toFixed(4)}</p>
+                        <p className="text-[10px] text-gray-400 dark:text-gray-300">{timeAgo(dc.created_at)} — {dc.latitude.toFixed(4)}, {dc.longitude.toFixed(4)}</p>
                       </div>
 
                       {/* Triage badge */}
@@ -276,22 +277,22 @@ export default function DistressPanel({ socket, operatorId, operatorName, classN
                     <div className="px-4 pb-3 space-y-3 bg-gray-50 dark:bg-gray-800/20">
                       {/* GPS info */}
                       <div className="grid grid-cols-2 gap-2 text-[10px]">
-                        <div className="flex items-center gap-1 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+                        <div className="flex items-center gap-1 text-gray-400 dark:text-gray-300">
                           <MapPin className="w-3 h-3" />
                           <span>{dc.latitude.toFixed(6)}, {dc.longitude.toFixed(6)}</span>
                         </div>
                         {dc.contact_number && (
-                          <div className="flex items-center gap-1 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+                          <div className="flex items-center gap-1 text-gray-400 dark:text-gray-300">
                             <Phone className="w-3 h-3" />
                             <span>{dc.contact_number}</span>
                           </div>
                         )}
-                        <div className="flex items-center gap-1 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+                        <div className="flex items-center gap-1 text-gray-400 dark:text-gray-300">
                           <Clock className="w-3 h-3" />
                           <span>{t('distress.lastSeen', lang)}: {dc.last_gps_at ? timeAgo(dc.last_gps_at) : t('common.na', lang)}</span>
                         </div>
                         {dc.speed != null && dc.speed > 0 && (
-                          <div className="flex items-center gap-1 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+                          <div className="flex items-center gap-1 text-gray-400 dark:text-gray-300">
                             <Navigation className="w-3 h-3" />
                             <span>{(dc.speed * 3.6).toFixed(1)} {t('common.kmh', lang)}</span>
                           </div>
@@ -299,7 +300,7 @@ export default function DistressPanel({ socket, operatorId, operatorName, classN
                       </div>
 
                       {dc.message && (
-                        <div className="bg-gray-800/40 rounded-lg px-3 py-2 text-xs text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+                        <div className="bg-gray-800/40 rounded-lg px-3 py-2 text-xs text-gray-300 dark:text-gray-300">
                           {dc.message}
                         </div>
                       )}
@@ -307,13 +308,13 @@ export default function DistressPanel({ socket, operatorId, operatorName, classN
                       {/* Triage selector (for unacknowledged) */}
                       {!isAcknowledged && (
                         <div>
-                          <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-1">{t('sos.triage', lang)}</p>
+                          <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-300 mb-1">{t('sos.triage', lang)}</p>
                           <div className="flex gap-1.5">
                             {triageOptions.map(opt => (
                               <button
                                 key={opt.value}
                                 onClick={() => setTriageValue(opt.value)}
-                                className={`flex-1 text-[10px] py-1.5 rounded-lg font-medium transition ${triageValue === opt.value ? opt.colour + ' ring-2 ring-white/30' : 'bg-gray-700 text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:bg-gray-600'}`}
+                                className={`flex-1 text-[10px] py-1.5 rounded-lg font-medium transition ${triageValue === opt.value ? opt.colour + ' ring-2 ring-white/30' : 'bg-gray-700 text-gray-300 dark:text-gray-300 hover:bg-gray-600'}`}
                               >
                                 {opt.label}
                               </button>
@@ -325,7 +326,7 @@ export default function DistressPanel({ socket, operatorId, operatorName, classN
                       {/* Resolution input (for acknowledged) */}
                       {isAcknowledged && (
                         <div>
-                          <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-1">{t('distress.resolutionNote', lang)}</p>
+                          <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-300 mb-1">{t('distress.resolutionNote', lang)}</p>
                           <input
                             type="text"
                             value={resolution}
@@ -381,7 +382,4 @@ export default function DistressPanel({ socket, operatorId, operatorName, classN
     </div>
   )
 }
-
-
-
-
+

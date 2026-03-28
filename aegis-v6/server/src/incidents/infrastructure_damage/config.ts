@@ -40,3 +40,4 @@ export const INFRASTRUCTURE_CRITICAL_TYPES = [
   'water_treatment',
   'power_station'
 ]
+

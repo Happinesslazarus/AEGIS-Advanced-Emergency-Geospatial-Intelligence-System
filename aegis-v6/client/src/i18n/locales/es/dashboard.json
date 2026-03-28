@@ -30,6 +30,33 @@
     "safetyInfo": "Información de Seguridad", "noActiveAlerts": "Sin alertas activas",
     "regionalOverview": "Resumen Regional", "publicGuidance": "Guía Pública"
   },
+  "incidentFilter": {
+    "label": "Filtrar Incidentes",
+    "all": "Todos",
+    "active": "Solo Activos",
+    "byType": "Por Tipo",
+    "bySeverity": "Por Severidad",
+    "byRegion": "Por Región"
+  },
+  "stats": {
+    "totalActive": "Activos",
+    "criticalAlerts": "Alertas Críticas",
+    "predictedRisks": "Riesgos Predichos",
+    "regionsAffected": "Regiones Afectadas",
+    "reportsToday": "Reportes Hoy",
+    "averageResponse": "Tiempo Promedio de Respuesta",
+    "systemUptime": "Tiempo Activo del Sistema",
+    "aiAccuracy": "Precisión de IA"
+  },
+  "incidents": {
+    "active": "Incidentes Activos",
+    "monitoring": "Tipos Monitoreados",
+    "status": "Estado de Incidentes",
+    "normal": "Normal"
+  },
+  "predictions": {
+    "active": "Predicciones"
+  },
   "widgets": {
     "threatLevel": "Nivel de Amenaza", "riverGauges": "Medidores de Río",
     "rainfallTrend": "Tendencia de Lluvia", "weatherPanel": "Clima",

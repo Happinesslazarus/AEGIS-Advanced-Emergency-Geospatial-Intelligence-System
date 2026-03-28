@@ -1,20 +1,14 @@
-# ═══════════════════════════════════════════════════════════════════════════════
 #  AEGIS AI ENGINE — Master Configuration
 #  Sovereign-grade multi-hazard environmental intelligence platform
-# ═══════════════════════════════════════════════════════════════════════════════
 
-# ────────────────────────────────────────────────────────────────────────────────
 # SYSTEM CONFIGURATION
-# ────────────────────────────────────────────────────────────────────────────────
 system:
   name: "AEGIS AI Engine"
   version: "1.0.0"
   environment: "production"
   deployment_region: "scotland"
 
-# ────────────────────────────────────────────────────────────────────────────────
 # UNIVERSAL FEATURE SCHEMA (REGION-AGNOSTIC)
-# ────────────────────────────────────────────────────────────────────────────────
 features:
   static:
     - latitude
@@ -50,9 +44,7 @@ features:
     - enso_index
     - long_term_rainfall_anomaly
 
-# ────────────────────────────────────────────────────────────────────────────────
 # HAZARD MODULE CONFIGURATION
-# ────────────────────────────────────────────────────────────────────────────────
 hazards:
   flood:
     enabled: true
@@ -239,9 +231,7 @@ hazards:
       high: 0.70
       critical: 0.85
 
-# ────────────────────────────────────────────────────────────────────────────────
 # MODEL REGISTRY STRUCTURE
-# ────────────────────────────────────────────────────────────────────────────────
 model_registry:
   base_path: "./model_registry"
   versioning_strategy: "semantic"
@@ -287,9 +277,7 @@ model_registry:
         - public_safety_incident
         - environmental_hazard
 
-# ────────────────────────────────────────────────────────────────────────────────
 # TRAINING PIPELINE CONFIGURATION
-# ────────────────────────────────────────────────────────────────────────────────
 training:
   reproducibility:
     random_seed: 42
@@ -331,9 +319,7 @@ training:
       - interaction_terms
       - fourier_seasonal
 
-# ────────────────────────────────────────────────────────────────────────────────
 # EVALUATION METRICS
-# ────────────────────────────────────────────────────────────────────────────────
 evaluation:
   metrics:
     classification:
@@ -370,9 +356,7 @@ evaluation:
     auto_generate: true
     formats: ["json", "html", "pdf"]
 
-# ────────────────────────────────────────────────────────────────────────────────
 # DRIFT DETECTION
-# ────────────────────────────────────────────────────────────────────────────────
 drift_detection:
   enabled: true
   methods:
@@ -387,9 +371,7 @@ drift_detection:
   auto_retrain_trigger: true
   notification_channels: ["email", "webhook"]
 
-# ────────────────────────────────────────────────────────────────────────────────
 # SPATIAL INTELLIGENCE
-# ────────────────────────────────────────────────────────────────────────────────
 spatial:
   coordinate_system: "EPSG:4326"
   dem_resolution: 30 # meters
@@ -409,9 +391,7 @@ spatial:
       enabled: false
       source: "met_office"
 
-# ────────────────────────────────────────────────────────────────────────────────
 # SCALING & PERFORMANCE
-# ────────────────────────────────────────────────────────────────────────────────
 performance:
   caching:
     enabled: true
@@ -427,9 +407,7 @@ performance:
     enabled: false
     device: "cuda:0"
 
-# ────────────────────────────────────────────────────────────────────────────────
 # API CONTRACT (STRICT SCHEMA)
-# ────────────────────────────────────────────────────────────────────────────────
 api_contract:
   prediction_response:
     required_fields:
@@ -449,9 +427,7 @@ api_contract:
     - High
     - Critical
 
-# ────────────────────────────────────────────────────────────────────────────────
 # EXPANSION ROADMAP
-# ────────────────────────────────────────────────────────────────────────────────
 expansion:
   phase_1:
     region: "scotland"

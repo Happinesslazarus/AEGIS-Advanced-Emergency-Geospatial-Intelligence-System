@@ -1,14 +1,14 @@
-/*
+﻿/*
  * FloatingChatWidget.tsx — Floating Chat Button + Mini Chat Window
  *
  * A persistent chat FAB that appears on citizen pages when authenticated.
  * Features:
- *   - Floating action button with unread badge
- *   - Expandable mini chat panel (bottom-right)
- *   - Thread list or active conversation
- *   - New thread creation
- *   - Real-time messaging via Socket.IO
- *   - Compact, mobile-friendly design
+ * Floating action button with unread badge
+ * Expandable mini chat panel (bottom-right)
+ * Thread list or active conversation
+ * New thread creation
+ * Real-time messaging via Socket.IO
+ * Compact, mobile-friendly design
  *
  * NOTE: This widget is for CITIZENS to report issues to admin.
  *       Admin/operators should NOT see this widget.
@@ -182,9 +182,9 @@ export default function FloatingChatWidget(): JSX.Element | null {
             <div className="flex-1 overflow-y-auto">
               {socket.threads.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center px-6">
-                  <MessageSquare className="w-10 h-10 text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-600 mb-3" />
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('floatingChat.noConversations', lang)}</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-1">{t('floatingChat.startConversation', lang)}</p>
+                  <MessageSquare className="w-10 h-10 text-gray-300 dark:text-gray-600 mb-3" />
+                  <p className="text-sm font-medium text-gray-500 dark:text-gray-300">{t('floatingChat.noConversations', lang)}</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-300 mt-1">{t('floatingChat.startConversation', lang)}</p>
                   <button onClick={() => setView('new')}
                     className="mt-4 bg-aegis-600 hover:bg-aegis-700 text-white text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-1.5 transition">
                     <Plus className="w-3.5 h-3.5" /> {t('floatingChat.newMessage', lang)}
@@ -196,13 +196,13 @@ export default function FloatingChatWidget(): JSX.Element | null {
                     <button key={thread.id} onClick={() => openThread(thread.id)}
                       className={`w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition ${thread.citizen_unread > 0 ? 'bg-aegis-50/50 dark:bg-aegis-950/20' : ''}`}>
                       <div className="flex items-center justify-between">
-                        <p className={`text-sm truncate max-w-[200px] ${thread.citizen_unread > 0 ? 'font-bold text-gray-900 dark:text-white' : 'font-medium text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`}>
+                        <p className={`text-sm truncate max-w-[200px] ${thread.citizen_unread > 0 ? 'font-bold text-gray-900 dark:text-white' : 'font-medium text-gray-700 dark:text-gray-300'}`}>
                           {thread.subject}
                         </p>
-                        <span className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex-shrink-0">{timeAgoCompact(thread.updated_at)}</span>
+                        <span className="text-[10px] text-gray-400 dark:text-gray-300 flex-shrink-0">{timeAgoCompact(thread.updated_at)}</span>
                       </div>
                       <div className="flex items-center justify-between mt-1">
-                        <p className="text-[11px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 truncate max-w-[220px]">{thread.last_message || t('floatingChat.noMessages', lang)}</p>
+                        <p className="text-[11px] text-gray-400 dark:text-gray-300 truncate max-w-[220px]">{thread.last_message || t('floatingChat.noMessages', lang)}</p>
                         {thread.citizen_unread > 0 && (
                           <span className="bg-aegis-600 text-white text-[9px] font-bold w-4.5 h-4.5 px-1.5 py-0.5 rounded-full flex-shrink-0">
                             {thread.citizen_unread}
@@ -211,7 +211,7 @@ export default function FloatingChatWidget(): JSX.Element | null {
                       </div>
                       <div className="flex items-center gap-2 mt-1">
                         {thread.is_emergency && <span className="text-[9px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-medium">{t('common.emergency', lang).toUpperCase()}</span>}
-                        <span className="text-[9px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 capitalize">{thread.category}</span>
+                        <span className="text-[9px] text-gray-400 dark:text-gray-300 capitalize">{thread.category}</span>
                       </div>
                     </button>
                   ))}
@@ -226,7 +226,7 @@ export default function FloatingChatWidget(): JSX.Element | null {
               {/* Messages area */}
               <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-gray-50 dark:bg-gray-950">
                 {socket.messages.length === 0 && (
-                  <div className="text-center text-xs text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 py-8">{t('floatingChat.noMessagesYet', lang)}</div>
+                  <div className="text-center text-xs text-gray-400 dark:text-gray-300 py-8">{t('floatingChat.noMessagesYet', lang)}</div>
                 )}
                 {socket.messages.map(msg => {
                   const isMine = msg.sender_type === 'citizen'
@@ -284,20 +284,20 @@ export default function FloatingChatWidget(): JSX.Element | null {
           {view === 'new' && (
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               <div>
-                <label className="block text-[10px] font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-1 uppercase tracking-wide">{t('floatingChat.subject', lang)}</label>
+                <label className="block text-[10px] font-semibold text-gray-500 dark:text-gray-300 mb-1 uppercase tracking-wide">{t('floatingChat.subject', lang)}</label>
                 <input value={newSubject} onChange={e => setNewSubject(e.target.value)}
                   className="w-full text-sm bg-gray-50 dark:bg-gray-800 rounded-xl px-3 py-2 border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition"
                   placeholder={t('floatingChat.subjectPlaceholder', lang)} />
               </div>
               <div>
-                <label className="block text-[10px] font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-1 uppercase tracking-wide">{t('common.category', lang)}</label>
+                <label className="block text-[10px] font-semibold text-gray-500 dark:text-gray-300 mb-1 uppercase tracking-wide">{t('common.category', lang)}</label>
                 <select value={newCategory} onChange={e => setNewCategory(e.target.value)}
                   className="w-full text-sm bg-gray-50 dark:bg-gray-800 rounded-xl px-3 py-2 border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition appearance-none">
                   {THREAD_CATEGORIES.map(c => <option key={c.value} value={c.value}>{t(c.labelKey, lang)}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-[10px] font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-1 uppercase tracking-wide">{t('floatingChat.message', lang)}</label>
+                <label className="block text-[10px] font-semibold text-gray-500 dark:text-gray-300 mb-1 uppercase tracking-wide">{t('floatingChat.message', lang)}</label>
                 <textarea value={newFirstMsg} onChange={e => setNewFirstMsg(e.target.value)}
                   className="w-full text-sm bg-gray-50 dark:bg-gray-800 rounded-xl px-3 py-2 border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition resize-none"
                   placeholder={t('floatingChat.messagePlaceholder', lang)}
@@ -314,7 +314,7 @@ export default function FloatingChatWidget(): JSX.Element | null {
               )}
               <div className="flex gap-2 pt-1">
                 <button onClick={() => { setView('threads'); setNewSubject(''); setNewFirstMsg(''); setNewCategory('general') }}
-                  className="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 py-2.5 rounded-xl text-xs font-semibold transition">
+                  className="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 py-2.5 rounded-xl text-xs font-semibold transition">
                   {t('common.cancel', lang)}
                 </button>
                 <button onClick={createThread} disabled={creating || !newSubject.trim() || !newFirstMsg.trim()}
@@ -330,7 +330,4 @@ export default function FloatingChatWidget(): JSX.Element | null {
     </>
   )
 }
-
-
-
-
+

@@ -1,8 +1,6 @@
--- ═══════════════════════════════════════════════════════════════════════════════
 --  AEGIS — Family/Group Safety Feature (#37)
 --  Allows citizens to create safety groups (family, neighbours, etc.)
 --  and track each other's safety check-in status.
--- ═══════════════════════════════════════════════════════════════════════════════
 
 BEGIN;
 

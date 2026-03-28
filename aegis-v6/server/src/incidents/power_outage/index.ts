@@ -65,3 +65,4 @@ class PowerOutageModule extends BaseIncidentModule {
 }
 
 export default new PowerOutageModule()
+

@@ -1,8 +1,6 @@
 """
-═══════════════════════════════════════════════════════════════════════════════
  AEGIS AI ENGINE — ML Model Classes
  Additional AI models for report analysis and classification
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from .image_classifier import ImageClassifier

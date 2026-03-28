@@ -1,33 +1,29 @@
-/*
- * socket.ts - Real-time Socket.IO server for AEGIS Citizen ↔ Admin chat
- *
+ /*
+ * socket.ts - Real-time Socket.IO server for AEGIS Citizen ? Admin chat
  * Features:
- *   - JWT authentication on connection (citizen or operator)
- *   - Private citizen-admin messaging rooms
- *   - Message status tracking (sent → delivered → read)
- *   - Typing indicators
- *   - Online/offline presence
- *   - Emergency chat auto-escalation (keywords: help, trapped, injured, etc.)
- *   - Admin live notifications for new messages
- *   - Vulnerable citizen priority flagging
- */
+ * JWT authentication on connection (citizen or operator)
+ * Private citizen-admin messaging rooms
+ * Message status tracking (sent ? delivered ? read)
+ * Typing indicators
+ * Online/offline presence
+ * Emergency chat auto-escalation (keywords: help, trapped, injured, etc.)
+ * Admin live notifications for new messages
+ * Vulnerable citizen priority flagging
+  */
 
 import { Server as HttpServer } from 'http'
 import { Server, Socket } from 'socket.io'
-import jwt from 'jsonwebtoken'
 import pool from '../models/db.js'
 import path from 'path'
 import fs from 'fs'
 import { devLog, auditLog } from '../utils/logger.js'
-
-// Re-use the shared JWT secret (see auth.ts for production guard)
-const JWT_SECRET = process.env.JWT_SECRET || (() => {
-  const crypto = require('crypto') as typeof import('crypto')
-  return crypto.randomBytes(64).toString('hex')
-})()
+import { logger } from './logger.js'
+import { verifyToken } from '../middleware/auth.js'
+import { distressEventsTotal, distressActiveGauge, distressResponseLatency } from './metrics.js'
+import { redis, redisReady } from './cacheService.js'
 const CITIZEN_ROLES = new Set(['citizen', 'verified_citizen', 'community_leader'])
 
-/** Parse human-readable duration strings like '24h', '7d', '1w', '1m' into milliseconds */
+/* Parse human-readable duration strings like '24h', '7d', '1w', '1m' into milliseconds */
 function parseDuration(duration: string): number {
   const match = String(duration).match(/^(\d+)\s*(h|d|w|m|hours?|days?|weeks?|months?)$/i)
   if (!match) return 0
@@ -57,7 +53,7 @@ interface AuthPayload {
   department?: string
 }
 
-// ─── In-memory map of online community chat users (keyed by socket.id) ────
+//  In-memory map of online community chat users (keyed by socket.id)
 const communityOnlineUsers = new Map<string, {
   userId: string
   userName: string
@@ -67,10 +63,64 @@ const communityOnlineUsers = new Map<string, {
   joinedAt: Date
 }>()
 
-// Per-user message rate limiting (in-memory, clears on restart)
+// Per-user message rate limiting (in-memory fallback, clears on restart)
 const messageRateLimits = new Map<string, { count: number; resetAt: number }>()
 
-// ─── Incident Alert Broadcast API ────────────────────────────────────────────
+ /**
+ * Check socket message rate limit for a user.
+ * Uses Redis when available for cross-instance consistency; falls back to
+ * the in-memory Map when Redis is down or disabled.
+ *
+ * @returns true if the message is allowed, false if rate-limited.
+ */
+async function checkSocketRateLimit(
+  userId: string,
+  maxPerWindow: number = 15,
+  windowMs: number = 60000,
+): Promise<boolean> {
+  // Try Redis first
+  try {
+    if (redis && redisReady) {
+      const key = `aegis:socket:ratelimit:${userId}`
+      const count = await redis.incr(key)
+      if (count === 1) {
+        // First message in the window — set expiry
+        await redis.pexpire(key, windowMs)
+      }
+      return count <= maxPerWindow
+    }
+  } catch {
+    // Redis unavailable — fall through to in-memory
+  }
+
+  // In-memory fallback
+  const now = Date.now()
+  const limiter = messageRateLimits.get(userId) || { count: 0, resetAt: now + windowMs }
+  if (now > limiter.resetAt) {
+    limiter.count = 0
+    limiter.resetAt = now + windowMs
+  }
+  limiter.count++
+  messageRateLimits.set(userId, limiter)
+  return limiter.count <= maxPerWindow
+}
+
+ /**
+ * Clean up rate-limit state for a disconnecting user.
+ * Removes the in-memory entry and (best-effort) the Redis key.
+ */
+async function clearSocketRateLimit(userId: string): Promise<void> {
+  messageRateLimits.delete(userId)
+  try {
+    if (redis && redisReady) {
+      await redis.del(`aegis:socket:ratelimit:${userId}`)
+    }
+  } catch {
+    // non-critical — key will expire on its own
+  }
+}
+
+//  Incident Alert Broadcast API
 // Allows server-side services (cronJobs, incident modules, n8n webhooks) to
 // push real-time incident predictions and alerts to all connected clients.
 
@@ -89,10 +139,10 @@ export interface IncidentAlertPayload {
   sourceModel?: string
 }
 
-/**
+ /*
  * Broadcast a new incident prediction alert to all connected clients.
  * Called by cronJobs, incident modules, and n8n webhook handlers.
- */
+  */
 export function broadcastIncidentAlert(payload: IncidentAlertPayload): void {
   if (!_io) return
   _io.emit('incident:alert', payload)
@@ -103,10 +153,10 @@ export function broadcastIncidentAlert(payload: IncidentAlertPayload): void {
   devLog(`[Socket] broadcast incident:alert ${payload.incidentType}@${payload.regionId} risk=${payload.riskLevel}`)
 }
 
-/**
+ /*
  * Broadcast a batch prediction update (e.g. periodic refresh of all active predictions).
  * Clients use this to update their dashboards without polling.
- */
+  */
 export function broadcastPredictionUpdate(regionId: string, predictions: unknown[]): void {
   if (!_io) return
   _io.emit('incident:predictions_updated', { regionId, predictions, timestamp: new Date().toISOString() })
@@ -122,8 +172,14 @@ export function initSocketServer(httpServer: HttpServer): Server {
           'http://localhost:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174',
           process.env.CLIENT_URL,
         ].filter(Boolean)
-        if (!origin || allowed.includes(origin)) callback(null, true)
-        else callback(null, true) // Allow all in dev
+        if (!origin || allowed.includes(origin)) {
+          callback(null, true)
+        } else if (process.env.NODE_ENV !== 'production') {
+          // Allow all origins in development only
+          callback(null, true)
+        } else {
+          callback(new Error(`WebSocket CORS: origin ${origin} not allowed`))
+        }
       },
       credentials: true,
     },
@@ -133,158 +189,16 @@ export function initSocketServer(httpServer: HttpServer): Server {
   // Store io reference so broadcastIncidentAlert / broadcastPredictionUpdate work
   _io = io
 
-  // ─── Initialize Database Tables on Startup ───────────────────────────────────
-  initDb().catch(err => console.error('[Socket] Database initialization error:', err.message))
+  // NOTE: Chat/community tables are now managed via migration_chat_tables.sql
+  // No runtime DDL — all schema changes go through the migration pipeline.
 
-  async function initDb() {
-    try {
-      // Ensure message_threads table exists
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS message_threads (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          citizen_id UUID NOT NULL,
-          subject VARCHAR(200) NOT NULL,
-          status VARCHAR(20) NOT NULL DEFAULT 'open',
-          priority VARCHAR(20) NOT NULL DEFAULT 'normal',
-          assigned_to UUID,
-          is_emergency BOOLEAN NOT NULL DEFAULT false,
-          auto_escalated BOOLEAN NOT NULL DEFAULT false,
-          escalation_keywords TEXT[],
-          last_message_at TIMESTAMPTZ,
-          citizen_unread INTEGER NOT NULL DEFAULT 0,
-          operator_unread INTEGER NOT NULL DEFAULT 0,
-          created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-          updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-        )
-      `)
-
-      // Ensure messages table exists
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS messages (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          thread_id UUID NOT NULL,
-          sender_type VARCHAR(20) NOT NULL,
-          sender_id UUID NOT NULL,
-          content TEXT,
-          attachment_url TEXT,
-          attachment_type VARCHAR(50),
-          status VARCHAR(20) NOT NULL DEFAULT 'sent',
-          delivered_at TIMESTAMPTZ,
-          read_at TIMESTAMPTZ,
-          created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-        )
-      `)
-
-      // Ensure direct-message attachment columns exist for older databases
-      await pool.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS attachment_url TEXT`).catch(() => {})
-      await pool.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS attachment_type VARCHAR(50)`).catch(() => {})
-      await pool.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'sent'`).catch(() => {})
-      await pool.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMPTZ`).catch(() => {})
-      await pool.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS operator_id UUID`).catch(() => {})
-      await pool.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS image_url TEXT`).catch(() => {})
-      await pool.query(`ALTER TABLE messages ALTER COLUMN content DROP NOT NULL`).catch(() => {})
-
-      // Ensure community_chat_messages table exists
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS community_chat_messages (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          sender_id UUID NOT NULL,
-          sender_type VARCHAR(20) NOT NULL DEFAULT 'citizen',
-          content TEXT,
-          image_url TEXT,
-          reply_to_id UUID,
-          deleted_at TIMESTAMPTZ,
-          created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-        )
-      `)
-
-      // Add new columns to community_chat_messages if they don't exist
-      await pool.query(`ALTER TABLE community_chat_messages ADD COLUMN IF NOT EXISTS image_url TEXT`)
-      await pool.query(`ALTER TABLE community_chat_messages ADD COLUMN IF NOT EXISTS reply_to_id UUID`)
-      // Add read_by column to track who read each message
-      await pool.query(`ALTER TABLE community_chat_messages ADD COLUMN IF NOT EXISTS read_by JSONB DEFAULT '[]'::jsonb`)
-      // Make content nullable for image-only messages
-      await pool.query(`ALTER TABLE community_chat_messages ALTER COLUMN content DROP NOT NULL`)
-
-      // Ensure user_presence table exists
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS user_presence (
-          user_id UUID PRIMARY KEY,
-          user_type VARCHAR(20) NOT NULL DEFAULT 'citizen',
-          is_online BOOLEAN NOT NULL DEFAULT false,
-          last_seen TIMESTAMPTZ NOT NULL DEFAULT now(),
-          socket_id VARCHAR(50)
-        )
-      `)
-
-      // Ensure community_posts table exists
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS community_posts (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          author_id UUID NOT NULL,
-          content TEXT NOT NULL,
-          image_url VARCHAR(500),
-          location VARCHAR(255),
-          is_hazard_update BOOLEAN DEFAULT false,
-          deleted_at TIMESTAMPTZ,
-          created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-          updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-        )
-      `)
-
-      // Ensure community_comments table exists
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS community_comments (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          post_id UUID NOT NULL,
-          author_id UUID NOT NULL,
-          content TEXT NOT NULL,
-          image_url VARCHAR(500),
-          deleted_at TIMESTAMPTZ,
-          created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-        )
-      `)
-
-      // Ensure community_post_likes table exists
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS community_post_likes (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          post_id UUID NOT NULL,
-          user_id UUID NOT NULL,
-          created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-          UNIQUE(post_id, user_id)
-        )
-      `)
-
-      // Ensure community_post_shares table exists
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS community_post_shares (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          post_id UUID NOT NULL,
-          user_id UUID NOT NULL,
-          created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-        )
-      `)
-
-      // Add category column if missing (migration for existing DBs)
-      await pool.query('ALTER TABLE message_threads ADD COLUMN IF NOT EXISTS category VARCHAR(50) NOT NULL DEFAULT \'general\'').catch(() => {})
-
-      devLog('[Socket] Database tables initialized successfully')
-    } catch (err: any) {
-      // Tables might already exist or have different definitions, which is OK
-      if (!err.message?.includes('already exists')) {
-        console.warn('[Socket] Table initialization warning:', err.message)
-      }
-    }
-  }
-
-  // ─── JWT Authentication Middleware ──────────────────────────────────────────
+  //  JWT Authentication Middleware
   io.use((socket, next) => {
     const token = socket.handshake.auth.token || socket.handshake.headers.authorization?.replace('Bearer ', '')
     if (!token) return next(new Error('Authentication required'))
 
     try {
-      const decoded = jwt.verify(token, JWT_SECRET) as AuthPayload
+      const decoded = verifyToken<AuthPayload>(token)
       ;(socket as any).user = decoded
       next()
     } catch {
@@ -334,7 +248,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
         return
       }
     } catch (err: any) {
-      console.error('[Socket] user normalization error:', err.message)
+      logger.error({ err }, '[Socket] user normalization error')
       socket.disconnect(true)
       return
     }
@@ -344,18 +258,18 @@ export function initSocketServer(httpServer: HttpServer): Server {
 
     devLog(`[Socket] ${user.role} ${user.displayName} connected (${socket.id})`)
 
-    // ── Update presence ────────────────────────────────────────────────
+    //  Update presence
     try {
       await pool.query(
         `INSERT INTO user_presence (user_id, user_type, is_online, last_seen, socket_id)
          VALUES ($1, $2, true, NOW(), $3)
-         ON CONFLICT (user_id) DO UPDATE 
+         ON CONFLICT (user_id) DO UPDATE
          SET is_online = true, last_seen = NOW(), socket_id = $3`,
         [user.id, isAdmin ? 'operator' : 'citizen', socket.id]
       )
     } catch {}
 
-    // ── Join rooms ─────────────────────────────────────────────────────
+    //  Join rooms
     // Citizens join their own room; admins join admin room
     socket.join(`user:${user.id}`)
     if (isAdmin) {
@@ -370,7 +284,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
            FROM message_threads t
            JOIN citizens c ON t.citizen_id = c.id
            WHERE t.status IN ('open', 'in_progress')
-           ORDER BY 
+           ORDER BY
              t.is_emergency DESC,
              c.is_vulnerable DESC,
              t.priority DESC,
@@ -379,7 +293,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
         devLog(`[Socket] Sending ${threads.rows.length} threads to admin ${user.displayName}`)
         socket.emit('admin:threads', threads.rows)
       } catch (err: any) {
-        console.error('[Socket] Failed to load admin threads:', err.message)
+        logger.error({ err }, '[Socket] Failed to load admin threads')
       }
     } else {
       // Citizen joins their thread rooms
@@ -392,7 +306,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
       } catch {}
     }
 
-    // ── Send Message ───────────────────────────────────────────────────
+    //  Send Message
     socket.on('message:send', async (data: { threadId: string; content?: string; attachmentUrl?: string; attachment_url?: string }, ack?: Function) => {
       try {
         const { threadId } = data
@@ -405,7 +319,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
 
         // Verify access
         const threadCheck = await pool.query(
-          `SELECT t.*, c.is_vulnerable FROM message_threads t 
+          `SELECT t.*, c.is_vulnerable FROM message_threads t
            JOIN citizens c ON t.citizen_id = c.id
            WHERE t.id = $1`,
           [threadId]
@@ -517,7 +431,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
 
         // Mark as delivered if recipient is online
         if (isAdmin) {
-          // Admin sent → check if citizen is online
+          // Admin sent ? check if citizen is online
           const presence = await pool.query(
             'SELECT is_online FROM user_presence WHERE user_id = $1',
             [thread.citizen_id]
@@ -532,7 +446,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
             })
           }
         } else {
-          // Citizen sent → check if any admin is online (in the admins room)
+          // Citizen sent ? check if any admin is online (in the admins room)
           const adminRoom = io.sockets.adapter.rooms.get('admins')
           if (adminRoom && adminRoom.size > 0) {
             await pool.query(
@@ -547,12 +461,12 @@ export function initSocketServer(httpServer: HttpServer): Server {
 
         if (ack) ack({ success: true, message: broadcastMsg })
       } catch (err: any) {
-        console.error('[Socket] message:send error:', err.message)
+        logger.error({ err }, '[Socket] message:send error')
         if (ack) ack({ success: false, error: err.message })
       }
     })
 
-    // ── Create Thread ──────────────────────────────────────────────────
+    //  Create Thread
     socket.on('thread:create', async (data: { subject: string; category?: string; message: string; isEmergency?: boolean }, ack?: Function) => {
       try {
         if (isAdmin) {
@@ -623,12 +537,12 @@ export function initSocketServer(httpServer: HttpServer): Server {
 
         if (ack) ack({ success: true, thread: enrichedThread })
       } catch (err: any) {
-        console.error('[Socket] thread:create error:', err.message)
+        logger.error({ err }, '[Socket] thread:create error')
         if (ack) ack({ success: false, error: err.message })
       }
     })
 
-    // ── Typing Indicator ───────────────────────────────────────────────
+    //  Typing Indicator
     // Track typing timers to auto-clear stale indicators
     const typingTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
@@ -658,7 +572,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
       })
     })
 
-    // ── Mark Messages as Read ──────────────────────────────────────────
+    //  Mark Messages as Read
     socket.on('messages:read', async (data: { threadId: string }) => {
       try {
         const { threadId } = data
@@ -699,7 +613,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
       } catch {}
     })
 
-    // ── Join Thread Room ───────────────────────────────────────────────
+    //  Join Thread Room
     socket.on('thread:join', async (data: { threadId: string }) => {
       const { threadId } = data
       devLog(`[Socket] ${user.role} ${user.displayName} requesting to join thread:${threadId}`)
@@ -714,11 +628,11 @@ export function initSocketServer(httpServer: HttpServer): Server {
         socket.join(`thread:${threadId}`)
         devLog(`[Socket] ${user.role} ${user.displayName} joined thread:${threadId}`)
       } else {
-        console.warn(`[Socket] ${user.role} ${user.displayName} denied access to thread:${threadId}`)
+        logger.warn({ role: user.role, displayName: user.displayName, threadId }, '[Socket] Denied access to thread')
       }
     })
 
-    // ── Load Thread Messages ───────────────────────────────────────────
+    //  Load Thread Messages
     socket.on('thread:messages', async (data: { threadId: string }, ack?: Function) => {
       try {
         const { threadId } = data
@@ -732,7 +646,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
         if (check.rows.length === 0) return
 
         const msgs = await pool.query(
-          `SELECT m.*, 
+          `SELECT m.*,
                   CASE WHEN m.sender_type = 'citizen' THEN c.display_name ELSE o.display_name END as sender_name,
                   CASE WHEN m.sender_type = 'citizen' THEN NULL ELSE COALESCE(o.role::text, 'operator') END as sender_role
            FROM messages m
@@ -747,17 +661,17 @@ export function initSocketServer(httpServer: HttpServer): Server {
         socket.emit('thread:messages', { threadId, messages: msgs.rows })
         if (ack) ack(msgs.rows)
       } catch (err: any) {
-        console.error('[Socket] thread:messages error:', err.message)
+        logger.error({ err }, '[Socket] thread:messages error')
       }
     })
 
-    // ── Citizen: Get my threads ────────────────────────────────────────
+    //  Citizen: Get my threads
     socket.on('citizen:get_threads', async (ack?: Function) => {
       if (isAdmin) {
-        console.log('[Socket] citizen:get_threads called by admin, ignoring')
+        logger.info('[Socket] citizen:get_threads called by admin, ignoring')
         return
       }
-      console.log('[Socket] citizen:get_threads called by:', user.displayName, 'ID:', user.id)
+      logger.info({ displayName: user.displayName, userId: user.id }, '[Socket] citizen:get_threads called')
       try {
         const threads = await pool.query(
           `SELECT t.*,
@@ -768,15 +682,15 @@ export function initSocketServer(httpServer: HttpServer): Server {
            ORDER BY t.updated_at DESC`,
           [user.id]
         )
-        console.log('[Socket] citizen:get_threads found', threads.rows.length, 'threads for user', user.id)
+        logger.info({ count: threads.rows.length, userId: user.id }, '[Socket] citizen:get_threads found threads')
         socket.emit('citizen:threads', threads.rows)
         if (ack) ack(threads.rows)
       } catch (err: any) {
-        console.error('[Socket] citizen:get_threads error:', err.message)
+        logger.error({ err }, '[Socket] citizen:get_threads error')
       }
     })
 
-    // ── Admin: Get all threads ─────────────────────────────────────────
+    //  Admin: Get all threads
     socket.on('admin:get_threads', async (ack?: Function) => {
       if (!isAdmin) return
       devLog(`[Socket] admin:get_threads requested by ${user.displayName}`)
@@ -789,7 +703,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
            FROM message_threads t
            JOIN citizens c ON t.citizen_id = c.id
            WHERE t.status IN ('open', 'in_progress')
-           ORDER BY 
+           ORDER BY
              t.is_emergency DESC,
              c.is_vulnerable DESC,
              t.priority DESC,
@@ -800,7 +714,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
       } catch {}
     })
 
-    // ── Admin: Assign thread to self ───────────────────────────────────
+    //  Admin: Assign thread to self
     socket.on('admin:assign_thread', async (data: { threadId: string, operatorId?: string }, ack?: Function) => {
       if (!isAdmin) return
       try {
@@ -814,12 +728,12 @@ export function initSocketServer(httpServer: HttpServer): Server {
         io.to('admins').emit('admin:thread_assigned', { threadId: data.threadId, operatorId: assignTo, operatorName: user.displayName })
         if (ack) ack({ success: true })
       } catch (err: any) {
-        console.error('[Socket] assign_thread error:', err.message)
+        logger.error({ err }, '[Socket] assign_thread error')
         if (ack) ack({ success: false, error: err.message })
       }
     })
 
-    // ── Admin: Resolve thread ──────────────────────────────────────────
+    //  Admin: Resolve thread
     socket.on('admin:resolve_thread', async (data: { threadId: string }, ack?: Function) => {
       if (!isAdmin) return
       try {
@@ -832,14 +746,12 @@ export function initSocketServer(httpServer: HttpServer): Server {
         io.to('admins').emit('admin:thread_resolved', { threadId: data.threadId, status: 'closed', operatorName: user.displayName })
         if (ack) ack({ success: true })
       } catch (err: any) {
-        console.error('[Socket] resolve_thread error:', err.message)
+        logger.error({ err }, '[Socket] resolve_thread error')
         if (ack) ack({ success: false, error: err.message })
       }
     })
 
-    // ═══════════════════════════════════════════════════════════════════════════
     // COMMUNITY CHAT ROOM — Real-time group chat for all users
-    // ═══════════════════════════════════════════════════════════════════════════
 
     const getCommunityOnlineUsers = () => {
       const users: any[] = []
@@ -867,7 +779,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
 
     socket.on('community:chat:join', async (ack?: Function) => {
       devLog(`[CommunityChat] JOIN REQUEST from ${user.displayName} (socket ${socket.id}) isAdmin: ${isAdmin}`)
-      console.log('[CommunityChat] 🔔 Join request from:', user.displayName, 'Socket:', socket.id, 'Admin:', isAdmin)
+      logger.info({ displayName: user.displayName, socketId: socket.id, isAdmin }, '[CommunityChat] Join request')
 
       // Check if user is banned
       try {
@@ -878,7 +790,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
         if (banCheck.rows.length > 0) {
           const ban = banCheck.rows[0]
           devLog(`[CommunityChat] ${user.displayName} is banned from community chat`)
-          console.log('[CommunityChat] ❌ User banned:', user.displayName)
+          logger.info({ displayName: user.displayName }, '[CommunityChat] User banned from community chat')
           if (ack) ack({
             success: false,
             banned: true,
@@ -889,7 +801,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
           return
         }
       } catch (err: any) {
-        console.error('[CommunityChat] Ban check error:', err.message)
+        logger.error({ err }, '[CommunityChat] Ban check error')
       }
 
       socket.join('community-chat')
@@ -914,7 +826,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
       // Broadcast updated online list to ALL users in room
       io.to('community-chat').emit('community:chat:online_update', { users: onlineList })
 
-      console.log('[CommunityChat] ✅ Join successful for:', user.displayName, 'Total online:', onlineList.length)
+      logger.info({ displayName: user.displayName, onlineCount: onlineList.length }, '[CommunityChat] Join successful')
       if (ack) ack({ success: true, users: onlineList })
     })
 
@@ -929,7 +841,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
       try {
         const limit = Math.min(Math.max(parseInt(data?.limit) || 50, 1), 200) // Cap at 200
         const before = data?.before // optional ISO timestamp for pagination
-        console.log('[CommunityChat] 📜 History request from:', user.displayName, 'Limit:', limit, 'Before:', before)
+        logger.info({ displayName: user.displayName, limit, before }, '[CommunityChat] History request')
         let query = `
           SELECT cm.id, cm.sender_id, cm.sender_type, cm.content, cm.image_url, cm.reply_to_id, cm.created_at, cm.deleted_at, cm.read_by,
                  COALESCE(
@@ -967,11 +879,11 @@ export function initSocketServer(httpServer: HttpServer): Server {
         params.push(limit)
 
         const result = await pool.query(query, params)
-        console.log('[CommunityChat] ✅ Loaded', result.rows.length, 'messages for', user.displayName)
+        logger.info({ count: result.rows.length, displayName: user.displayName }, '[CommunityChat] Loaded messages')
         // Return in chronological order
         if (ack) ack({ success: true, messages: result.rows.reverse() })
       } catch (err: any) {
-        console.error('[CommunityChat] history error:', err.message)
+        logger.error({ err }, '[CommunityChat] history error')
         if (ack) ack({ success: false, error: err.message })
       }
     })
@@ -992,17 +904,13 @@ export function initSocketServer(httpServer: HttpServer): Server {
         return
       }
 
-      // Rate limiting: max 15 messages per minute per user
+      // Rate limiting: max 15 messages per minute per user (Redis-backed with in-memory fallback)
       {
-        const now = Date.now()
-        const limiter = messageRateLimits.get(user.id) || { count: 0, resetAt: now + 60000 }
-        if (now > limiter.resetAt) { limiter.count = 0; limiter.resetAt = now + 60000 }
-        if (limiter.count >= 15) {
+        const allowed = await checkSocketRateLimit(user.id, 15, 60000)
+        if (!allowed) {
           if (ack) ack({ success: false, error: 'Rate limit exceeded. Max 15 messages per minute.' })
           return
         }
-        limiter.count++
-        messageRateLimits.set(user.id, limiter)
       }
 
       // Check if user is muted
@@ -1022,9 +930,9 @@ export function initSocketServer(httpServer: HttpServer): Server {
           return
         }
       } catch (err: any) {
-        console.error('[CommunityChat] Mute check error:', err.message)
+        logger.error({ err }, '[CommunityChat] Mute check error')
       }
-      
+
       try {
         const senderType = isAdmin ? 'operator' : 'citizen'
         const result = await pool.query(
@@ -1033,7 +941,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
           [user.id, senderType, content || null, imageUrl, replyToId]
         )
         const msg = result.rows[0]
-        
+
         // If replying, fetch the reply info
         let replyContent = null, replySenderName = null
         if (replyToId) {
@@ -1093,32 +1001,32 @@ export function initSocketServer(httpServer: HttpServer): Server {
           ack({ success: true, message: payload })
         }
       } catch (err: any) {
-        console.error('[CommunityChat] send error:', err.message)
+        logger.error({ err }, '[CommunityChat] send error')
         if (ack) ack({ success: false, error: err.message })
       }
     })
 
     socket.on('community:chat:delete', async (data: any, ack?: Function) => {
       const { messageId, reason } = data || {}
-      
+
       // Don't allow deleting temporary messages
-      if (!messageId || messageId.startsWith('tmp-')) { 
-        if (ack) ack({ success: false, error: 'Invalid message ID' }); 
+      if (!messageId || messageId.startsWith('tmp-')) {
+        if (ack) ack({ success: false, error: 'Invalid message ID' });
         return
       }
-      
+
       try {
         // Only message owner or admin can delete
         const check = await pool.query(
           `SELECT sender_id, sender_type, image_url FROM community_chat_messages WHERE id = $1 AND deleted_at IS NULL`, [messageId]
         )
-        if (check.rows.length === 0) { 
-          if (ack) ack({ success: false, error: 'Not found' }); 
-          return 
+        if (check.rows.length === 0) {
+          if (ack) ack({ success: false, error: 'Not found' });
+          return
         }
         const isOwnMessage = check.rows[0].sender_id === user.id
         if (!isOwnMessage && !isAdmin) {
-          if (ack) ack({ success: false, error: 'Unauthorized' }); 
+          if (ack) ack({ success: false, error: 'Unauthorized' });
           return
         }
 
@@ -1131,7 +1039,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
               fs.unlinkSync(filePath)
             }
           } catch (imgErr: any) {
-            console.error('[CommunityChat] Image delete error:', imgErr.message)
+            logger.error({ err: imgErr }, '[CommunityChat] Image delete error')
           }
         }
 
@@ -1140,9 +1048,9 @@ export function initSocketServer(httpServer: HttpServer): Server {
         const deletedBy = (isAdmin && !isOwnMessage) ? user.id : check.rows[0].sender_id
 
         await pool.query(
-          `UPDATE community_chat_messages 
-           SET deleted_at = NOW(), 
-               deleted_by = $2, 
+          `UPDATE community_chat_messages
+           SET deleted_at = NOW(),
+               deleted_by = $2,
                delete_reason = $3
            WHERE id = $1`,
           [messageId, deletedBy, deleteReason]
@@ -1158,13 +1066,12 @@ export function initSocketServer(httpServer: HttpServer): Server {
         })
         if (ack) ack({ success: true })
       } catch (err: any) {
-        console.error('[CommunityChat] delete error:', err.message)
+        logger.error({ err }, '[CommunityChat] delete error')
         if (ack) ack({ success: false, error: err.message })
       }
     })
 
-
-    // ── Edit Message ─────────────────────────────────────────────────
+    //  Edit Message
     socket.on('community:chat:edit', async (data: any, ack?: Function) => {
       const { messageId, content } = data || {}
       if (!messageId || !content?.trim()) { if (ack) ack({ success: false, error: 'Missing data' }); return }
@@ -1186,12 +1093,12 @@ export function initSocketServer(httpServer: HttpServer): Server {
         })
         if (ack) ack({ success: true })
       } catch (err: any) {
-        console.error('[CommunityChat] edit error:', err.message)
+        logger.error({ err }, '[CommunityChat] edit error')
         if (ack) ack({ success: false, error: err.message })
       }
     })
 
-    // ── Report Message ───────────────────────────────────────────────
+    //  Report Message
     socket.on('community:chat:report', async (data: any, ack?: Function) => {
       const { messageId, reason, details } = data || {}
       if (!messageId || !reason) { if (ack) ack({ success: false, error: 'Missing data' }); return }
@@ -1211,7 +1118,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
         })
         if (ack) ack({ success: true })
       } catch (err: any) {
-        console.error('[CommunityChat] report error:', err.message)
+        logger.error({ err }, '[CommunityChat] report error')
         if (ack) ack({ success: false, error: err.message })
       }
     })
@@ -1226,7 +1133,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
       socket.to('community-chat').emit('community:chat:stop_typing', { userId: user.id })
     })
 
-    // ── Mark Messages as Read ────────────────────────────────────────
+    //  Mark Messages as Read
     socket.on('community:chat:mark_read', async (data: any, ack?: Function) => {
       try {
         const { messageIds } = data || {}
@@ -1237,7 +1144,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
 
         // Filter out messages already read by this user
         const checkResult = await pool.query(
-          `SELECT id, sender_id, read_by FROM community_chat_messages 
+          `SELECT id, sender_id, read_by FROM community_chat_messages
            WHERE id = ANY($1::uuid[]) AND deleted_at IS NULL`,
           [messageIds]
         )
@@ -1251,7 +1158,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
 
           const readBy = row.read_by || []
           // Check if user already marked as read
-          const alreadyRead = readBy.some((r: any) => 
+          const alreadyRead = readBy.some((r: any) =>
             r.user_id === user.id && r.user_type === (isAdmin ? 'operator' : 'citizen')
           )
           if (!alreadyRead) {
@@ -1262,7 +1169,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
         if (messagesToUpdate.length > 0) {
           // Update read_by for each message
           await pool.query(
-            `UPDATE community_chat_messages 
+            `UPDATE community_chat_messages
              SET read_by = read_by || $1::jsonb
              WHERE id = ANY($2::uuid[])`,
             [
@@ -1277,7 +1184,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
 
           // Fetch updated messages to broadcast
           const updated = await pool.query(
-            `SELECT id, sender_id, sender_type, read_by FROM community_chat_messages 
+            `SELECT id, sender_id, sender_type, read_by FROM community_chat_messages
              WHERE id = ANY($1::uuid[])`,
             [messagesToUpdate]
           )
@@ -1297,12 +1204,12 @@ export function initSocketServer(httpServer: HttpServer): Server {
 
         if (ack) ack({ success: true, updatedCount: updatedMessages.length })
       } catch (err: any) {
-        console.error('[CommunityChat] mark_read error:', err.message)
+        logger.error({ err }, '[CommunityChat] mark_read error')
         if (ack) ack({ success: false, error: err.message })
       }
     })
 
-    // ── Remove Member from Chat (Operator only) ─────────────────────────
+    //  Remove Member from Chat (Operator only)
     socket.on('community:chat:remove_member', async (data: any, ack?: Function) => {
       try {
         if (!isStrictAdmin) {
@@ -1336,12 +1243,12 @@ export function initSocketServer(httpServer: HttpServer): Server {
 
         if (ack) ack({ success: true })
       } catch (err: any) {
-        console.error('[CommunityChat] remove_member error:', err.message)
+        logger.error({ err }, '[CommunityChat] remove_member error')
         if (ack) ack({ success: false, error: err.message })
       }
     })
 
-    // ── Ban User from Community Chat (Operator only) ─────────────────────
+    //  Ban User from Community Chat (Operator only)
     socket.on('community:chat:ban_user', async (data: any, ack?: Function) => {
       try {
         if (!isStrictAdmin) {
@@ -1397,12 +1304,12 @@ export function initSocketServer(httpServer: HttpServer): Server {
         auditLog('CommunityChat', `${user.displayName} banned ${targetUserId}`, { permanent })
         if (ack) ack({ success: true })
       } catch (err: any) {
-        console.error('[CommunityChat] ban_user error:', err.message)
+        logger.error({ err }, '[CommunityChat] ban_user error')
         if (ack) ack({ success: false, error: err.message })
       }
     })
 
-    // ── Unban User from Community Chat (Operator only) ───────────────────
+    //  Unban User from Community Chat (Operator only)
     socket.on('community:chat:unban_user', async (data: any, ack?: Function) => {
       try {
         if (!isStrictAdmin) {
@@ -1418,12 +1325,12 @@ export function initSocketServer(httpServer: HttpServer): Server {
         auditLog('CommunityChat', `${user.displayName} unbanned ${targetUserId}`)
         if (ack) ack({ success: true })
       } catch (err: any) {
-        console.error('[CommunityChat] unban_user error:', err.message)
+        logger.error({ err }, '[CommunityChat] unban_user error')
         if (ack) ack({ success: false, error: err.message })
       }
     })
 
-    // ── Mute User (Typing ban for a duration) ─────────────────────────────
+    //  Mute User (Typing ban for a duration)
     socket.on('community:chat:mute_user', async (data: any, ack?: Function) => {
       try {
         if (!isStrictAdmin) {
@@ -1471,12 +1378,12 @@ export function initSocketServer(httpServer: HttpServer): Server {
         auditLog('CommunityChat', `${user.displayName} muted ${targetUserId}`, { duration })
         if (ack) ack({ success: true })
       } catch (err: any) {
-        console.error('[CommunityChat] mute_user error:', err.message)
+        logger.error({ err }, '[CommunityChat] mute_user error')
         if (ack) ack({ success: false, error: err.message })
       }
     })
 
-    // ── Unmute User (Operator only) ──────────────────────────────────────
+    //  Unmute User (Operator only)
     socket.on('community:chat:unmute_user', async (data: any, ack?: Function) => {
       try {
         if (!isStrictAdmin) {
@@ -1502,7 +1409,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
         auditLog('CommunityChat', `${user.displayName} unmuted ${targetUserId}`)
         if (ack) ack({ success: true })
       } catch (err: any) {
-        console.error('[CommunityChat] unmute_user error:', err.message)
+        logger.error({ err }, '[CommunityChat] unmute_user error')
         if (ack) ack({ success: false, error: err.message })
       }
     })
@@ -1516,11 +1423,9 @@ export function initSocketServer(httpServer: HttpServer): Server {
       }
     })
 
-    // ═══════════════════════════════════════════════════════════════════════════
     // PERSONAL DISTRESS BEACON / SOS SYSTEM
     // Real-time emergency tracking with live GPS, operator acknowledgement,
     // dead-man switch, and triage prioritisation
-    // ═══════════════════════════════════════════════════════════════════════════
 
     socket.on('distress:activate', async (data: {
       latitude: number; longitude: number; message?: string; contactNumber?: string
@@ -1572,7 +1477,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
         // Join distress room for real-time updates
         socket.join(`distress:${distressCall.id}`)
 
-        // 🚨 ALERT ALL OPERATORS — with alarm-level urgency
+        // ?? ALERT ALL OPERATORS — with alarm-level urgency
         io.to('admins').emit('distress:new_alert', {
           ...distressCall,
           citizenName: user.displayName,
@@ -1590,10 +1495,13 @@ export function initSocketServer(httpServer: HttpServer): Server {
         })
 
         auditLog('Distress', `SOS ACTIVATED by ${user.displayName}`, { latitude, longitude, isVulnerable })
+        distressEventsTotal.inc({ event: 'activate' })
+        distressActiveGauge.inc()
 
         if (ack) ack({ success: true, distress: distressCall })
       } catch (err: any) {
-        console.error('[Distress] Activation error:', err.message)
+        logger.error({ err }, '[Distress] Activation error')
+        distressEventsTotal.inc({ event: 'activate_error' })
         if (ack) ack({ success: false, error: err.message })
       }
     })
@@ -1605,7 +1513,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
         const { distressId, latitude, longitude, accuracy, heading, speed } = data
 
         await pool.query(
-          `UPDATE distress_calls 
+          `UPDATE distress_calls
            SET current_lat = $2, current_lng = $3, latitude = $2, longitude = $3,
                accuracy = $4, heading = $5, speed = $6, last_update_at = NOW(), last_gps_at = NOW(),
                location_history = COALESCE(location_history, '[]'::jsonb) || jsonb_build_object('lat', $2, 'lng', $3, 'ts', NOW())
@@ -1624,7 +1532,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
           distressId, latitude, longitude, accuracy, heading, speed, timestamp: new Date().toISOString(),
         })
       } catch (err: any) {
-        console.error('[Distress] Location update error:', err.message)
+        logger.error({ err }, '[Distress] Location update error')
       }
     })
 
@@ -1666,6 +1574,8 @@ export function initSocketServer(httpServer: HttpServer): Server {
         })
 
         auditLog('Distress', `SOS cancelled by ${user.displayName}`)
+        distressEventsTotal.inc({ event: 'cancel' })
+        distressActiveGauge.dec()
         if (ack) ack({ success: true })
       } catch (err: any) {
         if (ack) ack({ success: false, error: err.message })
@@ -1681,7 +1591,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
         }
 
         const result = await pool.query(
-          `UPDATE distress_calls 
+          `UPDATE distress_calls
            SET status = 'acknowledged', acknowledged_by = $2, acknowledged_at = NOW(), triage_level = $3
            WHERE id = $1 AND status = 'active'
            RETURNING *`,
@@ -1712,6 +1622,13 @@ export function initSocketServer(httpServer: HttpServer): Server {
         })
 
         auditLog('Distress', `Acknowledged by ${user.displayName}`, { triageLevel: data.triageLevel || 'medium' })
+        distressEventsTotal.inc({ event: 'acknowledge' })
+        // Track response latency (time from creation to acknowledgement)
+        const ackCall = result.rows[0]
+        if (ackCall.created_at) {
+          const latencySeconds = (Date.now() - new Date(ackCall.created_at).getTime()) / 1000
+          distressResponseLatency.observe(latencySeconds)
+        }
         if (ack) ack({ success: true, distress: result.rows[0] })
       } catch (err: any) {
         if (ack) ack({ success: false, error: err.message })
@@ -1727,7 +1644,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
         }
 
         const result = await pool.query(
-          `UPDATE distress_calls 
+          `UPDATE distress_calls
            SET status = 'resolved', resolved_at = NOW(), resolved_by = $2, resolution = $3
            WHERE id = $1 AND status IN ('active', 'acknowledged')
            RETURNING *`,
@@ -1754,6 +1671,8 @@ export function initSocketServer(httpServer: HttpServer): Server {
         })
 
         auditLog('Distress', `Resolved by ${user.displayName}`)
+        distressEventsTotal.inc({ event: 'resolve' })
+        distressActiveGauge.dec()
         if (ack) ack({ success: true, distress: result.rows[0] })
       } catch (err: any) {
         if (ack) ack({ success: false, error: err.message })
@@ -1773,7 +1692,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
       socket.leave(`distress:${data.distressId}`)
     })
 
-    // ── Disconnect ─────────────────────────────────────────────────────
+    //  Disconnect
     socket.on('disconnect', async () => {
       try {
         await pool.query(
@@ -1792,8 +1711,8 @@ export function initSocketServer(httpServer: HttpServer): Server {
         }
       }
 
-      // Clean up rate limiter entry
-      messageRateLimits.delete(user.id)
+      // Clean up rate limiter entry (Redis + in-memory)
+      clearSocketRateLimit(user.id).catch(() => {})
 
       // Clean up active distress calls (#20) — mark as disconnected so operators know
       if (!isAdmin) {
@@ -1819,7 +1738,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
             })
           }
         } catch (err: any) {
-          console.error('[Distress] Disconnect cleanup error:', err.message)
+          logger.error({ err }, '[Distress] Disconnect cleanup error')
         }
       }
 

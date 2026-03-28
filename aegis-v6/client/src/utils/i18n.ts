@@ -1,88 +1,85 @@
-/**
+ /*
  * i18n.ts — Complete internationalisation engine for AEGIS
- *
  * ALL keys are defined in ALL 9 supported languages so that every UI string
  * translates correctly when the user switches language.
- *
  * Supported: en, es, fr, ar, zh, hi, pt, pl, ur
- */
+  */
 
 import i18next from '../i18n/config'
 import type { TranslationMap, LanguageCode } from '../types'
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // ENGLISH (source of truth – every key MUST exist here)
-// ═══════════════════════════════════════════════════════════════════════════════
 
 const en = {
-  // ── App ──
+  //  App
   'app.title': 'AEGIS', 'app.subtitle': 'Emergency Response System',
   'app.admin.title': 'AEGIS Admin', 'app.admin.subtitle': 'Emergency Operations Centre',
-  // ── Nav ──
+  //  Nav
   'nav.reportEmergency': 'Report Emergency', 'nav.aiAssistant': 'AI Assistant',
   'nav.communityHelp': 'Community Chat', 'nav.preparedness': 'Preparedness Guide',
   'nav.subscribe': 'Subscribe to Alerts', 'nav.history': 'Historical Data',
-  // ── Stats ──
+  //  Stats
   'stats.activeAlerts': 'Active Alerts', 'stats.reports24h': 'Reports (24h)',
   'stats.verified': 'Verified', 'stats.urgent': 'Urgent', 'stats.total': 'Total Reports',
   'stats.unverified': 'Unverified',
-  // ── Safety ──
+  //  Safety
   'safety.title': 'Are You Safe?', 'safety.safe': "I'm Safe",
   'safety.help': 'Need Help', 'safety.unsure': 'Unsure',
-  // ── Map ──
+  //  Map
   'map.title': 'Disaster Map', 'map.legend': 'Legend',
   'map.high': 'High severity', 'map.medium': 'Medium severity', 'map.low': 'Low severity',
   'map.floodZone': 'Flood risk zone',
-  // ── Alerts ──
+  //  Alerts
   'alerts.title': 'Active Alerts', 'alerts.none': 'No active alerts',
-  // ── Weather ──
+  //  Weather
   'weather.title': 'Local Conditions', 'weather.rainfall': 'Rainfall',
   'weather.wind': 'Wind', 'weather.visibility': 'Visibility',
-  // ── Reports ──
+  //  Reports
   'reports.title': 'Recent Reports', 'reports.all': 'All Reports',
   'reports.sortBy': 'Sort by', 'reports.time': 'Time', 'reports.severity': 'Severity',
   'reports.status': 'Status', 'reports.search': 'Search...',
   'reports.loading': 'Loading reports...', 'reports.none': 'No reports found',
-  // ── Report banner ──
-  'report.call_999': 'Call 999 first for life-threatening emergencies.',
+  //  Report banner
+  'report.call_999': 'Call {{EMERGENCY_NUMBER}} first for life-threatening emergencies.',
   'report.title': 'Report Emergency',
-  // ── Report form ──
+  //  Report form
   'form.title': 'Report Emergency', 'form.step': 'Step',
   'form.incidentType': 'What type of incident?', 'form.specifically': 'What specifically?',
   'form.describe': 'Describe what you see', 'form.howSevere': 'How severe?',
   'form.trapped': 'Anyone trapped or in danger?', 'form.location': 'Location & Submit',
   'form.submit': 'Submit Emergency Report', 'form.anonymous': 'Your report is anonymous.',
-  'form.call999': 'For life-threatening emergencies, call 999 first.',
+  'form.call999': 'For life-threatening emergencies, call {{EMERGENCY_NUMBER}} first.',
   'form.addMedia': 'Add photo or video evidence', 'form.mediaOptional': 'Helps verify — optional',
   'form.detectGps': 'GPS', 'form.back': 'Back', 'form.next': 'Next',
-  // ── Community ──
-  'community.title': 'Community Chat', 'community.offer': 'Offer Help',
+  //  Community
+  'community.title': 'Community Support', 'community.offer': 'Offer Help',
   'community.request': 'Request Help', 'community.nearby': 'Nearby Help Available',
   'community.privacy': 'All interactions are anonymous. Never share personal information publicly.',
-  // ── Auth ──
+  //  Auth
   'auth.title': 'Operator Login', 'auth.username': 'Username', 'auth.password': 'Password',
   'auth.login': 'Login', 'auth.logout': 'Logout',
   'auth.invalid': 'Invalid credentials. Please try again.', 'auth.secure': 'Secure encrypted connection',
-  // ── Consent ──
+  //  Consent
   'consent.title': 'Privacy & Consent', 'consent.accept': 'Accept & Continue',
   'consent.decline': 'Decline', 'consent.required': 'Required for this feature',
-  // ── Subscribe ──
+  //  Subscribe
   'subscribe.title': 'Subscribe to Alerts', 'subscribe.telegram': 'Telegram',
   'subscribe.email': 'Email', 'subscribe.sms': 'SMS', 'subscribe.web': 'Web Push',
   'subscribe.placeholder.email': 'your@email.com',
-  'subscribe.placeholder.phone': '+44 7xxx xxxxxx',
+  'subscribe.placeholder.phone': '+1 (555) 123-4567',
   'subscribe.placeholder.telegram': '@your_username',
   'subscribe.success': 'Subscribed successfully!', 'subscribe.areas': 'Alert Areas',
-  // ── History ──
+  //  History
   'history.title': 'Historical Analysis', 'history.heatmap': 'Flood Heatmap',
   'history.seasonal': 'Seasonal Trends', 'history.events': 'Past Events',
-  // ── Footer ──
+  //  Footer
   'footer.privacy': 'Privacy & Security', 'footer.noLogin': 'No login required',
   'footer.anonymous': 'Anonymous reporting', 'footer.locationOptional': 'Location optional',
   'footer.channels': 'Alert Channels', 'footer.emergency': 'Emergency Contacts',
   'footer.tagline': 'AEGIS Emergency Response System',
   'footer.callFirst': 'For emergencies call',
-  // ── Admin nav / labels ──
+  'footer.cookiePreferences': 'Cookie Preferences',
+  //  Admin nav / labels
   'admin.operational': 'Operational', 'admin.operators': 'operators online',
   'admin.darkMode': 'Toggle dark mode', 'admin.sendAlert': 'Send Alert',
   'admin.dashboard': 'Dashboard', 'admin.allReports': 'All Reports',
@@ -104,7 +101,7 @@ const en = {
   'admin.mediaAttached': 'Media attached',
   'admin.csvExported': 'CSV exported', 'admin.jsonExported': 'JSON exported',
   'admin.print': 'Print', 'admin.reportsFound': 'reports found',
-  // ── Admin filters ──
+  //  Admin filters
   'admin.filters.severity.all': 'All Severity',
   'admin.filters.severity.high': 'High', 'admin.filters.severity.medium': 'Medium', 'admin.filters.severity.low': 'Low',
   'admin.filters.status.all': 'All Status',
@@ -118,7 +115,7 @@ const en = {
   'admin.filters.type.community_safety': 'Community Safety',
   'admin.filters.type.environmental': 'Environmental Hazard',
   'admin.filters.type.medical': 'Medical Emergency',
-  // ── Admin actions / analytics / badges ──
+  //  Admin actions / analytics / badges
   'admin.actions.viewReportDetail': 'View report detail',
   'admin.actions.openMedia': 'Open media',
   'admin.actions.shareReport': 'Share report', 'admin.actions.printReport': 'Print report',
@@ -134,12 +131,12 @@ const en = {
   'admin.badge.vulnerablePerson': 'Vulnerable Person',
   'admin.ai.title': 'AI Transparency & Model Analytics',
   'admin.ai.predictions': 'AI Flood Predictions',
-  // ── Admin dashboard stats ──
+  //  Admin dashboard stats
   'admin.stats.total': 'Total', 'admin.stats.urgent': 'Urgent',
   'admin.stats.unverified': 'Unverified', 'admin.stats.verified': 'Verified',
   'admin.stats.flagged': 'Flagged', 'admin.stats.resolved': 'Resolved',
   'admin.stats.avgAi': 'Avg AI', 'admin.stats.trapped': 'Trapped',
-  // ── Admin confirmations ──
+  //  Admin confirmations
   'admin.confirm.verifyTitle': 'Verify Report',
   'admin.confirm.verifyMsg': 'Confirm this report as legitimate? This marks it as verified.',
   'admin.confirm.flagTitle': 'Flag Report',
@@ -151,36 +148,39 @@ const en = {
   'admin.alert.title': 'Alert Title', 'admin.alert.message': 'Message',
   'admin.alert.severity': 'Severity', 'admin.alert.location': 'Location',
   'admin.alert.channels': 'Channels', 'admin.alert.send': 'Send Alert',
-  // ── Landing ──
+  //  Landing
   'landing.hero.title': 'AEGIS',
   'landing.hero.subtitle': 'Advanced Emergency Geospatial Intelligence System',
   'landing.hero.description': 'Multi-modal AI-powered disaster response platform. Currently demonstrating flood management with modular architecture supporting all disaster types.',
   'landing.cta.citizen': 'Citizen Interface', 'landing.cta.operator': 'Operator Console',
   'landing.meta.projectCredit': 'BSc Computing Science Capstone Project — Robert Gordon University 2026',
-  'landing.footerSignature': 'AEGIS v6.2 — Advanced Emergency Geospatial Intelligence System — © 2026 Happiness Ada Lazarus — Robert Gordon University',
-  // ── Citizen dashboard tabs / actions ──
+  'landing.footerSignature': 'AEGIS — Advanced Emergency Geospatial Intelligence System — © 2026 Happiness Ada Lazarus — Robert Gordon University',
+  //  Citizen dashboard tabs / actions
   'citizen.tab.overview': 'Overview', 'citizen.tab.livemap': 'Live Map',
   'citizen.tab.reports': 'Reports', 'citizen.tab.messages': 'Messages',
   'citizen.tab.community': 'Community', 'citizen.tab.prepare': 'Preparedness',
-  'citizen.tab.news': 'News', 'citizen.tab.safety': 'Safety',
+  'citizen.tab.news': 'News', 'citizen.tab.alerts': 'Alerts', 'citizen.tab.safety': 'Safety',
+  'citizen.tab.shelters': 'Shelters', 'citizen.tab.risk': 'Risk Assessment', 'citizen.tab.emergency': 'Emergency',
   'citizen.tab.profile': 'Profile', 'citizen.tab.security': 'Security',
   'citizen.tab.settings': 'Settings',
   'citizen.action.report': 'Report', 'citizen.action.alerts': 'Alerts',
-  // ── Citizen hero ──
+  //  Citizen hero
   'citizen.hero.publicPortal': 'Public Safety Portal',
   'citizen.hero.title': 'Real-Time Emergency Awareness',
   'citizen.hero.subtitle': 'Monitor live incidents, report emergencies, check safety status, and stay informed with AI-powered alerts.',
-  // ── Citizen auth ──
+  //  Citizen auth
   'citizen.auth.guestContinue': 'Continue as Guest',
   'citizen.auth.alerts.title': 'Active Alerts',
   'citizen.auth.alerts.subtitle': 'Live emergency alerts in your region',
+  'citizen.auth.loginTitle': 'Citizen Login',
+  'citizen.auth.registerTitle': 'Create Account',
   'citizen.auth.loginSubtitle': 'Sign in to your AEGIS citizen dashboard',
   'citizen.auth.registerSubtitle': 'Join AEGIS for personalised emergency alerts',
   'citizen.auth.register': 'Register',
   'citizen.auth.step.account': 'Account', 'citizen.auth.step.details': 'Details', 'citizen.auth.step.profile': 'Profile',
   'citizen.auth.emailAddress': 'Email Address', 'citizen.auth.displayName': 'Display Name',
   'citizen.auth.passwordLabel': 'Password', 'citizen.auth.confirmPassword': 'Confirm Password',
-  'citizen.auth.passwordPlaceholder': 'Your password', 'citizen.auth.passwordMin': 'Min 8 characters',
+  'citizen.auth.passwordPlaceholder': 'Your password', 'citizen.auth.passwordMin': 'Min 12 characters',
   'citizen.auth.repeatPassword': 'Repeat password',
   'citizen.auth.signingIn': 'Signing in...', 'citizen.auth.signIn': 'Sign In',
   'citizen.auth.orContinueWith': 'or continue with', 'citizen.auth.signInGoogle': 'Sign in with Google',
@@ -210,17 +210,36 @@ const en = {
   'citizen.auth.error.photoSize': 'Profile photo must be under 2MB',
   'citizen.auth.error.displayNameRequired': 'Display name is required.',
   'citizen.auth.error.emailRequired': 'Email is required.',
-  'citizen.auth.error.passwordMinLength': 'Password must be at least 8 characters.',
+  'citizen.auth.error.invalidEmail': 'Please enter a valid email address.',
+  'citizen.auth.error.emailTaken': 'This email is already registered.',
+  'citizen.auth.error.passwordMinLength': 'Password must be at least 12 characters.',
+  'citizen.auth.error.passwordMin12': 'Password must be at least 12 characters.',
+  'citizen.auth.error.passwordComplexity': 'Password must contain uppercase, lowercase, digit, and special character.',
+  'citizen.auth.error.passwordContainsEmail': 'Password must not contain your email address.',
   'citizen.auth.error.passwordsNoMatch': 'Passwords do not match.',
+  'citizen.auth.error.tosRequired': 'You must accept the Terms of Service.',
+  'citizen.auth.error.tosAccept': 'Please accept the Terms of Service to continue.',
+  'citizen.auth.error.phoneTaken': 'This phone number is already registered.',
+  'citizen.auth.error.phoneRequired': 'Phone number is required.',
+  'citizen.auth.error.countryRequired': 'Country is required.',
+  'citizen.auth.error.regionRequired': 'Region is required.',
+  'citizen.auth.error.addressRequired': 'Address is required.',
+  'citizen.auth.error.avatarUploadFailed': 'Profile photo could not be uploaded — you can add it later.',
   'citizen.auth.error.registrationFailed': 'Registration failed.',
   'citizen.auth.error.loginFailed': 'Login failed.',
   'citizen.auth.error.generic': 'An error occurred.',
+  'citizen.auth.pwReq.minLength': 'At least 12 characters',
+  'citizen.auth.pwReq.uppercase': 'One uppercase letter',
+  'citizen.auth.pwReq.lowercase': 'One lowercase letter',
+  'citizen.auth.pwReq.digit': 'One number (0–9)',
+  'citizen.auth.pwReq.special': 'One special character',
+  'citizen.auth.pwReq.noEmail': 'Must not contain your email',
   'citizen.auth.success.accountCreated': 'Account created successfully! Redirecting...',
   'citizen.auth.success.login': 'Login successful! Redirecting...',
-  // ── Citizen dashboard specific ──
+  //  Citizen dashboard specific
   'citizen.stats.highSeverity': 'High Severity',
   'citizen.safety.safeMsg': 'You are marked safe. Stay alert and monitor updates.',
-  'citizen.safety.helpMsg': 'Help request recorded. If in immediate danger, call 999 now.',
+  'citizen.safety.helpMsg': 'Help request recorded. If in immediate danger, call {{EMERGENCY_NUMBER}} now.',
   'citizen.safety.unsureMsg': 'Stay where you are. Monitor official channels.',
   'citizen.safety.update': 'Update',
   'citizen.map.liveIncidentMap': 'Live Incident Map',
@@ -228,17 +247,17 @@ const en = {
   'citizen.reports.newest': 'Newest', 'citizen.reports.aiConfidence': 'AI Confidence',
   'citizen.reports.reportsCount': 'reports',
   'citizen.reports.shareReport': 'Share Report', 'citizen.reports.printReport': 'Print Report',
-  'citizen.prep.description': 'Learn how to prepare for, survive, and recover from natural disasters. Verified resources from UK agencies and trusted organisations.',
+  'citizen.prep.description': 'Learn how to prepare for, survive, and recover from natural disasters. Verified resources from national agencies and trusted organisations.',
   'citizen.news.refresh': 'Refresh', 'citizen.news.source': 'Source',
   'citizen.footer.platform': 'Platform', 'citizen.footer.contact': 'Contact',
   'citizen.sos.aria': 'Emergency SOS', 'citizen.sos.active': 'SOS Active',
   'citizen.sos.sendingIn': 'Sending in', 'citizen.sos.tapCancel': 'tap to cancel',
   'citizen.sos.holdSend': 'Hold to send SOS', 'citizen.sos.sent': 'SOS SIGNAL SENT',
   'citizen.sos.call999': 'If in immediate danger, call',
-  // ── Citizen verify email ──
+  //  Citizen verify email
   'citizen.verifyEmail.banner': 'Please verify your email address to unlock all features.',
   'citizen.verifyEmail.resend': 'Resend Email',
-  // ── NEW: Citizen dashboard overview / quick-actions / messages ──
+  //  NEW: Citizen dashboard overview / quick-actions / messages
   'citizen.loading': 'Loading your dashboard...',
   'citizen.welcome': 'Welcome back,',
   'citizen.dashboardDesc': 'Your personal AEGIS emergency dashboard',
@@ -305,13 +324,13 @@ const en = {
   'citizen.reportDetail.title': 'Report Details',
   'citizen.alertDetail.title': 'Alert Details',
   'citizen.alertDetail.safetyAdvice': 'Safety Advice',
-  'citizen.alertDetail.safetyMsg': 'Follow local authority guidance. If in immediate danger, call 999.',
+  'citizen.alertDetail.safetyMsg': 'Follow local authority guidance. If in immediate danger, call {{EMERGENCY_NUMBER}}.',
   'citizen.alertDetail.reportIncident': 'Report Incident',
   'citizen.subscribe.chooseChannels': 'Choose alert channels and provide contact details:',
   'citizen.subscribe.subscribeTo': 'Subscribe to Alerts',
   'citizen.subscribe.settingUp': 'Setting up...',
   'citizen.prep.emergencyPrep': 'Emergency Preparedness',
-  'citizen.prep.emergencyPrepDesc': 'Learn how to prepare for, survive, and recover from natural disasters. Verified resources from UK agencies.',
+  'citizen.prep.emergencyPrepDesc': 'Learn how to prepare for, survive, and recover from natural disasters. Verified resources from national agencies.',
   'citizen.prep.openFullGuide': 'Open Full Preparedness Guide',
   'citizen.news.newsResources': 'News & Resources',
   'citizen.news.noNews': 'No news available. Click Refresh to load the latest.',
@@ -341,7 +360,7 @@ const en = {
   'citizen.profile.title': 'Edit Profile',
   'citizen.profile.save': 'Save Changes',
   'citizen.profile.saving': 'Saving...',
-  // ── Common actions ──
+  //  Common actions
   'common.close': 'Close', 'common.share': 'Share', 'common.print': 'Print',
   'common.source': 'Source', 'common.refresh': 'Refresh',
   'common.reports': 'reports', 'common.loadingReports': 'Loading reports...',
@@ -354,13 +373,13 @@ const en = {
   'common.liked': 'Liked', 'common.comment': 'Comment', 'common.comments': 'Comments',
   'common.reply': 'Reply', 'common.conversation': 'conversation', 'common.conversations': 'conversations',
   'common.global': 'Global', 'common.reconnecting': 'Reconnecting...',
-  // ── Chatbot ──
+  //  Chatbot
   'chat.title': 'AI Emergency Assistant', 'chat.subtitle': 'Multi-disaster guidance',
-  'chat.placeholder': 'Ask about safety guidance...', 'chat.disclaimer': 'AI assistant — for emergencies call 999',
-  // ── General ──
+  'chat.placeholder': 'Ask about safety guidance...', 'chat.disclaimer': 'AI assistant — for emergencies call {{EMERGENCY_NUMBER}}',
+  //  General
   'general.close': 'Close', 'general.cancel': 'Cancel', 'general.confirm': 'Confirm',
   'general.loading': 'Loading...', 'general.noResults': 'No results found',
-  // ── Preparedness Guide i18n (#39) ──
+  //  Preparedness Guide i18n (#39)
   'prep.title': 'Disaster Preparedness Training',
   'prep.tab.tips': 'Safety Tips', 'prep.tab.scenarios': 'Scenarios',
   'prep.tab.kit': 'Emergency Kit', 'prep.tab.quiz': 'Quiz',
@@ -392,15 +411,13 @@ const en = {
   'prep.relatedScenarios': 'Related Scenarios',
   'prep.offline.notice': 'This content is available offline.',
 
-  // ══════════════════════════════════════════════════════════════════════════
   // ADMIN COMPONENTS — comprehensive i18n keys
-  // ══════════════════════════════════════════════════════════════════════════
 
-  // ── ActivityLog ──
+  //  ActivityLog
   'admin.activityLog.title': 'Activity Log',
   'admin.activityLog.mAgo': 'm ago', 'admin.activityLog.hAgo': 'h ago',
 
-  // ── AdminAlertBroadcast ──
+  //  AdminAlertBroadcast
   'admin.alertBroadcast.title': 'Emergency Alert Broadcast',
   'admin.alertBroadcast.severity': 'Alert Severity',
   'admin.alertBroadcast.critical': 'Critical',
@@ -410,11 +427,11 @@ const en = {
   'admin.alertBroadcast.advisory': 'Advisory',
   'admin.alertBroadcast.advisoryDesc': 'Situational awareness update',
   'admin.alertBroadcast.alertTitle': 'Alert Title',
-  'admin.alertBroadcast.titlePlaceholder': 'e.g. Flood Warning — River Don Area',
+  'admin.alertBroadcast.titlePlaceholder': 'e.g. Flood Warning — Downtown River Area',
   'admin.alertBroadcast.message': 'Alert Message',
   'admin.alertBroadcast.messagePlaceholder': 'Describe the emergency situation, affected areas and recommended actions...',
   'admin.alertBroadcast.location': 'Location / Affected Area',
-  'admin.alertBroadcast.locationPlaceholder': 'e.g. Aberdeen City Centre, Bridge of Don',
+  'admin.alertBroadcast.locationPlaceholder': 'e.g. City Centre, Riverside District',
   'admin.alertBroadcast.channels': 'Broadcast Channels',
   'admin.alertBroadcast.webPush': 'Web Push',
   'admin.alertBroadcast.browserNotifications': 'Browser notifications',
@@ -445,7 +462,7 @@ const en = {
   'admin.alertBroadcast.titleRequired': 'Alert title is required',
   'admin.alertBroadcast.messageRequired': 'Alert message is required',
 
-  // ── AdminAuditTrail ──
+  //  AdminAuditTrail
   'admin.auditTrail.title': 'Compliance Audit Trail',
   'admin.auditTrail.subtitle': 'audit events logged',
   'admin.auditTrail.search': 'Search audit logs...',
@@ -474,7 +491,7 @@ const en = {
   'admin.auditTrail.entries': 'entries',
   'admin.auditTrail.loadFromServer': 'Load from Server',
 
-  // ── AdminCommunityHub ──
+  //  AdminCommunityHub
   'admin.community.title': 'Community Management Hub',
   'admin.community.posts': 'Posts',
   'admin.community.users': 'Users',
@@ -493,7 +510,7 @@ const en = {
   'admin.community.noFlaggedContent': 'No flagged content',
   'admin.community.noPosts': 'No posts found',
 
-  // ── AdminHistoricalIntelligence ──
+  //  AdminHistoricalIntelligence
   'admin.historical.title': 'Historical Intelligence',
   'admin.historical.overview': 'Overview',
   'admin.historical.trends': 'Trends',
@@ -517,7 +534,7 @@ const en = {
   'admin.historical.exportData': 'Export Data',
   'admin.historical.noData': 'No historical data available',
 
-  // ── AdminMessaging ──
+  //  AdminMessaging
   'admin.messaging.title': 'Messaging Centre',
   'admin.messaging.threads': 'Threads',
   'admin.messaging.allThreads': 'All Threads',
@@ -549,7 +566,7 @@ const en = {
   'admin.messaging.selectThreadDesc': 'Choose a thread from the left panel to view messages',
   'admin.messaging.quickResponses': 'Quick Responses',
 
-  // ── AITransparency (Console + Dashboard) ──
+  //  AITransparency (Console + Dashboard)
   'admin.ai.transparencyTitle': 'AI Transparency & Model Analytics',
   'admin.ai.modelStatus': 'Model Status',
   'admin.ai.accuracy': 'Accuracy',
@@ -585,7 +602,7 @@ const en = {
   'admin.ai.inputFeatures': 'Input Features',
   'admin.ai.outputConfidence': 'Output Confidence',
 
-  // ── AllReportsManager ──
+  //  AllReportsManager
   'admin.reports.manager': 'All Reports Manager',
   'admin.reports.total': 'Total Reports',
   'admin.reports.filtered': 'filtered',
@@ -613,7 +630,7 @@ const en = {
   'admin.reports.exportCsv': 'Export as CSV',
   'admin.reports.exportJson': 'Export as JSON',
 
-  // ── AnalyticsCenter + AnalyticsDashboard ──
+  //  AnalyticsCenter + AnalyticsDashboard
   'admin.analytics.title': 'Analytics Centre',
   'admin.analytics.overview': 'Overview',
   'admin.analytics.performance': 'Performance',
@@ -637,7 +654,7 @@ const en = {
   'admin.analytics.kpi': 'Key Performance Indicators',
   'admin.analytics.noData': 'No analytics data available',
 
-  // ── CommandCenter ──
+  //  CommandCenter
   'admin.command.title': 'Command Centre',
   'admin.command.situationRoom': 'Situation Room',
   'admin.command.activeOps': 'Active Operations',
@@ -655,7 +672,7 @@ const en = {
   'admin.command.noActiveOps': 'No active operations',
   'admin.command.noActiveOpsDesc': 'Operations will appear here when incidents are escalated',
 
-  // ── DeliveryDashboard ──
+  //  DeliveryDashboard
   'admin.delivery.title': 'Alert Delivery Dashboard',
   'admin.delivery.overview': 'Delivery Overview',
   'admin.delivery.channels': 'Channel Performance',
@@ -676,7 +693,7 @@ const en = {
   'admin.delivery.success': 'Success',
   'admin.delivery.error': 'Error',
 
-  // ── DistressPanel ──
+  //  DistressPanel
   'admin.distress.title': 'Distress Signals',
   'admin.distress.active': 'Active Distress',
   'admin.distress.acknowledged': 'Acknowledged',
@@ -690,9 +707,9 @@ const en = {
   'admin.distress.location': 'Location',
   'admin.distress.time': 'Time',
   'admin.distress.priority': 'Priority',
-  'admin.distress.call999': 'Call 999',
+  'admin.distress.call999': 'Call {{EMERGENCY_NUMBER}}',
 
-  // ── IncidentCommandConsole ──
+  //  IncidentCommandConsole
   'admin.incident.title': 'Incident Command Console',
   'admin.incident.commander': 'Incident Commander',
   'admin.incident.assignCommander': 'Assign Commander',
@@ -705,7 +722,7 @@ const en = {
   'admin.incident.noObjectives': 'No objectives set',
   'admin.incident.noIncidents': 'No active incidents',
 
-  // ── IncidentQueue ──
+  //  IncidentQueue
   'admin.queue.title': 'Incident Response Queue',
   'admin.queue.activeIncidents': 'active incidents',
   'admin.queue.unassigned': 'unassigned',
@@ -724,7 +741,7 @@ const en = {
   'admin.queue.resolved': 'Incident resolved',
   'admin.queue.reassignedTo': 'Incident reassigned to',
 
-  // ── LiveOperationsMap ──
+  //  LiveOperationsMap
   'admin.liveMap.title': 'Live Operations Map',
   'admin.liveMap.incidents': 'Incidents',
   'admin.liveMap.resources': 'Resources',
@@ -739,7 +756,7 @@ const en = {
   'admin.liveMap.tracking': 'Live Tracking',
   'admin.liveMap.noIncidents': 'No incidents on map',
 
-  // ── ResourceDeploymentConsole ──
+  //  ResourceDeploymentConsole
   'admin.resource.title': 'Resource Deployment Console',
   'admin.resource.available': 'Available',
   'admin.resource.deployed': 'Deployed',
@@ -767,7 +784,7 @@ const en = {
   'admin.resource.deploySuccess': 'Resource deployed successfully',
   'admin.resource.recallSuccess': 'Resource recalled successfully',
 
-  // ── SystemHealthPanel ──
+  //  SystemHealthPanel
   'admin.health.title': 'Architecture Status Board',
   'admin.health.updated': 'Updated',
   'admin.health.refresh': 'Refresh',
@@ -808,7 +825,7 @@ const en = {
   'admin.health.architecture': 'Data Flow Architecture',
   'admin.health.workflows': 'Workflow Definitions',
 
-  // ── UserAccessManagement ──
+  //  UserAccessManagement
   'admin.users.title': 'User & Access Management',
   'admin.users.directory': 'Directory',
   'admin.users.auditTab': 'Audit',
@@ -863,7 +880,7 @@ const en = {
   'admin.users.deptDistribution': 'Department Distribution',
   'admin.users.unassigned': 'Unassigned',
 
-  // ── Admin LoginPage ──
+  //  Admin LoginPage
   'admin.login.title': 'AEGIS Operator Portal',
   'admin.login.subtitle': 'Emergency Operations Centre',
   'admin.login.signIn': 'Operator Sign-In',
@@ -884,15 +901,13 @@ const en = {
   'admin.login.featMultiChannel': 'Multi-Channel Alerts',
   'admin.login.featMultiChannelDesc': 'Broadcasting via Web Push, Telegram, Email, SMS, and WhatsApp simultaneously',
   'admin.login.heroStats': 'Real-time monitoring across',
-  'admin.login.heroRegions': 'UK regions',
+  'admin.login.heroRegions': 'regions worldwide',
   'admin.login.heroPowered': 'Powered by',
   'admin.login.heroModels': 'AI models',
 
-  // ══════════════════════════════════════════════════════════════════════════
   // CITIZEN COMPONENTS — comprehensive i18n keys
-  // ══════════════════════════════════════════════════════════════════════════
 
-  // ── CitizenMessaging (already partially covered above) ──
+  //  CitizenMessaging (already partially covered above)
   'citizen.messaging.translationFailed': 'Translation failed',
   'citizen.messaging.operatorResponse': 'Operator Response',
   'citizen.messaging.you': 'You',
@@ -900,7 +915,7 @@ const en = {
   'citizen.messaging.attachFile': 'Attach file',
   'citizen.messaging.sending': 'Sending...',
 
-  // ── CommunityChat ──
+  //  CommunityChat
   'citizen.communityChat.title': 'Community Chat',
   'citizen.communityChat.liveChat': 'Live Chat',
   'citizen.communityChat.postsFeed': 'Posts Feed',
@@ -909,7 +924,7 @@ const en = {
   'citizen.communityChat.send': 'Send',
   'citizen.communityChat.noMessages': 'No messages yet. Start the conversation!',
   'citizen.communityChat.rules': 'Community Guidelines',
-  'citizen.communityChat.rulesNotice': 'Be respectful. No personal information. Report emergencies to 999.',
+  'citizen.communityChat.rulesNotice': 'Be respectful. No personal information. Report emergencies to {{EMERGENCY_NUMBER}}.',
   'citizen.communityChat.createPost': 'Create Post',
   'citizen.communityChat.postTitle': 'Post Title',
   'citizen.communityChat.postContent': 'What would you like to share?',
@@ -1004,19 +1019,19 @@ const en = {
   'communityChat.reason.other.label': 'Other',
   'communityChat.reason.other.desc': 'Something else not listed',
 
-  // ── CommunityGuidelines ──
+  //  CommunityGuidelines
   'citizen.guidelines.title': 'Community Guidelines',
   'citizen.guidelines.respect': 'Be Respectful',
   'citizen.guidelines.respectDesc': 'Treat everyone with dignity and respect',
   'citizen.guidelines.noPersonalInfo': 'No Personal Information',
   'citizen.guidelines.noPersonalInfoDesc': 'Never share addresses, phone numbers, or other personal details',
-  'citizen.guidelines.emergency999': 'Emergencies: Call 999',
-  'citizen.guidelines.emergency999Desc': 'This chat is not for emergencies. Call 999 for immediate help.',
+  'citizen.guidelines.emergency999': 'Emergencies: Call {{EMERGENCY_NUMBER}}',
+  'citizen.guidelines.emergency999Desc': 'This chat is not for emergencies. Call {{EMERGENCY_NUMBER}} for immediate help.',
   'citizen.guidelines.noMisinformation': 'No Misinformation',
   'citizen.guidelines.noMisinformationDesc': 'Only share verified information from official sources',
   'citizen.guidelines.accept': 'I Accept These Guidelines',
 
-  // ── CommunityHelp ──
+  //  CommunityHelp
   'citizen.communityHelp.title': 'Community Help',
   'citizen.communityHelp.offerHelp': 'Offer Help',
   'citizen.communityHelp.requestHelp': 'Request Help',
@@ -1040,7 +1055,7 @@ const en = {
   'citizen.communityHelp.description': 'Description',
   'citizen.communityHelp.submit': 'Submit',
 
-  // ── CrowdDensityHeatmap ──
+  //  CrowdDensityHeatmap
   'citizen.heatmap.title': 'Crowd Density Map',
   'citizen.heatmap.legend': 'Density Legend',
   'citizen.heatmap.low': 'Low',
@@ -1052,7 +1067,7 @@ const en = {
   'citizen.heatmap.safetyAdvice': 'Avoid high density areas during emergencies',
   'citizen.heatmap.reportCrowd': 'Report Crowding',
 
-  // ── LiveIncidentMapPanel ──
+  //  LiveIncidentMapPanel
   'citizen.incidentMap.title': 'Live Incident Map',
   'citizen.incidentMap.filters': 'Filters',
   'citizen.incidentMap.allTypes': 'All Types',
@@ -1067,7 +1082,7 @@ const en = {
   'citizen.incidentMap.layers': 'Layers',
   'citizen.incidentMap.details': 'Details',
 
-  // ── OfflineEmergencyCard ──
+  //  OfflineEmergencyCard
   'citizen.offline.title': 'Offline Emergency Guide',
   'citizen.offline.subtitle': 'Essential information available without internet',
   'citizen.offline.emergencyNumbers': 'Emergency Numbers',
@@ -1092,7 +1107,7 @@ const en = {
   'citizen.offline.savedOffline': 'Saved for offline access',
   'citizen.offline.lastSynced': 'Last synced',
 
-  // ── OnboardingTutorial ──
+  //  OnboardingTutorial
   'citizen.onboarding.welcome': 'Welcome to AEGIS',
   'citizen.onboarding.step1': 'Report emergencies in your area',
   'citizen.onboarding.step2': 'View live incidents on the map',
@@ -1101,7 +1116,7 @@ const en = {
   'citizen.onboarding.next': 'Next',
   'citizen.onboarding.done': 'Get Started',
 
-  // ── RiskAssessment ──
+  //  RiskAssessment
   'citizen.risk.title': 'Personal Risk Assessment',
   'citizen.risk.overall': 'Overall Risk Level',
   'citizen.risk.low': 'Low Risk',
@@ -1119,7 +1134,7 @@ const en = {
   'citizen.risk.noData': 'No risk data available for your area',
   'citizen.risk.enableLocation': 'Enable location to assess local risks',
 
-  // ── ShelterFinder ──
+  //  ShelterFinder
   'citizen.shelter.title': 'Emergency Shelter Finder',
   'citizen.shelter.nearby': 'Nearby Shelters',
   'citizen.shelter.distance': 'Distance',
@@ -1142,7 +1157,7 @@ const en = {
   'citizen.shelter.loading': 'Finding shelters...',
   'citizen.shelter.lastUpdated': 'Last updated',
 
-  // ── SOSButton ──
+  //  SOSButton
   'citizen.sos.title': 'Emergency SOS',
   'citizen.sos.holdToActivate': 'Hold to Activate SOS',
   'citizen.sos.releasing': 'Release to cancel',
@@ -1153,7 +1168,7 @@ const en = {
   'citizen.sos.cancel': 'Cancel',
   'citizen.sos.countdown': 'Sending in',
 
-  // ── AlertSubscribe ──
+  //  AlertSubscribe
   'citizen.alertSubscribe.title': 'Alert Subscriptions',
   'citizen.alertSubscribe.manage': 'Manage your alert preferences',
   'citizen.alertSubscribe.channels': 'Alert Channels',
@@ -1162,7 +1177,7 @@ const en = {
   'citizen.alertSubscribe.save': 'Save Preferences',
   'citizen.alertSubscribe.saved': 'Preferences saved!',
 
-  // ── ReportForm (additional keys) ──
+  //  ReportForm (additional keys)
   'citizen.reportForm.uploading': 'Uploading...',
   'citizen.reportForm.uploadFailed': 'Upload failed',
   'citizen.reportForm.removeMedia': 'Remove',
@@ -1175,11 +1190,9 @@ const en = {
   'citizen.reportForm.unsure': 'Not sure',
   'citizen.reportForm.vulnerableNearby': 'Elderly or vulnerable people nearby?',
 
-  // ══════════════════════════════════════════════════════════════════════════
   // SHARED COMPONENTS — comprehensive i18n keys
-  // ══════════════════════════════════════════════════════════════════════════
 
-  // ── AccessibilityPanel ──
+  //  AccessibilityPanel
   'shared.accessibility.title': 'Accessibility Settings',
   'shared.accessibility.fontSize': 'Font Size',
   'shared.accessibility.contrast': 'High Contrast',
@@ -1190,14 +1203,14 @@ const en = {
   'shared.accessibility.textToSpeech': 'Text-to-Speech',
   'shared.accessibility.captionOverlay': 'Caption Overlay',
 
-  // ── AlertCaptionOverlay ──
+  //  AlertCaptionOverlay
   'shared.caption.title': 'Live Alert Captions',
   'shared.caption.noAlerts': 'No active alerts',
   'shared.caption.dismiss': 'Dismiss',
   'shared.caption.pause': 'Pause',
   'shared.caption.resume': 'Resume',
 
-  // ── ClimateRiskDashboard ──
+  //  ClimateRiskDashboard
   'shared.climate.title': 'Climate Risk Dashboard',
   'shared.climate.currentRisk': 'Current Risk Level',
   'shared.climate.forecast': 'Forecast',
@@ -1213,24 +1226,24 @@ const en = {
   'shared.climate.loading': 'Loading climate data...',
   'shared.climate.noData': 'No climate data available',
 
-  // ── ConfirmDialog ──
+  //  ConfirmDialog
   'shared.confirm.confirm': 'Confirm',
   'shared.confirm.cancel': 'Cancel',
   'shared.confirm.areYouSure': 'Are you sure?',
 
-  // ── ConsentDialog ──
+  //  ConsentDialog
   'shared.consent.title': 'Privacy & Consent',
   'shared.consent.message': 'We collect anonymous usage data to improve the platform. No personal information is stored.',
   'shared.consent.accept': 'Accept & Continue',
   'shared.consent.decline': 'Decline',
 
-  // ── ErrorBoundary ──
+  //  ErrorBoundary
   'shared.error.title': 'Something went wrong',
   'shared.error.message': 'An unexpected error occurred. Please try refreshing the page.',
   'shared.error.refresh': 'Refresh Page',
   'shared.error.details': 'Error Details',
 
-  // ── DisasterMap & Map Components ──
+  //  DisasterMap & Map Components
   'shared.map.loading': 'Loading map...',
   'shared.map.error': 'Failed to load map',
   'shared.map.retry': 'Retry',
@@ -1248,7 +1261,7 @@ const en = {
   'shared.map.myLocation': 'My Location',
   'shared.map.legend': 'Legend',
 
-  // ── FloodPredictionTimeline ──
+  //  FloodPredictionTimeline
   'shared.flood.title': 'Flood Prediction Timeline',
   'shared.flood.next24h': 'Next 24 Hours',
   'shared.flood.next48h': 'Next 48 Hours',
@@ -1261,7 +1274,7 @@ const en = {
   'shared.flood.noRisk': 'No flood risk detected',
   'shared.flood.loading': 'Loading predictions...',
 
-  // ── FloodLayerControl ──
+  //  FloodLayerControl
   'shared.floodLayer.title': 'Flood Risk Layers',
   'shared.floodLayer.zones': 'Flood Zones',
   'shared.floodLayer.rivers': 'Rivers',
@@ -1269,7 +1282,7 @@ const en = {
   'shared.floodLayer.historical': 'Historical Floods',
   'shared.floodLayer.prediction': 'Predicted Areas',
 
-  // ── IncidentFilterPanel ──
+  //  IncidentFilterPanel
   'shared.filter.title': 'Filter Incidents',
   'shared.filter.type': 'Incident Type',
   'shared.filter.severity': 'Severity',
@@ -1281,7 +1294,7 @@ const en = {
   'shared.filter.allSeverity': 'All Severity',
   'shared.filter.allStatus': 'All Status',
 
-  // ── IncomingAlertsWidget ──
+  //  IncomingAlertsWidget
   'shared.alerts.incoming': 'Incoming Alerts',
   'shared.alerts.new': 'New',
   'shared.alerts.dismiss': 'Dismiss',
@@ -1291,7 +1304,7 @@ const en = {
   'shared.alerts.warning': 'Warning',
   'shared.alerts.info': 'Info',
 
-  // ── IntelligenceDashboard ──
+  //  IntelligenceDashboard
   'shared.intelligence.title': 'Intelligence Dashboard',
   'shared.intelligence.threats': 'Active Threats',
   'shared.intelligence.forecast': 'Forecast',
@@ -1301,18 +1314,16 @@ const en = {
   'shared.intelligence.loading': 'Loading intelligence...',
   'shared.intelligence.noData': 'No intelligence data available',
 
-  // ── ModernNotification ──
+  //  ModernNotification
   'shared.notification.success': 'Success',
   'shared.notification.error': 'Error',
   'shared.notification.warning': 'Warning',
   'shared.notification.info': 'Information',
   'shared.notification.dismiss': 'Dismiss',
 
-  // ══════════════════════════════════════════════════════════════════════════
   // LAYOUT COMPONENTS
-  // ══════════════════════════════════════════════════════════════════════════
 
-  // ── Sidebar / Nav ──
+  //  Sidebar / Nav
   'layout.sidebar.dashboard': 'Dashboard',
   'layout.sidebar.reports': 'All Reports',
   'layout.sidebar.liveMap': 'Live Map',
@@ -1338,7 +1349,7 @@ const en = {
   'layout.sidebar.collapse': 'Collapse Sidebar',
   'layout.sidebar.expand': 'Expand Sidebar',
 
-  // ── Header ──
+  //  Header
   'layout.header.search': 'Search...',
   'layout.header.notifications': 'Notifications',
   'layout.header.profile': 'Profile',
@@ -1348,9 +1359,7 @@ const en = {
   'layout.header.operational': 'Operational',
   'layout.header.operatorsOnline': 'operators online',
 
-  // ══════════════════════════════════════════════════════════════════════════
   // LANDING PAGE
-  // ══════════════════════════════════════════════════════════════════════════
 
   'landing.nav.features': 'Features',
   'landing.nav.howItWorks': 'How It Works',
@@ -1358,7 +1367,7 @@ const en = {
   'landing.nav.citizenPortal': 'Citizen Portal',
   'landing.nav.operatorLogin': 'Operator Login',
   'landing.monitoring': 'NOW MONITORING',
-  'landing.monitoringRegions': 'UK REGIONS',
+  'landing.monitoringRegions': 'REGIONS WORLDWIDE',
   'landing.hero.mainTitle': 'Protecting Communities\nBefore Disaster Strikes',
   'landing.hero.mainDesc': 'AEGIS uses artificial intelligence, real-time sensor networks, and community reporting to predict, detect, and respond to natural disasters across the United Kingdom.',
   'landing.hero.btnCitizen': 'Access Citizen Portal',
@@ -1427,9 +1436,7 @@ const en = {
   'landing.footer.copyright': '© 2026 AEGIS — Advanced Emergency Geospatial Intelligence System',
   'landing.footer.university': 'BSc Computing Science — Robert Gordon University',
 
-  // ══════════════════════════════════════════════════════════════════════════
   // GENERAL / TIME / COMMON additional
-  // ══════════════════════════════════════════════════════════════════════════
   'time.justNow': 'Just now',
   'time.mAgo': 'm ago',
   'time.hAgo': 'h ago',
@@ -1971,7 +1978,7 @@ const en = {
   'alertSub.title': 'Subscribe to Alerts',
   'alertSub.telegramPlaceholder': '@your_username',
   'alertSub.emailPlaceholder': 'your@email.com',
-  'alertSub.phonePlaceholder': '+44 7xxx xxxxxx',
+  'alertSub.phonePlaceholder': '+1 (555) 123-4567',
 
   // Guest / Pages
   'guest.incidents': 'Incidents',
@@ -2096,6 +2103,10 @@ const en = {
 
   // TERMS & PRIVACY (using generic keys)
   'terms.title': 'Terms of Service',
+  'terms.pageTitle': 'Terms of Service',
+  'terms.lastUpdate': 'Last updated: January 2026',
+  'terms.importantNotice': 'Important Notice',
+  'terms.importantNoticeDesc': 'AEGIS is an academic honours project developed at Robert Gordon University. It is not a replacement for official emergency services. Always call 999 in a genuine emergency.',
   'terms.section1': '1. Acceptance of Terms',
   'terms.section2': '2. Description of Service',
   'terms.section3': '3. User Conduct',
@@ -2108,6 +2119,8 @@ const en = {
   'terms.section10': '10. Changes to Terms',
 
   'privacy.title': 'Privacy Policy',
+  'privacy.pageTitle': 'Privacy Policy',
+  'privacy.lastUpdate': 'Last updated: January 2026',
   'privacy.section1': '1. Who We Are',
   'privacy.section2': '2. Information We Collect',
   'privacy.section3': '3. How We Use Your Information',
@@ -2119,7 +2132,7 @@ const en = {
   'privacy.section9': '9. Contact Us',
   'privacy.section10': '10. Changes to This Policy',
 
-  // ── AI Transparency Console ──
+  //  AI Transparency Console
   'ai.commandGovernance': 'AI Command & Governance',
   'ai.transparencySubtitle': 'Model Transparency • Drift Monitoring • Explainability • Audit',
   'ai.pipeline': 'AI PIPELINE',
@@ -2159,7 +2172,7 @@ const en = {
   'ai.livePredictionFeed': 'Live Prediction Feed',
   'ai.confShort': 'Conf:',
 
-  // ── Resource Deployment ──
+  //  Resource Deployment
   'resource.request': 'Request',
   'resource.staging': 'Staging',
   'resource.transit': 'Transit',
@@ -2202,7 +2215,7 @@ const en = {
   'resource.noActivityRecorded': 'No activity recorded',
   'resource.noRecommendation': 'No recommendation',
 
-  // ── User Access Management ──
+  //  User Access Management
   'users.identityAccessMgmt': 'Identity & Access Management',
   'users.userDirectory': 'User Directory',
   'users.auditTrail': 'Audit Trail',
@@ -2251,9 +2264,13 @@ const en = {
   'users.suspendUntilOptional': 'Suspend Until (optional)',
   'users.leaveBlankIndefinite': 'Leave blank for indefinite suspension',
   'users.confirmSuspension': 'Confirm Suspension',
+  'users.inviteOperator': 'Invite Operator',
+  'users.activatedSuccess': 'User activated successfully',
+  'users.deletedSuccess': 'User deleted successfully',
+  'users.resetLinkGenerated': 'Password reset link generated',
 
-  // ── Admin Alert Broadcast ──
-  'broadcast.titlePlaceholder': 'e.g. Flash Flood Warning — River Don',
+  //  Admin Alert Broadcast
+  'broadcast.titlePlaceholder': 'e.g. Flash Flood Warning — River District',
   'broadcast.messageShort': 'Message is very short',
   'broadcast.affectedArea': 'Affected Area',
   'broadcast.areaPlaceholder': 'e.g. City Centre, Bridge of Don, Coastal areas',
@@ -2272,7 +2289,7 @@ const en = {
   'broadcast.deliverySummary': 'Delivery Summary',
   'broadcast.recentBroadcasts': 'Recent Broadcasts',
 
-  // ── Audit Trail ──
+  //  Audit Trail
   'audit.complianceTitle': 'Compliance Audit Trail',
   'audit.today': 'Today',
   'audit.thisWeek': 'This Week',
@@ -2286,7 +2303,7 @@ const en = {
   'audit.browser': 'Browser',
   'audit.operatorId': 'Operator ID',
 
-  // ── Historical Intelligence ──
+  //  Historical Intelligence
   'historical.subtitle': 'Event archive, flood heatmap & seasonal analytics',
   'historical.avgAffected': 'Avg Affected',
   'historical.distribution': 'Distribution',
@@ -2304,7 +2321,7 @@ const en = {
   'historical.damageCost': 'Damage Cost',
   'flood.floods': 'Floods',
 
-  // ── Messaging ──
+  //  Messaging
   'messaging.citizenInbox': 'Citizen Inbox',
   'messaging.totalConversations': 'total conversations',
   'messaging.searchPlaceholder': 'Search by name, subject, or message...',
@@ -2328,7 +2345,7 @@ const en = {
   'messaging.isTyping': 'is typing...',
   'messaging.replyPlaceholder': 'Type a professional reply...',
 
-  // ── Delivery Dashboard ──
+  //  Delivery Dashboard
   'delivery.dashboard': 'Delivery Dashboard',
   'delivery.successRate': 'Success Rate',
   'delivery.channelPerformance': 'Channel Performance',
@@ -2336,7 +2353,7 @@ const en = {
   'delivery.noRecords': 'No delivery records',
   'delivery.retry': 'Retry',
 
-  // ── Distress Panel ──
+  //  Distress Panel
   'distress.beaconMonitor': 'Distress Beacon Monitor',
   'distress.activeBeacons': 'Active Beacons',
   'distress.avgResponse': 'Avg Response',
@@ -2345,11 +2362,11 @@ const en = {
   'distress.resolutionNote': 'Resolution Note',
   'distress.resolutionPlaceholder': 'e.g., Citizen evacuated safely',
 
-  // ── Live Operations ──
+  //  Live Operations
   'liveOps.subtitle': 'Real-time operational awareness',
   'liveOps.noIncidents': 'No incidents to display',
 
-  // ── Command Console ──
+  //  Command Console
   'command.subtitle': 'Tactical incident management',
   'command.activeIncidents': 'Active Incidents',
   'command.noIncidents': 'No incidents',
@@ -2358,11 +2375,11 @@ const en = {
   'command.timeline': 'Timeline',
   'command.responders': 'Responders',
 
-  // ── Analytics Center ──
+  //  Analytics Center
   'analytics.center': 'Analytics Center',
   'analytics.subtitle': 'Operational intelligence',
 
-  // ── Common additions ──
+  //  Common additions
   'common.operational': 'OPERATIONAL',
   'common.processing': 'Processing',
   'common.ready': 'Ready',
@@ -2382,18 +2399,18 @@ const en = {
   'common.dismiss': 'Dismiss',
   'common.toggleMap': 'Toggle map',
 
-  // ── Time ──
+  //  Time
   'time.today': 'Today',
   'time.yesterday': 'Yesterday',
 
-  // ── Map ──
+  //  Map
   'map.expand': 'Expand map',
   'map.collapse': 'Collapse map',
   'map.layers': 'Layers',
   'map.heatmap': 'Heatmap',
   'flood.zones': 'Flood Zones',
 
-  // ── Analytics Center / Dashboard (batch 2) ──
+  //  Analytics Center / Dashboard (batch 2)
   'analytics.intelligenceAnalytics': 'Intelligence & Analytics',
   'analytics.situationAssessment': 'Situation Assessment • Data Intelligence • Performance Metrics',
   'analytics.optempo': 'OPTEMPO',
@@ -2482,7 +2499,7 @@ const en = {
   'analytics.stable': 'Stable',
   'analytics.polling': 'Polling',
 
-  // ── AI Transparency Dashboard (batch 2) ──
+  //  AI Transparency Dashboard (batch 2)
   'ai.dashboardError': 'Dashboard Error',
   'ai.noActiveModels': 'No Active Models',
   'ai.modelsAppear': 'Models appear after training data is loaded and the AI engine processes them.',
@@ -2538,7 +2555,7 @@ const en = {
   'ai.auditLogging': 'Audit Logging',
   'ai.recommendations': 'AI Recommendations',
 
-  // ── Command Center (batch 2) ──
+  //  Command Center (batch 2)
   'command.workflows': 'Workflows',
   'command.realTime': 'Real-time',
   'command.comms': 'Comms',
@@ -2585,7 +2602,7 @@ const en = {
   'command.reportPipeline': 'Report Pipeline',
   'command.data': 'DATA',
 
-  // ── All Reports Manager (batch 2) ──
+  //  All Reports Manager (batch 2)
   'allReports.incidentReports': 'Incident Reports',
   'allReports.matchingFilters': 'matching current filters',
   'allReports.reportPipeline': 'Report Pipeline',
@@ -2594,7 +2611,7 @@ const en = {
   'allReports.verify': 'Verify',
   'allReports.flag': 'Flag',
 
-  // ── Login Page (batch 2) ──
+  //  Login Page (batch 2)
   'login.realTimeMonitoring': 'Real-Time Monitoring',
   'login.liveIncidentTracking': 'Live incident tracking across all channels',
   'login.aiPoweredAnalysis': 'AI-Powered Analysis',
@@ -2616,7 +2633,7 @@ const en = {
   'login.passwordsMismatchError': 'Passwords do not match.',
   'login.accountCreated': 'Account created successfully! Please sign in with your credentials.',
 
-  // ── Common (batch 2) ──
+  //  Common (batch 2)
   'common.csv': 'CSV',
   'common.json': 'JSON',
   'common.overview': 'Overview',
@@ -2626,7 +2643,7 @@ const en = {
   'common.showLess': 'Show less',
   'common.showMore': 'Show more',
 
-  // ── Citizen batch keys ──
+  //  Citizen batch keys
   'shelter.safeZones': 'Safe Zones',
   'shelter.searchingOSM': 'Searching OpenStreetMap…',
   'shelter.sourceUnavailable': 'Source unavailable',
@@ -2704,7 +2721,7 @@ const en = {
   'community.protectPrivacy': 'Protect the privacy of others',
   'community.ourValues': 'Our Values',
 
-  // ── SOS keys ──
+  //  SOS keys
   'sos.emergencySOS': 'Emergency SOS',
   'sos.emergencySOSButton': 'Emergency SOS Button',
   'sos.sosActive': 'SOS ACTIVE',
@@ -2720,14 +2737,14 @@ const en = {
   'sos.beaconTransmitted': 'Beacon transmitted',
   'sos.operatorAcknowledged': 'Operator acknowledged',
 
-  // ── Chat keys ──
+  //  Chat keys
   'chat.welcomeMessage': "Hello! I'm the AEGIS Emergency Assistant. I can help with safety guidance for **all disaster types** — floods, storms, heatwaves, wildfires, landslides, power outages, water supply issues, infrastructure damage, public safety, and environmental hazards.\n\nI can also help you:\n• **Report incidents** and check active alerts\n• Find **evacuation routes** and shelters\n• Get **real-time predictions** from our AI models\n\nI understand multiple languages — feel free to ask in yours.\n\nWhat do you need help with?",
   'chat.offlineMode': 'Offline mode — local responses',
   'chat.messageLabel': 'Message',
   'chat.sendLabel': 'Send',
   'chat.noResponse': 'I could not generate a response.',
 
-  // ── Offline emergency card keys ──
+  //  Offline emergency card keys
   'offline.emergencySurvivalCard': 'Emergency Survival Card',
   'offline.searchOrGPS': 'Search or use GPS',
   'offline.searchSavePrintShare': 'Search or use GPS — Save offline — Print — Share',
@@ -2755,7 +2772,7 @@ const en = {
   'offline.aegisEmergencyData': 'AEGIS Emergency Data',
   'offline.countriesSupported': 'countries supported',
 
-  // ── Community Help keys ──
+  //  Community Help keys
   'communityHelp.title': 'Community Help',
   'communityHelp.subtitle': 'Safe, verified mutual aid for your area',
   'communityHelp.safetyFirst': 'Safety First',
@@ -2765,7 +2782,7 @@ const en = {
   'communityHelp.safetyNoAddress': 'Never share personal addresses publicly',
   'communityHelp.safetyMeetPublic': 'Always meet helpers in well-lit public places',
   'communityHelp.safetyReport': 'Report suspicious listings — our team reviews them',
-  'communityHelp.safetyCall999': 'For life emergencies always call 999 / 112 first',
+  'communityHelp.safetyCall999': 'For life emergencies always call {{EMERGENCY_NUMBER}} first',
   'communityHelp.understand': 'I Understand — Continue Safely',
   'communityHelp.gpsActive': 'GPS Active',
   'communityHelp.resources': 'Resources',
@@ -2790,7 +2807,7 @@ const en = {
   'communityHelp.requestBullet2': 'Your identity stays completely anonymous',
   'communityHelp.requestBullet3': 'Mark requests as urgent for faster response',
   'communityHelp.requestBullet4': 'Only share approximate area — never exact address',
-  'communityHelp.requestBullet5': 'For life emergencies always call 999 / 112 first',
+  'communityHelp.requestBullet5': 'For life emergencies always call {{EMERGENCY_NUMBER}} first',
   'communityHelp.signInRequest': 'Sign In to Request Help',
   'communityHelp.joinNetworkTitle': 'Join the Community Network',
   'communityHelp.joinNetworkDesc': 'Sign in to connect with verified helpers, request secure anonymous contact, and apply for a Verified Helper badge.',
@@ -2819,7 +2836,7 @@ const en = {
   'communityHelp.charsCount': 'chars',
   'communityHelp.approximateArea': 'Approximate area',
   'communityHelp.notExactAddress': '(not exact address)',
-  'communityHelp.areaPlaceholder': 'e.g. Old Aberdeen, North side of city…',
+  'communityHelp.areaPlaceholder': 'e.g. Downtown, North side of city…',
   'communityHelp.safeMeetingPlace': 'Safe public meeting place',
   'communityHelp.selectMeetingPlace': 'Select a public meeting place…',
   'communityHelp.otherTypeBelow': 'Other (type below)',
@@ -2833,11 +2850,11 @@ const en = {
   'communityHelp.agreeReq1': 'Your request is completely anonymous',
   'communityHelp.agreeReq2': 'Only share approximate area — not exact address',
   'communityHelp.agreeReq3': 'Only meet helpers in well-lit public places',
-  'communityHelp.agreeReq4': 'Call 999 for life-threatening emergencies',
+  'communityHelp.agreeReq4': 'Call {{EMERGENCY_NUMBER}} for life-threatening emergencies',
   'communityHelp.agreeReq5': 'Do not disclose financial details to helpers',
   'communityHelp.agreeReq6': 'False requests may block future access',
   'communityHelp.agreeRequestHelp': 'I Agree — Request Help',
-  'communityHelp.emergencyCall': 'Emergency? Call 999 (UK) or 112 (EU) first. This is for non-emergency community assistance.',
+  'communityHelp.emergencyCall': 'Emergency? Call {{EMERGENCY_NUMBER}} first. This is for non-emergency community assistance.',
   'communityHelp.whatDoYouNeed': 'What do you need?',
   'communityHelp.detailsSublabel': '(no personal info)',
   'communityHelp.detailsPlaceholder': 'Number of people, specific needs, accessibility requirements…',
@@ -2867,7 +2884,7 @@ const en = {
   'communityHelp.emailAddress': 'Email Address',
   'communityHelp.emailPlaceholder': 'your@email.com',
   'communityHelp.areaCity': 'Area / City',
-  'communityHelp.areaCityPlaceholder': 'e.g. Aberdeen, Edinburgh, Glasgow…',
+  'communityHelp.areaCityPlaceholder': 'e.g. your city or area name…',
   'communityHelp.selectOffer': 'Select…',
   'communityHelp.offerShelter': 'Emergency shelter / spare room',
   'communityHelp.offerFood': 'Food / water / supplies',
@@ -2893,11 +2910,11 @@ const en = {
   'communityHelp.noPostsMatch': 'No posts match your filter',
   'communityHelp.reportSuspicious': 'Report suspicious',
 
-  // ── Shared: PublicSafetyMode ──
+  //  Shared: PublicSafetyMode
   'safety.aegisPublicSafety': 'AEGIS PUBLIC SAFETY',
   'safety.emergencyInfoDisplay': 'Emergency Information Display',
   'safety.lifeThreatening': 'Life-threatening emergency?',
-  'safety.call999': 'Call 999',
+  'safety.call999': 'Call {{EMERGENCY_NUMBER}}',
   'safety.nonEmergency': 'Non-emergency?',
   'safety.call101': 'Call 101',
   'safety.activeAlerts': 'Active Alerts',
@@ -2916,7 +2933,7 @@ const en = {
   'safety.dataSources': 'Data sources: UK Environment Agency, Met Office, Local Councils',
   'safety.aegisSystem': 'AEGIS Emergency Response System',
 
-  // ── Shared: SpatialToolbar ──
+  //  Shared: SpatialToolbar
   'spatial.displayTools': 'Display Tools',
   'spatial.analysisTitle': 'Spatial Analysis Tools',
   'spatial.resetTool': 'Reset Tool',
@@ -2953,7 +2970,7 @@ const en = {
   'spatial.tool.exportView': 'Export View',
   'spatial.tool.exportViewDesc': 'Save map as image/data',
 
-  // ── Shared: WeatherPanel ──
+  //  Shared: WeatherPanel
   'weather.enableLocation': 'Enable location to see local weather',
   'weather.gpsNotAvailable': 'GPS not available',
   'weather.couldNotDetermine': 'Could not determine your location',
@@ -2966,7 +2983,7 @@ const en = {
   'weather.updated': 'Updated',
   'weather.loading': 'Loading weather…',
 
-  // ── Shared: RiverGaugePanel ──
+  //  Shared: RiverGaugePanel
   'river.riverLevels': 'River Levels',
   'river.live': 'LIVE',
   'river.gpsNotSupported': 'GPS not supported',
@@ -2989,13 +3006,13 @@ const en = {
   'river.source': 'Source',
   'river.thresholds': 'Thresholds',
 
-  // ── Shared: FloodLayerControl ──
+  //  Shared: FloodLayerControl
   'floodLayer.title': 'Flood Layers',
   'floodLayer.active': 'active',
   'floodLayer.showAll': 'Show All',
   'floodLayer.hideAll': 'Hide All',
 
-  // ── Shared: FloodPredictionTimeline ──
+  //  Shared: FloodPredictionTimeline
   'floodPred.title': 'Flood Prediction',
   'floodPred.riversMonitored': 'rivers monitored',
   'floodPred.now': 'NOW',
@@ -3005,7 +3022,7 @@ const en = {
   'floodPred.confidence': 'Confidence',
   'floodPred.loading': 'Loading predictions…',
 
-  // ── Shared: OfflineIndicator ──
+  //  Shared: OfflineIndicator
   'offline.backOnline': 'Back online',
   'offline.syncing': 'syncing',
   'offline.queued': 'queued',
@@ -3013,7 +3030,7 @@ const en = {
   'offline.trySync': 'Try to sync now',
   'offline.trySyncAria': 'Try to sync queued requests',
 
-  // ── Shared: AccessibilityPanel ──
+  //  Shared: AccessibilityPanel
   'a11y.screenReader': 'Screen Reader',
   'a11y.screenReaderDesc': 'Read aloud focused elements & alerts',
   'a11y.highContrast': 'High Contrast',
@@ -3033,62 +3050,127 @@ const en = {
   'a11y.tritanopia': 'Tritanopia',
   'a11y.resetAll': 'Reset All',
 
-  // ── Shared: AlertCaptionOverlay ──
+  //  Shared: AlertCaptionOverlay
   'caption.critical': 'CRITICAL',
   'caption.warning': 'WARNING',
   'caption.info': 'INFO',
   'caption.readAloud': 'Read alert aloud',
   'caption.dismiss': 'Dismiss caption',
 
-  // ── Shared: IncomingAlertsWidget ──
+  //  Shared: IncomingAlertsWidget
   'alerts.loadError': 'Could not load alerts',
   'alerts.loading': 'Loading alerts…',
   'alerts.noActive': 'No active alerts at this time',
   'alerts.viewDetails': 'View Details',
+  'alerts.backToAegis': 'Back to AEGIS',
+  'alerts.pageTitle': 'Active Alerts',
+  'alerts.subtitle': 'Emergency broadcasts for',
+  'alerts.refresh': 'Refresh',
+  'alerts.allClear': 'All clear in your area',
+  'alerts.searchPlaceholder': 'Search alerts by title, description, or area...',
+  'alerts.filters': 'Filters',
+  'alerts.sortNewest': 'Newest First',
+  'alerts.sortSeverity': 'By Severity',
+  'alerts.filterAll': 'All',
+  'alerts.noMatchFilters': 'No alerts match your current filters. Try adjusting your search.',
+  'alerts.noAlertsMessage': 'There are no active emergency alerts for your area at this time. Stay safe!',
+  'alerts.source': 'Source',
+  'alerts.type': 'Type',
+  'alerts.issued': 'Issued',
+  'alerts.broadcastChannels': 'Broadcast Channels',
+  'alerts.actionRequired': 'Action Required',
+  'alerts.expires': 'Expires',
+  'alerts.aboutTitle': 'About Emergency Alerts',
+  'alerts.aboutDesc': 'Alerts are broadcast by AEGIS administrators through multiple channels including web, email, SMS, Telegram, and WhatsApp. All active alerts are displayed here regardless of your subscription status. For real-time push notifications, subscribe to alert channels on the',
+  'alerts.citizenPortal': 'citizen portal',
+  'alerts.justNow': 'Just now',
+  'alerts.minsAgo': 'm ago',
+  'alerts.hoursAgo': 'h ago',
+  'alerts.daysAgo': 'd ago',
+  'alerts.severityCritical': 'CRITICAL',
+  'alerts.severityHigh': 'HIGH',
+  'alerts.severityWarning': 'WARNING',
+  'alerts.severityInfo': 'INFO',
+  'alerts.general': 'General',
 
-  // ── Shared: ConsentDialog ──
+  //  Shared: ConsentDialog
   'consent.privacyTitle': 'Privacy & Consent',
   'consent.requiredWarning': 'This permission is required for the feature to work. Your data is processed locally and never shared.',
   'consent.optionalWarning': 'This is optional. The feature will work with limited functionality without this permission.',
   'consent.goBack': 'Go Back',
 
-  // ── Shared: ConfirmDialog ──
+  //  Shared: ConfirmDialog
   'confirm.confirm': 'Confirm',
   'confirm.cancel': 'Cancel',
 
-  // ── Shared: CountrySearch ──
+  //  Shared: CountrySearch
   'country.searchPlaceholder': 'Type country name or +code…',
   'country.noResults': 'No countries found',
   'country.countries': 'countries',
 
-  // ── Shared: ErrorBoundary ──
+  //  Shared: ErrorBoundary & Resilience Layer
   'error.unexpected': 'An unexpected error occurred.',
   'error.sectionCrashed': 'This section crashed. Other parts of the app should still work.',
   'error.tryAgain': 'Try Again',
+  'error.pageTitle': 'Something went wrong',
+  'error.pageMessage': 'An unexpected error occurred. Our team has been notified and is working to resolve it.',
+  'error.reportIssue': 'Report issue',
+  'error.correlationId': 'Reference',
+  'error.retryCountExhausted': 'Multiple retries failed. Please refresh the page or contact support.',
+  'error.retryIn': 'Retrying in {seconds}s…',
+  'error.goHome': 'Go Home',
 
-  // ── Shared: ReportCard ──
-  'report.possibleFake': '⚠ Possible Fake',
+  //  404 Not Found
+  'notFound.title': 'Page not found',
+  'notFound.heading': '404',
+  'notFound.message': "The page you're looking for doesn't exist or has been moved. Use the links below to navigate back to safety.",
+  'notFound.home': 'Home',
+  'notFound.citizenPortal': 'Citizen Portal',
+  'notFound.admin': 'Admin',
+  'notFound.guestDashboard': 'Guest Dashboard',
+  'notFound.searchPlaceholder': 'Search AEGIS…',
+
+  //  Emergency banner
+  'emergency.banner': 'If this is an emergency, call {number} immediately.',
+  'emergency.contacts': 'Emergency Contacts',
+  'emergency.services': 'Emergency Services',
+  'emergency.floodHelpline': 'Flood Helpline',
+  'emergency.nonEmergency': 'Non-Emergency',
+
+  //  Loading / skeleton
+  'loading.content': 'Loading content…',
+  'loading.table': 'Loading table…',
+  'loading.map': 'Loading map…',
+  'loading.chart': 'Loading chart…',
+
+  //  Empty states
+  'empty.noData': 'No data available',
+  'empty.noResults': 'No results found',
+  'empty.adjustFilters': 'Try adjusting your search criteria.',
+
+  //  Shared: ReportCard
+  'report.possibleFake': 'Possible Fake',
   'report.vulnerablePerson': 'Vulnerable Person',
   'report.verify': 'Verify',
   'report.flag': 'Flag',
 
-  // ── Shared: AlertCard ──
+  //  Shared: AlertCard
   'alertCard.dismiss': 'Dismiss',
 
-  // ── Shared: LanguagePreferenceDialog ──
+  //  Shared: LanguagePreferenceDialog
   'langDialog.title': 'Choose Your Language',
   'langDialog.subtitle': 'Select your preferred language for AEGIS',
   'langDialog.changeLater': 'You can change this later in settings',
   'langDialog.confirm': 'Confirm',
 
-  // ── Shared: GlobalLanguageBar ──
+  //  Shared: GlobalLanguageBar
   'langBar.title': 'Language',
   'langBar.ariaLabel': 'Global language selector',
 
-  // ── Shared: Common ──
+  //  Shared: Common
   'common.na': 'N/A',
 
-  // ── ClimateRiskDashboard ──
+  //  ClimateRiskDashboard
   'dashboard.title': 'Climate Risk Dashboard',
   'dashboard.updated': 'Updated just now',
   'dashboard.loading': 'Loading dashboard data...',
@@ -3121,7 +3203,7 @@ const en = {
   'dashboard.citizenReports': 'Citizen Reports',
   'dashboard.historicalData': 'Historical Data',
 
-  // ── LiveMap ──
+  //  LiveMap
   'map.mapLayers': 'Map Layers',
   'map.hideAll': 'Hide All',
   'map.showAll': 'Show All',
@@ -3160,7 +3242,7 @@ const en = {
   'map.vulnerablePerson': 'Vulnerable person',
   'map.status': 'Status',
 
-  // ── Map3D ──
+  //  Map3D
   'map3d.distressBeacon': 'DISTRESS BEACON',
   'map3d.vulnerablePerson': 'Vulnerable person',
   'map3d.status': 'Status',
@@ -3176,7 +3258,7 @@ const en = {
   'map3d.lowSeverity': 'Low Severity',
   'map3d.sosDistress': 'SOS Distress',
 
-  // ── IntelligenceDashboard ──
+  //  IntelligenceDashboard
   'intel.title': 'Multi-Hazard Intelligence',
   'intel.threatCritical': 'Severe multi-incident emergency — immediate response required',
   'intel.threatRed': 'High-risk incidents active — responders deployed',
@@ -3210,7 +3292,7 @@ const en = {
   'intel.typesMonitored': 'incident types monitored',
   'intel.refresh': 'Refresh',
 
-  // ── DisasterMap ──
+  //  DisasterMap
   'dmap.layers': 'Layers',
   'dmap.toggleOverlays': 'Toggle Map Overlays',
   'dmap.overlay.floodZones': 'Flood Zones',
@@ -3283,7 +3365,7 @@ const en = {
   'dmap.riskZone': 'Risk Zone',
   'dmap.risk': 'Risk',
 
-  // ── CitizenDashboard (cdash.*) ──────────────────────────────────────────────
+  //  CitizenDashboard (cdash.*)
   'cdash.citizenFallback': 'Citizen',
   'cdash.close': 'Close',
   'cdash.community.subtitle': 'Connect with others in your community',
@@ -3389,7 +3471,9 @@ const en = {
   'cdash.prep.article': 'Article',
   'cdash.prep.beforeFloodTitle': 'Before the Flood Strikes',
   'cdash.prep.britishRedCross': 'British Red Cross',
+  'cdash.prep.disasterRiskTitle': 'Global Disaster Risk Monitoring',
   'cdash.prep.emergencyKitTitle': 'Making an Emergency Kit',
+  'cdash.prep.floodingGuideTitle': 'Flood Risk Reduction Guide',
   'cdash.prep.floodPrepTitle': 'Flood Preparation Guide',
   'cdash.prep.metOffice': 'Met Office',
   'cdash.prep.metOfficeTitle': 'Weather Warnings and Advice',
@@ -3399,6 +3483,7 @@ const en = {
   'cdash.prep.sepaTitle': 'SEPA Flood Warnings',
   'cdash.prep.ukEnvAgency': 'UK Environment Agency',
   'cdash.prep.video': 'Video',
+  'cdash.prep.weatherWarningsTitle': 'Weather Warnings & Hazard Reduction',
 
   // cdash.profile.*
   'cdash.profile.accountInfo': 'Account Information',
@@ -3528,7 +3613,7 @@ const en = {
   'cdash.settings.volume': 'Volume',
   'cdash.settings.yesDelete': 'Yes, Delete My Account',
 
-  // ── CitizenPage (citizenPage.*) ─────────────────────────────────────────────
+  //  CitizenPage (citizenPage.*)
   'citizenPage.aiAnalysis': 'AI Analysis',
   'citizenPage.aiConfidence': 'AI Confidence',
   'citizenPage.alertDetails': 'Alert Details',
@@ -3553,7 +3638,12 @@ const en = {
   'citizenPage.footer.samaritans': 'Samaritans: 116 123',
   'citizenPage.footer.scottishGov': 'Scottish Government',
   'citizenPage.footer.termsOfUse': 'Terms of Use',
+  'citizenPage.footer.cookiePreferences': 'Cookie Preferences',
+  'citizenPage.footer.gdacs': 'Global Disaster Alert (GDACS)',
+  'citizenPage.footer.redCross': 'International Red Cross (IFRC)',
   'citizenPage.footer.ukEmergencies': 'UK Emergencies Guide',
+  'citizenPage.footer.undrr': 'UN Disaster Risk Reduction',
+  'citizenPage.footer.wmo': 'World Meteorological Org (WMO)',
   'citizenPage.location': 'Location',
   'citizenPage.locationDenied': 'Location access denied',
   'citizenPage.locationDetected': 'Location detected',
@@ -3585,9 +3675,22 @@ const en = {
   'citizenPage.tab.disasterMap': 'Disaster Map',
   'citizenPage.tab.recentReports': 'Recent Reports',
   'citizenPage.tab.safeZones': 'Safe Zones',
+  'citizenPage.tab.alerts': 'Alerts',
+  'citizenPage.viewFullAlerts': 'View full alerts page →',
   'citizenPage.telegramHelp': 'Find your Telegram ID via @userinfobot',
   'citizenPage.telegramPlaceholder': 'Your Telegram user ID',
   'citizenPage.trappedPersons': 'Trapped Persons',
+  'citizenPage.detectLocation': 'Detect My Location',
+  'citizenPage.detectLocationDesc': 'Use GPS to find nearby incidents',
+  'citizenPage.findSafeZones': 'Find Safe Zones',
+  'citizenPage.findSafeZonesDesc': 'Locate shelters & evacuation points',
+  'citizenPage.callEmergency': 'Call Emergency',
+  'citizenPage.callEmergencyDesc': 'Dial 999 for life-threatening emergencies',
+  'citizenPage.welcomeTitle': 'Welcome to AEGIS',
+  'citizenPage.welcomeSubtitle': 'Your safety matters. Stay informed, stay prepared, stay connected.',
+  'citizenPage.welcomeFeature1': 'Live Monitoring',
+  'citizenPage.welcomeFeature2': 'AI-Powered Alerts',
+  'citizenPage.welcomeFeature3': 'Community Safety',
   'citizenPage.unableToShare': 'Unable to share report',
   'citizenPage.unlockDesc': 'Create a free account for full access to all emergency features',
   'citizenPage.unlockFull': 'Unlock Full Protection',
@@ -3599,7 +3702,7 @@ const en = {
   'citizenPage.webPushNotSupported': 'Web push not supported in this browser',
   'citizenPage.webPushReady': 'Ready to enable',
 
-  // ── Terms Page (terms.*) ────────────────────────────────────────────────────
+  //  Terms Page (terms.*)
   'terms.aboutAegis': 'About AEGIS',
   'terms.accessibility': 'Accessibility',
   'terms.backToAegis': 'Back to AEGIS',
@@ -3676,7 +3779,7 @@ const en = {
   'terms.s10.title': '10. Governing Law',
   'terms.s10.p1': 'These terms are governed by and construed in accordance with the laws of Scotland and the United Kingdom.',
 
-  // ── Privacy Page (privacy.*) ────────────────────────────────────────────────
+  //  Privacy Page (privacy.*)
   'privacy.aboutAegis': 'About AEGIS',
   'privacy.accessibility': 'Accessibility',
   'privacy.backToAegis': 'Back to AEGIS',
@@ -3758,7 +3861,9 @@ const en = {
   'privacy.s10.title': '10. Contact Us',
   'privacy.s10.p1': 'For privacy-related inquiries, please contact the AEGIS project team at Robert Gordon University, Aberdeen, Scotland.',
 
-  // ── Accessibility Page (a11yPage.*) ─────────────────────────────────────────
+  //  Accessibility Page (a11yPage.*)
+  'a11yPage.pageTitle': 'Accessibility Statement',
+  'a11yPage.tagline': 'Making AEGIS accessible and inclusive for everyone, regardless of ability.',
   'a11yPage.aboutAegis': 'About AEGIS',
   'a11yPage.backToAegis': 'Back to AEGIS',
   'a11yPage.backToDashboard': 'Back to Dashboard',
@@ -3846,7 +3951,7 @@ const en = {
   'a11yPage.s8.p3': '<strong>Phone:</strong> Contact through Robert Gordon University switchboard',
   'a11yPage.s8.p4': '<em>This accessibility statement was last reviewed in January 2026. We are continually working to improve accessibility across the platform.</em>',
 
-  // ── About Page (about.*) ────────────────────────────────────────────────────
+  //  About Page (about.*)
   'about.accessibility': 'Accessibility',
   'about.backToAegis': 'Back to AEGIS',
   'about.backToDashboard': 'Back to Dashboard',
@@ -3891,7 +3996,7 @@ const en = {
   'about.techStack': 'Technology Stack',
   'about.termsOfUse': 'Terms of Use',
 
-  // ── Admin Page additional keys (admin.*) ────────────────────────────────────
+  //  Admin Page additional keys (admin.*)
   'admin.action.archive': 'Archive',
   'admin.action.falseReport': 'False Report',
   'admin.action.flag': 'Flag',
@@ -4005,7 +4110,7 @@ const en = {
   'admin.suspend.reasonPlaceholder': 'Describe the reason for this suspension...',
   'admin.suspend.suspendedUntil': 'Suspended until',
 
-  // ── Citizen Auth Page additional keys (citizen.auth.*) ──────────────────────
+  //  Citizen Auth Page additional keys (citizen.auth.*)
   'citizen.auth.citizenPortal': 'Citizen Portal',
   'citizen.auth.error.avatarUploadFailed': 'Avatar upload failed',
   'citizen.auth.error.invalidEmail': 'Please enter a valid email address',
@@ -4032,7 +4137,7 @@ const en = {
   'citizen.auth.widget.safeZones': 'Safe Zones',
   'citizen.subscribe.alertTopics': 'Alert Topics',
 
-  // ── Map component keys ─────────────────────────────────────────────────────
+  //  Map component keys
   'map.highSeverity': 'High Severity',
   'map.layer.aiFlood': 'AI Flood Prediction',
   'map.layer.distressBeacons': 'Distress Beacons',
@@ -4043,7 +4148,7 @@ const en = {
   'map.mediumSeverity': 'Medium Severity',
   'map.sosDistress': 'SOS Distress',
 
-  // ── Safety component keys ──────────────────────────────────────────────────
+  //  Safety component keys
   'safety.allClear': 'All Clear',
   'safety.autoRefreshes': 'Auto-refreshes every 30 seconds',
   'safety.dataFromSources': 'Data from official UK sources',
@@ -4052,7 +4157,7 @@ const en = {
   'safety.noHighRiskFlood': 'No high-risk flood warnings in your area',
   'safety.weatherDataLoading': 'Weather data loading...',
 
-  // ── River gauge keys ───────────────────────────────────────────────────────
+  //  River gauge keys
   'river.alertLabel': 'Alert',
   'river.fetchingRiverData': 'Fetching river data...',
   'river.floodWarningMsg': 'Flood warning issued',
@@ -4060,7 +4165,7 @@ const en = {
   'river.noStationsConfigured': 'No stations configured',
   'river.warningLabel': 'Warning',
 
-  // ── Spatial analysis keys ──────────────────────────────────────────────────
+  //  Spatial analysis keys
   'spatial.areaDesc': 'Calculate area',
   'spatial.bearingDesc': 'Calculate bearing',
   'spatial.bufferZoneDesc': 'Create buffer zone',
@@ -4076,7 +4181,7 @@ const en = {
   'spatial.radiusSearchDesc': 'Search within radius',
   'spatial.spatialAnalysisTools': 'Spatial Analysis Tools',
 
-  // ── Weather, dashboard, flood, delivery, misc keys ─────────────────────────
+  //  Weather, dashboard, flood, delivery, misc keys
   'weather.couldNotDetermineLocation': 'Could not determine your location',
   'weather.enableLocationToSee': 'Enable location to see local weather',
   'weather.loadingWeather': 'Loading weather...',
@@ -4085,6 +4190,46 @@ const en = {
   'dashboard.severity': 'Severity',
   'floodPred.floodPrediction': 'Flood Prediction',
   'floodPred.loadingPredictions': 'Loading predictions...',
+
+  //  HazardPredictionTimeline — universal multi-hazard keys
+  'hazardPred.prediction': 'Prediction',
+  'hazardPred.monitored': 'monitored',
+  'hazardPred.now': 'NOW',
+  'hazardPred.atRisk': 'At Risk',
+  'hazardPred.probability': 'Probability',
+  'hazardPred.confidence': 'Confidence',
+  'hazardPred.noPredictions': 'No predictions available',
+  'hazardPred.runPrediction': 'Run a prediction to see results here',
+  'hazardPred.loading': 'Loading predictions…',
+  'hazardPred.updated': 'Updated',
+  'hazardPred.flood': 'Flood',
+  'hazardPred.drought': 'Drought',
+  'hazardPred.heatwave': 'Heatwave',
+  'hazardPred.severe_storm': 'Severe Storm',
+  'hazardPred.wildfire': 'Wildfire',
+  'hazardPred.landslide': 'Landslide',
+  'hazardPred.power_outage': 'Power Outage',
+  'hazardPred.water_supply_disruption': 'Water Supply',
+  'hazardPred.infrastructure_damage': 'Infrastructure',
+  'hazardPred.public_safety_incident': 'Public Safety',
+  'hazardPred.environmental_hazard': 'Environmental',
+
+  //  ImageAnalysisResults — photo intelligence keys
+  'imgAnalysis.title': 'AI Image Analysis',
+  'imgAnalysis.waterDetected': 'Water Detected',
+  'imgAnalysis.disasterConfidence': 'Disaster Confidence',
+  'imgAnalysis.classifications': 'Classifications',
+  'imgAnalysis.detections': 'Object Detections',
+  'imgAnalysis.exifVerification': 'EXIF Verification',
+  'imgAnalysis.locationMatch': 'Location Match',
+  'imgAnalysis.timeMatch': 'Time Match',
+  'imgAnalysis.manipulationRisk': 'Manipulation Risk',
+  'imgAnalysis.imageQuality': 'Image Quality',
+  'imgAnalysis.noAnalysis': 'No analysis available',
+  'imgAnalysis.processing': 'Analysing image…',
+  'imgAnalysis.damageAssessment': 'Damage Assessment',
+  'imgAnalysis.sceneType': 'Scene Type',
+
   'delivery.attempted': 'Attempted',
   'delivery.channelResults': 'Channel Results',
   'floodLayer.floodLayers': 'Flood Layers',
@@ -4493,9 +4638,7 @@ const en = {
 
 } satisfies TranslationMap
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // SPANISH
-// ═══════════════════════════════════════════════════════════════════════════════
 
 const es: TranslationMap = {
   'app.title': 'AEGIS', 'app.subtitle': 'Sistema de Respuesta a Emergencias',
@@ -4512,23 +4655,45 @@ const es: TranslationMap = {
   'map.high': 'Alta gravedad', 'map.medium': 'Gravedad media', 'map.low': 'Baja gravedad',
   'map.floodZone': 'Zona de riesgo de inundación',
   'alerts.title': 'Alertas Activas', 'alerts.none': 'Sin alertas activas',
+  'alerts.backToAegis': 'Volver a AEGIS', 'alerts.pageTitle': 'Alertas Activas',
+  'alerts.subtitle': 'Transmisiones de emergencia para', 'alerts.refresh': 'Actualizar',
+  'alerts.allClear': 'Todo despejado en tu zona', 'alerts.noActive': 'Sin alertas activas en este momento',
+  'alerts.searchPlaceholder': 'Buscar alertas por título, descripción o área...',
+  'alerts.filters': 'Filtros', 'alerts.sortNewest': 'Más recientes', 'alerts.sortSeverity': 'Por gravedad',
+  'alerts.filterAll': 'Todas', 'alerts.noMatchFilters': 'Ninguna alerta coincide con tus filtros actuales.',
+  'alerts.noAlertsMessage': 'No hay alertas de emergencia activas para tu zona. ¡Mantente seguro!',
+  'alerts.source': 'Fuente', 'alerts.type': 'Tipo', 'alerts.issued': 'Emitida',
+  'alerts.broadcastChannels': 'Canales de difusión', 'alerts.actionRequired': 'Acción requerida',
+  'alerts.expires': 'Expira',
+  'alerts.aboutTitle': 'Acerca de las Alertas de Emergencia',
+  'alerts.aboutDesc': 'Las alertas son transmitidas por los administradores de AEGIS a través de múltiples canales, incluyendo web, correo electrónico, SMS, Telegram y WhatsApp. Todas las alertas activas se muestran aquí independientemente de tu estado de suscripción. Para notificaciones push en tiempo real, suscríbete a los canales de alertas en el',
+  'alerts.citizenPortal': 'portal ciudadano',
+  'alerts.justNow': 'Ahora',
+  'alerts.minsAgo': 'min',
+  'alerts.hoursAgo': 'h',
+  'alerts.daysAgo': 'd',
+  'alerts.severityCritical': 'CRÍTICO',
+  'alerts.severityHigh': 'ALTO',
+  'alerts.severityWarning': 'ADVERTENCIA',
+  'alerts.severityInfo': 'INFO',
+  'alerts.general': 'General',
   'weather.title': 'Condiciones Locales', 'weather.rainfall': 'Lluvia',
   'weather.wind': 'Viento', 'weather.visibility': 'Visibilidad',
   'reports.title': 'Reportes Recientes', 'reports.all': 'Todos los Reportes',
   'reports.sortBy': 'Ordenar por', 'reports.time': 'Hora', 'reports.severity': 'Gravedad',
   'reports.status': 'Estado', 'reports.search': 'Buscar...',
   'reports.loading': 'Cargando informes...', 'reports.none': 'No se encontraron informes',
-  'report.call_999': 'Llame al 999 primero en emergencias que amenazan la vida.',
+  'report.call_999': 'Llame al {{EMERGENCY_NUMBER}} primero en emergencias que amenazan la vida.',
   'report.title': 'Reportar Emergencia',
   'form.title': 'Reportar Emergencia', 'form.step': 'Paso',
   'form.incidentType': '¿Qué tipo de incidente?', 'form.specifically': '¿Específicamente qué?',
   'form.describe': 'Describa lo que ve', 'form.howSevere': '¿Qué tan grave?',
   'form.trapped': '¿Alguien atrapado o en peligro?', 'form.location': 'Ubicación y Enviar',
   'form.submit': 'Enviar Reporte de Emergencia', 'form.anonymous': 'Su reporte es anónimo.',
-  'form.call999': 'Para emergencias que amenazan la vida, llame al 999 primero.',
+  'form.call999': 'Para emergencias que amenazan la vida, llame al {{EMERGENCY_NUMBER}} primero.',
   'form.addMedia': 'Agregar foto o video como evidencia', 'form.mediaOptional': 'Ayuda a verificar — opcional',
   'form.detectGps': 'GPS', 'form.back': 'Atrás', 'form.next': 'Siguiente',
-  'community.title': 'Chat Comunitario', 'community.offer': 'Ofrecer Ayuda',
+  'community.title': 'Apoyo Comunitario', 'community.offer': 'Ofrecer Ayuda',
   'community.request': 'Solicitar Ayuda', 'community.nearby': 'Ayuda Disponible Cerca',
   'community.privacy': 'Todas las interacciones son anónimas. Nunca comparta información personal públicamente.',
   'auth.title': 'Inicio de Sesión del Operador', 'auth.username': 'Usuario', 'auth.password': 'Contraseña',
@@ -4546,6 +4711,7 @@ const es: TranslationMap = {
   'footer.anonymous': 'Reporte anónimo', 'footer.locationOptional': 'Ubicación opcional',
   'footer.channels': 'Canales de Alerta', 'footer.emergency': 'Contactos de Emergencia',
   'footer.tagline': 'AEGIS Sistema de Respuesta a Emergencias', 'footer.callFirst': 'Para emergencias llame al',
+  'footer.cookiePreferences': 'Preferencias de cookies',
   'admin.operational': 'Operativo', 'admin.operators': 'operadores en línea',
   'admin.darkMode': 'Cambiar modo oscuro', 'admin.sendAlert': 'Enviar Alerta',
   'admin.dashboard': 'Panel', 'admin.allReports': 'Todos los Reportes',
@@ -4615,11 +4781,12 @@ const es: TranslationMap = {
   'landing.hero.description': 'Plataforma multimodal de respuesta a desastres impulsada por IA. Actualmente demuestra gestión de inundaciones con arquitectura modular compatible con todos los tipos de desastre.',
   'landing.cta.citizen': 'Interfaz Ciudadana', 'landing.cta.operator': 'Consola del Operador',
   'landing.meta.projectCredit': 'Proyecto Final de Ciencias de la Computación — Universidad Robert Gordon 2026',
-  'landing.footerSignature': 'AEGIS v6.2 — Sistema Avanzado de Inteligencia Geoespacial para Emergencias — © 2026 Happiness Ada Lazarus — Universidad Robert Gordon',
+  'landing.footerSignature': 'AEGIS — Sistema Avanzado de Inteligencia Geoespacial para Emergencias — © 2026 Happiness Ada Lazarus — Universidad Robert Gordon',
   'citizen.tab.overview': 'Resumen', 'citizen.tab.livemap': 'Mapa en Vivo',
   'citizen.tab.reports': 'Reportes', 'citizen.tab.messages': 'Mensajes',
   'citizen.tab.community': 'Comunidad', 'citizen.tab.prepare': 'Preparación',
-  'citizen.tab.news': 'Noticias', 'citizen.tab.safety': 'Seguridad',
+  'citizen.tab.news': 'Noticias', 'citizen.tab.alerts': 'Alertas', 'citizen.tab.safety': 'Seguridad',
+  'citizen.tab.shelters': 'Refugios', 'citizen.tab.risk': 'Evaluación de Riesgo', 'citizen.tab.emergency': 'Emergencia',
   'citizen.tab.profile': 'Perfil', 'citizen.tab.security': 'Seguridad',
   'citizen.tab.settings': 'Ajustes',
   'citizen.action.report': 'Reportar', 'citizen.action.alerts': 'Alertas',
@@ -4635,7 +4802,7 @@ const es: TranslationMap = {
   'citizen.auth.step.account': 'Cuenta', 'citizen.auth.step.details': 'Detalles', 'citizen.auth.step.profile': 'Perfil',
   'citizen.auth.emailAddress': 'Correo electrónico', 'citizen.auth.displayName': 'Nombre visible',
   'citizen.auth.passwordLabel': 'Contraseña', 'citizen.auth.confirmPassword': 'Confirmar contraseña',
-  'citizen.auth.passwordPlaceholder': 'Tu contraseña', 'citizen.auth.passwordMin': 'Mínimo 8 caracteres',
+  'citizen.auth.passwordPlaceholder': 'Tu contraseña', 'citizen.auth.passwordMin': 'Mínimo 12 caracteres',
   'citizen.auth.repeatPassword': 'Repite la contraseña',
   'citizen.auth.signingIn': 'Iniciando sesión...', 'citizen.auth.signIn': 'Iniciar sesión',
   'citizen.auth.orContinueWith': 'o continuar con', 'citizen.auth.signInGoogle': 'Iniciar sesión con Google',
@@ -4665,7 +4832,7 @@ const es: TranslationMap = {
   'citizen.auth.error.photoSize': 'La foto de perfil debe ser menor de 2MB',
   'citizen.auth.error.displayNameRequired': 'El nombre visible es obligatorio.',
   'citizen.auth.error.emailRequired': 'El correo electrónico es obligatorio.',
-  'citizen.auth.error.passwordMinLength': 'La contraseña debe tener al menos 8 caracteres.',
+  'citizen.auth.error.passwordMinLength': 'La contraseña debe tener al menos 12 caracteres.',
   'citizen.auth.error.passwordsNoMatch': 'Las contraseñas no coinciden.',
   'citizen.auth.error.registrationFailed': 'El registro falló.',
   'citizen.auth.error.loginFailed': 'Error al iniciar sesión.',
@@ -4674,7 +4841,7 @@ const es: TranslationMap = {
   'citizen.auth.success.login': '¡Inicio de sesión correcto! Redirigiendo...',
   'citizen.stats.highSeverity': 'Alta Gravedad',
   'citizen.safety.safeMsg': 'Estás marcado como seguro. Mantente alerta y monitorea actualizaciones.',
-  'citizen.safety.helpMsg': 'Solicitud de ayuda registrada. Si estás en peligro inmediato, llama al 999.',
+  'citizen.safety.helpMsg': 'Solicitud de ayuda registrada. Si estás en peligro inmediato, llama al {{EMERGENCY_NUMBER}}.',
   'citizen.safety.unsureMsg': 'Quédate donde estás. Monitorea los canales oficiales.',
   'citizen.safety.update': 'Actualizar',
   'citizen.map.liveIncidentMap': 'Mapa de Incidentes en Vivo',
@@ -4801,7 +4968,7 @@ const es: TranslationMap = {
   'chat.placeholder': 'Pregunte sobre seguridad...', 'chat.disclaimer': 'Asistente IA — para emergencias llame al 999',
   'general.close': 'Cerrar', 'general.cancel': 'Cancelar', 'general.confirm': 'Confirmar',
   'general.loading': 'Cargando...', 'general.noResults': 'Sin resultados',
-  // ── Preparedness Guide i18n ──
+  //  Preparedness Guide i18n
   'prep.title': 'Entrenamiento de Preparación ante Desastres',
   'prep.tab.tips': 'Consejos de Seguridad', 'prep.tab.scenarios': 'Escenarios',
   'prep.tab.kit': 'Kit de Emergencia', 'prep.tab.quiz': 'Cuestionario',
@@ -4836,7 +5003,7 @@ const es: TranslationMap = {
   'prep.relatedScenarios': 'Escenarios Relacionados',
   'prep.offline.notice': 'Este contenido está disponible sin conexión.',
 
-  // ── cdash (CitizenDashboard) ────────────────────────────────────────────────
+  //  cdash (CitizenDashboard)
   'cdash.citizenFallback': 'Ciudadano',
   'cdash.close': 'Cerrar',
   'cdash.community.subtitle': 'Conecta con otros en tu comunidad',
@@ -4932,7 +5099,9 @@ const es: TranslationMap = {
   'cdash.prep.article': 'Artículo',
   'cdash.prep.beforeFloodTitle': 'Antes de que llegue la inundación',
   'cdash.prep.britishRedCross': 'Cruz Roja Británica',
+  'cdash.prep.disasterRiskTitle': 'Monitoreo Global de Riesgo de Desastres',
   'cdash.prep.emergencyKitTitle': 'Preparar un kit de emergencia',
+  'cdash.prep.floodingGuideTitle': 'Guía de Reducción de Riesgo de Inundaciones',
   'cdash.prep.floodPrepTitle': 'Guía de preparación ante inundaciones',
   'cdash.prep.metOffice': 'Met Office',
   'cdash.prep.metOfficeTitle': 'Alertas y consejos meteorológicos',
@@ -4942,6 +5111,7 @@ const es: TranslationMap = {
   'cdash.prep.sepaTitle': 'Alertas de inundación de SEPA',
   'cdash.prep.ukEnvAgency': 'Agencia Medioambiental del RU',
   'cdash.prep.video': 'Vídeo',
+  'cdash.prep.weatherWarningsTitle': 'Alertas Meteorológicas y Reducción de Riesgos',
   'cdash.profile.accountInfo': 'Información de la Cuenta',
   'cdash.profile.avatarFailed': 'Error al actualizar avatar',
   'cdash.profile.avatarUpdated': 'Avatar actualizado',
@@ -5061,7 +5231,7 @@ const es: TranslationMap = {
   'cdash.settings.volume': 'Volumen',
   'cdash.settings.yesDelete': 'Sí, Eliminar Mi Cuenta',
 
-  // ── citizenPage ─────────────────────────────────────────────────────────────
+  //  citizenPage
   'citizenPage.aiAnalysis': 'Análisis IA',
   'citizenPage.aiConfidence': 'Confianza IA',
   'citizenPage.alertDetails': 'Detalles de la Alerta',
@@ -5086,6 +5256,7 @@ const es: TranslationMap = {
   'citizenPage.footer.samaritans': 'Samaritanos: 116 123',
   'citizenPage.footer.scottishGov': 'Gobierno de Escocia',
   'citizenPage.footer.termsOfUse': 'Términos de Uso',
+  'citizenPage.footer.cookiePreferences': 'Preferencias de cookies',
   'citizenPage.footer.ukEmergencies': 'Guía de Emergencias del RU',
   'citizenPage.location': 'Ubicación',
   'citizenPage.locationDenied': 'Acceso a ubicación denegado',
@@ -5118,6 +5289,8 @@ const es: TranslationMap = {
   'citizenPage.tab.disasterMap': 'Mapa de Desastres',
   'citizenPage.tab.recentReports': 'Reportes Recientes',
   'citizenPage.tab.safeZones': 'Zonas Seguras',
+  'citizenPage.tab.alerts': 'Alertas',
+  'citizenPage.viewFullAlerts': 'Ver página completa de alertas →',
   'citizenPage.telegramHelp': 'Encuentra tu ID de Telegram vía @userinfobot',
   'citizenPage.telegramPlaceholder': 'Tu ID de usuario de Telegram',
   'citizenPage.trappedPersons': 'Personas Atrapadas',
@@ -5132,7 +5305,7 @@ const es: TranslationMap = {
   'citizenPage.webPushNotSupported': 'Notificaciones push no soportadas en este navegador',
   'citizenPage.webPushReady': 'Listo para habilitar',
 
-  // ── about ───────────────────────────────────────────────────────────────────
+  //  about
   'about.accessibility': 'Accesibilidad',
   'about.backToAegis': 'Volver a AEGIS',
   'about.backToDashboard': 'Volver al Panel',
@@ -5177,7 +5350,7 @@ const es: TranslationMap = {
   'about.techStack': 'Tecnología Utilizada',
   'about.termsOfUse': 'Términos de Uso',
 
-  // ── admin additional ────────────────────────────────────────────────────────
+  //  admin additional
   'admin.action.archive': 'Archivar', 'admin.action.falseReport': 'Reporte Falso',
   'admin.action.flag': 'Marcar', 'admin.action.resolve': 'Resolver',
   'admin.action.urgent': 'Urgente', 'admin.action.verify': 'Verificar',
@@ -5254,7 +5427,7 @@ const es: TranslationMap = {
   'admin.deploy.reasonLabel': 'Motivo del Despliegue',
   'admin.deploy.reasonPlaceholder': 'Describe el motivo de este despliegue...',
 
-  // ── citizen.auth additional ─────────────────────────────────────────────────
+  //  citizen.auth additional
   'citizen.auth.citizenPortal': 'Portal Ciudadano',
   'citizen.auth.error.avatarUploadFailed': 'Error al subir el avatar',
   'citizen.auth.error.invalidEmail': 'Introduzca una dirección de correo válida',
@@ -5281,7 +5454,7 @@ const es: TranslationMap = {
   'citizen.auth.widget.safeZones': 'Zonas Seguras',
   'citizen.subscribe.alertTopics': 'Temas de Alerta',
 
-  // ── misc Spanish ────────────────────────────────────────────────────────────
+  //  misc Spanish
   'map.highSeverity': 'Alta Severidad', 'map.lowSeverity': 'Baja Severidad', 'map.mediumSeverity': 'Severidad Media',
   'map.layer.aiFlood': 'Predicción de Inundación IA', 'map.layer.distressBeacons': 'Balizas de Socorro',
   'map.layer.riskZones': 'Zonas de Riesgo', 'map.layer.riverGauges': 'Medidores de Ríos',
@@ -5312,9 +5485,7 @@ const es: TranslationMap = {
   'common.querying': 'Consultando...', 'community.active': 'Activo', 'severity': 'Severidad',
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // FRENCH
-// ═══════════════════════════════════════════════════════════════════════════════
 
 const fr: TranslationMap = {
   'app.title': 'AEGIS', 'app.subtitle': "Système d'Intervention d'Urgence",
@@ -5331,23 +5502,45 @@ const fr: TranslationMap = {
   'map.high': 'Haute gravité', 'map.medium': 'Gravité moyenne', 'map.low': 'Faible gravité',
   'map.floodZone': "Zone à risque d'inondation",
   'alerts.title': 'Alertes Actives', 'alerts.none': 'Aucune alerte active',
+  'alerts.backToAegis': 'Retour à AEGIS', 'alerts.pageTitle': 'Alertes Actives',
+  'alerts.subtitle': "Diffusions d'urgence pour", 'alerts.refresh': 'Actualiser',
+  'alerts.allClear': 'Aucun danger dans votre zone', 'alerts.noActive': 'Aucune alerte active pour le moment',
+  'alerts.searchPlaceholder': 'Rechercher par titre, description ou zone...',
+  'alerts.filters': 'Filtres', 'alerts.sortNewest': 'Plus récentes', 'alerts.sortSeverity': 'Par gravité',
+  'alerts.filterAll': 'Toutes', 'alerts.noMatchFilters': 'Aucune alerte ne correspond à vos filtres.',
+  'alerts.noAlertsMessage': "Il n'y a aucune alerte d'urgence active pour votre zone. Restez en sécurité !",
+  'alerts.source': 'Source', 'alerts.type': 'Type', 'alerts.issued': 'Émise',
+  'alerts.broadcastChannels': 'Canaux de diffusion', 'alerts.actionRequired': 'Action requise',
+  'alerts.expires': 'Expire',
+  'alerts.aboutTitle': "À propos des alertes d'urgence",
+  'alerts.aboutDesc': "Les alertes sont diffusées par les administrateurs AEGIS via plusieurs canaux, notamment le web, l'e-mail, le SMS, Telegram et WhatsApp. Toutes les alertes actives sont affichées ici quel que soit votre statut d'abonnement. Pour les notifications push en temps réel, abonnez-vous aux canaux d'alerte sur le",
+  'alerts.citizenPortal': 'portail citoyen',
+  'alerts.justNow': "À l'instant",
+  'alerts.minsAgo': 'min',
+  'alerts.hoursAgo': 'h',
+  'alerts.daysAgo': 'j',
+  'alerts.severityCritical': 'CRITIQUE',
+  'alerts.severityHigh': 'ÉLEVÉ',
+  'alerts.severityWarning': 'ATTENTION',
+  'alerts.severityInfo': 'INFO',
+  'alerts.general': 'Général',
   'weather.title': 'Conditions Locales', 'weather.rainfall': 'Précipitations',
   'weather.wind': 'Vent', 'weather.visibility': 'Visibilité',
   'reports.title': 'Rapports Récents', 'reports.all': 'Tous les Rapports',
   'reports.sortBy': 'Trier par', 'reports.time': 'Heure', 'reports.severity': 'Gravité',
   'reports.status': 'Statut', 'reports.search': 'Rechercher...',
   'reports.loading': 'Chargement des rapports...', 'reports.none': 'Aucun rapport trouvé',
-  'report.call_999': "Appelez le 999 d'abord pour les urgences vitales.",
+  'report.call_999': "Appelez le {{EMERGENCY_NUMBER}} d'abord pour les urgences vitales.",
   'report.title': 'Signaler une Urgence',
   'form.title': 'Signaler une Urgence', 'form.step': 'Étape',
   'form.incidentType': "Quel type d'incident ?", 'form.specifically': 'Quoi exactement ?',
   'form.describe': 'Décrivez ce que vous voyez', 'form.howSevere': 'Quelle gravité ?',
   'form.trapped': 'Quelqu\'un piégé ou en danger ?', 'form.location': 'Lieu et Soumettre',
   'form.submit': "Envoyer le Rapport d'Urgence", 'form.anonymous': 'Votre rapport est anonyme.',
-  'form.call999': "Pour les urgences vitales, appelez le 999 d'abord.",
+  'form.call999': "Pour les urgences vitales, appelez le {{EMERGENCY_NUMBER}} d'abord.",
   'form.addMedia': 'Ajouter photo ou vidéo', 'form.mediaOptional': 'Aide à vérifier — optionnel',
   'form.detectGps': 'GPS', 'form.back': 'Retour', 'form.next': 'Suivant',
-  'community.title': 'Chat Communautaire', 'community.offer': "Offrir de l'Aide",
+  'community.title': 'Soutien Communautaire', 'community.offer': "Offrir de l'Aide",
   'community.request': "Demander de l'Aide", 'community.nearby': 'Aide Disponible à Proximité',
   'community.privacy': 'Toutes les interactions sont anonymes. Ne partagez jamais d\'informations personnelles.',
   'auth.title': 'Connexion Opérateur', 'auth.username': "Nom d'utilisateur", 'auth.password': 'Mot de passe',
@@ -5365,6 +5558,7 @@ const fr: TranslationMap = {
   'footer.anonymous': 'Signalement anonyme', 'footer.locationOptional': 'Localisation optionnelle',
   'footer.channels': "Canaux d'Alerte", 'footer.emergency': "Contacts d'Urgence",
   'footer.tagline': "AEGIS Système d'Intervention d'Urgence", 'footer.callFirst': "Pour les urgences appelez le",
+  'footer.cookiePreferences': 'Préférences de cookies',
   'admin.operational': 'Opérationnel', 'admin.operators': 'opérateurs en ligne',
   'admin.darkMode': 'Basculer mode sombre', 'admin.sendAlert': 'Envoyer une Alerte',
   'admin.dashboard': 'Tableau de Bord', 'admin.allReports': 'Tous les Rapports',
@@ -5434,11 +5628,12 @@ const fr: TranslationMap = {
   'landing.hero.description': "Plateforme multimodale de réponse aux catastrophes alimentée par IA. Démonstration actuelle de la gestion des inondations avec une architecture modulaire prenant en charge tous les types de catastrophes.",
   'landing.cta.citizen': 'Interface Citoyen', 'landing.cta.operator': 'Console Opérateur',
   'landing.meta.projectCredit': "Projet de fin d'études en informatique — Université Robert Gordon 2026",
-  'landing.footerSignature': "AEGIS v6.2 — Système Avancé d'Intelligence Géospatiale d'Urgence — © 2026 Happiness Ada Lazarus — Université Robert Gordon",
+  'landing.footerSignature': "AEGIS — Système Avancé d'Intelligence Géospatiale d'Urgence — © 2026 Happiness Ada Lazarus — Université Robert Gordon",
   'citizen.tab.overview': 'Aperçu', 'citizen.tab.livemap': 'Carte en Direct',
   'citizen.tab.reports': 'Rapports', 'citizen.tab.messages': 'Messages',
   'citizen.tab.community': 'Communauté', 'citizen.tab.prepare': 'Préparation',
-  'citizen.tab.news': 'Actualités', 'citizen.tab.safety': 'Sécurité',
+  'citizen.tab.news': 'Actualités', 'citizen.tab.alerts': 'Alertes', 'citizen.tab.safety': 'Sécurité',
+  'citizen.tab.shelters': 'Abris', 'citizen.tab.risk': 'Évaluation des Risques', 'citizen.tab.emergency': 'Urgence',
   'citizen.tab.profile': 'Profil', 'citizen.tab.security': 'Sécurité',
   'citizen.tab.settings': 'Paramètres',
   'citizen.action.report': 'Signaler', 'citizen.action.alerts': 'Alertes',
@@ -5454,7 +5649,7 @@ const fr: TranslationMap = {
   'citizen.auth.step.account': 'Compte', 'citizen.auth.step.details': 'Détails', 'citizen.auth.step.profile': 'Profil',
   'citizen.auth.emailAddress': 'Adresse e-mail', 'citizen.auth.displayName': 'Nom affiché',
   'citizen.auth.passwordLabel': 'Mot de passe', 'citizen.auth.confirmPassword': 'Confirmer le mot de passe',
-  'citizen.auth.passwordPlaceholder': 'Votre mot de passe', 'citizen.auth.passwordMin': '8 caractères minimum',
+  'citizen.auth.passwordPlaceholder': 'Votre mot de passe', 'citizen.auth.passwordMin': '12 caractères minimum',
   'citizen.auth.repeatPassword': 'Répéter le mot de passe',
   'citizen.auth.signingIn': 'Connexion en cours...', 'citizen.auth.signIn': 'Se connecter',
   'citizen.auth.orContinueWith': 'ou continuer avec', 'citizen.auth.signInGoogle': 'Se connecter avec Google',
@@ -5484,7 +5679,7 @@ const fr: TranslationMap = {
   'citizen.auth.error.photoSize': 'La photo de profil doit faire moins de 2 Mo',
   'citizen.auth.error.displayNameRequired': 'Le nom affiché est requis.',
   'citizen.auth.error.emailRequired': "L'adresse e-mail est requise.",
-  'citizen.auth.error.passwordMinLength': 'Le mot de passe doit contenir au moins 8 caractères.',
+  'citizen.auth.error.passwordMinLength': 'Le mot de passe doit contenir au moins 12 caractères.',
   'citizen.auth.error.passwordsNoMatch': 'Les mots de passe ne correspondent pas.',
   'citizen.auth.error.registrationFailed': "Échec de l'inscription.",
   'citizen.auth.error.loginFailed': 'Échec de la connexion.',
@@ -5493,7 +5688,7 @@ const fr: TranslationMap = {
   'citizen.auth.success.login': 'Connexion réussie ! Redirection...',
   'citizen.stats.highSeverity': 'Haute Gravité',
   'citizen.safety.safeMsg': 'Vous êtes marqué en sécurité. Restez vigilant.',
-  'citizen.safety.helpMsg': "Demande d'aide enregistrée. En danger immédiat, appelez le 999.",
+  'citizen.safety.helpMsg': "Demande d'aide enregistrée. En danger immédiat, appelez le {{EMERGENCY_NUMBER}}.",
   'citizen.safety.unsureMsg': 'Restez où vous êtes. Surveillez les canaux officiels.',
   'citizen.safety.update': 'Mettre à jour',
   'citizen.map.liveIncidentMap': "Carte d'Incidents en Direct",
@@ -5618,7 +5813,7 @@ const fr: TranslationMap = {
   'chat.placeholder': 'Demandez des conseils de sécurité...', 'chat.disclaimer': 'Assistant IA — pour les urgences appelez le 999',
   'general.close': 'Fermer', 'general.cancel': 'Annuler', 'general.confirm': 'Confirmer',
   'general.loading': 'Chargement...', 'general.noResults': 'Aucun résultat',
-  // ── Preparedness Guide i18n ──
+  //  Preparedness Guide i18n
   'prep.title': 'Formation à la Préparation aux Catastrophes',
   'prep.tab.tips': 'Conseils de Sécurité', 'prep.tab.scenarios': 'Scénarios',
   'prep.tab.kit': "Kit d'Urgence", 'prep.tab.quiz': 'Quiz',
@@ -5653,7 +5848,7 @@ const fr: TranslationMap = {
   'prep.relatedScenarios': 'Scénarios Associés',
   'prep.offline.notice': 'Ce contenu est disponible hors connexion.',
 
-  // ── cdash (CitizenDashboard) ────────────────────────────────────────────────
+  //  cdash (CitizenDashboard)
   'cdash.citizenFallback': 'Citoyen',
   'cdash.close': 'Fermer',
   'cdash.community.subtitle': 'Connectez-vous avec votre communauté',
@@ -5732,7 +5927,9 @@ const fr: TranslationMap = {
   'cdash.prep.article': 'Article',
   'cdash.prep.beforeFloodTitle': "Avant l'inondation",
   'cdash.prep.britishRedCross': 'Croix-Rouge britannique',
+  'cdash.prep.disasterRiskTitle': 'Surveillance Mondiale des Risques de Catastrophes',
   'cdash.prep.emergencyKitTitle': "Kit d'urgence",
+  'cdash.prep.floodingGuideTitle': "Guide de Réduction des Risques d'Inondation",
   'cdash.prep.floodPrepTitle': "Guide de préparation aux inondations",
   'cdash.prep.metOffice': 'Met Office',
   'cdash.prep.metOfficeTitle': 'Alertes et conseils météo',
@@ -5742,6 +5939,7 @@ const fr: TranslationMap = {
   'cdash.prep.sepaTitle': "Alertes d'inondation SEPA",
   'cdash.prep.ukEnvAgency': "Agence de l'environnement du RU",
   'cdash.prep.video': 'Vidéo',
+  'cdash.prep.weatherWarningsTitle': "Alertes Météo et Réduction des Risques",
   'cdash.profile.accountInfo': 'Informations du Compte',
   'cdash.profile.avatarFailed': "Échec de la mise à jour de l'avatar",
   'cdash.profile.avatarUpdated': 'Avatar mis à jour',
@@ -5836,7 +6034,7 @@ const fr: TranslationMap = {
   'cdash.settings.volume': 'Volume',
   'cdash.settings.yesDelete': 'Oui, Supprimer Mon Compte',
 
-  // ── citizenPage ─────────────────────────────────────────────────────────────
+  //  citizenPage
   'citizenPage.aiAnalysis': 'Analyse IA', 'citizenPage.aiConfidence': 'Confiance IA',
   'citizenPage.alertDetails': "Détails de l'Alerte",
   'citizenPage.cachedNews': 'Affichage des actualités en cache',
@@ -5860,6 +6058,7 @@ const fr: TranslationMap = {
   'citizenPage.footer.samaritans': 'Samaritains : 116 123',
   'citizenPage.footer.scottishGov': "Gouvernement d'Écosse",
   'citizenPage.footer.termsOfUse': "Conditions d'Utilisation",
+  'citizenPage.footer.cookiePreferences': 'Préférences de cookies',
   'citizenPage.footer.ukEmergencies': 'Guide des Urgences RU',
   'citizenPage.location': 'Localisation',
   'citizenPage.locationDenied': 'Accès à la localisation refusé',
@@ -5889,6 +6088,8 @@ const fr: TranslationMap = {
   'citizenPage.tab.disasterMap': 'Carte des Catastrophes',
   'citizenPage.tab.recentReports': 'Rapports Récents',
   'citizenPage.tab.safeZones': 'Zones Sûres',
+  'citizenPage.tab.alerts': 'Alertes',
+  'citizenPage.viewFullAlerts': 'Voir toutes les alertes →',
   'citizenPage.telegramHelp': 'Trouvez votre ID via @userinfobot',
   'citizenPage.telegramPlaceholder': 'Votre ID Telegram',
   'citizenPage.trappedPersons': 'Personnes Piégées',
@@ -5903,7 +6104,7 @@ const fr: TranslationMap = {
   'citizenPage.webPushNotSupported': 'Notifications push non supportées',
   'citizenPage.webPushReady': 'Prêt à activer',
 
-  // ── about ───────────────────────────────────────────────────────────────────
+  //  about
   'about.accessibility': 'Accessibilité', 'about.backToAegis': 'Retour à AEGIS',
   'about.backToDashboard': 'Retour au Tableau de bord',
   'about.contact': 'Contact',
@@ -5945,7 +6146,7 @@ const fr: TranslationMap = {
   'about.tech.styling': 'Tailwind CSS · Framer Motion',
   'about.techStack': 'Technologies Utilisées', 'about.termsOfUse': "Conditions d'Utilisation",
 
-  // ── admin, auth, misc — French ──────────────────────────────────────────────
+  //  admin, auth, misc — French
   'admin.action.archive': 'Archiver', 'admin.action.falseReport': 'Faux Rapport',
   'admin.action.flag': 'Signaler', 'admin.action.resolve': 'Résoudre',
   'admin.action.urgent': 'Urgent', 'admin.action.verify': 'Vérifier',
@@ -6087,23 +6288,45 @@ const ar: TranslationMap = {
   'map.high': 'خطورة عالية', 'map.medium': 'خطورة متوسطة', 'map.low': 'خطورة منخفضة',
   'map.floodZone': 'منطقة خطر فيضان',
   'alerts.title': 'التنبيهات النشطة', 'alerts.none': 'لا توجد تنبيهات نشطة',
+  'alerts.backToAegis': 'العودة إلى AEGIS', 'alerts.pageTitle': 'التنبيهات النشطة',
+  'alerts.subtitle': 'بث الطوارئ لـ', 'alerts.refresh': 'تحديث',
+  'alerts.allClear': 'الوضع آمن في منطقتك', 'alerts.noActive': 'لا توجد تنبيهات نشطة حالياً',
+  'alerts.searchPlaceholder': 'بحث عن التنبيهات بالعنوان أو الوصف أو المنطقة...',
+  'alerts.filters': 'الفلاتر', 'alerts.sortNewest': 'الأحدث', 'alerts.sortSeverity': 'حسب الخطورة',
+  'alerts.filterAll': 'الكل', 'alerts.noMatchFilters': 'لا توجد تنبيهات تطابق الفلاتر الحالية.',
+  'alerts.noAlertsMessage': 'لا توجد تنبيهات طوارئ نشطة في منطقتك. ابقَ آمناً!',
+  'alerts.source': 'المصدر', 'alerts.type': 'النوع', 'alerts.issued': 'صدر في',
+  'alerts.broadcastChannels': 'قنوات البث', 'alerts.actionRequired': 'إجراء مطلوب',
+  'alerts.expires': 'ينتهي',
+  'alerts.aboutTitle': 'حول تنبيهات الطوارئ',
+  'alerts.aboutDesc': 'يتم بث التنبيهات من قبل مسؤولي AEGIS عبر قنوات متعددة تشمل الويب والبريد الإلكتروني والرسائل القصيرة وتيليغرام وواتساب. تُعرض جميع التنبيهات النشطة هنا بغض النظر عن حالة اشتراكك. لتلقي إشعارات فورية، اشترك في قنوات التنبيه على',
+  'alerts.citizenPortal': 'بوابة المواطن',
+  'alerts.justNow': 'الآن',
+  'alerts.minsAgo': 'د',
+  'alerts.hoursAgo': 'س',
+  'alerts.daysAgo': 'ي',
+  'alerts.severityCritical': 'حرج',
+  'alerts.severityHigh': 'مرتفع',
+  'alerts.severityWarning': 'تحذير',
+  'alerts.severityInfo': 'معلومات',
+  'alerts.general': 'عام',
   'weather.title': 'الأحوال المحلية', 'weather.rainfall': 'هطول الأمطار',
   'weather.wind': 'الرياح', 'weather.visibility': 'الرؤية',
   'reports.title': 'التقارير الحديثة', 'reports.all': 'جميع التقارير',
   'reports.sortBy': 'ترتيب حسب', 'reports.time': 'الوقت', 'reports.severity': 'الخطورة',
   'reports.status': 'الحالة', 'reports.search': 'بحث...',
   'reports.loading': 'جاري تحميل التقارير...', 'reports.none': 'لم يتم العثور على تقارير',
-  'report.call_999': 'اتصل بـ 999 أولاً للطوارئ المهددة للحياة.',
+  'report.call_999': 'اتصل بـ {{EMERGENCY_NUMBER}} أولاً للطوارئ المهددة للحياة.',
   'report.title': 'الإبلاغ عن حالة طوارئ',
   'form.title': 'الإبلاغ عن حالة طوارئ', 'form.step': 'خطوة',
   'form.incidentType': 'ما نوع الحادث؟', 'form.specifically': 'ما تحديداً؟',
   'form.describe': 'صف ما تراه', 'form.howSevere': 'ما مدى الخطورة؟',
   'form.trapped': 'هل هناك محاصرون أو في خطر؟', 'form.location': 'الموقع والإرسال',
   'form.submit': 'إرسال تقرير الطوارئ', 'form.anonymous': 'تقريرك مجهول الهوية.',
-  'form.call999': 'للطوارئ المهددة للحياة، اتصل بـ 999 أولاً.',
+  'form.call999': 'للطوارئ المهددة للحياة، اتصل بـ {{EMERGENCY_NUMBER}} أولاً.',
   'form.addMedia': 'إضافة صورة أو فيديو كدليل', 'form.mediaOptional': 'يساعد في التحقق — اختياري',
   'form.detectGps': 'GPS', 'form.back': 'رجوع', 'form.next': 'التالي',
-  'community.title': 'المحادثة المجتمعية', 'community.offer': 'عرض المساعدة',
+  'community.title': 'الدعم المجتمعي', 'community.offer': 'عرض المساعدة',
   'community.request': 'طلب المساعدة', 'community.nearby': 'مساعدة متاحة قريباً',
   'community.privacy': 'جميع التفاعلات مجهولة الهوية. لا تشارك معلومات شخصية.',
   'auth.title': 'تسجيل دخول المشغل', 'auth.username': 'اسم المستخدم', 'auth.password': 'كلمة المرور',
@@ -6121,6 +6344,7 @@ const ar: TranslationMap = {
   'footer.anonymous': 'إبلاغ مجهول', 'footer.locationOptional': 'الموقع اختياري',
   'footer.channels': 'قنوات التنبيه', 'footer.emergency': 'جهات اتصال الطوارئ',
   'footer.tagline': 'إيجيس نظام الاستجابة للطوارئ', 'footer.callFirst': 'للطوارئ اتصل بـ',
+  'footer.cookiePreferences': 'تفضيلات ملفات تعريف الارتباط',
   'admin.operational': 'تشغيلي', 'admin.operators': 'مشغلون متصلون',
   'admin.darkMode': 'تبديل الوضع الداكن', 'admin.sendAlert': 'إرسال تنبيه',
   'admin.dashboard': 'لوحة التحكم', 'admin.allReports': 'جميع التقارير',
@@ -6186,11 +6410,12 @@ const ar: TranslationMap = {
   'landing.hero.description': 'منصة متعددة الأنماط مدعومة بالذكاء الاصطناعي للاستجابة للكوارث.',
   'landing.cta.citizen': 'واجهة المواطن', 'landing.cta.operator': 'لوحة المشغّل',
   'landing.meta.projectCredit': 'مشروع تخرج علوم الحاسوب — جامعة روبرت جوردون 2026',
-  'landing.footerSignature': 'AEGIS v6.2 — نظام الذكاء الجغرافي المكاني المتقدم للطوارئ — © 2026 Happiness Ada Lazarus — جامعة روبرت جوردون',
+  'landing.footerSignature': 'AEGIS — نظام الذكاء الجغرافي المكاني المتقدم للطوارئ — © 2026 Happiness Ada Lazarus — جامعة روبرت جوردون',
   'citizen.tab.overview': 'نظرة عامة', 'citizen.tab.livemap': 'خريطة مباشرة',
   'citizen.tab.reports': 'التقارير', 'citizen.tab.messages': 'الرسائل',
   'citizen.tab.community': 'المجتمع', 'citizen.tab.prepare': 'الاستعداد',
-  'citizen.tab.news': 'الأخبار', 'citizen.tab.safety': 'السلامة',
+  'citizen.tab.news': 'الأخبار', 'citizen.tab.alerts': 'التنبيهات', 'citizen.tab.safety': 'السلامة',
+  'citizen.tab.shelters': 'الملاجئ', 'citizen.tab.risk': 'تقييم المخاطر', 'citizen.tab.emergency': 'الطوارئ',
   'citizen.tab.profile': 'الملف الشخصي', 'citizen.tab.security': 'الأمان',
   'citizen.tab.settings': 'الإعدادات',
   'citizen.action.report': 'إبلاغ', 'citizen.action.alerts': 'تنبيهات',
@@ -6206,7 +6431,7 @@ const ar: TranslationMap = {
   'citizen.auth.step.account': 'الحساب', 'citizen.auth.step.details': 'التفاصيل', 'citizen.auth.step.profile': 'الملف الشخصي',
   'citizen.auth.emailAddress': 'البريد الإلكتروني', 'citizen.auth.displayName': 'الاسم الظاهر',
   'citizen.auth.passwordLabel': 'كلمة المرور', 'citizen.auth.confirmPassword': 'تأكيد كلمة المرور',
-  'citizen.auth.passwordPlaceholder': 'كلمة المرور الخاصة بك', 'citizen.auth.passwordMin': '8 أحرف على الأقل',
+  'citizen.auth.passwordPlaceholder': 'كلمة المرور الخاصة بك', 'citizen.auth.passwordMin': '12 حرفًا على الأقل',
   'citizen.auth.repeatPassword': 'أعد إدخال كلمة المرور',
   'citizen.auth.signingIn': 'جارٍ تسجيل الدخول...', 'citizen.auth.signIn': 'تسجيل الدخول',
   'citizen.auth.orContinueWith': 'أو المتابعة باستخدام', 'citizen.auth.signInGoogle': 'تسجيل الدخول باستخدام Google',
@@ -6236,7 +6461,7 @@ const ar: TranslationMap = {
   'citizen.auth.error.photoSize': 'يجب أن تكون الصورة أقل من 2MB',
   'citizen.auth.error.displayNameRequired': 'الاسم الظاهر مطلوب.',
   'citizen.auth.error.emailRequired': 'البريد الإلكتروني مطلوب.',
-  'citizen.auth.error.passwordMinLength': 'يجب أن تكون كلمة المرور 8 أحرف على الأقل.',
+  'citizen.auth.error.passwordMinLength': 'يجب أن تكون كلمة المرور 12 حرفًا على الأقل.',
   'citizen.auth.error.passwordsNoMatch': 'كلمتا المرور غير متطابقتين.',
   'citizen.auth.error.registrationFailed': 'فشل التسجيل.',
   'citizen.auth.error.loginFailed': 'فشل تسجيل الدخول.',
@@ -6245,7 +6470,7 @@ const ar: TranslationMap = {
   'citizen.auth.success.login': 'تم تسجيل الدخول بنجاح! جارٍ التحويل...',
   'citizen.stats.highSeverity': 'خطورة عالية',
   'citizen.safety.safeMsg': 'أنت محدد كآمن. ابق متيقظاً وراقب التحديثات.',
-  'citizen.safety.helpMsg': 'تم تسجيل طلب المساعدة. إذا كنت في خطر فوري، اتصل بـ 999.',
+  'citizen.safety.helpMsg': 'تم تسجيل طلب المساعدة. إذا كنت في خطر فوري، اتصل بـ {{EMERGENCY_NUMBER}}.',
   'citizen.safety.unsureMsg': 'ابق في مكانك. راقب القنوات الرسمية.',
   'citizen.safety.update': 'تحديث',
   'citizen.map.liveIncidentMap': 'خريطة الحوادث المباشرة',
@@ -6341,7 +6566,7 @@ const ar: TranslationMap = {
   'chat.placeholder': 'اسأل عن إرشادات السلامة...', 'chat.disclaimer': 'مساعد ذكاء اصطناعي — للطوارئ اتصل بـ 999',
   'general.close': 'إغلاق', 'general.cancel': 'إلغاء', 'general.confirm': 'تأكيد',
   'general.loading': 'جارٍ التحميل...', 'general.noResults': 'لا توجد نتائج',
-  // ── Preparedness Guide i18n ──
+  //  Preparedness Guide i18n
   'prep.title': 'التدريب على الاستعداد للكوارث',
   'prep.tab.tips': 'نصائح السلامة', 'prep.tab.scenarios': 'السيناريوهات',
   'prep.tab.kit': 'حقيبة الطوارئ', 'prep.tab.quiz': 'اختبار',
@@ -6371,7 +6596,7 @@ const ar: TranslationMap = {
   'prep.relatedScenarios': 'سيناريوهات ذات صلة',
   'prep.offline.notice': 'هذا المحتوى متاح بدون اتصال.',
 
-  // ── cdash (CitizenDashboard) ────────────────────────────────────────────────
+  //  cdash (CitizenDashboard)
   'cdash.citizenFallback': 'مواطن',
   'cdash.close': 'إغلاق',
   'cdash.community.subtitle': 'تواصل مع مجتمعك',
@@ -6450,7 +6675,9 @@ const ar: TranslationMap = {
   'cdash.prep.article': 'مقال',
   'cdash.prep.beforeFloodTitle': 'قبل الفيضان',
   'cdash.prep.britishRedCross': 'الصليب الأحمر البريطاني',
+  'cdash.prep.disasterRiskTitle': 'مراقبة المخاطر العالمية للكوارث',
   'cdash.prep.emergencyKitTitle': 'حقيبة الطوارئ',
+  'cdash.prep.floodingGuideTitle': 'دليل الحد من مخاطر الفيضانات',
   'cdash.prep.floodPrepTitle': 'دليل الاستعداد للفيضانات',
   'cdash.prep.metOffice': 'مكتب الأرصاد الجوية',
   'cdash.prep.metOfficeTitle': 'تنبيهات ونصائح الطقس',
@@ -6460,6 +6687,7 @@ const ar: TranslationMap = {
   'cdash.prep.sepaTitle': 'تنبيهات فيضانات SEPA',
   'cdash.prep.ukEnvAgency': 'وكالة البيئة البريطانية',
   'cdash.prep.video': 'فيديو',
+  'cdash.prep.weatherWarningsTitle': 'تنبيهات الطقس والحد من المخاطر',
   'cdash.profile.accountInfo': 'معلومات الحساب',
   'cdash.profile.avatarFailed': 'فشل تحديث الصورة الرمزية',
   'cdash.profile.avatarUpdated': 'تم تحديث الصورة الرمزية',
@@ -6554,7 +6782,7 @@ const ar: TranslationMap = {
   'cdash.settings.volume': 'مستوى الصوت',
   'cdash.settings.yesDelete': 'نعم، احذف حسابي',
 
-  // ── citizenPage ─────────────────────────────────────────────────────────────
+  //  citizenPage
   'citizenPage.aiAnalysis': 'تحليل الذكاء الاصطناعي', 'citizenPage.aiConfidence': 'ثقة الذكاء الاصطناعي',
   'citizenPage.alertDetails': 'تفاصيل التنبيه',
   'citizenPage.cachedNews': 'عرض الأخبار المخزنة مؤقتاً',
@@ -6578,6 +6806,7 @@ const ar: TranslationMap = {
   'citizenPage.footer.samaritans': 'السامريون: 116 123',
   'citizenPage.footer.scottishGov': 'الحكومة الاسكتلندية',
   'citizenPage.footer.termsOfUse': 'شروط الاستخدام',
+  'citizenPage.footer.cookiePreferences': 'تفضيلات ملفات تعريف الارتباط',
   'citizenPage.footer.ukEmergencies': 'دليل الطوارئ البريطاني',
   'citizenPage.location': 'الموقع',
   'citizenPage.locationDenied': 'تم رفض الوصول إلى الموقع',
@@ -6607,6 +6836,8 @@ const ar: TranslationMap = {
   'citizenPage.tab.disasterMap': 'خريطة الكوارث',
   'citizenPage.tab.recentReports': 'التقارير الأخيرة',
   'citizenPage.tab.safeZones': 'المناطق الآمنة',
+  'citizenPage.tab.alerts': 'التنبيهات',
+  'citizenPage.viewFullAlerts': 'عرض جميع التنبيهات →',
   'citizenPage.telegramHelp': 'اعثر على معرّفك عبر @userinfobot',
   'citizenPage.telegramPlaceholder': 'معرّف تيليجرام الخاص بك',
   'citizenPage.trappedPersons': 'أشخاص محاصرون',
@@ -6621,7 +6852,7 @@ const ar: TranslationMap = {
   'citizenPage.webPushNotSupported': 'إشعارات الدفع غير مدعومة',
   'citizenPage.webPushReady': 'جاهز للتفعيل',
 
-  // ── about ───────────────────────────────────────────────────────────────────
+  //  about
   'about.accessibility': 'إمكانية الوصول', 'about.backToAegis': 'العودة إلى AEGIS',
   'about.backToDashboard': 'العودة إلى لوحة المعلومات',
   'about.contact': 'اتصل بنا',
@@ -6663,7 +6894,7 @@ const ar: TranslationMap = {
   'about.tech.styling': 'Tailwind CSS · Framer Motion',
   'about.techStack': 'التقنيات المستخدمة', 'about.termsOfUse': 'شروط الاستخدام',
 
-  // ── admin, auth, misc — Arabic ──────────────────────────────────────────────
+  //  admin, auth, misc — Arabic
   'admin.action.archive': 'أرشفة', 'admin.action.falseReport': 'تقرير مزيف',
   'admin.action.flag': 'إبلاغ', 'admin.action.resolve': 'حل',
   'admin.action.urgent': 'عاجل', 'admin.action.verify': 'تحقق',
@@ -6791,9 +7022,7 @@ const ar: TranslationMap = {
   'common.querying': 'جارٍ البحث...', 'community.active': 'نشط', 'severity': 'الخطورة',
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // CHINESE (Simplified)
-// ═══════════════════════════════════════════════════════════════════════════════
 
 const zh: TranslationMap = {
   'app.title': 'AEGIS', 'app.subtitle': '紧急响应系统',
@@ -6810,23 +7039,45 @@ const zh: TranslationMap = {
   'map.high': '高严重性', 'map.medium': '中等严重性', 'map.low': '低严重性',
   'map.floodZone': '洪水风险区',
   'alerts.title': '活跃警报', 'alerts.none': '没有活跃警报',
+  'alerts.backToAegis': '返回AEGIS', 'alerts.pageTitle': '活跃警报',
+  'alerts.subtitle': '紧急广播针对', 'alerts.refresh': '刷新',
+  'alerts.allClear': '您所在地区一切安全', 'alerts.noActive': '目前没有活跃警报',
+  'alerts.searchPlaceholder': '按标题、描述或区域搜索警报...',
+  'alerts.filters': '筛选', 'alerts.sortNewest': '最新优先', 'alerts.sortSeverity': '按严重性',
+  'alerts.filterAll': '全部', 'alerts.noMatchFilters': '没有警报匹配当前筛选条件。',
+  'alerts.noAlertsMessage': '您所在地区目前没有活跃紧急警报。注意安全！',
+  'alerts.source': '来源', 'alerts.type': '类型', 'alerts.issued': '发布时间',
+  'alerts.broadcastChannels': '广播渠道', 'alerts.actionRequired': '需要行动',
+  'alerts.expires': '过期时间',
+  'alerts.aboutTitle': '关于紧急警报',
+  'alerts.aboutDesc': '警报由AEGIS管理员通过多个渠道发布，包括网页、电子邮件、短信、Telegram和WhatsApp。无论您的订阅状态如何，所有活跃警报都会在此显示。如需实时推送通知，请在以下页面订阅警报渠道',
+  'alerts.citizenPortal': '市民门户',
+  'alerts.justNow': '刚刚',
+  'alerts.minsAgo': '分钟前',
+  'alerts.hoursAgo': '小时前',
+  'alerts.daysAgo': '天前',
+  'alerts.severityCritical': '严重',
+  'alerts.severityHigh': '高',
+  'alerts.severityWarning': '警告',
+  'alerts.severityInfo': '信息',
+  'alerts.general': '一般',
   'weather.title': '当地状况', 'weather.rainfall': '降雨量',
   'weather.wind': '风速', 'weather.visibility': '能见度',
   'reports.title': '近期报告', 'reports.all': '所有报告',
   'reports.sortBy': '排序方式', 'reports.time': '时间', 'reports.severity': '严重性',
   'reports.status': '状态', 'reports.search': '搜索...',
   'reports.loading': '加载报告中...', 'reports.none': '未找到报告',
-  'report.call_999': '危及生命的紧急情况请先拨打999。',
+  'report.call_999': '危及生命的紧急情况请先拨打{{EMERGENCY_NUMBER}}。',
   'report.title': '报告紧急情况',
   'form.title': '报告紧急情况', 'form.step': '步骤',
   'form.incidentType': '什么类型的事件？', 'form.specifically': '具体是什么？',
   'form.describe': '描述你所看到的', 'form.howSevere': '严重程度？',
   'form.trapped': '是否有人被困或处于危险中？', 'form.location': '位置并提交',
   'form.submit': '提交紧急报告', 'form.anonymous': '您的报告是匿名的。',
-  'form.call999': '危及生命的紧急情况请先拨打999。',
+  'form.call999': '危及生命的紧急情况请先拨打{{EMERGENCY_NUMBER}}。',
   'form.addMedia': '添加照片或视频证据', 'form.mediaOptional': '有助于验证 — 可选',
   'form.detectGps': 'GPS', 'form.back': '返回', 'form.next': '下一步',
-  'community.title': '社区聊天', 'community.offer': '提供帮助',
+  'community.title': '社区支持', 'community.offer': '提供帮助',
   'community.request': '请求帮助', 'community.nearby': '附近有可用帮助',
   'community.privacy': '所有互动都是匿名的。请勿公开分享个人信息。',
   'auth.title': '操作员登录', 'auth.username': '用户名', 'auth.password': '密码',
@@ -6842,6 +7093,7 @@ const zh: TranslationMap = {
   'footer.anonymous': '匿名报告', 'footer.locationOptional': '位置可选',
   'footer.channels': '警报渠道', 'footer.emergency': '紧急联系人',
   'footer.tagline': 'AEGIS 紧急响应系统', 'footer.callFirst': '紧急情况请拨打',
+  'footer.cookiePreferences': 'Cookie 偏好设置',
   'admin.operational': '运行中', 'admin.operators': '在线操作员',
   'admin.darkMode': '切换深色模式', 'admin.sendAlert': '发送警报',
   'admin.dashboard': '仪表盘', 'admin.allReports': '所有报告',
@@ -6900,11 +7152,12 @@ const zh: TranslationMap = {
   'landing.hero.description': '多模态AI灾害响应平台。当前演示洪水管理，并采用支持所有灾害类型的模块化架构。',
   'landing.cta.citizen': '市民界面', 'landing.cta.operator': '操作员控制台',
   'landing.meta.projectCredit': '计算机科学本科毕业设计 — 罗伯特戈登大学 2026',
-  'landing.footerSignature': 'AEGIS v6.2 — 高级应急地理空间智能系统 — © 2026 Happiness Ada Lazarus — 罗伯特戈登大学',
+  'landing.footerSignature': 'AEGIS — 高级应急地理空间智能系统 — © 2026 Happiness Ada Lazarus — 罗伯特戈登大学',
   'citizen.tab.overview': '概览', 'citizen.tab.livemap': '实时地图',
   'citizen.tab.reports': '报告', 'citizen.tab.messages': '消息',
   'citizen.tab.community': '社区', 'citizen.tab.prepare': '准备',
-  'citizen.tab.news': '新闻', 'citizen.tab.safety': '安全',
+  'citizen.tab.news': '新闻', 'citizen.tab.alerts': '警报', 'citizen.tab.safety': '安全',
+  'citizen.tab.shelters': '避难所', 'citizen.tab.risk': '风险评估', 'citizen.tab.emergency': '紧急情况',
   'citizen.tab.profile': '个人资料', 'citizen.tab.security': '安全设置',
   'citizen.tab.settings': '设置',
   'citizen.action.report': '报告', 'citizen.action.alerts': '警报',
@@ -6919,7 +7172,7 @@ const zh: TranslationMap = {
   'citizen.auth.step.account': '账户', 'citizen.auth.step.details': '详情', 'citizen.auth.step.profile': '资料',
   'citizen.auth.emailAddress': '电子邮箱', 'citizen.auth.displayName': '显示名称',
   'citizen.auth.passwordLabel': '密码', 'citizen.auth.confirmPassword': '确认密码',
-  'citizen.auth.passwordPlaceholder': '输入密码', 'citizen.auth.passwordMin': '至少8个字符',
+  'citizen.auth.passwordPlaceholder': '输入密码', 'citizen.auth.passwordMin': '至少12个字符',
   'citizen.auth.repeatPassword': '重复密码',
   'citizen.auth.signingIn': '正在登录...', 'citizen.auth.signIn': '登录',
   'citizen.auth.orContinueWith': '或通过以下方式继续', 'citizen.auth.signInGoogle': '使用 Google 登录',
@@ -6949,7 +7202,7 @@ const zh: TranslationMap = {
   'citizen.auth.error.photoSize': '头像必须小于2MB',
   'citizen.auth.error.displayNameRequired': '显示名称为必填项。',
   'citizen.auth.error.emailRequired': '邮箱为必填项。',
-  'citizen.auth.error.passwordMinLength': '密码至少需要8个字符。',
+  'citizen.auth.error.passwordMinLength': '密码至少需要12个字符。',
   'citizen.auth.error.passwordsNoMatch': '两次输入的密码不一致。',
   'citizen.auth.error.registrationFailed': '注册失败。',
   'citizen.auth.error.loginFailed': '登录失败。',
@@ -6958,7 +7211,7 @@ const zh: TranslationMap = {
   'citizen.auth.success.login': '登录成功！正在跳转...',
   'citizen.stats.highSeverity': '高严重性',
   'citizen.safety.safeMsg': '您已标记为安全。请保持警惕。',
-  'citizen.safety.helpMsg': '求助请求已记录。如有立即危险请拨打999。',
+  'citizen.safety.helpMsg': '求助请求已记录。如有立即危险请拨打{{EMERGENCY_NUMBER}}。',
   'citizen.safety.unsureMsg': '请留在原地。关注官方渠道。',
   'citizen.safety.update': '更新',
   'citizen.map.liveIncidentMap': '实时事件地图', 'citizen.map.myLocation': '我的位置', 'citizen.map.location': '位置',
@@ -7042,7 +7295,7 @@ const zh: TranslationMap = {
   'chat.placeholder': '询问安全指导...', 'chat.disclaimer': 'AI助手 — 紧急情况请拨打999',
   'general.close': '关闭', 'general.cancel': '取消', 'general.confirm': '确认',
   'general.loading': '加载中...', 'general.noResults': '无结果',
-  // ── Preparedness Guide i18n ──
+  //  Preparedness Guide i18n
   'prep.title': '灾害准备培训',
   'prep.tab.tips': '安全提示', 'prep.tab.scenarios': '情景模拟',
   'prep.tab.kit': '应急包', 'prep.tab.quiz': '测验',
@@ -7072,7 +7325,7 @@ const zh: TranslationMap = {
   'prep.relatedScenarios': '相关情景',
   'prep.offline.notice': '此内容可离线使用。',
 
-  // ── cdash (CitizenDashboard) ────────────────────────────────────────────────
+  //  cdash (CitizenDashboard)
   'cdash.citizenFallback': '市民',
   'cdash.close': '关闭',
   'cdash.community.subtitle': '与社区互联',
@@ -7151,7 +7404,9 @@ const zh: TranslationMap = {
   'cdash.prep.article': '文章',
   'cdash.prep.beforeFloodTitle': '洪水之前',
   'cdash.prep.britishRedCross': '英国红十字会',
+  'cdash.prep.disasterRiskTitle': '全球灾害风险监测',
   'cdash.prep.emergencyKitTitle': '应急包',
+  'cdash.prep.floodingGuideTitle': '洪水风险减少指南',
   'cdash.prep.floodPrepTitle': '防洪准备指南',
   'cdash.prep.metOffice': '气象局',
   'cdash.prep.metOfficeTitle': '天气警报和建议',
@@ -7161,6 +7416,7 @@ const zh: TranslationMap = {
   'cdash.prep.sepaTitle': 'SEPA洪水警报',
   'cdash.prep.ukEnvAgency': '英国环境署',
   'cdash.prep.video': '视频',
+  'cdash.prep.weatherWarningsTitle': '天气警告与风险减少',
   'cdash.profile.accountInfo': '账户信息',
   'cdash.profile.avatarFailed': '头像更新失败',
   'cdash.profile.avatarUpdated': '头像已更新',
@@ -7255,7 +7511,7 @@ const zh: TranslationMap = {
   'cdash.settings.volume': '音量',
   'cdash.settings.yesDelete': '是的，删除我的账户',
 
-  // ── citizenPage ─────────────────────────────────────────────────────────────
+  //  citizenPage
   'citizenPage.aiAnalysis': 'AI分析', 'citizenPage.aiConfidence': 'AI置信度',
   'citizenPage.alertDetails': '警报详情',
   'citizenPage.cachedNews': '显示缓存新闻',
@@ -7279,6 +7535,7 @@ const zh: TranslationMap = {
   'citizenPage.footer.samaritans': '撒马利亚人：116 123',
   'citizenPage.footer.scottishGov': '苏格兰政府',
   'citizenPage.footer.termsOfUse': '使用条款',
+  'citizenPage.footer.cookiePreferences': 'Cookie 偏好设置',
   'citizenPage.footer.ukEmergencies': '英国紧急指南',
   'citizenPage.location': '位置',
   'citizenPage.locationDenied': '位置访问被拒绝',
@@ -7308,6 +7565,8 @@ const zh: TranslationMap = {
   'citizenPage.tab.disasterMap': '灾害地图',
   'citizenPage.tab.recentReports': '最近报告',
   'citizenPage.tab.safeZones': '安全区域',
+  'citizenPage.tab.alerts': '警报',
+  'citizenPage.viewFullAlerts': '查看所有警报 →',
   'citizenPage.telegramHelp': '通过@userinfobot查找您的ID',
   'citizenPage.telegramPlaceholder': '您的Telegram ID',
   'citizenPage.trappedPersons': '被困人员',
@@ -7322,7 +7581,7 @@ const zh: TranslationMap = {
   'citizenPage.webPushNotSupported': '不支持推送通知',
   'citizenPage.webPushReady': '准备启用',
 
-  // ── about ───────────────────────────────────────────────────────────────────
+  //  about
   'about.accessibility': '无障碍', 'about.backToAegis': '返回AEGIS',
   'about.backToDashboard': '返回仪表板',
   'about.contact': '联系我们',
@@ -7364,7 +7623,7 @@ const zh: TranslationMap = {
   'about.tech.styling': 'Tailwind CSS · Framer Motion',
   'about.techStack': '技术栈', 'about.termsOfUse': '使用条款',
 
-  // ── admin, auth, misc — Chinese ─────────────────────────────────────────────
+  //  admin, auth, misc — Chinese
   'admin.action.archive': '归档', 'admin.action.falseReport': '虚假报告',
   'admin.action.flag': '标记', 'admin.action.resolve': '解决',
   'admin.action.urgent': '紧急', 'admin.action.verify': '验证',
@@ -7492,13 +7751,11 @@ const zh: TranslationMap = {
   'common.querying': '查询中...', 'community.active': '活跃', 'severity': '严重程度',
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Remaining languages use a compact "seed + spread" pattern. Every key that
 // exists in `en` is guaranteed to exist in each locale.  When a translation is
 // not yet available for a less-common key, the English fallback is used — this
 // is handled by the `t()` function below.  The most-visible UI keys (nav, tabs,
 // buttons, admin dashboard labels) are fully translated for all 9 languages.
-// ═══════════════════════════════════════════════════════════════════════════════
 
 // Helper: merge en as base so every key is guaranteed present
 function withEnBase(partial: TranslationMap): TranslationMap {
@@ -7562,7 +7819,8 @@ const hi: TranslationMap = withEnBase({
   'citizen.tab.overview': 'सारांश', 'citizen.tab.livemap': 'लाइव मैप',
   'citizen.tab.reports': 'रिपोर्ट', 'citizen.tab.messages': 'संदेश',
   'citizen.tab.community': 'समुदाय', 'citizen.tab.prepare': 'तैयारी',
-  'citizen.tab.news': 'समाचार', 'citizen.tab.safety': 'सुरक्षा',
+  'citizen.tab.news': 'समाचार', 'citizen.tab.alerts': 'चेतावनियाँ', 'citizen.tab.safety': 'सुरक्षा',
+  'citizen.tab.shelters': 'आश्रय', 'citizen.tab.risk': 'जोखिम मूल्यांकन', 'citizen.tab.emergency': 'आपातकाल',
   'citizen.tab.profile': 'प्रोफ़ाइल', 'citizen.tab.security': 'सुरक्षा',
   'citizen.tab.settings': 'सेटिंग्स',
   'citizen.action.report': 'रिपोर्ट', 'citizen.action.alerts': 'अलर्ट',
@@ -7597,7 +7855,7 @@ const hi: TranslationMap = withEnBase({
   'landing.hero.title': 'AEGIS',
   'landing.hero.subtitle': 'उन्नत आपातकालीन जियोस्पेशियल इंटेलिजेंस सिस्टम',
   'landing.cta.citizen': 'नागरिक इंटरफ़ेस', 'landing.cta.operator': 'ऑपरेटर कंसोल',
-  // ── नए कुंजी (cdash, citizenPage, about, admin, misc) ──────────────────────
+  //  नए कुंजी (cdash, citizenPage, about, admin, misc)
   'cdash.citizenFallback': 'नागरिक', 'cdash.close': 'बंद करें', 'cdash.community.subtitle': 'अपने समुदाय से जुड़ें',
   'cdash.contentRefreshed': 'सामग्री ताज़ा हुई', 'cdash.copiedToClipboard': 'क्लिपबोर्ड पर कॉपी हुआ',
   'cdash.fakeRisk': 'नकली जोखिम', 'cdash.loadingDashboard': 'डैशबोर्ड लोड हो रहा है',
@@ -7739,7 +7997,7 @@ const hi: TranslationMap = withEnBase({
   'citizenPage.safetyAdvice': 'सुरक्षा सलाह', 'citizenPage.safetyAdviceText': 'स्थानीय अधिकारियों के आधिकारिक दिशानिर्देशों का पालन करें।',
   'citizenPage.sosSent': 'SOS रिपोर्ट सफलतापूर्वक भेजी', 'citizenPage.sosFailed': 'SOS रिपोर्ट भेजना विफल',
   'citizenPage.tab.disasterMap': 'आपदा मैप', 'citizenPage.tab.recentReports': 'हालिया रिपोर्ट',
-  'citizenPage.tab.safeZones': 'सुरक्षित क्षेत्र', 'citizenPage.trappedPersons': 'फंसे हुए लोग',
+  'citizenPage.tab.safeZones': 'सुरक्षित क्षेत्र', 'citizenPage.tab.alerts': 'चेतावनियाँ', 'citizenPage.viewFullAlerts': 'सभी चेतावनियाँ देखें →', 'citizenPage.trappedPersons': 'फंसे हुए लोग',
   'citizenPage.unlockFull': 'पूर्ण सुरक्षा अनलॉक करें', 'citizenPage.waterDepth': 'पानी की गहराई',
   'citizenPage.webPushEnabled': 'पुश नोटिफिकेशन चालू', 'citizenPage.webPushFailed': 'पुश नोटिफिकेशन विफल',
   'about.accessibility': 'अभिगम्यता', 'about.backToAegis': 'AEGIS पर वापस', 'about.backToDashboard': 'डैशबोर्ड पर वापस',
@@ -7810,7 +8068,8 @@ const pt: TranslationMap = withEnBase({
   'citizen.tab.overview': 'Visão Geral', 'citizen.tab.livemap': 'Mapa ao Vivo',
   'citizen.tab.reports': 'Relatórios', 'citizen.tab.messages': 'Mensagens',
   'citizen.tab.community': 'Comunidade', 'citizen.tab.prepare': 'Preparação',
-  'citizen.tab.news': 'Notícias', 'citizen.tab.safety': 'Segurança',
+  'citizen.tab.news': 'Notícias', 'citizen.tab.alerts': 'Alertas', 'citizen.tab.safety': 'Segurança',
+  'citizen.tab.shelters': 'Abrigos', 'citizen.tab.risk': 'Avaliação de Risco', 'citizen.tab.emergency': 'Emergência',
   'citizen.tab.profile': 'Perfil', 'citizen.tab.security': 'Segurança',
   'citizen.tab.settings': 'Configurações',
   'citizen.action.report': 'Reportar', 'citizen.action.alerts': 'Alertas',
@@ -7834,7 +8093,7 @@ const pt: TranslationMap = withEnBase({
   'landing.hero.subtitle': 'Sistema Avançado de Inteligência Geoespacial para Emergências',
   'landing.cta.citizen': 'Interface do Cidadão', 'landing.cta.operator': 'Console do Operador',
   'common.close': 'Fechar', 'common.share': 'Compartilhar', 'common.print': 'Imprimir',
-  // ── Novas chaves (cdash, citizenPage, about, admin, misc) ──────────────────
+  //  Novas chaves (cdash, citizenPage, about, admin, misc)
   'cdash.citizenFallback': 'Cidadão', 'cdash.close': 'Fechar', 'cdash.community.subtitle': 'Conecte-se com sua comunidade',
   'cdash.contentRefreshed': 'Conteúdo atualizado', 'cdash.copiedToClipboard': 'Copiado para a área de transferência',
   'cdash.fakeRisk': 'Risco falso', 'cdash.loadingDashboard': 'Carregando painel',
@@ -7913,6 +8172,7 @@ const pt: TranslationMap = withEnBase({
   'citizenPage.reportEmergency': 'Reportar Emergência', 'citizenPage.riskAssessment': 'Avaliação de Risco',
   'citizenPage.safetyAdvice': 'Conselhos de Segurança', 'citizenPage.tab.disasterMap': 'Mapa de Desastres',
   'citizenPage.tab.recentReports': 'Relatórios Recentes', 'citizenPage.tab.safeZones': 'Zonas Seguras',
+  'citizenPage.tab.alerts': 'Alertas', 'citizenPage.viewFullAlerts': 'Ver todos os alertas →',
   'citizenPage.trappedPersons': 'Pessoas presas', 'citizenPage.unlockFull': 'Desbloquear Proteção Total',
   'citizenPage.webPushEnabled': 'Notificações push ativadas', 'citizenPage.waterDepth': 'Profundidade da água',
   'about.accessibility': 'Acessibilidade', 'about.backToAegis': 'Voltar ao AEGIS',
@@ -7969,7 +8229,8 @@ const pl: TranslationMap = withEnBase({
   'citizen.tab.overview': 'Przegląd', 'citizen.tab.livemap': 'Mapa na Żywo',
   'citizen.tab.reports': 'Zgłoszenia', 'citizen.tab.messages': 'Wiadomości',
   'citizen.tab.community': 'Społeczność', 'citizen.tab.prepare': 'Przygotowanie',
-  'citizen.tab.news': 'Aktualności', 'citizen.tab.safety': 'Bezpieczeństwo',
+  'citizen.tab.news': 'Aktualności', 'citizen.tab.alerts': 'Alerty', 'citizen.tab.safety': 'Bezpieczeństwo',
+  'citizen.tab.shelters': 'Schronienia', 'citizen.tab.risk': 'Ocena Ryzyka', 'citizen.tab.emergency': 'Nagły Wypadek',
   'citizen.tab.profile': 'Profil', 'citizen.tab.security': 'Zabezpieczenia',
   'citizen.tab.settings': 'Ustawienia',
   'citizen.action.report': 'Zgłoś', 'citizen.action.alerts': 'Alerty',
@@ -7991,7 +8252,7 @@ const pl: TranslationMap = withEnBase({
   'landing.hero.subtitle': 'Zaawansowany System Geoprzestrzennej Inteligencji Kryzysowej',
   'landing.cta.citizen': 'Interfejs Obywatela', 'landing.cta.operator': 'Konsola Operatora',
   'common.close': 'Zamknij', 'common.share': 'Udostępnij', 'common.print': 'Drukuj',
-  // ── Nowe klucze (cdash, citizenPage, about, admin, misc) ──────────────────
+  //  Nowe klucze (cdash, citizenPage, about, admin, misc)
   'cdash.citizenFallback': 'Obywatel', 'cdash.close': 'Zamknij', 'cdash.community.subtitle': 'Połącz się ze swoją społecznością',
   'cdash.contentRefreshed': 'Treść odświeżona', 'cdash.copiedToClipboard': 'Skopiowano do schowka',
   'cdash.fakeRisk': 'Ryzyko fałszerstwa', 'cdash.loadingDashboard': 'Ładowanie panelu',
@@ -8067,6 +8328,7 @@ const pl: TranslationMap = withEnBase({
   'citizenPage.reportEmergency': 'Zgłoś Nagły Wypadek', 'citizenPage.riskAssessment': 'Ocena ryzyka',
   'citizenPage.safetyAdvice': 'Porady bezpieczeństwa', 'citizenPage.tab.disasterMap': 'Mapa Katastrof',
   'citizenPage.tab.recentReports': 'Ostatnie zgłoszenia', 'citizenPage.tab.safeZones': 'Bezpieczne strefy',
+  'citizenPage.tab.alerts': 'Alerty', 'citizenPage.viewFullAlerts': 'Zobacz wszystkie alerty →',
   'citizenPage.trappedPersons': 'Uwięzione osoby', 'citizenPage.unlockFull': 'Odblokuj pełną ochronę',
   'citizenPage.waterDepth': 'Głębokość wody', 'citizenPage.webPushEnabled': 'Powiadomienia push włączone',
   'about.accessibility': 'Dostępność', 'about.backToAegis': 'Wróć do AEGIS',
@@ -8123,7 +8385,8 @@ const ur: TranslationMap = withEnBase({
   'citizen.tab.overview': 'جائزہ', 'citizen.tab.livemap': 'لائیو نقشہ',
   'citizen.tab.reports': 'رپورٹس', 'citizen.tab.messages': 'پیغامات',
   'citizen.tab.community': 'کمیونٹی', 'citizen.tab.prepare': 'تیاری',
-  'citizen.tab.news': 'خبریں', 'citizen.tab.safety': 'حفاظت',
+  'citizen.tab.news': 'خبریں', 'citizen.tab.alerts': 'الرٹس', 'citizen.tab.safety': 'حفاظت',
+  'citizen.tab.shelters': 'پناہ گاہیں', 'citizen.tab.risk': 'خطرے کا جائزہ', 'citizen.tab.emergency': 'ہنگامی',
   'citizen.tab.profile': 'پروفائل', 'citizen.tab.security': 'سیکیورٹی',
   'citizen.tab.settings': 'ترتیبات',
   'citizen.action.report': 'رپورٹ', 'citizen.action.alerts': 'الرٹس',
@@ -8145,7 +8408,7 @@ const ur: TranslationMap = withEnBase({
   'landing.hero.subtitle': 'جدید ہنگامی جیو اسپیشل انٹیلیجنس سسٹم',
   'landing.cta.citizen': 'شہری انٹرفیس', 'landing.cta.operator': 'آپریٹر کنسول',
   'common.close': 'بند کریں', 'common.share': 'شیئر', 'common.print': 'پرنٹ',
-  // ── نئی چابیاں (cdash, citizenPage, about, admin, misc) ──────────────────
+  //  نئی چابیاں (cdash, citizenPage, about, admin, misc)
   'cdash.citizenFallback': 'شہری', 'cdash.close': 'بند کریں', 'cdash.community.subtitle': 'اپنی کمیونٹی سے جڑیں',
   'cdash.contentRefreshed': 'مواد تازہ ہوا', 'cdash.copiedToClipboard': 'کلپ بورڈ پر کاپی ہوا',
   'cdash.fakeRisk': 'جھوٹا خطرہ', 'cdash.loadingDashboard': 'ڈیش بورڈ لوڈ ہو رہا ہے',
@@ -8221,6 +8484,7 @@ const ur: TranslationMap = withEnBase({
   'citizenPage.reportEmergency': 'ہنگامی رپورٹ', 'citizenPage.riskAssessment': 'خطرے کا جائزہ',
   'citizenPage.safetyAdvice': 'حفاظتی مشورہ', 'citizenPage.tab.disasterMap': 'آفات کا نقشہ',
   'citizenPage.tab.recentReports': 'حالیہ رپورٹس', 'citizenPage.tab.safeZones': 'محفوظ علاقے',
+  'citizenPage.tab.alerts': 'انتباہات', 'citizenPage.viewFullAlerts': 'تمام انتباہات دیکھیں →',
   'citizenPage.trappedPersons': 'پھنسے ہوئے افراد', 'citizenPage.unlockFull': 'مکمل تحفظ کھولیں',
   'citizenPage.waterDepth': 'پانی کی گہرائی', 'citizenPage.webPushEnabled': 'پش نوٹیفیکیشن فعال',
   'about.accessibility': 'رسائی', 'about.backToAegis': 'AEGIS پر واپس',
@@ -8247,9 +8511,7 @@ const ur: TranslationMap = withEnBase({
   'floodPred.floodPrediction': 'سیلاب کی پیشگوئی', 'severity': 'شدت',
 })
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Registry + helpers
-// ═══════════════════════════════════════════════════════════════════════════════
 
 const ALL_TRANSLATIONS: Record<string, TranslationMap> = { en, es, fr, ar, zh, hi, pt, pl, ur }
 const SUPPORTED_CODES = Object.keys(ALL_TRANSLATIONS)
@@ -8280,13 +8542,23 @@ export function t(key: I18nKey, lang?: string): string
 export function t(key: string, lang?: string): string
 export function t(key: string, lang: string = 'en'): string {
   const normalizedLang = normalizeLanguageCode(lang)
-  const customValue = ALL_TRANSLATIONS[normalizedLang]?.[key]
-  if (customValue) return customValue
+  let value = ALL_TRANSLATIONS[normalizedLang]?.[key]
 
-  const i18nextValue = i18next.t(key, { lng: normalizedLang, defaultValue: key })
-  if (i18nextValue && i18nextValue !== key) return i18nextValue
+  if (!value) {
+    const i18nextValue = i18next.t(key, { lng: normalizedLang, defaultValue: key })
+    value = (i18nextValue && i18nextValue !== key) ? i18nextValue : (ALL_TRANSLATIONS.en[key] || key)
+  }
 
-  return ALL_TRANSLATIONS.en[key] || key
+  // Dynamic emergency number injection — replaces {{EMERGENCY_NUMBER}} with
+  // the active region's emergency number so i18n strings are never hardcoded
+  if (value.includes('{{EMERGENCY_NUMBER}}')) {
+    try {
+      const { getRegion } = require('../config/regionConfig')
+      value = value.split('{{EMERGENCY_NUMBER}}').join(getRegion().emergencyNumber)
+    } catch { /* SSR / test fallback — leave token */ }
+  }
+
+  return value
 }
 
 export function isRtl(lang?: string): boolean {
@@ -8295,7 +8567,7 @@ export function isRtl(lang?: string): boolean {
 
 export { ALL_TRANSLATIONS }
 
-// ── Language state (persisted to localStorage) ───────────────────────────────
+//  Language state (persisted to localStorage)
 
 function getInitialLanguage(): string {
   if (typeof window === 'undefined') return 'en'

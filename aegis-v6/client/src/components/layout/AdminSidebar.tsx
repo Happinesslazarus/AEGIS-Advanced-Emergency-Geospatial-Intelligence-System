@@ -3,7 +3,7 @@
 import {
   BarChart3, FileText, Map, Activity, Brain, Navigation, Users,
   MessageSquare, History, Clock, Bell, ChevronLeft, ChevronRight,
-  X, AlertTriangle, Archive, Zap
+  X, AlertTriangle, Archive, Zap, ShieldCheck
 } from 'lucide-react'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
@@ -49,8 +49,9 @@ const SECTIONS = (lang: string, isAdmin: boolean): { title: string; items: Admin
     title: 'Records',
     items: [
       { key: 'history',      label: t('admin.history', lang),     icon: History,       color: 'text-amber-500' },
-      { key: 'audit',        label: t('admin.audit', lang),       icon: Clock,         color: 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300' },
+      { key: 'audit',        label: t('admin.audit', lang),       icon: Clock,         color: 'text-gray-400 dark:text-gray-300' },
       { key: 'delivery',     label: 'Delivery',                   icon: Archive,       color: 'text-slate-500' },
+      ...(isAdmin ? [{ key: 'security', label: 'Security', icon: ShieldCheck, adminOnly: true, color: 'text-red-400' } as AdminSidebarItem] : []),
     ],
   },
 ]
@@ -84,7 +85,7 @@ export default function AdminSidebar({
       <div className="hidden lg:flex items-center justify-end px-2 py-2">
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-white transition-all"
+          className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 dark:text-gray-300 hover:text-white transition-all"
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
@@ -94,8 +95,8 @@ export default function AdminSidebar({
       {/* Mobile close button */}
       <div className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-white/5">
         <span className="text-sm font-bold text-white">Navigation</span>
-        <button onClick={() => setMobileOpen(false)} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors">
-          <X className="w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
+        <button onClick={() => setMobileOpen(false)} className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors">
+          <X className="w-5 h-5 text-gray-400 dark:text-gray-300" />
         </button>
       </div>
 
@@ -104,7 +105,7 @@ export default function AdminSidebar({
         {sections.map(section => (
           <div key={section.title}>
             {!collapsed && (
-              <p className="px-3 mb-1.5 text-[9px] font-bold uppercase tracking-[0.15em] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+              <p className="px-3 mb-1.5 text-[9px] font-bold uppercase tracking-[0.15em] text-gray-500 dark:text-gray-300">
                 {section.title}
               </p>
             )}
@@ -118,10 +119,10 @@ export default function AdminSidebar({
                     onClick={() => handleClick(item.key)}
                     title={collapsed ? item.label : undefined}
                     className={`w-full flex items-center gap-3 rounded-xl transition-all duration-200 group relative
-                      ${collapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2'}
+                      ${collapsed ? 'justify-center px-2 py-2.5 min-h-[44px]' : 'px-3 py-2.5 min-h-[40px]'}
                       ${isActive
                         ? 'bg-aegis-500/15 text-aegis-400 shadow-sm shadow-aegis-500/10'
-                        : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-white hover:bg-white/5'
+                        : 'text-gray-400 dark:text-gray-300 hover:text-white hover:bg-white/5'
                       }
                     `}
                   >
@@ -130,7 +131,7 @@ export default function AdminSidebar({
                       <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-aegis-500 shadow-sm shadow-aegis-500/50" />
                     )}
 
-                    <item.icon className={`w-4 h-4 flex-shrink-0 transition-colors ${isActive ? 'text-aegis-400' : item.color || 'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'} ${!isActive ? 'group-hover:text-white' : ''}`} />
+                    <item.icon className={`w-4 h-4 flex-shrink-0 transition-colors ${isActive ? 'text-aegis-400' : item.color || 'text-gray-500 dark:text-gray-300'} ${!isActive ? 'group-hover:text-white' : ''}`} />
 
                     {!collapsed && (
                       <span className={`text-[11px] font-semibold truncate ${isActive ? 'text-aegis-300' : ''}`}>
@@ -180,7 +181,7 @@ export default function AdminSidebar({
       {/* Desktop Sidebar */}
       <aside
         className={`fixed top-24 left-0 bottom-0 z-30 hidden lg:flex flex-col
-          bg-white/98 dark:bg-[#080810] border-r border-gray-200 dark:border-white/5
+          bg-white/98 dark:bg-surface-ultra-dark border-r border-gray-200 dark:border-white/5
           transition-all duration-300
           ${collapsed ? 'w-[60px]' : 'w-[220px]'}
         `}
@@ -195,7 +196,7 @@ export default function AdminSidebar({
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
             onClick={() => setMobileOpen(false)}
           />
-          <aside className="fixed top-0 left-0 bottom-0 w-[260px] z-50 lg:hidden bg-[#080810] border-r border-white/5 animate-slide-in-left shadow-2xl">
+          <aside className="fixed top-0 left-0 bottom-0 w-[280px] max-w-[85vw] z-50 lg:hidden bg-surface-ultra-dark border-r border-white/5 animate-slide-in-left shadow-2xl">
             {sidebarContent}
           </aside>
         </>
@@ -203,8 +204,4 @@ export default function AdminSidebar({
     </>
   )
 }
-
-
-
-
-
+

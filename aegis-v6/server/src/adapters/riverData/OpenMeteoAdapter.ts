@@ -1,4 +1,4 @@
-/**
+﻿/**
  * adapters/riverData/OpenMeteoAdapter.ts — Universal fallback river data adapter
  *
  * Uses the Open-Meteo Flood API which covers any river basin on Earth
@@ -10,6 +10,7 @@
  */
 
 import type { RiverDataAdapter, RiverReading, RiverHistory } from './RiverDataAdapter.js'
+import { logger } from '../../services/logger.js'
 
 const OPENMETEO_FLOOD_API = process.env.OPENMETEO_FLOOD_API || 'https://flood-api.open-meteo.com/v1/flood'
 const TIMEOUT_MS = 15_000
@@ -32,7 +33,7 @@ export class OpenMeteoAdapter implements RiverDataAdapter {
       // We extract lat/lng from the stationId format "lat,lng" or use defaults.
       const coords = this.parseCoordinates(stationId)
       if (!coords) {
-        console.warn(`[OpenMeteo] Cannot parse coordinates from stationId: ${stationId}`)
+        logger.warn({ stationId }, '[OpenMeteo] Cannot parse coordinates from stationId')
         return null
       }
 
@@ -49,7 +50,7 @@ export class OpenMeteoAdapter implements RiverDataAdapter {
       })
 
       if (!res.ok) {
-        console.warn(`[OpenMeteo] HTTP ${res.status}`)
+        logger.warn({ status: res.status }, '[OpenMeteo] HTTP error')
         return null
       }
 
@@ -64,7 +65,7 @@ export class OpenMeteoAdapter implements RiverDataAdapter {
 
       if (currentDischarge == null) return null
 
-      // Convert discharge (m³/s) to an approximate level using Manning's equation simplification
+      // Convert discharge (m—/s) to an approximate level using Manning's equation simplification
       // This is a rough estimate — the relationship depends on channel geometry
       const estimatedLevel = this.dischargeToLevel(currentDischarge)
 
@@ -79,7 +80,7 @@ export class OpenMeteoAdapter implements RiverDataAdapter {
         rawResponse: data,
       }
     } catch (err: any) {
-      console.error(`[OpenMeteo] Failed: ${err.message}`)
+      logger.error({ err }, '[OpenMeteo] Failed to fetch current level')
       return null
     }
   }
@@ -123,7 +124,7 @@ export class OpenMeteoAdapter implements RiverDataAdapter {
 
       return { stationId, readings }
     } catch (err: any) {
-      console.error(`[OpenMeteo] History failed: ${err.message}`)
+      logger.error({ err }, '[OpenMeteo] History fetch failed')
       return null
     }
   }
@@ -138,7 +139,7 @@ export class OpenMeteoAdapter implements RiverDataAdapter {
       .filter((r): r is RiverReading => r !== null)
   }
 
-  // ─── Helpers ──────────────────────────────────────────────────────────────
+  // Helpers
 
   private parseCoordinates(stationId: string): { lat: number; lng: number } | null {
     // Accept "lat,lng" format
@@ -151,9 +152,9 @@ export class OpenMeteoAdapter implements RiverDataAdapter {
     return null
   }
 
-  /**
-   * Rough conversion from discharge (m³/s) to water level (m).
-   * Uses a simplified power-law rating curve: h ≈ a * Q^b
+   /**
+   * Rough conversion from discharge (m—/s) to water level (m).
+   * Uses a simplified power-law rating curve: h — a * Q^b
    * where a=0.3, b=0.4 are typical for medium rivers.
    * This is an approximation — real deployments would use station-specific rating curves.
    */

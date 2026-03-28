@@ -1,45 +1,37 @@
-/**
+﻿/**
  * LiveMap.tsx — Professional Leaflet-based live operations map
  *
  * Features:
- *   - CartoDB Dark Matter tiles (free, no token)
- *   - ESRI World Imagery satellite toggle (free)
- *   - OpenTopoMap terrain toggle
- *   - Report markers with severity-coloured pulsing rings
- *   - River gauge station markers with live level indicators
- *   - Flood prediction polygon overlays
- *   - Evacuation route polylines
- *   - Distress beacon markers (pulsing red)
- *   - Layer control with basemap switcher
- *   - Smooth animations and professional styling
+ * CartoDB Dark Matter tiles (free, no token)
+ * ESRI World Imagery satellite toggle (free)
+ * OpenTopoMap terrain toggle
+ * Report markers with severity-coloured pulsing rings
+ * River gauge station markers with live level indicators
+ * Flood prediction polygon overlays
+ * Evacuation route polylines
+ * Distress beacon markers (pulsing red)
+ * Layer control with basemap switcher
+ * Smooth animations and professional styling
  *
  * No API key / token required — 100% free tile providers.
  */
 
 import { useRef, useEffect, useState, useCallback } from 'react'
+import { getAnyToken } from '../../utils/api'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { Navigation, ZoomIn, ZoomOut, Satellite, Map as MapIcon, Mountain, RefreshCw, Layers, Eye, EyeOff } from 'lucide-react'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
+import { STATUS_HEX, SEVERITY_HEX_TITLE } from '../../utils/colorTokens'
 
 const API = ''
 const DEFAULT_CENTER: [number, number] = [51.5074, -0.1278]
 const DEFAULT_ZOOM = 13
 const EMPTY_REPORTS: Report[] = []
 
-const SEV_COLOURS: Record<string, string> = {
-  High: '#ef4444',
-  Medium: '#f59e0b',
-  Low: '#3b82f6',
-}
-
-const STATUS_COLOURS: Record<string, string> = {
-  CRITICAL: '#dc2626',
-  HIGH: '#f97316',
-  ELEVATED: '#eab308',
-  NORMAL: '#22c55e',
-}
+const SEV_COLOURS: Record<string, string> = SEVERITY_HEX_TITLE
+const STATUS_COLOURS: Record<string, string> = STATUS_HEX
 
 interface Report {
   id: string | number
@@ -318,7 +310,7 @@ export default function LiveMap({
     tileLayerRef.current.setUrl(tileInfo.url)
   }, [basemap])
 
-  // ── Render report markers ──
+  // Render report markers
   useEffect(() => {
     const layer = reportLayerRef.current
     layer.clearLayers()
@@ -340,7 +332,7 @@ export default function LiveMap({
           </div>
           <p style="font-weight:600;font-size:13px;margin:0 0 4px;">${r.title || r.category || r.type || t('map.reportDefault', lang)}</p>
           <p style="color:#9ca3af;font-size:11px;margin:0 0 4px;">${r.location || ''}</p>
-          ${r.description ? `<p style="color:#d1d5db;font-size:10px;margin:0 0 6px;max-height:40px;overflow:hidden;">${r.description.substring(0, 120)}${r.description.length > 120 ? '…' : ''}</p>` : ''}
+          ${r.description ? `<p style="color:#d1d5db;font-size:10px;margin:0 0 6px;max-height:40px;overflow:hidden;">${r.description.substring(0, 120)}${r.description.length > 120 ? '—' : ''}</p>` : ''}
           <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #374151;padding-top:6px;margin-top:4px;">
             <span style="font-size:9px;color:#6b7280;">${r.status || ''}</span>
             <span style="font-size:9px;color:#6b7280;">${r.created_at ? new Date(r.created_at).toLocaleString() : ''}</span>
@@ -358,7 +350,7 @@ export default function LiveMap({
     setMarkerCount(prev => ({ ...prev, reports: count }))
   }, [reports])
 
-  // ── Fetch & render river gauge stations ──
+  // Fetch & render river gauge stations
   const fetchRivers = useCallback(async () => {
     try {
       const res = await fetch(`${API}/api/rivers/levels`)
@@ -394,7 +386,7 @@ export default function LiveMap({
               </div>
               <div>
                 <span style="font-size:9px;color:#9ca3af;text-transform:uppercase;">${t('map.flow', lang)}</span>
-                <div style="font-size:14px;font-weight:700;font-family:monospace;">${station.flowCumecs?.toFixed(1) ?? '—'} m³/s</div>
+                <div style="font-size:14px;font-weight:700;font-family:monospace;">${station.flowCumecs?.toFixed(1) ?? '—'} m—/s</div>
               </div>
             </div>
             <div style="margin-bottom:6px;">
@@ -421,10 +413,10 @@ export default function LiveMap({
     } catch {}
   }, [])
 
-  // ── Fetch & render distress beacons ──
+  // Fetch & render distress beacons
   const fetchDistress = useCallback(async () => {
     try {
-      const token = localStorage.getItem('aegis-token') || localStorage.getItem('aegis-citizen-token')
+      const token = getAnyToken()
       const rawUser = localStorage.getItem('aegis-user') || localStorage.getItem('aegis-citizen-user')
       let role = ''
       try { role = String(rawUser ? JSON.parse(rawUser)?.role || '' : '').toLowerCase() } catch {}
@@ -448,7 +440,7 @@ export default function LiveMap({
         const marker = L.marker([lat, lng], { icon: createDistressIcon() })
         marker.bindPopup(`
           <div style="min-width:180px;">
-            <div style="color:#ef4444;font-weight:700;font-size:14px;margin-bottom:4px;">⚠ ${t('map.distressBeacon', lang)}</div>
+            <div style="color:#ef4444;font-weight:700;font-size:14px;margin-bottom:4px;">? ${t('map.distressBeacon', lang)}</div>
             <p style="font-size:12px;margin:0 0 4px;">${b.citizenName || b.citizen_name || t('map.citizen', lang)}</p>
             <p style="font-size:10px;color:#9ca3af;margin:0;">${b.message || t('map.emergencyAssistance', lang)}</p>
             <div style="margin-top:6px;border-top:1px solid #374151;padding-top:4px;font-size:9px;color:#6b7280;">
@@ -463,7 +455,7 @@ export default function LiveMap({
     } catch {}
   }, [])
 
-  // ── Fetch evacuation routes ──
+  // Fetch evacuation routes
   const fetchEvacuation = useCallback(async () => {
     try {
       const res = await fetch(`${API}/api/incidents/flood/evacuation/routes`)
@@ -473,7 +465,7 @@ export default function LiveMap({
     } catch {}
   }, [])
 
-  // ── Render evacuation routes ──
+  // Render evacuation routes
   useEffect(() => {
     const layer = evacuationLayerRef.current
     layer.clearLayers()
@@ -504,7 +496,7 @@ export default function LiveMap({
     }
   }, [showEvacuationRoutes, evacuationData])
 
-  // ── Fetch & render real SEPA/EA gauge stations ──
+  // Fetch & render real SEPA/EA gauge stations
   const fetchStations = useCallback(async () => {
     try {
       const params = new URLSearchParams({
@@ -566,7 +558,7 @@ export default function LiveMap({
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${colour}" stroke-width="2"><path d="M7 16.3c2.2 0 4-1.83 6.2-1.83 2.2 0 4 1.83 6.2 1.83"/><path d="M7 11.3c2.2 0 4-1.83 6.2-1.83 2.2 0 4 1.83 6.2 1.83"/></svg>
               <span style="font-weight:700;font-size:12px;">${p.station_name || p.station_id}</span>
             </div>
-            <div style="font-size:9px;color:#9ca3af;margin-bottom:4px;">${p.river_name || ''} · ${p.jurisdiction || 'EA'}</div>
+            <div style="font-size:9px;color:#9ca3af;margin-bottom:4px;">${p.river_name || ''} — ${p.jurisdiction || 'EA'}</div>
             ${level > 0 ? `
               <div style="margin-bottom:6px;">
                 <div style="display:flex;justify-content:space-between;font-size:9px;color:#9ca3af;margin-bottom:2px;">
@@ -591,7 +583,7 @@ export default function LiveMap({
     } catch {}
   }, [center])
 
-  // ── Fetch & render live flood predictions as risk circles ──
+  // Fetch & render live flood predictions as risk circles
   const fetchPredictions = useCallback(async () => {
     if (!showFloodPredictions) return
     try {
@@ -609,7 +601,7 @@ export default function LiveMap({
 
         const prob = parseFloat(p.probability) || 0
         const colour = prob >= 0.75 ? '#dc2626' : prob >= 0.5 ? '#f97316' : '#eab308'
-        const radiusM = 800 + prob * 1200 // 800–2000m based on probability
+        const radiusM = 800 + prob * 1200 // 800—2000m based on probability
 
         // Shaded risk circle
         const circle = L.circle(coords, {
@@ -639,11 +631,11 @@ export default function LiveMap({
                 <div style="height:100%;width:${pctLabel};background:${colour};border-radius:99px;"></div>
               </div>
             </div>
-            <div style="font-size:9px;color:#9ca3af;margin-bottom:4px;">⏱ ${p.time_to_flood || 'Unknown'}</div>
-            <div style="font-size:9px;color:#60a5fa;margin-bottom:4px;">📊 ${p.matched_pattern || ''}</div>
-            ${p.next_areas?.length ? `<div style="font-size:9px;color:#fbbf24;">⚠ ${t('map.downstream', lang)}: ${p.next_areas.join(', ')}</div>` : ''}
+            <div style="font-size:9px;color:#9ca3af;margin-bottom:4px;">? ${p.time_to_flood || 'Unknown'}</div>
+            <div style="font-size:9px;color:#60a5fa;margin-bottom:4px;">?? ${p.matched_pattern || ''}</div>
+            ${p.next_areas?.length ? `<div style="font-size:9px;color:#fbbf24;">? ${t('map.downstream', lang)}: ${p.next_areas.join(', ')}</div>` : ''}
             <div style="border-top:1px solid #374151;padding-top:4px;margin-top:4px;font-size:8px;color:#6b7280;">
-              ${t('map.confidence', lang)}: ${p.confidence}% · ${p.model_version}
+              ${t('map.confidence', lang)}: ${p.confidence}% — ${p.model_version}
             </div>
           </div>
         `, { maxWidth: 300 })
@@ -654,7 +646,7 @@ export default function LiveMap({
     } catch {}
   }, [showFloodPredictions, resolvePredictionCoords])
 
-  // ── Fetch & render PostGIS risk layer (flood polygons) ──
+  // Fetch & render PostGIS risk layer (flood polygons)
   const fetchRiskLayer = useCallback(async () => {
     try {
       const res = await fetch(`${API}/api/map/risk-layer`)
@@ -696,7 +688,7 @@ export default function LiveMap({
     } catch {}
   }, [])
 
-  // ── Fetch & render real heatmap data ──
+  // Fetch & render real heatmap data
   const fetchHeatmap = useCallback(async () => {
     try {
       if (!mapRef.current) return
@@ -745,7 +737,7 @@ export default function LiveMap({
     return () => clearInterval(interval)
   }, [fetchRivers, fetchDistress, fetchEvacuation, fetchStations, fetchPredictions, fetchRiskLayer, fetchHeatmap])
 
-  // ── Custom controls ──
+  // Custom controls
   const zoomIn = () => mapRef.current?.zoomIn()
   const zoomOut = () => mapRef.current?.zoomOut()
   const resetView = () => mapRef.current?.setView(center, zoom, { animate: true })
@@ -769,21 +761,21 @@ export default function LiveMap({
       <div className="absolute top-3 right-3 z-10 flex gap-1 bg-gray-900/90 backdrop-blur-md rounded-lg border border-gray-700/50 p-1">
         <button
           onClick={() => setBasemap('dark')}
-          className={`p-1.5 rounded-md transition-all ${basemap === 'dark' ? 'bg-blue-600 text-white' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-white hover:bg-gray-800'}`}
+          className={`p-1.5 rounded-md transition-all ${basemap === 'dark' ? 'bg-blue-600 text-white' : 'text-gray-400 dark:text-gray-300 hover:text-white hover:bg-gray-800'}`}
           title={t('map.dark', lang)}
         >
           <MapIcon className="w-3.5 h-3.5" />
         </button>
         <button
           onClick={() => setBasemap('satellite')}
-          className={`p-1.5 rounded-md transition-all ${basemap === 'satellite' ? 'bg-blue-600 text-white' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-white hover:bg-gray-800'}`}
+          className={`p-1.5 rounded-md transition-all ${basemap === 'satellite' ? 'bg-blue-600 text-white' : 'text-gray-400 dark:text-gray-300 hover:text-white hover:bg-gray-800'}`}
           title={t('map.satellite', lang)}
         >
           <Satellite className="w-3.5 h-3.5" />
         </button>
         <button
           onClick={() => setBasemap('terrain')}
-          className={`p-1.5 rounded-md transition-all ${basemap === 'terrain' ? 'bg-blue-600 text-white' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-white hover:bg-gray-800'}`}
+          className={`p-1.5 rounded-md transition-all ${basemap === 'terrain' ? 'bg-blue-600 text-white' : 'text-gray-400 dark:text-gray-300 hover:text-white hover:bg-gray-800'}`}
           title={t('map.terrain', lang)}
         >
           <Mountain className="w-3.5 h-3.5" />
@@ -792,21 +784,21 @@ export default function LiveMap({
 
       {/* Zoom controls — right side */}
       <div className="absolute right-3 top-14 z-10 flex flex-col gap-1 bg-gray-900/90 backdrop-blur-md rounded-lg border border-gray-700/50 p-1">
-        <button onClick={zoomIn} className="p-1.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition" title={t('map.zoomIn', lang)}>
+        <button onClick={zoomIn} className="p-1.5 text-gray-400 dark:text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition" title={t('map.zoomIn', lang)}>
           <ZoomIn className="w-3.5 h-3.5" />
         </button>
-        <button onClick={zoomOut} className="p-1.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition" title={t('map.zoomOut', lang)}>
+        <button onClick={zoomOut} className="p-1.5 text-gray-400 dark:text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition" title={t('map.zoomOut', lang)}>
           <ZoomOut className="w-3.5 h-3.5" />
         </button>
         <div className="h-px bg-gray-700/50" />
-        <button onClick={resetView} className="p-1.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition" title={t('map.resetView', lang)}>
+        <button onClick={resetView} className="p-1.5 text-gray-400 dark:text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition" title={t('map.resetView', lang)}>
           <Navigation className="w-3.5 h-3.5" />
         </button>
-        <button onClick={refreshAll} className="p-1.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition" title={t('map.refreshData', lang)}>
+        <button onClick={refreshAll} className="p-1.5 text-gray-400 dark:text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition" title={t('map.refreshData', lang)}>
           <RefreshCw className="w-3.5 h-3.5" />
         </button>
         <div className="h-px bg-gray-700/50" />
-        <button onClick={() => setShowLayerPanel(p => !p)} className={`p-1.5 rounded-md transition ${showLayerPanel ? 'bg-blue-600 text-white' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-white hover:bg-gray-800'}`} title={t('map.toggleLayers', lang)}>
+        <button onClick={() => setShowLayerPanel(p => !p)} className={`p-1.5 rounded-md transition ${showLayerPanel ? 'bg-blue-600 text-white' : 'text-gray-400 dark:text-gray-300 hover:text-white hover:bg-gray-800'}`} title={t('map.toggleLayers', lang)}>
           <Layers className="w-3.5 h-3.5" />
         </button>
       </div>
@@ -815,7 +807,7 @@ export default function LiveMap({
       {showLayerPanel && (
         <div className="absolute right-14 top-14 z-10 bg-gray-900/95 backdrop-blur-md rounded-xl border border-gray-700/50 p-3 w-52 shadow-2xl animate-fade-in">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-wide">{t('map.mapLayers', lang)}</span>
+            <span className="text-xs font-bold text-gray-300 dark:text-gray-300 uppercase tracking-wide">{t('map.mapLayers', lang)}</span>
             <button
               onClick={() => {
                 const allOn = Object.values(layers).every(Boolean)
@@ -844,13 +836,13 @@ export default function LiveMap({
                 className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs transition ${
                   layers[key as keyof typeof layers]
                     ? 'bg-gray-800/80 text-gray-200'
-                    : 'bg-gray-800/30 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'
+                    : 'bg-gray-800/30 text-gray-500 dark:text-gray-300'
                 } hover:bg-gray-700/80`}
               >
                 <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: layers[key as keyof typeof layers] ? color : '#4b5563' }} />
                 <span className="flex-1 text-left truncate">{label}</span>
                 {layers[key as keyof typeof layers]
-                  ? <Eye className="w-3 h-3 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex-shrink-0" />
+                  ? <Eye className="w-3 h-3 text-gray-400 dark:text-gray-300 flex-shrink-0" />
                   : <EyeOff className="w-3 h-3 text-gray-600 flex-shrink-0" />
                 }
               </button>
@@ -866,14 +858,11 @@ export default function LiveMap({
           <span className="text-[10px] font-semibold text-green-400">{t('map.live', lang)}</span>
         </div>
         <div className="h-3 w-px bg-gray-700" />
-        <span className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
-          {markerCount.reports} {t('map.reports', lang)} • {markerCount.rivers + markerCount.stations} {t('map.stations', lang)} • {markerCount.predictions} {t('map.predictions', lang)} • {markerCount.distress} SOS
+        <span className="text-[10px] text-gray-400 dark:text-gray-300">
+          {markerCount.reports} {t('map.reports', lang)} — {markerCount.rivers + markerCount.stations} {t('map.stations', lang)} — {markerCount.predictions} {t('map.predictions', lang)} — {markerCount.distress} SOS
         </span>
       </div>
     </div>
   )
 }
-
-
-
-
+

@@ -1,12 +1,11 @@
-/*
+﻿ /*
  * CitizenMessaging.tsx — Professional Citizen-to-Admin Messaging
- *
  * Split-panel layout (WhatsApp Web / Intercom style):
- *   - Left: threaded inbox with search, status badges, unread counts
- *   - Right: full chat with date separators, message grouping, scroll-to-bottom
- *   - Responsive: collapses to single-panel on mobile
- *   - Real-time: socket-driven with read receipts, delivery status
- */
+ * Left: threaded inbox with search, status badges, unread counts
+ * Right: full chat with date separators, message grouping, scroll-to-bottom
+ * Responsive: collapses to single-panel on mobile
+ * Real-time: socket-driven with read receipts, delivery status
+  */
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import {
@@ -23,7 +22,7 @@ import MessageStatusIcon from '../ui/MessageStatusIcon'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+//  Helpers
 
 function formatDateSeparator(dateStr: string, lang: string): string {
   const d = new Date(dateStr)
@@ -56,7 +55,7 @@ function StatusBadge({ status, lang }: { status: string; lang: string }) {
     open: { bg: 'bg-green-100 dark:bg-green-950/30', text: 'text-green-700 dark:text-green-300' },
     in_progress: { bg: 'bg-blue-100 dark:bg-blue-950/30', text: 'text-blue-700 dark:text-blue-300' },
     resolved: { bg: 'bg-purple-100 dark:bg-purple-950/30', text: 'text-purple-700 dark:text-purple-300' },
-    closed: { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300' },
+    closed: { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-500 dark:text-gray-300' },
   }
   const s = map[status] || map.open
   return (
@@ -72,7 +71,7 @@ function StatusBadge({ status, lang }: { status: string; lang: string }) {
   )
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
+//  Component
 
 export default function CitizenMessaging(): JSX.Element {
   const lang = useLanguage()
@@ -253,11 +252,11 @@ export default function CitizenMessaging(): JSX.Element {
   const activeCount = threads.filter(t => t.status === 'in_progress').length
   const totalUnread = threads.reduce((s, t) => s + (t.citizen_unread || 0), 0)
 
-  // ── SPLIT-PANEL LAYOUT ──────────────────────────────────────────────────────
+  //  SPLIT-PANEL LAYOUT
 
   return (
     <div className="flex h-[calc(100vh-180px)] bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950 dark:to-gray-900 rounded-2xl overflow-hidden shadow-xl border border-gray-200/80 dark:border-gray-800/80">
-      {/* ═════ LEFT: Thread Inbox ═════ */}
+      {/*  LEFT: Thread Inbox  */}
       <div className={`w-full md:w-[380px] flex flex-col bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 ${activeThread ? 'hidden md:flex' : 'flex'}`}>
         {/* Header */}
         <div className="p-4 bg-gradient-to-r from-aegis-600 via-aegis-700 to-aegis-800 text-white">
@@ -298,7 +297,7 @@ export default function CitizenMessaging(): JSX.Element {
         {/* Search + New Button */}
         <div className="p-3 space-y-2.5 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50">
           <div className="relative">
-            <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
+            <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-gray-400 dark:text-gray-300" />
             <input
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -306,7 +305,7 @@ export default function CitizenMessaging(): JSX.Element {
               placeholder={t('citizenMsg.searchConversations', lang)}
             />
             {searchTerm && (
-              <button onClick={() => setSearchTerm('')} className="absolute right-3 top-2.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-600">
+              <button onClick={() => setSearchTerm('')} className="absolute right-3 top-2.5 text-gray-400 dark:text-gray-300 hover:text-gray-600">
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
@@ -325,7 +324,7 @@ export default function CitizenMessaging(): JSX.Element {
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-gray-700 dark:text-gray-200">{t('citizenMsg.newConversation', lang)}</span>
               <button onClick={() => setShowNewThread(false)} className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded">
-                <X className="w-3.5 h-3.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
+                <X className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300" />
               </button>
             </div>
             <input
@@ -366,12 +365,12 @@ export default function CitizenMessaging(): JSX.Element {
           {filteredThreads.length === 0 ? (
             <div className="p-10 text-center">
               <div className="w-16 h-16 mx-auto mb-3 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                <MessageSquare className="w-8 h-8 text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-600" />
+                <MessageSquare className="w-8 h-8 text-gray-300 dark:text-gray-600" />
               </div>
-              <p className="text-sm font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+              <p className="text-sm font-semibold text-gray-500 dark:text-gray-300">
                 {searchTerm ? t('citizenMsg.noConversationsFound', lang) : t('citizenMsg.noConversations', lang)}
               </p>
-              <p className="text-[11px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-0.5">
+              <p className="text-[11px] text-gray-400 dark:text-gray-300 mt-0.5">
                 {searchTerm ? t('citizenMsg.tryDifferentSearch', lang) : t('citizenMsg.startNewConversation', lang)}
               </p>
             </div>
@@ -415,7 +414,7 @@ export default function CitizenMessaging(): JSX.Element {
                       <div className="flex items-center gap-1.5 mb-0.5">
                         <span className="text-xs font-bold text-gray-900 dark:text-white truncate">{thread.subject}</span>
                       </div>
-                      <p className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 truncate mt-0.5 leading-relaxed">
+                      <p className="text-[10px] text-gray-400 dark:text-gray-300 truncate mt-0.5 leading-relaxed">
                       {thread.last_message || t('citizen.messages.noMessages', lang)}
                       </p>
                     </div>
@@ -427,7 +426,7 @@ export default function CitizenMessaging(): JSX.Element {
                           {thread.citizen_unread}
                         </span>
                       )}
-                      <span className="text-[9px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex items-center gap-0.5">
+                      <span className="text-[9px] text-gray-400 dark:text-gray-300 flex items-center gap-0.5">
                         <Clock className="w-2.5 h-2.5" />
                         {timeAgo(thread.last_message_at || thread.created_at)}
                       </span>
@@ -442,13 +441,13 @@ export default function CitizenMessaging(): JSX.Element {
         {/* Connection footer */}
         <div className="p-2.5 border-t border-gray-200 dark:border-gray-800 flex items-center gap-2 text-[10px]">
           <div className={`w-2 h-2 rounded-full ${connected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
-          <span className="text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+          <span className="text-gray-500 dark:text-gray-300">
             {connected ? t('citizenMsg.liveUpdatesActive', lang) : t('common.reconnecting', lang)}
           </span>
         </div>
       </div>
 
-      {/* ═════ RIGHT: Chat Panel ═════ */}
+      {/*  RIGHT: Chat Panel  */}
       <div className={`flex-1 flex flex-col bg-white dark:bg-gray-900 ${!activeThread ? 'hidden md:flex' : 'flex'}`}>
         {!activeThread ? (
           /* Empty State */
@@ -458,10 +457,10 @@ export default function CitizenMessaging(): JSX.Element {
                 <MessageSquare className="w-10 h-10 text-aegis-500" />
               </div>
               <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">{t('citizenMsg.myMessages', lang)}</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 max-w-xs">
+              <p className="text-xs text-gray-500 dark:text-gray-300 max-w-xs">
                 {t('citizenMsg.emptyStateDescription', lang)}
               </p>
-              <div className="mt-4 flex items-center justify-center gap-4 text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+              <div className="mt-4 flex items-center justify-center gap-4 text-[10px] text-gray-400 dark:text-gray-300">
                 <span className="flex items-center gap-1"><Shield className="w-3 h-3" /> {t('citizenMsg.endToEndSecure', lang)}</span>
                 <span className="flex items-center gap-1"><Zap className="w-3 h-3" /> {t('common.live', lang)}</span>
                 <span className="flex items-center gap-1"><Headphones className="w-3 h-3" /> {t('citizenMsg.support247', lang)}</span>
@@ -472,7 +471,7 @@ export default function CitizenMessaging(): JSX.Element {
           <>
             {/* Chat Header */}
             <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center gap-3 bg-gradient-to-r from-white to-gray-50 dark:from-gray-900 dark:to-gray-900/80">
-              <button onClick={() => setActiveThread(null)} className="md:hidden p-1.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition">
+              <button onClick={() => setActiveThread(null)} className="md:hidden p-1.5 text-gray-400 dark:text-gray-300 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition">
                 <ArrowLeft className="w-5 h-5" />
               </button>
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 shadow-sm ${
@@ -491,9 +490,9 @@ export default function CitizenMessaging(): JSX.Element {
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+                <div className="flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-300">
                   <StatusBadge status={activeThread.status} lang={lang} />
-                  <span className="text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-600">|</span>
+                  <span className="text-gray-300 dark:text-gray-600">|</span>
                   <span>{activeThread.status === 'in_progress' ? t('citizenMsg.operatorAssigned', lang) : t('citizen.messages.waitingOperator', lang)}</span>
                 </div>
               </div>
@@ -521,10 +520,10 @@ export default function CitizenMessaging(): JSX.Element {
               {messages.length === 0 && (
                 <div className="text-center py-12">
                   <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                    <MessageSquare className="w-7 h-7 text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-600" />
+                    <MessageSquare className="w-7 h-7 text-gray-300 dark:text-gray-600" />
                   </div>
-                  <p className="text-sm font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('citizen.messages.noMessages', lang)}</p>
-                  <p className="text-[11px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-0.5">{t('citizenMsg.startConversation', lang)}</p>
+                  <p className="text-sm font-semibold text-gray-500 dark:text-gray-300">{t('citizen.messages.noMessages', lang)}</p>
+                  <p className="text-[11px] text-gray-400 dark:text-gray-300 mt-0.5">{t('citizenMsg.startConversation', lang)}</p>
                 </div>
               )}
 
@@ -539,7 +538,7 @@ export default function CitizenMessaging(): JSX.Element {
                     {/* Date Separator */}
                     {showDate && (
                       <div className="flex items-center justify-center py-3">
-                        <div className="bg-white dark:bg-gray-800 text-[10px] font-bold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 px-3 py-1 rounded-full shadow-sm border border-gray-200 dark:border-gray-700">
+                        <div className="bg-white dark:bg-gray-800 text-[10px] font-bold text-gray-500 dark:text-gray-300 px-3 py-1 rounded-full shadow-sm border border-gray-200 dark:border-gray-700">
                           {formatDateSeparator(msg.created_at, lang)}
                         </div>
                       </div>
@@ -575,7 +574,7 @@ export default function CitizenMessaging(): JSX.Element {
 
                           {/* Timestamp + Status */}
                           <div className={`flex items-center gap-1.5 mt-1 ${isMine ? 'justify-end' : 'justify-start'}`}>
-                            <span className={`text-[10px] ${isMine ? 'text-white/50' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`}>
+                            <span className={`text-[10px] ${isMine ? 'text-white/50' : 'text-gray-400 dark:text-gray-300'}`}>
                               {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </span>
                             {isMine && <MessageStatusIcon status={msg.status || 'sent'} />}
@@ -594,7 +593,7 @@ export default function CitizenMessaging(): JSX.Element {
                   onClick={scrollToBottom}
                   className="sticky bottom-2 left-1/2 -translate-x-1/2 w-9 h-9 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition z-10"
                 >
-                  <ChevronDown className="w-5 h-5 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
+                  <ChevronDown className="w-5 h-5 text-gray-500 dark:text-gray-300" />
                 </button>
               )}
             </div>
@@ -631,7 +630,7 @@ export default function CitizenMessaging(): JSX.Element {
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isLoading}
-                    className="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-aegis-600 hover:border-aegis-300 hover:bg-aegis-50 dark:hover:bg-aegis-950/10 transition"
+                    className="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-300 hover:text-aegis-600 hover:border-aegis-300 hover:bg-aegis-50 dark:hover:bg-aegis-950/10 transition"
                     title={t('citizenMsg.attachImage', lang)}
                   >
                     <Paperclip className="w-4 h-4" />
@@ -663,7 +662,7 @@ export default function CitizenMessaging(): JSX.Element {
               </div>
             ) : (
               <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-800 text-center bg-gray-50 dark:bg-gray-900">
-                <div className="flex items-center justify-center gap-2 text-sm text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+                <div className="flex items-center justify-center gap-2 text-sm text-gray-400 dark:text-gray-300">
                   <CheckCircle className="w-4 h-4 text-green-400" />
                   {t('citizen.messages.conversationClosed', lang)} <span className="font-semibold capitalize">{activeThread.status}</span>
                 </div>
@@ -675,8 +674,4 @@ export default function CitizenMessaging(): JSX.Element {
     </div>
   )
 }
-
-
-
-
-
+

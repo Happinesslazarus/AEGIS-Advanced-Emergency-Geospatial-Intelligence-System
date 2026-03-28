@@ -1,22 +1,20 @@
-# AEGIS v6.9 — Full Stack Docker Compose
-#
+﻿# AEGIS v6.9 — Full Stack Docker Compose
 # Services:
-#   db      — PostgreSQL 16 with PostGIS + pgvector
-#   server  — Express API on port 3001
-#   client  — Nginx serving Vite build on port 80
-#   ai      — Python AI engine on port 8000 (optional)
-#
+#   db        — PostgreSQL 16 with PostGIS + pgvector
+#   migration — Runs schema + all migration_*.sql files, then exits
+#   server    — Express API on port 3001
+#   client    — Nginx serving Vite build on port 80
+#   ai        — Python AI engine on port 8000 (optional)
 # Usage:
 #   docker compose up -d
-#   docker compose exec db psql -U postgres -d aegis -f /docker-entrypoint-initdb.d/schema.sql
-
-version: "3.9"
 
 services:
-  # ── Database ──────────────────────────────────────────────
+  # Database
   db:
     image: pgvector/pgvector:pg16
     restart: unless-stopped
+    mem_limit: 1g
+    cpus: 1.0
     ports:
       - "5432:5432"
     environment:
@@ -25,65 +23,133 @@ services:
       POSTGRES_DB: aegis
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./server/sql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
-      - ./server/sql/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
-      - ./server/sql/migration_citizen_system.sql:/docker-entrypoint-initdb.d/03-citizen.sql
-      - ./server/sql/migration_production_upgrade.sql:/docker-entrypoint-initdb.d/04-production.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d aegis"]
       interval: 5s
       timeout: 3s
       retries: 5
 
-  # ── Backend API ───────────────────────────────────────────
+  # Migration runner (runs once, then exits)
+  migration:
+    image: pgvector/pgvector:pg16
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: ${DB_PASSWORD:?DB_PASSWORD environment variable must be set}
+      PGDATABASE: aegis
+      SEED_DATA: "${SEED_DATA:-true}"
+    volumes:
+      - ./server/sql:/migrations:ro
+    entrypoint: ["bash", "/migrations/run-migrations.sh"]
+    restart: "no"
+
+  # Admin seeder (runs once IF env vars are set, then exits)
+  seed-admin:
+    build: ./server
+    depends_on:
+      migration:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgresql://postgres:${DB_PASSWORD:?DB_PASSWORD must be set}@db:5432/aegis
+      INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL:-}
+      INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD:-}
+      INITIAL_ADMIN_NAME: ${INITIAL_ADMIN_NAME:-System Admin}
+    entrypoint: ["sh", "-c", "if [ -n \"$INITIAL_ADMIN_EMAIL\" ] && [ -n \"$INITIAL_ADMIN_PASSWORD\" ]; then npx tsx src/scripts/seedAdmin.ts; else echo '[seed-admin] No INITIAL_ADMIN_EMAIL/PASSWORD — skipping.'; fi"]
+    restart: "no"
+
+  # Redis (distributed cache)
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    mem_limit: 256m
+    cpus: 0.5
+    command: ['redis-server', '--maxmemory', '200mb', '--maxmemory-policy', 'allkeys-lru', '--appendonly', 'yes', '--appendfsync', 'everysec']
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - default
+    # Not exposed publicly; accessed by server internally
+    # Uncomment for local dev debugging:
+    # ports:
+    # "127.0.0.1:6379:6379"
+
+  # Backend API
   server:
     build: ./server
     restart: unless-stopped
+    mem_limit: 512m
+    cpus: 1.0
     ports:
       - "3001:3001"
     depends_on:
-      db:
+      migration:
+        condition: service_completed_successfully
+      seed-admin:
+        condition: service_completed_successfully
+      redis:
         condition: service_healthy
     environment:
       NODE_ENV: production
       PORT: 3001
       DATABASE_URL: postgresql://postgres:${DB_PASSWORD:?DB_PASSWORD must be set}@db:5432/aegis
+      REDIS_URL: redis://redis:6379
+      REDIS_ENABLED: ${REDIS_ENABLED:-true}
+      REDIS_DEFAULT_TTL_SECONDS: ${REDIS_DEFAULT_TTL_SECONDS:-300}
+      REDIS_STALE_GRACE_SECONDS: ${REDIS_STALE_GRACE_SECONDS:-600}
+      REDIS_CONNECT_TIMEOUT_MS: ${REDIS_CONNECT_TIMEOUT_MS:-5000}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET environment variable must be set}
       AEGIS_REGION: ${AEGIS_REGION:-scotland}
-      # AI API keys — set in .env
-      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      GROQ_API_KEY: ${GROQ_API_KEY:-}
-      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
-      HF_API_KEY: ${HF_API_KEY:-}
-      OPENWEATHER_API_KEY: ${OPENWEATHER_API_KEY:-}
-      # Notification keys
-      SMTP_HOST: ${SMTP_HOST:-}
-      SMTP_USER: ${SMTP_USER:-}
-      SMTP_PASS: ${SMTP_PASS:-}
-      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
-      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
-      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
-      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
-      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      # AI API keys — required in production
+      GEMINI_API_KEY: ${GEMINI_API_KEY:?GEMINI_API_KEY must be set}
+      GROQ_API_KEY: ${GROQ_API_KEY:?GROQ_API_KEY must be set}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:?OPENROUTER_API_KEY must be set}
+      HF_API_KEY: ${HF_API_KEY:?HF_API_KEY must be set}
+      OPENWEATHER_API_KEY: ${OPENWEATHER_API_KEY:?OPENWEATHER_API_KEY must be set}
+      # Notification keys (required)
+      SMTP_HOST: ${SMTP_HOST:?SMTP_HOST must be set}
+      SMTP_USER: ${SMTP_USER:?SMTP_USER must be set}
+      SMTP_PASS: ${SMTP_PASS:?SMTP_PASS must be set}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:?TWILIO_ACCOUNT_SID must be set}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:?TWILIO_AUTH_TOKEN must be set}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:?TELEGRAM_BOT_TOKEN must be set}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:?VAPID_PUBLIC_KEY must be set}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:?VAPID_PRIVATE_KEY must be set}
     volumes:
       - uploads:/app/uploads
+    networks:
+      - default
+      - monitoring
 
-  # ── Frontend ──────────────────────────────────────────────
+  # Frontend
   client:
     build:
       context: ./client
       args:
         VITE_API_URL: ""
     restart: unless-stopped
+    mem_limit: 128m
+    cpus: 0.5
     ports:
       - "80:80"
     depends_on:
       - server
 
-  # ── AI Engine (optional) ──────────────────────────────────
+  # AI Engine (optional)
   ai:
     build: ./ai-engine
     restart: unless-stopped
+    mem_limit: 2g
+    cpus: 2.0
     ports:
       - "8000:8000"
     depends_on:
@@ -91,9 +157,94 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://postgres:${DB_PASSWORD:?DB_PASSWORD must be set}@db:5432/aegis
+      API_SECRET_KEY: ${API_SECRET_KEY:?API_SECRET_KEY must be set}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      ENABLE_SENTRY: ${ENABLE_SENTRY:-false}
+    networks:
+      - default
+      - monitoring
     profiles:
       - ai
+
+  # Prometheus (metrics scraper)
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    restart: unless-stopped
+    mem_limit: 512m
+    cpus: 0.5
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./docker/prometheus/rules.yml:/etc/prometheus/rules.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.listen-address=0.0.0.0:9090'
+    depends_on:
+      - alertmanager
+    networks:
+      - monitoring
+    # Not exposed publicly — access via Grafana or docker exec
+    # Uncomment for local dev debugging:
+    # ports:
+    # "127.0.0.1:9090:9090"
+
+  # Alertmanager (alert routing & dedup)
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    restart: unless-stopped
+    mem_limit: 128m
+    cpus: 0.25
+    volumes:
+      - ./docker/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    networks:
+      - monitoring
+    # Not exposed publicly; Prometheus sends alerts internally
+    # Uncomment for local debugging:
+    # ports:
+    # "127.0.0.1:9093:9093"
+
+  # Grafana (dashboards & visualization)
+  grafana:
+    image: grafana/grafana-oss:10.4.1
+    restart: unless-stopped
+    mem_limit: 256m
+    cpus: 0.5
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set}
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3002}
+      GF_SERVER_SERVE_FROM_SUB_PATH: "false"
+      # Disable public registration & anonymous access
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./docker/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    networks:
+      - default
+      - monitoring
+    # Localhost-only for local dev; remove or reverse-proxy in production
+    ports:
+      - "127.0.0.1:3002:3000"
 
 volumes:
   pgdata:
   uploads:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  default:
+    driver: bridge
+  monitoring:
+    driver: bridge
+    internal: true
+

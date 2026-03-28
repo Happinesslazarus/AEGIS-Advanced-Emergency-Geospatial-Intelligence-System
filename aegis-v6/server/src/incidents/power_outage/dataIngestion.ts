@@ -4,9 +4,10 @@
  */
 
 import pool from '../../models/db.js'
+import { logger } from '../../services/logger.js'
 
 export class PowerOutageDataIngestion {
-  /**
+   /**
    * No external data source - relies on citizen reports
    * This method aggregates and processes existing reports
    */
@@ -24,19 +25,19 @@ export class PowerOutageDataIngestion {
       
       const count = parseInt(result.rows[0]?.count || '0')
       
-      console.log(`Processed ${count} power outage reports from citizens`)
+      logger.info({ count }, '[PowerOutage] Processed citizen reports')
       
       return {
         recordsIngested: count,
         source: 'Citizen Reports (aggregation)'
       }
     } catch (error) {
-      console.error(`Power outage data processing error: ${error}`)
+      logger.error({ err: error }, '[PowerOutage] Data processing error')
       return { recordsIngested: 0, source: 'Citizen Reports (error)' }
     }
   }
 
-  /**
+   /**
    * Cluster reports by geographic proximity
    */
   static async clusterReports(region: string, radiusKm = 2): Promise<Record<string, unknown>[]> {
@@ -58,12 +59,12 @@ export class PowerOutageDataIngestion {
       
       return result.rows
     } catch (error) {
-      console.error(`Report clustering error: ${error}`)
+      logger.error({ err: error }, '[PowerOutage] Report clustering error')
       return []
     }
   }
 
-  /**
+   /**
    * Schedule periodic data processing
    */
   static scheduleIngestion(intervalMinutes = 15): NodeJS.Timer {

@@ -69,7 +69,13 @@ export async function reverseGeocode(coords: Coordinates, zoom = 12): Promise<Re
   }
 }
 
-export async function forwardGeocode(query: string): Promise<(Coordinates & { label: string }) | null> {
+export interface ForwardGeocodeResult extends Coordinates {
+  label: string
+  boundingbox?: [number, number, number, number]  // [south, north, west, east]
+  isArea?: boolean  // true for country/state/region-level results
+}
+
+export async function forwardGeocode(query: string): Promise<ForwardGeocodeResult | null> {
   const input = query.trim()
   if (!input) return null
 
@@ -81,10 +87,26 @@ export async function forwardGeocode(query: string): Promise<(Coordinates & { la
     if (!Array.isArray(rows) || rows.length === 0) return null
     const row = rows[0]
 
+    // Detect area-level results (countries, states, regions)
+    const areaTypes = ['country', 'state', 'region', 'county', 'city', 'town', 'administrative']
+    const isArea = row.class === 'boundary' || (row.class === 'place' && areaTypes.includes(row.type))
+
+    let boundingbox: [number, number, number, number] | undefined
+    if (Array.isArray(row.boundingbox) && row.boundingbox.length === 4) {
+      boundingbox = [
+        Number(row.boundingbox[0]),  // south
+        Number(row.boundingbox[1]),  // north
+        Number(row.boundingbox[2]),  // west
+        Number(row.boundingbox[3]),  // east
+      ]
+    }
+
     return {
       lat: Number(row.lat),
       lng: Number(row.lon),
       label: String(row.display_name || input).split(',').slice(0, 2).join(', '),
+      boundingbox,
+      isArea,
     }
   } catch {
     return null

@@ -1,11 +1,19 @@
 /* OfflineEmergencyCard.tsx - Location-aware emergency survival card
-   Professional upgrade � glass-card design, hero contacts, visual tips, status badges */
+   Covers all countries worldwide with emergency numbers, survival tips, GPS detection */
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Download, Shield, Phone, MapPin, Heart, Wifi, WifiOff, AlertTriangle, CheckCircle, Printer, Share2, Search, Loader2, Compass, ChevronDown, Globe, Zap, Clipboard } from 'lucide-react'
 import { forwardGeocode, getDeviceLocation, reverseGeocode } from '../../utils/locationUtils'
 import { t } from '../../utils/i18n'
+import { escapeHtml } from '../../utils/helpers'
 import { useLanguage } from '../../hooks/useLanguage'
+import { codeToFlag } from '../../data/countryCodes'
+import {
+  ALL_COUNTRIES, CONTINENT_GROUPS,
+  getEmergencyInfo, getSurvivalTips, getCountryEntryByCode,
+  type EmergencyInfo,
+} from '../../data/allCountries'
+import ProfileCountryPicker from '../shared/ProfileCountryPicker'
 
 interface EmergencyContact {
   name: string
@@ -13,144 +21,26 @@ interface EmergencyContact {
   description: string
 }
 
-const EMERGENCY_NUMBERS: Record<string, EmergencyContact[]> = {
-  GB: [
-    { name: 'Emergency Services', number: '999 / 112', description: 'Police, Fire, Ambulance, Coastguard' },
-    { name: 'Non-Emergency Police', number: '101', description: 'Non-urgent police matters' },
-    { name: 'Health Advice (NHS)', number: '111', description: 'NHS non-emergency support' },
-    { name: 'Samaritans', number: '116 123', description: '24/7 emotional support' },
-    { name: 'Floodline', number: '0345 988 1188', description: 'EA flood warnings & advice' },
-  ],
-  US: [
-    { name: 'Emergency Services', number: '911', description: 'Police, Fire, Ambulance' },
-    { name: 'Poison Control', number: '1-800-222-1222', description: 'Poisoning emergencies' },
-    { name: 'Mental Health Crisis', number: '988', description: '24/7 Suicide & Crisis Lifeline' },
-    { name: 'FEMA Helpline', number: '1-800-621-3362', description: 'Disaster assistance' },
-    { name: 'Red Cross', number: '1-800-733-2767', description: 'Disaster relief & shelter' },
-  ],
-  CA: [
-    { name: 'Emergency Services', number: '911', description: 'Police, Fire, Ambulance' },
-    { name: 'Health Information', number: '811', description: 'Non-emergency medical advice' },
-    { name: 'Crisis Services Canada', number: '1-833-456-4566', description: '24/7 crisis support' },
-    { name: 'Red Cross Canada', number: '1-800-418-1111', description: 'Disaster assistance' },
-  ],
-  AU: [
-    { name: 'Emergency Services', number: '000', description: 'Police, Fire, Ambulance' },
-    { name: 'SES Emergency', number: '132 500', description: 'Flood and storm assistance' },
-    { name: 'Lifeline Australia', number: '13 11 14', description: '24/7 crisis support' },
-    { name: 'Health Direct', number: '1800 022 222', description: 'Health advice 24/7' },
-  ],
-  FR: [
-    { name: 'Medical (SAMU)', number: '15', description: 'Medical emergencies' },
-    { name: 'Police', number: '17', description: 'Police emergencies' },
-    { name: 'Fire (Pompiers)', number: '18', description: 'Fire and rescue' },
-    { name: 'EU Emergency', number: '112', description: 'Universal emergency number' },
-  ],
-  DE: [
-    { name: 'Police', number: '110', description: 'Police emergencies' },
-    { name: 'Fire / Ambulance', number: '112', description: 'Fire and medical emergency' },
-    { name: 'Poison Centre', number: '030 19240', description: 'Berlin Poison Centre 24/7' },
-    { name: 'Telefonseelsorge', number: '0800 111 0111', description: '24/7 emotional support' },
-  ],
-  ES: [
-    { name: 'Emergency Services', number: '112', description: 'Police, Fire, Ambulance' },
-    { name: 'National Police', number: '091', description: 'Police support' },
-    { name: 'Civil Guard', number: '062', description: 'Rural / highway emergencies' },
-    { name: 'Telefono de la Esperanza', number: '717 003 717', description: 'Crisis line' },
-  ],
-  IT: [
-    { name: 'Emergency Services', number: '112', description: 'General emergency coordination' },
-    { name: 'Medical Emergency', number: '118', description: 'Ambulance' },
-    { name: 'Fire (Vigili del Fuoco)', number: '115', description: 'Fire and rescue' },
-    { name: 'Carabinieri', number: '112', description: 'Military police emergency' },
-  ],
-  NL: [
-    { name: 'Emergency Services', number: '112', description: 'Police, Fire, Ambulance' },
-    { name: 'Non-Emergency Police', number: '0900 8844', description: 'Non-urgent police support' },
-    { name: 'Health Advice', number: '0800 1351', description: 'GGD health information' },
-    { name: 'Crisis Line (113)', number: '113', description: '24/7 suicide prevention' },
-  ],
-  PL: [
-    { name: 'Emergency Services', number: '112', description: 'Police, Fire, Ambulance' },
-    { name: 'Medical Emergency', number: '999', description: 'Ambulance dispatch' },
-    { name: 'Fire Brigade', number: '998', description: 'Fire services' },
-    { name: 'Police', number: '997', description: 'Police emergency line' },
-  ],
-  IE: [
-    { name: 'Emergency Services', number: '999 / 112', description: 'Police, Fire, Ambulance' },
-    { name: 'Health Service Helpline', number: '1800 700 700', description: 'Public health support' },
-    { name: 'Samaritans Ireland', number: '116 123', description: '24/7 emotional support' },
-    { name: 'Coast Guard', number: '112', description: 'Maritime emergency' },
-  ],
-  IN: [
-    { name: 'Unified Emergency', number: '112', description: 'Police, Fire, Ambulance' },
-    { name: 'Police', number: '100', description: 'Police emergency' },
-    { name: 'Fire', number: '101', description: 'Fire services' },
-    { name: 'Ambulance', number: '102 / 108', description: 'Medical emergency' },
-    { name: 'Disaster Helpline (NDMA)', number: '1078', description: 'National disaster response' },
-  ],
-  ZA: [
-    { name: 'Emergency Services', number: '112 / 10111', description: 'Police and emergency response' },
-    { name: 'Ambulance', number: '10177', description: 'Medical and fire dispatch' },
-    { name: 'Childline SA', number: '116', description: 'Child protection 24/7' },
-    { name: 'LifeLine South Africa', number: '0861 322 322', description: 'Crisis counselling' },
-  ],
-  NG: [
-    { name: 'Unified Emergency', number: '112', description: 'National emergency number' },
-    { name: 'Police', number: '199', description: 'Police support' },
-    { name: 'Fire Services', number: '190', description: 'Fire emergency' },
-    { name: 'NEMA Helpline', number: '0800 2255 3632', description: 'National emergency management' },
-  ],
-  KE: [
-    { name: 'Emergency Services', number: '999 / 112', description: 'Police, Fire, Ambulance' },
-    { name: 'St John Ambulance', number: '0800 723 253', description: 'Medical emergency' },
-    { name: 'Kenya Red Cross', number: '1199', description: 'Disaster and emergency' },
-    { name: 'Childline Kenya', number: '116', description: 'Child emergencies 24/7' },
-  ],
-  SG: [
-    { name: 'Police', number: '999', description: 'Singapore Police Force' },
-    { name: 'Fire / Ambulance', number: '995', description: 'SCDF emergency dispatch' },
-    { name: 'Non-Emergency Police', number: '1800 255 0000', description: 'Police hotline' },
-    { name: 'SG Secure', number: '1800 255 6868', description: 'Security threat reporting' },
-  ],
-  JP: [
-    { name: 'Police', number: '110', description: 'Police emergencies' },
-    { name: 'Fire / Ambulance', number: '119', description: 'Fire and ambulance' },
-    { name: 'Coast Guard', number: '118', description: 'Maritime emergency' },
-    { name: 'Disaster Helpline', number: '171', description: 'NTT disaster message dial' },
-  ],
-  CN: [
-    { name: 'Police', number: '110', description: 'Public security emergency' },
-    { name: 'Fire', number: '119', description: 'Fire emergency' },
-    { name: 'Ambulance', number: '120', description: 'Medical emergency' },
-    { name: 'Traffic Accident', number: '122', description: 'Road traffic emergency' },
-  ],
-  BR: [
-    { name: 'Police', number: '190', description: 'Military police emergency' },
-    { name: 'Fire', number: '193', description: 'Fire emergency' },
-    { name: 'Ambulance (SAMU)', number: '192', description: 'SAMU medical response' },
-    { name: 'Civil Defence', number: '199', description: 'Disaster and civil defence' },
-  ],
-  MX: [
-    { name: 'Emergency Services', number: '911', description: 'Police, Fire, Ambulance' },
-    { name: 'Red Cross', number: '065', description: 'Red Cross dispatch' },
-    { name: 'Civil Protection', number: '800 00 413 00', description: 'Natural disasters' },
-    { name: 'Tourist Emergency', number: '078', description: 'Tourist assistance 24/7' },
-  ],
-  DEFAULT: [
-    { name: 'Universal Emergency', number: '112', description: 'Works in most countries worldwide' },
-    { name: 'Emergency Services', number: '911', description: 'Used in North America and selected regions' },
-    { name: 'International SOS', number: '+44 20 8762 8008', description: 'Global medical / security assistance' },
-    { name: 'Red Cross (ICRC)', number: '+41 22 734 60 01', description: 'International humanitarian aid' },
-  ],
-}
-
-const COUNTRY_LABELS: Record<string, string> = {
-  GB: '???? United Kingdom', US: '???? United States', CA: '???? Canada', AU: '???? Australia',
-  FR: '???? France', DE: '???? Germany', ES: '???? Spain', IT: '???? Italy',
-  NL: '???? Netherlands', PL: '???? Poland', IE: '???? Ireland', IN: '???? India',
-  ZA: '???? South Africa', NG: '???? Nigeria', KE: '???? Kenya', SG: '???? Singapore',
-  JP: '???? Japan', CN: '???? China', BR: '???? Brazil', MX: '???? Mexico',
+function emergencyInfoToContacts(info: EmergencyInfo, code: string): EmergencyContact[] {
+  const contacts: EmergencyContact[] = []
+  if (info.universal) {
+    contacts.push({ name: 'Emergency Services', number: info.universal, description: `Police, Fire, Ambulance (${code})` })
+  }
+  if (info.police !== info.universal) {
+    contacts.push({ name: 'Police', number: info.police, description: 'Police emergency' })
+  }
+  if (info.fire !== info.universal && info.fire !== info.police) {
+    contacts.push({ name: 'Fire', number: info.fire, description: 'Fire services' })
+  }
+  if (info.ambulance !== info.universal && info.ambulance !== info.police && info.ambulance !== info.fire) {
+    contacts.push({ name: 'Ambulance', number: info.ambulance, description: 'Medical emergency' })
+  }
+  if (info.extras) {
+    for (const e of info.extras) {
+      contacts.push({ name: e.name, number: e.number, description: e.desc })
+    }
+  }
+  return contacts
 }
 
 const BASE_TIPS = [
@@ -164,12 +54,13 @@ const BASE_TIPS = [
   'Keep medication, water, and ID ready for rapid evacuation.',
 ]
 
-const REGIONAL_TIPS: Record<string, string> = {
-  GB: 'In the UK, monitor Environment Agency and Met Office updates.',
-  US: 'In the US, monitor FEMA and NOAA advisories for your county.',
-  IN: 'In India, monitor IMD and district disaster authority bulletins.',
-  JP: 'In Japan, monitor JMA emergency warnings and municipal guidance.',
-}
+// Build flat country label map for all countries
+const COUNTRY_LABELS: Record<string, string> = Object.fromEntries(
+  ALL_COUNTRIES.map(c => [c.code, `${c.flag} ${c.name}`])
+)
+
+// Total number of supported countries
+const TOTAL_COUNTRIES = ALL_COUNTRIES.length
 
 export default function OfflineEmergencyCard(): JSX.Element {
   const lang = useLanguage()
@@ -188,10 +79,23 @@ export default function OfflineEmergencyCard(): JSX.Element {
   const [searching, setSearching] = useState(false)
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null)
 
-  const contacts = useMemo(() => EMERGENCY_NUMBERS[countryCode] || EMERGENCY_NUMBERS.DEFAULT, [countryCode])
+  const contacts = useMemo(() => {
+    if (countryCode === 'DEFAULT') {
+      return [
+        { name: 'Universal Emergency', number: '112', description: 'Works in most countries worldwide' },
+        { name: 'Emergency Services', number: '911', description: 'Used in North America and selected regions' },
+        { name: 'International SOS', number: '+44 20 8762 8008', description: 'Global medical / security assistance' },
+        { name: 'Red Cross (ICRC)', number: '+41 22 734 60 01', description: 'International humanitarian aid' },
+      ]
+    }
+    const info = getEmergencyInfo(countryCode)
+    return emergencyInfoToContacts(info, countryCode)
+  }, [countryCode])
+
   const tips = useMemo(() => {
-    const extra = REGIONAL_TIPS[countryCode]
-    return extra ? [extra, ...BASE_TIPS] : BASE_TIPS
+    if (countryCode === 'DEFAULT') return BASE_TIPS
+    const regional = getSurvivalTips(countryCode)
+    return [...regional, ...BASE_TIPS]
   }, [countryCode])
 
   const detectLocation = async () => {
@@ -202,7 +106,9 @@ export default function OfflineEmergencyCard(): JSX.Element {
       const coords = await getDeviceLocation({ enableHighAccuracy: true, timeout: 10000, maximumAge: 180000 })
       const place = await reverseGeocode(coords, 10)
       setLocationLabel(place.displayName)
-      setCountryCode(place.countryCode || 'DEFAULT')
+      const code = place.countryCode || 'DEFAULT'
+      setCountryCode(code)
+      setSearchQuery('')
     } catch {
       setLocationError(t('offline.enableLocation', lang))
       setLocationLabel(t('offline.locationUnavailable', lang))
@@ -211,8 +117,6 @@ export default function OfflineEmergencyCard(): JSX.Element {
 
     setLocating(false)
   }
-
-  useEffect(() => {}, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return
@@ -252,31 +156,168 @@ export default function OfflineEmergencyCard(): JSX.Element {
   }
 
   const handlePrint = () => {
-    const printContent = `
-AEGIS EMERGENCY SURVIVAL CARD
-================================
-Saved: ${new Date().toLocaleDateString()}
-Location: ${locationLabel}
-Country: ${countryCode}
+    const entry = getCountryEntryByCode(countryCode)
+    const countryName = entry ? entry.name : 'International'
+    const countryCodeStr = entry ? entry.code : 'INTL'
+    const generated = new Date().toLocaleString()
+    const cardId = `AEG-${Date.now().toString(36).toUpperCase().slice(-8)}`
 
-EMERGENCY CONTACTS
-------------------
-${contacts.map((c) => `${c.name}: ${c.number} - ${c.description}`).join('\n')}
+    // Inline Lucide-compatible SVG helper — no Unicode emojis
+    const svg = (paths: string, size = 12, color = 'currentColor', sw = 2) =>
+      `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" ` +
+      `fill="none" stroke="${color}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" ` +
+      `style="display:inline-block;vertical-align:middle;flex-shrink:0">${paths}</svg>`
 
-SURVIVAL TIPS
--------------
-${tips.map((tip, i) => `${i + 1}. ${tip}`).join('\n')}
+    const ICON = {
+      shieldLg:     svg('<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/>', 38, '#fff', 1.5),
+      shieldSm:     svg('<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>', 14, '#b91c1c'),
+      shieldFooter: svg('<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>', 14, '#f87171'),
+      phone:        svg('<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.57 19.79 19.79 0 0 1 1.62 4.9 2 2 0 0 1 3.56 3h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 10.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 20z"/>', 14, '#b91c1c'),
+      flame:        svg('<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>', 14, '#b91c1c'),
+      heart:        svg('<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>', 14, '#b91c1c'),
+      heartGreen:   svg('<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>', 12, '#15803d'),
+      alertTri:     svg('<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>', 14, '#b91c1c'),
+      mapPin:       svg('<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>', 11, '#991b1b'),
+      clock:        svg('<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>', 11, '#991b1b'),
+      globe:        svg('<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>', 11, '#991b1b'),
+      hash:         svg('<line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/>', 11, '#991b1b'),
+      info:         svg('<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>', 12, '#374151'),
+      user:         svg('<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>', 12, '#1d4ed8'),
+    }
 
-${medicalInfo ? `MEDICAL INFO\n------------\n${medicalInfo}\n` : ''}
-${personalNotes ? `PERSONAL NOTES\n--------------\n${personalNotes}\n` : ''}
-================================
-Generated by AEGIS
-    `.trim()
+    const contactIcon = (name: string) => {
+      const n = name.toLowerCase()
+      if (n.includes('police') || n.includes('security') || n.includes('gendarm')) return ICON.shieldSm
+      if (n.includes('fire')) return ICON.flame
+      if (n.includes('ambulance') || n.includes('medical') || n.includes('health')) return ICON.heart
+      if (n.includes('sos') || n.includes('cross') || n.includes('icrc') || n.includes('humanitarian')) return ICON.alertTri
+      return ICON.phone
+    }
 
-    const w = window.open('', '_blank', 'width=600,height=800')
+    const contactRows = contacts.map((c, i) =>
+      `<div class="contact-row${i === 0 ? ' primary' : ''}">`
+      + `<div class="contact-icon">${contactIcon(c.name)}</div>`
+      + `<div class="contact-left">`
+      + `<span class="contact-badge">${escapeHtml(c.name)}</span>`
+      + `<span class="contact-desc">${escapeHtml(c.description)}</span>`
+      + `</div>`
+      + `<div class="contact-number">${escapeHtml(c.number)}</div>`
+      + `</div>`
+    ).join('')
+
+    const tipItems = tips.map((tip, i) =>
+      `<li><span class="tip-num">${i + 1}</span><span>${escapeHtml(tip)}</span></li>`
+    ).join('')
+
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>AEGIS Emergency Survival Card &mdash; ${escapeHtml(countryName)} (${escapeHtml(countryCodeStr)})</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  @page { size: A4; margin: 12mm 14mm; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11px; color: #111; background: #fff; }
+  .header { display: flex; align-items: stretch; background: #b91c1c; color: #fff; border-radius: 8px 8px 0 0; overflow: hidden; }
+  .header-main { display: flex; align-items: center; gap: 12px; padding: 14px 16px; flex: 1; }
+  .header-title { font-size: 17px; font-weight: 900; letter-spacing: 0.3px; line-height: 1.1; }
+  .header-sub { font-size: 9px; opacity: 0.82; margin-top: 3px; }
+  .header-country { background: rgba(0,0,0,0.22); padding: 12px 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 96px; text-align: center; gap: 3px; border-left: 1px solid rgba(255,255,255,0.15); }
+  .country-iso { font-size: 26px; font-weight: 900; letter-spacing: 3px; line-height: 1; font-family: 'Courier New', monospace; }
+  .country-fullname { font-size: 9.5px; font-weight: 600; opacity: 0.9; line-height: 1.3; max-width: 80px; text-align: center; }
+  .country-label { font-size: 7px; opacity: 0.6; letter-spacing: 1px; text-transform: uppercase; margin-top: 2px; }
+  .meta { display: grid; grid-template-columns: 1fr 1fr; background: #fef2f2; border-left: 3px solid #b91c1c; border-right: 3px solid #b91c1c; padding: 7px 14px; gap: 5px 20px; }
+  .meta-item { display: flex; align-items: center; gap: 5px; font-size: 9px; color: #7f1d1d; }
+  .meta-item strong { font-weight: 700; color: #991b1b; }
+  .section { border: 1.5px solid #e5e7eb; border-radius: 6px; margin-top: 9px; overflow: hidden; }
+  .section-hdr { background: #f3f4f6; padding: 6px 12px; font-size: 8.5px; font-weight: 800; letter-spacing: 1.3px; text-transform: uppercase; color: #374151; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #e5e7eb; }
+  .section-hdr.red   { background: #fef2f2; color: #b91c1c; border-bottom-color: #fecaca; }
+  .section-hdr.green { background: #f0fdf4; color: #15803d; border-bottom-color: #bbf7d0; }
+  .section-hdr.blue  { background: #eff6ff; color: #1d4ed8; border-bottom-color: #bfdbfe; }
+  .contact-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid #f3f4f6; }
+  .contact-row:last-child { border-bottom: none; }
+  .contact-row.primary { background: #fff7f7; padding: 10px 12px; }
+  .contact-icon { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 6px; background: #f3f4f6; flex-shrink: 0; }
+  .contact-row.primary .contact-icon { background: #fee2e2; width: 32px; height: 32px; border-radius: 8px; }
+  .contact-left { flex: 1; display: flex; flex-direction: column; gap: 1px; }
+  .contact-badge { font-size: 10.5px; font-weight: 700; color: #111; }
+  .contact-row.primary .contact-badge { color: #b91c1c; font-size: 11.5px; }
+  .contact-desc { font-size: 8.5px; color: #6b7280; }
+  .contact-number { font-size: 20px; font-weight: 900; color: #b91c1c; letter-spacing: 1px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .contact-row:not(.primary) .contact-number { font-size: 15px; color: #1f2937; font-weight: 800; }
+  .tips-body { padding: 8px 12px; }
+  .tips-body ol { list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px; }
+  .tips-body li { display: flex; align-items: flex-start; gap: 5px; font-size: 8.5px; color: #374151; line-height: 1.45; }
+  .tip-num { min-width: 15px; height: 15px; background: #b91c1c; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 7.5px; font-weight: 800; flex-shrink: 0; margin-top: 1px; }
+  .personal-body { padding: 8px 12px; font-size: 9.5px; color: #374151; line-height: 1.55; white-space: pre-wrap; }
+  .footer { margin-top: 9px; display: flex; align-items: center; justify-content: space-between; padding: 8px 14px; background: #111827; border-radius: 0 0 8px 8px; color: #d1d5db; font-size: 8.5px; gap: 12px; }
+  .footer-brand { font-weight: 800; color: #fff; font-size: 10px; letter-spacing: 0.3px; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .footer-mid { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 1px; }
+  .footer-112 { font-size: 18px; font-weight: 900; color: #f87171; letter-spacing: 2px; }
+  .footer-112-label { font-size: 7px; opacity: 0.65; }
+  .footer-right { font-size: 7.5px; opacity: 0.6; text-align: right; line-height: 1.5; }
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-main">
+    ${ICON.shieldLg}
+    <div>
+      <div class="header-title">AEGIS EMERGENCY SURVIVAL CARD</div>
+      <div class="header-sub">Keep this card accessible at all times &mdash; Official emergency reference document &mdash; Valid globally</div>
+    </div>
+  </div>
+  <div class="header-country">
+    <div class="country-iso">${escapeHtml(countryCodeStr)}</div>
+    <div class="country-fullname">${escapeHtml(countryName)}</div>
+    <div class="country-label">Country</div>
+  </div>
+</div>
+
+<div class="meta">
+  <div class="meta-item">${ICON.mapPin}&nbsp;<strong>Location:</strong>&nbsp;${escapeHtml(locationLabel)}</div>
+  <div class="meta-item">${ICON.hash}&nbsp;<strong>Card ID:</strong>&nbsp;${escapeHtml(cardId)}</div>
+  <div class="meta-item">${ICON.clock}&nbsp;<strong>Generated:</strong>&nbsp;${escapeHtml(generated)}</div>
+  <div class="meta-item">${ICON.globe}&nbsp;<strong>Coverage:</strong>&nbsp;${TOTAL_COUNTRIES} countries worldwide</div>
+</div>
+
+<div class="section">
+  <div class="section-hdr red">${ICON.phone}&nbsp;EMERGENCY CONTACTS &mdash; CALL IMMEDIATELY</div>
+  ${contactRows}
+</div>
+
+<div class="section">
+  <div class="section-hdr">${ICON.info}&nbsp;SURVIVAL TIPS FOR YOUR REGION (${tips.length})</div>
+  <div class="tips-body"><ol>${tipItems}</ol></div>
+</div>
+
+${medicalInfo ? `<div class="section">
+  <div class="section-hdr green">${ICON.heartGreen}&nbsp;MEDICAL INFORMATION</div>
+  <div class="personal-body">${escapeHtml(medicalInfo)}</div>
+</div>` : ''}
+
+${personalNotes ? `<div class="section">
+  <div class="section-hdr blue">${ICON.user}&nbsp;PERSONAL NOTES</div>
+  <div class="personal-body">${escapeHtml(personalNotes)}</div>
+</div>` : ''}
+
+<div class="footer">
+  <div class="footer-brand">${ICON.shieldFooter}&nbsp;AEGIS Emergency Management System</div>
+  <div class="footer-mid">
+    <div class="footer-112">112</div>
+    <div class="footer-112-label">Universal emergency &mdash; works in most countries</div>
+  </div>
+  <div class="footer-right">Card ID: ${escapeHtml(cardId)}<br/>For emergency reference only</div>
+</div>
+
+</body>
+</html>`
+
+    const w = window.open('', '_blank', 'width=720,height=960')
     if (!w) return
-
-    w.document.write(`<pre style="font-family:monospace;font-size:12px;padding:20px;white-space:pre-wrap">${printContent}</pre>`)
+    w.document.write(html)
     w.document.close()
     w.print()
   }
@@ -314,7 +355,7 @@ Generated by AEGIS
   return (
     <div className="animate-fade-in space-y-4" ref={cardRef}>
 
-      {/* ----------- HEADER ----------- */}
+      {/* HEADER*/}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="relative">
@@ -333,7 +374,7 @@ Generated by AEGIS
             <div className="flex items-center gap-2">
               <h2 className="text-xl font-extrabold text-gray-900 dark:text-white tracking-tight">{t('offline.emergencySurvivalCard', lang)}</h2>
             </div>
-            <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-medium mt-0.5">
+            <p className="text-[10px] text-gray-500 dark:text-gray-300 font-medium mt-0.5">
               {isDetected ? countryName : t('offline.searchSavePrintShare', lang)}
             </p>
           </div>
@@ -359,11 +400,11 @@ Generated by AEGIS
         </div>
       </div>
 
-      {/* ----------- SEARCH & COUNTRY ----------- */}
-      <div className="glass-card rounded-2xl p-3 space-y-3">
+      {/* SEARCH & COUNTRY*/}
+      <div className="glass-card rounded-2xl p-3 space-y-3 relative z-20">
         <div className="flex gap-2">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-300" />
             <input
               type="text"
               value={searchQuery}
@@ -378,43 +419,38 @@ Generated by AEGIS
           </button>
         </div>
         {locationError && <p className="text-[10px] text-red-500 font-medium ml-1">{locationError}</p>}
-        <div className="flex items-center gap-2">
-          <Globe className="w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex-shrink-0" />
-          <select
-            value={countryCode}
-            onChange={(e) => setCountryCode(e.target.value)}
-            className="flex-1 px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition text-gray-900 dark:text-white"
-          >
-            {Object.keys(EMERGENCY_NUMBERS).filter(c => c !== 'DEFAULT').map(code => (
-              <option key={code} value={code}>{COUNTRY_LABELS[code] || code}</option>
-            ))}
-            <option value="DEFAULT">?? Other / Unknown</option>
-          </select>
-        </div>
+        <ProfileCountryPicker
+          value={countryCode === 'DEFAULT' ? '' : countryCode.toLowerCase()}
+          valueType="code"
+          onChange={(_name, code) => {
+            setCountryCode(code.toUpperCase())
+            setSearchQuery('')
+          }}
+        />
         {isDetected && (
-          <div className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+          <div className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-300">
             <MapPin className="w-3 h-3" /> {locationLabel}
           </div>
         )}
       </div>
 
-      {/* ----------- QUICK STATS ----------- */}
+      {/* QUICK STATS*/}
       <div className="grid grid-cols-3 gap-2">
         <div className="glass-card rounded-xl p-3 text-center">
           <div className="text-2xl font-black text-red-600 dark:text-red-400 leading-none">{contacts.length}</div>
-          <div className="text-[9px] font-bold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase mt-1">{t('offline.contacts', lang)}</div>
+          <div className="text-[9px] font-bold text-gray-500 dark:text-gray-300 uppercase mt-1">{t('offline.contacts', lang)}</div>
         </div>
         <div className="glass-card rounded-xl p-3 text-center">
           <div className="text-2xl font-black text-amber-600 dark:text-amber-400 leading-none">{tips.length}</div>
-          <div className="text-[9px] font-bold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase mt-1">{t('offline.tips', lang)}</div>
+          <div className="text-[9px] font-bold text-gray-500 dark:text-gray-300 uppercase mt-1">{t('offline.tips', lang)}</div>
         </div>
         <div className="glass-card rounded-xl p-3 text-center">
-          <div className="text-2xl font-black text-blue-600 dark:text-blue-400 leading-none">{Object.keys(COUNTRY_LABELS).length}</div>
-          <div className="text-[9px] font-bold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase mt-1">{t('offline.countries', lang)}</div>
+          <div className="text-2xl font-black text-blue-600 dark:text-blue-400 leading-none">{TOTAL_COUNTRIES}</div>
+          <div className="text-[9px] font-bold text-gray-500 dark:text-gray-300 uppercase mt-1">{t('offline.countries', lang)}</div>
         </div>
       </div>
 
-      {/* ----------- EMERGENCY CONTACTS ----------- */}
+      {/* EMERGENCY CONTACTS*/}
       <div className="glass-card rounded-2xl overflow-hidden shadow-lg">
         <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800/50 bg-red-50/30 dark:bg-red-950/10">
           <div className="flex items-center justify-between">
@@ -431,14 +467,14 @@ Generated by AEGIS
             return (
               <div key={`${c.name}-${i}`} className={`p-4 flex items-center gap-3 transition-all hover:bg-gray-50/60 dark:hover:bg-gray-800/30 ${isPrimary ? 'bg-red-50/40 dark:bg-red-950/10' : ''}`}>
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md ${isPrimary ? 'bg-gradient-to-br from-red-500 to-rose-600' : 'bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600'}`}>
-                  <Phone className={`w-4.5 h-4.5 ${isPrimary ? 'text-white' : 'text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`} />
+                  <Phone className={`w-4.5 h-4.5 ${isPrimary ? 'text-white' : 'text-gray-600 dark:text-gray-300'}`} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-bold text-gray-900 dark:text-white truncate">{c.name}</span>
-                    {isPrimary && <span className="text-[7px] font-black px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400 uppercase">{t('offline.primary', lang)}</span>}
+                    {isPrimary && <span className="text-micro font-black px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400 uppercase">{t('offline.primary', lang)}</span>}
                   </div>
-                  <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-0.5">{c.description}</p>
+                  <p className="text-[10px] text-gray-500 dark:text-gray-300 mt-0.5">{c.description}</p>
                 </div>
                 <div className="flex items-center gap-1.5 flex-shrink-0">
                   <a
@@ -449,7 +485,7 @@ Generated by AEGIS
                   </a>
                   <button
                     onClick={() => handleCopyNumber(c.number, i)}
-                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300"
+                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-300 dark:text-gray-300"
                     title={t('offline.copyNumber', lang)}
                   >
                     {copiedIdx === i ? <CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> : <Clipboard className="w-3.5 h-3.5" />}
@@ -461,7 +497,7 @@ Generated by AEGIS
         </div>
       </div>
 
-      {/* ----------- SURVIVAL TIPS ----------- */}
+      {/* SURVIVAL TIPS*/}
       <div className="glass-card rounded-2xl overflow-hidden shadow-lg">
         <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800/50 bg-amber-50/30 dark:bg-amber-950/10">
           <div className="flex items-center justify-between">
@@ -474,7 +510,7 @@ Generated by AEGIS
         </div>
         <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
           {tips.map((tip, i) => {
-            const isRegional = i === 0 && REGIONAL_TIPS[countryCode]
+              const isRegional = i === 0 && countryCode !== 'DEFAULT' && getSurvivalTips(countryCode) !== getSurvivalTips('__none__')
             return (
               <div
                 key={`${tip}-${i}`}
@@ -493,7 +529,7 @@ Generated by AEGIS
         </div>
       </div>
 
-      {/* ----------- MEDICAL / NOTES (collapsible) ----------- */}
+      {/* MEDICAL / NOTES (collapsible)*/}
       <button
         onClick={() => setShowForm(!showForm)}
         className="w-full glass-card rounded-xl px-4 py-3 flex items-center justify-between transition-all hover:bg-gray-50/60 dark:hover:bg-gray-800/30"
@@ -503,13 +539,13 @@ Generated by AEGIS
           <span className="text-xs font-bold text-gray-900 dark:text-white">{t('offline.personalMedicalNotes', lang)}</span>
           {(medicalInfo || personalNotes) && <span className="w-2 h-2 rounded-full bg-pink-500 animate-pulse" />}
         </div>
-        <ChevronDown className={`w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 transition-transform ${showForm ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-4 h-4 text-gray-400 dark:text-gray-300 transition-transform ${showForm ? 'rotate-180' : ''}`} />
       </button>
 
       {showForm && (
         <div className="glass-card rounded-xl p-4 space-y-3">
           <div>
-            <label className="text-[9px] font-bold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-wider">{t('offline.medicalLabel', lang)}</label>
+            <label className="text-[9px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">{t('offline.medicalLabel', lang)}</label>
             <textarea
               value={medicalInfo}
               onChange={(e) => setMedicalInfo(e.target.value)}
@@ -519,7 +555,7 @@ Generated by AEGIS
             />
           </div>
           <div>
-            <label className="text-[9px] font-bold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-wider">{t('offline.personalNotesLabel', lang)}</label>
+            <label className="text-[9px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">{t('offline.personalNotesLabel', lang)}</label>
             <textarea
               value={personalNotes}
               onChange={(e) => setPersonalNotes(e.target.value)}
@@ -531,7 +567,7 @@ Generated by AEGIS
         </div>
       )}
 
-      {/* ----------- ACTION BUTTONS ----------- */}
+      {/* ACTION BUTTONS*/}
       <div className="flex flex-wrap gap-2">
         <button
           onClick={handleSave}
@@ -553,22 +589,16 @@ Generated by AEGIS
         </button>
       </div>
 
-      {/* ----------- FOOTER ----------- */}
-      <div className="flex items-center justify-between px-1 text-[9px] font-medium text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+      {/* FOOTER*/}
+      <div className="flex items-center justify-between px-1 text-[9px] font-medium text-gray-400 dark:text-gray-300">
         <div className="flex items-center gap-2">
           <span className="flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> {t('offline.aegisEmergencyData', lang)}
           </span>
-          <span>·</span>
-          <span>{Object.keys(COUNTRY_LABELS).length} {t('offline.countriesSupported', lang)}</span>
+          <span>{TOTAL_COUNTRIES} {t('offline.countriesSupported', lang)}</span>
         </div>
-        <span className="px-2 py-0.5 rounded bg-gray-200/60 dark:bg-gray-700/40 font-bold">{contacts.length} contacts � {tips.length} tips</span>
+        <span className="px-2 py-0.5 rounded bg-gray-200/60 dark:bg-gray-700/40 font-bold">{contacts.length} contacts | {tips.length} tips</span>
       </div>
     </div>
   )
 }
-
-
-
-
-

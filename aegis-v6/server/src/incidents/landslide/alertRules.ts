@@ -5,7 +5,7 @@
 import type { AlertRuleContext, AlertRuleResult } from '../types.js'
 
 export class LandslideAlertRules {
-  /**
+   /**
    * Evaluate landslide alert rules based on context
    */
   static evaluate(context: AlertRuleContext): AlertRuleResult[] {

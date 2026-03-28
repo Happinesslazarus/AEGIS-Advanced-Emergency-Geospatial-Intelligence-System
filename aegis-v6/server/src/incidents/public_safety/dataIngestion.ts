@@ -4,9 +4,10 @@
  */
 
 import pool from '../../models/db.js'
+import { logger } from '../../services/logger.js'
 
 export class PublicSafetyDataIngestion {
-  /**
+   /**
    * No external data source - relies on citizen reports and emergency services
    * This method aggregates and processes existing reports
    */
@@ -24,19 +25,19 @@ export class PublicSafetyDataIngestion {
       
       const count = parseInt(result.rows[0]?.count || '0')
       
-      console.log(`Processed ${count} public safety reports from citizens`)
+      logger.info({ count }, '[PublicSafety] Processed citizen reports')
       
       return {
         recordsIngested: count,
         source: 'Citizen Reports (aggregation)'
       }
     } catch (error) {
-      console.error(`Public safety data processing error: ${error}`)
+      logger.error({ err: error }, '[PublicSafety] Data processing error')
       return { recordsIngested: 0, source: 'Citizen Reports (error)' }
     }
   }
 
-  /**
+   /**
    * Identify safety hotspots by geographic clustering
    */
   static async identifyHotspots(region: string): Promise<Record<string, unknown>[]> {
@@ -60,12 +61,12 @@ export class PublicSafetyDataIngestion {
       
       return result.rows
     } catch (error) {
-      console.error(`Hotspot identification error: ${error}`)
+      logger.error({ err: error }, '[PublicSafety] Hotspot identification error')
       return []
     }
   }
 
-  /**
+   /**
    * Schedule periodic data processing
    */
   static scheduleIngestion(intervalMinutes = 15): NodeJS.Timer {

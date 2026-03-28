@@ -45,3 +45,4 @@ export function sanitizeEnvironmentalHazardCustomFields(fields: Record<string, u
     sourceIdentified: typeof fields.sourceIdentified === 'boolean' ? fields.sourceIdentified : undefined
   }
 }
+

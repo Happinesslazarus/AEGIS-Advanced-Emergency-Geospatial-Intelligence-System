@@ -1,5 +1,5 @@
 /**
- * routes/internalRoutes.ts � Internal API endpoints
+ * routes/internalRoutes.ts — Internal API endpoints (SECURED)
  *
  * These endpoints are NOT meant for direct citizen/operator use.
  * They enable:
@@ -7,9 +7,12 @@
  *      the payload to all connected Socket.IO clients.
  *   2. Frontend error logging: React error boundaries POST here.
  *   3. System health dashboard: aggregated health state of all subsystems.
+ *
+ * SECURITY: All endpoints require internal API key or n8n webhook signature.
+ * Set INTERNAL_API_KEY and N8N_WEBHOOK_SECRET environment variables.
  */
 
-import { Router, Request, Response } from 'express'
+import { Router, Request, Response, NextFunction } from 'express'
 import pool from '../models/db.js'
 import { devLog } from '../utils/logger.js'
 import { getActiveCityRegion } from '../config/regions/index.js'
@@ -17,13 +20,25 @@ import { getN8nHealthState } from '../services/n8nHealthCheck.js'
 import { isFallbackActive } from '../services/cronJobs.js'
 import { getCircuitBreakerStates } from '../services/externalApiWrapper.js'
 import { getWorkflowDefinitions } from '../services/n8nWorkflowService.js'
+import { internalAuth, n8nWebhookAuth, internalApiKeyAuth } from '../middleware/internalAuth.js'
+import { AppError } from '../utils/AppError.js'
+import { logger } from '../services/logger.js'
 
 const router = Router()
 const activeRegion = getActiveCityRegion()
 
-// -------------------------------------------------------------------------------
-// �1  n8n ? WebSocket bridge
-// -------------------------------------------------------------------------------
+// Apply internal authentication to all routes in this router
+// Frontend error logging is public (no auth) - see individual route
+router.use((req, res, next) => {
+  // Allow error logging without auth (needed for frontend error boundaries)
+  if (req.path === '/errors/frontend' && req.method === 'POST') {
+    return next()
+  }
+  // All other internal endpoints require authentication
+  internalAuth(req, res, next)
+})
+
+// —1  n8n ? WebSocket bridge
 //
 // n8n workflows call POST /api/internal/ws-broadcast with:
 //   { event: "gauge:update", payload: { ... } }
@@ -33,12 +48,12 @@ router.post('/ws-broadcast', (req: Request, res: Response) => {
   const { event, payload } = req.body
 
   if (!event || typeof event !== 'string') {
-    return res.status(400).json({ error: 'Missing or invalid "event" string' })
+    throw AppError.badRequest('Missing or invalid "event" string')
   }
 
   const io = req.app.get('io')
   if (!io) {
-    return res.status(503).json({ error: 'Socket.IO not initialized' })
+    throw AppError.serviceUnavailable('Socket.IO not initialized')
   }
 
   io.emit(event, payload ?? {})
@@ -46,11 +61,9 @@ router.post('/ws-broadcast', (req: Request, res: Response) => {
   res.json({ ok: true, event, clients: io.engine?.clientsCount ?? 'unknown' })
 })
 
-// -------------------------------------------------------------------------------
-// �2  Frontend error logging
-// -------------------------------------------------------------------------------
+// ?2  Frontend error logging
 
-router.post('/errors/frontend', async (req: Request, res: Response) => {
+router.post('/errors/frontend', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const {
       error_message,
@@ -81,17 +94,15 @@ router.post('/errors/frontend', async (req: Request, res: Response) => {
 
     res.json({ ok: true })
   } catch (err: any) {
-    console.error('[ErrorLog] Failed to store frontend error:', err.message)
-    // Still 200 � we don't want error logging failures to cascade
+    logger.error({ err }, '[ErrorLog] Failed to store frontend error')
+    // Still 200 ? we don't want error logging failures to cascade
     res.json({ ok: false, reason: 'storage_failed' })
   }
 })
 
-// -------------------------------------------------------------------------------
-// �3  System health dashboard
-// -------------------------------------------------------------------------------
+// ?3  System health dashboard
 
-router.get('/health/system', async (_req: Request, res: Response) => {
+router.get('/health/system', async (_req: Request, res: Response, next: NextFunction) => {
   try {
     // Database
     let dbOk = false
@@ -167,22 +178,20 @@ router.get('/health/system', async (_req: Request, res: Response) => {
       recent_jobs: recentJobs,
       workflow_definitions: getWorkflowDefinitions(),
     })
-  } catch (err: any) {
-    res.status(500).json({ error: err.message })
+  } catch (err) {
+    next(err)
   }
 })
 
-// -------------------------------------------------------------------------------
-// �4  n8n Webhook Callbacks
-// -------------------------------------------------------------------------------
+// ?4  n8n Webhook Callbacks
 //
 // These endpoints are called by n8n workflows to push data back into AEGIS.
 
-/**
+ /**
  * POST /api/internal/n8n-webhook/weather
  * Receives weather data from n8n WF2 and broadcasts via Socket.IO.
  */
-router.post('/n8n-webhook/weather', async (req: Request, res: Response) => {
+router.post('/n8n-webhook/weather', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const data = req.body
     const io = req.app.get('io')
@@ -193,7 +202,7 @@ router.post('/n8n-webhook/weather', async (req: Request, res: Response) => {
       const result = await ingestOpenMeteoData()
       devLog(`[n8n-webhook/weather] Ingested ${result.rowsIngested} weather records`)
     } catch (err: any) {
-      console.warn(`[n8n-webhook/weather] Ingestion error: ${err.message}`)
+      logger.warn({ err }, '[n8n-webhook/weather] Ingestion error')
     }
 
     // Broadcast to connected clients
@@ -202,17 +211,16 @@ router.post('/n8n-webhook/weather', async (req: Request, res: Response) => {
     }
 
     res.json({ ok: true, source: 'n8n_wf2' })
-  } catch (err: any) {
-    console.error(`[n8n-webhook/weather] Error: ${err.message}`)
-    res.status(500).json({ error: err.message })
+  } catch (err) {
+    next(err)
   }
 })
 
-/**
+ /**
  * POST /api/internal/n8n-webhook/alerts
  * Receives flood alert data from n8n WF3 and processes it.
  */
-router.post('/n8n-webhook/alerts', async (req: Request, res: Response) => {
+router.post('/n8n-webhook/alerts', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { source, ea_data, sepa_data } = req.body
     const io = req.app.get('io')
@@ -265,17 +273,16 @@ router.post('/n8n-webhook/alerts', async (req: Request, res: Response) => {
 
     devLog(`[n8n-webhook/alerts] Processed ${alertCount} alerts from ${source || 'n8n'}`)
     res.json({ ok: true, alerts_processed: alertCount })
-  } catch (err: any) {
-    console.error(`[n8n-webhook/alerts] Error: ${err.message}`)
-    res.status(500).json({ error: err.message })
+  } catch (err) {
+    next(err)
   }
 })
 
-/**
+ /**
  * POST /api/internal/n8n-webhook/gauges
  * Receives river gauge data from n8n WF1.
  */
-router.post('/n8n-webhook/gauges', async (req: Request, res: Response) => {
+router.post('/n8n-webhook/gauges', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const data = req.body
     const io = req.app.get('io')
@@ -285,26 +292,22 @@ router.post('/n8n-webhook/gauges', async (req: Request, res: Response) => {
     }
 
     res.json({ ok: true, source: 'n8n_wf1' })
-  } catch (err: any) {
-    console.error(`[n8n-webhook/gauges] Error: ${err.message}`)
-    res.status(500).json({ error: err.message })
+  } catch (err) {
+    next(err)
   }
 })
 
-
-// -------------------------------------------------------------------------------
 // ?5  Multi-incident n8n webhook endpoints
-// -------------------------------------------------------------------------------
 
-/**
+ /**
  * WF4 ? Multi-hazard weather alerts
  * n8n posts evaluated multi-hazard weather alerts here.
  */
-router.post('/n8n-webhook/multi-hazard', async (req: Request, res: Response) => {
+router.post('/n8n-webhook/multi-hazard', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { hazard_type, severity, region, description, data } = req.body
     if (!hazard_type || !severity) {
-      return res.status(400).json({ error: 'Missing hazard_type or severity' })
+      throw AppError.badRequest('Missing hazard_type or severity')
     }
 
     // Insert alert into database
@@ -323,20 +326,19 @@ router.post('/n8n-webhook/multi-hazard', async (req: Request, res: Response) => 
 
     devLog(`[n8n-webhook/multi-hazard] ${hazard_type} alert (${severity}) ingested`)
     res.json({ ok: true, source: 'n8n_wf4', hazard_type, severity })
-  } catch (err: any) {
-    console.error(`[n8n-webhook/multi-hazard] Error: ${err.message}`)
-    res.status(500).json({ error: err.message })
+  } catch (err) {
+    next(err)
   }
 })
 
-/**
+ /**
  * WF5 ? Air quality monitoring alerts
  */
-router.post('/n8n-webhook/air-quality', async (req: Request, res: Response) => {
+router.post('/n8n-webhook/air-quality', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { aqi, pollutant, severity, region, description, data } = req.body
     if (!severity) {
-      return res.status(400).json({ error: 'Missing severity' })
+      throw AppError.badRequest('Missing severity')
     }
 
     await pool.query(
@@ -354,21 +356,20 @@ router.post('/n8n-webhook/air-quality', async (req: Request, res: Response) => {
 
     devLog(`[n8n-webhook/air-quality] AQI alert (${severity}) ingested`)
     res.json({ ok: true, source: 'n8n_wf5', severity, aqi })
-  } catch (err: any) {
-    console.error(`[n8n-webhook/air-quality] Error: ${err.message}`)
-    res.status(500).json({ error: err.message })
+  } catch (err) {
+    next(err)
   }
 })
 
-/**
+ /**
  * WF6 ? Cross-incident escalation alerts
  * Receives compound/cascading emergency alerts from the incident alert evaluator.
  */
-router.post('/n8n-webhook/escalation', async (req: Request, res: Response) => {
+router.post('/n8n-webhook/escalation', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { escalation_type, severity, involved_incidents, description, data } = req.body
     if (!escalation_type || !severity) {
-      return res.status(400).json({ error: 'Missing escalation_type or severity' })
+      throw AppError.badRequest('Missing escalation_type or severity')
     }
 
     await pool.query(
@@ -388,25 +389,22 @@ router.post('/n8n-webhook/escalation', async (req: Request, res: Response) => {
 
     devLog(`[n8n-webhook/escalation] ${escalation_type} (${severity}) ? involves: ${(involved_incidents || []).join(', ')}`)
     res.json({ ok: true, source: 'n8n_wf6', escalation_type, severity })
-  } catch (err: any) {
-    console.error(`[n8n-webhook/escalation] Error: ${err.message}`)
-    res.status(500).json({ error: err.message })
+  } catch (err) {
+    next(err)
   }
 })
 
-// -------------------------------------------------------------------------------
-// §6  Generic Incident Alert Endpoint (WF7-WF15)
-// -------------------------------------------------------------------------------
+// —6  Generic Incident Alert Endpoint (WF7-WF15)
 //
 // All new per-incident n8n workflows post to this single endpoint.
 // Body: { incidentType, severity, probability, message, source, metadata }
 
-router.post('/incident-alert', async (req: Request, res: Response) => {
+router.post('/incident-alert', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { incidentType, severity, probability, message, source, metadata } = req.body
 
     if (!incidentType || !severity) {
-      return res.status(400).json({ error: 'Missing incidentType or severity' })
+      throw AppError.badRequest('Missing incidentType or severity')
     }
 
     // Normalise severity to DB enum values
@@ -453,7 +451,7 @@ router.post('/incident-alert', async (req: Request, res: Response) => {
       }
     } catch (dbErr: any) {
       // Alert table might have different schema — fall through to socket broadcast
-      console.warn(`[incident-alert] DB insert warning: ${dbErr.message}`)
+      logger.warn({ err: dbErr }, '[incident-alert] DB insert warning')
     }
 
     // Always broadcast via Socket.IO regardless of DB outcome
@@ -472,9 +470,8 @@ router.post('/incident-alert', async (req: Request, res: Response) => {
 
     devLog(`[incident-alert] ${incidentType} (${normSeverity}) from ${source || 'n8n'} — inserted:${inserted}`)
     res.json({ ok: true, incidentType, severity: normSeverity, inserted, source: source || 'n8n' })
-  } catch (err: any) {
-    console.error(`[incident-alert] Error: ${err.message}`)
-    res.status(500).json({ error: err.message })
+  } catch (err) {
+    next(err)
   }
 })
 

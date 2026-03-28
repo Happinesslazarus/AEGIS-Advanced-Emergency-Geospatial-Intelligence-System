@@ -12,7 +12,6 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
-
 @dataclass
 class DownloadResult:
     provider: str
@@ -25,7 +24,6 @@ class DownloadResult:
     end: str
     elapsed_s: float
     error: str | None = None
-
 
 class DataProvider(ABC):
     """Abstract base for all external data providers."""
@@ -104,7 +102,6 @@ class DataProvider(ABC):
                 f"Fix the data source or use a different provider."
             ) from exc
 
-
 class ProviderDiscovery:
     @staticmethod
     def all_provider_classes() -> list[type[DataProvider]]:
@@ -122,7 +119,6 @@ class ProviderDiscovery:
                 f"Unknown provider '{provider_name}'. Valid providers: {sorted(DataProvider.provider_registry.keys())}"
             )
         return cls()
-
 
 def write_provider_output(df: pd.DataFrame, output_path: Path) -> str:
     output_path.parent.mkdir(parents=True, exist_ok=True)

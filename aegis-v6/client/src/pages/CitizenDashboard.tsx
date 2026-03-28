@@ -20,7 +20,8 @@
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { createPortal } from 'react-dom'
+import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import {
   Shield, User, MessageSquare, Heart, Settings, Lock, LogOut,
   Bell, ChevronRight, Clock, MapPin, Phone, Mail, Camera,
@@ -49,6 +50,9 @@ import { useWebPush } from '../hooks/useWebPush'
 import { apiSubscribe, apiGetNews, type NewsItem } from '../utils/api'
 import { COUNTRY_CODES, type CountryCode, formatPhoneWithCountry } from '../data/countryCodes'
 import ALL_COUNTRY_CODES from '../data/allCountryCodes'
+import { REGION_MAP } from '../data/allCountries'
+import ProfileCountryPicker from '../components/shared/ProfileCountryPicker'
+import { getFlagUrl } from '../data/worldRegions'
 import CommunityChat from '../components/citizen/CommunityChat'
 import CommunityChatRoom from '../components/citizen/CommunityChatRoom'
 import SOSButton from '../components/citizen/SOSButton'
@@ -70,6 +74,7 @@ const LiveIncidentMapPanel = lazy(() => import('../components/citizen/LiveIncide
 const ShelterFinder = lazy(() => import('../components/citizen/ShelterFinder'))
 const RiskAssessment = lazy(() => import('../components/citizen/RiskAssessment'))
 const OfflineEmergencyCard = lazy(() => import('../components/citizen/OfflineEmergencyCard'))
+const CitizenWelcome = lazy(() => import('../components/citizen/CitizenWelcome'))
 import { API_BASE, timeAgo, getPasswordStrength } from '../utils/helpers'
 import MessageStatusIcon from '../components/ui/MessageStatusIcon'
 import { useAnnounce } from '../hooks/useAnnounce'
@@ -117,9 +122,7 @@ const THREAD_CATEGORIES = [
 
 // MessageStatusIcon imported from ../components/ui/MessageStatusIcon
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export default function CitizenDashboard(): JSX.Element {
   const { user, token, preferences, emergencyContacts, recentSafety, unreadMessages,
@@ -129,15 +132,19 @@ export default function CitizenDashboard(): JSX.Element {
 
   const socket = useSharedSocket()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const lang = useLanguage()
   const { reports, loading: reportsLoading, refreshReports } = useReports()
   const { alerts, notifications, pushNotification, dismissNotification } = useAlerts()
   const { location: loc, availableLocations, activeLocation, setActiveLocation } = useLocation()
-  const { dark, toggle: toggleTheme } = useTheme()
+  const { setTheme } = useTheme()
   const { status: webPushStatus, subscribe: subscribeToWebPush, loading: webPushLoading } = useWebPush()
   const announce = useAnnounce()
 
-  const [activeTab, setActiveTab] = useState<TabKey>('overview')
+  const VALID_TABS = useMemo(() => new Set(TABS.map(t => t.key)), [])
+  const tabFromUrl = searchParams.get('tab')
+  const initialTab = (tabFromUrl && VALID_TABS.has(tabFromUrl as TabKey)) ? tabFromUrl as TabKey : 'overview'
+  const [activeTab, setActiveTab] = useState<TabKey>(initialTab)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [statusColor, setStatusColor] = useState<'green' | 'yellow' | 'red'>('green')
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false)
@@ -158,6 +165,8 @@ export default function CitizenDashboard(): JSX.Element {
   const [reportSortOrder, setReportSortOrder] = useState('desc')
   const [newsItems, setNewsItems] = useState<NewsItem[]>([])
   const [newsRefreshing, setNewsRefreshing] = useState(false)
+  const [newsTotalPages, setNewsTotalPages] = useState(1)
+  const [newsLastFetched, setNewsLastFetched] = useState<Date | null>(null)
   const [subChannels, setSubChannels] = useState<string[]>([])
   const [subEmail, setSubEmail] = useState('')
   const [subPhone, setSubPhone] = useState('')
@@ -176,14 +185,20 @@ export default function CitizenDashboard(): JSX.Element {
     }
   }, [token])
 
-  // Sync saved user preferences (language, dark mode) on load
+  // Sync saved user preferences (language, dark mode, compact view) on load
   useEffect(() => {
     if (preferences) {
       if (preferences.language && preferences.language !== getLanguage()) {
         setLanguage(preferences.language)
       }
-      if (typeof preferences.dark_mode === 'boolean' && preferences.dark_mode !== dark) {
-        toggleTheme()
+      if (typeof preferences.dark_mode === 'boolean') {
+        setTheme(preferences.dark_mode ? 'default' : 'light')
+      }
+      if (typeof preferences.compact_view === 'boolean') {
+        document.documentElement.classList.toggle('compact-view', preferences.compact_view)
+      }
+      if (preferences.caption_font_size) {
+        document.documentElement.setAttribute('data-caption-size', preferences.caption_font_size)
       }
     }
   }, [preferences])
@@ -239,14 +254,17 @@ export default function CitizenDashboard(): JSX.Element {
     }
   }, [loading, isAuthenticated, navigate])
 
-  // Load news from API on mount
-  const loadNews = useCallback(async (notify = false) => {
+  // Load news from API — pass fresh=true to bust server cache on manual refresh
+  const loadNews = useCallback(async (notify = false, page = 1) => {
     setNewsRefreshing(true)
     try {
-      const payload = await apiGetNews()
+      // When user explicitly refreshes (notify=true), pass fresh=true so server bypasses its cache
+      const payload = await apiGetNews(notify, page)
       if (Array.isArray(payload?.items) && payload.items.length > 0) {
-        setNewsItems(payload.items)
-        if (notify) pushNotification?.(t('cdash.newsRefreshed', lang), 'success')
+        setNewsItems(prev => page > 1 ? [...prev, ...payload.items] : payload.items)
+        setNewsTotalPages(payload.totalPages ?? 1)
+        setNewsLastFetched(new Date())
+        if (notify && page === 1) pushNotification?.(t('cdash.newsRefreshed', lang), 'success')
       } else if (notify) {
         pushNotification?.(t('cdash.noFreshNews', lang), 'warning')
       }
@@ -306,9 +324,20 @@ export default function CitizenDashboard(): JSX.Element {
   // Accessible tab switching with screen reader announcement
   const handleTabChange = useCallback((tab: TabKey) => {
     setActiveTab(tab)
+    setSearchParams(tab === 'overview' ? {} : { tab }, { replace: true })
     const tabDef = TABS.find(t => t.key === tab)
     if (tabDef) announce(`Navigated to ${t(tabDef.labelKey, lang)} tab`)
-  }, [announce, lang])
+  }, [announce, lang, setSearchParams])
+
+  // Sync tab when URL ?tab= param changes (e.g., browser back/forward)
+  useEffect(() => {
+    const urlTab = searchParams.get('tab')
+    if (urlTab && VALID_TABS.has(urlTab as TabKey) && urlTab !== activeTab) {
+      setActiveTab(urlTab as TabKey)
+    } else if (!urlTab && activeTab !== 'overview') {
+      setActiveTab('overview')
+    }
+  }, [searchParams]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubscribe = async () => {
     if (subChannels.length === 0) return
@@ -344,9 +373,9 @@ export default function CitizenDashboard(): JSX.Element {
     if (!printWindow) return
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>AEGIS Report ${report.id}</title>
       <style>body{font-family:system-ui,sans-serif;max-width:800px;margin:40px auto;padding:20px;line-height:1.6}.header{border-bottom:3px solid #1e40af;padding-bottom:20px;margin-bottom:20px}.logo{font-size:24px;font-weight:bold;color:#1e40af}.badge{display:inline-block;padding:4px 12px;border-radius:4px;font-size:12px;font-weight:600;margin-right:8px}.severity-high{background:#fee;color:#c00}.severity-medium{background:#ffc;color:#860}.severity-low{background:#efe;color:#060}@media print{body{margin:0}}</style></head>
-      <body><div class="header"><div class="logo">🛡️ ${t('cdash.print.aegisTitle', lang)}</div><div>${t('cdash.print.reportId', lang)}: ${report.id}</div></div>
+      <body><div class="header"><div class="logo">${t('cdash.print.aegisTitle', lang)}</div><div>${t('cdash.print.reportId', lang)}: ${report.id}</div></div>
       <div><span class="badge severity-${report.severity?.toLowerCase()}">${report.severity}</span><span class="badge">${report.status}</span></div>
-      <h2>${report.type}</h2><div><div>📍 ${report.location}</div><div>⏰ ${report.displayTime || new Date(report.timestamp).toLocaleString()}</div></div>
+      <h2>${report.type}</h2><div><div>${report.location}</div><div>${report.displayTime || new Date(report.timestamp).toLocaleString()}</div></div>
       <div><h3>${t('cdash.print.description', lang)}</h3><p>${report.description}</p></div>
       <div style="margin-top:40px;padding-top:20px;border-top:1px solid #ddd;color:#666;font-size:12px">${t('cdash.print.generatedFrom', lang)} ${new Date().toLocaleString()}</div></body></html>`
     printWindow.document.write(html)
@@ -355,7 +384,7 @@ export default function CitizenDashboard(): JSX.Element {
   }
 
   const handleShareReport = async (report: any) => {
-    const shareData = { title: `${t('cdash.print.aegisTitle', lang)}: ${report.type}`, text: `${report.type} - ${report.severity}\n📍 ${report.location}\n\n${report.description}`, url: window.location.href }
+    const shareData = { title: `${t('cdash.print.aegisTitle', lang)}: ${report.type}`, text: `${report.type} - ${report.severity}\n${report.location}\n\n${report.description}`, url: window.location.href }
     if (navigator.share) {
       try { await navigator.share(shareData) } catch {}
     } else {
@@ -401,7 +430,7 @@ export default function CitizenDashboard(): JSX.Element {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
       <div className="text-center">
         <Loader2 className="w-8 h-8 animate-spin text-aegis-600 mx-auto mb-3" />
-        <p className="text-sm text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('citizen.loading', lang)}</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">{t('citizen.loading', lang)}</p>
       </div>
     </div>
   )
@@ -409,11 +438,13 @@ export default function CitizenDashboard(): JSX.Element {
   const handleSidebarNav = (item: SidebarItem) => {
     if (item.key === 'report_emergency') { setShowReportForm(true); return }
     if (item.key === 'map') { handleTabChange('livemap'); return }
+    if (item.key === 'home') { handleTabChange('overview'); return }
+    if (item.key === 'alerts') { navigate('/alerts'); return }
     handleTabChange(item.key as TabKey)
   }
 
   return (
-    <AppLayout activeKey={activeTab === 'livemap' ? 'map' : activeTab} onNavigate={handleSidebarNav} unreadMessages={totalUnread} communityUnread={communityUnread}>
+    <AppLayout activeKey={activeTab === 'livemap' ? 'map' : activeTab === 'overview' ? 'home' : activeTab} onNavigate={handleSidebarNav} unreadMessages={totalUnread} communityUnread={communityUnread}>
       {/* Email verification banner (#23) */}
       {user && !user.emailVerified && (
         <div className="bg-amber-50 dark:bg-amber-950/40 border-b border-amber-200 dark:border-amber-800 px-4 py-2.5 flex items-center justify-between gap-3 rounded-xl mb-4">
@@ -459,13 +490,13 @@ export default function CitizenDashboard(): JSX.Element {
             </div>
           )}
           <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-aegis-600" /></div>}>
-          {activeTab === 'overview' && <OverviewTab user={user} threads={socket.threads} recentSafety={recentSafety} emergencyContacts={emergencyContacts} totalUnread={totalUnread} setActiveTab={setActiveTab} reportStats={reportStats} onReportEmergency={() => setShowReportForm(true)} onCommunityHelp={() => setShowCommunityHelp(true)} submitSafetyCheckIn={submitSafetyCheckIn} />}
+          {activeTab === 'overview' && <CitizenWelcome user={user} threads={socket.threads} recentSafety={recentSafety} emergencyContacts={emergencyContacts} totalUnread={totalUnread} setActiveTab={(tab: string) => setActiveTab(tab as TabKey)} reportStats={reportStats} onReportEmergency={() => setShowReportForm(true)} onCommunityHelp={() => setShowCommunityHelp(true)} submitSafetyCheckIn={submitSafetyCheckIn} />}
           {activeTab === 'livemap' && <LiveMapTab reports={reports} loc={loc} userPosition={userPosition} detectLocation={detectLocation} alerts={alerts} setSelectedAlert={setSelectedAlert} />}
           {activeTab === 'reports' && <ReportsTab reports={sortedReports} loading={reportsLoading} searchTerm={reportSearchTerm} setSearchTerm={setReportSearchTerm} sortField={reportSortField} setSortField={setReportSortField} sortOrder={reportSortOrder} setSortOrder={setReportSortOrder} onViewReport={setSelectedReport} onPrintReport={handlePrintReport} onShareReport={handleShareReport} lang={lang} />}
           {activeTab === 'messages' && <MessagesTab socket={socket} user={user} />}
           {activeTab === 'community' && <CommunitySection parentSocket={socket.socket} />}
           {activeTab === 'prepare' && <PreparednessTab lang={lang} onOpenGuide={() => setShowPreparednessGuide(true)} />}
-          {activeTab === 'news' && <NewsTab newsItems={newsItems} newsRefreshing={newsRefreshing} loadNews={loadNews} refreshReports={refreshReports} />}
+          {activeTab === 'news' && <NewsTab newsItems={newsItems} newsRefreshing={newsRefreshing} loadNews={loadNews} refreshReports={refreshReports} totalPages={newsTotalPages} lastFetched={newsLastFetched} />}
           {activeTab === 'safety' && <SafetyTab submitSafetyCheckIn={submitSafetyCheckIn} recentSafety={recentSafety} onEnterSafetyMode={() => setShowSafetyMode(true)} />}
           {activeTab === 'shelters' && <ShelterFinder />}
           {activeTab === 'risk' && <RiskAssessment />}
@@ -490,7 +521,7 @@ export default function CitizenDashboard(): JSX.Element {
       {/* SOS Distress Beacon */}
       {socket.socket && <SOSButton socket={socket.socket} citizenId={user.id} citizenName={user.displayName || t('cdash.citizenFallback', lang)} />}
 
-      {/* ═══ MODALS (code-split) ═══ */}
+      {/* MODALS (code-split) */}
       <Suspense fallback={<div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50"><Loader2 className="w-8 h-8 animate-spin text-white" /></div>}>
         {showReportForm && <ReportForm onClose={() => setShowReportForm(false)} />}
         {showCommunityHelp && <CommunityHelp onClose={() => setShowCommunityHelp(false)} />}
@@ -509,16 +540,16 @@ export default function CitizenDashboard(): JSX.Element {
             <div className="p-5 space-y-4">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className={`px-3 py-1 rounded-full text-xs font-bold ${selectedReport.severity === 'High' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' : selectedReport.severity === 'Medium' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'}`}>{selectedReport.severity}</span>
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${selectedReport.status === 'Urgent' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' : selectedReport.status === 'Verified' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`}>{selectedReport.status}</span>
+                <span className={`px-3 py-1 rounded-full text-xs font-medium ${selectedReport.status === 'Urgent' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' : selectedReport.status === 'Verified' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'}`}>{selectedReport.status}</span>
                 {selectedReport.confidence != null && <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 flex items-center gap-1"><Bot className="w-3 h-3" /> AI: {selectedReport.confidence}%</span>}
               </div>
               <h4 className="text-xl font-bold text-gray-900 dark:text-white">{selectedReport.type}</h4>
-              <p className="text-sm text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 leading-relaxed">{selectedReport.description}</p>
+              <p className="text-sm text-gray-700 dark:text-gray-400 leading-relaxed">{selectedReport.description}</p>
               <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 space-y-2">
-                <div className="flex items-center gap-2 text-sm"><MapPin className="w-4 h-4 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex-shrink-0" /><span className="text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{selectedReport.location}</span></div>
-                <div className="flex items-center gap-2 text-sm"><Clock className="w-4 h-4 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex-shrink-0" /><span className="text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{selectedReport.displayTime || new Date(selectedReport.timestamp).toLocaleString()}</span></div>
-                {selectedReport.reporter && <div className="flex items-center gap-2 text-sm"><User className="w-4 h-4 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex-shrink-0" /><span className="text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{selectedReport.reporter}</span></div>}
-                <div className="flex items-center gap-2 text-sm"><Info className="w-4 h-4 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex-shrink-0" /><span className="text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-mono text-xs">ID: {selectedReport.id}</span></div>
+                <div className="flex items-center gap-2 text-sm"><MapPin className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" /><span className="text-gray-700 dark:text-gray-400">{selectedReport.location}</span></div>
+                <div className="flex items-center gap-2 text-sm"><Clock className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" /><span className="text-gray-700 dark:text-gray-400">{selectedReport.displayTime || new Date(selectedReport.timestamp).toLocaleString()}</span></div>
+                {selectedReport.reporter && <div className="flex items-center gap-2 text-sm"><User className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" /><span className="text-gray-700 dark:text-gray-400">{selectedReport.reporter}</span></div>}
+                <div className="flex items-center gap-2 text-sm"><Info className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" /><span className="text-gray-500 dark:text-gray-400 font-mono text-xs">ID: {selectedReport.id}</span></div>
               </div>
               {selectedReport.aiAnalysis && (
                 <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 space-y-2">
@@ -534,7 +565,7 @@ export default function CitizenDashboard(): JSX.Element {
               )}
             </div>
             <div className="p-5 border-t border-gray-200 dark:border-gray-700 flex gap-3">
-              <button onClick={() => setSelectedReport(null)} className="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 rounded-xl py-2.5 text-sm font-semibold transition-colors">{t('cdash.close', lang)}</button>
+              <button onClick={() => setSelectedReport(null)} className="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-400 rounded-xl py-2.5 text-sm font-semibold transition-colors">{t('cdash.close', lang)}</button>
               <button onClick={() => handleShareReport(selectedReport)} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-2.5 text-sm font-semibold transition-colors flex items-center justify-center gap-2"><Share2 className="w-4 h-4" /> {t('cdash.share', lang)}</button>
               <button onClick={() => handlePrintReport(selectedReport)} className="flex-1 bg-gray-600 hover:bg-gray-700 text-white rounded-xl py-2.5 text-sm font-semibold transition-colors flex items-center justify-center gap-2"><Printer className="w-4 h-4" /> {t('cdash.print', lang)}</button>
             </div>
@@ -555,10 +586,10 @@ export default function CitizenDashboard(): JSX.Element {
                 <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${selectedAlert.severity === 'critical' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' : selectedAlert.severity === 'high' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300' : selectedAlert.severity === 'warning' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'}`}>{selectedAlert.severity?.toUpperCase()}</span>
               </div>
               <h4 className="text-xl font-bold text-gray-900 dark:text-white">{selectedAlert.title}</h4>
-              <p className="text-sm text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 leading-relaxed">{selectedAlert.message}</p>
+              <p className="text-sm text-gray-700 dark:text-gray-400 leading-relaxed">{selectedAlert.message}</p>
               <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 space-y-2">
-                {selectedAlert.locationText && <div className="flex items-center gap-2 text-sm"><MapPin className="w-4 h-4 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex-shrink-0" /><span className="text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{selectedAlert.locationText}</span></div>}
-                <div className="flex items-center gap-2 text-sm"><Clock className="w-4 h-4 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex-shrink-0" /><span className="text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{new Date(selectedAlert.createdAt).toLocaleString()}</span></div>
+                {selectedAlert.locationText && <div className="flex items-center gap-2 text-sm"><MapPin className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" /><span className="text-gray-700 dark:text-gray-400">{selectedAlert.locationText}</span></div>}
+                <div className="flex items-center gap-2 text-sm"><Clock className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" /><span className="text-gray-700 dark:text-gray-400">{new Date(selectedAlert.createdAt).toLocaleString()}</span></div>
               </div>
               <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
                 <h5 className="font-semibold text-sm text-amber-800 dark:text-amber-200 mb-1">{t('citizen.alertDetail.safetyAdvice', lang)}</h5>
@@ -566,7 +597,7 @@ export default function CitizenDashboard(): JSX.Element {
               </div>
             </div>
             <div className="p-5 border-t border-gray-200 dark:border-gray-700 flex gap-3">
-              <button onClick={() => setSelectedAlert(null)} className="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 rounded-xl py-2.5 text-sm font-semibold transition-colors">{t('cdash.close', lang)}</button>
+              <button onClick={() => setSelectedAlert(null)} className="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-400 rounded-xl py-2.5 text-sm font-semibold transition-colors">{t('cdash.close', lang)}</button>
               <button onClick={() => { setSelectedAlert(null); setShowReportForm(true) }} className="flex-1 bg-red-600 hover:bg-red-700 text-white rounded-xl py-2.5 text-sm font-semibold transition-colors flex items-center justify-center gap-2"><AlertTriangle className="w-4 h-4" /> {t('citizen.alertDetail.reportIncident', lang)}</button>
             </div>
           </div>
@@ -582,7 +613,7 @@ export default function CitizenDashboard(): JSX.Element {
               <button onClick={() => setShowSubscribe(false)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"><X className="w-5 h-5" /></button>
             </div>
             <div className="p-4 space-y-3">
-              <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('citizen.subscribe.chooseChannels', lang)}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t('citizen.subscribe.chooseChannels', lang)}</p>
               {[
                 { key: 'email', label: t('cdash.sub.email', lang), icon: Mail, color: 'text-red-500' },
                 { key: 'sms', label: t('cdash.sub.sms', lang), icon: Smartphone, color: 'text-green-500' },
@@ -603,20 +634,20 @@ export default function CitizenDashboard(): JSX.Element {
                     <CountrySearch countries={ALL_COUNTRY_CODES} selected={selectedCountry} onChange={setSelectedCountry} />
                     <input className="flex-1 px-3 py-2 text-sm bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700" placeholder={selectedCountry.format} value={subPhone} onChange={e => setSubPhone(e.target.value)} type="tel" />
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">Example: {selectedCountry.dial} {selectedCountry.format}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Example: {selectedCountry.dial} {selectedCountry.format}</p>
                 </div>
               )}
               {subChannels.includes('telegram') && <input className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-gray-800 rounded-lg border-none" placeholder={t('cdash.sub.telegramPlaceholder', lang)} value={subTelegramId} onChange={e => setSubTelegramId(e.target.value)} />}
               {/* Topic filter */}
               <div>
-                <p className="text-xs font-medium text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-1.5">{t('citizen.subscribe.alertTopics', lang) || 'Alert Topics'}</p>
+                <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">{t('citizen.subscribe.alertTopics', lang) || 'Alert Topics'}</p>
                 <div className="flex flex-wrap gap-1.5">
                   {(['flood', 'fire', 'storm', 'earthquake', 'heatwave', 'tsunami', 'general'] as const).map(topic => (
                     <button key={topic} onClick={() => setSubTopics(p => p.includes(topic) ? p.filter(t => t !== topic) : [...p, topic])}
                       className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all ${
                         subTopics.includes(topic)
                           ? 'border-aegis-500 bg-aegis-50 dark:bg-aegis-950/20 text-aegis-700 dark:text-aegis-300'
-                          : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:border-gray-300'
+                          : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-300'
                       }`}>
                       {topic.charAt(0).toUpperCase() + topic.slice(1)}
                     </button>
@@ -641,9 +672,7 @@ export default function CitizenDashboard(): JSX.Element {
   )
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // TAB: REPORTS — Professional-grade report dashboard
-// ═══════════════════════════════════════════════════════════════════════════════
 
 type ReportFilterLevel = 'all' | 'High' | 'Medium' | 'Low'
 type ReportStatusFilter = 'all' | 'Unverified' | 'Verified' | 'Urgent' | 'Resolved'
@@ -681,7 +710,7 @@ function ReportsTab({ reports, loading, searchTerm, setSearchTerm, sortField, se
 
   return (
     <div className="max-w-5xl mx-auto animate-fade-in space-y-4">
-      {/* ═══ HEADER ═══ */}
+      {/* HEADER */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="relative">
@@ -699,7 +728,7 @@ function ReportsTab({ reports, loading, searchTerm, setSearchTerm, sortField, se
               <h2 className="text-xl font-extrabold text-gray-900 dark:text-white tracking-tight">{t('cdash.reports.recentReports', lang)}</h2>
               <span className="px-2.5 py-0.5 rounded-full bg-aegis-100 dark:bg-aegis-900/40 text-aegis-700 dark:text-aegis-300 text-xs font-bold">{stats.total}</span>
             </div>
-            <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-medium mt-0.5">
+            <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium mt-0.5">
               {stats.high} {t('cdash.reports.critical', lang)} · {stats.verified} {t('cdash.reports.verified', lang)} · {stats.aiPowered} {t('cdash.reports.aiAnalysed', lang)}
             </p>
           </div>
@@ -712,15 +741,15 @@ function ReportsTab({ reports, loading, searchTerm, setSearchTerm, sortField, se
         </div>
       </div>
 
-      {/* ═══ STATS GRID ═══ */}
+      {/* STATS GRID */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <button
           onClick={() => { setSeverityFilter('High'); setStatusFilter('all') }}
           className={`glass-card rounded-xl p-3 text-left transition-all hover:scale-[1.02] ${severityFilter === 'High' ? 'ring-2 ring-red-500/50' : ''}`}
         >
           <div className="flex items-center justify-between mb-1">
-            <AlertTriangle className={`w-4 h-4 ${stats.high > 0 ? 'text-red-500 animate-pulse' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`} />
-            <span className="text-[8px] font-bold text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase">{t('cdash.reports.critical', lang)}</span>
+            <AlertTriangle className={`w-4 h-4 ${stats.high > 0 ? 'text-red-500 animate-pulse' : 'text-gray-400 dark:text-gray-400'}`} />
+            <span className="text-[8px] font-bold text-gray-400 dark:text-gray-400 uppercase">{t('cdash.reports.critical', lang)}</span>
           </div>
           <div className={`text-2xl font-black leading-none ${stats.high > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'}`}>{stats.high}</div>
           <div className="mt-1.5 w-full h-1 rounded-full bg-gray-200/60 dark:bg-gray-700/40 overflow-hidden">
@@ -733,7 +762,7 @@ function ReportsTab({ reports, loading, searchTerm, setSearchTerm, sortField, se
         >
           <div className="flex items-center justify-between mb-1">
             <Zap className="w-4 h-4 text-amber-500" />
-            <span className="text-[8px] font-bold text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase">{t('cdash.reports.moderate', lang)}</span>
+            <span className="text-[8px] font-bold text-gray-400 dark:text-gray-400 uppercase">{t('cdash.reports.moderate', lang)}</span>
           </div>
           <div className="text-2xl font-black text-gray-900 dark:text-white leading-none">{stats.medium}</div>
           <div className="mt-1.5 w-full h-1 rounded-full bg-gray-200/60 dark:bg-gray-700/40 overflow-hidden">
@@ -746,7 +775,7 @@ function ReportsTab({ reports, loading, searchTerm, setSearchTerm, sortField, se
         >
           <div className="flex items-center justify-between mb-1">
             <Shield className="w-4 h-4 text-blue-500" />
-            <span className="text-[8px] font-bold text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase">{t('cdash.reports.low', lang)}</span>
+            <span className="text-[8px] font-bold text-gray-400 dark:text-gray-400 uppercase">{t('cdash.reports.low', lang)}</span>
           </div>
           <div className="text-2xl font-black text-gray-900 dark:text-white leading-none">{stats.low}</div>
           <div className="mt-1.5 w-full h-1 rounded-full bg-gray-200/60 dark:bg-gray-700/40 overflow-hidden">
@@ -759,7 +788,7 @@ function ReportsTab({ reports, loading, searchTerm, setSearchTerm, sortField, se
         >
           <div className="flex items-center justify-between mb-1">
             <CheckCircle className="w-4 h-4 text-emerald-500" />
-            <span className="text-[8px] font-bold text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase">{t('cdash.reports.verified', lang)}</span>
+            <span className="text-[8px] font-bold text-gray-400 dark:text-gray-400 uppercase">{t('cdash.reports.verified', lang)}</span>
           </div>
           <div className="text-2xl font-black text-gray-900 dark:text-white leading-none">{stats.verified}</div>
           <div className="mt-1.5 w-full h-1 rounded-full bg-gray-200/60 dark:bg-gray-700/40 overflow-hidden">
@@ -768,10 +797,10 @@ function ReportsTab({ reports, loading, searchTerm, setSearchTerm, sortField, se
         </button>
       </div>
 
-      {/* ═══ SEVERITY DISTRIBUTION BAR ═══ */}
+      {/* SEVERITY DISTRIBUTION BAR */}
       <div className="glass-card rounded-xl px-3 py-2.5">
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[9px] font-bold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-wider">{t('cdash.reports.severityDistribution', lang)}</span>
+          <span className="text-[9px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('cdash.reports.severityDistribution', lang)}</span>
           {severityFilter !== 'all' || statusFilter !== 'all' ? (
             <button onClick={() => { setSeverityFilter('all'); setStatusFilter('all') }} className="text-[9px] font-bold text-aegis-600 dark:text-aegis-400 hover:underline">{t('cdash.reports.clearFilters', lang)}</button>
           ) : null}
@@ -787,17 +816,17 @@ function ReportsTab({ reports, loading, searchTerm, setSearchTerm, sortField, se
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500" />{t('cdash.reports.medium', lang)} {stats.medium}</span>
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500" />{t('cdash.reports.low', lang)} {stats.low}</span>
           </div>
-          <div className="flex gap-3 text-[9px] font-medium text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+          <div className="flex gap-3 text-[9px] font-medium text-gray-400 dark:text-gray-400">
             <span>{stats.withMedia} {t('cdash.reports.withMedia', lang)}</span>
             <span>{stats.aiPowered} {t('cdash.reports.ai', lang)}</span>
           </div>
         </div>
       </div>
 
-      {/* ═══ STATUS PIPELINE ═══ */}
+      {/* STATUS PIPELINE */}
       <div className="flex items-center gap-1">
         {([
-          { key: 'all' as const, label: t('cdash.reports.all', lang), count: stats.total, color: 'text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300', activeBg: 'bg-gray-100 dark:bg-gray-700' },
+          { key: 'all' as const, label: t('cdash.reports.all', lang), count: stats.total, color: 'text-gray-600 dark:text-gray-400', activeBg: 'bg-gray-100 dark:bg-gray-700' },
           { key: 'Unverified' as const, label: t('cdash.reports.unverified', lang), count: stats.unverified, color: 'text-yellow-600', activeBg: 'bg-yellow-50 dark:bg-yellow-950/30' },
           { key: 'Verified' as const, label: t('cdash.reports.verifiedStatus', lang), count: stats.verified, color: 'text-emerald-600', activeBg: 'bg-emerald-50 dark:bg-emerald-950/30' },
           { key: 'Urgent' as const, label: t('cdash.reports.urgent', lang), count: stats.urgent, color: 'text-red-600', activeBg: 'bg-red-50 dark:bg-red-950/30' },
@@ -809,7 +838,7 @@ function ReportsTab({ reports, loading, searchTerm, setSearchTerm, sortField, se
             className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold whitespace-nowrap transition-all ${
               statusFilter === st.key
                 ? `${st.activeBg} ${st.color} ring-1 ring-current/20 shadow-sm`
-                : 'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/50'
+                : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800/50'
             }`}
           >
             {st.label}
@@ -818,11 +847,11 @@ function ReportsTab({ reports, loading, searchTerm, setSearchTerm, sortField, se
         ))}
       </div>
 
-      {/* ═══ SEARCH + SORT ═══ */}
+      {/* SEARCH + SORT */}
       <div className="glass-card rounded-2xl overflow-hidden">
         <div className="p-3 border-b border-gray-200/80 dark:border-gray-700/50 flex flex-wrap items-center gap-2">
           <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-400" />
             <input className="w-full pl-10 pr-3 py-2.5 text-xs bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition text-gray-900 dark:text-white placeholder-gray-400" placeholder={t('reports.search', lang) || 'Search reports...'} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
           </div>
           <select value={sortField} onChange={e => setSortField(e.target.value)} className="text-xs bg-gray-50 dark:bg-gray-800/60 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 appearance-none text-gray-700 dark:text-gray-200">
@@ -831,23 +860,23 @@ function ReportsTab({ reports, loading, searchTerm, setSearchTerm, sortField, se
             <option value="confidence">{t('citizen.reports.aiConfidence', lang)}</option>
           </select>
           <button onClick={() => setSortOrder((o: string) => o === 'desc' ? 'asc' : 'desc')} className="p-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors" title={sortOrder === 'desc' ? t('cdash.reports.newestFirst', lang) : t('cdash.reports.oldestFirst', lang)}>
-            <ArrowUpDown className="w-4 h-4 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
+            <ArrowUpDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />
           </button>
-          <div className="text-[9px] font-medium text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 ml-auto">
+          <div className="text-[9px] font-medium text-gray-400 dark:text-gray-400 ml-auto">
             {filtered.length} of {stats.total} shown
           </div>
         </div>
 
-        {/* ═══ REPORT LIST ═══ */}
+        {/* REPORT LIST */}
         <div className="divide-y divide-gray-100/80 dark:divide-gray-800/60 max-h-[600px] overflow-y-auto custom-scrollbar">
           {loading ? (
             <SkeletonList count={3} />
           ) : filtered.length === 0 ? (
             reports.length > 0 ? (
               <div className="py-12 text-center">
-                <Filter className="w-8 h-8 text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                <Filter className="w-8 h-8 text-gray-300 dark:text-gray-400 mx-auto mb-2" />
                 <p className="text-sm font-bold text-gray-700 dark:text-gray-200">{t('cdash.reports.noMatching', lang)}</p>
-                <p className="text-xs text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-1">{t('cdash.reports.tryAdjusting', lang)} <button onClick={() => { setSeverityFilter('all'); setStatusFilter('all') }} className="text-aegis-600 dark:text-aegis-400 font-bold hover:underline">{t('cdash.reports.clearingFilters', lang)}</button></p>
+                <p className="text-xs text-gray-400 dark:text-gray-400 mt-1">{t('cdash.reports.tryAdjusting', lang)} <button onClick={() => { setSeverityFilter('all'); setStatusFilter('all') }} className="text-aegis-600 dark:text-aegis-400 font-bold hover:underline">{t('cdash.reports.clearingFilters', lang)}</button></p>
               </div>
             ) : (
               <EmptyReports />
@@ -871,7 +900,7 @@ function ReportsTab({ reports, loading, searchTerm, setSearchTerm, sortField, se
                       <Share2 className="w-4 h-4 text-blue-600" />
                     </button>
                     <button onClick={(e) => { e.stopPropagation(); onPrintReport(r) }} className="p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm" title={t('cdash.reports.printReport', lang)}>
-                      <Printer className="w-4 h-4 text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
+                      <Printer className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                     </button>
                   </div>
                 </div>
@@ -880,7 +909,7 @@ function ReportsTab({ reports, loading, searchTerm, setSearchTerm, sortField, se
           )}
         </div>
 
-        {/* ═══ FOOTER ═══ */}
+        {/* FOOTER */}
         {filtered.length > 0 && (
           <div className="flex items-center justify-between px-3 py-2 border-t border-gray-100 dark:border-gray-800/50 bg-gray-50/50 dark:bg-gray-900/30">
             <div className="flex items-center gap-3 text-[9px] font-medium">
@@ -888,11 +917,11 @@ function ReportsTab({ reports, loading, searchTerm, setSearchTerm, sortField, se
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                 {t('cdash.reports.realTime', lang)}
               </span>
-              <span className="text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+              <span className="text-gray-400 dark:text-gray-400">
                 {stats.withMedia} {t('cdash.reports.withMedia', lang)} · {stats.aiPowered} {t('cdash.reports.aiAnalysed', lang)}
               </span>
             </div>
-            <span className="text-[9px] font-bold text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 px-2 py-0.5 rounded bg-gray-200/60 dark:bg-gray-700/40">{filtered.length} {t('cdash.reports.reports', lang)}</span>
+            <span className="text-[9px] font-bold text-gray-400 dark:text-gray-400 px-2 py-0.5 rounded bg-gray-200/60 dark:bg-gray-700/40">{filtered.length} {t('cdash.reports.reports', lang)}</span>
           </div>
         )}
       </div>
@@ -900,9 +929,7 @@ function ReportsTab({ reports, loading, searchTerm, setSearchTerm, sortField, se
   )
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // TAB: PREPAREDNESS — Emergency Preparedness Guide + Resources
-// ═══════════════════════════════════════════════════════════════════════════════
 
 function PreparednessTab({ lang, onOpenGuide }: { lang: string; onOpenGuide: () => void }) {
   return (
@@ -915,7 +942,7 @@ function PreparednessTab({ lang, onOpenGuide }: { lang: string; onOpenGuide: () 
           </div>
           {t('citizen.prep.emergencyPrep', lang)}
         </h2>
-        <p className="text-sm text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-1 ml-[42px]">{t('citizen.prep.emergencyPrepDesc', lang)}</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-[42px]">{t('citizen.prep.emergencyPrepDesc', lang)}</p>
       </div>
 
       {/* Open Guide CTA */}
@@ -939,7 +966,7 @@ function PreparednessTab({ lang, onOpenGuide }: { lang: string; onOpenGuide: () 
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-aegis-600 dark:group-hover:text-aegis-400 transition-colors flex items-center gap-1.5">{r.title}<ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" /></p>
-              <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-0.5">{r.source} · <span className={`font-semibold ${r.type === 'video' ? 'text-red-500' : 'text-blue-500'}`}>{r.type === 'video' ? t('cdash.prep.video', lang) : t('cdash.prep.article', lang)}</span></p>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">{r.source} · <span className={`font-semibold ${r.type === 'video' ? 'text-red-500' : 'text-blue-500'}`}>{r.type === 'video' ? t('cdash.prep.video', lang) : t('cdash.prep.article', lang)}</span></p>
             </div>
           </a>
         ))}
@@ -948,22 +975,76 @@ function PreparednessTab({ lang, onOpenGuide }: { lang: string; onOpenGuide: () 
   )
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// TAB: NEWS — Live news from API
-// ═══════════════════════════════════════════════════════════════════════════════
+// TAB: NEWS — Live news from API with category filters, pagination, auto-refresh
 
-function NewsTab({ newsItems, newsRefreshing, loadNews, refreshReports }: { newsItems: NewsItem[]; newsRefreshing: boolean; loadNews: (notify: boolean) => Promise<void>; refreshReports?: () => void }) {
+const NEWS_TYPE_CONFIG: Record<string, { color: string; bg: string; dot: string; textColor: string; label: string }> = {
+  disaster:  { color: 'bg-rose-600',    bg: 'bg-rose-50 dark:bg-rose-950/20',    dot: 'bg-rose-600',    textColor: 'text-rose-600 dark:text-rose-400',    label: 'Disaster' },
+  alert:     { color: 'bg-red-500',     bg: 'bg-red-50 dark:bg-red-950/20',     dot: 'bg-red-500',     textColor: 'text-red-600 dark:text-red-400',     label: 'Alert' },
+  warning:   { color: 'bg-amber-500',   bg: 'bg-amber-50 dark:bg-amber-950/20',   dot: 'bg-amber-500',   textColor: 'text-amber-600 dark:text-amber-400',   label: 'Warning' },
+  community: { color: 'bg-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950/20', dot: 'bg-emerald-500', textColor: 'text-emerald-600 dark:text-emerald-400', label: 'Community' },
+  tech:      { color: 'bg-violet-500',  bg: 'bg-violet-50 dark:bg-violet-950/20',  dot: 'bg-violet-500',  textColor: 'text-violet-600 dark:text-violet-400',  label: 'Tech' },
+  info:      { color: 'bg-blue-500',    bg: 'bg-blue-50 dark:bg-blue-950/20',    dot: 'bg-blue-500',    textColor: 'text-blue-600 dark:text-blue-400',    label: 'Info' },
+}
+
+function NewsTab({ newsItems, newsRefreshing, loadNews, refreshReports, totalPages, lastFetched }: {
+  newsItems: NewsItem[]
+  newsRefreshing: boolean
+  loadNews: (notify: boolean, page?: number) => Promise<void>
+  refreshReports?: () => void
+  totalPages: number
+  lastFetched: Date | null
+}) {
   const lang = useLanguage()
-  const typeConfig: Record<string, { color: string; bg: string; label: string }> = {
-    alert: { color: 'bg-red-500', bg: 'bg-red-50 dark:bg-red-950/20', label: t('cdash.news.alert', lang) },
-    warning: { color: 'bg-amber-500', bg: 'bg-amber-50 dark:bg-amber-950/20', label: t('cdash.news.warning', lang) },
-    community: { color: 'bg-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950/20', label: t('cdash.news.community', lang) },
-    tech: { color: 'bg-violet-500', bg: 'bg-violet-50 dark:bg-violet-950/20', label: t('cdash.news.tech', lang) },
-    info: { color: 'bg-blue-500', bg: 'bg-blue-50 dark:bg-blue-950/20', label: t('cdash.news.info', lang) },
+  const [activeFilter, setActiveFilter] = useState<string>('all')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [newItemsCount, setNewItemsCount] = useState<number | null>(null)
+
+  // Auto-refresh every 15 minutes silently
+  useEffect(() => {
+    const interval = setInterval(() => { loadNews(false, 1).catch(() => {}) }, 15 * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [loadNews])
+
+  const handleManualRefresh = async () => {
+    const prevUrls = new Set(newsItems.map(n => n.url))
+    setCurrentPage(1)
+    setActiveFilter('all')
+    setNewItemsCount(null)
+    await loadNews(true, 1)
+    // After load, compare new items — but newsItems state updates async so we rely on push notification
+    // Count new items once updated
+    const newCount = newsItems.filter(n => !prevUrls.has(n.url)).length
+    setNewItemsCount(newCount)
+    setTimeout(() => setNewItemsCount(null), 6000) // hide after 6s
+    refreshReports?.()
   }
 
+  const handleLoadMore = async () => {
+    const next = currentPage + 1
+    setCurrentPage(next)
+    await loadNews(false, next)
+  }
+
+  // Count per type for filter badges
+  const typeCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: newsItems.length }
+    for (const n of newsItems) counts[n.type] = (counts[n.type] || 0) + 1
+    return counts
+  }, [newsItems])
+
+  const filteredItems = useMemo(() => {
+    if (activeFilter === 'all') return newsItems
+    return newsItems.filter(n => n.type === activeFilter)
+  }, [newsItems, activeFilter])
+
+  const filterTypes = ['all', 'disaster', 'alert', 'warning', 'community', 'info', 'tech']
+
+  const lastFetchedLabel = lastFetched
+    ? `Updated ${lastFetched.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+    : null
+
   return (
-    <div className="max-w-4xl mx-auto space-y-5 animate-fade-in">
+    <div className="max-w-4xl mx-auto space-y-4 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -973,60 +1054,145 @@ function NewsTab({ newsItems, newsRefreshing, loadNews, refreshReports }: { news
             </div>
             {t('citizen.news.newsResources', lang)}
           </h2>
+          {lastFetchedLabel && (
+            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5 ml-[42px]">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block mr-1 align-middle" />
+              {lastFetchedLabel} &middot; Auto-refreshes every 15 min
+            </p>
+          )}
         </div>
-        <button onClick={async () => { await loadNews(true); refreshReports?.() }} disabled={newsRefreshing}
-          className="flex items-center gap-2 text-xs text-aegis-600 hover:text-aegis-700 bg-aegis-50/80 dark:bg-aegis-950/30 border border-aegis-200/80 dark:border-aegis-800/50 px-3.5 py-2 rounded-xl transition-all hover:shadow-sm disabled:opacity-60 font-semibold">
-          <RefreshCw className={`w-3.5 h-3.5 ${newsRefreshing ? 'animate-spin' : ''}`} /> {t('citizen.news.refresh', lang)}
+        <button
+          onClick={handleManualRefresh}
+          disabled={newsRefreshing}
+          className="flex items-center gap-2 text-xs text-aegis-600 hover:text-aegis-700 bg-aegis-50/80 dark:bg-aegis-950/30 border border-aegis-200/80 dark:border-aegis-800/50 px-3.5 py-2 rounded-xl transition-all hover:shadow-sm disabled:opacity-60 font-semibold"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${newsRefreshing ? 'animate-spin' : ''}`} />
+          {newsRefreshing ? 'Refreshing...' : t('citizen.news.refresh', lang)}
         </button>
       </div>
 
-      {newsItems.length === 0 ? (
+      {/* New-items banner */}
+      {newItemsCount !== null && (
+        <div className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold border ${
+          newItemsCount > 0
+            ? 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300 border-emerald-200/60 dark:border-emerald-800/40'
+            : 'bg-gray-50 dark:bg-gray-800/40 text-gray-500 dark:text-gray-400 border-gray-200/60 dark:border-gray-700/40'
+        }`}>
+          {newItemsCount > 0
+            ? <><CheckCircle className="w-3.5 h-3.5" /> {newItemsCount} new {newItemsCount === 1 ? 'story' : 'stories'} loaded</>
+            : <><Info className="w-3.5 h-3.5" /> No new stories yet — feeds update hourly</>}
+        </div>
+      )}
+
+      {/* Category filter pills */}
+      {newsItems.length > 0 && (
+        <div className="flex gap-1.5 flex-wrap">
+          {filterTypes.map(type => {
+            const count = typeCounts[type] || 0
+            if (type !== 'all' && type !== 'disaster' && count === 0) return null
+            const cfg = type === 'all' ? null : NEWS_TYPE_CONFIG[type]
+            const isActive = activeFilter === type
+            return (
+              <button
+                key={type}
+                onClick={() => setActiveFilter(type)}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all border ${
+                  isActive
+                    ? type === 'all'
+                      ? 'bg-gray-800 dark:bg-white text-white dark:text-gray-900 border-gray-800 dark:border-white'
+                      : `${cfg!.color.replace('bg-', 'bg-').replace('-500', '-500')} text-white border-transparent`
+                    : 'bg-white dark:bg-gray-800/60 text-gray-500 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                }`}
+              >
+                {cfg && <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-white' : cfg.dot}`} />}
+                {type === 'all' ? 'All' : cfg!.label}
+                <span className={`text-[9px] px-1 py-0.5 rounded ${
+                  isActive ? 'bg-black/20' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                }`}>{count}</span>
+              </button>
+            )
+          })}
+        </div>
+      )}
+
+      {/* News list */}
+      {newsRefreshing && newsItems.length === 0 ? (
+        <div className="glass-card rounded-2xl p-8 text-center">
+          <Loader2 className="w-6 h-6 text-aegis-500 mx-auto mb-2 animate-spin" />
+          <p className="text-xs text-gray-500 dark:text-gray-400">Fetching latest news...</p>
+        </div>
+      ) : filteredItems.length === 0 ? (
         <div className="glass-card rounded-2xl p-12 text-center">
           <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-4">
-            <Newspaper className="w-8 h-8 text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-600" />
+            <Newspaper className="w-8 h-8 text-gray-300 dark:text-gray-600" />
           </div>
-          <p className="text-sm font-medium text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('citizen.news.noNews', lang)}</p>
-          <p className="text-xs text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-1">{t('cdash.news.checkBackLater', lang)}</p>
+          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+            {activeFilter === 'all' ? t('citizen.news.noNews', lang) : `No ${NEWS_TYPE_CONFIG[activeFilter]?.label ?? activeFilter} items`}
+          </p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{t('cdash.news.checkBackLater', lang)}</p>
+          {activeFilter !== 'all' && (
+            <button onClick={() => setActiveFilter('all')} className="mt-3 text-xs text-aegis-600 dark:text-aegis-400 font-semibold hover:underline">Show all</button>
+          )}
         </div>
       ) : (
-        <div className="space-y-2.5">
-          {newsItems.map((n, i) => {
-            const cfg = typeConfig[n.type] || typeConfig.info
+        <div className="space-y-2">
+          {filteredItems.map((n, i) => {
+            const cfg = NEWS_TYPE_CONFIG[n.type] || NEWS_TYPE_CONFIG.info
             return (
-              <div key={i} className="glass-card rounded-2xl p-4 hover-lift transition-all group">
+              <div key={`${n.url}-${i}`} className="glass-card rounded-2xl p-4 hover-lift transition-all">
                 <div className="flex items-start gap-3.5">
                   <div className={`w-10 h-10 rounded-xl ${cfg.bg} flex items-center justify-center flex-shrink-0`}>
-                    <div className={`w-2.5 h-2.5 rounded-full ${cfg.color}`} />
+                    <div className={`w-2.5 h-2.5 rounded-full ${cfg.dot}`} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md ${cfg.bg} ${cfg.color.replace('bg-', 'text-').replace('-500', '-600')}`}>
+                    <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                      <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md ${cfg.bg} ${cfg.textColor}`}>
                         {cfg.label}
                       </span>
-                      <span className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{n.time}</span>
+                      <span className="text-[10px] text-gray-400 dark:text-gray-500">{n.time}</span>
+                      <span className="text-[10px] text-gray-400 dark:text-gray-500 truncate max-w-[120px]">{n.source}</span>
                     </div>
-                    <a href={n.url} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-gray-900 dark:text-white hover:text-aegis-600 dark:hover:text-aegis-400 transition-colors leading-snug">
+                    <a
+                      href={n.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-semibold text-gray-900 dark:text-white hover:text-aegis-600 dark:hover:text-aegis-400 transition-colors leading-snug block"
+                    >
                       {n.title}
                     </a>
-                    <p className="text-[11px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-0.5">{n.source}</p>
                   </div>
-                  <a href={n.url} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-[10px] text-aegis-600 hover:text-aegis-700 bg-aegis-50/80 dark:bg-aegis-950/30 border border-aegis-200/60 dark:border-aegis-800/40 px-2.5 py-1.5 rounded-lg flex-shrink-0 transition-colors opacity-0 group-hover:opacity-100 font-medium">
-                    <ExternalLink className="w-3 h-3" /> {t('cdash.news.read', lang)}
+                  <a
+                    href={n.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-[10px] text-aegis-600 hover:text-aegis-700 dark:text-aegis-400 dark:hover:text-aegis-300 bg-aegis-50/80 dark:bg-aegis-950/30 border border-aegis-200/60 dark:border-aegis-800/40 px-2.5 py-1.5 rounded-lg flex-shrink-0 transition-colors font-medium"
+                    aria-label={`Read: ${n.title}`}
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    <span className="hidden sm:inline">{t('cdash.news.read', lang)}</span>
                   </a>
                 </div>
               </div>
             )
           })}
+
+          {/* Load more */}
+          {activeFilter === 'all' && currentPage < totalPages && (
+            <button
+              onClick={handleLoadMore}
+              disabled={newsRefreshing}
+              className="w-full py-3 text-xs font-bold text-aegis-600 dark:text-aegis-400 bg-white dark:bg-gray-800/60 border border-aegis-200/60 dark:border-aegis-800/40 rounded-2xl hover:bg-aegis-50/80 dark:hover:bg-aegis-950/20 transition-all disabled:opacity-50"
+            >
+              {newsRefreshing ? <span className="flex items-center justify-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading...</span> : `Load more (page ${currentPage + 1} of ${totalPages})`}
+            </button>
+          )}
         </div>
       )}
     </div>
   )
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // COMMUNITY SECTION — Chat Room + Posts Feed with sub-tabs
-// ═══════════════════════════════════════════════════════════════════════════════
 
 function CommunitySection({ parentSocket }: { parentSocket?: Socket | null }) {
   const lang = useLanguage()
@@ -1041,7 +1207,7 @@ function CommunitySection({ parentSocket }: { parentSocket?: Socket | null }) {
           </div>
           <div>
             <h2 className="font-bold text-lg text-gray-900 dark:text-white">{t('citizen.tab.community', lang)}</h2>
-            <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{ t('cdash.community.subtitle', lang)}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{ t('cdash.community.subtitle', lang)}</p>
           </div>
         </div>
       </div>
@@ -1053,7 +1219,7 @@ function CommunitySection({ parentSocket }: { parentSocket?: Socket | null }) {
           className={`px-5 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 ${
             subTab === 'chat'
               ? 'bg-white dark:bg-gray-700 text-aegis-700 dark:text-white shadow-md'
-              : 'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'
+              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-400'
           }`}
         >
           <span className="flex items-center gap-1.5">
@@ -1066,7 +1232,7 @@ function CommunitySection({ parentSocket }: { parentSocket?: Socket | null }) {
           className={`px-5 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 ${
             subTab === 'posts'
               ? 'bg-white dark:bg-gray-700 text-aegis-700 dark:text-white shadow-md'
-              : 'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'
+              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-400'
           }`}
         >
           <span className="flex items-center gap-1.5">
@@ -1082,9 +1248,7 @@ function CommunitySection({ parentSocket }: { parentSocket?: Socket | null }) {
   )
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // TAB: LIVE MAP — DisasterMap + Intelligence + Weather + River Levels
-// ═══════════════════════════════════════════════════════════════════════════════
 
 function LiveMapTab({ reports, loc, userPosition, detectLocation, alerts, setSelectedAlert }: {
   reports: any[]; loc: any; userPosition: [number,number]|null; detectLocation: () => void; alerts: any[]; setSelectedAlert: (a: any) => void
@@ -1108,7 +1272,7 @@ function LiveMapTab({ reports, loc, userPosition, detectLocation, alerts, setSel
           <button
             onClick={() => setShowWeather(v => !v)}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-              showWeather ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' : 'bg-gray-100 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:bg-gray-800 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'
+              showWeather ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
             }`}
           >
             {t('citizen.map.weather', lang)}
@@ -1116,7 +1280,7 @@ function LiveMapTab({ reports, loc, userPosition, detectLocation, alerts, setSel
           <button
             onClick={() => setShowRivers(v => !v)}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-              showRivers ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300' : 'bg-gray-100 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:bg-gray-800 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'
+              showRivers ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
             }`}
           >
             {t('citizen.map.riverLevels', lang)}
@@ -1136,9 +1300,9 @@ function LiveMapTab({ reports, loc, userPosition, detectLocation, alerts, setSel
               <AlertTriangle className={`w-5 h-5 flex-shrink-0 ${a.severity === 'critical' ? 'text-red-600' : a.severity === 'warning' ? 'text-amber-600' : 'text-blue-600'}`} />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold truncate">{a.title}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 truncate">{a.message}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{a.message}</p>
               </div>
-              <ChevronRight className="w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex-shrink-0" />
+              <ChevronRight className="w-4 h-4 text-gray-400 dark:text-gray-400 flex-shrink-0" />
             </button>
           ))}
         </div>
@@ -1166,9 +1330,7 @@ function LiveMapTab({ reports, loc, userPosition, detectLocation, alerts, setSel
   )
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // TAB 1: OVERVIEW
-// ═══════════════════════════════════════════════════════════════════════════════
 
 function OverviewTab({ user, threads, recentSafety, emergencyContacts, totalUnread, setActiveTab, reportStats, onReportEmergency, onCommunityHelp, submitSafetyCheckIn }: any) {
   const lang = useLanguage()
@@ -1181,7 +1343,7 @@ function OverviewTab({ user, threads, recentSafety, emergencyContacts, totalUnre
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-fade-in">
 
-      {/* ── Hero Banner ────────────────────────────────────────────────── */}
+      {/* Hero Banner */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-aegis-600 via-aegis-700 to-aegis-800 p-6 sm:p-8 text-white shadow-xl shadow-aegis-600/20">
         {/* Decorative elements */}
         <div className="absolute -top-24 -right-24 w-64 h-64 bg-white/5 rounded-full blur-2xl" />
@@ -1210,7 +1372,7 @@ function OverviewTab({ user, threads, recentSafety, emergencyContacts, totalUnre
         </div>
       </div>
 
-      {/* ── Quick Safety Check-In ──────────────────────────────────────── */}
+      {/* Quick Safety Check-In */}
       <div className="glass-card rounded-2xl p-4 shadow-lg">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -1220,7 +1382,7 @@ function OverviewTab({ user, threads, recentSafety, emergencyContacts, totalUnre
             {t('cdash.overview.areYouSafe', lang)}
           </h3>
           {quickSafety && (
-            <button onClick={() => setQuickSafety(null)} className="text-[10px] font-bold text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-600 transition-colors">{t('cdash.overview.update', lang)}</button>
+            <button onClick={() => setQuickSafety(null)} className="text-[10px] font-bold text-gray-400 dark:text-gray-400 hover:text-gray-600 transition-colors">{t('cdash.overview.update', lang)}</button>
           )}
         </div>
         {quickSafety ? (
@@ -1255,7 +1417,7 @@ function OverviewTab({ user, threads, recentSafety, emergencyContacts, totalUnre
         )}
       </div>
 
-      {/* ── Situation Stats (glass cards) ──────────────────────────────── */}
+      {/* Situation Stats (glass cards) */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {[
           { label: t('citizen.overview.activeReports', lang), value: reportStats?.total ?? 0,      icon: FileText,    gradient: 'from-blue-500 to-blue-700',     bg: 'bg-blue-50   dark:bg-blue-950/40',   border: 'border-blue-200   dark:border-blue-800/60',   num: 'text-blue-700   dark:text-blue-300',   lbl: 'text-blue-600   dark:text-blue-400' },
@@ -1269,7 +1431,7 @@ function OverviewTab({ user, threads, recentSafety, emergencyContacts, totalUnre
               <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${s.gradient} flex items-center justify-center shadow-md`}>
                 <s.icon className="w-4 h-4 text-white" />
               </div>
-              <ChevronRight className="w-3.5 h-3.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-600 group-hover:translate-x-0.5 transition-all" />
+              <ChevronRight className="w-3.5 h-3.5 text-gray-400 dark:text-gray-400 group-hover:translate-x-0.5 transition-all" />
             </div>
             <p className={`text-2xl sm:text-3xl font-extrabold tracking-tight ${s.num}`}>{s.value}</p>
             <p className={`text-[10px] font-semibold uppercase tracking-wider mt-0.5 ${s.lbl}`}>{s.label}</p>
@@ -1277,7 +1439,7 @@ function OverviewTab({ user, threads, recentSafety, emergencyContacts, totalUnre
         ))}
       </div>
 
-      {/* ── Your Activity + Quick Actions (side-by-side) ───────────────── */}
+      {/* Your Activity + Quick Actions (side-by-side) */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         {/* Personal Stats */}
         <div className="lg:col-span-2 grid grid-cols-2 gap-3">
@@ -1314,14 +1476,14 @@ function OverviewTab({ user, threads, recentSafety, emergencyContacts, totalUnre
               <button key={i} onClick={a.action} className={`bg-white dark:bg-gray-800/60 border border-gray-200/80 dark:border-gray-700/50 rounded-xl p-3 text-left ${a.hoverBorder} transition-all duration-200 group hover:shadow-md`}>
                 <a.icon className={`w-4.5 h-4.5 ${a.color} mb-1.5 group-hover:scale-110 transition-transform`} />
                 <p className="text-xs font-semibold text-gray-900 dark:text-white leading-tight">{a.label}</p>
-                <p className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-0.5 leading-snug line-clamp-2">{a.desc}</p>
+                <p className="text-[10px] text-gray-400 dark:text-gray-400 mt-0.5 leading-snug line-clamp-2">{a.desc}</p>
               </button>
             ))}
           </div>
         </div>
       </div>
 
-      {/* ── Recent Conversations ───────────────────────────────────────── */}
+      {/* Recent Conversations */}
       {threads.length > 0 && (
         <div className="glass-card rounded-2xl overflow-hidden">
           <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 dark:border-gray-800/80">
@@ -1341,26 +1503,26 @@ function OverviewTab({ user, threads, recentSafety, emergencyContacts, totalUnre
                 }`} />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-gray-900 dark:text-white truncate group-hover:text-aegis-700 dark:group-hover:text-aegis-300 transition-colors">{th.subject}</p>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 truncate">{th.last_message || t('citizen.messages.noMessages', lang)}</p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">{th.last_message || t('citizen.messages.noMessages', lang)}</p>
                 </div>
                 {th.citizen_unread > 0 && (
                   <span className="bg-gradient-to-r from-aegis-600 to-aegis-700 text-white text-[10px] font-bold min-w-[20px] h-5 flex items-center justify-center rounded-full px-1.5 shadow-sm">{th.citizen_unread}</span>
                 )}
-                <span className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex-shrink-0">{th.updated_at ? timeAgo(th.updated_at) : ''}</span>
-                <ChevronRight className="w-3.5 h-3.5 text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-600 group-hover:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
+                <span className="text-[10px] text-gray-400 dark:text-gray-400 flex-shrink-0">{th.updated_at ? timeAgo(th.updated_at) : ''}</span>
+                <ChevronRight className="w-3.5 h-3.5 text-gray-300 dark:text-gray-400 group-hover:text-gray-500 dark:text-gray-400 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
               </div>
             ))}
           </div>
           {threads.length === 0 && (
             <div className="px-5 py-8 text-center">
-              <MessageSquare className="w-8 h-8 text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-600 mx-auto mb-2" />
-              <p className="text-sm text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('cdash.overview.noConversations', lang)}</p>
+              <MessageSquare className="w-8 h-8 text-gray-300 dark:text-gray-400 mx-auto mb-2" />
+              <p className="text-sm text-gray-400 dark:text-gray-400">{t('cdash.overview.noConversations', lang)}</p>
             </div>
           )}
         </div>
       )}
 
-      {/* ── Preparedness Journey — Risk → Prepare → Emergency ──────── */}
+      {/* Preparedness Journey — Risk → Prepare → Emergency */}
       <div className="glass-card rounded-2xl overflow-hidden">
         <div className="px-5 py-3.5 border-b border-gray-100 dark:border-gray-800/80 flex items-center justify-between">
           <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -1372,7 +1534,7 @@ function OverviewTab({ user, threads, recentSafety, emergencyContacts, totalUnre
           <span className="text-[9px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 px-2.5 py-1 rounded-full border border-amber-200/50 dark:border-amber-800/50">{t('cdash.overview.recommended', lang)}</span>
         </div>
         <div className="p-5">
-          <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-4">{t('cdash.overview.journeyDesc', lang)}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{t('cdash.overview.journeyDesc', lang)}</p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {/* Step 1: Risk Assessment */}
             <button onClick={() => setActiveTab('risk')} className="group bg-gradient-to-br from-rose-50 to-red-50 dark:from-rose-950/20 dark:to-red-950/10 border border-rose-200/60 dark:border-rose-800/40 rounded-xl p-4 text-left hover:shadow-lg hover:border-rose-300 dark:hover:border-rose-700 transition-all duration-300">
@@ -1384,7 +1546,7 @@ function OverviewTab({ user, threads, recentSafety, emergencyContacts, totalUnre
                 <Activity className="w-4.5 h-4.5 text-white" />
               </div>
               <p className="text-sm font-bold text-gray-900 dark:text-white">{t('cdash.overview.riskAssessment', lang)}</p>
-              <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-0.5 leading-relaxed">{t('cdash.overview.riskAssessmentDesc', lang)}</p>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">{t('cdash.overview.riskAssessmentDesc', lang)}</p>
               <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-600 dark:text-rose-400 mt-2 group-hover:translate-x-0.5 transition-transform">
                 {t('cdash.overview.open', lang)} <ChevronRight className="w-3 h-3" />
               </span>
@@ -1399,7 +1561,7 @@ function OverviewTab({ user, threads, recentSafety, emergencyContacts, totalUnre
                 <BookOpen className="w-4.5 h-4.5 text-white" />
               </div>
               <p className="text-sm font-bold text-gray-900 dark:text-white">{t('cdash.overview.prepTraining', lang)}</p>
-              <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-0.5 leading-relaxed">{t('cdash.overview.prepTrainingDesc', lang)}</p>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">{t('cdash.overview.prepTrainingDesc', lang)}</p>
               <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 mt-2 group-hover:translate-x-0.5 transition-transform">
                 {t('cdash.overview.open', lang)} <ChevronRight className="w-3 h-3" />
               </span>
@@ -1414,7 +1576,7 @@ function OverviewTab({ user, threads, recentSafety, emergencyContacts, totalUnre
                 <Shield className="w-4.5 h-4.5 text-white" />
               </div>
               <p className="text-sm font-bold text-gray-900 dark:text-white">{t('cdash.overview.emergencyCard', lang)}</p>
-              <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-0.5 leading-relaxed">{t('cdash.overview.emergencyCardDesc', lang)}</p>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">{t('cdash.overview.emergencyCardDesc', lang)}</p>
               <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-600 dark:text-amber-400 mt-2 group-hover:translate-x-0.5 transition-transform">
                 {t('cdash.overview.open', lang)} <ChevronRight className="w-3 h-3" />
               </span>
@@ -1423,7 +1585,7 @@ function OverviewTab({ user, threads, recentSafety, emergencyContacts, totalUnre
         </div>
       </div>
 
-      {/* ── Emergency Quick Dial ───────────────────────────────────────── */}
+      {/* Emergency Quick Dial */}
       {emergencyContacts && emergencyContacts.length > 0 && (
         <div className="glass-card rounded-2xl p-4">
           <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
@@ -1441,7 +1603,7 @@ function OverviewTab({ user, threads, recentSafety, emergencyContacts, totalUnre
                 </div>
                 <div className="min-w-0">
                   <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{c.name}</p>
-                  <p className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 truncate">{c.phone || c.relationship}</p>
+                  <p className="text-[10px] text-gray-400 dark:text-gray-400 truncate">{c.phone || c.relationship}</p>
                 </div>
               </a>
             ))}
@@ -1452,9 +1614,7 @@ function OverviewTab({ user, threads, recentSafety, emergencyContacts, totalUnre
   )
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // TAB 2: MESSAGES — Real-time Socket.IO Chat
-// ═══════════════════════════════════════════════════════════════════════════════
 
 function MessagesTab({ socket, user }: { socket: any; user: any }) {
   const lang = useLanguage()
@@ -1685,7 +1845,7 @@ function MessagesTab({ socket, user }: { socket: any; user: any }) {
 
   const threadTypers = typingUsers.filter((t: any) => t.threadId === activeThread?.id && t.userId !== user.id)
 
-  // ── Thread List View ─────────────────────────────────────────────────
+  // Thread List View
   if (!activeThread) {
     return (
       <div className="max-w-3xl mx-auto">
@@ -1718,10 +1878,10 @@ function MessagesTab({ socket, user }: { socket: any; user: any }) {
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 mb-4 shadow-lg space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{t('citizen.messages.startConversation', lang)}</h3>
-              <button onClick={() => setShowNewThread(false)} className="text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-600"><X className="w-4 h-4" /></button>
+              <button onClick={() => setShowNewThread(false)} className="text-gray-400 dark:text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-1">{t('citizen.messages.subject', lang)}</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('citizen.messages.subject', lang)}</label>
               <input
                 value={newSubject}
                 onChange={e => setNewSubject(e.target.value)}
@@ -1730,14 +1890,14 @@ function MessagesTab({ socket, user }: { socket: any; user: any }) {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-1">{t('citizen.messages.category', lang)}</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('citizen.messages.category', lang)}</label>
               <select value={newCategory} onChange={e => setNewCategory(e.target.value)}
                 className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 transition appearance-none">
                 {THREAD_CATEGORIES.map(c => <option key={c.value} value={c.value}>{t(c.labelKey, lang)}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-1">{t('citizen.messages.message', lang)}</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('citizen.messages.message', lang)}</label>
               <textarea
                 value={newMessage}
                 onChange={e => setNewMessage(e.target.value)}
@@ -1751,7 +1911,7 @@ function MessagesTab({ socket, user }: { socket: any; user: any }) {
                 className="bg-aegis-600 hover:bg-aegis-700 disabled:bg-aegis-400 text-white text-xs font-semibold px-4 py-2 rounded-lg transition flex items-center gap-1.5">
                 {creating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />} {t('citizen.messages.send', lang)}
               </button>
-              <button onClick={() => setShowNewThread(false)} className="text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-700 text-xs px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700">{t('citizen.messages.cancel', lang)}</button>
+              <button onClick={() => setShowNewThread(false)} className="text-gray-500 dark:text-gray-400 hover:text-gray-700 text-xs px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700">{t('citizen.messages.cancel', lang)}</button>
             </div>
           </div>
         )}
@@ -1761,16 +1921,16 @@ function MessagesTab({ socket, user }: { socket: any; user: any }) {
           <div className="bg-white dark:bg-gray-900 border border-amber-200 dark:border-amber-800/50 rounded-xl p-12 text-center">
             <Wifi className="w-12 h-12 text-amber-400 mx-auto mb-3" />
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">{t('cdash.messages.connectingToServer', lang)}</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-4">{t('cdash.messages.connectingDesc', lang)}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{t('cdash.messages.connectingDesc', lang)}</p>
             <button onClick={handleRefresh} className="bg-amber-500 hover:bg-amber-400 text-white text-xs font-semibold px-4 py-2 rounded-lg transition flex items-center gap-1.5 mx-auto">
               <RefreshCw className="w-3.5 h-3.5" /> {t('cdash.messages.retryConnection', lang)}
             </button>
           </div>
         ) : threads.length === 0 ? (
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-12 text-center">
-            <MessageSquare className="w-12 h-12 text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-700 mx-auto mb-3" />
+            <MessageSquare className="w-12 h-12 text-gray-300 dark:text-gray-400 mx-auto mb-3" />
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">{t('citizen.messages.noConversations', lang)}</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-4">{t('citizen.messages.startHelp', lang)}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{t('citizen.messages.startHelp', lang)}</p>
             <button onClick={() => setShowNewThread(true)} className="bg-aegis-600 hover:bg-aegis-700 text-white text-xs font-semibold px-4 py-2 rounded-lg transition">
               {t('citizen.messages.startButton', lang)}
             </button>
@@ -1788,15 +1948,15 @@ function MessagesTab({ socket, user }: { socket: any; user: any }) {
                     <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{th.subject}</p>
                     {th.is_emergency && <span className="text-[9px] bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 px-1.5 py-0.5 rounded font-bold uppercase">{t('cdash.messages.emergency', lang)}</span>}
                   </div>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 truncate mt-0.5">{th.last_message || t('citizen.messages.noMessages', lang)}</p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate mt-0.5">{th.last_message || t('citizen.messages.noMessages', lang)}</p>
                 </div>
                 <div className="flex flex-col items-end gap-1 flex-shrink-0">
                   {th.citizen_unread > 0 && (
                     <span className="bg-aegis-600 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full">{th.citizen_unread}</span>
                   )}
-                  <span className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{th.updated_at ? timeAgo(th.updated_at) : ''}</span>
+                  <span className="text-[10px] text-gray-400 dark:text-gray-400">{th.updated_at ? timeAgo(th.updated_at) : ''}</span>
                 </div>
-                <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex-shrink-0" />
+                <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-400 flex-shrink-0" />
               </button>
             ))}
           </div>
@@ -1805,12 +1965,12 @@ function MessagesTab({ socket, user }: { socket: any; user: any }) {
     )
   }
 
-  // ── Chat View (Active Thread) ──────────────────────────────────────────
+  // Chat View (Active Thread)
   return (
     <div className="max-w-3xl mx-auto flex flex-col h-[calc(100vh-140px)] md:h-[calc(100vh-100px)]">
       {/* Chat Header */}
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-t-xl px-4 py-3 flex items-center gap-3">
-        <button onClick={() => { setActiveThread(null) }} className="text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-600 transition">
+        <button onClick={() => { setActiveThread(null) }} className="text-gray-400 dark:text-gray-400 hover:text-gray-600 transition">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="min-w-0 flex-1">
@@ -1820,7 +1980,7 @@ function MessagesTab({ socket, user }: { socket: any; user: any }) {
               <span className="text-[9px] bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 px-1.5 py-0.5 rounded font-bold uppercase flex-shrink-0">{t('cdash.messages.emergency', lang)}</span>
             )}
           </div>
-          <p className="text-[11px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+          <p className="text-[11px] text-gray-500 dark:text-gray-400">
             {activeThread.status === 'resolved' ? t('citizen.messages.resolved', lang) : activeThread.assigned_operator_name ? `${t('citizen.messages.assignedTo', lang)} ${activeThread.assigned_operator_name}` : t('citizen.messages.waitingOperator', lang)}
           </p>
         </div>
@@ -1849,7 +2009,7 @@ function MessagesTab({ socket, user }: { socket: any; user: any }) {
               </option>
             ))}
           </select>
-          <label className="flex items-center gap-1 text-[10px] text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+          <label className="flex items-center gap-1 text-[10px] text-gray-600 dark:text-gray-400">
             <input
               type="checkbox"
               checked={autoTranslate}
@@ -1864,7 +2024,7 @@ function MessagesTab({ socket, user }: { socket: any; user: any }) {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-950 border-x border-gray-200 dark:border-gray-800 px-4 py-3 space-y-3">
         {messages.length === 0 && (
-          <div className="text-center py-8 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 text-sm">{t('citizen.messages.noMessages', lang)}</div>
+          <div className="text-center py-8 text-gray-400 dark:text-gray-400 text-sm">{t('citizen.messages.noMessages', lang)}</div>
         )}
         {messages.map((msg: ChatMessage) => {
           const isMine = msg.sender_id === user.id && msg.sender_type === 'citizen'
@@ -1880,7 +2040,7 @@ function MessagesTab({ socket, user }: { socket: any; user: any }) {
                     <p className="text-[10px] font-semibold text-aegis-600 dark:text-aegis-400">
                       {msg.sender_name || t('cdash.messages.supportTeam', lang)}
                     </p>
-                    <p className="text-[9px] uppercase tracking-wide text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+                    <p className="text-[9px] uppercase tracking-wide text-gray-500 dark:text-gray-400">
                       {msg.sender_type === 'operator'
                         ? (msg.sender_role === 'admin' ? t('cdash.messages.admin', lang) : msg.sender_role ? msg.sender_role.replace('_', ' ') : t('cdash.messages.operator', lang))
                         : t('cdash.messages.citizen', lang)}
@@ -1902,7 +2062,7 @@ function MessagesTab({ socket, user }: { socket: any; user: any }) {
                   />
                 )}
                 <div className={`flex items-center gap-1 mt-1 ${isMine ? 'justify-end' : 'justify-start'}`}>
-                  <span className={`text-[10px] ${isMine ? 'text-white/60' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`}>
+                  <span className={`text-[10px] ${isMine ? 'text-white/60' : 'text-gray-400 dark:text-gray-400'}`}>
                     {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
                   {isMine && <MessageStatusIcon status={msg.status} />}
@@ -1912,7 +2072,7 @@ function MessagesTab({ socket, user }: { socket: any; user: any }) {
                       className={`ml-1 px-1 py-0.5 rounded transition-colors ${
                         translations[msg.id]
                           ? (isMine ? 'text-white/80 bg-white/10' : 'text-blue-500 bg-blue-50 dark:bg-blue-950/30')
-                          : (isMine ? 'text-white/40 hover:text-white/70 hover:bg-white/10' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/30')
+                          : (isMine ? 'text-white/40 hover:text-white/70 hover:bg-white/10' : 'text-gray-400 dark:text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/30')
                       }`}
                       title={translations[msg.id] ? t('cdash.messages.removeTranslation', lang) : t('cdash.messages.translate', lang)}
                     >
@@ -1935,7 +2095,7 @@ function MessagesTab({ socket, user }: { socket: any; user: any }) {
                   <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '200ms' }} />
                   <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '400ms' }} />
                 </div>
-                <span className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{threadTypers[0].userName} {t('citizen.messages.isTyping', lang)}</span>
+                <span className="text-[10px] text-gray-400 dark:text-gray-400">{threadTypers[0].userName} {t('citizen.messages.isTyping', lang)}</span>
               </div>
             </div>
           </div>
@@ -1969,7 +2129,7 @@ function MessagesTab({ socket, user }: { socket: any; user: any }) {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-aegis-600 hover:border-aegis-300 transition"
+              className="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:text-aegis-600 hover:border-aegis-300 transition"
               title={t('cdash.messages.attachImage', lang)}
             >
               <Camera className="w-4 h-4" />
@@ -1989,7 +2149,7 @@ function MessagesTab({ socket, user }: { socket: any; user: any }) {
           </div>
         </div>
       ) : (
-        <div className="bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-b-xl px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+        <div className="bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-b-xl px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-400">
           {t('citizen.messages.conversationClosed', lang)} {activeThread.status}
         </div>
       )}
@@ -1997,9 +2157,7 @@ function MessagesTab({ socket, user }: { socket: any; user: any }) {
   )
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // TAB 3: SAFETY CHECK-IN
-// ═══════════════════════════════════════════════════════════════════════════════
 
 function SafetyTab({ submitSafetyCheckIn, recentSafety, onEnterSafetyMode }: any) {
   const lang = useLanguage()
@@ -2041,13 +2199,13 @@ function SafetyTab({ submitSafetyCheckIn, recentSafety, onEnterSafetyMode }: any
             </div>
             {t('citizen.safety.title', lang)}
           </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-1">{t('cdash.safety.subtitle', lang)}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('cdash.safety.subtitle', lang)}</p>
         </div>
       </div>
 
       {/* Check-in Card */}
       <div className="glass-card rounded-2xl p-6 space-y-5">
-        <p className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('cdash.safety.selectInstruction', lang)}</p>
+        <p className="text-sm text-gray-600 dark:text-gray-400">{t('cdash.safety.selectInstruction', lang)}</p>
 
         {/* Status Buttons — Large & Prominent */}
         <div className="grid grid-cols-3 gap-3">
@@ -2069,10 +2227,10 @@ function SafetyTab({ submitSafetyCheckIn, recentSafety, onEnterSafetyMode }: any
                 <div className={`w-12 h-12 rounded-2xl mx-auto mb-2 flex items-center justify-center transition-all ${
                   isActive ? `bg-gradient-to-br ${cfg.gradient} shadow-lg` : 'bg-gray-100 dark:bg-gray-700'
                 }`}>
-                  <s.icon className={`w-6 h-6 ${isActive ? 'text-white' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`} />
+                  <s.icon className={`w-6 h-6 ${isActive ? 'text-white' : 'text-gray-400 dark:text-gray-400'}`} />
                 </div>
-                <p className={`text-sm font-bold ${isActive ? cfg.text : 'text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`}>{s.label}</p>
-                <p className={`text-[10px] mt-0.5 ${isActive ? cfg.text.replace('700', '500').replace('300', '400') : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`}>{s.desc}</p>
+                <p className={`text-sm font-bold ${isActive ? cfg.text : 'text-gray-600 dark:text-gray-400'}`}>{s.label}</p>
+                <p className={`text-[10px] mt-0.5 ${isActive ? cfg.text.replace('700', '500').replace('300', '400') : 'text-gray-400 dark:text-gray-400'}`}>{s.desc}</p>
               </button>
             )
           })}
@@ -2087,7 +2245,7 @@ function SafetyTab({ submitSafetyCheckIn, recentSafety, onEnterSafetyMode }: any
             className="w-full px-4 py-3 text-sm bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition resize-none"
             rows={2}
           />
-          <MapPin className="absolute right-3 bottom-3 w-4 h-4 text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-600" />
+          <MapPin className="absolute right-3 bottom-3 w-4 h-4 text-gray-300 dark:text-gray-400" />
         </div>
 
         {/* Submit Button */}
@@ -2116,9 +2274,9 @@ function SafetyTab({ submitSafetyCheckIn, recentSafety, onEnterSafetyMode }: any
           </div>
           <div className="flex-1">
             <p className="text-base font-bold text-red-700 dark:text-red-300 group-hover:text-red-600">{t('cdash.safety.publicSafetyMode', lang)}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-0.5">{t('cdash.safety.publicSafetyModeDesc', lang)}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t('cdash.safety.publicSafetyModeDesc', lang)}</p>
           </div>
-          <ChevronRight className="w-5 h-5 text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-600 group-hover:text-red-400 group-hover:translate-x-1 transition-all" />
+          <ChevronRight className="w-5 h-5 text-gray-300 dark:text-gray-400 group-hover:text-red-400 group-hover:translate-x-1 transition-all" />
         </div>
       </button>
 
@@ -2126,7 +2284,7 @@ function SafetyTab({ submitSafetyCheckIn, recentSafety, onEnterSafetyMode }: any
       {recentSafety && recentSafety.length > 0 && (
         <div className="glass-card rounded-2xl overflow-hidden">
           <h3 className="px-5 py-3.5 border-b border-gray-100 dark:border-gray-800/80 text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <Clock className="w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" /> {t('citizen.safety.recentCheckins', lang)}
+            <Clock className="w-4 h-4 text-gray-400 dark:text-gray-400" /> {t('citizen.safety.recentCheckins', lang)}
           </h3>
           <div className="divide-y divide-gray-100/80 dark:divide-gray-800/60">
             {recentSafety.map((c: any, idx: number) => (
@@ -2139,9 +2297,9 @@ function SafetyTab({ submitSafetyCheckIn, recentSafety, onEnterSafetyMode }: any
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-gray-900 dark:text-white capitalize">{c.status}</p>
-                  {c.message && <p className="text-[11px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 truncate mt-0.5">{c.message}</p>}
+                  {c.message && <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate mt-0.5">{c.message}</p>}
                 </div>
-                <span className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex-shrink-0">{timeAgo(c.created_at)}</span>
+                <span className="text-[10px] text-gray-400 dark:text-gray-400 flex-shrink-0">{timeAgo(c.created_at)}</span>
               </div>
             ))}
           </div>
@@ -2151,9 +2309,98 @@ function SafetyTab({ submitSafetyCheckIn, recentSafety, onEnterSafetyMode }: any
   )
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // TAB 4: PROFILE
-// ═══════════════════════════════════════════════════════════════════════════════
+
+function ProfileRegionSelect({ value, onChange, country }: { value: string; onChange: (v: string) => void; country: string }) {
+  const regions = REGION_MAP[country] || []
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const ref = useRef<HTMLDivElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const filtered = query.trim()
+    ? regions.filter(r => r.label.toLowerCase().includes(query.toLowerCase()))
+    : regions
+
+  useEffect(() => {
+    if (open) setTimeout(() => inputRef.current?.focus(), 50)
+    else setQuery('')
+  }, [open])
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      const target = e.target as Node
+      if (ref.current && !ref.current.contains(target) && (!dropdownRef.current || !dropdownRef.current.contains(target))) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  // If no regions for this country, show free-text input
+  if (regions.length === 0) {
+    return (
+      <input type="text" value={value} onChange={e => onChange(e.target.value)}
+        placeholder="Type your region/city..."
+        className="w-full px-3.5 py-2.5 text-sm bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition" />
+    )
+  }
+
+  const selectedLabel = regions.find(r => r.value === value || r.label === value)?.label || value
+
+  // Compute portal position
+  const getPortalStyle = (): React.CSSProperties => {
+    if (!ref.current) return {}
+    const rect = ref.current.getBoundingClientRect()
+    const spaceBelow = window.innerHeight - rect.bottom
+    const goUp = spaceBelow < 260
+    return {
+      position: 'fixed',
+      left: rect.left,
+      width: rect.width,
+      ...(goUp ? { bottom: window.innerHeight - rect.top + 4 } : { top: rect.bottom + 4 }),
+      zIndex: 9999,
+    }
+  }
+
+  return (
+    <div ref={ref} className="relative">
+      <button type="button" onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center gap-2 px-3.5 py-2.5 text-sm bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-aegis-400 transition text-left">
+        <MapPin className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+        <span className="flex-1 text-gray-900 dark:text-white truncate">{selectedLabel || 'Select region...'}</span>
+        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && createPortal(
+        <div ref={dropdownRef} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl overflow-hidden" style={getPortalStyle()}>
+          <div className="p-2 border-b border-gray-100 dark:border-gray-800 flex items-center gap-2">
+            <Search className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+            <input ref={inputRef} type="text" value={query} onChange={e => setQuery(e.target.value)}
+              placeholder="Search or type region..." className="flex-1 bg-transparent text-sm outline-none text-gray-900 dark:text-white placeholder-gray-400" />
+            {query && <button type="button" onClick={() => setQuery('')}><X className="w-3.5 h-3.5 text-gray-400" /></button>}
+          </div>
+          <div className="max-h-52 overflow-y-auto">
+            {filtered.map(r => (
+              <button key={r.value} type="button"
+                onClick={() => { onChange(r.label); setOpen(false) }}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-aegis-50 dark:hover:bg-aegis-950/30 transition-colors text-left ${(r.value === value || r.label === value) ? 'bg-aegis-50 dark:bg-aegis-950/20 font-semibold' : ''}`}>
+                <MapPin className="w-3 h-3 text-gray-400" />
+                <span className="text-gray-900 dark:text-white">{r.label}</span>
+              </button>
+            ))}
+            {filtered.length === 0 && query.trim() && (
+              <button type="button" onClick={() => { onChange(query.trim()); setOpen(false) }}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm hover:bg-aegis-50 dark:hover:bg-aegis-950/30 transition-colors text-left text-aegis-600 font-medium">
+                <Plus className="w-3.5 h-3.5" /> Use "{query.trim()}"
+              </button>
+            )}
+          </div>
+        </div>,
+        document.body,
+      )}
+    </div>
+  )
+}
 
 function ProfileTab({ user, updateProfile, uploadAvatar, refreshProfile }: any) {
   const lang = useLanguage()
@@ -2248,7 +2495,7 @@ function ProfileTab({ user, updateProfile, uploadAvatar, refreshProfile }: any) 
             </div>
             <div className="min-w-0 pb-1">
               <h3 className="text-lg sm:text-xl font-extrabold text-gray-900 dark:text-white truncate">{user.displayName}</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 truncate">{user.email}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
               {user.isVulnerable && (
                 <span className="inline-flex items-center gap-1 mt-1.5 text-[10px] font-semibold bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-lg">
                   <Heart className="w-3 h-3" /> {t('cdash.profile.prioritySupport', lang)}
@@ -2282,26 +2529,39 @@ function ProfileTab({ user, updateProfile, uploadAvatar, refreshProfile }: any) 
             { label: t('cdash.profile.dateOfBirth', lang), key: 'dateOfBirth', icon: Calendar, type: 'date', value: user.dateOfBirth ? new Date(user.dateOfBirth).toLocaleDateString() : '' },
           ].map(field => (
             <div key={field.key}>
-              <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-1.5">
+              <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">
                 <field.icon className="w-3 h-3" /> {field.label}
               </label>
               {editing ? (
-                <input
-                  type={field.type || 'text'}
-                  value={field.type === 'date' ? (form as any)[field.key]?.split?.('T')?.[0] || '' : (form as any)[field.key]}
-                  onChange={e => setForm(f => ({ ...f, [field.key]: e.target.value }))}
-                  className="w-full px-3.5 py-2.5 text-sm bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition"
-                  placeholder={field.placeholder}
-                />
+                field.key === 'country' ? (
+                  <ProfileCountryPicker value={form.country} onChange={(name: string) => setForm(f => ({ ...f, country: name, preferredRegion: '' }))} />
+                ) : field.key === 'preferredRegion' ? (
+                  <ProfileRegionSelect value={form.preferredRegion} onChange={(v: string) => setForm(f => ({ ...f, preferredRegion: v }))} country={form.country} />
+                ) : (
+                  <input
+                    type={field.type || 'text'}
+                    value={field.type === 'date' ? (form as any)[field.key]?.split?.('T')?.[0] || '' : (form as any)[field.key]}
+                    onChange={e => setForm(f => ({ ...f, [field.key]: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 text-sm bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition"
+                    placeholder={field.placeholder}
+                  />
+                )
               ) : (
-                <p className="text-sm text-gray-900 dark:text-white py-2.5 px-1 capitalize">{field.value || '—'}</p>
+                field.key === 'country' && field.value ? (
+                  <p className="text-sm text-gray-900 dark:text-white py-2.5 px-1 flex items-center gap-2">
+                    {(() => { const c = ALL_COUNTRY_CODES.find(cc => cc.name === field.value); return c ? <img src={getFlagUrl(c.code.toLowerCase(), 20)} alt="" className="w-5 h-[14px] object-cover rounded-sm" /> : null })()}
+                    {field.value}
+                  </p>
+                ) : (
+                  <p className="text-sm text-gray-900 dark:text-white py-2.5 px-1 capitalize">{field.value || '—'}</p>
+                )
               )}
             </div>
           ))}
         </div>
 
         <div>
-          <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-1.5">
+          <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">
             <Edit3 className="w-3 h-3" /> {t('cdash.profile.bio', lang)}
           </label>
           {editing ? (
@@ -2343,8 +2603,8 @@ function ProfileTab({ user, updateProfile, uploadAvatar, refreshProfile }: any) 
         ) : (
           <div className={`rounded-xl p-4 ${user.isVulnerable ? 'bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/10 border border-amber-200/80 dark:border-amber-800/40' : 'bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700'}`}>
             <div className="flex items-center gap-2">
-              <Heart className={`w-4 h-4 ${user.isVulnerable ? 'text-amber-600' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`} />
-              <span className={`text-sm font-semibold ${user.isVulnerable ? 'text-amber-800 dark:text-amber-300' : 'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`}>
+              <Heart className={`w-4 h-4 ${user.isVulnerable ? 'text-amber-600' : 'text-gray-400 dark:text-gray-400'}`} />
+              <span className={`text-sm font-semibold ${user.isVulnerable ? 'text-amber-800 dark:text-amber-300' : 'text-gray-500 dark:text-gray-400'}`}>
                 {user.isVulnerable ? t('cdash.profile.priorityActive', lang) : t('cdash.profile.priorityNotActive', lang)}
               </span>
             </div>
@@ -2371,8 +2631,8 @@ function ProfileTab({ user, updateProfile, uploadAvatar, refreshProfile }: any) 
           ].map((item, i) => (
             <div key={i} className="bg-gray-50/80 dark:bg-gray-800/40 rounded-xl p-3">
               <div className="flex items-center gap-1.5 mb-1">
-                <item.icon className="w-3 h-3 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
-                <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-wider">{item.label}</p>
+                <item.icon className="w-3 h-3 text-gray-400 dark:text-gray-400" />
+                <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-400 uppercase tracking-wider">{item.label}</p>
               </div>
               <p className={`text-sm font-semibold ${item.color || 'text-gray-900 dark:text-white'} ${item.capitalize ? 'capitalize' : ''} truncate`}>{item.value}</p>
             </div>
@@ -2383,9 +2643,7 @@ function ProfileTab({ user, updateProfile, uploadAvatar, refreshProfile }: any) 
   )
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // TAB 5: SECURITY — Change Password
-// ═══════════════════════════════════════════════════════════════════════════════
 
 function SecurityTab({ changePassword }: any) {
   const lang = useLanguage()
@@ -2429,7 +2687,7 @@ function SecurityTab({ changePassword }: any) {
           </div>
           {t('citizen.security.title', lang)}
         </h2>
-        <p className="text-sm text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-1 ml-[42px]">{t('cdash.security.desc', lang)}</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-[42px]">{t('cdash.security.desc', lang)}</p>
       </div>
 
       {msg && (
@@ -2445,12 +2703,12 @@ function SecurityTab({ changePassword }: any) {
 
       <form onSubmit={handleSubmit} className="glass-card rounded-2xl p-6 space-y-5">
         <div>
-          <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-2">
+          <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">
             <Lock className="w-3 h-3" /> {t('citizen.security.currentPassword', lang)}
           </label>
           <div className="relative">
             <div className="absolute left-3.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-              <Lock className="w-3.5 h-3.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
+              <Lock className="w-3.5 h-3.5 text-gray-400 dark:text-gray-400" />
             </div>
             <input
               type={showPw ? 'text' : 'password'}
@@ -2459,19 +2717,19 @@ function SecurityTab({ changePassword }: any) {
               className="w-full pl-14 pr-12 py-3 text-sm bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition"
               required
             />
-            <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-600 transition-colors p-1">
+            <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-400 hover:text-gray-600 transition-colors p-1">
               {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
         </div>
 
         <div>
-          <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-2">
+          <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">
             <Lock className="w-3 h-3" /> {t('citizen.security.newPassword', lang)}
           </label>
           <div className="relative">
             <div className="absolute left-3.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-              <Lock className="w-3.5 h-3.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
+              <Lock className="w-3.5 h-3.5 text-gray-400 dark:text-gray-400" />
             </div>
             <input
               type={showPw ? 'text' : 'password'}
@@ -2489,18 +2747,18 @@ function SecurityTab({ changePassword }: any) {
                   <div key={i} className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${i <= strength.score ? strength.color : 'bg-gray-200 dark:bg-gray-700'}`} />
                 ))}
               </div>
-              <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-1 font-medium">{strength.label}</p>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1 font-medium">{strength.label}</p>
             </div>
           )}
         </div>
 
         <div>
-          <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-2">
+          <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">
             <Lock className="w-3 h-3" /> {t('citizen.security.confirmNewPassword', lang)}
           </label>
           <div className="relative">
             <div className="absolute left-3.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-              <Lock className="w-3.5 h-3.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
+              <Lock className="w-3.5 h-3.5 text-gray-400 dark:text-gray-400" />
             </div>
             <input
               type={showPw ? 'text' : 'password'}
@@ -2525,14 +2783,12 @@ function SecurityTab({ changePassword }: any) {
   )
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // TAB 6: SETTINGS — Preferences
-// ═══════════════════════════════════════════════════════════════════════════════
 
 function SettingsTab({ preferences, updatePreferences }: any) {
   const lang = useLanguage()
   const { token, logout } = useCitizenAuth()
-  const { dark, toggle: toggleTheme } = useTheme()
+  const { setTheme } = useTheme()
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
   const [msgType, setMsgType] = useState<'success' | 'error'>('success')
@@ -2544,39 +2800,94 @@ function SettingsTab({ preferences, updatePreferences }: any) {
   const [deletionLoading, setDeletionLoading] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
-  const initialForm = {
-    audioAlertsEnabled: preferences?.audio_alerts_enabled ?? true,
-    autoPlayCritical: preferences?.auto_play_critical ?? true,
+  const buildForm = (prefs: any) => ({
+    audioAlertsEnabled: prefs?.audio_alerts_enabled ?? true,
+    autoPlayCritical: prefs?.auto_play_critical ?? true,
     audioVolume: (() => {
-      const raw = preferences?.audio_volume ?? 70
+      const raw = prefs?.audio_volume ?? 70
       // Server stores as 0-1, display as 0-100
       return typeof raw === 'number' && raw <= 1 ? Math.round(raw * 100) : raw
     })(),
-    captionsEnabled: preferences?.captions_enabled ?? false,
-    captionFontSize: preferences?.caption_font_size ?? 'medium',
-    darkMode: preferences?.dark_mode ?? false,
-    compactView: preferences?.compact_view ?? false,
-    language: preferences?.language ?? 'en',
-  }
-  const [form, setForm] = useState(initialForm)
+    captionsEnabled: prefs?.captions_enabled ?? false,
+    captionFontSize: prefs?.caption_font_size ?? 'medium',
+    darkMode: prefs?.dark_mode ?? false,
+    compactView: prefs?.compact_view ?? false,
+    language: prefs?.language ?? 'en',
+  })
 
-  // Dirty state tracking
-  const isDirty = JSON.stringify(form) !== JSON.stringify(initialForm)
+  // savedFormRef holds the last-saved snapshot for dirty-checking and cancel revert
+  const savedFormRef = useRef(buildForm(preferences))
+  const [form, setForm] = useState(() => buildForm(preferences))
+
+  // Sync form AND savedFormRef when preferences arrive from server
+  useEffect(() => {
+    if (preferences) {
+      const built = buildForm(preferences)
+      setForm(built)
+      savedFormRef.current = built
+    }
+  }, [preferences])
+
+  // Live-apply dark mode immediately as user toggles
+  useEffect(() => {
+    setTheme(form.darkMode ? 'default' : 'light')
+  }, [form.darkMode])
+
+  // Live-apply compact view class on <html> immediately
+  useEffect(() => {
+    document.documentElement.classList.toggle('compact-view', form.compactView)
+  }, [form.compactView])
+
+  // Live-apply language immediately
+  useEffect(() => {
+    if (form.language) setLanguage(form.language)
+  }, [form.language])
+
+  // Dirty state tracking against the saved snapshot
+  const isDirty = JSON.stringify(form) !== JSON.stringify(savedFormRef.current)
 
   const handleSave = async () => {
     setSaving(true)
     const ok = await updatePreferences(form)
     if (ok) {
-      // Apply dark mode immediately
-      if (form.darkMode !== dark) toggleTheme()
-      // Apply language immediately
-      if (form.language) setLanguage(form.language)
+      // Update the saved snapshot so isDirty resets
+      savedFormRef.current = { ...form }
     }
     setSaving(false)
     setMsgType(ok ? 'success' : 'error')
     setMsg(ok ? t('cdash.settings.prefsSaved', lang) : t('cdash.settings.prefsFailed', lang))
     setTimeout(() => setMsg(''), 5000)
   }
+
+  const handleCancel = () => {
+    const reverted = { ...savedFormRef.current }
+    setForm(reverted)
+    // Revert live DOM state
+    setTheme(reverted.darkMode ? 'default' : 'light')
+    document.documentElement.classList.toggle('compact-view', reverted.compactView)
+    document.documentElement.setAttribute('data-caption-size', reverted.captionFontSize)
+    if (reverted.language) setLanguage(reverted.language)
+    // Revert audio in localStorage
+    const stored = JSON.parse(localStorage.getItem('aegis-audio-settings') || '{}')
+    localStorage.setItem('aegis-audio-settings', JSON.stringify({
+      ...stored, enabled: reverted.audioAlertsEnabled,
+      volume: reverted.audioVolume / 100, autoPlayCritical: reverted.autoPlayCritical,
+    }))
+  }
+
+  // Live-apply caption font size
+  useEffect(() => {
+    document.documentElement.setAttribute('data-caption-size', form.captionFontSize)
+  }, [form.captionFontSize])
+
+  // Sync audio settings to localStorage so useAudioAlerts picks them up
+  useEffect(() => {
+    const stored = JSON.parse(localStorage.getItem('aegis-audio-settings') || '{}')
+    localStorage.setItem('aegis-audio-settings', JSON.stringify({
+      ...stored, enabled: form.audioAlertsEnabled,
+      volume: form.audioVolume / 100, autoPlayCritical: form.autoPlayCritical,
+    }))
+  }, [form.audioAlertsEnabled, form.audioVolume, form.autoPlayCritical])
 
   // Fetch account deletion status
   useEffect(() => {
@@ -2644,7 +2955,15 @@ function SettingsTab({ preferences, updatePreferences }: any) {
           </h2>
         </div>
         <div className="flex items-center gap-2">
-          {isDirty && <span className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold bg-amber-50 dark:bg-amber-950/30 px-2 py-1 rounded-lg">{t('cdash.settings.unsaved', lang)}</span>}
+          {isDirty && (
+            <>
+              <span className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold bg-amber-50 dark:bg-amber-950/30 px-2 py-1 rounded-lg">{t('cdash.settings.unsaved', lang)}</span>
+              <button onClick={handleCancel} disabled={saving}
+                className="flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-bold px-4 py-2.5 rounded-xl transition-all">
+                {t('cdash.settings.cancel', lang)}
+              </button>
+            </>
+          )}
           <button onClick={handleSave} disabled={saving || !isDirty}
             className="flex items-center gap-1.5 bg-gradient-to-r from-aegis-600 to-aegis-700 hover:from-aegis-700 hover:to-aegis-800 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-sm hover:shadow-md">
             {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />} {t('cdash.settings.save', lang)}
@@ -2674,7 +2993,7 @@ function SettingsTab({ preferences, updatePreferences }: any) {
         <div className="flex items-center justify-between py-1">
           <div>
             <p className="text-sm font-medium text-gray-900 dark:text-white">{t('cdash.settings.enableAudioAlerts', lang)}</p>
-            <p className="text-[11px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('cdash.settings.enableAudioAlertsDesc', lang)}</p>
+            <p className="text-[11px] text-gray-500 dark:text-gray-400">{t('cdash.settings.enableAudioAlertsDesc', lang)}</p>
           </div>
           <label className="relative inline-flex items-center cursor-pointer">
             <input type="checkbox" checked={form.audioAlertsEnabled} onChange={e => setForm(f => ({ ...f, audioAlertsEnabled: e.target.checked }))}
@@ -2686,7 +3005,7 @@ function SettingsTab({ preferences, updatePreferences }: any) {
         <div className="flex items-center justify-between py-1">
           <div>
             <p className="text-sm font-medium text-gray-900 dark:text-white">{t('cdash.settings.autoPlayCritical', lang)}</p>
-            <p className="text-[11px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('cdash.settings.autoPlayCriticalDesc', lang)}</p>
+            <p className="text-[11px] text-gray-500 dark:text-gray-400">{t('cdash.settings.autoPlayCriticalDesc', lang)}</p>
           </div>
           <label className="relative inline-flex items-center cursor-pointer">
             <input type="checkbox" checked={form.autoPlayCritical} onChange={e => setForm(f => ({ ...f, autoPlayCritical: e.target.checked }))}
@@ -2718,7 +3037,7 @@ function SettingsTab({ preferences, updatePreferences }: any) {
         <div className="flex items-center justify-between py-1">
           <div>
             <p className="text-sm font-medium text-gray-900 dark:text-white">{t('cdash.settings.captionOverlay', lang)}</p>
-            <p className="text-[11px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('cdash.settings.captionOverlayDesc', lang)}</p>
+            <p className="text-[11px] text-gray-500 dark:text-gray-400">{t('cdash.settings.captionOverlayDesc', lang)}</p>
           </div>
           <label className="relative inline-flex items-center cursor-pointer">
             <input type="checkbox" checked={form.captionsEnabled} onChange={e => setForm(f => ({ ...f, captionsEnabled: e.target.checked }))}
@@ -2728,7 +3047,7 @@ function SettingsTab({ preferences, updatePreferences }: any) {
         </div>
 
         <div>
-          <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-1.5">{t('cdash.settings.captionFontSize', lang)}</label>
+          <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">{t('cdash.settings.captionFontSize', lang)}</label>
           <select value={form.captionFontSize} onChange={e => setForm(f => ({ ...f, captionFontSize: e.target.value }))}
             className="w-full px-3.5 py-2.5 text-sm bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent appearance-none transition">
             <option value="small">{t('cdash.settings.small', lang)}</option>
@@ -2736,6 +3055,9 @@ function SettingsTab({ preferences, updatePreferences }: any) {
             <option value="large">{t('cdash.settings.large', lang)}</option>
             <option value="xlarge">{t('cdash.settings.extraLarge', lang)}</option>
           </select>
+          <p className="caption-size-preview mt-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg text-gray-700 dark:text-gray-300 italic">
+            Caption preview text — emergency alert overlay
+          </p>
         </div>
       </div>
 
@@ -2751,7 +3073,7 @@ function SettingsTab({ preferences, updatePreferences }: any) {
         <div className="flex items-center justify-between py-1">
           <div>
             <p className="text-sm font-medium text-gray-900 dark:text-white">{t('cdash.settings.darkMode', lang)}</p>
-            <p className="text-[11px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('cdash.settings.darkModeDesc', lang)}</p>
+            <p className="text-[11px] text-gray-500 dark:text-gray-400">{t('cdash.settings.darkModeDesc', lang)}</p>
           </div>
           <label className="relative inline-flex items-center cursor-pointer">
             <input type="checkbox" checked={form.darkMode} onChange={e => setForm(f => ({ ...f, darkMode: e.target.checked }))}
@@ -2763,7 +3085,7 @@ function SettingsTab({ preferences, updatePreferences }: any) {
         <div className="flex items-center justify-between py-1">
           <div>
             <p className="text-sm font-medium text-gray-900 dark:text-white">{t('cdash.settings.compactView', lang)}</p>
-            <p className="text-[11px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('cdash.settings.compactViewDesc', lang)}</p>
+            <p className="text-[11px] text-gray-500 dark:text-gray-400">{t('cdash.settings.compactViewDesc', lang)}</p>
           </div>
           <label className="relative inline-flex items-center cursor-pointer">
             <input type="checkbox" checked={form.compactView} onChange={e => setForm(f => ({ ...f, compactView: e.target.checked }))}
@@ -2773,14 +3095,18 @@ function SettingsTab({ preferences, updatePreferences }: any) {
         </div>
 
         <div>
-          <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-1.5">{t('cdash.settings.language', lang)}</label>
+          <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">{t('cdash.settings.language', lang)}</label>
           <select value={form.language} onChange={e => setForm(f => ({ ...f, language: e.target.value }))}
             className="w-full px-3.5 py-2.5 text-sm bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent appearance-none transition">
-            <option value="en">{t('cdash.settings.langEn', lang)}</option>
-            <option value="cy">{t('cdash.settings.langCy', lang)}</option>
-            <option value="gd">{t('cdash.settings.langGd', lang)}</option>
-            <option value="fr">{t('cdash.settings.langFr', lang)}</option>
-            <option value="es">{t('cdash.settings.langEs', lang)}</option>
+            <option value="en">English</option>
+            <option value="es">Español (Spanish)</option>
+            <option value="fr">Français (French)</option>
+            <option value="ar">العربية (Arabic)</option>
+            <option value="zh">中文 (Chinese)</option>
+            <option value="hi">हिन्दी (Hindi)</option>
+            <option value="pt">Português (Portuguese)</option>
+            <option value="pl">Polski (Polish)</option>
+            <option value="ur">اردو (Urdu)</option>
           </select>
         </div>
       </div>
@@ -2828,10 +3154,10 @@ function SettingsTab({ preferences, updatePreferences }: any) {
           </div>
         ) : (
           <div className="space-y-3">
-            <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
               {t('cdash.settings.deleteDesc', lang)}
             </p>
-            <ul className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 space-y-1 ml-4 list-disc">
+            <ul className="text-xs text-gray-500 dark:text-gray-400 space-y-1 ml-4 list-disc">
               <li>{t('cdash.settings.deleteBullet1', lang)}</li>
               <li>{t('cdash.settings.deleteBullet2', lang)}</li>
               <li>{t('cdash.settings.deleteBullet3', lang)}</li>
@@ -2854,7 +3180,7 @@ function SettingsTab({ preferences, updatePreferences }: any) {
                   </button>
                   <button
                     onClick={() => setShowDeleteConfirm(false)}
-                    className="px-4 py-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 rounded-lg font-medium transition text-sm"
+                    className="px-4 py-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-400 rounded-lg font-medium transition text-sm"
                   >
                     {t('cdash.settings.cancel', lang)}
                   </button>
@@ -2874,9 +3200,4 @@ function SettingsTab({ preferences, updatePreferences }: any) {
     </div>
   )
 }
-
-
-
-
-
 

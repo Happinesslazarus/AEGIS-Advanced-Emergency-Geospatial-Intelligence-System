@@ -1,0 +1,119 @@
+{
+  "regionId": "england",
+  "name": "England",
+  "country": "United Kingdom",
+  "countryCode": "GB",
+  "timezone": "Europe/London",
+  "languages": ["en"],
+  "units": "metric",
+  "currency": "GBP",
+
+  "centre": { "lat": 52.56, "lng": -1.46 },
+  "zoom": 6,
+  "bounds": { "north": 55.81, "south": 49.86, "east": 1.77, "west": -6.42 },
+
+  "emergencyNumber": "999",
+  "floodAuthority": "Environment Agency",
+  "weatherAuthority": "Met Office",
+
+  "emergencyContacts": [
+    { "name": "Emergency Services", "number": "999", "type": "police" },
+    { "name": "Police (non-emergency)", "number": "101", "type": "police" },
+    { "name": "Fire Service", "number": "999", "type": "fire" },
+    { "name": "NHS 111", "number": "111", "type": "ambulance" },
+    { "name": "Power Cuts (National Grid)", "number": "105", "type": "utility" },
+    { "name": "Environment Agency Floodline", "number": "0345 988 1188", "type": "flood_authority" },
+    { "name": "Samaritans", "number": "116 123", "type": "mental_health", "available": "24/7" },
+    { "name": "CALM", "number": "0800 585858", "type": "mental_health" }
+  ],
+
+  "phoneFormat": {
+    "countryCode": "GB",
+    "dialCode": "+44",
+    "nationalFormat": "07xxx xxxxxx",
+    "nationalRegex": "^0[1-9]\\d{8,9}$",
+    "example": "+447700900456"
+  },
+
+  "ingestionEndpoints": {
+    "flood_warnings": "https://environment.data.gov.uk/flood-monitoring/id/floods?_limit=100",
+    "gauge_data": "https://environment.data.gov.uk/flood-monitoring/id/stations?parameter=level&_limit=50",
+    "gauge_readings": "https://environment.data.gov.uk/flood-monitoring",
+    "flood_rss": "",
+    "weather_warnings_api": "https://api-proxy.metoffice.gov.uk/map-material/weather/maps/warnings",
+    "weather_warnings_rss": "https://www.metoffice.gov.uk/public/data/PWSCache/WarningsRSS/Region/UK"
+  },
+
+  "floodZones": [
+    {
+      "id": "ea_zone3",
+      "name": "EA Flood Zone 3",
+      "riskLevel": "high",
+      "source": "Environment Agency",
+      "wmsUrl": "https://environment.data.gov.uk/spatialdata/flood-map-for-planning-rivers-and-sea-flood-zone-3/wms",
+      "wmsLayers": "Flood_Map_for_Planning_Rivers_and_Sea_Flood_Zone_3",
+      "attribution": "© Environment Agency"
+    },
+    {
+      "id": "ea_zone2",
+      "name": "EA Flood Zone 2",
+      "riskLevel": "medium",
+      "source": "Environment Agency",
+      "wmsUrl": "https://environment.data.gov.uk/spatialdata/flood-map-for-planning-rivers-and-sea-flood-zone-2/wms",
+      "wmsLayers": "Flood_Map_for_Planning_Rivers_and_Sea_Flood_Zone_2",
+      "attribution": "© Environment Agency"
+    }
+  ],
+
+  "supportedHazardTypes": [
+    "flood", "severe_storm", "heatwave", "wildfire", "landslide",
+    "power_outage", "water_supply", "infrastructure_damage",
+    "public_safety", "environmental_hazard"
+  ],
+
+  "monitoredCities": [
+    { "name": "London", "lat": 51.5074, "lng": -0.1278 },
+    { "name": "Manchester", "lat": 53.4808, "lng": -2.2426 },
+    { "name": "Birmingham", "lat": 52.4862, "lng": -1.8904 },
+    { "name": "Leeds", "lat": 53.8008, "lng": -1.5491 },
+    { "name": "Bristol", "lat": 51.4545, "lng": -2.5879 },
+    { "name": "Sheffield", "lat": 53.3811, "lng": -1.4701 },
+    { "name": "York", "lat": 53.9591, "lng": -1.0815 },
+    { "name": "Carlisle", "lat": 54.8951, "lng": -2.9382 },
+    { "name": "Oxford", "lat": 51.7520, "lng": -1.2577 },
+    { "name": "Exeter", "lat": 50.7184, "lng": -3.5339 }
+  ],
+
+  "llmContext": {
+    "floodAuthority": "Environment Agency",
+    "weatherAuthority": "Met Office",
+    "floodAuthorityUrl": "https://www.gov.uk/check-flooding",
+    "weatherWarningsUrl": "",
+    "exampleLocations": ["Westminster, London", "Deansgate, Manchester", "River Severn, Shrewsbury"],
+    "crisisResources": [
+      { "name": "Samaritans", "number": "116 123" },
+      { "name": "NHS 111", "number": "111" },
+      { "name": "CALM", "number": "0800 585858" }
+    ],
+    "officialSourceAdvice": "Visit gov.uk/check-flooding or Met Office (metoffice.gov.uk) for official warnings."
+  },
+
+  "rivers": [
+    "River Thames", "River Severn", "River Trent", "River Great Ouse",
+    "River Wye", "River Aire", "River Avon", "River Exe"
+  ],
+
+  "propagationMap": {
+    "Thames Corridor": ["Teddington", "Kingston", "Chertsey", "Walton", "Maidenhead"],
+    "Severn / Avon": ["Tewkesbury", "Upton upon Severn", "Worcester", "Shrewsbury"],
+    "Trent / Derwent": ["Nottingham", "Newark", "Burton upon Trent", "Matlock"],
+    "Yorkshire Ouse": ["York", "Selby", "Naburn", "Cawood"]
+  },
+
+  "historicalFloodEvents": [
+    { "name": "UK Winter Floods", "year": 2013, "river": "River Thames", "lat": 51.41, "lng": -0.34, "peakLevelM": 6.70 },
+    { "name": "Carlisle Floods", "year": 2015, "river": "River Eden", "lat": 54.89, "lng": -2.94, "peakLevelM": 8.46 },
+    { "name": "Sheffield Floods", "year": 2007, "river": "River Don", "lat": 53.38, "lng": -1.47, "peakLevelM": 5.30 },
+    { "name": "York Floods", "year": 2015, "river": "River Ouse", "lat": 53.96, "lng": -1.08, "peakLevelM": 5.20 }
+  ]
+}

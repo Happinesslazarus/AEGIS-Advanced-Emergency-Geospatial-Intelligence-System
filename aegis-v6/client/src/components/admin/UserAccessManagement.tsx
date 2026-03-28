@@ -12,8 +12,9 @@ import {
 } from 'lucide-react'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
+import { apiInviteOperator } from '../../utils/api'
 
-/* ── types ── */
+/*  types  */
 interface Props {
   users: any[]
   setUsers: React.Dispatch<React.SetStateAction<any[]>>
@@ -94,7 +95,7 @@ function getStatusMeta(lang: string): Record<string, { label: string; color: str
   return {
     active: { label: t('common.active', lang), color: 'text-emerald-700 dark:text-emerald-300', bg: 'bg-emerald-50 dark:bg-emerald-900/20', dot: 'bg-emerald-500' },
     suspended: { label: t('users.suspended', lang), color: 'text-red-700 dark:text-red-300', bg: 'bg-red-50 dark:bg-red-900/20', dot: 'bg-red-500' },
-    inactive: { label: t('users.inactive', lang), color: 'text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300', bg: 'bg-gray-100 dark:bg-gray-800', dot: 'bg-gray-400' },
+    inactive: { label: t('users.inactive', lang), color: 'text-gray-600 dark:text-gray-300', bg: 'bg-gray-100 dark:bg-gray-800', dot: 'bg-gray-400' },
   }
 }
 
@@ -172,7 +173,7 @@ export default function UserAccessManagement({
   const departmentLabels = useMemo(() => Object.fromEntries(departments.map((dept) => [dept.value, dept.label])), [departments])
   const securityChecks = useMemo(() => getSecurityChecks(lang), [lang])
 
-  /* ── state ── */
+  /*  state  */
   const [tab, setTab] = useState<Tab>('directory')
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
@@ -194,14 +195,20 @@ export default function UserAccessManagement({
   const [fullAuditLog, setFullAuditLog] = useState<any[]>([])
   const searchRef = useRef<HTMLInputElement>(null)
 
-  /* ── load full audit on audit tab ── */
+  /* invite operator state */
+  const [showInviteModal, setShowInviteModal] = useState(false)
+  const [inviteForm, setInviteForm] = useState({ email: '', password: '', displayName: '', role: 'operator', department: '', phone: '' })
+  const [inviteLoading, setInviteLoading] = useState(false)
+  const [inviteError, setInviteError] = useState('')
+
+  /*  load full audit on audit tab  */
   useEffect(() => {
     if (tab === 'audit') {
       apiGetAuditLog({ limit: 200 }).then(logs => setFullAuditLog(Array.isArray(logs) ? logs : [])).catch(() => {})
     }
   }, [tab])
 
-  /* ── refresh ── */
+  /*  refresh  */
   const doRefresh = useCallback(async () => {
     setRefreshing(true)
     try {
@@ -214,7 +221,35 @@ export default function UserAccessManagement({
     setRefreshing(false)
   }, [apiGetUsers, lang, pushNotification, setUsers])
 
-  /* ── keyboard shortcut ── */
+  /* invite operator handler */
+  const handleInvite = useCallback(async () => {
+    setInviteError('')
+    if (!inviteForm.email || !inviteForm.password || !inviteForm.displayName) {
+      setInviteError('Email, password, and display name are required.')
+      return
+    }
+    setInviteLoading(true)
+    try {
+      const fd = new FormData()
+      fd.append('email', inviteForm.email)
+      fd.append('password', inviteForm.password)
+      fd.append('displayName', inviteForm.displayName)
+      fd.append('role', inviteForm.role)
+      if (inviteForm.department) fd.append('department', inviteForm.department)
+      if (inviteForm.phone) fd.append('phone', inviteForm.phone)
+      await apiInviteOperator(fd)
+      pushNotification(`Operator "${inviteForm.displayName}" invited successfully. Verification email sent.`, 'success')
+      setShowInviteModal(false)
+      setInviteForm({ email: '', password: '', displayName: '', role: 'operator', department: '', phone: '' })
+      doRefresh()
+    } catch (err: any) {
+      setInviteError(err?.message || 'Failed to invite operator.')
+    } finally {
+      setInviteLoading(false)
+    }
+  }, [inviteForm, pushNotification, doRefresh])
+
+  /*  keyboard shortcut  */
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
@@ -225,7 +260,7 @@ export default function UserAccessManagement({
     return () => window.removeEventListener('keydown', handler)
   }, [doRefresh])
 
-  /* ── computed ── */
+  /*  computed  */
   const stats = useMemo(() => {
     const roleStats = { admin: 0, operator: 0, viewer: 0 }
     let active = 0, suspended = 0, inactive = 0, recentLogin = 0
@@ -283,7 +318,7 @@ export default function UserAccessManagement({
     }).slice(0, 100)
   }, [fullAuditLog, auditLog, auditSearch, auditTypeFilter])
 
-  /* ── handlers ── */
+  /*  handlers  */
   const toggleSort = (field: SortField) => {
     if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
     else { setSortField(field); setSortDir('asc') }
@@ -367,7 +402,7 @@ export default function UserAccessManagement({
     }
   }
 
-  /* ── sort button ── */
+  /*  sort button  */
   const SortBtn = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
     <button onClick={() => toggleSort(field)} className="inline-flex items-center gap-1 hover:text-gray-900 dark:hover:text-white transition-colors">
       {children}
@@ -375,11 +410,11 @@ export default function UserAccessManagement({
     </button>
   )
 
-  /* ──────────────────── RENDER ──────────────────── */
+  /*  RENDER  */
   return (
     <div className="space-y-5 animate-fade-in">
 
-      {/* ═══ HEADER ═══ */}
+      {/*  HEADER  */}
       <div className="bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 rounded-2xl shadow-xl overflow-hidden">
         <div className="relative px-6 pt-6 pb-5">
           <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '24px 24px' }} />
@@ -402,6 +437,11 @@ export default function UserAccessManagement({
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                {currentUser?.role === 'admin' && (
+                  <button onClick={() => setShowInviteModal(true)} className="px-3.5 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 border border-emerald-500/20 hover:border-emerald-500/40">
+                    <UserPlus className="w-3.5 h-3.5" /> {t('users.inviteOperator', lang) || 'Invite Operator'}
+                  </button>
+                )}
                 <button onClick={doRefresh} className={`px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-semibold transition-all flex items-center gap-2 border border-white/10 ${refreshing ? 'opacity-60 pointer-events-none' : ''}`}>
                   <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} /> {t('common.refresh', lang)}
                 </button>
@@ -413,8 +453,8 @@ export default function UserAccessManagement({
               {[
                 { label: t('common.total', lang), value: stats.total, color: 'text-cyan-300', icon: Users },
                 { label: t('common.active', lang), value: stats.active, color: 'text-emerald-300', icon: CheckCircle2 },
-                { label: t('users.suspended', lang), value: stats.suspended, color: stats.suspended > 0 ? 'text-red-300' : 'text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300', icon: Ban },
-                { label: t('users.inactive', lang), value: stats.inactive, color: 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300', icon: XCircle },
+                { label: t('users.suspended', lang), value: stats.suspended, color: stats.suspended > 0 ? 'text-red-300' : 'text-gray-500 dark:text-gray-300', icon: Ban },
+                { label: t('users.inactive', lang), value: stats.inactive, color: 'text-gray-400 dark:text-gray-300', icon: XCircle },
                 { label: t('users.admins', lang), value: stats.admin, color: 'text-purple-300', icon: Shield },
                 { label: t('users.operators', lang), value: stats.operator, color: 'text-blue-300', icon: Activity },
                 { label: t('users.viewers', lang), value: stats.viewer, color: 'text-slate-300', icon: Eye },
@@ -447,15 +487,15 @@ export default function UserAccessManagement({
         </div>
       </div>
 
-      {/* ═══ TAB: USER DIRECTORY ═══ */}
+      {/*  TAB: USER DIRECTORY  */}
       {tab === 'directory' && (
         <>
           {/* Toolbar */}
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
             <div className="px-5 py-3 flex flex-col lg:flex-row items-stretch lg:items-center gap-2.5">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
-                <input ref={searchRef} value={search} onChange={e => setSearch(e.target.value)} placeholder={t('users.searchPlaceholder', lang)} className="w-full pl-9 pr-3 py-2.5 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all placeholder:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 dark:text-gray-300" />
+                <input ref={searchRef} value={search} onChange={e => setSearch(e.target.value)} placeholder={t('users.searchPlaceholder', lang)} className="w-full pl-9 pr-3 py-2.5 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all placeholder:text-gray-400 dark:text-gray-300" />
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)} className="px-2.5 py-2.5 text-[11px] font-semibold bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
@@ -476,7 +516,7 @@ export default function UserAccessManagement({
                   <option value={UNASSIGNED_VALUE}>{t('users.unassigned', lang)}</option>
                 </select>
                 <div className="h-5 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block" />
-                <span className="text-[11px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-medium">{filteredUsers.length} {t('common.of', lang)} {users.length}</span>
+                <span className="text-[11px] text-gray-400 dark:text-gray-300 font-medium">{filteredUsers.length} {t('common.of', lang)} {users.length}</span>
               </div>
             </div>
 
@@ -491,7 +531,7 @@ export default function UserAccessManagement({
                   <option value="delete">{t('common.delete', lang)}</option>
                 </select>
                 <button onClick={executeBulk} disabled={!bulkAction} className="px-3 py-1.5 text-[11px] font-bold rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">{t('common.apply', lang)}</button>
-                <button onClick={() => { setBulkSelected(new Set()); setBulkAction('') }} className="text-[11px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 transition-colors">{t('common.clear', lang)}</button>
+                <button onClick={() => { setBulkSelected(new Set()); setBulkAction('') }} className="text-[11px] text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300 transition-colors">{t('common.clear', lang)}</button>
               </div>
             )}
           </div>
@@ -501,7 +541,7 @@ export default function UserAccessManagement({
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="text-[10px] font-bold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-wider border-b border-gray-100 dark:border-gray-800">
+                  <tr className="text-[10px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-100 dark:border-gray-800">
                     <th className="px-4 py-3 text-left w-10">
                       <input type="checkbox" checked={bulkSelected.size === filteredUsers.length && filteredUsers.length > 0} onChange={toggleBulkAll} className="w-3.5 h-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
                     </th>
@@ -529,7 +569,7 @@ export default function UserAccessManagement({
                           </td>
                           <td className="px-3 py-3">
                             <button onClick={() => setExpandedUser(isExpanded ? null : u.id)} className="flex items-center gap-2.5 group/user">
-                              {isExpanded ? <ChevronDown className="w-3 h-3 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex-shrink-0" /> : <ChevronRight className="w-3 h-3 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex-shrink-0" />}
+                              {isExpanded ? <ChevronDown className="w-3 h-3 text-gray-400 dark:text-gray-300 flex-shrink-0" /> : <ChevronRight className="w-3 h-3 text-gray-400 dark:text-gray-300 flex-shrink-0" />}
                               {u.avatar_url
                                 ? <img src={u.avatar_url} alt="" className="w-8 h-8 rounded-lg object-cover border border-gray-200 dark:border-gray-700 flex-shrink-0" />
                                 : <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-xs flex-shrink-0 ${u.role === 'admin' ? 'bg-gradient-to-br from-purple-500 to-indigo-600' : u.role === 'operator' ? 'bg-gradient-to-br from-blue-500 to-cyan-600' : 'bg-gradient-to-br from-gray-400 to-gray-500'}`}>{u.display_name?.charAt(0) || '?'}</div>
@@ -538,7 +578,7 @@ export default function UserAccessManagement({
                                 <p className="font-bold text-gray-900 dark:text-white group-hover/user:text-blue-600 dark:group-hover/user:text-blue-400 transition-colors truncate whitespace-nowrap">
                                   {u.display_name}{isSelf && <span className="ml-1.5 text-[9px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-bold">{t('users.youBadge', lang)}</span>}
                                 </p>
-                                <p className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 truncate font-mono">{u.email}</p>
+                                <p className="text-[10px] text-gray-400 dark:text-gray-300 truncate font-mono">{u.email}</p>
                               </div>
                             </button>
                           </td>
@@ -547,14 +587,14 @@ export default function UserAccessManagement({
                               <rm.icon className="w-3 h-3" /> {rm.label}
                             </span>
                           </td>
-                          <td className="px-3 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 truncate max-w-[140px]">{u.department ? (departmentLabels[u.department] || u.department) : <span className="text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 italic">{t('users.unassigned', lang)}</span>}</td>
+                          <td className="px-3 py-3 text-gray-600 dark:text-gray-300 truncate max-w-[140px]">{u.department ? (departmentLabels[u.department] || u.department) : <span className="text-gray-400 dark:text-gray-300 italic">{t('users.unassigned', lang)}</span>}</td>
                           <td className="px-3 py-3">
                             <span className={`inline-flex items-center gap-1.5 text-[10px] px-2 py-0.5 rounded-full font-bold ${sm.bg} ${sm.color}`}>
                               <span className={`w-1.5 h-1.5 rounded-full ${sm.dot} ${status === 'active' ? 'animate-pulse' : ''}`} /> {sm.label}
                             </span>
                           </td>
-                          <td className="px-3 py-3 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 whitespace-nowrap">{u.last_login ? timeAgo(u.last_login, lang) : <span className="text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 italic">{t('common.never', lang)}</span>}</td>
-                          <td className="px-3 py-3 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 whitespace-nowrap text-[10px]">{u.created_at ? new Date(u.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' }) : '—'}</td>
+                          <td className="px-3 py-3 text-gray-500 dark:text-gray-300 whitespace-nowrap">{u.last_login ? timeAgo(u.last_login, lang) : <span className="text-gray-400 dark:text-gray-300 italic">{t('common.never', lang)}</span>}</td>
+                          <td className="px-3 py-3 text-gray-400 dark:text-gray-300 whitespace-nowrap text-[10px]">{u.created_at ? new Date(u.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' }) : '—'}</td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-1 justify-end">
                               <button onClick={() => { setEditModal(u); setEditForm({ role: u.role, department: u.department || '', phone: u.phone || '', displayName: u.display_name }) }} title={t('users.editUser', lang)} className="p-1.5 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"><Edit2 className="w-3.5 h-3.5" /></button>
@@ -582,12 +622,12 @@ export default function UserAccessManagement({
                           <tr>
                             <td colSpan={8} className="bg-gray-50/50 dark:bg-gray-800/20 px-5 py-4">
                               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 text-xs">
-                                <div><span className="text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-medium block mb-0.5">{t('users.accountId', lang)}</span><p className="font-mono text-[10px] font-bold text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 break-all">{u.id || '—'}</p></div>
-                                <div><span className="text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-medium block mb-0.5">{t('common.email', lang)}</span><p className="font-bold text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 truncate">{u.email}</p></div>
-                                <div><span className="text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-medium block mb-0.5">{t('common.phone', lang)}</span><p className="font-bold text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{u.phone || '—'}</p></div>
-                                <div><span className="text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-medium block mb-0.5">{t('users.role', lang)}</span><p className={`font-bold ${rm.color}`}>{rm.label}</p></div>
-                                <div><span className="text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-medium block mb-0.5">{t('users.department', lang)}</span><p className="font-bold text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{u.department || t('users.unassigned', lang)}</p></div>
-                                <div><span className="text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-medium block mb-0.5">{t('users.accountCreated', lang)}</span><p className="font-bold text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{u.created_at ? new Date(u.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}</p></div>
+                                <div><span className="text-gray-400 dark:text-gray-300 font-medium block mb-0.5">{t('users.accountId', lang)}</span><p className="font-mono text-[10px] font-bold text-gray-600 dark:text-gray-300 break-all">{u.id || '—'}</p></div>
+                                <div><span className="text-gray-400 dark:text-gray-300 font-medium block mb-0.5">{t('common.email', lang)}</span><p className="font-bold text-gray-700 dark:text-gray-300 truncate">{u.email}</p></div>
+                                <div><span className="text-gray-400 dark:text-gray-300 font-medium block mb-0.5">{t('common.phone', lang)}</span><p className="font-bold text-gray-700 dark:text-gray-300">{u.phone || '—'}</p></div>
+                                <div><span className="text-gray-400 dark:text-gray-300 font-medium block mb-0.5">{t('users.role', lang)}</span><p className={`font-bold ${rm.color}`}>{rm.label}</p></div>
+                                <div><span className="text-gray-400 dark:text-gray-300 font-medium block mb-0.5">{t('users.department', lang)}</span><p className="font-bold text-gray-700 dark:text-gray-300">{u.department || t('users.unassigned', lang)}</p></div>
+                                <div><span className="text-gray-400 dark:text-gray-300 font-medium block mb-0.5">{t('users.accountCreated', lang)}</span><p className="font-bold text-gray-700 dark:text-gray-300">{u.created_at ? new Date(u.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}</p></div>
                               </div>
                               {u.is_suspended && u.suspended_until && (
                                 <div className="mt-3 p-2.5 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 rounded-lg">
@@ -596,15 +636,15 @@ export default function UserAccessManagement({
                               )}
                               {/* Mini audit for this user */}
                               <div className="mt-3">
-                                <p className="text-[10px] font-bold text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-wider mb-2">{t('users.accountActivity', lang)}</p>
+                                <p className="text-[10px] font-bold text-gray-400 dark:text-gray-300 uppercase tracking-wider mb-2">{t('users.accountActivity', lang)}</p>
                                 {auditLog.filter(a => a.target_id === u.id || (a.operator_id === u.id && (a.action_type === 'login' || a.action_type === 'logout'))).slice(0, 5).map((log, li) => (
                                   <div key={li} className="flex items-center gap-2 text-[11px] py-1">
                                     <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${log.action_type?.includes('delete') ? 'bg-red-500' : log.action_type?.includes('suspend') ? 'bg-amber-500' : 'bg-blue-500'}`} />
-                                    <span className="text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{log.action}</span>
-                                    <span className="ml-auto text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 text-[10px] whitespace-nowrap">{timeAgo(log.created_at, lang)}</span>
+                                    <span className="text-gray-700 dark:text-gray-300">{log.action}</span>
+                                    <span className="ml-auto text-gray-400 dark:text-gray-300 text-[10px] whitespace-nowrap">{timeAgo(log.created_at, lang)}</span>
                                   </div>
                                 ))}
-                                {auditLog.filter(a => a.target_id === u.id).length === 0 && <p className="text-[11px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('users.noAccountActivity', lang)}</p>}
+                                {auditLog.filter(a => a.target_id === u.id).length === 0 && <p className="text-[11px] text-gray-400 dark:text-gray-300">{t('users.noAccountActivity', lang)}</p>}
                               </div>
                             </td>
                           </tr>
@@ -616,14 +656,14 @@ export default function UserAccessManagement({
               </table>
               {filteredUsers.length === 0 && (
                 <div className="text-center py-16">
-                  <Users className="w-10 h-10 text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-                  <p className="font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('users.noUsersMatch', lang)}</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-1">{search ? t('users.tryDifferentSearch', lang) : t('users.noUsersRegistered', lang)}</p>
+                  <Users className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                  <p className="font-semibold text-gray-600 dark:text-gray-300">{t('users.noUsersMatch', lang)}</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-300 mt-1">{search ? t('users.tryDifferentSearch', lang) : t('users.noUsersRegistered', lang)}</p>
                 </div>
               )}
             </div>
             {/* Footer */}
-            <div className="px-5 py-2.5 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800 text-[11px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex items-center justify-between">
+            <div className="px-5 py-2.5 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800 text-[11px] text-gray-500 dark:text-gray-300 flex items-center justify-between">
               <span>{t('common.showing', lang)} {filteredUsers.length} {t('common.of', lang)} {users.length} {t('users.accounts', lang)}</span>
               <span className="flex items-center gap-3">
                 <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> {stats.active} {t('common.active', lang).toLowerCase()}</span>
@@ -635,14 +675,14 @@ export default function UserAccessManagement({
         </>
       )}
 
-      {/* ═══ TAB: AUDIT TRAIL ═══ */}
+      {/*  TAB: AUDIT TRAIL  */}
       {tab === 'audit' && (
         <div className="space-y-4">
           {/* Filters */}
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm px-5 py-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
-              <input value={auditSearch} onChange={e => setAuditSearch(e.target.value)} placeholder={t('admin.auditTrail.search', lang)} className="w-full pl-9 pr-3 py-2.5 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500/40 transition-all placeholder:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 dark:text-gray-300" />
+              <input value={auditSearch} onChange={e => setAuditSearch(e.target.value)} placeholder={t('admin.auditTrail.search', lang)} className="w-full pl-9 pr-3 py-2.5 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500/40 transition-all placeholder:text-gray-400 dark:text-gray-300" />
             </div>
             <select value={auditTypeFilter} onChange={e => setAuditTypeFilter(e.target.value)} className="px-2.5 py-2.5 text-[11px] font-semibold bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
               <option value="all">{t('audit.allTypes', lang)}</option>
@@ -655,7 +695,7 @@ export default function UserAccessManagement({
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="text-[10px] font-bold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-wider border-b border-gray-100 dark:border-gray-800">
+                  <tr className="text-[10px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-100 dark:border-gray-800">
                     <th className="px-5 py-3 text-left">{t('audit.action', lang)}</th>
                     <th className="px-3 py-3 text-left">{t('common.type', lang)}</th>
                     <th className="px-3 py-3 text-left">{t('users.operator', lang)}</th>
@@ -681,12 +721,12 @@ export default function UserAccessManagement({
                         <td className="px-3 py-3">
                           <span className={`inline-flex text-[10px] px-2 py-0.5 rounded-md font-bold ${at.color}`}>{at.label}</span>
                         </td>
-                        <td className="px-3 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{log.operator_name || t('common.system', lang)}</td>
-                        <td className="px-3 py-3 font-mono text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 truncate max-w-[120px]">{log.target_id || '-'}</td>
-                        <td className="px-3 py-3 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 text-[10px] truncate max-w-[160px]">{log.before_state ? t('common.stateChangeCaptured', lang) : log.ip_address || '-'}</td>
-                        <td className="px-5 py-3 text-right text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 whitespace-nowrap">
+                        <td className="px-3 py-3 text-gray-600 dark:text-gray-300">{log.operator_name || t('common.system', lang)}</td>
+                        <td className="px-3 py-3 font-mono text-[10px] text-gray-400 dark:text-gray-300 truncate max-w-[120px]">{log.target_id || '-'}</td>
+                        <td className="px-3 py-3 text-gray-400 dark:text-gray-300 text-[10px] truncate max-w-[160px]">{log.before_state ? t('common.stateChangeCaptured', lang) : log.ip_address || '-'}</td>
+                        <td className="px-5 py-3 text-right text-gray-500 dark:text-gray-300 whitespace-nowrap">
                           <div>{new Date(log.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })}</div>
-                          <div className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{new Date(log.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
+                          <div className="text-[10px] text-gray-400 dark:text-gray-300">{new Date(log.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
                         </td>
                       </tr>
                     )
@@ -695,12 +735,12 @@ export default function UserAccessManagement({
               </table>
               {filteredAudit.length === 0 && (
                 <div className="text-center py-16">
-                  <History className="w-10 h-10 text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-                  <p className="font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('audit.noEntriesFound', lang)}</p>
+                  <History className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                  <p className="font-semibold text-gray-600 dark:text-gray-300">{t('audit.noEntriesFound', lang)}</p>
                 </div>
               )}
             </div>
-            <div className="px-5 py-2.5 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800 text-[11px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex items-center justify-between">
+            <div className="px-5 py-2.5 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800 text-[11px] text-gray-400 dark:text-gray-300 flex items-center justify-between">
               <span>{filteredAudit.length} {t('common.entries', lang)}</span>
               <span className="flex items-center gap-1"><Lock className="w-3 h-3" /> {t('users.immutableAuditLog', lang)}</span>
             </div>
@@ -708,7 +748,7 @@ export default function UserAccessManagement({
         </div>
       )}
 
-      {/* ═══ TAB: ROLES & PERMISSIONS ═══ */}
+      {/*  TAB: ROLES & PERMISSIONS  */}
       {tab === 'roles' && (
         <div className="space-y-4">
           {/* Permission matrix */}
@@ -726,15 +766,15 @@ export default function UserAccessManagement({
                       <span className={`text-2xl font-extrabold tabular-nums ${role.color}`}>{count}</span>
                     </div>
                     <h3 className={`font-extrabold text-base ${role.color}`}>{role.label}</h3>
-                    <p className="text-[11px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-1">{role.desc}</p>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-300 mt-1">{role.desc}</p>
                   </div>
                   <div className="p-4">
-                    <p className="text-[10px] font-bold text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-wider mb-2.5">{t('users.permissions', lang)}</p>
+                    <p className="text-[10px] font-bold text-gray-400 dark:text-gray-300 uppercase tracking-wider mb-2.5">{t('users.permissions', lang)}</p>
                     <div className="space-y-1.5">
                       {role.perms.map((perm, pi) => (
                         <div key={pi} className="flex items-center gap-2 text-xs">
                           <Check className={`w-3.5 h-3.5 flex-shrink-0 ${role.color}`} />
-                          <span className="text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{perm}</span>
+                          <span className="text-gray-700 dark:text-gray-300">{perm}</span>
                         </div>
                       ))}
                     </div>
@@ -755,7 +795,7 @@ export default function UserAccessManagement({
                   <div key={key}>
                     <div className="flex items-center justify-between text-xs mb-1.5">
                       <span className={`font-bold ${role.color}`}>{role.label}</span>
-                      <span className="font-bold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 tabular-nums">{count} ({pct}%)</span>
+                      <span className="font-bold text-gray-500 dark:text-gray-300 tabular-nums">{count} ({pct}%)</span>
                     </div>
                     <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-3 overflow-hidden">
                       <div className={`h-3 rounded-full transition-all duration-700 ${key === 'admin' ? 'bg-gradient-to-r from-purple-500 to-indigo-500' : key === 'operator' ? 'bg-gradient-to-r from-blue-500 to-cyan-500' : 'bg-gradient-to-r from-gray-400 to-gray-500'}`} style={{ width: `${pct}%` }} />
@@ -779,14 +819,14 @@ export default function UserAccessManagement({
         </div>
       )}
 
-      {/* ═══ TAB: ACCESS OVERVIEW ═══ */}
+      {/*  TAB: ACCESS OVERVIEW  */}
       {tab === 'sessions' && (
         <div className="space-y-4">
           {/* Department breakdown */}
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
             <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
               <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2"><Building2 className="w-4 h-4 text-teal-500" /> {t('users.departmentAccessMatrix', lang)}</h3>
-              <span className="text-[11px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{deptDistribution.length} {t('users.departments', lang).toLowerCase()}</span>
+              <span className="text-[11px] text-gray-400 dark:text-gray-300">{deptDistribution.length} {t('users.departments', lang).toLowerCase()}</span>
             </div>
             <div className="p-5">
               <div className="space-y-2.5">
@@ -799,14 +839,14 @@ export default function UserAccessManagement({
                   return (
                     <div key={dept} className="group">
                       <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="font-semibold text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{dept === UNASSIGNED_VALUE ? t('users.unassigned', lang) : (departmentLabels[dept] || dept)}</span>
+                        <span className="font-semibold text-gray-700 dark:text-gray-300">{dept === UNASSIGNED_VALUE ? t('users.unassigned', lang) : (departmentLabels[dept] || dept)}</span>
                         <div className="flex items-center gap-3">
-                          <div className="hidden sm:flex items-center gap-2 text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+                          <div className="hidden sm:flex items-center gap-2 text-[10px] text-gray-400 dark:text-gray-300">
                             {deptAdmins > 0 && <span className="flex items-center gap-0.5"><Shield className="w-2.5 h-2.5 text-purple-500" />{deptAdmins}</span>}
                             {deptOps > 0 && <span className="flex items-center gap-0.5"><Activity className="w-2.5 h-2.5 text-blue-500" />{deptOps}</span>}
-                            {deptViewers > 0 && <span className="flex items-center gap-0.5"><Eye className="w-2.5 h-2.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />{deptViewers}</span>}
+                            {deptViewers > 0 && <span className="flex items-center gap-0.5"><Eye className="w-2.5 h-2.5 text-gray-400 dark:text-gray-300" />{deptViewers}</span>}
                           </div>
-                          <span className="font-bold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 tabular-nums">{count} ({pct}%)</span>
+                          <span className="font-bold text-gray-500 dark:text-gray-300 tabular-nums">{count} ({pct}%)</span>
                         </div>
                       </div>
                       <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2.5 overflow-hidden">
@@ -831,8 +871,8 @@ export default function UserAccessManagement({
                       {item.ok ? <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> : <X className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{item.check}</p>
-                      <p className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{item.detail}</p>
+                      <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">{item.check}</p>
+                      <p className="text-[10px] text-gray-400 dark:text-gray-300">{item.detail}</p>
                     </div>
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${item.ok ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400' : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'}`}>{item.status}</span>
                   </div>
@@ -856,21 +896,21 @@ export default function UserAccessManagement({
                             <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${at.color}`}>{at.label}</span>
                             <span className="text-xs font-medium text-gray-900 dark:text-white truncate">{log.action}</span>
                           </div>
-                          <div className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex items-center gap-1.5 flex-wrap">
+                          <div className="text-[10px] text-gray-400 dark:text-gray-300 flex items-center gap-1.5 flex-wrap">
                             <span>{log.operator_name || t('common.system', lang)}</span>
                             <span aria-hidden="true" className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
                             <span>{new Date(log.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
                           </div>
                         </div>
-                        <span className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-mono tabular-nums whitespace-nowrap">{timeAgo(log.created_at, lang)}</span>
+                        <span className="text-[10px] text-gray-400 dark:text-gray-300 font-mono tabular-nums whitespace-nowrap">{timeAgo(log.created_at, lang)}</span>
                       </div>
                     </div>
                   )
                 })}
                 {auditLog.filter(a => a.action_type?.includes('user_') || a.action_type === 'login' || a.action_type === 'password_reset_generate').length === 0 && (
                   <div className="text-center py-8">
-                    <Clock className="w-6 h-6 text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-600 mx-auto mb-1.5" />
-                    <p className="text-xs text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('users.noAccountEvents', lang)}</p>
+                    <Clock className="w-6 h-6 text-gray-300 dark:text-gray-600 mx-auto mb-1.5" />
+                    <p className="text-xs text-gray-400 dark:text-gray-300">{t('users.noAccountEvents', lang)}</p>
                   </div>
                 )}
               </div>
@@ -879,7 +919,7 @@ export default function UserAccessManagement({
         </div>
       )}
 
-      {/* ═══ EDIT USER MODAL ═══ */}
+      {/*  EDIT USER MODAL  */}
       {editModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[60]" onClick={() => setEditModal(null)}>
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden" onClick={e => e.stopPropagation()}>
@@ -898,16 +938,16 @@ export default function UserAccessManagement({
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className="text-xs font-bold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 block mb-1.5">{t('admin.users.displayName', lang)}</label>
+                <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">{t('admin.users.displayName', lang)}</label>
                 <input className="w-full px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 outline-none" value={editForm.displayName} onChange={e => setEditForm(f => ({ ...f, displayName: e.target.value }))} />
               </div>
               <div>
-                <label className="text-xs font-bold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 block mb-1.5">{t('users.roleAssignment', lang)}</label>
+                <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">{t('users.roleAssignment', lang)}</label>
                 <div className="grid grid-cols-3 gap-2">
                   {Object.entries(roleMeta).map(([key, r]) => {
                     const RIcon = r.icon
                     return (
-                      <button key={key} onClick={() => setEditForm(f => ({ ...f, role: key }))} className={`py-3 rounded-xl text-xs font-bold transition-all flex flex-col items-center gap-1.5 ${editForm.role === key ? `${r.bg} ${r.color} ring-2 ${r.ring}` : 'bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
+                      <button key={key} onClick={() => setEditForm(f => ({ ...f, role: key }))} className={`py-3 rounded-xl text-xs font-bold transition-all flex flex-col items-center gap-1.5 ${editForm.role === key ? `${r.bg} ${r.color} ring-2 ${r.ring}` : 'bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
                         <RIcon className="w-4 h-4" />
                         {r.label}
                       </button>
@@ -916,14 +956,14 @@ export default function UserAccessManagement({
                 </div>
               </div>
               <div>
-                <label className="text-xs font-bold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 block mb-1.5">{t('users.department', lang)}</label>
+                <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">{t('users.department', lang)}</label>
                 <select className="w-full px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 outline-none" value={editForm.department} onChange={e => setEditForm(f => ({ ...f, department: e.target.value }))}>
                   <option value="">{t('users.selectDepartment', lang)}</option>
                   {departments.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-xs font-bold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 block mb-1.5">{t('common.phone', lang)}</label>
+                <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">{t('common.phone', lang)}</label>
                 <input className="w-full px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="+44 1234 567890" value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} />
               </div>
               <div className="flex gap-3 pt-2">
@@ -935,7 +975,7 @@ export default function UserAccessManagement({
         </div>
       )}
 
-      {/* ═══ SUSPEND MODAL ═══ */}
+      {/*  SUSPEND MODAL  */}
       {suspendModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[60]" onClick={() => setSuspendModal(null)}>
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onClick={e => e.stopPropagation()}>
@@ -958,13 +998,13 @@ export default function UserAccessManagement({
                 <p className="text-xs text-amber-800 dark:text-amber-200 flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" /> {t('users.suspensionWarning', lang)}</p>
               </div>
               <div>
-                <label className="text-xs font-bold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 block mb-1.5">{t('common.reason', lang)} <span className="text-red-500">*</span></label>
+                <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">{t('common.reason', lang)} <span className="text-red-500">*</span></label>
                 <textarea rows={3} className="w-full px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-amber-500 outline-none resize-none" placeholder={t('users.reasonPlaceholder', lang)} value={suspendForm.reason} onChange={e => setSuspendForm(f => ({ ...f, reason: e.target.value }))} />
               </div>
               <div>
-                <label className="text-xs font-bold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 block mb-1.5">{t('users.suspendUntilOptional', lang)}</label>
+                <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">{t('users.suspendUntilOptional', lang)}</label>
                 <input type="datetime-local" className="w-full px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-amber-500 outline-none" value={suspendForm.until} onChange={e => setSuspendForm(f => ({ ...f, until: e.target.value }))} />
-                <p className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-1">{t('users.leaveBlankIndefinite', lang)}</p>
+                <p className="text-[10px] text-gray-400 dark:text-gray-300 mt-1">{t('users.leaveBlankIndefinite', lang)}</p>
               </div>
               <div className="flex gap-3 pt-2">
                 <button onClick={() => setSuspendModal(null)} className="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl py-3 text-sm font-semibold transition-colors">{t('common.cancel', lang)}</button>
@@ -974,11 +1014,73 @@ export default function UserAccessManagement({
           </div>
         </div>
       )}
+
+      {/*  INVITE OPERATOR MODAL  */}
+      {showInviteModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[60]" onClick={() => setShowInviteModal(false)}>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="bg-gradient-to-r from-emerald-500 to-teal-600 p-5">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center"><UserPlus className="w-6 h-6 text-white" /></div>
+                <div>
+                  <h3 className="font-bold text-white text-lg">Invite Operator</h3>
+                  <p className="text-emerald-100 text-sm">Create a new operator account</p>
+                </div>
+                <button onClick={() => setShowInviteModal(false)} className="ml-auto p-2 hover:bg-white/10 rounded-xl transition-colors"><X className="w-5 h-5 text-white" /></button>
+              </div>
+            </div>
+            <div className="p-5 space-y-4">
+              {inviteError && (
+                <div className="p-3 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 rounded-xl">
+                  <p className="text-xs text-red-700 dark:text-red-300 flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" /> {inviteError}</p>
+                </div>
+              )}
+              <div>
+                <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">Display Name <span className="text-red-500">*</span></label>
+                <input className="w-full px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="Jane Smith" value={inviteForm.displayName} onChange={e => setInviteForm(f => ({ ...f, displayName: e.target.value }))} />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">Email <span className="text-red-500">*</span></label>
+                <input type="email" className="w-full px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="operator@aegis.gov.uk" value={inviteForm.email} onChange={e => setInviteForm(f => ({ ...f, email: e.target.value }))} />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">Initial Password <span className="text-red-500">*</span></label>
+                <input type="password" className="w-full px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="Min 12 chars, mixed case + number + symbol" value={inviteForm.password} onChange={e => setInviteForm(f => ({ ...f, password: e.target.value }))} />
+                <p className="text-[10px] text-gray-400 dark:text-gray-300 mt-1">Operator will receive a verification email. They can change this password after first login.</p>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">Role</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {['operator', 'manager'].map(r => (
+                    <button key={r} onClick={() => setInviteForm(f => ({ ...f, role: r }))}
+                      className={`py-2.5 rounded-xl text-xs font-bold transition-all capitalize ${inviteForm.role === r ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 ring-2 ring-emerald-500/30' : 'bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
+                      {r}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">{t('users.department', lang)}</label>
+                <select className="w-full px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-emerald-500 outline-none" value={inviteForm.department} onChange={e => setInviteForm(f => ({ ...f, department: e.target.value }))}>
+                  <option value="">{t('users.selectDepartment', lang)}</option>
+                  {departments.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">{t('common.phone', lang)}</label>
+                <input className="w-full px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="+44 1234 567890" value={inviteForm.phone} onChange={e => setInviteForm(f => ({ ...f, phone: e.target.value }))} />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => setShowInviteModal(false)} className="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl py-3 text-sm font-semibold transition-colors">{t('common.cancel', lang)}</button>
+                <button onClick={handleInvite} disabled={inviteLoading} className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 disabled:from-gray-400 disabled:to-gray-400 text-white rounded-xl py-3 text-sm font-bold shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2">
+                  {inviteLoading ? <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> Creating...</> : <><UserPlus className="w-3.5 h-3.5" /> Send Invite</>}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
-
-
-
-
-
+

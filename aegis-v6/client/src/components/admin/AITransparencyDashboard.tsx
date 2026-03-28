@@ -5,12 +5,14 @@ import {
   Loader2, RefreshCw, Shield, Zap, Eye, GitBranch,
   Clock, Layers, ChevronDown, ChevronUp,
   Server, Gauge, FlaskConical, PieChart, LineChart, Sparkles,
-  ShieldCheck, ShieldAlert, Hash, FileSearch, RotateCcw, Download, GitCompare
+  ShieldCheck, ShieldAlert, Hash, FileSearch, RotateCcw, Download, GitCompare,
+  TrendingUp, TrendingDown, Minus
 } from 'lucide-react'
 import {
   apiGetGovernanceModels, apiGetConfidenceDistribution, apiGetAIAuditLog,
   apiGetAIStatus, apiGetAIDrift, apiGetAIPredictionStats, apiGetGovernanceDrift,
-  apiGetChatStatus, apiRetrainModel
+  apiGetChatStatus, apiRetrainModel,
+  getToken
 } from '../../utils/api'
 import { t, getLanguage } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
@@ -38,7 +40,7 @@ function exportData(payload: object, format: 'csv' | 'json', filename: string): 
   URL.revokeObjectURL(url)
 }
 
-/* ─── Error Boundary ─── */
+/*  Error Boundary  */
 class AIErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: string }> {
   state = { hasError: false, error: '' }
   static getDerivedStateFromError(error: Error) { return { hasError: true, error: error.message } }
@@ -57,7 +59,7 @@ class AIErrorBoundary extends Component<{ children: ReactNode }, { hasError: boo
   }
 }
 
-/* ─── Helpers ─── */
+/*  Helpers  */
 function fixEncoding(text: string): string {
   if (!text || typeof text !== 'string') return text || ''
   return text
@@ -77,6 +79,50 @@ function fmt(d: string): string {
 function pct(v: number): string { return `${(v * 100).toFixed(1)}%` }
 function metricColor(v: number): string { return v >= 0.9 ? 'text-emerald-600 dark:text-emerald-400' : v >= 0.8 ? 'text-blue-600 dark:text-blue-400' : v >= 0.7 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400' }
 function barColor(v: number): string { return v >= 0.9 ? 'from-emerald-500 to-green-400' : v >= 0.8 ? 'from-blue-500 to-cyan-400' : v >= 0.7 ? 'from-amber-500 to-yellow-400' : 'from-red-500 to-rose-400' }
+
+/*  Staleness helpers  */
+function daysSince(dateStr: string): number {
+  if (!dateStr) return 999
+  try { const d = new Date(dateStr); return isNaN(d.getTime()) ? 999 : Math.floor((Date.now() - d.getTime()) / 86400000) } catch { return 999 }
+}
+function stalenessLabel(days: number): { text: string; color: string } | null {
+  if (days > 30) return { text: 'Stale', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' }
+  if (days > 7) return { text: 'Needs update', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' }
+  return null
+}
+function trendArrow(current: number, _index: number, models: ModelData[]): string {
+  if (models.length < 2) return '\u2192'
+  const avg = models.reduce((a, b) => a + b.accuracy, 0) / models.length
+  if (current > avg + 0.02) return '\u2191'
+  if (current < avg - 0.02) return '\u2193'
+  return '\u2192'
+}
+function driftCircle(modelName: string, driftData: any[]): { color: string; label: string } {
+  const entry = driftData.find((d: any) => (d.modelName || d.model_name || '') === modelName)
+  if (!entry) return { color: 'bg-green-500', label: 'No drift' }
+  const hasDrift = entry.driftDetected || entry.drift_detected
+  const magnitude = entry.driftMagnitude || entry.drift_magnitude || 0
+  if (!hasDrift) return { color: 'bg-green-500', label: 'No drift' }
+  if (magnitude > 0.1) return { color: 'bg-red-500', label: 'Significant drift' }
+  return { color: 'bg-yellow-500', label: 'Minor drift' }
+}
+function governanceEntryColor(entry: any): string {
+  const action = (entry.action || entry.inputSummary || entry.input_summary || '').toLowerCase()
+  const status = (entry.status || '').toLowerCase()
+  if (action.includes('auto-flag') || action.includes('flag') || status === 'error')
+    return 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800'
+  if (action.includes('human') || action.includes('review') || action.includes('manual'))
+    return 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800'
+  return 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800'
+}
+function dataHealthScore(models: ModelData[]): { label: string; color: string } {
+  if (models.length === 0) return { label: 'No Data', color: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400' }
+  const avgDays = models.reduce((a, m) => a + daysSince(m.lastTrained), 0) / models.length
+  const avgAcc = models.reduce((a, m) => a + m.accuracy, 0) / models.length
+  if (avgDays > 30 || avgAcc < 0.7) return { label: 'Critical', color: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' }
+  if (avgDays > 7 || avgAcc < 0.8) return { label: 'Warning', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' }
+  return { label: 'Good', color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' }
+}
 
 interface ModelData {
   name: string; version: string; accuracy: number; precision: number; recall: number; f1: number
@@ -114,6 +160,8 @@ function AITransparencyDashboardInner(): JSX.Element {
   const [compareOpen, setCompareOpen] = useState(false)
   const [livePredsCount, setLivePredsCount] = useState(0)
   const socketRef = useRef<ReturnType<typeof socketIo> | null>(null)
+  const [governanceDecisions, setGovernanceDecisions] = useState<any[]>([])
+  const [governanceLoading, setGovernanceLoading] = useState(false)
 
   const loadData = useCallback(async () => {
     setRefreshing(true)
@@ -192,9 +240,10 @@ function AITransparencyDashboardInner(): JSX.Element {
 
   // M18: Real-time AI prediction updates via Socket.IO
   useEffect(() => {
-    const token = localStorage.getItem('token') || sessionStorage.getItem('token')
+    const token = getToken()
     if (!token) return
-    const socket = socketIo('http://localhost:3001', {
+    const socketUrl = (import.meta as any).env?.VITE_SOCKET_URL || 'http://localhost:3001'
+    const socket = socketIo(socketUrl, {
       auth: { token },
       transports: ['websocket', 'polling'],
     })
@@ -206,6 +255,23 @@ function AITransparencyDashboardInner(): JSX.Element {
     })
     return () => { socket.disconnect(); socketRef.current = null }
   }, [loadData])
+
+  // Governance decisions fetch + auto-refresh every 30s
+  const loadGovernance = useCallback(async () => {
+    setGovernanceLoading(true)
+    try {
+      const res = await apiGetAIAuditLog(10, 0)
+      const entries = Array.isArray(res) ? res : (res as any)?.entries || []
+      setGovernanceDecisions(entries)
+    } catch { setGovernanceDecisions([]) }
+    finally { setGovernanceLoading(false) }
+  }, [])
+
+  useEffect(() => { loadGovernance() }, [loadGovernance])
+  useEffect(() => {
+    const iv = setInterval(loadGovernance, 30000)
+    return () => clearInterval(iv)
+  }, [loadGovernance])
 
   const handleRetrain = async (modelName: string) => {
     setRetraining(modelName)
@@ -233,8 +299,8 @@ function AITransparencyDashboardInner(): JSX.Element {
       <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center mb-4 shadow-lg shadow-purple-500/30">
         <Brain className="w-8 h-8 text-white animate-pulse" />
       </div>
-      <p className="font-semibold text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('common.loading', lang)} {t('ai.title', lang)}</p>
-      <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-1">{t('ai.transparencySubtitle', lang)}</p>
+      <p className="font-semibold text-gray-700 dark:text-gray-300">{t('common.loading', lang)} {t('ai.title', lang)}</p>
+      <p className="text-xs text-gray-500 dark:text-gray-300 mt-1">{t('ai.transparencySubtitle', lang)}</p>
       <Loader2 className="w-5 h-5 animate-spin text-purple-600 mt-3" />
     </div>
   )
@@ -274,7 +340,7 @@ function AITransparencyDashboardInner(): JSX.Element {
         </div>
       )}
 
-      {/* ═══ HEADER ═══ */}
+      {/*  HEADER  */}
       <div className="bg-gradient-to-r from-aegis-800 to-aegis-900 dark:from-indigo-900 dark:via-purple-900 dark:to-violet-900 rounded-2xl p-6 shadow-xl shadow-purple-900/20 relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvc3ZnPg==')] opacity-50" />
         <div className="relative z-10">
@@ -335,25 +401,25 @@ function AITransparencyDashboardInner(): JSX.Element {
         </div>
       </div>
 
-      {/* ═══ MODEL COMPARISON TABLE ═══ */}
+      {/*  MODEL COMPARISON TABLE  */}
       {compareOpen && models.length > 0 && (
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden animate-fade-in">
           <div className="px-5 py-3.5 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
             <h3 className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2"><GitCompare className="w-4 h-4 text-purple-600" /> {t('ai.modelComparison', lang)}</h3>
-            <button onClick={() => setCompareOpen(false)} className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-700 px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 transition-colors">{t('common.close', lang)}</button>
+            <button onClick={() => setCompareOpen(false)} className="text-xs text-gray-500 dark:text-gray-300 hover:text-gray-700 px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 transition-colors">{t('common.close', lang)}</button>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead className="bg-gray-50 dark:bg-gray-800">
                 <tr>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('ai.model', lang)}</th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('ai.version', lang)}</th>
-                  <th className="px-4 py-3 text-center font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('ai.accuracy', lang)}</th>
-                  <th className="px-4 py-3 text-center font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('ai.precision', lang)}</th>
-                  <th className="px-4 py-3 text-center font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('ai.recall', lang)}</th>
-                  <th className="px-4 py-3 text-center font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('ai.f1Score', lang)}</th>
-                  <th className="px-4 py-3 text-right font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('ai.samples', lang)}</th>
-                  <th className="px-4 py-3 text-right font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('ai.trained', lang)}</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">{t('ai.model', lang)}</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">{t('ai.version', lang)}</th>
+                  <th className="px-4 py-3 text-center font-semibold text-gray-600 dark:text-gray-300">{t('ai.accuracy', lang)}</th>
+                  <th className="px-4 py-3 text-center font-semibold text-gray-600 dark:text-gray-300">{t('ai.precision', lang)}</th>
+                  <th className="px-4 py-3 text-center font-semibold text-gray-600 dark:text-gray-300">{t('ai.recall', lang)}</th>
+                  <th className="px-4 py-3 text-center font-semibold text-gray-600 dark:text-gray-300">{t('ai.f1Score', lang)}</th>
+                  <th className="px-4 py-3 text-right font-semibold text-gray-600 dark:text-gray-300">{t('ai.samples', lang)}</th>
+                  <th className="px-4 py-3 text-right font-semibold text-gray-600 dark:text-gray-300">{t('ai.trained', lang)}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -365,13 +431,13 @@ function AITransparencyDashboardInner(): JSX.Element {
                         {best && <span className="text-[10px] px-1.5 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded font-bold">{t('ai.best', lang)}</span>}
                         {fixEncoding(model.name)}
                       </td>
-                      <td className="px-4 py-3 font-mono text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{model.version}</td>
+                      <td className="px-4 py-3 font-mono text-gray-500 dark:text-gray-300">{model.version}</td>
                       <td className="px-4 py-3 text-center"><span className={`font-bold ${metricColor(model.accuracy)}`}>{pct(model.accuracy)}</span></td>
                       <td className="px-4 py-3 text-center"><span className={`font-bold ${metricColor(model.precision)}`}>{pct(model.precision)}</span></td>
                       <td className="px-4 py-3 text-center"><span className={`font-bold ${metricColor(model.recall)}`}>{pct(model.recall)}</span></td>
                       <td className="px-4 py-3 text-center"><span className={`font-bold ${metricColor(model.f1)}`}>{pct(model.f1)}</span></td>
-                      <td className="px-4 py-3 text-right tabular-nums text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{model.trainingSamples.toLocaleString()}</td>
-                      <td className="px-4 py-3 text-right text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{fmt(model.lastTrained)}</td>
+                      <td className="px-4 py-3 text-right tabular-nums text-gray-600 dark:text-gray-300">{model.trainingSamples.toLocaleString()}</td>
+                      <td className="px-4 py-3 text-right text-gray-500 dark:text-gray-300">{fmt(model.lastTrained)}</td>
                     </tr>
                   )
                 })}
@@ -381,21 +447,21 @@ function AITransparencyDashboardInner(): JSX.Element {
         </div>
       )}
 
-      {/* ═══ SUB-TAB BAR ═══ */}
+      {/*  SUB-TAB BAR  */}
       <div className="flex gap-1 bg-gray-100 dark:bg-gray-800/50 rounded-xl p-1 overflow-x-auto">
         {TABS.map(tab => (
           <button key={tab.id} onClick={() => setSubTab(tab.id)}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
               subTab === tab.id
                 ? 'bg-white dark:bg-gray-900 text-purple-700 dark:text-purple-300 shadow-sm'
-                : 'text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-gray-800'
+                : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-gray-800'
             }`}>
             <tab.icon className="w-4 h-4" /> {tab.label}
           </button>
         ))}
       </div>
 
-      {/* ═══ OVERVIEW TAB ═══ */}
+      {/*  OVERVIEW TAB  */}
       {subTab === 'overview' && (
         <div className="space-y-5">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -414,17 +480,27 @@ function AITransparencyDashboardInner(): JSX.Element {
                           <Brain className={`w-5 h-5 ${model.accuracy >= 0.85 ? 'text-emerald-600' : model.accuracy >= 0.7 ? 'text-amber-600' : 'text-red-600'}`} />
                         </div>
                         <div>
-                          <h3 className="font-bold text-sm text-gray-900 dark:text-white">{fixEncoding(model.name)}</h3>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-bold text-sm text-gray-900 dark:text-white">{fixEncoding(model.name)}</h3>
+                            {/* Drift status circle */}
+                            {(() => { const dc = driftCircle(model.name, driftData); return (
+                              <span title={dc.label} className={`w-2.5 h-2.5 rounded-full ${dc.color} inline-block flex-shrink-0`} />
+                            ) })()}
+                            {/* Staleness badge */}
+                            {(() => { const sl = stalenessLabel(daysSince(model.lastTrained)); return sl ? (
+                              <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${sl.color}`}>{sl.text}</span>
+                            ) : null })()}
+                          </div>
                           <div className="flex items-center gap-2 mt-0.5">
                             <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-mono">{model.version}</span>
-                            <span className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex items-center gap-1"><Database className="w-3 h-3" />{model.trainingSamples.toLocaleString()} {t('ai.samples', lang)}</span>
+                            <span className="text-[10px] text-gray-500 dark:text-gray-300 flex items-center gap-1"><Database className="w-3 h-3" />{model.trainingSamples.toLocaleString()} {t('ai.samples', lang)}</span>
                           </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="flex flex-col items-end gap-0.5">
                           <button onClick={(e) => { e.stopPropagation(); handleRetrain(model.name) }} disabled={retraining === model.name}
-                            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-purple-600 transition-colors" title={t('ai.retrain', lang)}>
+                            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-300 hover:text-purple-600 transition-colors" title={t('ai.retrain', lang)}>
                             <RotateCcw className={`w-4 h-4 ${retraining === model.name ? 'animate-spin text-purple-600' : ''}`} />
                           </button>
                           {retrainMsg[model.name] && (
@@ -433,20 +509,28 @@ function AITransparencyDashboardInner(): JSX.Element {
                             </span>
                           )}
                         </div>
-                        {isExpanded ? <ChevronUp className="w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" /> : <ChevronDown className="w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />}
+                        {isExpanded ? <ChevronUp className="w-4 h-4 text-gray-400 dark:text-gray-300" /> : <ChevronDown className="w-4 h-4 text-gray-400 dark:text-gray-300" />}
                       </div>
                     </div>
 
                     <div className="grid grid-cols-4 gap-2">
                       {[
-                        { label: t('ai.accuracy', lang), value: model.accuracy },
-                        { label: t('ai.precision', lang), value: model.precision },
-                        { label: t('ai.recall', lang), value: model.recall },
-                        { label: t('ai.f1Score', lang), value: model.f1 },
+                        { label: t('ai.accuracy', lang), value: model.accuracy, showTrend: true },
+                        { label: t('ai.precision', lang), value: model.precision, showTrend: false },
+                        { label: t('ai.recall', lang), value: model.recall, showTrend: false },
+                        { label: t('ai.f1Score', lang), value: model.f1, showTrend: true },
                       ].map((metric, j) => (
                         <div key={j} className="text-center">
-                          <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-wide font-semibold mb-1">{metric.label}</p>
-                          <p className={`text-lg font-bold ${metricColor(metric.value)}`}>{pct(metric.value)}</p>
+                          <p className="text-[10px] text-gray-500 dark:text-gray-300 uppercase tracking-wide font-semibold mb-1">{metric.label}</p>
+                          <div className="flex items-center justify-center gap-1">
+                            <p className={`text-lg font-bold ${metricColor(metric.value)}`}>{pct(metric.value)}</p>
+                            {metric.showTrend && (() => {
+                              const arrow = trendArrow(metric.value, i, models)
+                              const Icon = arrow === '\u2191' ? TrendingUp : arrow === '\u2193' ? TrendingDown : Minus
+                              const color = arrow === '\u2191' ? 'text-emerald-500' : arrow === '\u2193' ? 'text-red-500' : 'text-gray-400'
+                              return <Icon className={`w-3.5 h-3.5 ${color}`} />
+                            })()}
+                          </div>
                           <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mt-1">
                             <div className={`h-1.5 rounded-full bg-gradient-to-r ${barColor(metric.value)} transition-all duration-700`} style={{ width: `${metric.value * 100}%` }} />
                           </div>
@@ -454,7 +538,24 @@ function AITransparencyDashboardInner(): JSX.Element {
                       ))}
                     </div>
 
-                    <div className="flex items-center justify-between mt-3 text-[11px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+                    {/* Mini prediction count bar (relative to max across models) */}
+                    {(() => {
+                      const maxSamples = Math.max(...models.map(mm => mm.trainingSamples), 1)
+                      const pctWidth = (model.trainingSamples / maxSamples) * 100
+                      return (
+                        <div className="mt-2">
+                          <div className="flex items-center justify-between text-[9px] text-gray-400 dark:text-gray-500 mb-0.5">
+                            <span>Training volume</span>
+                            <span>{Math.round(pctWidth)}% of max</span>
+                          </div>
+                          <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1">
+                            <div className="h-1 rounded-full bg-gradient-to-r from-indigo-400 to-purple-500 transition-all duration-700" style={{ width: `${pctWidth}%` }} />
+                          </div>
+                        </div>
+                      )
+                    })()}
+
+                    <div className="flex items-center justify-between mt-3 text-[11px] text-gray-500 dark:text-gray-300">
                       <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {fmt(model.lastTrained)}</span>
                       {model.notes && <span className="italic truncate max-w-[50%]">{fixEncoding(model.notes)}</span>}
                     </div>
@@ -474,7 +575,7 @@ function AITransparencyDashboardInner(): JSX.Element {
                               const isLow = r.l?.includes('<50') || r.l?.includes('50-59') || r.l?.includes('0-')
                               return (
                                 <div key={ri} className="flex-1 flex flex-col items-center group">
-                                  <span className="text-[9px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-1 opacity-0 group-hover:opacity-100 transition-opacity">{r.c}</span>
+                                  <span className="text-[9px] text-gray-500 dark:text-gray-300 mb-1 opacity-0 group-hover:opacity-100 transition-opacity">{r.c}</span>
                                   <div className={`w-full rounded-t-lg transition-all duration-500 ${isLow ? 'bg-gradient-to-t from-red-500 to-red-400' : 'bg-gradient-to-t from-purple-600 to-indigo-500'}`}
                                     style={{ height: `${h}%`, minHeight: '4px' }} />
                                 </div>
@@ -482,7 +583,7 @@ function AITransparencyDashboardInner(): JSX.Element {
                             })}
                           </div>
                           <div className="flex gap-1 mt-1 px-2">
-                            {model.cd.map((r, ri) => <div key={ri} className="flex-1 text-center text-[8px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 truncate">{r.l}</div>)}
+                            {model.cd.map((r, ri) => <div key={ri} className="flex-1 text-center text-[8px] text-gray-400 dark:text-gray-300 truncate">{r.l}</div>)}
                           </div>
                           <div className="mt-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 flex items-start gap-2">
                             <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
@@ -499,9 +600,9 @@ function AITransparencyDashboardInner(): JSX.Element {
 
           {models.length === 0 && (
             <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-12 text-center">
-              <Brain className="w-12 h-12 text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-              <p className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-semibold">{t('ai.noActiveModels', lang)}</p>
-              <p className="text-sm text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-1">{t('ai.modelsAppear', lang)}</p>
+              <Brain className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+              <p className="text-gray-600 dark:text-gray-300 font-semibold">{t('ai.noActiveModels', lang)}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-300 mt-1">{t('ai.modelsAppear', lang)}</p>
             </div>
           )}
 
@@ -526,7 +627,7 @@ function AITransparencyDashboardInner(): JSX.Element {
                   <div key={si} className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-1">
                       <s.icon className="w-4 h-4 text-purple-600" />
-                      <span className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-semibold">{s.label}</span>
+                      <span className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-300 font-semibold">{s.label}</span>
                     </div>
                     <p className="text-xl font-bold text-gray-900 dark:text-white">{s.value}</p>
                   </div>
@@ -534,10 +635,169 @@ function AITransparencyDashboardInner(): JSX.Element {
               </div>
             </div>
           )}
+
+          {/* Data Quality Indicators */}
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5 shadow-sm">
+            <h3 className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2 mb-4">
+              <Database className="w-4 h-4 text-purple-600" /> Data Quality Indicators
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Training Data Recency */}
+              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Clock className="w-4 h-4 text-blue-600" />
+                  <span className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-300 font-semibold">Training Recency</span>
+                </div>
+                {models.length > 0 ? (
+                  <div className="space-y-1.5">
+                    {models.map((model, mi) => {
+                      const days = daysSince(model.lastTrained)
+                      const sl = stalenessLabel(days)
+                      return (
+                        <div key={mi} className="flex items-center justify-between text-xs">
+                          <span className="text-gray-700 dark:text-gray-300 truncate max-w-[60%]">{model.name}</span>
+                          <span className={sl ? sl.color + ' px-1.5 py-0.5 rounded text-[10px] font-semibold' : 'text-emerald-600 dark:text-emerald-400 font-semibold'}>
+                            {days === 0 ? 'Today' : days === 1 ? '1 day ago' : `${days}d ago`}
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : <p className="text-xs text-gray-400">No model data</p>}
+              </div>
+
+              {/* Average Confidence Trend */}
+              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <TrendingUp className="w-4 h-4 text-indigo-600" />
+                  <span className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-300 font-semibold">Avg Confidence</span>
+                </div>
+                {models.length > 0 ? (() => {
+                  const avgConf = models.reduce((a, m) => a + (isNaN(m.accuracy) ? 0 : m.accuracy), 0) / models.length
+                  const avgF1Val = models.reduce((a, m) => a + (isNaN(m.f1) ? 0 : m.f1), 0) / models.length
+                  return (
+                    <div className="space-y-3">
+                      <div>
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span className="text-gray-600 dark:text-gray-300">Accuracy</span>
+                          <span className={`font-bold ${metricColor(avgConf)}`}>{pct(avgConf)}</span>
+                        </div>
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                          <div className={`h-2 rounded-full bg-gradient-to-r ${barColor(avgConf)} transition-all duration-700`} style={{ width: `${isNaN(avgConf) ? 0 : avgConf * 100}%` }} />
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span className="text-gray-600 dark:text-gray-300">F1 Score</span>
+                          <span className={`font-bold ${metricColor(avgF1Val)}`}>{pct(avgF1Val)}</span>
+                        </div>
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                          <div className={`h-2 rounded-full bg-gradient-to-r ${barColor(avgF1Val)} transition-all duration-700`} style={{ width: `${isNaN(avgF1Val) ? 0 : avgF1Val * 100}%` }} />
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })() : <p className="text-xs text-gray-400">No model data</p>}
+              </div>
+
+              {/* Data Health Score */}
+              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Shield className="w-4 h-4 text-purple-600" />
+                  <span className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-300 font-semibold">Data Health</span>
+                </div>
+                {(() => {
+                  const health = dataHealthScore(models)
+                  const driftCount = driftData.filter((d: any) => d.driftDetected || d.drift_detected).length
+                  return (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <span className={`text-2xl font-black px-4 py-2 rounded-xl ${health.color}`}>{health.label}</span>
+                      </div>
+                      <div className="space-y-1 text-xs text-gray-600 dark:text-gray-300">
+                        <div className="flex items-center justify-between">
+                          <span>Models tracked</span>
+                          <span className="font-semibold">{models.length}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span>Drift alerts</span>
+                          <span className={`font-semibold ${driftCount > 0 ? 'text-red-600' : 'text-emerald-600'}`}>{driftCount}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span>Stale models</span>
+                          <span className={`font-semibold ${models.filter(m => daysSince(m.lastTrained) > 30).length > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                            {models.filter(m => daysSince(m.lastTrained) > 30).length}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })()}
+              </div>
+            </div>
+          </div>
+
+          {/* Governance Decision Stream */}
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2">
+                <Shield className="w-4 h-4 text-purple-600" /> Recent Governance Decisions
+                <span className="text-[9px] px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300 rounded-full font-mono">Auto-refresh 30s</span>
+              </h3>
+              <button onClick={loadGovernance} disabled={governanceLoading} className="text-xs px-3 py-1.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-200 transition-colors font-semibold flex items-center gap-1">
+                <RefreshCw className={`w-3 h-3 ${governanceLoading ? 'animate-spin' : ''}`} /> Refresh
+              </button>
+            </div>
+            {governanceDecisions.length === 0 ? (
+              <div className="text-center py-6 bg-gray-50 dark:bg-gray-800/30 rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
+                <Shield className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                <p className="text-sm text-gray-500 dark:text-gray-400">{governanceLoading ? 'Loading governance data...' : 'No recent governance decisions'}</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {governanceDecisions.map((entry: any, gi: number) => (
+                  <div key={entry.id || gi} className={`rounded-xl p-3 border transition-all ${governanceEntryColor(entry)}`}>
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        {(() => {
+                          const action = (entry.action || entry.inputSummary || entry.input_summary || '').toLowerCase()
+                          const status = (entry.status || '').toLowerCase()
+                          if (action.includes('flag') || status === 'error') return <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
+                          if (action.includes('human') || action.includes('review')) return <Eye className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                          return <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                        })()}
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate">
+                            {entry.modelName || entry.model_name || 'System'}
+                          </p>
+                          <p className="text-[10px] text-gray-600 dark:text-gray-400 truncate">
+                            {entry.action || entry.inputSummary || entry.input_summary || 'Decision'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {(entry.confidence || entry.avg_confidence) && (
+                          <span className="text-[10px] font-mono px-2 py-0.5 bg-white/60 dark:bg-gray-800/60 rounded text-gray-600 dark:text-gray-300">
+                            {Math.round((entry.confidence || entry.avg_confidence || 0) * 100)}% conf
+                          </span>
+                        )}
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                          (entry.status || '').toLowerCase() === 'success' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                          : (entry.status || '').toLowerCase() === 'error' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+                          : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                        }`}>{entry.status || 'processed'}</span>
+                        <span className="text-[10px] text-gray-400 dark:text-gray-500 whitespace-nowrap">{fmt(entry.createdAt || entry.created_at || '')}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
-      {/* ═══ MODELS TAB ═══ */}
+      {/*  MODELS TAB  */}
       {subTab === 'models' && m && (
         <div className="space-y-5">
           <div className="flex gap-2 overflow-x-auto pb-2">
@@ -546,7 +806,7 @@ function AITransparencyDashboardInner(): JSX.Element {
                 className={`px-5 py-3 rounded-xl text-sm font-semibold whitespace-nowrap transition-all ${
                   i === sel
                     ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/30'
-                    : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:border-purple-300'
+                    : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-purple-300'
                 }`}>
                 <Brain className="w-4 h-4 inline mr-2" />{model.name} <span className="text-xs opacity-75 ml-1">{model.version}</span>
               </button>
@@ -573,7 +833,7 @@ function AITransparencyDashboardInner(): JSX.Element {
                 }`}>
                   <div className="flex items-center gap-2 mb-2">
                     <metric.icon className={`w-5 h-5 ${metricColor(metric.value)}`} />
-                    <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-wide">{metric.label}</span>
+                    <span className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide">{metric.label}</span>
                   </div>
                   <p className={`text-3xl font-bold ${metricColor(metric.value)}`}>{pct(metric.value)}</p>
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-2">
@@ -583,7 +843,7 @@ function AITransparencyDashboardInner(): JSX.Element {
               ))}
             </div>
 
-            <div className="flex flex-wrap gap-4 text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 border-t border-gray-100 dark:border-gray-800 pt-4">
+            <div className="flex flex-wrap gap-4 text-xs text-gray-500 dark:text-gray-300 border-t border-gray-100 dark:border-gray-800 pt-4">
               <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> {t('ai.trained', lang)}: {fmt(m.lastTrained)}</span>
               <span className="flex items-center gap-1.5"><Database className="w-3.5 h-3.5" /> {m.trainingSamples.toLocaleString()} {t('ai.trainingSamples', lang).toLowerCase()}</span>
               <span className="flex items-center gap-1.5"><GitBranch className="w-3.5 h-3.5" /> {t('ai.version', lang)}: {m.version}</span>
@@ -598,7 +858,7 @@ function AITransparencyDashboardInner(): JSX.Element {
                 <table className="w-full text-xs">
                   <thead>
                     <tr>
-                      <th className="p-2 text-left text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-semibold">{t('ai.actualPredicted', lang)}</th>
+                      <th className="p-2 text-left text-gray-500 dark:text-gray-300 font-semibold">{t('ai.actualPredicted', lang)}</th>
                       {m.cm.labels.map(l => <th key={l} className="p-2 text-center font-semibold">{l}</th>)}
                     </tr>
                   </thead>
@@ -633,8 +893,8 @@ function AITransparencyDashboardInner(): JSX.Element {
                 {m.fi.map((f, fi) => (
                   <div key={fi}>
                     <div className="flex justify-between text-xs mb-1">
-                      <span className="font-medium text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{fixEncoding(f.n)}</span>
-                      <span className="font-bold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{(f.v * 100).toFixed(1)}%</span>
+                      <span className="font-medium text-gray-700 dark:text-gray-300">{fixEncoding(f.n)}</span>
+                      <span className="font-bold text-gray-600 dark:text-gray-300">{(f.v * 100).toFixed(1)}%</span>
                     </div>
                     <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-3.5 overflow-hidden">
                       <div className="bg-gradient-to-r from-purple-500 via-indigo-500 to-cyan-500 h-3.5 rounded-full transition-all duration-700 relative"
@@ -650,7 +910,7 @@ function AITransparencyDashboardInner(): JSX.Element {
         </div>
       )}
 
-      {/* ═══ DRIFT & HEALTH TAB ═══ */}
+      {/*  DRIFT & HEALTH TAB  */}
       {subTab === 'drift' && (
         <div className="space-y-5">
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 shadow-sm">
@@ -675,20 +935,20 @@ function AITransparencyDashboardInner(): JSX.Element {
                           {hasDrift ? <ShieldAlert className="w-5 h-5 text-red-600" /> : <ShieldCheck className="w-5 h-5 text-green-600" />}
                           <div>
                             <p className="font-semibold text-sm">{d.modelName || d.model_name || t('ai.model', lang)}</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{d.metricName || d.metric_name || t('ai.accuracy', lang)} - v{d.modelVersion || d.model_version || '?'}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-300">{d.metricName || d.metric_name || t('ai.accuracy', lang)} - v{d.modelVersion || d.model_version || '?'}</p>
                           </div>
                         </div>
                         <div className="text-right">
                           <span className={`text-sm font-bold ${hasDrift ? 'text-red-600' : 'text-green-600'}`}>
                             {hasDrift ? t('ai.driftDetected', lang) : t('ai.stable', lang)}
                           </span>
-                          {magnitude > 0 && <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{(magnitude * 100).toFixed(1)}%</p>}
+                          {magnitude > 0 && <p className="text-xs text-gray-500 dark:text-gray-300">{(magnitude * 100).toFixed(1)}%</p>}
                         </div>
                       </div>
                       {(d.baselineValue || d.baseline_value) && (
                         <div className="flex gap-4 mt-3 text-xs">
-                          <span className="text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('ai.baseline', lang)}: <strong>{pct(d.baselineValue || d.baseline_value || 0)}</strong></span>
-                          <span className="text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('ai.current', lang)}: <strong className={hasDrift ? 'text-red-600' : ''}>{pct(d.currentValue || d.current_value || 0)}</strong></span>
+                          <span className="text-gray-500 dark:text-gray-300">{t('ai.baseline', lang)}: <strong>{pct(d.baselineValue || d.baseline_value || 0)}</strong></span>
+                          <span className="text-gray-500 dark:text-gray-300">{t('ai.current', lang)}: <strong className={hasDrift ? 'text-red-600' : ''}>{pct(d.currentValue || d.current_value || 0)}</strong></span>
                         </div>
                       )}
                     </div>
@@ -714,7 +974,7 @@ function AITransparencyDashboardInner(): JSX.Element {
                   { label: t('ai.gpu', lang), value: aiStatus.gpu_available ? t('common.available', lang) : t('ai.cpuMode', lang) },
                 ].map((s, si) => (
                   <div key={si} className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4">
-                    <span className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-semibold">{s.label}</span>
+                    <span className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-300 font-semibold">{s.label}</span>
                     <p className={`text-lg font-bold mt-1 ${s.color || 'text-gray-900 dark:text-white'}`}>{s.value}</p>
                   </div>
                 ))}
@@ -731,7 +991,7 @@ function AITransparencyDashboardInner(): JSX.Element {
                     <Brain className="w-4 h-4 text-purple-600" />
                     <span className="font-semibold text-sm">{model.name}</span>
                   </div>
-                  <div className="space-y-2 text-xs text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+                  <div className="space-y-2 text-xs text-gray-600 dark:text-gray-300">
                     <div className="flex justify-between"><span>{t('ai.version', lang)}</span><span className="font-mono font-semibold">{model.version}</span></div>
                     <div className="flex justify-between"><span>{t('ai.samples', lang)}</span><span className="font-semibold">{model.trainingSamples.toLocaleString()}</span></div>
                     <div className="flex justify-between"><span>{t('ai.lastTrained', lang)}</span><span className="font-semibold">{fmt(model.lastTrained)}</span></div>
@@ -754,28 +1014,28 @@ function AITransparencyDashboardInner(): JSX.Element {
         </div>
       )}
 
-      {/* ═══ AUDIT TRAIL TAB ═══ */}
+      {/*  AUDIT TRAIL TAB  */}
       {subTab === 'audit' && (
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
           <div className="p-5 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
             <h3 className="font-bold text-base text-gray-900 dark:text-white flex items-center gap-2"><FileSearch className="w-5 h-5 text-purple-600" /> {t('ai.executionAuditTrail', lang)}</h3>
-            <span className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 px-3 py-1 rounded-full font-mono">{auditEntries.length} {t('common.entries', lang)}</span>
+            <span className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-3 py-1 rounded-full font-mono">{auditEntries.length} {t('common.entries', lang)}</span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead className="bg-gray-50 dark:bg-gray-800">
                 <tr>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('ai.model', lang)}</th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('audit.action', lang)}</th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('audit.target', lang)}</th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('common.status', lang)}</th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('ai.timeMs', lang)}</th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('audit.timestamp', lang)}</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">{t('ai.model', lang)}</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">{t('audit.action', lang)}</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">{t('audit.target', lang)}</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">{t('common.status', lang)}</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">{t('ai.timeMs', lang)}</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">{t('audit.timestamp', lang)}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {auditEntries.length === 0 ? (
-                  <tr><td colSpan={6} className="px-4 py-12 text-center text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+                  <tr><td colSpan={6} className="px-4 py-12 text-center text-gray-400 dark:text-gray-300">
                     <FileSearch className="w-8 h-8 mx-auto mb-2 opacity-50" />
                     {partialFailures.includes('Audit trail')
                       ? t('common.error', lang)
@@ -783,10 +1043,10 @@ function AITransparencyDashboardInner(): JSX.Element {
                   </td></tr>
                 ) : auditEntries.map((entry: any, i: number) => (
                   <tr key={entry.id || i} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                    <td className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{entry.modelName || entry.model_name || '—'}</td>
-                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 truncate max-w-[200px]">{entry.inputSummary || entry.input_summary || entry.action || '—'}</td>
+                    <td className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300">{entry.modelName || entry.model_name || '—'}</td>
+                    <td className="px-4 py-3 text-gray-600 dark:text-gray-300 truncate max-w-[200px]">{entry.inputSummary || entry.input_summary || entry.action || '—'}</td>
                     <td className="px-4 py-3">
-                      <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 rounded-full text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 text-[10px]">
+                      <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 rounded-full text-gray-600 dark:text-gray-300 text-[10px]">
                         {entry.targetType || entry.target_type || '—'}
                       </span>
                     </td>
@@ -794,11 +1054,11 @@ function AITransparencyDashboardInner(): JSX.Element {
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
                         (entry.status || '').toLowerCase() === 'success' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
                           : (entry.status || '').toLowerCase() === 'error' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
-                          : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'
+                          : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
                       }`}>{entry.status || '—'}</span>
                     </td>
-                    <td className="px-4 py-3 font-mono text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{entry.executionTimeMs || entry.execution_time_ms || '—'}</td>
-                    <td className="px-4 py-3 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{fmt(entry.createdAt || entry.created_at || '')}</td>
+                    <td className="px-4 py-3 font-mono text-gray-600 dark:text-gray-300">{entry.executionTimeMs || entry.execution_time_ms || '—'}</td>
+                    <td className="px-4 py-3 text-gray-500 dark:text-gray-300">{fmt(entry.createdAt || entry.created_at || '')}</td>
                   </tr>
                 ))}
               </tbody>
@@ -807,7 +1067,7 @@ function AITransparencyDashboardInner(): JSX.Element {
         </div>
       )}
 
-      {/* ═══ LLM PROVIDERS TAB ═══ */}
+      {/*  LLM PROVIDERS TAB  */}
       {subTab === 'llm' && (
         <div className="space-y-5">
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 shadow-sm">
@@ -839,10 +1099,10 @@ function AITransparencyDashboardInner(): JSX.Element {
                           {isActive ? t('common.online', lang) : p.rateLimited || p.rate_limited ? t('ai.rateLimited', lang) : t('ai.backedOff', lang)}
                         </span>
                       </div>
-                      <div className="grid grid-cols-3 gap-2 text-xs text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
-                        <div><span className="text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('ai.model', lang)}</span><br /><span className="font-semibold">{p.model || '—'}</span></div>
-                        <div><span className="text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('ai.requests', lang)}</span><br /><span className="font-semibold">{p.totalRequests ?? p.total_requests ?? '—'}</span></div>
-                        <div><span className="text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('ai.errors', lang)}</span><br /><span className="font-semibold text-red-600">{p.errors ?? p.error_count ?? 0}</span></div>
+                      <div className="grid grid-cols-3 gap-2 text-xs text-gray-600 dark:text-gray-300">
+                        <div><span className="text-gray-400 dark:text-gray-300">{t('ai.model', lang)}</span><br /><span className="font-semibold">{p.model || '—'}</span></div>
+                        <div><span className="text-gray-400 dark:text-gray-300">{t('ai.requests', lang)}</span><br /><span className="font-semibold">{p.totalRequests ?? p.total_requests ?? '—'}</span></div>
+                        <div><span className="text-gray-400 dark:text-gray-300">{t('ai.errors', lang)}</span><br /><span className="font-semibold text-red-600">{p.errors ?? p.error_count ?? 0}</span></div>
                       </div>
                     </div>
                   )
@@ -850,8 +1110,8 @@ function AITransparencyDashboardInner(): JSX.Element {
               </div>
             ) : (
               <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-8 text-center">
-                <Sparkles className="w-10 h-10 text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-600 mx-auto mb-2" />
-                <p className="text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-semibold">
+                <Sparkles className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                <p className="text-gray-600 dark:text-gray-300 font-semibold">
                   {partialFailures.includes('LLM status') ? t('ai.llmUnavailable', lang) : t('ai.noProviders', lang)}
                 </p>
               </div>
@@ -891,7 +1151,4 @@ function AITransparencyDashboardInner(): JSX.Element {
     </div>
   )
 }
-
-
-
 

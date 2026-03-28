@@ -1,17 +1,13 @@
-import type { SeverityLevel, ReportStatus } from '../types'
+﻿import type { SeverityLevel, ReportStatus } from '../types'
 import { t } from './i18n'
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §1 API_BASE — centralised API base URL
-// ═══════════════════════════════════════════════════════════════════════════════
 
-export const API_BASE = ''
+export const API_BASE = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || ''
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §2 TIME UTILITIES
-// ═══════════════════════════════════════════════════════════════════════════════
 
-/** Relative time string — e.g. "just now", "5m ago", "3h ago", "2d ago" */
+/* Relative time string — e.g. "just now", "5m ago", "3h ago", "2d ago" */
 export function timeAgo(dateStr: string | undefined | null): string {
   if (!dateStr) return 'Unknown'
   const diff = Date.now() - new Date(dateStr).getTime()
@@ -24,7 +20,7 @@ export function timeAgo(dateStr: string | undefined | null): string {
   return `${days}d ago`
 }
 
-/** Compact relative time — "now", "5m", "3h", "2d" (no "ago" suffix) */
+/* Compact relative time — "now", "5m", "3h", "2d" (no "ago" suffix) */
 export function timeAgoCompact(dateStr: string | undefined | null): string {
   if (!dateStr) return ''
   const diff = Date.now() - new Date(dateStr).getTime()
@@ -37,9 +33,7 @@ export function timeAgoCompact(dateStr: string | undefined | null): string {
   return `${days}d`
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §3 PASSWORD STRENGTH
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export function getPasswordStrength(pw: string, lang = 'en'): { score: number; label: string; color: string } {
   let score = 0
@@ -55,9 +49,7 @@ export function getPasswordStrength(pw: string, lang = 'en'): { score: number; l
   return { score, label: t('citizen.auth.password.veryStrong', lang), color: 'bg-emerald-500' }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // §4 EXISTING STYLE HELPERS
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export function getSeverityClass(severity: SeverityLevel | string): string {
   const map: Record<string, string> = {
@@ -103,6 +95,16 @@ export function truncate(str: string, len = 80): string {
   return str.length > len ? str.slice(0, len) + '…' : str
 }
 
+/* Escape user-controlled strings before interpolating into HTML templates. */
+export function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
 export function createMarkerSvg(color: string, size = 32): string {
   return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="${color}" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`
 }
+

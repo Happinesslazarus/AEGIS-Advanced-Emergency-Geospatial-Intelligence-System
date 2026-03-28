@@ -1,0 +1,70 @@
+{
+  "total": 3,
+  "evaluated": 3,
+  "errors": 0,
+  "type_accuracy": 0.0,
+  "severity_exact_accuracy": 0.0,
+  "severity_close_accuracy": 66.7,
+  "avg_confidence": 70.0,
+  "avg_time_ms": 25462,
+  "false_positives": 0,
+  "false_negatives": 2,
+  "timestamp": "2026-03-26T10:21:43.290311",
+  "results": [
+    {
+      "id": "wf-001",
+      "url": "https://images.pexels.com/photos/51951/forest-fire-fire-smoke-conservation-51951.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/wf-001.jpg",
+      "expected_type": "wildfire",
+      "expected_severity": "high",
+      "description": "Forest fire with flames and smoke",
+      "status": "ok",
+      "predicted_type": "unknown",
+      "predicted_severity": "moderate",
+      "predicted_confidence": 85,
+      "type_correct": false,
+      "severity_distance": 1,
+      "elapsed_ms": 30276,
+      "raw_response": " \ud83d\udcf8 In response to your query, I have analyzed the image you provided and detected a high likelihood of flooding in the area shown. The image has been processed by our real vision AI model with an 85% confidence score. Given these findings, it's crucial that you prepare for potential flood-related risks.\n\n**Preparation Checklist:**\n\n1. **Emergency Kit:** Ensure you have a basic emergency kit containing items like flashlights, batteries, first-aid supplies, and non-perishable food and water.\n2. **"
+    },
+    {
+      "id": "wf-002",
+      "url": "https://images.pexels.com/photos/3552472/pexels-photo-3552472.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/wf-002.jpg",
+      "expected_type": "wildfire",
+      "expected_severity": "critical",
+      "description": "Wildfire engulfing trees at night",
+      "status": "ok",
+      "predicted_type": "flood",
+      "predicted_severity": "moderate",
+      "predicted_confidence": 75,
+      "type_correct": false,
+      "severity_distance": 2,
+      "elapsed_ms": 22973,
+      "raw_response": " \ud83c\udf0a Image Analysis Completed (moondream:latest) \u2014 75% confidence\n**Detected:** Flood | **Severity:** Moderate\n\nThe vision AI has analyzed the image and detected a flood situation with a moderate severity level. The area affected is a residential neighborhood, as indicated by the presence of houses and parked cars. Based on this information, here are some key recommendations for emergency preparedness:\n\n**Emergency Preparedness Checklist:**\n1. **Create an Emergency Kit:** Include essentials like w"
+    },
+    {
+      "id": "wf-003",
+      "url": "https://images.pexels.com/photos/266487/pexels-photo-266487.jpeg?auto=compress&cs=tinysrgb&w=640",
+      "local_path": "/uploads/chat/benchmark/wf-003.jpg",
+      "expected_type": "wildfire",
+      "expected_severity": "high",
+      "description": "Fire burning in dry grassland",
+      "status": "ok",
+      "predicted_type": "unknown",
+      "predicted_severity": "moderate",
+      "predicted_confidence": 50,
+      "type_correct": false,
+      "severity_distance": 1,
+      "elapsed_ms": 23137,
+      "raw_response": " The vision AI has completed its analysis of the image provided by the citizen. Based on the findings, there is a high risk of flooding in your area.\n\nHere are some steps you can take to prepare and stay safe:\n\n**Immediate Actions:**\n\n1. **Stay Informed:** Check for updates from local authorities and emergency services. Follow their instructions carefully.\n2. **Create an Emergency Kit:** Have a go-bag ready with essential items such as water, non-perishable food, flashlight, batteries, a first a"
+    }
+  ],
+  "per_category": {
+    "wildfire": {
+      "total": 3,
+      "correct": 0,
+      "accuracy": 0.0
+    }
+  }
+}

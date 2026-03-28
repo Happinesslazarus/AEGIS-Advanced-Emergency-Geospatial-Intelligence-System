@@ -1,18 +1,18 @@
-/**
+﻿/**
  * i18n/config.ts — react-i18next configuration
  *
  * Initializes i18next with:
- * - Browser language detection
- * - Namespace-based translation files
- * - Fallback to English
- * - Support for 9 languages (en, es, fr, ar, de, pt, hi, zh, sw)
+ * Browser language detection
+ * Namespace-based translation files
+ * Fallback to English
+ * Support for 9 languages (en, es, fr, ar, de, pt, hi, zh, sw)
  */
 
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
 
-// ─── English ────────────────────────────────────────────────────────────
+// English
 import enCommon from './locales/en/common.json'
 import enIncidents from './locales/en/incidents.json'
 import enDashboard from './locales/en/dashboard.json'
@@ -22,7 +22,7 @@ import enAdmin from './locales/en/admin.json'
 import enCitizen from './locales/en/citizen.json'
 import enLanding from './locales/en/landing.json'
 
-// ─── Spanish ────────────────────────────────────────────────────────────
+// Spanish
 import esCommon from './locales/es/common.json'
 import esIncidents from './locales/es/incidents.json'
 import esDashboard from './locales/es/dashboard.json'
@@ -32,7 +32,7 @@ import esAdmin from './locales/es/admin.json'
 import esCitizen from './locales/es/citizen.json'
 import esLanding from './locales/es/landing.json'
 
-// ─── French ─────────────────────────────────────────────────────────────
+// French
 import frCommon from './locales/fr/common.json'
 import frIncidents from './locales/fr/incidents.json'
 import frDashboard from './locales/fr/dashboard.json'
@@ -42,7 +42,7 @@ import frAdmin from './locales/fr/admin.json'
 import frCitizen from './locales/fr/citizen.json'
 import frLanding from './locales/fr/landing.json'
 
-// ─── Arabic (RTL) ────────────────────────────────────────────────────────
+// Arabic (RTL)
 import arCommon from './locales/ar/common.json'
 import arIncidents from './locales/ar/incidents.json'
 import arDashboard from './locales/ar/dashboard.json'
@@ -52,7 +52,7 @@ import arAdmin from './locales/ar/admin.json'
 import arCitizen from './locales/ar/citizen.json'
 import arLanding from './locales/ar/landing.json'
 
-// ─── German ──────────────────────────────────────────────────────────────
+// German
 import deCommon from './locales/de/common.json'
 import deIncidents from './locales/de/incidents.json'
 import deDashboard from './locales/de/dashboard.json'
@@ -62,7 +62,7 @@ import deAdmin from './locales/de/admin.json'
 import deCitizen from './locales/de/citizen.json'
 import deLanding from './locales/de/landing.json'
 
-// ─── Portuguese ──────────────────────────────────────────────────────────
+// Portuguese
 import ptCommon from './locales/pt/common.json'
 import ptIncidents from './locales/pt/incidents.json'
 import ptDashboard from './locales/pt/dashboard.json'
@@ -72,7 +72,7 @@ import ptAdmin from './locales/pt/admin.json'
 import ptCitizen from './locales/pt/citizen.json'
 import ptLanding from './locales/pt/landing.json'
 
-// ─── Hindi ────────────────────────────────────────────────────────────────
+// Hindi
 import hiCommon from './locales/hi/common.json'
 import hiIncidents from './locales/hi/incidents.json'
 import hiDashboard from './locales/hi/dashboard.json'
@@ -82,7 +82,7 @@ import hiAdmin from './locales/hi/admin.json'
 import hiCitizen from './locales/hi/citizen.json'
 import hiLanding from './locales/hi/landing.json'
 
-// ─── Chinese (Simplified) ─────────────────────────────────────────────────
+// Chinese (Simplified)
 import zhCommon from './locales/zh/common.json'
 import zhIncidents from './locales/zh/incidents.json'
 import zhDashboard from './locales/zh/dashboard.json'
@@ -92,7 +92,7 @@ import zhAdmin from './locales/zh/admin.json'
 import zhCitizen from './locales/zh/citizen.json'
 import zhLanding from './locales/zh/landing.json'
 
-// ─── Swahili ──────────────────────────────────────────────────────────────
+// Swahili
 import swCommon from './locales/sw/common.json'
 import swIncidents from './locales/sw/incidents.json'
 import swDashboard from './locales/sw/dashboard.json'
@@ -150,3 +150,4 @@ export const SUPPORTED_LANGUAGES = [
 ] as const
 
 export type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number]['code']
+

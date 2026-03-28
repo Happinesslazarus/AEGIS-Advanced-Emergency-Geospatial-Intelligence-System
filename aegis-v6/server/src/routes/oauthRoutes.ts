@@ -1,31 +1,28 @@
-/**
+ /*
  * routes/oauthRoutes.ts — Social login via Passport.js
- *
  * Endpoints:
  *   GET  /api/auth/google          — Redirect to Google consent screen
  *   GET  /api/auth/google/callback — Google callback → JWT + redirect
- *
  * Environment variables required:
  *   GOOGLE_CLIENT_ID       — Google Cloud OAuth client ID
  *   GOOGLE_CLIENT_SECRET   — Google Cloud OAuth client secret
  *   OAUTH_CALLBACK_URL     — e.g. https://yoursite.com/api/auth/google/callback
  *   CLIENT_URL             — e.g. https://yoursite.com (for redirect after login)
- *
  * If GOOGLE_CLIENT_ID is not set, the routes are still mounted but return a
  * 501 "OAuth not configured" response, so the server always starts cleanly.
- */
+  */
 
 import { Router, Request, Response, NextFunction } from 'express'
 import passport from 'passport'
 import { Strategy as GoogleStrategy, Profile } from 'passport-google-oauth20'
 import pool from '../models/db.js'
 import { generateToken, generateRefreshToken } from '../middleware/auth.js'
+import { AppError } from '../utils/AppError.js'
+import { logger } from '../services/logger.js'
 
 const router = Router()
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Configure Passport Google Strategy (only when env vars present)
-// ═══════════════════════════════════════════════════════════════════════════════
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || ''
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || ''
@@ -117,9 +114,7 @@ if (oauthEnabled) {
   passport.deserializeUser((user: any, done) => done(null, user))
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Middleware guard — returns 501 when OAuth is not configured
-// ═══════════════════════════════════════════════════════════════════════════════
 
 function requireOAuthConfigured(_req: Request, res: Response, next: NextFunction): void {
   if (!oauthEnabled) {
@@ -132,9 +127,7 @@ function requireOAuthConfigured(_req: Request, res: Response, next: NextFunction
   next()
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // GET /api/auth/google — Initiate Google OAuth flow
-// ═══════════════════════════════════════════════════════════════════════════════
 
 router.get(
   '/google',
@@ -146,9 +139,7 @@ router.get(
   }),
 )
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // GET /api/auth/google/callback — Handle Google redirect
-// ═══════════════════════════════════════════════════════════════════════════════
 
 router.get(
   '/google/callback',
@@ -156,7 +147,7 @@ router.get(
   (req: Request, res: Response, next: NextFunction) => {
     passport.authenticate('google', { session: false, failureRedirect: `${CLIENT_URL}/citizen/login?error=oauth_failed` }, (err: any, user: any) => {
       if (err || !user) {
-        console.error('[OAuth] Google callback error:', err?.message || 'No user returned')
+        logger.error({ err }, '[OAuth] Google callback error')
         return res.redirect(`${CLIENT_URL}/citizen/login?error=oauth_failed`)
       }
 
@@ -185,9 +176,7 @@ router.get(
   },
 )
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // GET /api/auth/status — Check which OAuth providers are enabled
-// ═══════════════════════════════════════════════════════════════════════════════
 
 router.get('/status', (_req: Request, res: Response) => {
   res.json({

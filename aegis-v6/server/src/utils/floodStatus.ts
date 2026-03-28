@@ -20,7 +20,7 @@ export interface FloodStatusResult {
   thresholdUsed: string
 }
 
-/**
+ /**
  * Calculate flood status using dynamic threshold calibration.
  *
  * If the station has a historicalFloodLevel, use percentage-based calculation.
@@ -71,7 +71,7 @@ export function calculateFloodStatus(
   }
 }
 
-/**
+ /**
  * Calculate trend by comparing current level to previous reading.
  */
 export function calculateTrend(
@@ -85,7 +85,7 @@ export function calculateTrend(
   return 'stable'
 }
 
-/**
+ /**
  * Get status colour for UI rendering.
  */
 export function getStatusColour(status: FloodStatus): string {

@@ -1,0 +1,243 @@
+{
+  "report_classifier": {
+    "model_version": "ml-classifier-v2.0.0-20260327_060921",
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1_weighted": 1.0,
+    "classification_report": {
+      "flood": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 78.0
+      },
+      "drought": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 22.0
+      },
+      "heatwave": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 28.0
+      },
+      "wildfire": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 22.0
+      },
+      "storm": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 43.0
+      },
+      "other": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 47.0
+      },
+      "accuracy": 1.0,
+      "macro avg": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 240.0
+      },
+      "weighted avg": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 240.0
+      }
+    },
+    "training_samples": 960,
+    "test_samples": 240,
+    "total_samples": 1200,
+    "feature_count": 505,
+    "class_distribution": {
+      "0": 390,
+      "5": 233,
+      "4": 215,
+      "2": 139,
+      "3": 113,
+      "1": 110
+    },
+    "hazard_types": [
+      "flood",
+      "drought",
+      "heatwave",
+      "wildfire",
+      "storm",
+      "other"
+    ],
+    "classes": [
+      "flood",
+      "drought",
+      "heatwave",
+      "wildfire",
+      "storm",
+      "other"
+    ],
+    "dataset_hash": "592a2e6868e46053e592450fc4ee9d58",
+    "trained_at": "2026-03-27T06:09:21.514818",
+    "governance": {
+      "status": "skipped",
+      "error": "password authentication failed for user \"happy\""
+    }
+  },
+  "severity_predictor": {
+    "model_version": "ml-v2.0.0-20260327_060936",
+    "accuracy": 0.3042,
+    "precision": 0.2983,
+    "recall": 0.3042,
+    "f1_weighted": 0.2984,
+    "classification_report": {
+      "low": {
+        "precision": 0.3488372093023256,
+        "recall": 0.26785714285714285,
+        "f1-score": 0.30303030303030304,
+        "support": 56.0
+      },
+      "medium": {
+        "precision": 0.36936936936936937,
+        "recall": 0.45054945054945056,
+        "f1-score": 0.40594059405940597,
+        "support": 91.0
+      },
+      "high": {
+        "precision": 0.2318840579710145,
+        "recall": 0.21333333333333335,
+        "f1-score": 0.2222222222222222,
+        "support": 75.0
+      },
+      "critical": {
+        "precision": 0.058823529411764705,
+        "recall": 0.05555555555555555,
+        "f1-score": 0.05714285714285714,
+        "support": 18.0
+      },
+      "accuracy": 0.30416666666666664,
+      "macro avg": {
+        "precision": 0.2522285415136185,
+        "recall": 0.2468238705738706,
+        "f1-score": 0.2470839941136971,
+        "support": 240.0
+      },
+      "weighted avg": {
+        "precision": 0.2983234342115863,
+        "recall": 0.30416666666666664,
+        "f1-score": 0.29835637135142085,
+        "support": 240.0
+      }
+    },
+    "confusion_matrix": [
+      [
+        15,
+        23,
+        14,
+        4
+      ],
+      [
+        9,
+        41,
+        34,
+        7
+      ],
+      [
+        18,
+        36,
+        16,
+        5
+      ],
+      [
+        1,
+        11,
+        5,
+        1
+      ]
+    ],
+    "training_samples": 960,
+    "test_samples": 240,
+    "total_samples": 1200,
+    "feature_count": 503,
+    "class_distribution": {
+      "1": 457,
+      "2": 373,
+      "0": 280,
+      "3": 90
+    },
+    "classes": [
+      "low",
+      "medium",
+      "high",
+      "critical"
+    ],
+    "dataset_hash": "592a2e6868e46053e592450fc4ee9d58",
+    "trained_at": "2026-03-27T06:09:36.512274",
+    "governance": {
+      "status": "skipped",
+      "error": "password authentication failed for user \"happy\""
+    }
+  },
+  "fake_detector": {
+    "model_version": "ml-fake-v2.0.0-20260327_060940",
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1_weighted": 1.0,
+    "auc_roc": 1.0,
+    "classification_report": {
+      "genuine": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 206.0
+      },
+      "suspicious": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 34.0
+      },
+      "accuracy": 1.0,
+      "macro avg": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 240.0
+      },
+      "weighted avg": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 240.0
+      }
+    },
+    "training_samples": 960,
+    "test_samples": 240,
+    "total_samples": 1200,
+    "feature_count": 17,
+    "genuine_count": 1029,
+    "suspicious_count": 171,
+    "dataset_hash": "4981435e0e066ccdbaa6756e2f0149dc",
+    "trained_at": "2026-03-27T06:09:40.470476",
+    "governance": {
+      "status": "skipped",
+      "error": "password authentication failed for user \"happy\""
+    }
+  },
+  "production_pipeline": {
+    "status": "completed",
+    "result": "None"
+  },
+  "hazard_models": {
+    "status": "failed",
+    "error": "FeatureEngineer() takes no arguments"
+  }
+}

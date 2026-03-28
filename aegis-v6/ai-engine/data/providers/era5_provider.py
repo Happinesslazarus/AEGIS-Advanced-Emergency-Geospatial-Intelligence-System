@@ -8,7 +8,6 @@ import pandas as pd
 from registry.region_registry import get_region
 from .base_provider import DataProvider
 
-
 class ERA5Provider(DataProvider):
     @property
     def name(self) -> str:

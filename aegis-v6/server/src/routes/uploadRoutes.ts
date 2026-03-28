@@ -2,27 +2,29 @@
  * uploadRoutes.ts — File Upload Handler
  *
  * Handles uploads for:
- *   - User avatars
- *   - Community post images
- *   - Message attachments
- *   - Status update photos
+ * User avatars
+ * Community post images
+ * Message attachments
+ * Status update photos
  */
 
-import express, { Request, Response } from 'express'
+import express, { Request, Response, NextFunction } from 'express'
 import multer from 'multer'
 import path from 'path'
 import fs from 'fs'
 import { authMiddleware, AuthRequest } from '../middleware/auth.js'
+import { validateMagicBytes } from '../middleware/upload.js'
+import { AppError } from '../utils/AppError.js'
 
 const router = express.Router()
 
-// ─── Upload Directory Setup ───────────────────────────────────────────────────
+// Upload Directory Setup
 const uploadsDir = path.join(process.cwd(), 'uploads')
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true })
 }
 
-// ─── Multer Configuration ─────────────────────────────────────────────────────
+// Multer Configuration
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     // Organize files by type
@@ -49,7 +51,6 @@ const fileFilter = (req: any, file: Express.Multer.File, cb: any) => {
     'image/png',
     'image/gif',
     'image/webp',
-    'image/svg+xml'
   ]
 
   if (!allowedMimes.includes(file.mimetype)) {
@@ -70,22 +71,23 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
 })
 
-// ───┐ POST /upload — Generic upload endpoint ──────────────────────────────────
+// POST /upload — Generic upload endpoint
 // Requires auth (citizen or operator)
 // Expects: file in `file` field
 router.post('/upload', 
+  authMiddleware,
   (req: any, res: any, next: any) => {
     // Determine upload type
     const auth = req.headers.authorization || ''
     req.uploadType = 'general'
     next()
   },
-  upload.single('file'), 
-  authMiddleware, 
-  (req: AuthRequest, res: Response) => {
+  upload.single('file'),
+  validateMagicBytes,
+  (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       if (!req.file) {
-        return res.status(400).json({ error: 'No file provided' })
+        throw AppError.badRequest('No file provided')
       }
 
       const uploadType = (req as any).uploadType || 'general'
@@ -98,25 +100,24 @@ router.post('/upload',
         size: req.file.size,
         mimetype: req.file.mimetype,
       })
-    } catch (err: any) {
-      console.error('[Upload] POST /upload error:', err.message)
-      res.status(500).json({ error: 'Failed to upload file' })
+    } catch (err) {
+      next(err)
     }
   }
 )
 
-// ───┐ POST /upload/avatar — Avatar upload ──────────────────────────────────────
+// POST /upload/avatar — Avatar upload
 router.post('/upload/avatar',
+  authMiddleware,
   (req: any, res: any, next: any) => {
     req.uploadType = 'avatars'
     next()
   },
   upload.single('file'),
-  authMiddleware,
-  (req: AuthRequest, res: Response) => {
+  (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       if (!req.file) {
-        return res.status(400).json({ error: 'No file provided' })
+        throw AppError.badRequest('No file provided')
       }
 
       const url = `/uploads/avatars/${req.file.filename}`
@@ -126,25 +127,24 @@ router.post('/upload/avatar',
         url,
         filename: req.file.filename,
       })
-    } catch (err: any) {
-      console.error('[Upload] POST /upload/avatar error:', err.message)
-      res.status(500).json({ error: 'Failed to upload avatar' })
+    } catch (err) {
+      next(err)
     }
   }
 )
 
-// ───┐ POST /upload/community — Community post images ─────────────────────────
+// POST /upload/community — Community post images
 router.post('/upload/community',
+  authMiddleware,
   (req: any, res: any, next: any) => {
     req.uploadType = 'community'
     next()
   },
   upload.single('file'),
-  authMiddleware,
-  (req: AuthRequest, res: Response) => {
+  (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       if (!req.file) {
-        return res.status(400).json({ error: 'No file provided' })
+        throw AppError.badRequest('No file provided')
       }
 
       const url = `/uploads/community/${req.file.filename}`
@@ -154,12 +154,11 @@ router.post('/upload/community',
         url,
         filename: req.file.filename,
       })
-    } catch (err: any) {
-      console.error('[Upload] POST /upload/community error:', err.message)
-      res.status(500).json({ error: 'Failed to upload image' })
+    } catch (err) {
+      next(err)
     }
   }
 )
 
 export default router
-
+

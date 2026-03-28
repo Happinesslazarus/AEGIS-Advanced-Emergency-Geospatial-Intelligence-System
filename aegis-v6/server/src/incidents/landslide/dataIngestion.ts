@@ -3,13 +3,18 @@
  * Data Source: Open-Meteo Weather API (rainfall data)
  */
 
+import { logger } from '../../services/logger.js'
+
 const OPEN_METEO_API = 'https://api.open-meteo.com/v1/forecast'
+const DEFAULT_LAT = parseFloat(process.env.AEGIS_DEFAULT_LAT || '0')
+const DEFAULT_LON = parseFloat(process.env.AEGIS_DEFAULT_LON || '0')
+const AEGIS_TIMEZONE = process.env.AEGIS_TIMEZONE || 'UTC'
 
 export class LandslideDataIngestion {
-  /**
+   /**
    * Ingest rainfall data from Open-Meteo API
    */
-  static async ingestRainfallData(region: string, lat = 57.15, lon = -2.11): Promise<{ recordsIngested: number; source: string }> {
+  static async ingestRainfallData(region: string, lat = DEFAULT_LAT, lon = DEFAULT_LON): Promise<{ recordsIngested: number; source: string }> {
     try {
       const params = new URLSearchParams({
         latitude: lat.toString(),
@@ -18,7 +23,7 @@ export class LandslideDataIngestion {
         daily: 'precipitation_sum',
         past_days: '7',
         forecast_days: '7',
-        timezone: 'Europe/London'
+        timezone: AEGIS_TIMEZONE
       })
 
       const response = await fetch(`${OPEN_METEO_API}?${params.toString()}`, {
@@ -27,36 +32,36 @@ export class LandslideDataIngestion {
       })
 
       if (!response.ok) {
-        console.warn(`Open-Meteo API returned ${response.status}`)
+        logger.warn({ status: response.status }, '[Landslide] Open-Meteo API returned non-OK status')
         return { recordsIngested: 0, source: 'Open-Meteo (failed)' }
       }
 
       const data = await response.json()
       const recordsIngested = data.hourly?.time?.length || 0
 
-      console.log(`Ingested ${recordsIngested} rainfall records from Open-Meteo`)
+      logger.info({ recordsIngested }, '[Landslide] Ingested rainfall records from Open-Meteo')
       
       return {
         recordsIngested,
         source: 'Open-Meteo Weather API'
       }
     } catch (error) {
-      console.error(`Landslide data ingestion error: ${error}`)
+      logger.error({ err: error }, '[Landslide] Data ingestion error')
       return { recordsIngested: 0, source: 'Open-Meteo (error)' }
     }
   }
 
-  /**
+   /**
    * Calculate rainfall accumulation over period
    */
-  static async calculateRainfallAccumulation(lat = 57.15, lon = -2.11, hours = 72): Promise<number> {
+  static async calculateRainfallAccumulation(lat = DEFAULT_LAT, lon = DEFAULT_LON, hours = 72): Promise<number> {
     try {
       const params = new URLSearchParams({
         latitude: lat.toString(),
         longitude: lon.toString(),
         hourly: 'precipitation',
         past_hours: hours.toString(),
-        timezone: 'Europe/London'
+        timezone: AEGIS_TIMEZONE
       })
 
       const response = await fetch(`${OPEN_METEO_API}?${params.toString()}`, {
@@ -73,12 +78,12 @@ export class LandslideDataIngestion {
       
       return precipitation.reduce((sum: number, val: number) => sum + (val || 0), 0)
     } catch (error) {
-      console.error(`Rainfall accumulation calculation error: ${error}`)
+      logger.error({ err: error }, '[Landslide] Rainfall accumulation calculation error')
       return 0
     }
   }
 
-  /**
+   /**
    * Schedule periodic data ingestion
    */
   static scheduleIngestion(intervalMinutes = 30): NodeJS.Timer {

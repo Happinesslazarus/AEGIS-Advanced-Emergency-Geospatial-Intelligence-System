@@ -94,10 +94,10 @@ export default function FloodLayerControl({ onLayerChange, className = '' }: Pro
           </div>
           <div className="text-left">
             <h3 className="text-sm font-bold text-gray-900 dark:text-white">{t('floodLayer.floodLayers', lang)}</h3>
-            <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{activeCount} {t('floodLayer.active', lang)}</p>
+            <p className="text-[10px] text-gray-500 dark:text-gray-300">{activeCount} {t('floodLayer.active', lang)}</p>
           </div>
         </div>
-        {expanded ? <ChevronUp className="w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" /> : <ChevronDown className="w-4 h-4 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />}
+        {expanded ? <ChevronUp className="w-4 h-4 text-gray-400 dark:text-gray-300" /> : <ChevronDown className="w-4 h-4 text-gray-400 dark:text-gray-300" />}
       </button>
 
       {expanded && (
@@ -105,7 +105,7 @@ export default function FloodLayerControl({ onLayerChange, className = '' }: Pro
           {/* Quick actions */}
           <div className="px-4 py-2 flex gap-2 border-b border-gray-100 dark:border-gray-700/30">
             <button onClick={enableAll} className="text-[10px] text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition">{t('floodLayer.showAll', lang)}</button>
-            <button onClick={disableAll} className="text-[10px] text-gray-600 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800/50 hover:bg-gray-200 dark:hover:bg-gray-700/50 transition">{t('floodLayer.hideAll', lang)}</button>
+            <button onClick={disableAll} className="text-[10px] text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300 px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800/50 hover:bg-gray-200 dark:hover:bg-gray-700/50 transition">{t('floodLayer.hideAll', lang)}</button>
           </div>
 
           {/* Grouped layers */}
@@ -113,7 +113,7 @@ export default function FloodLayerControl({ onLayerChange, className = '' }: Pro
             {Object.entries(groupedLayers).map(([group, items]) => (
               <div key={group}>
                 <div className="px-4 py-1.5 bg-gray-100 dark:bg-gray-800/40">
-                  <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-wider">{group}</span>
+                  <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">{group}</span>
                 </div>
                 {items.map(layer => (
                   <button
@@ -126,7 +126,7 @@ export default function FloodLayerControl({ onLayerChange, className = '' }: Pro
                       {layer.enabled ? (
                         <Eye className="w-3.5 h-3.5 text-green-400" />
                       ) : (
-                        <EyeOff className="w-3.5 h-3.5 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300" />
+                        <EyeOff className="w-3.5 h-3.5 text-gray-500 dark:text-gray-300" />
                       )}
                     </div>
                     
@@ -137,7 +137,7 @@ export default function FloodLayerControl({ onLayerChange, className = '' }: Pro
                     <div className="flex-1 min-w-0">
                       <p className="text-xs text-gray-800 dark:text-white truncate">{layer.name}</p>
                       {layer.description && (
-                        <p className="text-[9px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 truncate">{layer.description}</p>
+                        <p className="text-[9px] text-gray-500 dark:text-gray-300 truncate">{layer.description}</p>
                       )}
                     </div>
 
@@ -153,7 +153,4 @@ export default function FloodLayerControl({ onLayerChange, className = '' }: Pro
     </div>
   )
 }
-
-
-
-
+

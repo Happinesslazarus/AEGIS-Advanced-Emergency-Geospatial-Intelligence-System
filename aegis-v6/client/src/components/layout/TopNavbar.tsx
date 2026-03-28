@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Shield, Menu, LogOut, User, Settings as SettingsIcon,
-  ChevronDown, Bell
+  ChevronDown, Bell, Home
 } from 'lucide-react'
 import { useCitizenAuth } from '../../contexts/CitizenAuthContext'
 import { useLocation } from '../../contexts/LocationContext'
@@ -14,6 +14,7 @@ import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 import LanguageSelector from '../shared/LanguageSelector'
 import ThemeSelector from '../ui/ThemeSelector'
+import LocationDropdown from '../shared/LocationDropdown'
 
 interface TopNavbarProps {
   onMenuToggle: () => void
@@ -24,7 +25,7 @@ interface TopNavbarProps {
 
 export default function TopNavbar({ onMenuToggle, alertCount = 0, communityUnread = 0, unreadMessages = 0 }: TopNavbarProps): JSX.Element {
   const { isAuthenticated, user, logout } = useCitizenAuth()
-  const { availableLocations, activeLocation, setActiveLocation } = useLocation()
+  const { activeLocation } = useLocation()
   const { alerts } = useAlerts()
   const { dark } = useTheme()
   const lang = useLanguage()
@@ -63,7 +64,7 @@ export default function TopNavbar({ onMenuToggle, alertCount = 0, communityUnrea
           {/* Hamburger for mobile/tablet */}
           <button
             onClick={onMenuToggle}
-            className="lg:hidden p-2 rounded-xl text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-700 dark:hover:text-white transition-colors"
+            className="lg:hidden min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl text-gray-500 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-700 dark:hover:text-white transition-colors"
             aria-label={t('layout.topNavbar.toggleNavigation', lang)}
           >
             <Menu className="w-5 h-5" />
@@ -76,23 +77,15 @@ export default function TopNavbar({ onMenuToggle, alertCount = 0, communityUnrea
             </div>
             <div className="hidden sm:block">
               <span className="font-black text-sm block leading-tight text-aegis-600 dark:text-aegis-400 tracking-wide">{t('app.title', lang)}</span>
-              <span className="text-[8px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-aegis-300 leading-none tracking-widest uppercase">{t('app.subtitle', lang)}</span>
+              <span className="text-[8px] text-gray-400 dark:text-gray-300 dark:text-aegis-300 leading-none tracking-widest uppercase">{t('app.subtitle', lang)}</span>
             </div>
           </Link>
 
           {/* Divider */}
           <div className="w-px h-6 bg-gray-200 dark:bg-white/8 hidden sm:block mx-1" />
 
-          {/* Region selector */}
-          <select
-            value={activeLocation}
-            onChange={e => setActiveLocation(e.target.value)}
-            className="appearance-none bg-transparent text-gray-600 dark:text-white/70 hover:text-gray-900 dark:hover:text-white text-xs px-2 py-1.5 rounded-lg border border-gray-200 dark:border-white/10 hover:border-aegis-400 dark:hover:border-aegis-500/40 transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-aegis-500/30 hidden sm:block"
-          >
-            {availableLocations.map(l => (
-              <option key={l.key} value={l.key} className="text-gray-900 bg-white">{l.name}</option>
-            ))}
-          </select>
+          {/* Region selector — shared dropdown */}
+          <LocationDropdown compact className="hidden sm:block" />
 
           {/* System status indicator */}
           <div className="hidden md:flex items-center gap-1.5 ml-1 px-2.5 py-1.5 rounded-lg bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/5">
@@ -102,7 +95,7 @@ export default function TopNavbar({ onMenuToggle, alertCount = 0, communityUnrea
         </div>
 
         {/* RIGHT: Language + Theme + Login/User */}
-        <div className="flex items-center gap-1 sm:gap-1.5">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           {/* System status on mobile - compact */}
           <div className="flex md:hidden items-center gap-1 px-2 py-1.5 rounded-lg bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/5">
             <span className={`w-2 h-2 rounded-full ${riskLevel.color} animate-pulse`} />
@@ -116,7 +109,7 @@ export default function TopNavbar({ onMenuToggle, alertCount = 0, communityUnrea
           {(() => {
             const totalBell = alertCount + communityUnread + unreadMessages
             return totalBell > 0 ? (
-              <div className="relative p-2 rounded-xl text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+              <div className="relative p-2 rounded-xl text-gray-500 dark:text-gray-300">
                 <Bell className="w-4 h-4" />
                 <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center">
                   {totalBell > 9 ? '9+' : totalBell}
@@ -138,18 +131,32 @@ export default function TopNavbar({ onMenuToggle, alertCount = 0, communityUnrea
               </button>
 
               {loginDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-52 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl py-1.5 animate-fade-in z-50">
+                <div className="absolute right-0 mt-2 w-52 max-w-[calc(100vw-1.5rem)] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl py-1.5 animate-fade-in z-50">
+                  <Link
+                    to="/"
+                    onClick={() => setLoginDropdownOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center shadow-sm">
+                      <Home className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-gray-900 dark:text-white">Home</p>
+                      <p className="text-[10px] text-gray-500 dark:text-gray-300">Landing page</p>
+                    </div>
+                  </Link>
+                  <div className="mx-3 my-1 h-px bg-gray-100 dark:bg-gray-800" />
                   <Link
                     to="/citizen/login"
                     onClick={() => setLoginDropdownOpen(false)}
-                    className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
                   >
                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-aegis-500 to-aegis-700 flex items-center justify-center shadow-sm">
                       <User className="w-4 h-4 text-white" />
                     </div>
                     <div>
                       <p className="text-xs font-bold text-gray-900 dark:text-white">{t('citizen.auth.citizenPortal', lang)}</p>
-                      <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('layout.portals.citizenPortalDescription', lang)}</p>
+                      <p className="text-[10px] text-gray-500 dark:text-gray-300">{t('layout.portals.citizenPortalDescription', lang)}</p>
                     </div>
                   </Link>
                   <div className="mx-3 my-1 h-px bg-gray-100 dark:bg-gray-800" />
@@ -163,7 +170,7 @@ export default function TopNavbar({ onMenuToggle, alertCount = 0, communityUnrea
                     </div>
                     <div>
                       <p className="text-xs font-bold text-gray-900 dark:text-white">{t('layout.portals.operatorPortal', lang)}</p>
-                      <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('layout.portals.operatorPortalDescription', lang)}</p>
+                      <p className="text-[10px] text-gray-500 dark:text-gray-300">{t('layout.portals.operatorPortalDescription', lang)}</p>
                     </div>
                   </Link>
                 </div>
@@ -185,27 +192,27 @@ export default function TopNavbar({ onMenuToggle, alertCount = 0, communityUnrea
                     <span className="text-[10px] font-bold text-white">{(user.displayName || user.email || '?')[0].toUpperCase()}</span>
                   </div>
                 )}
-                <span className="text-xs font-medium text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hidden sm:block max-w-[100px] truncate">{user.displayName || t('layout.topNavbar.citizenFallback', lang)}</span>
-                <ChevronDown className={`w-3 h-3 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 transition-transform ${userDropdownOpen ? 'rotate-180' : ''}`} />
+                <span className="text-xs font-medium text-gray-700 dark:text-gray-300 hidden sm:block max-w-[100px] truncate">{user.displayName || t('layout.topNavbar.citizenFallback', lang)}</span>
+                <ChevronDown className={`w-3 h-3 text-gray-500 dark:text-gray-300 transition-transform ${userDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {userDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-52 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl py-1.5 animate-fade-in z-50">
+                <div className="absolute right-0 mt-2 w-52 max-w-[calc(100vw-1.5rem)] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl py-1.5 animate-fade-in z-50">
                   <div className="px-4 py-2.5 border-b border-gray-100 dark:border-gray-800">
                     <p className="text-xs font-bold text-gray-900 dark:text-white truncate">{user.displayName || t('layout.topNavbar.citizenFallback', lang)}</p>
-                    <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 truncate">{user.email}</p>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-300 truncate">{user.email}</p>
                   </div>
                   <Link
                     to="/citizen/dashboard?tab=profile"
                     onClick={() => setUserDropdownOpen(false)}
-                    className="flex items-center gap-2.5 px-4 py-2.5 text-xs text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+                    className="flex items-center gap-2.5 px-4 py-2.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
                   >
                     <User className="w-4 h-4" /> {t('layout.header.profile', lang)}
                   </Link>
                   <Link
                     to="/citizen/dashboard?tab=settings"
                     onClick={() => setUserDropdownOpen(false)}
-                    className="flex items-center gap-2.5 px-4 py-2.5 text-xs text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+                    className="flex items-center gap-2.5 px-4 py-2.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
                   >
                     <SettingsIcon className="w-4 h-4" /> {t('layout.header.settings', lang)}
                   </Link>
@@ -225,7 +232,4 @@ export default function TopNavbar({ onMenuToggle, alertCount = 0, communityUnrea
     </nav>
   )
 }
-
-
-
-
+

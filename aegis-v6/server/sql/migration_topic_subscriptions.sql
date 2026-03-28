@@ -1,8 +1,6 @@
--- ═══════════════════════════════════════════════════════════════════════════════
 --  AEGIS — Topic-Based Alert Subscriptions (#32)
 --  Adds topic_filter column so subscribers can choose which alert types
 --  (flood, fire, storm, earthquake, heatwave, tsunami, general) they receive.
--- ═══════════════════════════════════════════════════════════════════════════════
 
 BEGIN;
 

@@ -100,7 +100,7 @@ export const useWebPush = () => {
           if (registration!.active) resolve()
         })
       }
-      // // console.log('✅ Service Worker ready')
+      // // console.log('[OK] Service Worker ready')
 
       // Always fetch fresh public key from server to avoid stale state
       let publicKey = status.publicKey
@@ -124,9 +124,9 @@ export const useWebPush = () => {
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(publicKey) as BufferSource,
         })
-        // // console.log('✅ Push subscription created')
+        // // console.log('[OK] Push subscription created')
       } else {
-        // // console.log('✅ Using existing push subscription')
+        // // console.log('[OK] Using existing push subscription')
       }
 
       if (!subscription) {
@@ -148,7 +148,7 @@ export const useWebPush = () => {
         throw new Error('Failed to save subscription on server')
       }
 
-      // // console.log('✅ Push subscription saved to server')
+      // // console.log('[OK] Push subscription saved to server')
       setStatus(prev => ({ ...prev, subscribed: true }))
       return subscription
     } catch (err) {
@@ -182,7 +182,7 @@ export const useWebPush = () => {
 
           // Unsubscribe locally
           await subscription.unsubscribe()
-          // // console.log('✅ Push subscription removed')
+          // // console.log('[OK] Push subscription removed')
           setStatus(prev => ({ ...prev, subscribed: false }))
         }
       }

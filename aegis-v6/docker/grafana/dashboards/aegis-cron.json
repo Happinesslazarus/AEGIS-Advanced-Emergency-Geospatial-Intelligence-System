@@ -1,0 +1,65 @@
+{
+  "uid": "aegis-cron",
+  "title": "AEGIS — Cron Monitoring",
+  "tags": ["aegis", "cron"],
+  "timezone": "browser",
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "panels": [
+    {
+      "title": "Cron Job Success vs Failure (1h)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 16, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [
+        { "expr": "sum(increase(cron_job_total{status=\"success\"}[1h])) by (job)", "legendFormat": "ok:{{ job }}", "refId": "A" },
+        { "expr": "sum(increase(cron_job_total{status=\"failure\"}[1h])) by (job)", "legendFormat": "fail:{{ job }}", "refId": "B" }
+      ]
+    },
+    {
+      "title": "Total Failures (1h)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "fieldConfig": {
+        "defaults": { "thresholds": { "steps": [{ "value": 0, "color": "green" }, { "value": 1, "color": "yellow" }, { "value": 5, "color": "red" }] } }
+      },
+      "targets": [{ "expr": "sum(increase(cron_job_total{status=\"failure\"}[1h])) or vector(0)", "legendFormat": "Failures", "refId": "A" }]
+    },
+    {
+      "title": "Total Successes (1h)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 4 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [{ "expr": "sum(increase(cron_job_total{status=\"success\"}[1h])) or vector(0)", "legendFormat": "Successes", "refId": "A" }]
+    },
+    {
+      "title": "Job Duration (p95)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum(rate(cron_job_duration_seconds_bucket[1h])) by (le, job))", "legendFormat": "p95:{{ job }}", "refId": "A" }
+      ]
+    },
+    {
+      "title": "Time Since Last Success",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "fieldConfig": {
+        "defaults": { "unit": "s" },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Value" }, "properties": [
+            { "id": "thresholds", "value": { "steps": [{ "value": 0, "color": "green" }, { "value": 3600, "color": "yellow" }, { "value": 7200, "color": "red" }] } },
+            { "id": "custom.displayMode", "value": "color-background-solid" }
+          ]}
+        ]
+      },
+      "targets": [
+        { "expr": "time() - cron_job_last_success_timestamp", "legendFormat": "{{ job }}", "refId": "A", "format": "table", "instant": true }
+      ]
+    }
+  ]
+}

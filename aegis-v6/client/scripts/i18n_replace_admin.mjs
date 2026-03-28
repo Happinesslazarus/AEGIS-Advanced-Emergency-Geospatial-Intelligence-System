@@ -1,5 +1,4 @@
-/**
- * i18n_replace_admin.mjs — Replace hardcoded English strings with t() calls
+﻿ * i18n_replace_admin.mjs — Replace hardcoded English strings with t() calls
  * in admin component files. Uses exact string matching for safety.
  */
 import { readFileSync, writeFileSync } from 'fs'
@@ -19,9 +18,7 @@ function replaceAll(code, pairs) {
   return { result, count }
 }
 
-// ────────────────────────────────────────────────────────────
 // AITransparencyConsole.tsx
-// ────────────────────────────────────────────────────────────
 function fixAITransparencyConsole() {
   const file = join(SRC, 'components/admin/AITransparencyConsole.tsx')
   let code = readFileSync(file, 'utf8')
@@ -89,9 +86,7 @@ function fixAITransparencyConsole() {
   else console.log('SKIP AITransparencyConsole')
 }
 
-// ────────────────────────────────────────────────────────────
 // ResourceDeploymentConsole.tsx
-// ────────────────────────────────────────────────────────────
 function fixResourceDeploymentConsole() {
   const file = join(SRC, 'components/admin/ResourceDeploymentConsole.tsx')
   let code = readFileSync(file, 'utf8')
@@ -160,9 +155,7 @@ function fixResourceDeploymentConsole() {
   else console.log('SKIP ResourceDeploymentConsole')
 }
 
-// ────────────────────────────────────────────────────────────
 // UserAccessManagement.tsx
-// ────────────────────────────────────────────────────────────
 function fixUserAccessManagement() {
   const file = join(SRC, 'components/admin/UserAccessManagement.tsx')
   let code = readFileSync(file, 'utf8')
@@ -214,9 +207,7 @@ function fixUserAccessManagement() {
   else console.log('SKIP UserAccessManagement')
 }
 
-// ────────────────────────────────────────────────────────────
 // AdminAlertBroadcast.tsx 
-// ────────────────────────────────────────────────────────────
 function fixAdminAlertBroadcast() {
   const file = join(SRC, 'components/admin/AdminAlertBroadcast.tsx')
   let code = readFileSync(file, 'utf8')
@@ -269,9 +260,7 @@ function fixAdminAlertBroadcast() {
   else console.log('SKIP AdminAlertBroadcast')
 }
 
-// ────────────────────────────────────────────────────────────
 // AdminAuditTrail.tsx
-// ────────────────────────────────────────────────────────────
 function fixAdminAuditTrail() {
   const file = join(SRC, 'components/admin/AdminAuditTrail.tsx')
   let code = readFileSync(file, 'utf8')
@@ -310,9 +299,7 @@ function fixAdminAuditTrail() {
   else console.log('SKIP AdminAuditTrail')
 }
 
-// ────────────────────────────────────────────────────────────
 // AdminHistoricalIntelligence.tsx
-// ────────────────────────────────────────────────────────────
 function fixAdminHistoricalIntelligence() {
   const file = join(SRC, 'components/admin/AdminHistoricalIntelligence.tsx')
   let code = readFileSync(file, 'utf8')
@@ -352,9 +339,7 @@ function fixAdminHistoricalIntelligence() {
   else console.log('SKIP AdminHistoricalIntelligence')
 }
 
-// ────────────────────────────────────────────────────────────
 // AdminMessaging.tsx
-// ────────────────────────────────────────────────────────────
 function fixAdminMessaging() {
   const file = join(SRC, 'components/admin/AdminMessaging.tsx')
   let code = readFileSync(file, 'utf8')
@@ -403,9 +388,7 @@ function fixAdminMessaging() {
   else console.log('SKIP AdminMessaging')
 }
 
-// ────────────────────────────────────────────────────────────
 // AnalyticsCenter.tsx
-// ────────────────────────────────────────────────────────────
 function fixAnalyticsCenter() {
   const file = join(SRC, 'components/admin/AnalyticsCenter.tsx')
   let code = readFileSync(file, 'utf8')
@@ -419,9 +402,7 @@ function fixAnalyticsCenter() {
   else console.log('SKIP AnalyticsCenter')
 }
 
-// ────────────────────────────────────────────────────────────
 // DistressPanel.tsx
-// ────────────────────────────────────────────────────────────
 function fixDistressPanel() {
   const file = join(SRC, 'components/admin/DistressPanel.tsx')
   let code = readFileSync(file, 'utf8')
@@ -438,9 +419,7 @@ function fixDistressPanel() {
   else console.log('SKIP DistressPanel')
 }
 
-// ────────────────────────────────────────────────────────────
 // LiveOperationsMap.tsx
-// ────────────────────────────────────────────────────────────
 function fixLiveOperationsMap() {
   const file = join(SRC, 'components/admin/LiveOperationsMap.tsx')
   let code = readFileSync(file, 'utf8')
@@ -458,9 +437,7 @@ function fixLiveOperationsMap() {
   else console.log('SKIP LiveOperationsMap')
 }
 
-// ────────────────────────────────────────────────────────────
 // DeliveryDashboard.tsx
-// ────────────────────────────────────────────────────────────
 function fixDeliveryDashboard() {
   const file = join(SRC, 'components/admin/DeliveryDashboard.tsx')
   let code = readFileSync(file, 'utf8')
@@ -481,9 +458,7 @@ function fixDeliveryDashboard() {
   else console.log('SKIP DeliveryDashboard')
 }
 
-// ────────────────────────────────────────────────────────────
 // IncidentCommandConsole.tsx
-// ────────────────────────────────────────────────────────────
 function fixIncidentCommandConsole() {
   const file = join(SRC, 'components/admin/IncidentCommandConsole.tsx')
   let code = readFileSync(file, 'utf8')
@@ -518,3 +493,4 @@ fixDeliveryDashboard()
 fixIncidentCommandConsole()
 
 console.log('\nDone!')
+

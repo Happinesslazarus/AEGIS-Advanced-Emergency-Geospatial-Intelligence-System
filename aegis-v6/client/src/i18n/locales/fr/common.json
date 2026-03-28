@@ -229,6 +229,23 @@
     "terms": "Conditions",
     "contact": "Contact",
     "about": "À propos",
-    "accessibility": "Accessibilité"
+    "accessibility": "Accessibilité",
+    "cookiePreferences": "Préférences de cookies"
+  },
+  "cookieConsent": {
+    "title": "Préférences de cookies",
+    "description": "Nous utilisons des cookies pour assurer les fonctions essentielles de la plateforme et, avec votre consentement, pour améliorer votre expérience. Vous pouvez modifier vos préférences à tout moment.",
+    "acceptAll": "Tout accepter",
+    "essentialOnly": "Essentiels uniquement",
+    "managePreferences": "Gérer les préférences",
+    "savePreferences": "Enregistrer les préférences",
+    "cat": {
+      "essential": "Essentiels",
+      "essentialDesc": "Authentification, protection CSRF et cookies de sécurité. Toujours actifs.",
+      "preferences": "Préférences",
+      "preferencesDesc": "Sélection de la langue, paramètres du thème et préférences d'interface.",
+      "analytics": "Analytique",
+      "analyticsDesc": "Analyse d'utilisation et surveillance des performances pour améliorer la plateforme."
+    }
   }
 }

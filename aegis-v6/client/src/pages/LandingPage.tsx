@@ -2,12 +2,13 @@ import { Link } from 'react-router-dom'
 import { Shield, Users, Settings, ArrowRight, Radio, Droplets, AlertTriangle, MapPin, Globe, Zap, Heart, Activity, Eye, Brain, Bell, BarChart3, Layers, Smartphone, Lock, Wifi, ChevronRight, ExternalLink, Map, Siren } from 'lucide-react'
 import { t } from '../utils/i18n'
 import { useLanguage } from '../hooks/useLanguage'
+import { resetConsent } from '../utils/cookiePreferences'
 import ThemeSelector from '../components/ui/ThemeSelector'
 import LanguageSelector from '../components/shared/LanguageSelector'
 import { useTheme } from '../contexts/ThemeContext'
 import { useEffect, useRef, useState, useCallback } from 'react'
 
-/* ─── Scroll-reveal hook using IntersectionObserver ─── */
+/*  Scroll-reveal hook using IntersectionObserver  */
 function useReveal(threshold = 0.15) {
   const ref = useRef<HTMLDivElement>(null)
   const [visible, setVisible] = useState(false)
@@ -21,7 +22,7 @@ function useReveal(threshold = 0.15) {
   return { ref, visible }
 }
 
-/* ─── Animated counter ─── */
+/*  Animated counter  */
 function AnimatedStat({ value, suffix = '', duration = 1800 }: { value: number; suffix?: string; duration?: number }) {
   const [count, setCount] = useState(0)
   const { ref, visible } = useReveal(0.3)
@@ -40,7 +41,7 @@ function AnimatedStat({ value, suffix = '', duration = 1800 }: { value: number; 
   return <span ref={ref}>{count.toLocaleString()}{suffix}</span>
 }
 
-/* ─── Section Reveal wrapper ─── */
+/*  Section Reveal wrapper  */
 function Reveal({ children, className = '', delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   const { ref, visible } = useReveal(0.1)
   return (
@@ -56,8 +57,8 @@ export default function LandingPage(): JSX.Element {
   const [mobileNav, setMobileNav] = useState(false)
 
   return (
-    <div className="min-h-screen overflow-hidden relative bg-gradient-to-b from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-[#080818] dark:to-gray-950 text-gray-900 dark:text-white">
-      {/* ── Atmospheric background ── */}
+    <div className="min-h-screen overflow-hidden relative bg-gradient-to-b from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-surface-ultra-dark dark:to-gray-950 text-gray-900 dark:text-white">
+      {/*  Atmospheric background  */}
       <style>{`
         @keyframes lp-float { 0%, 100% { transform: translate(0%, 0%) scale(1); } 33% { transform: translate(2%, -3%) scale(1.04); } 66% { transform: translate(-2%, 2%) scale(0.97); } }
         @keyframes lp-float-r { 0%, 100% { transform: translate(0%, 0%); } 50% { transform: translate(-3%, -2%) scale(1.06); } }
@@ -73,9 +74,9 @@ export default function LandingPage(): JSX.Element {
         <div className="absolute bottom-0 left-1/3 w-[450px] h-[450px] bg-amber-300/5 dark:bg-amber-400/3 rounded-full blur-3xl" style={{ animation: 'lp-float 36s ease-in-out infinite 3s' }} />
       </div>
 
-      {/* ═══════════════════════════════════════════════════════════════
+      {/*
           NAVIGATION
-      ═══════════════════════════════════════════════════════════════ */}
+       */}
       <nav className="sticky top-0 z-50 bg-white/80 dark:bg-gray-950/80 backdrop-blur-2xl border-b border-gray-200/60 dark:border-white/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5 group">
@@ -85,7 +86,7 @@ export default function LandingPage(): JSX.Element {
             </div>
             <div className="leading-none">
               <span className="font-black text-base tracking-wide"><span className="text-aegis-600 dark:text-aegis-400">AEGIS</span></span>
-              <span className="hidden sm:block text-[9px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 tracking-[0.2em] uppercase">Emergency Intelligence</span>
+              <span className="hidden sm:block text-[9px] text-gray-400 dark:text-gray-300 tracking-[0.2em] uppercase">Emergency Intelligence</span>
             </div>
           </Link>
 
@@ -98,9 +99,9 @@ export default function LandingPage(): JSX.Element {
               { href: '/about', label: 'About', external: true },
             ].map(link => (
               link.external ? (
-                <Link key={link.label} to={link.href} className="text-xs font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors">{link.label}</Link>
+                <Link key={link.label} to={link.href} className="text-xs font-semibold text-gray-500 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors">{link.label}</Link>
               ) : (
-                <a key={link.label} href={link.href} className="text-xs font-semibold text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors">{link.label}</a>
+                <a key={link.label} href={link.href} className="text-xs font-semibold text-gray-500 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors">{link.label}</a>
               )
             ))}
           </div>
@@ -130,16 +131,16 @@ export default function LandingPage(): JSX.Element {
               { href: '#data-sources', label: t('landing.nav.dataSources', lang) },
               { href: '/about', label: 'About' },
             ].map(link => (
-              <a key={link.label} href={link.href} onClick={() => setMobileNav(false)} className="block text-sm font-semibold text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-aegis-600 dark:hover:text-aegis-400 transition-colors">{link.label}</a>
+              <a key={link.label} href={link.href} onClick={() => setMobileNav(false)} className="block text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-aegis-600 dark:hover:text-aegis-400 transition-colors">{link.label}</a>
             ))}
             <Link to="/citizen" onClick={() => setMobileNav(false)} className="block text-center text-sm font-bold text-white bg-aegis-600 hover:bg-aegis-500 px-4 py-2.5 rounded-xl transition-all">{t('landing.cta.getStarted', lang)}</Link>
           </div>
         )}
       </nav>
 
-      {/* ═══════════════════════════════════════════════════════════════
+      {/*
           HERO SECTION
-      ═══════════════════════════════════════════════════════════════ */}
+       */}
       <section className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 pt-16 sm:pt-24 pb-20 text-center">
         <Reveal>
           <div className="inline-flex items-center gap-2.5 bg-aegis-500/10 border border-aegis-500/20 rounded-full px-4 py-1.5 mb-8">
@@ -158,10 +159,10 @@ export default function LandingPage(): JSX.Element {
         </Reveal>
 
         <Reveal delay={200}>
-          <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-4 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 mb-4 max-w-2xl mx-auto leading-relaxed">
             {t('landing.hero.subtitle', lang)}
           </p>
-          <p className="text-sm text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-white/50 mb-10 max-w-xl mx-auto leading-relaxed">
+          <p className="text-sm text-gray-400 dark:text-gray-300 dark:text-white/50 mb-10 max-w-xl mx-auto leading-relaxed">
             {t('landing.hero.description', lang)}
           </p>
         </Reveal>
@@ -182,7 +183,7 @@ export default function LandingPage(): JSX.Element {
           </div>
         </Reveal>
 
-        {/* ── Hero visual — animated radar/pulse ── */}
+        {/*  Hero visual — animated radar/pulse  */}
         <Reveal delay={400}>
           <div className="relative max-w-3xl mx-auto mt-4">
             <div className="relative bg-white/60 dark:bg-white/[0.03] backdrop-blur-xl rounded-2xl border border-gray-200/80 dark:border-white/[0.06] shadow-2xl shadow-gray-200/40 dark:shadow-black/40 p-6 sm:p-8 overflow-hidden">
@@ -204,7 +205,7 @@ export default function LandingPage(): JSX.Element {
                         <f.icon className={`w-5 h-5 ${f.color}`} />
                       </div>
                       <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-1">{f.label}</h3>
-                      <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 leading-relaxed">{f.desc}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-300 leading-relaxed">{f.desc}</p>
                     </div>
                   </Reveal>
                 ))}
@@ -214,9 +215,9 @@ export default function LandingPage(): JSX.Element {
         </Reveal>
       </section>
 
-      {/* ═══════════════════════════════════════════════════════════════
+      {/*
           STATS SECTION — Animated counters
-      ═══════════════════════════════════════════════════════════════ */}
+       */}
       <section className="relative z-10 border-y border-gray-200/60 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.01]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 text-center">
@@ -234,7 +235,7 @@ export default function LandingPage(): JSX.Element {
                   <p className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white">
                     <AnimatedStat value={s.value} suffix={s.suffix} />
                   </p>
-                  <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 uppercase tracking-wider font-semibold">{s.label}</p>
+                  <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-300 uppercase tracking-wider font-semibold">{s.label}</p>
                 </div>
               </Reveal>
             ))}
@@ -242,15 +243,15 @@ export default function LandingPage(): JSX.Element {
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════════════════════
-          FEATURES SHOWCASE  
-      ═══════════════════════════════════════════════════════════════ */}
+      {/*
+          FEATURES SHOWCASE
+       */}
       <section id="features" className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-20 sm:py-28">
         <Reveal>
           <div className="text-center mb-16">
             <span className="text-xs font-bold text-aegis-600 dark:text-aegis-400 tracking-widest uppercase">Capabilities</span>
             <h2 className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white mt-3 mb-4">Enterprise-Grade Emergency Intelligence</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed">A comprehensive platform combining real-time data ingestion, AI-powered analysis, and multi-channel communication to protect communities.</p>
+            <p className="text-sm text-gray-500 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed">A comprehensive platform combining real-time data ingestion, AI-powered analysis, and multi-channel communication to protect communities.</p>
           </div>
         </Reveal>
 
@@ -272,23 +273,23 @@ export default function LandingPage(): JSX.Element {
                   <f.icon className={`w-5 h-5 ${f.color}`} />
                 </div>
                 <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-1.5">{f.title}</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 leading-relaxed">{f.desc}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-300 leading-relaxed">{f.desc}</p>
               </div>
             </Reveal>
           ))}
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════════════════════
+      {/*
           HOW IT WORKS — 3 step flow
-      ═══════════════════════════════════════════════════════════════ */}
+       */}
       <section id="how-it-works" className="relative z-10 bg-gray-50/80 dark:bg-white/[0.01] border-y border-gray-200/60 dark:border-white/5">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-20 sm:py-28">
           <Reveal>
             <div className="text-center mb-16">
               <span className="text-xs font-bold text-aegis-600 dark:text-aegis-400 tracking-widest uppercase">Process</span>
               <h2 className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white mt-3 mb-4">How AEGIS Protects Communities</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 max-w-2xl mx-auto">From citizen report to emergency response in seconds — powered by AI and real-time data.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-300 max-w-2xl mx-auto">From citizen report to emergency response in seconds — powered by AI and real-time data.</p>
             </div>
           </Reveal>
 
@@ -308,7 +309,7 @@ export default function LandingPage(): JSX.Element {
                   </div>
                   <span className="text-[10px] font-black text-aegis-600 dark:text-aegis-400 tracking-widest uppercase mb-2">Step {s.step}</span>
                   <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">{s.title}</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 leading-relaxed max-w-xs">{s.desc}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-300 leading-relaxed max-w-xs">{s.desc}</p>
                 </div>
               </Reveal>
             ))}
@@ -316,15 +317,15 @@ export default function LandingPage(): JSX.Element {
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════════════════════
-          DATA SOURCES — Trust badges  
-      ═══════════════════════════════════════════════════════════════ */}
+      {/*
+          DATA SOURCES — Trust badges
+       */}
       <section id="data-sources" className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-20 sm:py-28">
         <Reveal>
           <div className="text-center mb-12">
             <span className="text-xs font-bold text-aegis-600 dark:text-aegis-400 tracking-widest uppercase">Data Sources</span>
             <h2 className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white mt-3 mb-4">Powered by Authoritative Open Data</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 max-w-2xl mx-auto">AEGIS integrates real-time feeds from official UK government and environmental agencies for maximum accuracy and reliability.</p>
+            <p className="text-sm text-gray-500 dark:text-gray-300 max-w-2xl mx-auto">AEGIS integrates real-time feeds from official UK government and environmental agencies for maximum accuracy and reliability.</p>
           </div>
         </Reveal>
 
@@ -342,16 +343,16 @@ export default function LandingPage(): JSX.Element {
                   <span className="text-[9px] font-bold text-aegis-600 dark:text-aegis-400 bg-aegis-50 dark:bg-aegis-500/10 px-2 py-0.5 rounded-full tracking-wider uppercase">{src.tag}</span>
                 </div>
                 <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-1.5">{src.name}</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 leading-relaxed">{src.desc}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-300 leading-relaxed">{src.desc}</p>
               </div>
             </Reveal>
           ))}
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════════════════════
-          CTA BANNER  
-      ═══════════════════════════════════════════════════════════════ */}
+      {/*
+          CTA BANNER
+       */}
       <section className="relative z-10">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-20">
           <Reveal>
@@ -380,9 +381,9 @@ export default function LandingPage(): JSX.Element {
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════════════════════
-          FOOTER  
-      ═══════════════════════════════════════════════════════════════ */}
+      {/*
+          FOOTER
+       */}
       <footer className="relative z-10 border-t border-gray-200/60 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.01]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12">
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
@@ -394,10 +395,10 @@ export default function LandingPage(): JSX.Element {
                 </div>
                 <span className="font-black text-sm text-aegis-600 dark:text-aegis-400">AEGIS</span>
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 leading-relaxed mb-3">
+              <p className="text-xs text-gray-500 dark:text-gray-300 leading-relaxed mb-3">
                 Advanced Emergency Geospatial Intelligence System — AI-powered disaster response for the UK.
               </p>
-              <p className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">v6.2 — {t('landing.meta.projectCredit', lang)}</p>
+              <p className="text-[10px] text-gray-400 dark:text-gray-300">{t('landing.meta.projectCredit', lang)}</p>
             </div>
 
             {/* Platform links */}
@@ -409,7 +410,7 @@ export default function LandingPage(): JSX.Element {
                   { to: '/admin', label: 'Operator Console' },
                   { to: '/guest', label: 'Public Dashboard' },
                 ].map(l => (
-                  <Link key={l.to} to={l.to} className="block text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-aegis-600 dark:hover:text-aegis-400 transition-colors">{l.label}</Link>
+                  <Link key={l.to} to={l.to} className="block text-xs text-gray-500 dark:text-gray-300 hover:text-aegis-600 dark:hover:text-aegis-400 transition-colors">{l.label}</Link>
                 ))}
               </div>
             </div>
@@ -425,9 +426,9 @@ export default function LandingPage(): JSX.Element {
                   { href: '#data-sources', label: 'Data Sources' },
                 ].map(l => (
                   'to' in l ? (
-                    <Link key={l.label} to={l.to!} className="block text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-aegis-600 dark:hover:text-aegis-400 transition-colors">{l.label}</Link>
+                    <Link key={l.label} to={l.to!} className="block text-xs text-gray-500 dark:text-gray-300 hover:text-aegis-600 dark:hover:text-aegis-400 transition-colors">{l.label}</Link>
                   ) : (
-                    <a key={l.label} href={l.href} className="block text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-aegis-600 dark:hover:text-aegis-400 transition-colors">{l.label}</a>
+                    <a key={l.label} href={l.href} className="block text-xs text-gray-500 dark:text-gray-300 hover:text-aegis-600 dark:hover:text-aegis-400 transition-colors">{l.label}</a>
                   )
                 ))}
               </div>
@@ -442,21 +443,22 @@ export default function LandingPage(): JSX.Element {
                   { to: '/terms', label: 'Terms of Service' },
                   { to: '/accessibility', label: 'Accessibility' },
                 ].map(l => (
-                  <Link key={l.to} to={l.to} className="block text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-aegis-600 dark:hover:text-aegis-400 transition-colors">{l.label}</Link>
+                  <Link key={l.to} to={l.to} className="block text-xs text-gray-500 dark:text-gray-300 hover:text-aegis-600 dark:hover:text-aegis-400 transition-colors">{l.label}</Link>
                 ))}
+                <button onClick={resetConsent} className="block text-xs text-gray-500 dark:text-gray-400 hover:text-aegis-600 dark:hover:text-aegis-400 transition-colors text-left">{t('footer.cookiePreferences', lang)}</button>
               </div>
             </div>
           </div>
 
           {/* Bottom bar */}
           <div className="pt-6 border-t border-gray-200/60 dark:border-white/5 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('landing.footerSignature', lang)}</p>
+            <p className="text-[10px] text-gray-400 dark:text-gray-300">{t('landing.footerSignature', lang)}</p>
             <div className="flex items-center gap-3">
-              <span className="flex items-center gap-1.5 text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300"><Lock className="w-3 h-3" /> End-to-End Encrypted</span>
-              <span className="text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-700">·</span>
-              <span className="flex items-center gap-1.5 text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300"><Wifi className="w-3 h-3" /> 99.9% Uptime</span>
-              <span className="text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-700">·</span>
-              <span className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">GDPR Compliant</span>
+              <span className="flex items-center gap-1.5 text-[10px] text-gray-400 dark:text-gray-300"><Lock className="w-3 h-3" /> End-to-End Encrypted</span>
+              <span className="text-gray-300 dark:text-gray-700">·</span>
+              <span className="flex items-center gap-1.5 text-[10px] text-gray-400 dark:text-gray-300"><Wifi className="w-3 h-3" /> 99.9% Uptime</span>
+              <span className="text-gray-300 dark:text-gray-700">·</span>
+              <span className="text-[10px] text-gray-400 dark:text-gray-300">GDPR Compliant</span>
             </div>
           </div>
         </div>
@@ -464,7 +466,4 @@ export default function LandingPage(): JSX.Element {
     </div>
   )
 }
-
-
-
-
+

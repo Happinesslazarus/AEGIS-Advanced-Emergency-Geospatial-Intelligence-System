@@ -62,7 +62,7 @@ class WildfireModule extends BaseIncidentModule {
         confidence: 0.5,
         confidenceSource: 'statistical',
         region,
-        description: `Fire Danger Index: ${fdi.toFixed(1)}. Temp: ${temp}°C, Humidity: ${humidity}%, Wind: ${windSpeed} km/h, Recent rain: ${recentRain.toFixed(1)}mm`,
+        description: `Fire Danger Index: ${fdi.toFixed(1)}. Temp: ${temp}—C, Humidity: ${humidity}%, Wind: ${windSpeed} km/h, Recent rain: ${recentRain.toFixed(1)}mm`,
         advisoryText: this.getAdvisoryText(severity),
         generatedAt: new Date().toISOString(),
         dataSourcesUsed: ['weather_api', 'fire_danger_index'],
@@ -74,3 +74,4 @@ class WildfireModule extends BaseIncidentModule {
 }
 
 export default new WildfireModule()
+

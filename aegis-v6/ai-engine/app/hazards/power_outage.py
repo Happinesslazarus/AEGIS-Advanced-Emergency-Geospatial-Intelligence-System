@@ -1,9 +1,7 @@
-"""
-═══════════════════════════════════════════════════════════════════════════════
+﻿"""
  AEGIS AI ENGINE — Power Outage Prediction Module
  Rule-based risk scoring using weather extremes, grid vulnerability,
  and historical outage patterns.
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from typing import Dict, List, Optional, Any, Tuple
@@ -17,7 +15,7 @@ from app.schemas.predictions import (
 )
 from app.core.model_registry import ModelRegistry
 from app.core.feature_store import FeatureStore
-
+from app.hazards.shap_explainer import explain_prediction
 
 class PowerOutagePredictor:
     """
@@ -30,6 +28,9 @@ class PowerOutagePredictor:
         self.model_registry = model_registry
         self.feature_store = feature_store
         self.hazard_type = HazardType.POWER_OUTAGE
+        self._last_shap = None
+        self._model_type_label = None
+        self._label_strategy = None
         logger.info("PowerOutage prediction module initialized")
 
     async def predict(self, request: PredictionRequest) -> PredictionResponse:
@@ -81,12 +82,18 @@ class PowerOutagePredictor:
             expires_at=datetime.utcnow() + timedelta(hours=6),
             data_sources=["weather_api", "grid_status_api", "citizen_reports"],
             warnings=["Keep emergency lighting and backup power ready"] if probability > 0.50 else [],
+            model_type_label=self._model_type_label or ("rule_based" if not model_metadata else "heuristic_model"),
+            shap_explanation=self._last_shap,
+            label_strategy=self._label_strategy,
         )
 
     async def _predict_with_model(self, model, features, metadata) -> Tuple[float, float]:
         try:
             fv = np.array([features.get(f, 0.0) for f in metadata.feature_names]).reshape(1, -1)
             prob = model.predict_proba(fv)[0, 1] if hasattr(model, "predict_proba") else float(model.predict(fv)[0])
+            self._last_shap = explain_prediction(model, fv, list(metadata.feature_names))
+            self._model_type_label = getattr(metadata, 'model_type_label', None)
+            self._label_strategy = getattr(metadata, 'label_strategy', None)
             return float(np.clip(prob, 0.0, 1.0)), metadata.performance_metrics.get("roc_auc", 0.76)
         except Exception as e:
             logger.error(f"Model error: {e}")
@@ -122,11 +129,11 @@ class PowerOutagePredictor:
         radius_km = 2.0 + prob * 8.0
         d_lat = radius_km / 111.0
         d_lng = radius_km / (111.0 * np.cos(np.radians(lat)))
-        return GeoPolygon(coordinates=[[[
+        return GeoPolygon(coordinates=[[
             [lng - d_lng, lat - d_lat], [lng + d_lng, lat - d_lat],
             [lng + d_lng, lat + d_lat], [lng - d_lng, lat + d_lat],
             [lng - d_lng, lat - d_lat],
-        ]]])
+        ]])
 
     def _identify_contributing_factors(self, features: Dict[str, float], prob: float) -> List[ContributingFactor]:
         return [

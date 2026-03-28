@@ -1,17 +1,13 @@
-/**
+﻿ /*
  * incidents/registry.ts — Central incident module registry
- *
  * Dynamically loads all incident modules and provides a unified API
  * for the platform core to interact with any incident type.
- *
  * Adding a new incident = create module + add to MODULES array below.
- */
+  */
 
 import type { IncidentModule, IncidentRegistryEntry, IncidentOperationalStatus } from './types.js'
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Import all incident modules
-// ═══════════════════════════════════════════════════════════════════════════════
 
 import flood from './flood/index.js'
 import severeStorm from './severe_storm/index.js'
@@ -25,9 +21,7 @@ import publicSafety from './public_safety/index.js'
 import environmentalHazard from './environmental_hazard/index.js'
 import drought from './drought/index.js'
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Registry
-// ═══════════════════════════════════════════════════════════════════════════════
 
 const MODULES: IncidentModule[] = [
   flood,
@@ -48,31 +42,29 @@ for (const mod of MODULES) {
   moduleMap.set(mod.id, mod)
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Public API
-// ═══════════════════════════════════════════════════════════════════════════════
 
-/** Get a specific incident module by ID */
+/* Get a specific incident module by ID */
 export function getIncidentModule(id: string): IncidentModule | undefined {
   return moduleMap.get(id)
 }
 
-/** Get all registered incident modules */
+/* Get all registered incident modules */
 export function getAllIncidentModules(): IncidentModule[] {
   return MODULES
 }
 
-/** Get all incident registry entries (metadata only) */
+/* Get all incident registry entries (metadata only) */
 export function getAllIncidentRegistries(): IncidentRegistryEntry[] {
   return MODULES.map(m => m.registry)
 }
 
-/** Get modules filtered by operational status */
+/* Get modules filtered by operational status */
 export function getModulesByStatus(status: IncidentOperationalStatus): IncidentModule[] {
   return MODULES.filter(m => m.registry.operationalStatus === status)
 }
 
-/** Get only fully operational modules (for public-facing interfaces) */
+/* Get only fully operational modules (for public-facing interfaces) */
 export function getOperationalModules(): IncidentModule[] {
   return MODULES.filter(m =>
     m.registry.operationalStatus === 'fully_operational' ||
@@ -80,7 +72,7 @@ export function getOperationalModules(): IncidentModule[] {
   )
 }
 
-/** Get modules enabled for a specific region */
+/* Get modules enabled for a specific region */
 export function getModulesForRegion(regionId: string): IncidentModule[] {
   return MODULES.filter(m => {
     if (m.registry.enabledRegions === 'all') return true
@@ -88,17 +80,17 @@ export function getModulesForRegion(regionId: string): IncidentModule[] {
   })
 }
 
-/** Check if an incident type is registered */
+/* Check if an incident type is registered */
 export function isRegistered(id: string): boolean {
   return moduleMap.has(id)
 }
 
-/** List all incident IDs */
+/* List all incident IDs */
 export function listIncidentIds(): string[] {
   return MODULES.map(m => m.id)
 }
 
-/** Get dashboard summary across all incidents for a region */
+/* Get dashboard summary across all incidents for a region */
 export async function getDashboardSummary(region: string): Promise<{
   incidents: Array<{
     id: string
@@ -158,3 +150,4 @@ export async function getDashboardSummary(region: string): Promise<{
 
 export { MODULES }
 export type { IncidentModule } from './types.js'
+

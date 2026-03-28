@@ -95,7 +95,7 @@ const RESOURCES: Record<string, Resource[]> = {
     { name: 'Dundee Clothing Bank', type: 'clothing', address: 'Dundee city centre', phone: '01382 434000', hours: 'Mon-Sat 10-4', dist: 'City-wide', url: '' },
   ],
   generic: [
-    { name: 'Local Emergency Services', type: 'shelter', address: 'Call first responders', phone: '112 (EU) · 911 (US) · 999 (UK) · 000 (AU)', hours: '24/7', dist: 'Nearest', url: '' },
+    { name: 'Local Emergency Services', type: 'shelter', address: 'Call first responders', phone: '112 (EU) — 911 (US) — 999 (UK) — 000 (AU)', hours: '24/7', dist: 'Nearest', url: '' },
     { name: 'International Red Cross / Red Crescent', type: 'shelter', address: 'Country-wide offices', phone: '+41 22 734 60 01', hours: '24/7', dist: 'Varies', url: 'https://www.icrc.org' },
     { name: 'UNHCR Emergency Shelter', type: 'shelter', address: 'Global operations', phone: '+41 22 739 81 11', hours: '24/7', dist: 'Varies', url: 'https://www.unhcr.org' },
     { name: 'Salvation Army (Worldwide)', type: 'shelter', address: 'National offices worldwide', phone: 'See local listing', hours: '24/7 in emergencies', dist: 'Nearest city', url: 'https://www.salvationarmy.org' },
@@ -103,13 +103,13 @@ const RESOURCES: Record<string, Resource[]> = {
     { name: 'World Food Programme (WFP)', type: 'food', address: 'Global distribution networks', phone: '+39 06 6513 1', hours: '24/7', dist: 'Varies', url: 'https://www.wfp.org' },
     { name: 'Local Food Bank / Pantry', type: 'food', address: 'Ask council, church or police', phone: 'Local authority', hours: 'Varies by site', dist: 'Nearest', url: 'https://www.foodbanks.org' },
     { name: 'Red Cross Food Aid', type: 'food', address: 'Distribution centres — check local branch', phone: 'Local Red Cross number', hours: 'Emergency hours', dist: 'Regional', url: 'https://www.redcross.org' },
-    { name: 'Nearest A&E / Emergency Room', type: 'medical', address: 'Search online or ask police', phone: '112 (EU) · 911 (US) · 999 (UK)', hours: '24/7', dist: 'Nearest', url: '' },
+    { name: 'Nearest A&E / Emergency Room', type: 'medical', address: 'Search online or ask police', phone: '112 (EU) — 911 (US) — 999 (UK)', hours: '24/7', dist: 'Nearest', url: '' },
     { name: 'WHO Health Emergencies', type: 'medical', address: 'Global coordination', phone: '+41 22 791 21 11', hours: '24/7', dist: 'Varies', url: 'https://www.who.int/emergencies' },
-    { name: 'Crisis / Mental Health Helpline', type: 'medical', address: 'Phone / text service', phone: '116 123 (EU) · 988 (US) · 13 11 14 (AU)', hours: '24/7', dist: 'National', url: 'https://www.samaritans.org' },
+    { name: 'Crisis / Mental Health Helpline', type: 'medical', address: 'Phone / text service', phone: '116 123 (EU) — 988 (US) — 13 11 14 (AU)', hours: '24/7', dist: 'National', url: 'https://www.samaritans.org' },
     { name: 'Doctors Without Borders (MSF)', type: 'medical', address: 'Deployed to disaster zones', phone: '+32 2 474 74 74', hours: '24/7 in major emergencies', dist: 'Varies', url: 'https://www.msf.org' },
     { name: 'Local Bus / Metro Emergency Routes', type: 'transport', address: 'Ask local authority or police', phone: 'Local transport authority', hours: 'Emergency schedule', dist: 'City-wide', url: '' },
     { name: 'Taxi / Ride-share Services', type: 'transport', address: 'City-wide', phone: 'Uber / local taxi', hours: '24/7 (where available)', dist: 'City-wide', url: 'https://www.uber.com' },
-    { name: 'National Ambulance / EMS', type: 'transport', address: 'Emergency only', phone: '112 · 911 · 999 · 000', hours: '24/7', dist: 'Regional', url: '' },
+    { name: 'National Ambulance / EMS', type: 'transport', address: 'Emergency only', phone: '112 — 911 — 999 — 000', hours: '24/7', dist: 'Regional', url: '' },
     { name: 'Red Cross Emergency Clothing', type: 'clothing', address: 'Distribution centres — check local branch', phone: 'Local Red Cross', hours: 'Emergency hours', dist: 'Regional', url: 'https://www.redcross.org' },
     { name: 'Salvation Army Clothing Centres', type: 'clothing', address: 'National stores / emergency centres', phone: 'See local listing', hours: 'Varies', dist: 'Nearest', url: 'https://www.salvationarmy.org' },
     { name: 'Caritas / Church Aid Clothing', type: 'clothing', address: 'Global aid programmes', phone: 'Local Caritas office', hours: '24/7 in emergencies', dist: 'Varies', url: 'https://www.caritas.org' },
@@ -209,7 +209,7 @@ const INITIAL_POSTS: Post[] = [
   { id: 5, type: 'medical', name: 'Volunteer First Aider', description: 'Qualified first aider with kit. Can attend nearby locations during daytime.', location: 'South District', time: '2 hours ago', verified: true, rating: 5, safe_meeting: 'Local Health Centre' },
 ]
 
-/** Reverse geocode to get city name, then match against known RESOURCES keys */
+/* Reverse geocode to get city name, then match against known RESOURCES keys */
 async function detectCityFromCoords(lat: number, lng: number): Promise<string> {
   try {
     const res = await fetch(
@@ -223,7 +223,7 @@ async function detectCityFromCoords(lat: number, lng: number): Promise<string> {
     const cityName = (addr.city || addr.town || addr.county || addr.state || '').toLowerCase().trim()
     // Check if we have specific resources for this city
     if (cityName && RESOURCES[cityName]) return cityName
-    // Partial match (e.g. "City of Edinburgh" → "edinburgh")
+    // Partial match (e.g. "City of Edinburgh" ? "edinburgh")
     for (const key of Object.keys(RESOURCES)) {
       if (key !== 'generic' && cityName.includes(key)) return key
     }
@@ -263,7 +263,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
     const res = await fetch(path, { ...options, headers })
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: 'Request failed' }))
-      throw new Error(err.error || `HTTP ${res.status}`)
+      throw new Error(typeof err.error === 'string' ? err.error : err.error?.message || err.message || `HTTP ${res.status}`)
     }
     return res.json()
   }, [])
@@ -393,7 +393,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
 
   const autoDetect = () => {
     if ('geolocation' in navigator) {
-      pushNotification('Detecting your location…', 'info')
+      pushNotification('Detecting your location—', 'info')
       navigator.geolocation.getCurrentPosition(
         async (p) => {
           setUserCoords({ lat: p.coords.latitude, lng: p.coords.longitude })
@@ -496,7 +496,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
 
   const Stars = ({ n }: { n?: number }) => n ? (
     <span className="flex items-center gap-0.5">
-      {[1,2,3,4,5].map(i => <Star key={i} className={`w-2.5 h-2.5 ${i <= n ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`} />)}
+      {[1,2,3,4,5].map(i => <Star key={i} className={`w-2.5 h-2.5 ${i <= n ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300 dark:text-gray-300'}`} />)}
     </span>
   ) : null
 
@@ -510,7 +510,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
               <Heart className="w-7 h-7 text-green-600" />
             </div>
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">{t('communityHelp.title', lang)} {t('communityHelp.network', lang)}</h2>
-            <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-1">{t('communityHelp.subtitle', lang)}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-300 mt-1">{t('communityHelp.subtitle', lang)}</p>
           </div>
           <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-xl p-3.5 mb-4">
             <div className="flex items-start gap-2 mb-2">
@@ -524,7 +524,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
             </div>
           </div>
           <div className="flex flex-col gap-2">
-            <button onClick={onClose} className="order-last text-xs text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 text-center py-1">{t('common.cancel', lang)}</button>
+            <button onClick={onClose} className="order-last text-xs text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-300 dark:text-gray-300 text-center py-1">{t('common.cancel', lang)}</button>
             <button onClick={() => setConsent(true)} className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2">
               <Shield className="w-4 h-4" /> {t('communityHelp.understand', lang)}
             </button>
@@ -562,7 +562,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
               const locked = !isAuthenticated && id !== 'resources'
               return (
                 <button key={id} onClick={() => setTab(id as any)}
-                  className={`py-2 rounded-xl flex flex-col items-center justify-center gap-0.5 text-[9px] sm:text-[10px] font-semibold transition-all relative ${tab === id ? (locked ? 'bg-gray-500 text-white shadow-md' : `${color} text-white shadow-md`) : locked ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:bg-gray-200' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:bg-gray-200'}`}>
+                  className={`py-2 rounded-xl flex flex-col items-center justify-center gap-0.5 text-[9px] sm:text-[10px] font-semibold transition-all relative ${tab === id ? (locked ? 'bg-gray-500 text-white shadow-md' : `${color} text-white shadow-md`) : locked ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-300 hover:bg-gray-200' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200'}`}>
                   <div className="relative">
                     <Icon className="w-3.5 h-3.5" />
                     {locked && <Lock className="w-2 h-2 absolute -top-1 -right-1.5 text-current opacity-80" />}
@@ -576,7 +576,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
           {/* Search + filter row */}
           <div className="flex gap-1.5 mb-3 overflow-x-auto pb-1">
             <div className="flex-1 min-w-[130px] flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded-xl text-sm">
-              <Search className="w-3.5 h-3.5 text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex-shrink-0" />
+              <Search className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300 flex-shrink-0" />
               <input className="flex-1 bg-transparent text-xs outline-none placeholder-gray-400 min-w-0" placeholder={t('communityHelp.searchPlaceholder', lang)} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
             </div>
             <button onClick={() => setFilter('all')} className={`px-2.5 py-1.5 rounded-xl text-[10px] font-medium flex-shrink-0 transition-colors ${filter === 'all' ? 'bg-green-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600'}`}>{t('communityHelp.all', lang)}</button>
@@ -588,7 +588,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
             ))}
           </div>
 
-          {/* ── GUEST LOCKED TAB CTAs ── */}
+          {/* GUEST LOCKED TAB CTAs*/}
           {!isAuthenticated && tab === 'offer' && (
             <div className="space-y-4 py-4">
               <div className="text-center">
@@ -596,7 +596,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
                   <Heart className="w-8 h-8 text-green-600" />
                 </div>
                 <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">{t('communityHelp.offerHelpTitle', lang)}</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 max-w-sm mx-auto">{t('communityHelp.offerHelpDesc', lang)}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-300 max-w-sm mx-auto">{t('communityHelp.offerHelpDesc', lang)}</p>
               </div>
               <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-xl p-4">
                 <div className="space-y-2 text-[11px] text-green-800 dark:text-green-300">
@@ -608,7 +608,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
               <a href="/citizen/login" className="block w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-semibold text-sm text-center transition-colors shadow-md">
                 {t('communityHelp.signInOffer', lang)}
               </a>
-              <p className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 text-center">{t('communityHelp.noAccount', lang)} <a href="/citizen/login" className="text-green-600 hover:underline font-medium">{t('communityHelp.registerFree', lang)}</a></p>
+              <p className="text-[10px] text-gray-400 dark:text-gray-300 text-center">{t('communityHelp.noAccount', lang)} <a href="/citizen/login" className="text-green-600 hover:underline font-medium">{t('communityHelp.registerFree', lang)}</a></p>
             </div>
           )}
 
@@ -619,7 +619,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
                   <HelpCircle className="w-8 h-8 text-red-600" />
                 </div>
                 <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">{t('communityHelp.requestTitle', lang)}</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 max-w-sm mx-auto">{t('communityHelp.requestDesc', lang)}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-300 max-w-sm mx-auto">{t('communityHelp.requestDesc', lang)}</p>
               </div>
               <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
                 <div className="space-y-2 text-[11px] text-red-900 dark:text-red-300">
@@ -635,7 +635,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
               <a href="/citizen/login" className="block w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-semibold text-sm text-center transition-colors shadow-md">
                 {t('communityHelp.signInRequest', lang)}
               </a>
-              <p className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 text-center">{t('communityHelp.noAccount', lang)} <a href="/citizen/login" className="text-red-600 hover:underline font-medium">{t('communityHelp.registerFree', lang)}</a></p>
+              <p className="text-[10px] text-gray-400 dark:text-gray-300 text-center">{t('communityHelp.noAccount', lang)} <a href="/citizen/login" className="text-red-600 hover:underline font-medium">{t('communityHelp.registerFree', lang)}</a></p>
             </div>
           )}
 
@@ -646,7 +646,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
                   <Globe className="w-8 h-8 text-amber-600" />
                 </div>
                 <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">{t('communityHelp.joinNetworkTitle', lang)}</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 max-w-sm mx-auto">{t('communityHelp.joinNetworkDesc', lang)}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-300 max-w-sm mx-auto">{t('communityHelp.joinNetworkDesc', lang)}</p>
               </div>
               <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-700 rounded-xl p-4">
                 <div className="space-y-2 text-[11px] text-amber-800 dark:text-amber-300">
@@ -658,21 +658,21 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
               <a href="/citizen/login" className="block w-full bg-amber-600 hover:bg-amber-700 text-white py-3 rounded-xl font-semibold text-sm text-center transition-colors shadow-md">
                 {t('communityHelp.signInNetwork', lang)}
               </a>
-              <p className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 text-center">{t('communityHelp.noAccount', lang)} <a href="/citizen/login" className="text-amber-600 hover:underline font-medium">{t('communityHelp.registerFree', lang)}</a></p>
+              <p className="text-[10px] text-gray-400 dark:text-gray-300 text-center">{t('communityHelp.noAccount', lang)} <a href="/citizen/login" className="text-amber-600 hover:underline font-medium">{t('communityHelp.registerFree', lang)}</a></p>
             </div>
           )}
 
-          {/* ── RESOURCES TAB ── */}
+          {/* RESOURCES TAB*/}
           {tab === 'resources' && (
             <div className="space-y-2">
               <div className="flex items-center justify-between flex-wrap gap-1">
-                <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{filtered.length} {t('communityHelp.resourcesNear', lang)} <strong>{detectedCity !== 'generic' ? detectedCity.charAt(0).toUpperCase() + detectedCity.slice(1) : loc.name}</strong></p>
+                <p className="text-[10px] text-gray-500 dark:text-gray-300">{filtered.length} {t('communityHelp.resourcesNear', lang)} <strong>{detectedCity !== 'generic' ? detectedCity.charAt(0).toUpperCase() + detectedCity.slice(1) : loc.name}</strong></p>
                 <button onClick={autoDetect} className="text-[10px] text-blue-500 flex items-center gap-1 hover:underline">
                   <Crosshair className="w-3 h-3" /> {t('communityHelp.useMyGPS', lang)}
                 </button>
               </div>
               <div className="max-h-[58vh] overflow-y-auto space-y-2 pr-1">
-                {filtered.length === 0 && <p className="text-xs text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 text-center py-6">{t('communityHelp.noResourcesMatch', lang)} "{searchTerm || filter}"</p>}
+                {filtered.length === 0 && <p className="text-xs text-gray-400 dark:text-gray-300 text-center py-6">{t('communityHelp.noResourcesMatch', lang)} "{searchTerm || filter}"</p>}
                 {filtered.map((r, i) => (
                   <div key={i} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 hover:shadow-md transition-all group">
                     <div className="flex items-start justify-between gap-2">
@@ -682,11 +682,11 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
                             <TypeIcon type={r.type} className="w-2.5 h-2.5" />
                             {COMMUNITY_HELP_TYPES.find(t => t.key === r.type)?.label}
                           </span>
-                          <span className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{r.dist}</span>
+                          <span className="text-[10px] text-gray-500 dark:text-gray-300">{r.dist}</span>
                         </div>
                         <h4 className="font-semibold text-xs text-gray-900 dark:text-white group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors">{r.name}</h4>
-                        <p className="text-[10px] text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 flex items-center gap-1 mt-0.5"><MapPin className="w-2.5 h-2.5 flex-shrink-0" /> {r.address}</p>
-                        <div className="flex items-center gap-3 mt-1 text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+                        <p className="text-[10px] text-gray-600 dark:text-gray-300 flex items-center gap-1 mt-0.5"><MapPin className="w-2.5 h-2.5 flex-shrink-0" /> {r.address}</p>
+                        <div className="flex items-center gap-3 mt-1 text-[10px] text-gray-500 dark:text-gray-300">
                           <span className="flex items-center gap-0.5"><Phone className="w-2.5 h-2.5" /> {r.phone}</span>
                           <span className="flex items-center gap-0.5"><Clock className="w-2.5 h-2.5" /> {r.hours}</span>
                         </div>
@@ -694,7 +694,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
                       {r.url && (
                         <a href={r.url} target="_blank" rel="noopener noreferrer"
                           className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg transition-colors flex-shrink-0" title={t('communityHelp.visitWebsite', lang)}>
-                          <ExternalLink className="w-3.5 h-3.5 text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400" />
+                          <ExternalLink className="w-3.5 h-3.5 text-gray-500 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400" />
                         </a>
                       )}
                     </div>
@@ -704,7 +704,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
             </div>
           )}
 
-          {/* ── OFFER HELP TAB ── */}
+          {/* OFFER HELP TAB*/}
           {isAuthenticated && tab === 'offer' && (
             <div className="space-y-3">
               {!actionConsent ? (
@@ -733,7 +733,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
                       {COMMUNITY_HELP_TYPES.map(t => (
                         <button key={t.key} onClick={() => setOType(t.key)}
                           className={`p-2 border-2 rounded-xl text-center transition-all ${oType === t.key ? 'border-green-500 bg-green-50 dark:bg-green-950/20 scale-105' : 'border-gray-200 dark:border-gray-700 hover:border-green-300'}`}>
-                          <TypeIcon type={t.key} className={`w-5 h-5 mx-auto ${oType === t.key ? 'text-green-600' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`} />
+                          <TypeIcon type={t.key} className={`w-5 h-5 mx-auto ${oType === t.key ? 'text-green-600' : 'text-gray-400 dark:text-gray-300'}`} />
                           <p className="text-[9px] font-medium mt-0.5 truncate">{t.label}</p>
                         </button>
                       ))}
@@ -742,14 +742,14 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
 
                   {/* Description */}
                   <div>
-                    <label className="text-xs font-semibold">{t('common.description', lang)} <span className="text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-normal">{t('communityHelp.descriptionSublabel', lang)}</span></label>
+                    <label className="text-xs font-semibold">{t('common.description', lang)} <span className="text-gray-400 dark:text-gray-300 font-normal">{t('communityHelp.descriptionSublabel', lang)}</span></label>
                     <textarea className="w-full mt-1 px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 min-h-[80px] resize-none" placeholder={t('communityHelp.descriptionPlaceholder', lang)} value={oDesc} onChange={e => setODesc(e.target.value)} />
-                    <p className="text-[9px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-0.5">{oDesc.length}/200 {t('communityHelp.charsCount', lang)}</p>
+                    <p className="text-[9px] text-gray-400 dark:text-gray-300 mt-0.5">{oDesc.length}/200 {t('communityHelp.charsCount', lang)}</p>
                   </div>
 
                   {/* Approximate area */}
                   <div>
-                    <label className="text-xs font-semibold">{t('communityHelp.approximateArea', lang)} <span className="text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-normal">{t('communityHelp.notExactAddress', lang)}</span></label>
+                    <label className="text-xs font-semibold">{t('communityHelp.approximateArea', lang)} <span className="text-gray-400 dark:text-gray-300 font-normal">{t('communityHelp.notExactAddress', lang)}</span></label>
                     <div className="flex gap-1.5 mt-1">
                       <input className="flex-1 px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700" placeholder={t('communityHelp.areaPlaceholder', lang)} value={oLoc} onChange={e => setOLoc(e.target.value)} />
                       <button onClick={() => gps(setOLoc)} className="px-3 py-2 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-700 rounded-xl text-[10px] font-medium flex items-center gap-1 transition-colors hover:bg-blue-100">
@@ -794,7 +794,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
             </div>
           )}
 
-          {/* ── REQUEST HELP TAB ── */}
+          {/* REQUEST HELP TAB*/}
           {isAuthenticated && tab === 'request' && (
             <div className="space-y-3">
               {!actionConsent ? (
@@ -823,7 +823,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
                       {COMMUNITY_HELP_TYPES.map(t => (
                         <button key={t.key} onClick={() => setRType(t.key)}
                           className={`p-2 border-2 rounded-xl text-center transition-all ${rType === t.key ? 'border-red-500 bg-red-50 dark:bg-red-950/20 scale-105' : 'border-gray-200 dark:border-gray-700 hover:border-red-300'}`}>
-                          <TypeIcon type={t.key} className={`w-5 h-5 mx-auto ${rType === t.key ? 'text-red-600' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300'}`} />
+                          <TypeIcon type={t.key} className={`w-5 h-5 mx-auto ${rType === t.key ? 'text-red-600' : 'text-gray-400 dark:text-gray-300'}`} />
                           <p className="text-[9px] font-medium mt-0.5 truncate">{t.label}</p>
                         </button>
                       ))}
@@ -831,7 +831,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold">{t('common.details', lang)} <span className="text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 font-normal">{t('communityHelp.detailsSublabel', lang)}</span></label>
+                    <label className="text-xs font-semibold">{t('common.details', lang)} <span className="text-gray-400 dark:text-gray-300 font-normal">{t('communityHelp.detailsSublabel', lang)}</span></label>
                     <textarea className="w-full mt-1 px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 min-h-[70px] resize-none" placeholder={t('communityHelp.detailsPlaceholder', lang)} value={rDesc} onChange={e => setRDesc(e.target.value)} />
                   </div>
 
@@ -869,7 +869,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
             </div>
           )}
 
-          {/* ── NETWORK TAB ── */}
+          {/* NETWORK TAB*/}
           {isAuthenticated && tab === 'network' && (
             <div className="space-y-3">
               <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 border border-amber-200 dark:border-amber-700 rounded-xl p-3.5">
@@ -889,12 +889,12 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
                           <Stars n={p.rating} />
                         </div>
                         <p className="text-xs">{postTranslations[p.description] || p.description}</p>
-                        <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-1 flex items-center gap-1"><MapPin className="w-2.5 h-2.5" /> {p.location}</p>
+                        <p className="text-[10px] text-gray-500 dark:text-gray-300 mt-1 flex items-center gap-1"><MapPin className="w-2.5 h-2.5" /> {p.location}</p>
                         {p.safe_meeting && (
                           <p className="text-[10px] text-green-700 dark:text-green-400 mt-0.5 flex items-center gap-1"><Lock className="w-2.5 h-2.5" /> {t('communityHelp.meetLabel', lang)} {p.safe_meeting}</p>
                         )}
                       </div>
-                      <button onClick={() => { setReported(s => new Set([...s, p.id])); pushNotification('Report received. Our team will review this listing.', 'info') }} disabled={reported.has(p.id)} className="text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400 p-1 transition-colors flex-shrink-0" title={t('communityHelp.reportListing', lang)}>
+                      <button onClick={() => { setReported(s => new Set([...s, p.id])); pushNotification('Report received. Our team will review this listing.', 'info') }} disabled={reported.has(p.id)} className="text-gray-300 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400 p-1 transition-colors flex-shrink-0" title={t('communityHelp.reportListing', lang)}>
                         <Flag className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -910,9 +910,9 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
                 ))}
                 {filteredPosts.filter(p => p.verified).length === 0 && (
                   <div className="text-center py-8">
-                    <UserCheck className="w-10 h-10 text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-600 mx-auto mb-2" />
-                    <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('communityHelp.noVerifiedHelpers', lang)}</p>
-                    <p className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-1">{t('communityHelp.checkBackSoon', lang)}</p>
+                    <UserCheck className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                    <p className="text-xs text-gray-500 dark:text-gray-300">{t('communityHelp.noVerifiedHelpers', lang)}</p>
+                    <p className="text-[10px] text-gray-400 dark:text-gray-300 mt-1">{t('communityHelp.checkBackSoon', lang)}</p>
                   </div>
                 )}
               </div>
@@ -929,7 +929,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
       </div>
     </div>
 
-      {/* ── VERIFICATION MODAL ── */}
+      {/* VERIFICATION MODAL*/}
       {showVerifyModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[60]" role="dialog" aria-modal="true">
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md p-5 animate-fade-in">
@@ -943,7 +943,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
                   <UserCheck className="w-7 h-7 text-green-600" />
                 </div>
                 <h4 className="font-bold text-sm mb-1">{t('communityHelp.applicationReceived', lang)}</h4>
-                <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-4">{t('communityHelp.applicationReviewMsg', lang)}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-300 mb-4">{t('communityHelp.applicationReviewMsg', lang)}</p>
                 <button onClick={() => setShowVerifyModal(false)} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl text-sm font-semibold">{t('common.close', lang)}</button>
               </div>
             ) : (
@@ -975,7 +975,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
                       <option>{t('communityHelp.offerMultipleTypes', lang)}</option>
                   </select>
                 </div>
-                <label className="flex items-start gap-2 mt-1 text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">
+                <label className="flex items-start gap-2 mt-1 text-[10px] text-gray-500 dark:text-gray-300">
                   <input type="checkbox" className="mt-0.5 w-3.5 h-3.5 rounded" required />
                   {t('communityHelp.confirmAccuracy', lang)}
                 </label>
@@ -994,7 +994,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
         </div>
       )}
 
-      {/* ── MORE INFO MODAL ── */}
+      {/* MORE INFO MODAL*/}
       {infoPost && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[60]" role="dialog" aria-modal="true">
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md p-5 animate-fade-in">
@@ -1010,14 +1010,14 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
                 </span>
                 {infoPost.verified && <span className="text-[11px] bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full font-semibold flex items-center gap-1"><UserCheck className="w-3 h-3" /> {t('communityHelp.verifiedHelper', lang)}</span>}
               </div>
-              <p className="text-sm text-gray-700 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 leading-relaxed">{postTranslations[infoPost.description] || infoPost.description}</p>
+              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{postTranslations[infoPost.description] || infoPost.description}</p>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-2.5">
-                  <p className="text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 text-[10px] mb-0.5">{t('communityHelp.locationLabel', lang)}</p>
+                  <p className="text-gray-500 dark:text-gray-300 text-[10px] mb-0.5">{t('communityHelp.locationLabel', lang)}</p>
                   <p className="font-semibold flex items-center gap-1"><MapPin className="w-3 h-3" /> {infoPost.location}</p>
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-2.5">
-                  <p className="text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 text-[10px] mb-0.5">{t('communityHelp.postedLabel', lang)}</p>
+                  <p className="text-gray-500 dark:text-gray-300 text-[10px] mb-0.5">{t('communityHelp.postedLabel', lang)}</p>
                   <p className="font-semibold flex items-center gap-1"><Clock className="w-3 h-3" /> {infoPost.time}</p>
                 </div>
               </div>
@@ -1039,7 +1039,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
         </div>
       )}
 
-      {/* ── SECURE CONTACT MODAL ── */}
+      {/* SECURE CONTACT MODAL*/}
       {contactPost && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[60]" role="dialog" aria-modal="true">
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md p-5 animate-fade-in">
@@ -1053,8 +1053,8 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
                   <Lock className="w-7 h-7 text-green-600" />
                 </div>
                 <h4 className="font-bold text-sm mb-1">{t('communityHelp.secureRequestSent', lang)}</h4>
-                <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-1">{t('communityHelp.requestForwarded', lang)}</p>
-                <p className="text-[10px] text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mb-4">{t('communityHelp.ifTheyAccept', lang)}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-300 mb-1">{t('communityHelp.requestForwarded', lang)}</p>
+                <p className="text-[10px] text-gray-400 dark:text-gray-300 mb-4">{t('communityHelp.ifTheyAccept', lang)}</p>
                 <button onClick={() => setContactPost(null)} className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-xl text-sm font-semibold">{t('communityHelp.done', lang)}</button>
               </div>
             ) : (
@@ -1067,7 +1067,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
                   {t('communityHelp.identityAnonymous', lang)}
                 </div>
                 <div>
-                  <label className="text-xs font-semibold">{t('communityHelp.yourMessage', lang)} <span className="font-normal text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300">{t('communityHelp.optional', lang)}</span></label>
+                  <label className="text-xs font-semibold">{t('communityHelp.yourMessage', lang)} <span className="font-normal text-gray-400 dark:text-gray-300">{t('communityHelp.optional', lang)}</span></label>
                   <textarea className="w-full mt-1 px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 min-h-[80px] resize-none" placeholder={t('communityHelp.messagePlaceholder', lang)} value={contactMsg} onChange={e => setContactMsg(e.target.value)} />
                 </div>
                 <button
@@ -1086,7 +1086,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
 
 function PostList({ posts, postTranslations, reported, setReported, pushNotification, TypeIcon, Stars }: any) {
   const lang = getLanguage()
-  if (posts.length === 0) return <p className="text-xs text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 text-center py-4">{t('communityHelp.noPostsMatchFilter', lang)}</p>
+  if (posts.length === 0) return <p className="text-xs text-gray-400 dark:text-gray-300 text-center py-4">{t('communityHelp.noPostsMatchFilter', lang)}</p>
   return (
     <div className="space-y-2 max-h-[32vh] overflow-y-auto">
       {posts.map((p: any) => (
@@ -1099,16 +1099,16 @@ function PostList({ posts, postTranslations, reported, setReported, pushNotifica
                 </span>
                 {p.verified && <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-semibold flex items-center gap-0.5"><UserCheck className="w-2.5 h-2.5" /> {t('communityHelp.verified', lang)}</span>}
                 <Stars n={p.rating} />
-                <span className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 ml-auto">{p.time}</span>
+                <span className="text-[10px] text-gray-500 dark:text-gray-300 ml-auto">{p.time}</span>
               </div>
               <p className="text-xs">{postTranslations[p.description] || p.description}</p>
-              <p className="text-[10px] text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 mt-0.5 flex items-center gap-1"><MapPin className="w-2.5 h-2.5" /> {p.location}</p>
+              <p className="text-[10px] text-gray-500 dark:text-gray-300 mt-0.5 flex items-center gap-1"><MapPin className="w-2.5 h-2.5" /> {p.location}</p>
               {p.safe_meeting && (
                 <p className="text-[10px] text-green-700 dark:text-green-400 mt-0.5 flex items-center gap-1"><Lock className="w-2.5 h-2.5" /> {t('communityHelp.meetLabel', lang)} {p.safe_meeting}</p>
               )}
             </div>
             <button onClick={() => { setReported((s: any) => new Set([...s, p.id])); pushNotification(t('communityHelp.reportReceived', lang), 'info') }}
-              disabled={reported.has(p.id)} className={`flex-shrink-0 p-1 transition-colors ${reported.has(p.id) ? 'text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300' : 'text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400'}`} title={t('communityHelp.reportSuspicious', lang)}>
+              disabled={reported.has(p.id)} className={`flex-shrink-0 p-1 transition-colors ${reported.has(p.id) ? 'text-gray-300 dark:text-gray-300' : 'text-gray-400 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400'}`} title={t('communityHelp.reportSuspicious', lang)}>
               <Flag className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -1127,9 +1127,3 @@ function CheckIcon() {
     </span>
   )
 }
-
-
-
-
-
-

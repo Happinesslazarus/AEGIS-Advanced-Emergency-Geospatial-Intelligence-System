@@ -1,8 +1,6 @@
 """
-═══════════════════════════════════════════════════════════════════════════════
  AEGIS AI ENGINE — Model Governance Module
  Phase 5: Versioning, Drift Detection, Safe Deployment, Rollback
-═══════════════════════════════════════════════════════════════════════════════
 
 Every trained model is:
   1. Versioned (timestamp + hash)
@@ -26,13 +24,9 @@ from pathlib import Path
 from loguru import logger
 import asyncpg
 
-
 DB_URL = os.getenv('DATABASE_URL', 'postgresql://localhost:5432/aegis')
 
-
-# ═══════════════════════════════════════════════════════════════════════════════
 # §1  MODEL GOVERNANCE — Versioning, Registration, Activation
-# ═══════════════════════════════════════════════════════════════════════════════
 
 class ModelGovernance:
     """
@@ -43,7 +37,6 @@ class ModelGovernance:
     def __init__(self, db_url: str = DB_URL):
         self.db_url = db_url
 
-    # ─── Register Candidate ───────────────────────────────────
     async def register_candidate(
         self,
         model_name: str,
@@ -95,7 +88,6 @@ class ModelGovernance:
         finally:
             await conn.close()
 
-    # ─── Compare & Promote ────────────────────────────────────
     async def compare_and_promote(
         self,
         model_name: str,
@@ -180,7 +172,6 @@ class ModelGovernance:
         finally:
             await conn.close()
 
-    # ─── Rollback ─────────────────────────────────────────────
     async def rollback(self, model_name: str, target_version: Optional[str] = None) -> Dict[str, Any]:
         """
         Roll back to a previous stable version.
@@ -234,7 +225,6 @@ class ModelGovernance:
         finally:
             await conn.close()
 
-    # ─── Get Active Version ───────────────────────────────────
     async def get_active_version(self, model_name: str) -> Optional[Dict[str, Any]]:
         """Get the currently active model version info."""
         conn = await asyncpg.connect(self.db_url)
@@ -257,7 +247,6 @@ class ModelGovernance:
         finally:
             await conn.close()
 
-    # ─── List Versions ────────────────────────────────────────
     async def list_versions(self, model_name: str, limit: int = 20) -> List[Dict[str, Any]]:
         """List all versions for a model, newest first."""
         conn = await asyncpg.connect(self.db_url)
@@ -287,7 +276,6 @@ class ModelGovernance:
         finally:
             await conn.close()
 
-    # ─── List All Models ──────────────────────────────────────
     async def list_all_models(self) -> List[Dict[str, Any]]:
         """List all model names with their active version."""
         conn = await asyncpg.connect(self.db_url)
@@ -312,17 +300,13 @@ class ModelGovernance:
         finally:
             await conn.close()
 
-    # ─── Helpers ──────────────────────────────────────────────
     @staticmethod
     def _compute_hash(data: Dict) -> str:
         """Compute a stable hash of training data/config."""
         raw = json.dumps(data, sort_keys=True, default=str)
         return hashlib.sha256(raw.encode()).hexdigest()[:32]
 
-
-# ═══════════════════════════════════════════════════════════════════════════════
 # §2  PREDICTION LOGGER — Log every prediction for monitoring
-# ═══════════════════════════════════════════════════════════════════════════════
 
 class PredictionLogger:
     """
@@ -446,10 +430,7 @@ class PredictionLogger:
             await self._pool.close()
             self._pool = None
 
-
-# ═══════════════════════════════════════════════════════════════════════════════
 # §3  DRIFT DETECTOR — Statistical drift detection
-# ═══════════════════════════════════════════════════════════════════════════════
 
 class DriftDetector:
     """
@@ -648,10 +629,7 @@ class DriftDetector:
                 })
         return results
 
-
-# ═══════════════════════════════════════════════════════════════════════════════
 # §4  SINGLETON INSTANCES
-# ═══════════════════════════════════════════════════════════════════════════════
 
 governance = ModelGovernance()
 prediction_logger = PredictionLogger()

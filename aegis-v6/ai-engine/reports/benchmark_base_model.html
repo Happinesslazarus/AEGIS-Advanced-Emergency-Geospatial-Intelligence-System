@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>AEGIS Benchmark Report</title>
+<style>
+body { font-family: system-ui; background: #0f1117; color: #e2e8f0; padding: 2rem; }
+h1 { color: #60a5fa; }
+.summary { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem; }
+.model-card { background: #1e2433; border-radius: 8px; padding: 1.5rem; min-width: 160px; text-align: center; }
+.model-card h3 { color: #60a5fa; margin: 0 0 0.5rem; font-size: 0.9rem; }
+.score { font-size: 2.5rem; font-weight: 700; color: #34d399; }
+table { border-collapse: collapse; width: 100%; font-size: 0.85rem; }
+th { background: #1e2433; padding: 0.5rem 0.75rem; text-align: left; }
+td { padding: 0.4rem 0.75rem; border-bottom: 1px solid #2d3748; }
+td.best { color: #34d399; font-weight: 700; }
+tr:hover td { background: #1e2433; }
+</style></head>
+<body>
+<h1>AEGIS Emergency AI Benchmark Report</h1>
+<p>Generated: 2026-03-24 08:32 UTC | 38 queries | 1 models</p>
+<div class='summary'><div class='model-card'><h3>AEGIS ✓</h3><div class='score'>0.622</div><div>38 wins</div></div></div>
+<table>
+<tr><th>ID</th><th>Category</th><th>Query</th><th>aegis-ai</th></tr>
+<tr><td>lt_001</td><td>life_threatening</td><td>My car is filling with water I cant get the door open…</td><td class="best">0.745</td></tr>
+<tr><td>lt_002</td><td>life_threatening</td><td>The river has just broken through the flood barrier and water is coming fast tow…</td><td class="best">0.605</td></tr>
+<tr><td>lt_003</td><td>life_threatening</td><td>I pulled someone out of a flooded car they are breathing but unconscious and blu…</td><td class="best">0.555</td></tr>
+<tr><td>lt_004</td><td>life_threatening</td><td>The smoke alarm went off we got outside but my son ran back in to get the dog I …</td><td class="best">0.795</td></tr>
+<tr><td>lt_005</td><td>life_threatening</td><td>Gas smell started 10 minutes ago I opened windows and turned off the boiler my h…</td><td class="best">0.615</td></tr>
+<tr><td>fl_001</td><td>flood</td><td>SEPA has issued a Flood Warning for the River Dee at Banchory what does that mea…</td><td class="best">0.735</td></tr>
+<tr><td>fl_002</td><td>flood</td><td>SEPA issued a severe flood warning 20 minutes ago for my river but the water doe…</td><td class="best">0.755</td></tr>
+<tr><td>fl_003</td><td>flood</td><td>My neighbour just came to my door soaking wet she says her ground floor is flood…</td><td class="best">0.585</td></tr>
+<tr><td>fl_004</td><td>flood</td><td>What is the difference between surface water flooding and river flooding and whi…</td><td class="best">0.555</td></tr>
+<tr><td>sw_001</td><td>severe_weather</td><td>My friend is hot, not sweating, confused and her skin is flushed and red. Is thi…</td><td class="best">0.675</td></tr>
+<tr><td>sw_002</td><td>severe_weather</td><td>What is the 30-30 rule for lightning and what is the safe crouching position if …</td><td class="best">0.645</td></tr>
+<tr><td>sw_003</td><td>severe_weather</td><td>It is -9 outside, I have no heating and my elderly neighbour hasnt answered her …</td><td class="best">0.615</td></tr>
+<tr><td>fi_001</td><td>fire</td><td>Chip pan on the stove has caught fire what do I do…</td><td class="best">0.675</td></tr>
+<tr><td>fi_002</td><td>fire</td><td>I can hear a fire alarm but I have a broken leg and cant walk properly, what do …</td><td class="best">0.715</td></tr>
+<tr><td>md_001</td><td>medical_disaster</td><td>My dad is having chest pains during the evacuation, he had a heart attack 2 year…</td><td class="best">0.325</td></tr>
+<tr><td>md_002</td><td>medical_disaster</td><td>I have epilepsy and take levetiracetam twice daily I was evacuated at 3am and do…</td><td class="best">0.565</td></tr>
+<tr><td>md_003</td><td>medical_disaster</td><td>How do I tell if someone is having a panic attack or a heart attack they look ve…</td><td class="best">0.595</td></tr>
+<tr><td>ev_001</td><td>evacuation</td><td>My elderly mum is refusing to leave even though there is a flood warning and the…</td><td class="best">0.715</td></tr>
+<tr><td>ev_002</td><td>evacuation</td><td>What should I have in an emergency go bag, how much water and how long…</td><td class="best">0.535</td></tr>
+<tr><td>vp_001</td><td>vulnerable_populations</td><td>I work in a care home and the fire alarm has gone off but several residents cann…</td><td class="best">0.715</td></tr>
+<tr><td>vp_002</td><td>vulnerable_populations</td><td>Mi casa está inundándose y no sé qué hacer…</td><td class="best">0.715</td></tr>
+<tr><td>pr_001</td><td>preparedness</td><td>How do I find out if my house is in a flood risk area…</td><td class="best">0.535</td></tr>
+<tr><td>pr_002</td><td>preparedness</td><td>How do I protect my house from flooding before it happens what products actually…</td><td class="best">0.625</td></tr>
+<tr><td>pd_001</td><td>post_disaster_recovery</td><td>The flood has gone down and I want to go back to my house to check the damage, w…</td><td class="best">0.595</td></tr>
+<tr><td>op_001</td><td>operator_admin</td><td>I work for the council emergency team we have 3 shelters open but one is at capa…</td><td class="best">0.555</td></tr>
+<tr><td>op_002</td><td>operator_admin</td><td>What does a 0.82 probability flood risk score mean for my decision to issue a pu…</td><td class="best">0.475</td></tr>
+<tr><td>ec_001</td><td>edge_cases</td><td>I feel like nobody cares if I survive this flood or not…</td><td class="best">0.505</td></tr>
+<tr><td>ec_002</td><td>edge_cases</td><td>My family emergency plan says to meet at the library but there is flooding betwe…</td><td class="best">0.655</td></tr>
+<tr><td>🔴hard_001</td><td>hardest</td><td>The river has just broken through the flood barrier and water is coming fast tow…</td><td class="best">0.605</td></tr>
+<tr><td>🔴hard_002</td><td>hardest</td><td>I pulled someone out of a flooded car they are breathing but unconscious and blu…</td><td class="best">0.495</td></tr>
+<tr><td>🔴hard_003</td><td>hardest</td><td>SEPA issued a severe flood warning 20 minutes ago for my river but the water doe…</td><td class="best">0.795</td></tr>
+<tr><td>🔴hard_004</td><td>hardest</td><td>My neighbour just came to my door soaking wet she says her ground floor is flood…</td><td class="best">0.525</td></tr>
+<tr><td>🔴hard_005</td><td>hardest</td><td>The smoke alarm went off we got outside but my son ran back in to get the dog I …</td><td class="best">0.775</td></tr>
+<tr><td>🔴hard_006</td><td>hardest</td><td>I work for the council emergency team we have 3 shelters open but one is at capa…</td><td class="best">0.795</td></tr>
+<tr><td>🔴hard_007</td><td>hardest</td><td>My family emergency plan says to meet at the library but there is flooding betwe…</td><td class="best">0.695</td></tr>
+<tr><td>🔴hard_008</td><td>hardest</td><td>I have a medical alert bracelet for epilepsy and I take levetiracetam twice dail…</td><td class="best">0.495</td></tr>
+<tr><td>🔴hard_009</td><td>hardest</td><td>The gas smell started 10 minutes ago I opened all the windows and turned off the…</td><td class="best">0.595</td></tr>
+<tr><td>🔴hard_010</td><td>hardest</td><td>Im a journalist covering the flood for the BBC what are the most important thing…</td><td class="best">0.485</td></tr>
+
+</table>
+</body></html>

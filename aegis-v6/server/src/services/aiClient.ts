@@ -1,16 +1,15 @@
-/*
+﻿ /*
  * aiClient.ts - AI Engine Integration Layer
- *
  * This module handles communication between Node.js and the FastAPI AI Engine.
  * It provides a clean interface for requesting predictions and other AI operations.
- *
  * Architecture:
- * - Node.js (this) → HTTP → FastAPI AI Engine
- * - Includes retry logic, timeout handling, error mapping
- * - Caches model status information
- */
+ * Node.js (this) → HTTP → FastAPI AI Engine
+ * Includes retry logic, timeout handling, error mapping
+ * Caches model status information
+  */
 
 import { devLog } from '../utils/logger.js'
+import { logger } from './logger.js'
 
 const AI_ENGINE_URL = process.env.AI_ENGINE_URL || 'http://localhost:8000'
 const AI_ENGINE_TIMEOUT = parseInt(process.env.AI_ENGINE_TIMEOUT || '30000', 10)
@@ -28,7 +27,7 @@ interface PredictionRequest {
   forecast_horizon?: number
   include_contributing_factors?: boolean
   model_version?: string
-  /** Real observed values that override the feature store defaults (e.g. river_level, rainfall_24h) */
+  /* Real observed values that override the feature store defaults (e.g. river_level, rainfall_24h) */
   feature_overrides?: Record<string, number>
 }
 
@@ -121,9 +120,9 @@ class AIClient {
     }
   }
 
-  /**
+   /*
    * Check if AI Engine is available
-   */
+    */
   async isAvailable(): Promise<boolean> {
     try {
       await this.request('/health', undefined, 5000)
@@ -133,9 +132,9 @@ class AIClient {
     }
   }
 
-  /**
+   /*
    * Generate hazard prediction
-   */
+    */
   async predict(request: PredictionRequest): Promise<PredictionResponse> {
     try {
       const response = await this.request<PredictionResponse>('/api/predict', {
@@ -152,9 +151,9 @@ class AIClient {
     }
   }
 
-  /**
+   /*
    * Get model status (with caching)
-   */
+    */
   async getModelStatus(skipCache = false): Promise<any> {
     const now = Date.now()
 
@@ -175,26 +174,26 @@ class AIClient {
       }
       return response
     } catch (error: any) {
-      console.error('[AI] Failed to get model status:', error.message)
+      logger.error({ err: error }, '[AI] Failed to get model status')
       throw error
     }
   }
 
-  /**
+   /*
    * Get supported hazard types
-   */
+    */
   async getHazardTypes(): Promise<HazardTypeInfo[]> {
     try {
       return await this.request<HazardTypeInfo[]>('/api/hazard-types')
     } catch (error: any) {
-      console.error('[AI] Failed to get hazard types:', error.message)
+      logger.error({ err: error }, '[AI] Failed to get hazard types')
       throw error
     }
   }
 
-  /**
+   /*
    * Trigger model retraining (admin only)
-   */
+    */
   async triggerRetrain(
     hazardType: string,
     regionId: string
@@ -208,14 +207,14 @@ class AIClient {
       })
       })
     } catch (error: any) {
-      console.error('[AI] Failed to trigger retrain:', error.message)
+      logger.error({ err: error }, '[AI] Failed to trigger retrain')
       throw error
     }
   }
 
-  /**
+   /*
    * Get AI Engine health status
-   */
+    */
   async getHealth(): Promise<{
     status: string
     timestamp: string
@@ -229,9 +228,9 @@ class AIClient {
     }
   }
 
-  /**
+   /*
    * Classify disaster report into hazard type
-   */
+    */
   async classifyReport(text: string, description = '', location = ''): Promise<any> {
     try {
       return await this.request('/api/classify-report', {
@@ -243,9 +242,64 @@ class AIClient {
     }
   }
 
-  /**
+   /*
+   * Classify disaster image using CLIP vision model.
+   * Sends image as multipart/form-data to /api/classify-image.
+    */
+  async classifyImage(imageBuffer: Buffer, filename = 'image.jpg'): Promise<{
+    hazard_type: string
+    disaster_type: string
+    probability: number
+    risk_level: string
+    confidence: number
+    probabilities: Record<string, number>
+    processing_time_ms: number
+    model_version: string
+    error?: string
+  }> {
+    const url = this.buildUrl('/api/classify-image')
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 15000)
+
+    try {
+      // Build multipart form data
+      const boundary = '----AEGISBoundary' + Date.now()
+      const header = `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${filename}"\r\nContent-Type: application/octet-stream\r\n\r\n`
+      const footer = `\r\n--${boundary}--\r\n`
+
+      const headerBuf = Buffer.from(header)
+      const footerBuf = Buffer.from(footer)
+      const body = Buffer.concat([headerBuf, imageBuffer, footerBuf])
+
+      const response = await fetch(url, {
+        method: 'POST',
+        signal: controller.signal,
+        headers: {
+          'Content-Type': `multipart/form-data; boundary=${boundary}`,
+          'User-Agent': 'AEGIS-Node-Backend/1.0',
+        },
+        body,
+      })
+
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => null)
+        throw new Error(errBody?.detail || `CLIP classify failed: ${response.status}`)
+      }
+
+      return await response.json()
+    } catch (error: any) {
+      if (error?.name === 'AbortError') {
+        throw new Error('CLIP image classification timed out')
+      }
+      throw new Error(`CLIP image classification failed: ${error.message}`)
+    } finally {
+      clearTimeout(timeout)
+    }
+  }
+
+   /*
    * Predict severity level for a report
-   */
+    */
   async predictSeverity(params: {
     text: string
     description?: string
@@ -264,9 +318,9 @@ class AIClient {
     }
   }
 
-  /**
+   /*
    * Detect if a report is fake/spam
-   */
+    */
   async detectFake(params: {
     text: string
     description?: string
@@ -287,27 +341,25 @@ class AIClient {
     }
   }
 
-  // ═══════════════════════════════════════════════════════════
   //  Phase 5: Model Governance
-  // ═══════════════════════════════════════════════════════════
 
-  /**
+   /*
    * List all governed models with active versions
-   */
+    */
   async listGovernedModels(): Promise<any> {
     return this.request('/api/models')
   }
 
-  /**
+   /*
    * List all versions for a model
-   */
+    */
   async listModelVersions(modelName: string, limit = 20): Promise<any> {
     return this.request(`/api/models/${encodeURIComponent(modelName)}/versions?limit=${limit}`)
   }
 
-  /**
+   /*
    * Roll back a model to previous stable version
-   */
+    */
   async rollbackModel(
     modelName: string,
     targetVersion?: string
@@ -317,18 +369,18 @@ class AIClient {
     return this.request(`/api/models/rollback?${params.toString()}`, { method: 'POST' })
   }
 
-  /**
+   /*
    * Run drift detection on one or all models
-   */
+    */
   async checkDrift(modelName?: string, hours = 24): Promise<any> {
     const params = new URLSearchParams({ hours: hours.toString() })
     if (modelName) params.set('model_name', modelName)
     return this.request(`/api/drift/check?${params.toString()}`)
   }
 
-  /**
+   /*
    * Submit prediction feedback (correct/incorrect/uncertain)
-   */
+    */
   async submitPredictionFeedback(predictionId: string, feedback: string): Promise<any> {
     const params = new URLSearchParams({ feedback })
     return this.request(`/api/predictions/${predictionId}/feedback?${params.toString()}`, {
@@ -336,13 +388,80 @@ class AIClient {
     })
   }
 
-  /**
+   /*
    * Get prediction statistics for monitoring
-   */
+    */
   async getPredictionStats(modelName?: string, hours = 24): Promise<any> {
     const params = new URLSearchParams({ hours: hours.toString() })
     if (modelName) params.set('model_name', modelName)
     return this.request(`/api/predictions/stats?${params.toString()}`)
+  }
+
+  //  Model Lifecycle Management
+
+  async listRegistryVersions(hazardType: string, regionId: string): Promise<any> {
+    return this.request(`/api/registry/versions/${encodeURIComponent(hazardType)}/${encodeURIComponent(regionId)}`)
+  }
+
+  async promoteRegistryModel(hazardType: string, regionId: string, version: string): Promise<any> {
+    return this.request(
+      `/api/registry/promote/${encodeURIComponent(hazardType)}/${encodeURIComponent(regionId)}/${encodeURIComponent(version)}`,
+      { method: 'POST' }
+    )
+  }
+
+  async demoteRegistryModel(hazardType: string, regionId: string): Promise<any> {
+    return this.request(
+      `/api/registry/demote/${encodeURIComponent(hazardType)}/${encodeURIComponent(regionId)}`,
+      { method: 'POST' }
+    )
+  }
+
+  async validateRegistryModel(hazardType: string, regionId: string, version: string): Promise<any> {
+    return this.request(
+      `/api/registry/validate/${encodeURIComponent(hazardType)}/${encodeURIComponent(regionId)}/${encodeURIComponent(version)}`
+    )
+  }
+
+  async cleanupRegistryVersions(hazardType: string, regionId: string, keep = 3, dryRun = false): Promise<any> {
+    const params = new URLSearchParams({ keep: keep.toString(), dry_run: dryRun.toString() })
+    return this.request(
+      `/api/registry/cleanup/${encodeURIComponent(hazardType)}/${encodeURIComponent(regionId)}?${params.toString()}`,
+      { method: 'POST' }
+    )
+  }
+
+  async cleanupAllRegistry(keep = 3, dryRun = true): Promise<any> {
+    const params = new URLSearchParams({ keep: keep.toString(), dry_run: dryRun.toString() })
+    return this.request(`/api/registry/cleanup-all?${params.toString()}`, { method: 'POST' })
+  }
+
+  async getRegistryHealth(hazardType: string, regionId: string): Promise<any> {
+    return this.request(`/api/registry/health/${encodeURIComponent(hazardType)}/${encodeURIComponent(regionId)}`)
+  }
+
+  async getAllRegistryHealth(): Promise<any> {
+    return this.request('/api/registry/health')
+  }
+
+  async getRegistryDrift(hazardType: string, regionId: string, version: string): Promise<any> {
+    return this.request(
+      `/api/registry/drift/${encodeURIComponent(hazardType)}/${encodeURIComponent(regionId)}/${encodeURIComponent(version)}`
+    )
+  }
+
+  async markRegistryDegraded(hazardType: string, regionId: string, version: string, driftScore: number, reason = 'manual_mark_degraded'): Promise<any> {
+    return this.request(
+      `/api/registry/mark-degraded/${encodeURIComponent(hazardType)}/${encodeURIComponent(regionId)}/${encodeURIComponent(version)}`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ drift_score: driftScore, reason }),
+      }
+    )
+  }
+
+  async recommendRegistryRollback(hazardType: string, regionId: string): Promise<any> {
+    return this.request(`/api/registry/recommend-rollback/${encodeURIComponent(hazardType)}/${encodeURIComponent(regionId)}`)
   }
 }
 
@@ -356,3 +475,4 @@ export type {
   ModelStatus,
   HazardTypeInfo
 }
+
