@@ -22,17 +22,17 @@ import { INCIDENT_HEX } from '../../utils/colorTokens'
 const INCIDENT_COLORS: Record<string, string> = INCIDENT_HEX
 
 const INCIDENT_ICONS: Record<string, string> = {
-  flood: '??',
-  severe_storm: '??',
-  heatwave: '???',
-  wildfire: '??',
-  landslide: '??',
-  power_outage: '?',
-  water_supply: '??',
-  infrastructure_damage: '???',
-  public_safety: '???',
-  environmental_hazard: '??',
-  drought: '??',
+  flood: '🌊',
+  severe_storm: '⛈️',
+  heatwave: '🌡️',
+  wildfire: '🔥',
+  landslide: '⛰️',
+  power_outage: '⚡',
+  water_supply: '💧',
+  infrastructure_damage: '🏗️',
+  public_safety: '🚨',
+  environmental_hazard: '☣️',
+  drought: '🏜️',
 }
 
 const SEVERITY_OPACITY: Record<string, number> = {
@@ -44,7 +44,7 @@ const SEVERITY_OPACITY: Record<string, number> = {
 
 function createIncidentIcon(type: string, severity: string): L.DivIcon {
   const color = INCIDENT_COLORS[type] || '#6B7280'
-  const emoji = INCIDENT_ICONS[type] || '??'
+  const emoji = INCIDENT_ICONS[type] || '❓'
   const borderWidth = severity === 'critical' ? 3 : 2
   const size = severity === 'critical' ? 36 : 30
 
@@ -228,4 +228,4 @@ export default function IncidentMapLayers({
 }
 
 export { INCIDENT_COLORS, INCIDENT_ICONS }
-
+

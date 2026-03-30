@@ -89,41 +89,45 @@ export function EmptyMessages() {
 }
 
 export function EmptyReports() {
+  const lang = getLanguage()
   return (
     <EmptyState
       icon={FileText}
-      title="No reports"
-      description="You haven't submitted any emergency reports yet."
+      title={t('empty.noReports', lang)}
+      description={t('empty.noReportsDesc', lang)}
     />
   )
 }
 
 export function EmptyCommunity() {
+  const lang = getLanguage()
   return (
     <EmptyState
       icon={Users}
-      title="No community posts"
-      description="Be the first to offer help or request assistance in your area."
+      title={t('empty.noCommunityPosts', lang)}
+      description={t('empty.noCommunityPostsDesc', lang)}
     />
   )
 }
 
 export function EmptySafety() {
+  const lang = getLanguage()
   return (
     <EmptyState
       icon={Shield}
-      title="No check-ins"
-      description="Use safety check-ins to let responders and contacts know your status."
+      title={t('empty.noCheckIns', lang)}
+      description={t('empty.noCheckInsDesc', lang)}
     />
   )
 }
 
 export function EmptyAlerts() {
+  const lang = getLanguage()
   return (
     <EmptyState
       icon={Bell}
-      title="No active alerts"
-      description="There are no active alerts for your area. Stay prepared by reviewing your emergency plan."
+      title={t('empty.noActiveAlerts', lang)}
+      description={t('empty.noActiveAlertsDesc', lang)}
     />
   )
 }
@@ -169,4 +173,4 @@ export function EmptyWeather() {
     />
   )
 }
-
+

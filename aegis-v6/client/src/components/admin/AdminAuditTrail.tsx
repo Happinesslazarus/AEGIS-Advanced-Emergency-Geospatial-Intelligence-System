@@ -5,12 +5,12 @@
  * operator breakdown, CSV export, and pagination.
   */
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import {
   Shield, CheckCircle, Flag, Siren, Package, AlertTriangle, Trash2, Ban,
-  Activity, Search, RefreshCw, Download, X, ChevronDown, ChevronUp,
-  Clock, User, FileText, Send, LogIn, Edit2, Key, Eye, Archive, Lock,
-  Globe, Monitor, Calendar, BarChart3, TrendingUp, Filter
+  Activity, Search, RefreshCw, Download, X, ChevronDown,
+  User, FileText, Send, LogIn, Edit2, Key, Eye, Archive, Lock,
+  Globe, Monitor, Calendar, BarChart3, TrendingUp
 } from 'lucide-react'
 import { apiGetAuditLog, type AuditEntry } from '../../utils/api'
 import { t } from '../../utils/i18n'
@@ -89,15 +89,15 @@ function formatTimestamp(ts: string): string {
   } catch { return ts }
 }
 
-function relativeTime(ts: string): string {
+function relativeTime(ts: string, lang: string): string {
   const diff = Date.now() - new Date(ts).getTime()
   const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'Just now'
-  if (mins < 60) return `${mins}m ago`
+  if (mins < 1) return t('common.justNow', lang)
+  if (mins < 60) return `${mins}${t('common.minutesShort', lang)} ${t('common.ago', lang)}`
   const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}h ago`
+  if (hours < 24) return `${hours}${t('common.hoursShort', lang)} ${t('common.ago', lang)}`
   const days = Math.floor(hours / 24)
-  return `${days}d ago`
+  return `${days}${t('common.daysShort', lang)} ${t('common.ago', lang)}`
 }
 
 function parseUA(ua?: string): string {
@@ -109,15 +109,65 @@ function parseUA(ua?: string): string {
   return 'Other'
 }
 
+/* Status badge color mapping for human-friendly state rendering */
+const STATUS_COLORS: Record<string, string> = {
+  Verified: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
+  Flagged: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+  Urgent: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+  Resolved: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+  Pending: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+  Active: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+  Suspended: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300',
+  Deleted: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+}
+
+function renderStateValue(key: string, value: unknown): JSX.Element {
+  const strVal = String(value)
+  const badgeColor = STATUS_COLORS[strVal]
+  if (badgeColor) {
+    return (
+      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${badgeColor}`}>
+        {strVal}
+      </span>
+    )
+  }
+  if (typeof value === 'boolean') {
+    return <span className={`text-[10px] font-bold ${value ? 'text-green-600' : 'text-red-500'}`}>{value ? 'Yes' : 'No'}</span>
+  }
+  if (typeof value === 'object' && value !== null) {
+    return <span className="text-[10px] font-mono text-gray-600 dark:text-gray-400">{JSON.stringify(value)}</span>
+  }
+  return <span className="text-xs text-gray-800 dark:text-gray-200 font-medium">{strVal}</span>
+}
+
+function renderStateBlock(state: Record<string, any> | string | null | undefined): JSX.Element | null {
+  if (!state) return null
+  const obj = typeof state === 'string' ? (() => { try { return JSON.parse(state) } catch { return { value: state } } })() : state
+  const entries = Object.entries(obj)
+  return (
+    <div className="space-y-1.5">
+      {entries.map(([key, val]) => (
+        <div key={key} className="flex items-center gap-2">
+          <span className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold capitalize min-w-[60px]">{key.replace(/_/g, ' ')}:</span>
+          {renderStateValue(key, val)}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
   const lang = useLanguage()
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
   const [operatorFilter, setOperatorFilter] = useState('all')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest')
   const [expandedRow, setExpandedRow] = useState<string | null>(null)
   const [page, setPage] = useState(0)
   const [refreshing, setRefreshing] = useState(false)
+  const [fetchError, setFetchError] = useState<string | null>(null)
   const PAGE_SIZE = 15
 
   //  Derived data
@@ -165,6 +215,14 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
     let items = [...auditLog]
     if (typeFilter !== 'all') items = items.filter(a => a.action_type === typeFilter)
     if (operatorFilter !== 'all') items = items.filter(a => a.operator_name === operatorFilter)
+    if (dateFrom) {
+      const from = new Date(dateFrom).getTime()
+      items = items.filter(a => new Date(a.created_at).getTime() >= from)
+    }
+    if (dateTo) {
+      const to = new Date(dateTo + 'T23:59:59').getTime()
+      items = items.filter(a => new Date(a.created_at).getTime() <= to)
+    }
     if (search.trim()) {
       const q = search.toLowerCase()
       items = items.filter(a =>
@@ -177,7 +235,7 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
     }
     if (sortOrder === 'oldest') items.reverse()
     return items
-  }, [auditLog, typeFilter, operatorFilter, search, sortOrder])
+  }, [auditLog, typeFilter, operatorFilter, dateFrom, dateTo, search, sortOrder])
 
   // Pagination
   const paginatedItems = useMemo(() => filteredAudit.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE), [filteredAudit, page])
@@ -189,21 +247,53 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
   //  Refresh handler
   const handleRefresh = useCallback(() => {
     setRefreshing(true)
-    apiGetAuditLog({ limit: '200' })
+    setFetchError(null)
+    apiGetAuditLog({ limit: '500' })
       .then(d => setAuditLog(d || []))
-      .catch(() => {})
+      .catch(() => setFetchError(t('audit.fetchError', lang) || 'Failed to refresh audit log'))
       .finally(() => setRefreshing(false))
+  }, [setAuditLog, lang])
+
+  //  Auto-refresh every 30 s
+  useEffect(() => {
+    const id = setInterval(() => {
+      apiGetAuditLog({ limit: '500' })
+        .then(d => setAuditLog(d || []))
+        .catch(() => {})
+    }, 30000)
+    return () => clearInterval(id)
   }, [setAuditLog])
 
   //  Active filters check
-  const hasFilters = search || typeFilter !== 'all' || operatorFilter !== 'all'
+  const hasFilters = search || typeFilter !== 'all' || operatorFilter !== 'all' || dateFrom || dateTo
 
   const clearFilters = () => {
     setSearch('')
     setTypeFilter('all')
     setOperatorFilter('all')
+    setDateFrom('')
+    setDateTo('')
     resetPage()
   }
+
+  // Keyboard shortcuts
+  const [showKeyboard, setShowKeyboard] = useState(false)
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+      const key = e.key.toLowerCase()
+      if (key === 'r' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); handleRefresh() }
+      else if (key === 'e') { e.preventDefault(); exportAuditCSV(filteredAudit) }
+      else if (key === 'n') { e.preventDefault(); setSortOrder('newest') }
+      else if (key === 'o') { e.preventDefault(); setSortOrder('oldest') }
+      else if (key === 'x') { e.preventDefault(); clearFilters() }
+      else if (key === '?' || (e.shiftKey && key === '/')) { e.preventDefault(); setShowKeyboard(p => !p) }
+      else if (key === 'escape') setShowKeyboard(false)
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [handleRefresh, filteredAudit])
 
   //  Operator breakdown
   const operatorBreakdown = useMemo(() => {
@@ -413,6 +503,26 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
               <X className="w-3 h-3" /> {t('common.clearAll', lang)}
             </button>
           )}
+          {/* Date range filter */}
+          <div className="flex items-center gap-1.5">
+            <Calendar className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300 shrink-0" />
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={e => { setDateFrom(e.target.value); resetPage() }}
+              className="text-xs px-2 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg"
+              title={t('audit.dateFrom', lang)}
+            />
+            <span className="text-[10px] text-gray-400">–</span>
+            <input
+              type="date"
+              value={dateTo}
+              min={dateFrom || undefined}
+              onChange={e => { setDateTo(e.target.value); resetPage() }}
+              className="text-xs px-2 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg"
+              title={t('audit.dateTo', lang)}
+            />
+          </div>
           <span className="text-[10px] text-gray-500 dark:text-gray-300 ml-auto">{filteredAudit.length}/{auditLog.length} {t('common.entries', lang)}</span>
         </div>
       </div>
@@ -479,9 +589,27 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
                   {/* Target */}
                   <div className="col-span-2">
                     {entry.target_id ? (
-                      <div>
-                        <p className="text-xs font-mono text-gray-500 dark:text-gray-300 truncate">{entry.target_id.length > 12 ? entry.target_id.slice(0, 12) + '...' : entry.target_id}</p>
-                        {entry.target_type && <p className="text-[9px] text-gray-400 dark:text-gray-300">{entry.target_type}</p>}
+                      <div className="group/tgt">
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className="text-xs font-mono font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/30 px-2 py-0.5 rounded-md border border-purple-200 dark:border-purple-800 cursor-pointer hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors"
+                            title={entry.target_id}
+                            onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(entry.target_id!) }}
+                          >
+                            {(() => {
+                              const prefix = entry.target_type === 'report' ? 'RPT' : entry.target_type === 'user' ? 'USR' : entry.target_type === 'alert' ? 'ALT' : 'TGT'
+                              return `${prefix}-${entry.target_id.slice(0, 6).toUpperCase()}`
+                            })()}
+                          </span>
+                          <button
+                            className="opacity-0 group-hover/tgt:opacity-100 transition-opacity text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                            onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(entry.target_id!) }}
+                            title={t('audit.copyTargetId', lang)}
+                          >
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
+                          </button>
+                        </div>
+                        {entry.target_type && <p className="text-[9px] text-gray-400 dark:text-gray-500 mt-0.5 capitalize">{entry.target_type}</p>}
                       </div>
                     ) : (
                       <span className="text-xs text-gray-400 dark:text-gray-300">—</span>
@@ -491,7 +619,7 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
                   {/* Timestamp */}
                   <div className="col-span-2">
                     <p className="text-xs text-gray-700 dark:text-gray-300">{formatTimestamp(entry.created_at)}</p>
-                    <p className="text-[9px] text-gray-400 dark:text-gray-300">{relativeTime(entry.created_at)}</p>
+                    <p className="text-[9px] text-gray-400 dark:text-gray-300">{relativeTime(entry.created_at, lang)}</p>
                   </div>
 
                   {/* Expand toggle */}
@@ -512,23 +640,19 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
                       {(entry.before_state || entry.after_state) && (
                         <div>
                           <p className="text-[10px] text-gray-500 dark:text-gray-300 uppercase font-semibold mb-2 flex items-center gap-1">
-                            <Eye className="w-3 h-3" /> State Change
+                            <Eye className="w-3 h-3" /> {t('audit.stateChange', lang)}
                           </p>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {entry.before_state && (
                               <div className="rounded-lg bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30 p-3">
-                                <p className="text-[9px] uppercase font-bold text-red-500 mb-1.5">{t('audit.before', lang)}</p>
-                                <pre className="text-[10px] text-gray-700 dark:text-gray-300 whitespace-pre-wrap font-mono leading-relaxed">
-                                  {typeof entry.before_state === 'string' ? entry.before_state : JSON.stringify(entry.before_state, null, 2)}
-                                </pre>
+                                <p className="text-[9px] uppercase font-bold text-red-500 mb-2">{t('audit.before', lang)}</p>
+                                {renderStateBlock(entry.before_state)}
                               </div>
                             )}
                             {entry.after_state && (
                               <div className="rounded-lg bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800/30 p-3">
-                                <p className="text-[9px] uppercase font-bold text-emerald-500 mb-1.5">{t('audit.after', lang)}</p>
-                                <pre className="text-[10px] text-gray-700 dark:text-gray-300 whitespace-pre-wrap font-mono leading-relaxed">
-                                  {typeof entry.after_state === 'string' ? entry.after_state : JSON.stringify(entry.after_state, null, 2)}
-                                </pre>
+                                <p className="text-[9px] uppercase font-bold text-emerald-500 mb-2">{t('audit.after', lang)}</p>
+                                {renderStateBlock(entry.after_state)}
                               </div>
                             )}
                           </div>
@@ -560,7 +684,19 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
                             <Lock className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300 mt-0.5" />
                             <div>
                               <p className="text-[9px] text-gray-500 dark:text-gray-300 uppercase font-semibold">{t('audit.operatorId', lang)}</p>
-                              <p className="text-xs font-mono text-gray-700 dark:text-gray-300">{entry.operator_id}</p>
+                              <div className="flex items-center gap-1.5 group">
+                                <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/30 px-2 py-0.5 rounded-md border border-indigo-200 dark:border-indigo-800">
+                                  OPR-{entry.operator_id.slice(0, 6).toUpperCase()}
+                                </span>
+                                <button
+                                  onClick={() => { navigator.clipboard.writeText(entry.operator_id || ''); }}
+                                  className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                  title={entry.operator_id}
+                                  aria-label={t('audit.copyOperatorId', lang)}
+                                >
+                                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
+                                </button>
+                              </div>
                             </div>
                           </div>
                         )}
@@ -620,7 +756,30 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
           </div>
         )}
       </div>
+
+      {fetchError && (
+        <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800/40 rounded-xl px-4 py-3 flex items-center gap-2 animate-fade-in">
+          <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0" />
+          <span className="text-sm text-red-700 dark:text-red-300 font-medium">{fetchError}</span>
+          <button onClick={() => setFetchError(null)} className="ml-auto text-red-400 hover:text-red-600 transition">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {showKeyboard && (
+        <div className="mt-3 bg-gray-900 text-white rounded-xl p-3 flex items-center gap-4 flex-wrap text-[10px] font-mono ring-1 ring-gray-700">
+          <span className="font-bold text-gray-400 uppercase tracking-wider mr-1">Shortcuts</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">R</kbd> Refresh</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">E</kbd> Export CSV</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">N</kbd> Newest</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">O</kbd> Oldest</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">X</kbd> Clear Filters</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">?</kbd> Toggle Shortcuts</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">Esc</kbd> Close</span>
+        </div>
+      )}
     </div>
   )
 }
-
+

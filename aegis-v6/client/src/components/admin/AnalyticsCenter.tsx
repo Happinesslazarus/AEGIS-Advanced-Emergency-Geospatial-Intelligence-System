@@ -38,6 +38,7 @@ interface AnalyticsCenterProps {
   lang: string
   onExportCSV: () => void
   onExportJSON: () => void
+  onRefresh?: () => void
   onSelectReport: (r: Report) => void
   pushNotification: (msg: string, type?: 'success' | 'warning' | 'error' | 'info' | string, duration?: number) => void | number
 }
@@ -79,6 +80,24 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
     return () => clearInterval(interval)
   }, [])
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return
+      if (e.key === 'r' || e.key === 'R') { props.onRefresh?.() }
+      else if (e.key === 'e' || e.key === 'E') { onExportCSV() }
+      else if (e.key === 'f' || e.key === 'F') {
+        if (!document.fullscreenElement) document.documentElement.requestFullscreen?.()
+        else document.exitFullscreen?.()
+      }
+      else if (e.key === '?') { setShowKeyboard(p => !p) }
+      else if (e.key === 'Escape') { setShowKeyboard(false) }
+      else if (e.key === 'o' || e.key === 'O') { setOptempoExpanded(p => !p) }
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [onExportCSV])
+
   //  OPTEMPO metrics
   const optempo = useMemo(() => {
     const now = Date.now()
@@ -106,7 +125,7 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
     const verifyRate = stats.verifyRate || (stats.total > 0 ? Math.round((stats.verified / stats.total) * 100) : 0)
     const resolveRate = stats.total > 0 ? Math.round((stats.resolved / stats.total) * 100) : 0
     const urgentResponseRate = stats.urgent > 0 ? Math.round(((stats.urgent - (stats.unverified > 0 ? Math.min(stats.unverified, stats.urgent) : 0)) / Math.max(stats.urgent, 1)) * 100) : 100
-    const aiCoverage = stats.avgConf > 0 ? Math.min(stats.avgConf + 15, 100) : 0 // Normalized for display
+    const aiCoverage = stats.avgConf > 0 ? Math.min(Math.round(stats.avgConf), 100) : 0
     return { verifyRate, resolveRate, urgentResponseRate, aiCoverage }
   }, [stats])
 
@@ -215,10 +234,13 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
       {/* Keyboard Shortcuts */}
       {showKeyboard && (
         <div className="bg-gray-900 text-white rounded-xl p-3 flex items-center gap-4 flex-wrap text-[10px] font-mono ring-1 ring-gray-700">
-          <span className="text-gray-400 dark:text-gray-300 font-bold uppercase tracking-wider text-[9px]">Shortcuts:</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">R</kbd> Refresh</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">E</kbd> Export CSV</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">F</kbd> Toggle Fullscreen</span>
+          <span className="text-gray-400 dark:text-gray-300 font-bold uppercase tracking-wider text-[9px]">{t('common.shortcuts', lang)}:</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">R</kbd> {t('shortcuts.refresh', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">E</kbd> {t('shortcuts.exportCsv', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">F</kbd> {t('shortcuts.toggleFullscreen', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">O</kbd> {t('shortcuts.toggleOptempo', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">?</kbd> {t('common.shortcuts', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">Esc</kbd> {t('shortcuts.close', lang)}</span>
           <button onClick={() => setShowKeyboard(false)} className="ml-auto text-gray-400 dark:text-gray-300 hover:text-white"><X className="w-3 h-3" /></button>
         </div>
       )}
@@ -302,16 +324,16 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center">
                   <p className="text-lg font-black tabular-nums">{stats.total}</p>
-                  <p className="text-[8px] text-gray-500 dark:text-gray-300 uppercase">Total</p>
+                  <p className="text-[8px] text-gray-500 dark:text-gray-300 uppercase">{t('common.total', lang)}</p>
                 </div>
               </div>
             </div>
           </div>
           <div className="space-y-2">
             {[
-              { label: 'High', count: severityDonut.high, pct: severityDonut.highPct, color: 'bg-red-500', text: 'text-red-600 dark:text-red-400' },
-              { label: 'Medium', count: severityDonut.medium, pct: severityDonut.medPct, color: 'bg-amber-500', text: 'text-amber-600 dark:text-amber-400' },
-              { label: 'Low', count: severityDonut.low, pct: severityDonut.lowPct, color: 'bg-blue-500', text: 'text-blue-600 dark:text-blue-400' },
+              { label: t('severity.high', lang), count: severityDonut.high, pct: severityDonut.highPct, color: 'bg-red-500', text: 'text-red-600 dark:text-red-400' },
+              { label: t('severity.medium', lang), count: severityDonut.medium, pct: severityDonut.medPct, color: 'bg-amber-500', text: 'text-amber-600 dark:text-amber-400' },
+              { label: t('severity.low', lang), count: severityDonut.low, pct: severityDonut.lowPct, color: 'bg-blue-500', text: 'text-blue-600 dark:text-blue-400' },
             ].map(s => (
               <div key={s.label} className="flex items-center gap-2">
                 <span className={`w-2.5 h-2.5 rounded-full ${s.color} flex-shrink-0`} />
@@ -397,7 +419,7 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
                 const IconComp = mapping?.icon || (
                   (e.action_type || '').includes('export') ? Download : Activity
                 )
-                const reportId = e.target_id ? e.target_id.slice(0, 8) : null
+                const reportId = e.target_id ? e.target_id.slice(0, 6).toUpperCase() : null
 
                 return (
                   <div key={e.id || i} className="py-2.5 flex items-start gap-3 group hover:bg-gray-50/50 dark:hover:bg-gray-800/20 -mx-1 px-1 rounded-lg transition-colors">
@@ -483,4 +505,4 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
     </div>
   )
 }
-
+

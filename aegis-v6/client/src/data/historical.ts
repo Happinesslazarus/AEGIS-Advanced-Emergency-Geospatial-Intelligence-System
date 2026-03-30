@@ -25,16 +25,3 @@ export const SEASONAL_TRENDS: SeasonalTrend[] = [
   { month: 'Nov', floodCount: 5, avgSeverity: 2.5, rainfallMm: 82 },
   { month: 'Dec', floodCount: 4, avgSeverity: 2.3, rainfallMm: 80 },
 ]
-
-export const HEATMAP_POINTS: { lat: number; lng: number; intensity: number }[] = [
-  { lat: 57.165, lng: -2.095, intensity: 0.95 }, // River Don floodplain - highest
-  { lat: 57.148, lng: -2.094, intensity: 0.80 }, // City centre low ground
-  { lat: 57.138, lng: -2.105, intensity: 0.85 }, // Dee Valley
-  { lat: 57.178, lng: -2.088, intensity: 0.70 }, // Bridge of Don
-  { lat: 57.154, lng: -2.073, intensity: 0.60 }, // Coastal
-  { lat: 57.130, lng: -2.110, intensity: 0.75 }, // Lower Dee
-  { lat: 57.160, lng: -2.100, intensity: 0.55 }, // Old Aberdeen
-  { lat: 57.145, lng: -2.115, intensity: 0.40 }, // Westburn
-  { lat: 57.170, lng: -2.090, intensity: 0.65 }, // Upper Don
-  { lat: 57.135, lng: -2.095, intensity: 0.50 }, // Torry
-]

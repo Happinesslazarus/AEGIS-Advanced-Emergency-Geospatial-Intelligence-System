@@ -2,8 +2,8 @@
 
 import {
   BarChart3, FileText, Map, Activity, Brain, Navigation, Users,
-  MessageSquare, History, Clock, Bell, ChevronLeft, ChevronRight,
-  X, AlertTriangle, Archive, Zap, ShieldCheck
+  History, Clock, Bell, ChevronLeft, ChevronRight,
+  X, AlertTriangle, Archive, Zap, ShieldCheck, Radio
 } from 'lucide-react'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
@@ -25,6 +25,7 @@ const SECTIONS = (lang: string, isAdmin: boolean): { title: string; items: Admin
       { key: 'reports',      label: t('admin.allReports', lang),  icon: FileText,      color: 'text-orange-500' },
       { key: 'map',          label: t('admin.liveMap', lang),     icon: Map,           color: 'text-emerald-500' },
       { key: 'alert_send',   label: t('admin.sendAlert', lang),   icon: Bell,          color: 'text-red-500' },
+      { key: 'incident_console', label: 'Incident Console',       icon: Radio,         color: 'text-amber-500' },
     ],
   },
   {
@@ -41,7 +42,6 @@ const SECTIONS = (lang: string, isAdmin: boolean): { title: string; items: Admin
     items: [
       { key: 'resources',    label: t('admin.resources', lang),   icon: Navigation,    color: 'text-teal-500' },
       ...(isAdmin ? [{ key: 'users', label: t('admin.users', lang), icon: Users, adminOnly: true, color: 'text-indigo-500' } as AdminSidebarItem] : []),
-      { key: 'messaging',    label: t('admin.messages', lang),    icon: MessageSquare, color: 'text-sky-500' },
       { key: 'community',    label: t('admin.community', lang),   icon: Users,         color: 'text-teal-400' },
     ],
   },
@@ -204,4 +204,4 @@ export default function AdminSidebar({
     </>
   )
 }
-
+

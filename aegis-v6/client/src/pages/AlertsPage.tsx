@@ -5,6 +5,8 @@ import {
   MapPin, Clock, Filter, ChevronDown, ChevronUp, Radio,
   Flame, Zap, Droplets, Wind, Thermometer, Shield,
   Search, X, Volume2, Eye, ExternalLink,
+  Mountain, Power, Droplet, Building2, Biohazard,
+  Waves, HeartPulse, FlaskConical, Radiation, CloudRain, Timer,
 } from 'lucide-react'
 import { useAlerts } from '../contexts/AlertsContext'
 import { useLocation } from '../contexts/LocationContext'
@@ -80,8 +82,13 @@ const SEVERITY_CONFIG: Record<string, {
 }
 
 const DISASTER_ICONS: Record<string, React.ElementType> = {
-  fire: Flame, flood: Droplets, storm: Wind, earthquake: Zap,
-  heatwave: Thermometer, general: Shield, default: Bell,
+  fire: Flame, wildfire: Flame, flood: Droplets, storm: Wind, severe_storm: Wind,
+  earthquake: Zap, heatwave: Thermometer, general: Shield, default: Bell,
+  landslide: Mountain, drought: CloudRain, power_outage: Power,
+  water_supply: Droplet, infrastructure_damage: Building2,
+  public_safety: ShieldAlert, environmental_hazard: Biohazard,
+  tsunami: Waves, volcanic: Mountain, pandemic: HeartPulse,
+  chemical_spill: FlaskConical, nuclear: Radiation,
 }
 
 function getSeverityConfig(severity: string) {
@@ -202,7 +209,7 @@ export default function AlertsPage(): JSX.Element {
                 <div>
                   <h1 className="text-3xl sm:text-4xl font-black tracking-tight">{t('alerts.pageTitle', lang)}</h1>
                   <p className="text-white/60 text-sm mt-1">
-                    {t('alerts.subtitle', lang)} <span className="text-white font-semibold">{activeLocation || 'your area'}</span>
+                    {t('alerts.subtitle', lang)} <span className="text-white font-semibold">{activeLocation || t('alerts.yourArea', lang)}</span>
                   </p>
                 </div>
               </div>
@@ -222,18 +229,18 @@ export default function AlertsPage(): JSX.Element {
               {criticalCount > 0 && (
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/30 border border-red-400/30 text-xs font-bold backdrop-blur-sm animate-pulse">
                   <ShieldAlert className="w-3.5 h-3.5" />
-                  {criticalCount} Critical
+                  {criticalCount} {t('alerts.badgeCritical', lang)}
                 </div>
               )}
               {(severityCounts.warning || 0) + (severityCounts.medium || 0) > 0 && (
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/20 border border-amber-400/30 text-xs font-bold backdrop-blur-sm">
                   <AlertTriangle className="w-3.5 h-3.5" />
-                  {(severityCounts.warning || 0) + (severityCounts.medium || 0)} Warnings
+                  {(severityCounts.warning || 0) + (severityCounts.medium || 0)} {t('alerts.badgeWarnings', lang)}
                 </div>
               )}
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/10 text-xs font-bold backdrop-blur-sm">
                 <Radio className="w-3.5 h-3.5" />
-                {severityCounts.all} Total Active
+                {severityCounts.all} {t('alerts.badgeTotalActive', lang)}
               </div>
             </div>
           </div>
@@ -432,6 +439,14 @@ export default function AlertsPage(): JSX.Element {
                               <span className="text-gray-400 dark:text-gray-500 font-bold block mb-0.5">{t('alerts.issued', lang)}</span>
                               <span className="text-gray-700 dark:text-gray-300 font-semibold">{new Date(alert.timestamp).toLocaleString()}</span>
                             </div>
+                            {alert.expiresAt && (
+                              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-2.5">
+                                <span className="text-gray-400 dark:text-gray-500 font-bold block mb-0.5">{t('alerts.expires', lang)}</span>
+                                <span className={`font-semibold ${new Date(alert.expiresAt) < new Date() ? 'text-red-500' : 'text-gray-700 dark:text-gray-300'}`}>
+                                  {new Date(alert.expiresAt).toLocaleString()}
+                                </span>
+                              </div>
+                            )}
                             {alert.channels && alert.channels.length > 0 && (
                               <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-2.5 col-span-2 sm:col-span-3">
                                 <span className="text-gray-400 dark:text-gray-500 font-bold block mb-0.5">{t('alerts.broadcastChannels', lang)}</span>

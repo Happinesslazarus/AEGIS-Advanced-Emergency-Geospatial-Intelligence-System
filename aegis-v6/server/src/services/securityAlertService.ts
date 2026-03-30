@@ -15,6 +15,7 @@
 import pool from '../models/db.js'
 import { logSecurityEvent } from './securityLogger.js'
 import { logger } from './logger.js'
+import { sendSecurityAlertEmail } from './emailService.js'
 
 export type SecurityAlertType =
   | '2fa_disabled'
@@ -104,11 +105,15 @@ export async function sendSecurityAlert(alert: SecurityAlert): Promise<void> {
       ]
     ).catch(() => {})
 
-    // TODO: Send email via emailService when SMTP is configured
-    // const operator = await pool.query('SELECT email FROM operators WHERE id = $1', [alert.operatorId])
-    // if (operator.rows[0]) {
-    //   await sendSecurityAlertEmail(operator.rows[0].email, alert)
-    // }
+    // Send email notification via emailService
+    try {
+      const operator = await pool.query('SELECT email FROM operators WHERE id = $1', [alert.operatorId])
+      if (operator.rows[0]?.email) {
+        await sendSecurityAlertEmail(operator.rows[0].email, alert.title, alert.message, alert.severity)
+      }
+    } catch (emailErr) {
+      logger.warn({ err: emailErr, alertType: alert.alertType }, '[SecurityAlerts] Email delivery failed (alert still stored in DB)')
+    }
   } catch (err) {
     logger.error({ err, alertType: alert.alertType }, '[SecurityAlerts] Failed to send alert')
   }

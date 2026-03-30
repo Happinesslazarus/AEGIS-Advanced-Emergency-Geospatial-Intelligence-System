@@ -353,8 +353,19 @@ export function ReportsProvider({ children }: { children: ReactNode }): JSX.Elem
   )
 }
 
+const REPORTS_DEFAULTS: ReportsContextType = {
+  reports: [], filteredReports: [], stats: { total: 0, unverified: 0, verified: 0, urgent: 0, flagged: 0, high: 0, medium: 0, low: 0 },
+  addReport: async () => null, verifyReport: () => {}, flagReport: () => {}, markUrgent: () => {},
+  resolveReport: () => {}, archiveReport: () => {}, markFalseReport: () => {}, refreshReports: () => {},
+  loading: false, filterSeverity: '', setFilterSeverity: () => {}, filterStatus: '', setFilterStatus: () => {},
+  filterType: '', setFilterType: () => {}, searchQuery: '', setSearchQuery: () => {},
+}
+
 export function useReports(): ReportsContextType {
   const context = useContext(ReportsContext)
-  if (!context) throw new Error('useReports must be within ReportsProvider')
+  if (!context) {
+    if (import.meta.env.DEV) console.warn('[Reports] Context unavailable — returning safe defaults.')
+    return REPORTS_DEFAULTS
+  }
   return context
 }

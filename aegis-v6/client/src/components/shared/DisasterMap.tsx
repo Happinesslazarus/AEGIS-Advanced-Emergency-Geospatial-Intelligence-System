@@ -622,10 +622,10 @@ export default function DisasterMap({
           >
             <Popup>
               <div className="min-w-[220px]">
-                <p className="font-semibold text-sm">{incident.incident_type.replace(/_/g, ' ')} Incident</p>
-                <p className="text-xs text-gray-600">State: {incident.lifecycle_state.toUpperCase()}</p>
-                <p className="text-xs text-gray-600">Confidence: {Math.round(confidence * 100)}%</p>
-                <p className="text-xs text-gray-600">Evidence: {incident.evidence_count} ? Window: {incident.time_window_minutes} min</p>
+                <p className="font-semibold text-sm">{incident.incident_type.replace(/_/g, ' ')} {t('dmap.incident', lang)}</p>
+                <p className="text-xs text-gray-600">{t('dmap.state', lang)}: {incident.lifecycle_state.toUpperCase()}</p>
+                <p className="text-xs text-gray-600">{t('dmap.confidence', lang)}: {Math.round(confidence * 100)}%</p>
+                <p className="text-xs text-gray-600">{t('dmap.evidence', lang)}: {incident.evidence_count} — {t('dmap.window', lang)}: {incident.time_window_minutes} {t('dmap.min', lang)}</p>
               </div>
             </Popup>
           </Circle>
@@ -662,7 +662,7 @@ export default function DisasterMap({
           />
         )
       })
-  }, [reports, incidentObjects, showReports, layerToggles.confidenceHalos])
+  }, [reports, incidentObjects, showReports, layerToggles.confidenceHalos, lang])
 
   // Spatiotemporal incident cluster visualisation
   const clusterCircles = useMemo(() => {
@@ -679,16 +679,16 @@ export default function DisasterMap({
         >
           <Popup>
             <div className="min-w-[220px]">
-              <p className="font-semibold text-sm">{cluster.incident_type} Cluster</p>
-              <p className="text-xs text-gray-600">Reports: {cluster.reports} ? Radius: {cluster.radius_m}m</p>
-              <p className="text-xs text-gray-600">Time Window: {cluster.time_window_minutes} min</p>
-              <p className="text-xs text-gray-600">Confidence: {Math.round(confidence * 100)}%</p>
+              <p className="font-semibold text-sm">{cluster.incident_type} {t('dmap.cluster', lang)}</p>
+              <p className="text-xs text-gray-600">{t('dmap.reports', lang)}: {cluster.reports} — {t('dmap.radius', lang)}: {cluster.radius_m}m</p>
+              <p className="text-xs text-gray-600">{t('dmap.timeWindow', lang)}: {cluster.time_window_minutes} {t('dmap.min', lang)}</p>
+              <p className="text-xs text-gray-600">{t('dmap.confidence', lang)}: {Math.round(confidence * 100)}%</p>
             </div>
           </Popup>
         </Circle>
       )
     })
-  }, [incidentClusters, layerToggles.clusters])
+  }, [incidentClusters, layerToggles.clusters, lang])
 
   // Flood zones
   const zones = useMemo(() => {
@@ -806,10 +806,10 @@ export default function DisasterMap({
         <Marker key={`distress-${b.id || i}`} position={[lat, lng]} icon={dIcon}>
           <Popup>
             <div className="min-w-[180px]">
-              <p className="font-bold text-red-600 text-sm mb-1">? {t('dmap.distressBeacon', lang)}</p>
+              <p className="font-bold text-red-600 text-sm mb-1">🚨 {t('dmap.distressBeacon', lang)}</p>
               <p className="text-xs font-semibold">{b.citizenName || b.citizen_name || t('dmap.citizen', lang)}</p>
               <p className="text-xs text-gray-600">{b.message || t('dmap.emergencyAssistance', lang)}</p>
-              {b.isVulnerable && <p className="text-xs text-orange-600 mt-1">? {t('dmap.vulnerablePerson', lang)}</p>}
+              {b.isVulnerable && <p className="text-xs text-orange-600 mt-1">⚠️ {t('dmap.vulnerablePerson', lang)}</p>}
             </div>
           </Popup>
         </Marker>
@@ -833,23 +833,23 @@ export default function DisasterMap({
               <p className="font-semibold text-sm">{route.name || t('dmap.evacuationRoute', lang)}</p>
               {route.description && <p className="text-xs text-gray-600">{route.description}</p>}
               {typeof route.recommendationScore === 'number' && (
-                <p className="text-xs text-gray-600">Recommendation: {Math.round(route.recommendationScore * 100)}% — Risk: {Math.round((route.riskScore || 0) * 100)}%</p>
+                <p className="text-xs text-gray-600">{t('dmap.recommendation', lang)}: {Math.round(route.recommendationScore * 100)}% — {t('dmap.risk', lang)}: {Math.round((route.riskScore || 0) * 100)}%</p>
               )}
               {typeof route.etaConfidence === 'number' && (
-                <p className="text-xs text-gray-600">ETA confidence: {Math.round(route.etaConfidence * 100)}%{route.closureProximityM ? ` — Closure proximity ${route.closureProximityM}m` : ''}</p>
+                <p className="text-xs text-gray-600">{t('dmap.etaConfidence', lang)}: {Math.round(route.etaConfidence * 100)}%{route.closureProximityM ? ` — ${t('dmap.closureProximity', lang)} ${route.closureProximityM}m` : ''}</p>
               )}
               {route.explanation?.scoreBreakdown && (
-                <p className="text-xs text-gray-500 mt-1">Profile: {route.explanation.scoreBreakdown.profile} — Time {Math.round(route.explanation.scoreBreakdown.timeScore * 100)} — Risk penalty {Math.round(route.explanation.scoreBreakdown.riskPenalty * 100)}</p>
+                <p className="text-xs text-gray-500 mt-1">{t('dmap.profile', lang)}: {route.explanation.scoreBreakdown.profile} — {t('dmap.time', lang)} {Math.round(route.explanation.scoreBreakdown.timeScore * 100)} — {t('dmap.riskPenalty', lang)} {Math.round(route.explanation.scoreBreakdown.riskPenalty * 100)}</p>
               )}
               {route.explanation?.blockedSegments?.length ? (
                 <div className="mt-1">
-                  <p className="text-[11px] font-semibold text-red-700">Blocked segments</p>
-                  <p className="text-xs text-gray-600">{route.explanation.blockedSegments.length} segment(s) affected — closest {Math.min(...route.explanation.blockedSegments.map((segment) => segment.hazardDistanceM))}m</p>
+                  <p className="text-[11px] font-semibold text-red-700">{t('dmap.blockedSegments', lang)}</p>
+                  <p className="text-xs text-gray-600">{route.explanation.blockedSegments.length} {t('dmap.segmentsAffected', lang)} {Math.min(...route.explanation.blockedSegments.map((segment) => segment.hazardDistanceM))}m</p>
                 </div>
               ) : null}
               {route.explanation?.topHazards?.length ? (
                 <div className="mt-1">
-                  <p className="text-[11px] font-semibold text-gray-800">Top hazards</p>
+                  <p className="text-[11px] font-semibold text-gray-800">{t('dmap.topHazards', lang)}</p>
                   <p className="text-xs text-gray-600">{route.explanation.topHazards.slice(0, 2).map((h) => `${h.severity} ${h.distanceM}m${h.reason ? ` (${h.reason})` : ''}`).join(' — ')}</p>
                 </div>
               ) : null}
@@ -858,7 +858,7 @@ export default function DisasterMap({
         </Polyline>
       )
     }).filter(Boolean)
-  }, [showEvacuation, layerToggles.evacuation, evacuationRoutes])
+  }, [showEvacuation, layerToggles.evacuation, evacuationRoutes, lang])
 
   // AI Flood prediction risk circles ? dynamic coords from location context + prediction data
   const predictionCircles = useMemo(() => {
@@ -884,7 +884,7 @@ export default function DisasterMap({
               <p className="font-bold text-sm">{p.area}</p>
               <p className="text-xs">{t('dmap.floodProbability', lang)}: <span className="font-bold" style={{ color: colour }}>{Math.round(prob * 100)}%</span></p>
               <p className="text-xs text-gray-500 dark:text-gray-300">{t('dmap.severity', lang)}: {p.severity} — {t('dmap.confidence', lang)}: {p.confidence}%</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Uncertainty band: {Math.max(0, Math.round((Number(p.probability || 0) - (100 - Number(p.confidence || 0)) / 200) * 100))}% - {Math.min(100, Math.round((Number(p.probability || 0) + (100 - Number(p.confidence || 0)) / 200) * 100))}%</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t('dmap.uncertaintyBand', lang)}: {Math.max(0, Math.round((Number(p.probability || 0) - (100 - Number(p.confidence || 0)) / 200) * 100))}% - {Math.min(100, Math.round((Number(p.probability || 0) + (100 - Number(p.confidence || 0)) / 200) * 100))}%</p>
               {p.time_to_flood && <p className="text-xs text-gray-500 dark:text-gray-300">{t('dmap.timeToFlood', lang)}: {p.time_to_flood}</p>}
               <p className="text-xs text-gray-400 dark:text-gray-300 mt-1">{p.model_version}</p>
             </div>
@@ -918,7 +918,7 @@ export default function DisasterMap({
         const zoneLower = d.zone.toLowerCase()
         for (const [name, c] of Object.entries(zoneCoords)) {
           if (zoneLower.includes(name) || name.includes(zoneLower) ||
-              zoneLower.replace(/zone\s*[a-z]\s*[??-]\s*/i, '').trim() === name) {
+              zoneLower.replace(/zone\s*[a-z]\s*[\u2013\u2014-]\s*/i, '').trim() === name) {
             coords = c
             break
           }
@@ -958,14 +958,14 @@ export default function DisasterMap({
                 {d.deployed && <span style={{
                   padding: '1px 6px', borderRadius: 8, fontWeight: 700, fontSize: 10,
                   color: '#fff', backgroundColor: '#16a34a',
-                }}>DEPLOYED</span>}
+                }}>{t('dmap.deployed', lang)}</span>}
               </div>
               <p style={{ fontSize: 11, margin: '2px 0' }}>{t('dmap.activeReports', lang)}: <strong>{d.active_reports}</strong></p>
               {d.estimated_affected && <p style={{ fontSize: 11, margin: '2px 0', color: '#dc2626' }}>{t('dmap.affected', lang)}: {d.estimated_affected}</p>}
               <div style={{ display: 'flex', gap: 8, fontSize: 11, marginTop: 4 }}>
-                {(d.ambulances ?? 0) > 0 && <span>?? {d.ambulances}</span>}
-                {(d.fire_engines ?? 0) > 0 && <span>?? {d.fire_engines}</span>}
-                {(d.rescue_boats ?? 0) > 0 && <span>?? {d.rescue_boats}</span>}
+                {(d.ambulances ?? 0) > 0 && <span>🚑 {d.ambulances}</span>}
+                {(d.fire_engines ?? 0) > 0 && <span>🚒 {d.fire_engines}</span>}
+                {(d.rescue_boats ?? 0) > 0 && <span>⚓ {d.rescue_boats}</span>}
               </div>
               {d.ai_recommendation && <p style={{ fontSize: 10, color: '#6b7280', marginTop: 4, fontStyle: 'italic' }}>{t('dmap.ai', lang)}: {d.ai_recommendation}</p>}
             </div>
@@ -973,7 +973,7 @@ export default function DisasterMap({
         </Circle>
       )
     })
-  }, [deployments, location.floodZones, mapCenter])
+  }, [deployments, location.floodZones, mapCenter, lang])
 
   // PostGIS risk layer GeoJSON polygons
   const riskPolygons = useMemo(() => {
@@ -1257,7 +1257,7 @@ export default function DisasterMap({
             <button
               onClick={() => setFocusMode(true)}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-white/60 hover:text-white hover:bg-white/10 transition-colors"
-              title="Focus mode ? hide controls"
+              title="Focus mode — hide controls"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 flex-shrink-0">
                 <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22"/>
@@ -1292,7 +1292,7 @@ export default function DisasterMap({
             <div className="w-10 h-10 rounded-xl bg-aegis-600 flex items-center justify-center animate-pulse">
               <svg viewBox="0 0 24 24" fill="white" className="w-5 h-5"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/></svg>
             </div>
-            <p className="text-xs font-semibold text-gray-600 dark:text-gray-300">Initialising map?</p>
+            <p className="text-xs font-semibold text-gray-600 dark:text-gray-300">{t('dmap.initialisingMap', lang)}</p>
           </div>
         )}
         <MapContainer center={mapCenter} zoom={mapZoom} className="h-full w-full" scrollWheelZoom

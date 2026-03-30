@@ -58,6 +58,7 @@ import CommunityChatRoom from '../components/citizen/CommunityChatRoom'
 import SOSButton from '../components/citizen/SOSButton'
 import DisasterMap from '../components/shared/DisasterMap'
 import ReportCard from '../components/shared/ReportCard'
+import CitizenTwoFactorSettings from '../components/citizen/CitizenTwoFactorSettings'
 
 // Code-split heavy components (loaded on demand per tab)
 const Chatbot = lazy(() => import('../components/citizen/Chatbot'))
@@ -2779,6 +2780,11 @@ function SecurityTab({ changePassword }: any) {
           {t('citizen.security.changePassword', lang)}
         </button>
       </form>
+
+      {/* Two-Factor Authentication */}
+      <div className="glass-card rounded-2xl p-6">
+        <CitizenTwoFactorSettings />
+      </div>
     </div>
   )
 }

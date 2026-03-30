@@ -35,7 +35,6 @@ const JWT_SECRET: string = (() => {
     process.exit(1)
   }
   // Dev / test: generate a random secret per process. Tokens won't survive restarts — that's fine.
-  const crypto = require('crypto') as typeof import('crypto')
   const devSecret = crypto.randomBytes(64).toString('hex')
   logger.warn('[SECURITY] JWT_SECRET not set — using random secret (dev only). Tokens invalidate on restart.')
   return devSecret

@@ -792,6 +792,11 @@
   50% { box-shadow: 0 0 20px rgba(var(--glow-color), 0.4), 0 0 6px rgba(var(--glow-gold), 0.1); }
 }
 
+@keyframes uplinkPulse {
+  0%, 100% { height: 4px; opacity: 0.4; }
+  50% { height: 8px; opacity: 1; }
+}
+
 /*  GLASSMORPHISM — theme-aware with explicit text inheritance anchoring
    Setting `color` here ensures all child text without an explicit color
    class correctly inherits the theme-appropriate foreground color.

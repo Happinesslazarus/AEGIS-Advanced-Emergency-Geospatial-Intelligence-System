@@ -14,7 +14,7 @@ interface LocationContextType {
 export const LOCATIONS: Record<string, LocationConfig> = {
   // GLOBAL
   world: {
-    name: 'Global Overview', center: [20, 0], zoom: 2,
+    name: 'All Regions', center: [20, 0], zoom: 2,
     bounds: [[-85, -180], [85, 180]], rivers: ['Nile', 'Amazon', 'Yangtze', 'Mississippi', 'Ganges', 'Congo', 'Mekong', 'Danube'],
     floodZones: [
       { name: 'South Asia Monsoon Belt', coords: [23, 80], risk: 'high' },
@@ -391,7 +391,7 @@ function getLocationConfig(key: string): LocationConfig {
 const LocationContext = createContext<LocationContextType | null>(null)
 
 export function LocationProvider({ children }: { children: ReactNode }): JSX.Element {
-  const [activeLocation, setActiveLocation] = useState<string>('scotland')
+  const [activeLocation, setActiveLocation] = useState<string>('world')
   const [userPosition, setUserPosition] = useState<[number, number] | null>(null)
 
   const detectUserLocation = (): void => {
@@ -459,8 +459,17 @@ export function LocationProvider({ children }: { children: ReactNode }): JSX.Ele
   )
 }
 
+const LOCATION_DEFAULTS: LocationContextType = {
+  location: LOCATIONS['world'], activeLocation: 'world',
+  setActiveLocation: () => {}, availableLocations: [],
+  userPosition: null, detectUserLocation: () => {},
+}
+
 export function useLocation(): LocationContextType {
   const ctx = useContext(LocationContext)
-  if (!ctx) throw new Error('useLocation must be within LocationProvider')
+  if (!ctx) {
+    if (import.meta.env.DEV) console.warn('[Location] Context unavailable — returning safe defaults.')
+    return LOCATION_DEFAULTS
+  }
   return ctx
 }

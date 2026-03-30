@@ -14,6 +14,7 @@
  * SECURITY: Sensitive endpoints require admin authentication
   */
 import { Router, Request, Response, NextFunction } from 'express'
+import rateLimit from 'express-rate-limit'
 import { authMiddleware, AuthRequest, verifyToken } from '../middleware/auth.js'
 import { requireAdmin, requireOperator, operatorOnly } from '../middleware/internalAuth.js'
 import pool from '../models/db.js'
@@ -37,7 +38,66 @@ import { logger } from '../services/logger.js'
 
 const router = Router()
 
-// DEPARTMENTS
+// Rate limiter for public subscription endpoints (prevent abuse)
+const subscriptionLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10,
+  message: { error: 'Too many subscription requests, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+})
+
+// ─── Multi-hazard resource recommendation helper ──────────────────────────────
+// Returns smart ambulance/fire_engine/rescue_boat counts based on incident type
+// and priority level. Covers all 40+ AEGIS hazard subtypes across 6 categories.
+function getResourceRecommendation(hazardType: string, priority: 'Critical' | 'High'): { ambulances: number; fire_engines: number; rescue_boats: number } {
+  const isCritical = priority === 'Critical'
+  const h = (hazardType || '').toLowerCase()
+
+  // ── WATER / COASTAL — rescue boats first ──────────────────────────────────
+  if (['flood', 'tsunami', 'coastal', 'flash_flood'].some(k => h.includes(k))) {
+    return { ambulances: isCritical ? 4 : 2, fire_engines: isCritical ? 2 : 1, rescue_boats: isCritical ? 6 : 3 }
+  }
+  // ── WILDFIRE — fire engines dominant ──────────────────────────────────────
+  if (['wildfire', 'fire', 'burn'].some(k => h.includes(k))) {
+    return { ambulances: isCritical ? 4 : 2, fire_engines: isCritical ? 8 : 4, rescue_boats: 0 }
+  }
+  // ── VOLCANIC — hazmat + structural + evacuation mix ───────────────────────
+  if (['volcanic', 'volcano', 'lava', 'ash'].some(k => h.includes(k))) {
+    return { ambulances: isCritical ? 5 : 3, fire_engines: isCritical ? 3 : 2, rescue_boats: isCritical ? 1 : 0 }
+  }
+  // ── STRUCTURAL / SEISMIC — heavy search & rescue, urban SAR ──────────────
+  if (['earthquake', 'seismic', 'building_collapse', 'structural', 'landslide', 'avalanche', 'sinkhole', 'debris', 'bridge_damage', 'road_damage'].some(k => h.includes(k))) {
+    return { ambulances: isCritical ? 6 : 3, fire_engines: isCritical ? 4 : 2, rescue_boats: 0 }
+  }
+  // ── HAZMAT / CHEMICAL / ENVIRONMENTAL ────────────────────────────────────
+  if (['chemical', 'gas_leak', 'hazmat', 'pollution', 'contamination', 'environmental_hazard', 'environmental', 'radiation'].some(k => h.includes(k))) {
+    return { ambulances: isCritical ? 5 : 3, fire_engines: isCritical ? 3 : 2, rescue_boats: 0 }
+  }
+  // ── MEDICAL / MASS CASUALTY ───────────────────────────────────────────────
+  if (['medical', 'mass_casualty', 'casualty'].some(k => h.includes(k))) {
+    return { ambulances: isCritical ? 10 : 5, fire_engines: isCritical ? 2 : 1, rescue_boats: 0 }
+  }
+  // ── STORM / WIND / TORNADO / HURRICANE ───────────────────────────────────
+  if (['storm', 'tornado', 'hurricane', 'typhoon', 'cyclone', 'severe_storm'].some(k => h.includes(k))) {
+    return { ambulances: isCritical ? 4 : 2, fire_engines: isCritical ? 3 : 2, rescue_boats: isCritical ? 3 : 1 }
+  }
+  // ── EXTREME WEATHER — heatwave / drought ─────────────────────────────────
+  if (['heatwave', 'heat', 'drought'].some(k => h.includes(k))) {
+    return { ambulances: isCritical ? 6 : 3, fire_engines: isCritical ? 2 : 1, rescue_boats: 0 }
+  }
+  // ── INFRASTRUCTURE — power / water / road ────────────────────────────────
+  if (['infrastructure', 'power_line', 'power_outage', 'water_main', 'water_supply'].some(k => h.includes(k))) {
+    return { ambulances: isCritical ? 2 : 1, fire_engines: isCritical ? 2 : 1, rescue_boats: 0 }
+  }
+  // ── PUBLIC SAFETY — trapped / missing / evacuation ───────────────────────
+  if (['public_safety', 'person_trapped', 'missing', 'evacuation', 'hazardous_area'].some(k => h.includes(k))) {
+    return { ambulances: isCritical ? 4 : 2, fire_engines: isCritical ? 2 : 1, rescue_boats: isCritical ? 1 : 0 }
+  }
+  // ── FALLBACK ──────────────────────────────────────────────────────────────
+  return { ambulances: isCritical ? 3 : 2, fire_engines: isCritical ? 2 : 1, rescue_boats: isCritical ? 1 : 0 }
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 router.get('/departments', async (_req: Request, res: Response, next: NextFunction) => {
   try {
@@ -51,9 +111,9 @@ router.get('/departments', async (_req: Request, res: Response, next: NextFuncti
 // ALERT SUBSCRIPTIONS
 
 // Subscribe to alerts
-router.post('/subscriptions', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/subscriptions', subscriptionLimiter, async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { email, phone, telegram_id, whatsapp, channels, location_lat, location_lng, radius_km, severity_filter, topic_filter } = req.body
+    const { email, phone, telegram_id, whatsapp, channels, location_lat, location_lng, radius_km, severity_filter, topic_filter, subscriber_name } = req.body
     const normalizedChannels = normalizeChannels(channels)
 
     if (normalizedChannels.length === 0) {
@@ -92,12 +152,12 @@ router.post('/subscriptions', async (req: Request, res: Response, next: NextFunc
     // Email verification is a nice-to-have but must not block other channels.
     // Use UPSERT on email to avoid duplicate subscriptions.
     const { rows } = await pool.query(
-      `INSERT INTO alert_subscriptions (email, phone, telegram_id, whatsapp, channels, location_lat, location_lng, radius_km, severity_filter, topic_filter, verification_token, verified, consent_given, consent_timestamp)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11, true, true, NOW())
+      `INSERT INTO alert_subscriptions (email, phone, telegram_id, whatsapp, channels, location_lat, location_lng, radius_km, severity_filter, topic_filter, verification_token, verified, consent_given, consent_timestamp, subscriber_name)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11, true, true, NOW(), $12)
        ON CONFLICT (email) WHERE email IS NOT NULL
-       DO UPDATE SET phone = EXCLUDED.phone, telegram_id = EXCLUDED.telegram_id, whatsapp = EXCLUDED.whatsapp, channels = EXCLUDED.channels, location_lat = EXCLUDED.location_lat, location_lng = EXCLUDED.location_lng, radius_km = EXCLUDED.radius_km, severity_filter = EXCLUDED.severity_filter, topic_filter = EXCLUDED.topic_filter, updated_at = NOW()
+       DO UPDATE SET phone = EXCLUDED.phone, telegram_id = EXCLUDED.telegram_id, whatsapp = EXCLUDED.whatsapp, channels = EXCLUDED.channels, location_lat = EXCLUDED.location_lat, location_lng = EXCLUDED.location_lng, radius_km = EXCLUDED.radius_km, severity_filter = EXCLUDED.severity_filter, topic_filter = EXCLUDED.topic_filter, subscriber_name = EXCLUDED.subscriber_name, updated_at = NOW()
        RETURNING id, channels, verified, topic_filter`,
-      [email || null, phone || null, telegram_id || null, whatsapp || phone || null, normalizedChannels, location_lat || null, location_lng || null, radius_km || 50, severity_filter || ['critical', 'warning', 'info'], normalizedTopics, verificationToken]
+      [email || null, phone || null, telegram_id || null, whatsapp || phone || null, normalizedChannels, location_lat || null, location_lng || null, radius_km || 50, severity_filter || ['critical', 'warning', 'info'], normalizedTopics, verificationToken, subscriber_name || null]
     )
 
     // Send verification email if email channel is selected (optional, subscription already verified)
@@ -218,13 +278,20 @@ router.post('/audit', authMiddleware, requireAdmin, async (req: AuthRequest, res
 // Get audit log with filtering
 router.get('/audit', authMiddleware, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { action_type, operator_id, limit, offset } = req.query
+    const { action_type, operator_id, limit, offset, date_from, date_to, search } = req.query
     let query = 'SELECT * FROM audit_log WHERE 1=1'
     const params: any[] = []
     let idx = 1
 
     if (action_type) { query += ` AND action_type = $${idx++}`; params.push(action_type) }
     if (operator_id) { query += ` AND operator_id = $${idx++}`; params.push(operator_id) }
+    if (date_from) { query += ` AND created_at >= $${idx++}`; params.push(new Date(date_from as string)) }
+    if (date_to) { query += ` AND created_at <= $${idx++}`; params.push(new Date(date_to + 'T23:59:59Z')) }
+    if (search) {
+      query += ` AND (action ILIKE $${idx} OR operator_name ILIKE $${idx} OR target_id ILIKE $${idx} OR ip_address ILIKE $${idx})`
+      params.push(`%${search}%`)
+      idx++
+    }
     query += ` ORDER BY created_at DESC LIMIT $${idx++} OFFSET $${idx++}`
     params.push(Number(limit) || 100, Number(offset) || 0)
 
@@ -559,7 +626,7 @@ router.get('/notifications/status', (_req: Request, res: Response) => {
 })
 
 // Subscribe to Web Push notifications
-router.post('/notifications/subscribe', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/notifications/subscribe', subscriptionLimiter, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { subscription, email } = req.body
 
@@ -710,7 +777,7 @@ router.post('/alerts/broadcast', authMiddleware, requireAdmin, async (req: AuthR
     try {
       const { rows: alertRows } = await pool.query(
         `INSERT INTO alerts (title, message, severity, alert_type, location_text, expires_at, created_by)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         VALUES ($1, $2, $3, $4, $5, $6::timestamptz, $7::uuid)
          RETURNING id`,
         [
           title,
@@ -784,9 +851,9 @@ router.post('/alerts/broadcast', authMiddleware, requireAdmin, async (req: AuthR
     // Log audit trail
     await pool.query(
       `INSERT INTO audit_log (operator_id, operator_name, action, action_type, target_type, target_id, after_state)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+       VALUES ($1::uuid, $2, $3, $4, $5, $6, $7)`,
       [
-        operator_id,
+        safeOperatorId,
         operator_name || 'System',
         `Broadcast ${severity} alert to ${deliveryResults.successful} subscribers`,
         'alert_broadcast',
@@ -864,7 +931,7 @@ router.get('/alerts/delivery', authMiddleware, async (req: AuthRequest, res: Res
 router.get('/alerts/delivery/stats', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) { res.status(403).json({ error: 'Insufficient permissions.' }); return }
   try {
-    const [overall, byChannel, hourly, topFailing, recentErrors] = await Promise.all([
+    const [overall, byChannel, hourly, topFailing, recentErrors, subscriberStats] = await Promise.all([
       pool.query(`SELECT COUNT(*) AS total,
         COUNT(*) FILTER (WHERE status IN ('sent','delivered')) AS sent,
         COUNT(*) FILTER (WHERE status='delivered') AS delivered,
@@ -891,8 +958,18 @@ router.get('/alerts/delivery/stats', authMiddleware, async (req: AuthRequest, re
         FROM alert_delivery_log WHERE status='failed' AND error_message IS NOT NULL
         AND created_at>=NOW()-INTERVAL '7 days'
         GROUP BY channel,error_message ORDER BY count DESC LIMIT 10`),
+      pool.query(`SELECT
+        COUNT(*) AS total_subscribers,
+        COUNT(*) FILTER (WHERE verified = true) AS verified_subscribers,
+        COUNT(*) FILTER (WHERE verified = false) AS unverified_subscribers,
+        COUNT(*) FILTER (WHERE 'email' = ANY(channels)) AS email_subscribers,
+        COUNT(*) FILTER (WHERE 'sms' = ANY(channels)) AS sms_subscribers,
+        COUNT(*) FILTER (WHERE 'whatsapp' = ANY(channels)) AS whatsapp_subscribers,
+        COUNT(*) FILTER (WHERE 'telegram' = ANY(channels)) AS telegram_subscribers,
+        COUNT(*) FILTER (WHERE 'web' = ANY(channels) OR 'webpush' = ANY(channels)) AS webpush_subscribers
+        FROM alert_subscriptions`),
     ])
-    res.json({ overall: overall.rows[0], by_channel: byChannel.rows, hourly_trend: hourly.rows, top_failing: topFailing.rows, recent_errors: recentErrors.rows })
+    res.json({ overall: overall.rows[0], by_channel: byChannel.rows, hourly_trend: hourly.rows, top_failing: topFailing.rows, recent_errors: recentErrors.rows, subscribers: subscriberStats.rows[0] })
   } catch (err) {
     next(err)
   }
@@ -1023,13 +1100,18 @@ router.get('/deployments', authMiddleware, async (req: AuthRequest, res: Respons
   }
   try {
     const { rows } = await pool.query(
-      `SELECT id, zone, priority, active_reports, estimated_affected,
-              ai_recommendation, ambulances, fire_engines, rescue_boats,
-              deployed, deployed_at, created_at,
-              ST_Y(coordinates::geometry) as lat,
-              ST_X(coordinates::geometry) as lng
-       FROM resource_deployments ORDER BY
-         CASE priority WHEN 'Critical' THEN 0 WHEN 'High' THEN 1 WHEN 'Medium' THEN 2 ELSE 3 END`
+      `SELECT d.id, d.zone, d.priority, d.active_reports, d.estimated_affected,
+              d.ai_recommendation, d.ambulances, d.fire_engines, d.rescue_boats,
+              d.deployed, d.deployed_at, d.deployed_by, d.created_at, d.updated_at,
+              d.report_id, d.prediction_id, d.is_ai_draft, d.ai_draft_acknowledged_at, d.ai_draft_acknowledged_by,
+              d.ops_log, d.needs_mutual_aid, d.incident_commander, d.hazard_type,
+              ST_Y(d.coordinates::geometry) as lat,
+              ST_X(d.coordinates::geometry) as lng,
+              r.report_number
+       FROM resource_deployments d
+       LEFT JOIN reports r ON d.report_id = r.id
+       ORDER BY
+         CASE d.priority WHEN 'Critical' THEN 0 WHEN 'High' THEN 1 WHEN 'Medium' THEN 2 ELSE 3 END`
     )
     res.json(rows)
   } catch (err) {
@@ -1085,7 +1167,7 @@ router.post('/deployments/:id/recall', authMiddleware, async (req: AuthRequest, 
     throw AppError.forbidden('Insufficient permissions for deployment operations.')
   }
   try {
-    const { reason, outcome_summary, report_id } = req.body
+    const { reason, outcome_summary, ai_feedback } = req.body
     const operator_id = req.user!.id
     const operator_name = req.user!.displayName || 'Operator'
     const trimmedReason = (reason || '').toString().trim()
@@ -1099,9 +1181,42 @@ router.post('/deployments/:id/recall', authMiddleware, async (req: AuthRequest, 
 
     const { rows } = await pool.query(
       `UPDATE resource_deployments SET deployed = false, deployed_at = NULL, deployed_by = NULL
-       WHERE id = $1 RETURNING *`,
+       WHERE id = $1 RETURNING *,
+             ST_Y(coordinates::geometry) as lat, ST_X(coordinates::geometry) as lng`,
       [req.params.id]
     )
+    if (!rows.length) throw AppError.notFound('Deployment zone not found.')
+    const zone = rows[0]
+
+    // Module 5a: Auto-resolve linked report on recall
+    let reportResolved = false
+    if (zone.report_id) {
+      try {
+        const rRes = await pool.query(
+          `UPDATE reports SET status = 'resolved', resolved_at = NOW()
+           WHERE id = $1 AND status NOT IN ('archived', 'false_report', 'resolved')
+           RETURNING id`,
+          [zone.report_id]
+        )
+        reportResolved = rRes.rows.length > 0
+      } catch { /* non-critical */ }
+    }
+
+    // Module 5b: Submit AI prediction feedback signal + log
+    const validFeedbacks = ['correct', 'incorrect', 'uncertain']
+    const feedback = validFeedbacks.includes(ai_feedback) ? ai_feedback : 'correct'
+    let feedbackLogged = false
+    if (zone.prediction_id) {
+      try {
+        await aiClient.submitPredictionFeedback(zone.prediction_id, feedback)
+        await pool.query(
+          `INSERT INTO ai_dispatch_feedback (prediction_id, deployment_id, feedback, outcome_notes, submitted_by)
+           VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING`,
+          [zone.prediction_id, zone.id, feedback, trimmedOutcome, operator_id]
+        )
+        feedbackLogged = true
+      } catch { /* non-critical */ }
+    }
 
     await pool.query(
       `INSERT INTO audit_log (operator_id, operator_name, action, action_type, target_type, target_id, before_state, after_state)
@@ -1111,15 +1226,385 @@ router.post('/deployments/:id/recall', authMiddleware, async (req: AuthRequest, 
         operator_name,
         `Recalled resources (${trimmedReason})`,
         req.params.id,
-        JSON.stringify({ deployed: true, report_id: report_id || null }),
-        JSON.stringify({ deployed: false, report_id: report_id || null, reason: trimmedReason, outcome_summary: trimmedOutcome })
+        JSON.stringify({ deployed: true }),
+        JSON.stringify({ deployed: false, reason: trimmedReason, outcome_summary: trimmedOutcome, report_resolved: reportResolved })
       ]
     )
 
-    res.json(rows[0] || { id: req.params.id, deployed: false })
+    res.json({ ...zone, report_resolved: reportResolved, feedback_logged: feedbackLogged })
   } catch (err) {
     next(err)
   }
+})
+
+// Create a new deployment zone
+router.post('/deployments', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
+  if (!['admin', 'operator'].includes(req.user?.role || '')) {
+    throw AppError.forbidden('Insufficient permissions.')
+  }
+  try {
+    const { zone, priority, active_reports, estimated_affected, ai_recommendation, ambulances, fire_engines, rescue_boats, lat, lng, report_id, prediction_id, is_ai_draft, hazard_type } = req.body
+
+    const zoneName = (zone || '').toString().trim()
+    if (!zoneName) throw AppError.badRequest('Zone name is required.')
+    if (zoneName.length > 100) throw AppError.badRequest('Zone name must be 100 characters or less.')
+
+    const validPriorities = ['Critical', 'High', 'Medium', 'Low']
+    const zonePriority = validPriorities.includes(priority) ? priority : 'Medium'
+
+    const parsedAmbulances = Math.max(0, parseInt(ambulances, 10) || 0)
+    const parsedFireEngines = Math.max(0, parseInt(fire_engines, 10) || 0)
+    const parsedRescueBoats = Math.max(0, parseInt(rescue_boats, 10) || 0)
+    const parsedReports = Math.max(0, parseInt(active_reports, 10) || 0)
+
+    const parsedLat = parseFloat(lat)
+    const parsedLng = parseFloat(lng)
+    const hasCoords = !isNaN(parsedLat) && !isNaN(parsedLng) &&
+                      parsedLat >= -90 && parsedLat <= 90 &&
+                      parsedLng >= -180 && parsedLng <= 180
+
+    // Validate optional FK UUIDs to prevent injection
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    const safeReportId = (report_id && UUID_RE.test(report_id)) ? report_id : null
+    const safePredictionId = (prediction_id && UUID_RE.test(prediction_id)) ? prediction_id : null
+    const isAiDraft = is_ai_draft === true || is_ai_draft === 'true'
+    const safeHazardType = (hazard_type || 'general').toString().trim().slice(0, 80).replace(/[^a-z0-9_]/gi, '_').toLowerCase() || 'general'
+
+    const RETURN_COLS = `id, zone, priority, active_reports, estimated_affected, ai_recommendation,
+                 ambulances, fire_engines, rescue_boats, deployed, deployed_at, created_at,
+                 report_id, prediction_id, is_ai_draft, hazard_type,
+                 ST_Y(coordinates::geometry) as lat, ST_X(coordinates::geometry) as lng`
+
+    let insertSql: string
+    let insertParams: any[]
+    if (hasCoords) {
+      insertSql = `INSERT INTO resource_deployments
+         (zone, priority, active_reports, estimated_affected, ai_recommendation,
+          ambulances, fire_engines, rescue_boats, coordinates,
+          report_id, prediction_id, is_ai_draft, hazard_type)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, ST_SetSRID(ST_MakePoint($9, $10), 4326), $11, $12, $13, $14)
+       RETURNING ${RETURN_COLS}`
+      insertParams = [zoneName, zonePriority, parsedReports, estimated_affected || null, ai_recommendation || null,
+                      parsedAmbulances, parsedFireEngines, parsedRescueBoats, parsedLng, parsedLat,
+                      safeReportId, safePredictionId, isAiDraft, safeHazardType]
+    } else {
+      insertSql = `INSERT INTO resource_deployments
+         (zone, priority, active_reports, estimated_affected, ai_recommendation,
+          ambulances, fire_engines, rescue_boats, coordinates,
+          report_id, prediction_id, is_ai_draft, hazard_type)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NULL, $9, $10, $11, $12)
+       RETURNING ${RETURN_COLS}`
+      insertParams = [zoneName, zonePriority, parsedReports, estimated_affected || null, ai_recommendation || null,
+                      parsedAmbulances, parsedFireEngines, parsedRescueBoats,
+                      safeReportId, safePredictionId, isAiDraft, safeHazardType]
+    }
+
+    const { rows } = await pool.query(insertSql, insertParams)
+
+    await pool.query(
+      `INSERT INTO audit_log (operator_id, operator_name, action, action_type, target_type, target_id, before_state, after_state)
+       VALUES ($1, $2, $3, 'create', 'deployment', $4, $5, $6)`,
+      [
+        req.user!.id,
+        req.user!.displayName || 'Operator',
+        `Created deployment zone: ${zoneName}`,
+        rows[0].id,
+        JSON.stringify({}),
+        JSON.stringify({ zone: zoneName, priority: zonePriority }),
+      ]
+    )
+
+    // Module 4: Critical zone escalation — notify all active admin/operator staff
+    if (zonePriority === 'Critical') {
+      try {
+        const { rows: staffRows } = await pool.query(
+          `SELECT DISTINCT o.email, o.phone, s.telegram_id, s.channels
+           FROM operators o
+           LEFT JOIN alert_subscriptions s ON s.email = o.email AND s.verified = true
+           WHERE o.role IN ('admin', 'operator') AND o.deleted_at IS NULL AND o.is_active = true`
+        )
+        const criticalAlert: notificationService.Alert = {
+          id: rows[0].id,
+          type: 'flood',
+          severity: 'critical',
+          title: `CRITICAL Zone Activated: ${zoneName}`,
+          message: `Deployment zone "${zoneName}" created at CRITICAL priority. Immediate command attention required.`,
+          area: zoneName,
+          actionRequired: 'Review zone immediately and dispatch resources.',
+        }
+        for (const staff of staffRows) {
+          const channels = Array.isArray(staff.channels) && staff.channels.length > 0 ? staff.channels : ['email']
+          const recipient: notificationService.AlertRecipient = {
+            email: staff.email, phone: staff.phone || undefined, telegram_id: staff.telegram_id || undefined,
+          }
+          notificationService.sendMultiChannelAlert(recipient, criticalAlert, channels).catch(() => {})
+        }
+      } catch { /* notification failure must not block zone creation */ }
+    }
+
+    res.status(201).json(rows[0])
+  } catch (err) {
+    next(err)
+  }
+})
+
+// Delete a deployment zone
+router.delete('/deployments/:id', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
+  if (req.user?.role !== 'admin') {
+    throw AppError.forbidden('Only admins can delete deployment zones.')
+  }
+  try {
+    const { rows } = await pool.query(
+      `DELETE FROM resource_deployments WHERE id = $1 RETURNING id, zone`,
+      [req.params.id]
+    )
+    if (!rows.length) throw AppError.notFound('Deployment zone not found.')
+
+    await pool.query(
+      `INSERT INTO audit_log (operator_id, operator_name, action, action_type, target_type, target_id, before_state, after_state)
+       VALUES ($1, $2, $3, 'delete', 'deployment', $4, $5, $6)`,
+      [
+        req.user!.id,
+        req.user!.displayName || 'Admin',
+        `Deleted deployment zone: ${rows[0].zone}`,
+        rows[0].id,
+        JSON.stringify({ zone: rows[0].zone }),
+        JSON.stringify({}),
+      ]
+    )
+
+    res.json({ deleted: true, id: rows[0].id })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// Update a deployment zone (inline edit)
+router.patch('/deployments/:id', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
+  if (!['admin', 'operator'].includes(req.user?.role || '')) {
+    throw AppError.forbidden('Insufficient permissions.')
+  }
+  try {
+    const { zone, priority, active_reports, estimated_affected, ai_recommendation,
+            ambulances, fire_engines, rescue_boats, hazard_type, incident_commander } = req.body
+    const validPriorities = ['Critical', 'High', 'Medium', 'Low']
+    const updates: string[] = []
+    const params: any[] = []
+    let pIdx = 1
+
+    if (zone !== undefined) {
+      const z = (zone || '').toString().trim().slice(0, 100)
+      if (!z) throw AppError.badRequest('Zone name cannot be empty.')
+      updates.push(`zone = $${pIdx++}`); params.push(z)
+    }
+    if (priority !== undefined && validPriorities.includes(priority)) {
+      updates.push(`priority = $${pIdx++}`); params.push(priority)
+    }
+    if (active_reports !== undefined) {
+      updates.push(`active_reports = $${pIdx++}`); params.push(Math.max(0, parseInt(active_reports, 10) || 0))
+    }
+    if (estimated_affected !== undefined) {
+      updates.push(`estimated_affected = $${pIdx++}`); params.push((estimated_affected || '').toString().trim().slice(0, 200) || null)
+    }
+    if (ai_recommendation !== undefined) {
+      updates.push(`ai_recommendation = $${pIdx++}`); params.push((ai_recommendation || '').toString().trim().slice(0, 2000) || null)
+    }
+    if (ambulances !== undefined) {
+      updates.push(`ambulances = $${pIdx++}`); params.push(Math.max(0, parseInt(ambulances, 10) || 0))
+    }
+    if (fire_engines !== undefined) {
+      updates.push(`fire_engines = $${pIdx++}`); params.push(Math.max(0, parseInt(fire_engines, 10) || 0))
+    }
+    if (rescue_boats !== undefined) {
+      updates.push(`rescue_boats = $${pIdx++}`); params.push(Math.max(0, parseInt(rescue_boats, 10) || 0))
+    }
+    if (hazard_type !== undefined) {
+      const ht = (hazard_type || 'general').toString().trim().slice(0, 80).replace(/[^a-z0-9_]/gi, '_').toLowerCase() || 'general'
+      updates.push(`hazard_type = $${pIdx++}`); params.push(ht)
+    }
+    if (incident_commander !== undefined) {
+      const ic = (incident_commander || '').toString().trim().slice(0, 200) || null
+      updates.push(`incident_commander = $${pIdx++}`); params.push(ic)
+    }
+    if (!updates.length) throw AppError.badRequest('No valid fields to update.')
+
+    updates.push(`updated_at = NOW()`)
+    params.push(req.params.id)
+    const { rows } = await pool.query(
+      `UPDATE resource_deployments SET ${updates.join(', ')} WHERE id = $${pIdx}
+       RETURNING id, zone, priority, active_reports, estimated_affected, ai_recommendation,
+                 ambulances, fire_engines, rescue_boats, deployed, deployed_at, deployed_by,
+                 created_at, updated_at, report_id, prediction_id, is_ai_draft,
+                 ai_draft_acknowledged_at, ai_draft_acknowledged_by,
+                 ops_log, needs_mutual_aid, incident_commander, hazard_type,
+                 ST_Y(coordinates::geometry) as lat, ST_X(coordinates::geometry) as lng`,
+      params
+    )
+    if (!rows.length) throw AppError.notFound('Deployment zone not found.')
+
+    await pool.query(
+      `INSERT INTO audit_log (operator_id, operator_name, action, action_type, target_type, target_id, before_state, after_state)
+       VALUES ($1, $2, $3, 'update', 'deployment', $4, $5, $6)`,
+      [req.user!.id, req.user!.displayName || 'Operator', `Updated zone: ${rows[0].zone}`,
+       rows[0].id, JSON.stringify({}), JSON.stringify(rows[0])]
+    )
+
+    res.json(rows[0])
+  } catch (err) {
+    next(err)
+  }
+})
+
+// ─── WORLD-CLASS OPS EXTENSIONS ─────────────────────────────────────────────
+
+// Acknowledge an AI draft deployment zone (operator review step)
+router.patch('/deployments/:id/acknowledge', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
+  if (!['admin', 'operator'].includes(req.user?.role || '')) throw AppError.forbidden('Insufficient permissions.')
+  try {
+    const { rows } = await pool.query(
+      `UPDATE resource_deployments
+       SET ai_draft_acknowledged_at = NOW(),
+           ai_draft_acknowledged_by = $1
+       WHERE id = $2
+       RETURNING id, ai_draft_acknowledged_at, ai_draft_acknowledged_by`,
+      [req.user!.id, req.params.id]
+    )
+    if (!rows.length) throw AppError.notFound('Deployment zone not found.')
+    await pool.query(
+      `INSERT INTO audit_log (operator_id, operator_name, action, action_type, target_type, target_id, before_state, after_state)
+       VALUES ($1, $2, $3, 'verify', 'deployment', $4, $5, $6)`,
+      [req.user!.id, req.user!.displayName || 'Operator', `Acknowledged AI draft zone`,
+       req.params.id, JSON.stringify({ ai_draft_acknowledged_at: null }), JSON.stringify({ ai_draft_acknowledged_at: rows[0].ai_draft_acknowledged_at })]
+    )
+    res.json(rows[0])
+  } catch (err) { next(err) }
+})
+
+// Add an ICS ops-log entry to a deployment zone
+router.patch('/deployments/:id/ops-log', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
+  if (!['admin', 'operator'].includes(req.user?.role || '')) throw AppError.forbidden('Insufficient permissions.')
+  try {
+    const { note } = req.body
+    const trimmedNote = (note || '').toString().trim().slice(0, 500)
+    if (!trimmedNote) throw AppError.badRequest('note is required.')
+    const entry = { ts: new Date().toISOString(), operator: req.user!.displayName || 'Operator', note: trimmedNote }
+    const { rows } = await pool.query(
+      `UPDATE resource_deployments
+       SET ops_log = ops_log || $1::jsonb
+       WHERE id = $2
+       RETURNING id, ops_log`,
+      [JSON.stringify(entry), req.params.id]
+    )
+    if (!rows.length) throw AppError.notFound('Deployment zone not found.')
+    res.json({ id: rows[0].id, ops_log: rows[0].ops_log })
+  } catch (err) { next(err) }
+})
+
+// Toggle mutual aid flag on a deployment zone
+router.patch('/deployments/:id/mutual-aid', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
+  if (!['admin', 'operator'].includes(req.user?.role || '')) throw AppError.forbidden('Insufficient permissions.')
+  try {
+    const { needs_mutual_aid, incident_commander } = req.body
+    const updates: string[] = []
+    const params: any[] = []
+    let pIdx = 1
+    if (typeof needs_mutual_aid === 'boolean') { updates.push(`needs_mutual_aid = $${pIdx++}`); params.push(needs_mutual_aid) }
+    if (incident_commander !== undefined) {
+      const ic = (incident_commander || '').toString().trim().slice(0, 200) || null
+      updates.push(`incident_commander = $${pIdx++}`); params.push(ic)
+    }
+    if (!updates.length) throw AppError.badRequest('Nothing to update.')
+    params.push(req.params.id)
+    const { rows } = await pool.query(
+      `UPDATE resource_deployments SET ${updates.join(', ')} WHERE id = $${pIdx}
+       RETURNING id, needs_mutual_aid, incident_commander`,
+      params
+    )
+    if (!rows.length) throw AppError.notFound('Deployment zone not found.')
+    res.json(rows[0])
+  } catch (err) { next(err) }
+})
+
+// ─── DEPLOYMENT ASSETS (Module 3: per-vehicle GPS tracking) ─────────────────
+
+// List assets for a zone
+router.get('/deployments/:id/assets', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
+  if (!['admin', 'operator'].includes(req.user?.role || '')) throw AppError.forbidden('Insufficient permissions.')
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, deployment_id, asset_type, call_sign, status, crew_count,
+              last_lat, last_lng, last_seen_at, notes, created_at
+       FROM deployment_assets WHERE deployment_id = $1 ORDER BY created_at`,
+      [req.params.id]
+    )
+    res.json(rows)
+  } catch (err) { next(err) }
+})
+
+// Add asset to a zone
+router.post('/deployments/:id/assets', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
+  if (!['admin', 'operator'].includes(req.user?.role || '')) throw AppError.forbidden('Insufficient permissions.')
+  try {
+    const { asset_type, call_sign, status, crew_count, notes } = req.body
+    const validTypes = ['ambulance', 'fire_engine', 'rescue_boat', 'helicopter', 'hazmat_unit', 'police', 'medical_unit', 'urban_search_rescue', 'other']
+    const validStatuses = ['staging', 'en_route', 'on_site', 'returning', 'available', 'off_duty']
+    const safeType = validTypes.includes(asset_type) ? asset_type : 'other'
+    const safeStatus = validStatuses.includes(status) ? status : 'staging'
+    const safeCallSign = (call_sign || '').toString().trim().slice(0, 50)
+    if (!safeCallSign) throw AppError.badRequest('call_sign is required.')
+    const { rows } = await pool.query(
+      `INSERT INTO deployment_assets (deployment_id, asset_type, call_sign, status, crew_count, notes)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING id, deployment_id, asset_type, call_sign, status, crew_count, last_lat, last_lng, last_seen_at, notes, created_at`,
+      [req.params.id, safeType, safeCallSign, safeStatus,
+       Math.max(0, parseInt(crew_count, 10) || 0),
+       (notes || '').toString().trim().slice(0, 500) || null]
+    )
+    res.status(201).json(rows[0])
+  } catch (err) { next(err) }
+})
+
+// Update asset status / GPS — must precede /:id routes to avoid conflicts
+router.patch('/deployments/assets/:assetId', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
+  if (!['admin', 'operator'].includes(req.user?.role || '')) throw AppError.forbidden('Insufficient permissions.')
+  try {
+    const { status, last_lat, last_lng, crew_count, notes } = req.body
+    const validStatuses = ['staging', 'en_route', 'on_site', 'returning', 'available', 'off_duty']
+    const updates: string[] = []
+    const params: any[] = []
+    let pIdx = 1
+    if (status !== undefined && validStatuses.includes(status)) { updates.push(`status = $${pIdx++}`); params.push(status) }
+    const lat = parseFloat(last_lat), lng = parseFloat(last_lng)
+    if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+      updates.push(`last_lat = $${pIdx++}`); params.push(lat)
+      updates.push(`last_lng = $${pIdx++}`); params.push(lng)
+      updates.push(`last_seen_at = NOW()`)
+    }
+    if (crew_count !== undefined) { updates.push(`crew_count = $${pIdx++}`); params.push(Math.max(0, parseInt(crew_count, 10) || 0)) }
+    if (notes !== undefined) { updates.push(`notes = $${pIdx++}`); params.push((notes || '').toString().trim().slice(0, 500) || null) }
+    if (!updates.length) throw AppError.badRequest('No valid fields to update.')
+    params.push(req.params.assetId)
+    const { rows } = await pool.query(
+      `UPDATE deployment_assets SET ${updates.join(', ')} WHERE id = $${pIdx}
+       RETURNING id, deployment_id, asset_type, call_sign, status, crew_count, last_lat, last_lng, last_seen_at, notes`,
+      params
+    )
+    if (!rows.length) throw AppError.notFound('Asset not found.')
+    res.json(rows[0])
+  } catch (err) { next(err) }
+})
+
+// Delete an asset
+router.delete('/deployments/assets/:assetId', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
+  if (!['admin', 'operator'].includes(req.user?.role || '')) throw AppError.forbidden('Insufficient permissions.')
+  try {
+    const { rows } = await pool.query(
+      `DELETE FROM deployment_assets WHERE id = $1 RETURNING id`,
+      [req.params.assetId]
+    )
+    if (!rows.length) throw AppError.notFound('Asset not found.')
+    res.json({ deleted: true, id: rows[0].id })
+  } catch (err) { next(err) }
 })
 
 // REPORT MEDIA
@@ -1376,7 +1861,7 @@ router.post('/predictions/run', authMiddleware, requireOperator, async (req: Aut
       : regionRegistry.getActiveRegion().getMetadata().regionId
 
     const predictionResponse = await aiClient.predict({
-      hazard_type: 'flood',
+      hazard_type: (req.body.hazard_type as string) || 'flood',
       region_id: resolvedRegionId,
       latitude: safeLat,
       longitude: safeLng,
@@ -1417,7 +1902,7 @@ router.post('/predictions/run', authMiddleware, requireOperator, async (req: Aut
 
     const responseAny = predictionResponse as any
 
-    await pool.query(
+    const fpResult = await pool.query(
       `INSERT INTO flood_predictions
          (area, probability, time_to_flood, matched_pattern, next_areas,
           severity, confidence, data_sources, coordinates, model_version,
@@ -1425,12 +1910,18 @@ router.post('/predictions/run', authMiddleware, requireOperator, async (req: Aut
        VALUES
          ($1, $2, $3, $4, $5, $6::report_severity, $7, $8,
           ST_SetSRID(ST_MakePoint($9, $10), 4326), $11,
-          NOW() + INTERVAL '6 hours')`,
+          NOW() + INTERVAL '6 hours')
+       RETURNING id`,
       [
         area || 'Queried Area',
         probability01,
-        responseAny.time_to_flood || predictionResponse.predicted_peak_time || 'Unknown',
-        responseAny.matched_pattern || predictionResponse.risk_level || 'On-demand model inference',
+        responseAny.time_to_flood || predictionResponse.predicted_peak_time || (
+          probability01 >= 0.7 ? '< 24 hours' :
+          probability01 >= 0.5 ? '24-48 hours' :
+          probability01 >= 0.3 ? '2-5 days' :
+          'No flood expected'
+        ),
+        responseAny.matched_pattern || 'On-demand model inference',
         Array.isArray(responseAny.next_areas) ? responseAny.next_areas : [],
         severity,
         Math.max(0, Math.min(100, confidence100)),
@@ -1439,7 +1930,38 @@ router.post('/predictions/run', authMiddleware, requireOperator, async (req: Aut
         safeLat,
         predictionResponse.model_version || 'unknown',
       ]
-    ).catch(() => {})
+    ).catch(() => null)
+
+    // Module 1: Auto-create draft deployment zone for high-probability predictions (≥70%)
+    if (fpResult?.rows?.[0]?.id && probability01 >= 0.7) {
+      const fpId = fpResult.rows[0].id
+      const draftPriority = probability01 >= 0.85 ? 'Critical' : 'High'
+      const resolvedHazardType: string = (req.body.hazard_type as string) || 'flood'
+      const resources = getResourceRecommendation(resolvedHazardType, draftPriority)
+      const draftAiRec = `Auto-created by AI prediction engine. Confidence: ${confidence100}%. ` +
+        `${draftPriority} ${resolvedHazardType.replace(/_/g, ' ')} risk detected at ${area || 'Queried Area'}. Awaiting operator review.`
+      pool.query(
+        `INSERT INTO resource_deployments
+           (zone, priority, active_reports, estimated_affected, ai_recommendation,
+            ambulances, fire_engines, rescue_boats, coordinates, prediction_id, is_ai_draft)
+         SELECT $1, $2, 0, $3, $4, $5, $6, $7,
+                ST_SetSRID(ST_MakePoint($8, $9), 4326), $10, true
+         WHERE NOT EXISTS (
+           SELECT 1 FROM resource_deployments WHERE prediction_id = $10
+         )`,
+        [
+          area || 'Queried Area',
+          draftPriority,
+          `AI-flagged risk area — ${(probability01 * 100).toFixed(0)}% ${resolvedHazardType.replace(/_/g, ' ')} probability`,
+          draftAiRec,
+          resources.ambulances,
+          resources.fire_engines,
+          resources.rescue_boats,
+          safeLng, safeLat,
+          fpId,
+        ]
+      ).catch(() => {})
+    }
 
     res.json({ ...predictionResponse, affected_radius_km: affectedRadiusKm, saved_to_feed: true, region_id: resolvedRegionId })
   } catch (err: any) {
@@ -1619,8 +2141,8 @@ router.post('/ingestion/source/:source', requireAdmin, async (req: Request, res:
   }
 })
 
-// GET /api/ingestion/status — Get ingestion history and table counts
-router.get('/ingestion/status', async (_req: Request, res: Response, next: NextFunction) => {
+// GET /api/ingestion/status — Get ingestion history and table counts (OPERATOR ONLY)
+router.get('/ingestion/status', authMiddleware, requireOperator, async (_req: Request, res: Response, next: NextFunction) => {
   try {
     await ensureIngestionSchema()
 
@@ -1691,12 +2213,13 @@ router.post('/rag/expand', requireAdmin, async (_req: Request, res: Response, ne
   }
 })
 
-// POST /api/rag/query — Query RAG knowledge base
-router.post('/rag/query', async (req: Request, res: Response, next: NextFunction) => {
+// POST /api/rag/query — Query RAG knowledge base (OPERATOR ONLY)
+router.post('/rag/query', authMiddleware, requireOperator, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { query, limit } = req.body
     if (!query) { res.status(400).json({ error: 'query is required' }); return }
-    const results = await ragRetrieve(query, limit || 5)
+    const safeLimit = Math.min(Math.max(parseInt(limit) || 5, 1), 50)
+    const results = await ragRetrieve(query, safeLimit)
     res.json({ query, results, count: results.length })
   } catch (err) {
     next(err)
@@ -1792,4 +2315,4 @@ router.get('/system/report', requireOperator, async (_req: Request, res: Respons
     next(err)
   }
 })
-
+

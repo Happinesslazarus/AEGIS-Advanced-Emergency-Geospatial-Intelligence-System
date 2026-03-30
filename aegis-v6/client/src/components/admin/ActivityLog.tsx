@@ -1,5 +1,5 @@
 /// AEGIS Admin - Activity Log Component
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Clock, CheckCircle, AlertTriangle, Flag, Bell, Shield, Download, Printer } from 'lucide-react'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
@@ -29,7 +29,10 @@ export function addActivity(entry: Omit<ActivityEntry, 'id' | 'timestamp'>): voi
 
 export function useActivityLog(): [ActivityEntry[], (entries: ActivityEntry[]) => void] {
   const [log, setLog] = useState<ActivityEntry[]>(_log)
-  if (!_listeners.includes(setLog)) _listeners.push(setLog)
+  useEffect(() => {
+    if (!_listeners.includes(setLog)) _listeners.push(setLog)
+    return () => { _listeners = _listeners.filter(fn => fn !== setLog) }
+  }, [])
   return [log, setLog]
 }
 

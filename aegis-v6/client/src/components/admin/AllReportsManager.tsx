@@ -13,7 +13,7 @@
  * Bulk operations toolbar
   */
 
-import React, { useState, useMemo, useCallback } from 'react'
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import {
   FileText, Search, Download, Printer, RefreshCw, X, Filter,
   Brain, Eye, Camera, Send, Flag, Siren, Clock, CheckCircle,
@@ -117,6 +117,33 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [showKeyboard, setShowKeyboard] = useState(false)
   const [pipelineExpanded, setPipelineExpanded] = useState(true)
+  const [page, setPage] = useState(0)
+  const PAGE_SIZE = 25
+  const searchRef = useRef<HTMLInputElement>(null)
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return
+      if (e.key === 'k' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault()
+        searchRef.current?.focus()
+      } else if (e.key === 'a' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault()
+        toggleSelectAll()
+      } else if (e.key === 'Escape') {
+        clearFilters()
+        setSelectedReportIds(new Set())
+      } else if (e.key === 't' || e.key === 'T') {
+        setViewMode(v => v === 'card' ? 'table' : 'card')
+      }
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [filtered])
+
+  // Reset page when filters change
+  useEffect(() => { setPage(0) }, [filtered])
 
   //  Toggle sort
   const toggleSort = useCallback((key: SortKey) => {
@@ -145,6 +172,13 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
     return arr
   }, [filtered, sortKey, sortDir, viewMode])
 
+  //  Paginated results
+  const totalPages = Math.ceil((viewMode === 'table' ? sortedFiltered : filtered).length / PAGE_SIZE)
+  const paginatedReports = useMemo(() => {
+    const source = viewMode === 'table' ? sortedFiltered : filtered
+    return source.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+  }, [viewMode, sortedFiltered, filtered, page])
+
   //  Select helpers
   const toggleSelection = (id: string) => {
     const next = new Set(selectedReportIds)
@@ -172,7 +206,7 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
   ], [lang, stats])
 
   //  Report timeline sparkline data (last 24h in 1h buckets)
-  const sparkline = useMemo(() => {
+  const sparklineData = useMemo(() => {
     const now = Date.now()
     const buckets = new Array(24).fill(0)
     reports.forEach(r => {
@@ -180,8 +214,10 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
       if (h >= 0 && h < 24) buckets[23 - h]++
     })
     const max = Math.max(...buckets, 1)
-    return buckets.map(v => v / max)
+    return { buckets, normalized: buckets.map(v => v / max) }
   }, [reports])
+
+  const sparkline = sparklineData.normalized
 
   //  Sort indicator component
   const SortIcon = ({ col }: { col: SortKey }) => {
@@ -294,15 +330,7 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
                     key={i}
                     className={`flex-1 rounded-t-sm transition-all duration-300 ${v > 0.7 ? 'bg-red-400 dark:bg-red-500' : v > 0.4 ? 'bg-amber-400 dark:bg-amber-500' : v > 0 ? 'bg-aegis-400 dark:bg-aegis-500' : 'bg-gray-100 dark:bg-gray-800'}`}
                     style={{ height: `${Math.max(v * 100, v > 0 ? 10 : 3)}%` }}
-                    title={`${24 - i}${t('time.hAgo', lang)}: ${Math.round(v * Math.max(...sparkline.map((_, idx) => {
-                      const now = Date.now()
-                      const buckets = new Array(24).fill(0) as number[]
-                      reports.forEach(r => {
-                        const h = Math.floor((now - new Date(r.timestamp).getTime()) / 3600000)
-                        if (h >= 0 && h < 24) buckets[23 - h]++
-                      })
-                      return buckets[idx]
-                    })))} ${t('common.reports', lang)}`}
+                    title={`${24 - i}${t('time.hAgo', lang)}: ${sparklineData.buckets[i]} ${t('common.reports', lang)}`}
                   />
                 ))}
               </div>
@@ -370,7 +398,7 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
         <div className="flex flex-wrap items-center gap-2.5">
           <div className="relative flex-1 min-w-[220px]">
             <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-300" />
-            <input className="w-full pl-10 pr-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl ring-1 ring-gray-200 dark:ring-gray-700 focus:ring-2 focus:ring-aegis-500 focus:outline-none transition-all" placeholder={t('reports.search', lang)} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+            <input ref={searchRef} className="w-full pl-10 pr-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl ring-1 ring-gray-200 dark:ring-gray-700 focus:ring-2 focus:ring-aegis-500 focus:outline-none transition-all" placeholder={t('reports.search', lang)} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
           </div>
           <div className="flex items-center gap-1.5">
             <Filter className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300" />
@@ -459,10 +487,10 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
       ) : viewMode === 'table' ? (
         /*  TABLE VIEW  */
         <div className="bg-white dark:bg-gray-900/80 backdrop-blur rounded-2xl ring-1 ring-gray-200 dark:ring-gray-800 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto max-h-[70vh] overflow-y-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700">
+                <tr className="bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
                   <th className="w-10 px-3 py-2.5">
                     <input type="checkbox" checked={selectedReportIds.size === filtered.length && filtered.length > 0} onChange={toggleSelectAll} className="w-3.5 h-3.5 text-aegis-600 border-gray-300 rounded focus:ring-aegis-500" />
                   </th>
@@ -502,7 +530,7 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800/50">
-                {sortedFiltered.map(r => {
+                {paginatedReports.map(r => {
                   const statusColors: Record<string, string> = {
                     Urgent: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
                     Verified: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
@@ -569,7 +597,7 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
       ) : (
         /*  CARD VIEW  */
         <div className="space-y-2.5">
-          {filtered.map(r => {
+          {paginatedReports.map(r => {
             const CatIcon = CATEGORY_ICONS[r.incidentCategory as string] || FileText
             return (
               <div key={r.id} className={`bg-white dark:bg-gray-900/80 backdrop-blur rounded-2xl ring-1 ${selectedReportIds.has(r.id) ? 'ring-aegis-400 dark:ring-aegis-600 bg-aegis-50/30 dark:bg-aegis-950/10' : 'ring-gray-200 dark:ring-gray-800'} shadow-sm hover:shadow-lg hover:ring-gray-300 dark:hover:ring-gray-700 transition-all duration-200 group overflow-hidden`}>
@@ -632,6 +660,29 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
         </div>
       )}
 
+      {/*  PAGINATION  */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 py-2">
+          <button
+            onClick={() => setPage(p => Math.max(0, p - 1))}
+            disabled={page === 0}
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+          >
+            ← {t('common.previous', lang)}
+          </button>
+          <span className="text-xs text-gray-500 dark:text-gray-400 tabular-nums font-semibold">
+            {page + 1} / {totalPages}
+          </span>
+          <button
+            onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+            disabled={page >= totalPages - 1}
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+          >
+            {t('common.next', lang)} →
+          </button>
+        </div>
+      )}
+
       {/*
           SECTION 8 — FLOATING BULK ACTIONS BAR
            */}
@@ -673,4 +724,4 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
     </div>
   )
 }
-
+

@@ -14,7 +14,6 @@
  */
 
 import { Router, Response, NextFunction } from 'express'
-import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import pool from '../models/db.js'
 import { authMiddleware, AuthRequest } from '../middleware/auth.js'
@@ -28,10 +27,9 @@ const router = Router()
 // Middleware to check Super Admin role
 const requireSuperAdmin = (req: AuthRequest, res: Response, next: Function) => {
   const role = req.user?.role?.toLowerCase()
-  const isSuperAdmin = role === 'admin' || role === 'superadmin' || role === 'super_admin'
-    || req.user?.department === 'Command & Control'
+  const isSuperAdmin = role === 'admin'
   if (!isSuperAdmin) {
-    // For non-super-admin operators, allow read-only access to user list
+    // For non-admin operators, allow read-only access to user list
     // but block mutations (handled per-route)
     if (req.method === 'GET') {
       return next()
@@ -304,14 +302,15 @@ router.post('/:id/reset-password', authMiddleware, requireSuperAdmin, async (req
     const targetUser = userCheck.rows[0]
 
     // Generate reset token
-    const token = crypto.randomBytes(32).toString('hex')
+    const rawToken = crypto.randomBytes(32).toString('hex')
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex')
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
 
-    // Store token
+    // Store hashed token (matches authRoutes reset-password lookup which hashes submitted token)
     await pool.query(`
       INSERT INTO password_reset_tokens (operator_id, token, expires_at)
       VALUES ($1, $2, $3)
-    `, [id, token, expiresAt])
+    `, [id, tokenHash, expiresAt])
 
     // Log to audit_log
     await pool.query(`
@@ -327,7 +326,7 @@ router.post('/:id/reset-password', authMiddleware, requireSuperAdmin, async (req
     ])
 
     // Send password reset email
-    const resetLink = `${process.env.RESET_PASSWORD_URL || 'http://localhost:5173/reset-password'}?token=${token}`
+    const resetLink = `${process.env.RESET_PASSWORD_URL || 'http://localhost:5173/reset-password'}?token=${rawToken}`
     
     try {
       const resetAlert: notificationService.Alert = {
@@ -350,25 +349,21 @@ router.post('/:id/reset-password', authMiddleware, requireSuperAdmin, async (req
           expiresAt 
         })
       } else {
-        // Email failed but token was created
+        // Email failed but token was created — never leak raw token in response
         logger.warn({ error: emailResult.error }, 'Email delivery failed')
         res.json({ 
-          message: 'Password reset token generated but email delivery failed.',
-          token,
-          resetLink,
+          message: 'Password reset token generated but email delivery failed. Check server logs.',
           expiresAt,
-          warning: 'Email service unavailable - provide reset link manually.'
+          warning: 'Email service unavailable. Administrator must check server logs for the reset link.'
         })
       }
     } catch (emailError: any) {
-      // Email failed but token was created
+      // Email failed but token was created — never leak raw token in response
       logger.error({ err: emailError }, 'Failed to send password reset email')
       res.json({ 
-        message: 'Password reset token generated but email delivery failed.',
-        token,
-        resetLink,
+        message: 'Password reset token generated but email delivery failed. Check server logs.',
         expiresAt,
-        warning: 'Email service unavailable - provide reset link manually.'
+        warning: 'Email service unavailable. Administrator must check server logs for the reset link.'
       })
     }
   } catch (err) {

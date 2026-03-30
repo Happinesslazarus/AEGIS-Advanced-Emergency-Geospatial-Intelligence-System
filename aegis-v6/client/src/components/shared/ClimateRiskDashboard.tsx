@@ -21,9 +21,11 @@ import {
   TrendingUp, TrendingDown, AlertTriangle, Droplets,
   Thermometer, Wind, BarChart3, Activity, RefreshCw,
   Shield, Clock, ArrowUpRight, ArrowDownRight, Minus,
+  MapPin, Cpu,
 } from 'lucide-react'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
+import { apiFetch } from '../../utils/api'
 
 // Types
 
@@ -149,13 +151,13 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
   const [loading, setLoading] = useState(true)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
 
-  const fetchData = useCallback(async () => {
-    setLoading(true)
+  const fetchData = useCallback(async (isBackground = false) => {
+    if (!isBackground) setLoading(true)
     const results = await Promise.allSettled([
-      fetch('/api/predictions').then(r => r.ok ? r.json() : []),
-      fetch('/api/alerts').then(r => r.ok ? r.json() : []),
-      fetch('/api/weather/current').then(r => r.ok ? r.json() : null),
-      fetch('/api/reports').then(r => r.ok ? r.json() : []),
+      apiFetch<Prediction[]>('/api/predictions').catch(() => []),
+      apiFetch<Alert[] | { alerts: Alert[] }>('/api/alerts').catch(() => []),
+      apiFetch<WeatherData | null>('/api/weather/current').catch(() => null),
+      apiFetch<any[] | { reports: any[] }>('/api/reports').catch(() => []),
     ])
 
     if (results[0].status === 'fulfilled') {
@@ -201,12 +203,12 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
     }
 
     setLastUpdated(new Date())
-    setLoading(false)
+    if (!isBackground) setLoading(false)
   }, [])
 
   useEffect(() => {
     fetchData()
-    const interval = setInterval(fetchData, 120000) // Refresh every 2 min
+    const interval = setInterval(() => fetchData(true), 120000) // Background refresh every 2 min
     return () => clearInterval(interval)
   }, [fetchData])
 
@@ -244,7 +246,7 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
   const TrendIcon = risk.trend === 'rising' ? ArrowUpRight : risk.trend === 'falling' ? ArrowDownRight : Minus
 
   return (
-    <div className={`space-y-4 ${className}`}>
+    <div className={`space-y-4 animate-fade-in ${className}`}>
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -252,12 +254,12 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
           {t('dashboard.title', lang)}
         </h2>
         <button
-          onClick={fetchData}
-          className="text-xs text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:text-gray-300 dark:hover:text-gray-200 flex items-center gap-1 transition"
+          onClick={() => fetchData()}
+          className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-gray-200 flex items-center gap-1 transition"
           disabled={loading}
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          {lastUpdated ? `${t('dashboard.updated', lang)} ${lastUpdated.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : t('common.loading', lang)}
+          {lastUpdated ? `${t('dashboard.updated', lang)} ${lastUpdated.toLocaleTimeString(lang === 'ar' ? 'ar-EG' : lang === 'es' ? 'es-ES' : lang === 'fr' ? 'fr-FR' : lang === 'zh' ? 'zh-CN' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}` : t('common.loading', lang)}
         </button>
       </div>
 
@@ -267,7 +269,7 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
           {/* Risk gauge */}
           <div className="flex-shrink-0 text-center">
             <div className="relative w-20 h-20">
-              <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+              <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90" role="img" aria-label={`${t('dashboard.overallRisk', lang)}: ${risk.score}/100`}>
                 <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" strokeWidth="8" className="text-gray-200 dark:text-gray-700" />
                 <circle
                   cx="50" cy="50" r="42" fill="none" strokeWidth="8"
@@ -291,7 +293,7 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
                 risk.trend === 'rising' ? 'text-red-500' : risk.trend === 'falling' ? 'text-green-500' : 'text-gray-400 dark:text-gray-300'
               }`}>
                 <TrendIcon className="w-3.5 h-3.5" />
-                {risk.trend}
+                {risk.trend === 'rising' ? t('dashboard.trendRising', lang) : risk.trend === 'falling' ? t('dashboard.trendFalling', lang) : t('dashboard.trendStable', lang)}
               </span>
             </div>
             <div className="space-y-1.5">
@@ -317,73 +319,162 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard
-          label="Active Predictions"
+          label={t('dashboard.activePredictions', lang)}
           value={predictions.length}
           icon={Activity}
           color="text-blue-600 bg-blue-50 dark:bg-blue-950/30"
-          sub={predictions.length > 0 ? `Highest: ${Math.round(
+          sub={predictions.length > 0 ? `${t('dashboard.highestSev', lang)}: ${Math.round(
             Math.max(...predictions.map(p => { const v = typeof p.probability === 'string' ? parseFloat(p.probability) : p.probability; return (isNaN(v) ? 0 : v) * 100 }))
-          ) || 0}%` : 'None'}
+          ) || 0}%` : t('dashboard.nonePredictions', lang)}
         />
         <StatCard
-          label="Active Alerts"
+          label={t('dashboard.activeAlerts', lang)}
           value={alerts.length}
           icon={AlertTriangle}
           color="text-amber-600 bg-amber-50 dark:bg-amber-950/30"
           sub={alerts.filter(a => a.severity === 'critical' || a.severity === 'high').length > 0
-            ? `${alerts.filter(a => a.severity === 'critical' || a.severity === 'high').length} critical/high`
-            : 'None critical'}
+            ? `${alerts.filter(a => a.severity === 'critical' || a.severity === 'high').length} ${t('dashboard.criticalHigh', lang)}`
+            : t('dashboard.noneAlerts', lang)}
         />
         <StatCard
-          label="Reports (24h)"
+          label={t('dashboard.reports24h', lang)}
           value={reportSummary.last24h}
           icon={TrendingUp}
           color="text-green-600 bg-green-50 dark:bg-green-950/30"
-          sub={`${reportSummary.high} high severity`}
+          sub={`${reportSummary.high} ${t('dashboard.highSeverity', lang)}`}
         />
         <StatCard
-          label="Weather Risk"
-          value={weather ? `${Math.round(weather.temperature ?? 0)}°C` : 'N/A'}
+          label={t('dashboard.weatherRisk', lang)}
+          value={weather ? `${Math.round(weather.temperature ?? 0)}°C` : t('dashboard.naWeather', lang)}
           icon={Thermometer}
           color="text-purple-600 bg-purple-50 dark:bg-purple-950/30"
-          sub={weather ? `${weather.windSpeed} m/s wind, ${weather.humidity}% humid` : 'Loading...'}
+          sub={weather ? `${weather.windSpeed} m/s, ${weather.humidity}%` : t('common.loading', lang)}
         />
       </div>
 
       {/* Prediction Details */}
-      {predictions.length > 0 && (
+      {predictions.length > 0 ? (
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
-          <h3 className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
-            <Droplets className="w-4 h-4 text-blue-500" />
-            {t('dashboard.floodRiskPredictions', lang)}
-          </h3>
-          <div className="divide-y divide-gray-100 dark:divide-gray-800">
+          <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
+              <Droplets className="w-4 h-4 text-blue-500" />
+              {t('dashboard.floodRiskPredictions', lang)}
+            </h3>
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500">{predictions.length} {t('dashboard.monitoredAreas', lang)}</span>
+              <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                predictions.some(p => (typeof p.probability === 'string' ? parseFloat(p.probability) : p.probability) >= 0.6) 
+                  ? 'bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400'
+                  : predictions.some(p => (typeof p.probability === 'string' ? parseFloat(p.probability) : p.probability) >= 0.3)
+                    ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400'
+                    : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400'
+              }`}>
+                {predictions.some(p => (typeof p.probability === 'string' ? parseFloat(p.probability) : p.probability) >= 0.6)
+                  ? t('dashboard.riskHigh', lang)
+                  : predictions.some(p => (typeof p.probability === 'string' ? parseFloat(p.probability) : p.probability) >= 0.3)
+                    ? t('dashboard.riskModerate', lang)
+                    : t('dashboard.riskLow', lang)}
+              </span>
+            </div>
+          </div>
+          <div className="p-3 grid grid-cols-1 md:grid-cols-2 gap-3">
             {predictions.map((p, i) => {
               const prob = typeof p.probability === 'string' ? parseFloat(p.probability) : p.probability
               const pct = Math.round(prob * 100) || 0
               const conf = typeof p.confidence === 'string' ? parseFloat(p.confidence) : p.confidence
-              const confSafe = isNaN(conf) ? 0 : conf
-              const color = pct >= 75 ? 'text-red-600' : pct >= 50 ? 'text-orange-600' : pct >= 25 ? 'text-amber-600' : 'text-green-600'
+              const confPct = isNaN(conf) ? 0 : Math.round(conf > 1 ? conf : conf * 100)
+              const sevColor = p.severity === 'high' || p.severity === 'critical' ? { ring: 'stroke-red-500', text: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-950/15', border: 'border-red-200 dark:border-red-800/40', dot: 'bg-red-500', badge: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' }
+                : p.severity === 'medium' ? { ring: 'stroke-amber-500', text: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/15', border: 'border-amber-200 dark:border-amber-800/40', dot: 'bg-amber-500', badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' }
+                : { ring: 'stroke-emerald-500', text: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/15', border: 'border-emerald-200 dark:border-emerald-800/40', dot: 'bg-emerald-500', badge: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' }
+              // Format area name: "River Dee (aberdeen_scotland_uk)" → "River Dee" with region as subtitle
+              const areaRaw = p.area || t('dashboard.unknownArea', lang)
+              const areaMatch = areaRaw.match(/^(.+?)\s*\((.+)\)$/)
+              const areaName = areaMatch ? areaMatch[1].trim() : areaRaw
+              const regionTag = areaMatch ? areaMatch[2].replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : null
               return (
-                <div key={i} className="px-4 py-3 flex items-center gap-3">
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{p.area}</p>
-                    <div className="flex items-center gap-3 text-[10px] text-gray-500 dark:text-gray-300 mt-0.5">
-                      <span>{t('dashboard.severity', lang)}: {p.severity}</span>
-                      <span>{t('dashboard.confidence', lang)}: {Math.round(confSafe)}%</span>
-                      {p.time_to_flood && <span>{t('dashboard.eta', lang)}: {p.time_to_flood}</span>}
-                      {p.model_version && <span className="font-mono">{p.model_version}</span>}
+                <div key={i} className={`rounded-xl border ${sevColor.border} ${sevColor.bg} p-4 transition-all hover:shadow-md`}>
+                  <div className="flex items-start gap-3">
+                    {/* Risk Gauge */}
+                    <div className="flex-shrink-0">
+                      <div className="relative w-14 h-14">
+                        <svg viewBox="0 0 44 44" className="w-full h-full -rotate-90">
+                          <circle cx="22" cy="22" r="18" fill="none" stroke="currentColor" strokeWidth="3.5" className="text-gray-200 dark:text-gray-700" />
+                          <circle cx="22" cy="22" r="18" fill="none" strokeWidth="3.5" strokeLinecap="round"
+                            className={sevColor.ring}
+                            strokeDasharray={`${pct * 1.131} ${113.1 - pct * 1.131}`} />
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className={`text-xs font-black tabular-nums ${sevColor.text}`}>{pct}%</span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className={`text-right ${color}`}>
-                    <p className="text-lg font-black">{pct}%</p>
-                    <div className="w-16 h-1 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden mt-0.5">
-                      <div className={`h-full rounded-full ${color.replace('text-', 'bg-')}`} style={{ width: `${pct}%` }} />
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate">{areaName}</h4>
+                        <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-full ${sevColor.badge}`}>{p.severity}</span>
+                      </div>
+                      {regionTag && (
+                        <p className="text-[9px] text-gray-400 dark:text-gray-500 mt-0.5 flex items-center gap-1">
+                          <MapPin className="w-2.5 h-2.5" />{regionTag}
+                        </p>
+                      )}
+                      <div className="mt-2 space-y-1.5">
+                        {/* Confidence bar */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9px] font-semibold text-gray-500 dark:text-gray-400 w-16">{t('dashboard.confidence', lang)}</span>
+                          <div className="flex-1 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div className="h-full bg-blue-500 dark:bg-blue-400 rounded-full transition-all duration-500" style={{ width: `${confPct}%` }} />
+                          </div>
+                          <span className="text-[9px] font-bold text-gray-600 dark:text-gray-300 tabular-nums w-8 text-right">{confPct}%</span>
+                        </div>
+                        {/* ETA */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9px] font-semibold text-gray-500 dark:text-gray-400 w-16">{t('dashboard.eta', lang)}</span>
+                          <span className={`text-[9px] font-bold ${
+                            p.time_to_flood && p.time_to_flood !== 'No flood expected' ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'
+                          }`}>{p.time_to_flood || t('dashboard.noFloodExpected', lang)}</span>
+                        </div>
+                      </div>
+                      {/* Model version tag */}
+                      {p.model_version && (
+                        <div className="mt-2 flex items-center gap-1.5">
+                          <span className="text-[8px] font-mono font-bold text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">{p.model_version}</span>
+                          <Cpu className="w-2.5 h-2.5 text-gray-300 dark:text-gray-600" />
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
               )
             })}
+          </div>
+        </div>
+      ) : (
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+          <h3 className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
+            <Droplets className="w-4 h-4 text-blue-500" />
+            {t('dashboard.floodRiskPredictions', lang)}
+          </h3>
+          <div className="px-4 py-8 text-center">
+            <Droplets className="w-10 h-10 text-blue-200 dark:text-blue-800 mx-auto mb-2" />
+            <p className="text-sm font-semibold text-gray-600 dark:text-gray-300">
+              {loading ? t('common.loading', lang) : t('dashboard.noActivePredictions', lang)}
+            </p>
+            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 max-w-xs mx-auto">
+              {loading
+                ? t('dashboard.fetchingPredictions', lang)
+                : t('dashboard.noPredictionsDesc', lang)}
+            </p>
+            {!loading && (
+              <button
+                onClick={() => fetchData()}
+                className="mt-3 text-[10px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 px-3 py-1.5 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+              >
+                <RefreshCw className="w-3 h-3 inline mr-1" />
+                {t('dashboard.refreshPredictions', lang)}
+              </button>
+            )}
           </div>
         </div>
       )}

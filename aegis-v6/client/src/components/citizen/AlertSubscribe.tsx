@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X, Bell, MessageCircle, Mail, Phone, Globe, CheckCircle } from 'lucide-react'
+import { X, Bell, MessageCircle, Mail, Phone, Globe, CheckCircle, User } from 'lucide-react'
 import { useAlerts } from '../../contexts/AlertsContext'
 import { useLocation } from '../../contexts/LocationContext'
 import { useWebPush } from '../../hooks/useWebPush'
@@ -16,6 +16,7 @@ export default function AlertSubscribe({ onClose, lang }: Props): JSX.Element {
   const { pushNotification } = useAlerts()
   const { location } = useLocation()
   const { subscribe: subscribeToWebPush } = useWebPush()
+  const [subscriberName, setSubscriberName] = useState('')
   const [channels, setChannels] = useState<Record<string, ChannelState>>({
     telegram: { enabled: false, value: '' }, email: { enabled: false, value: '' },
     sms: { enabled: false, value: '' }, whatsapp: { enabled: false, value: '' }, web: { enabled: true, value: 'enabled' },
@@ -60,6 +61,7 @@ export default function AlertSubscribe({ onClose, lang }: Props): JSX.Element {
       }
 
       const payload = {
+        subscriber_name: subscriberName.trim() || null,
         email: channels.email.enabled ? channels.email.value : null,
         phone: channels.sms.enabled ? channels.sms.value : null,
         telegram_id: channels.telegram.enabled ? channels.telegram.value : null,
@@ -115,6 +117,20 @@ export default function AlertSubscribe({ onClose, lang }: Props): JSX.Element {
             </div>
           ) : (
             <>
+              {/* Name field (optional) */}
+              <div>
+                <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+                  <User className="w-4 h-4" /> {t('alertSub.yourName', activeLang) || 'Your Name'} <span className="text-xs text-gray-400 font-normal">({t('alertSub.optional', activeLang) || 'optional'})</span>
+                </h3>
+                <input
+                  className="input text-sm w-full"
+                  placeholder={t('alertSub.namePlaceholder', activeLang) || 'e.g. John Smith — alerts will be personalised'}
+                  value={subscriberName}
+                  onChange={e => setSubscriberName(e.target.value)}
+                  maxLength={100}
+                />
+              </div>
+
               <div>
                 <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">{t('alertSub.channels', activeLang)}</h3>
                 <div className="space-y-3">
@@ -158,4 +174,4 @@ export default function AlertSubscribe({ onClose, lang }: Props): JSX.Element {
     </div>
   )
 }
-
+

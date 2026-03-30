@@ -58,11 +58,12 @@ import AnalyticsCenter from '../components/admin/AnalyticsCenter'
 import AITransparencyConsole from '../components/admin/AITransparencyConsole'
 import ResourceDeploymentConsole from '../components/admin/ResourceDeploymentConsole'
 import UserAccessManagement from '../components/admin/UserAccessManagement'
-const CrowdDensityHeatmap = lazy(() => import('../components/citizen/CrowdDensityHeatmap'))
+const CrowdDensityHeatmap = lazy(() => import('../components/admin/AdminCrowdDensity'))
 import type { Report, Operator } from '../types'
 import ThemeSelector from '../components/ui/ThemeSelector'
 import AdminLayout from '../components/layout/AdminLayout'
 import IncidentQueue from '../components/admin/IncidentQueue'
+import LocationDropdown from '../components/shared/LocationDropdown'
 import { t } from '../utils/i18n'
 import { escapeHtml } from '../utils/helpers'
 import { useLanguage } from '../hooks/useLanguage'
@@ -75,7 +76,7 @@ const SEV_COLORS: Record<string, string> = SEVERITY_BG_PILL
 const STA_COLORS: Record<string, string> = STATUS_BG_PILL
 const CATEGORY_ICONS: Record<string, any> = { natural_disaster: Droplets, infrastructure: Building2, public_safety: ShieldAlert, community_safety: Users, environmental: Flame, medical: HeartPulse }
 
-type View = 'home'|'dashboard'|'reports'|'map'|'analytics'|'ai_models'|'history'|'audit'|'alert_send'|'resources'|'predictions'|'users'|'messaging'|'community'|'system_health'|'delivery'|'crowd'|'security'
+type View = 'home'|'dashboard'|'reports'|'map'|'analytics'|'ai_models'|'history'|'audit'|'alert_send'|'resources'|'predictions'|'users'|'messaging'|'community'|'system_health'|'delivery'|'crowd'|'security'|'incident_console'
 
 export default function AdminPage(): JSX.Element {
   const lang = useLanguage()
@@ -143,6 +144,7 @@ export default function AdminPage(): JSX.Element {
   const [selectedReportIds, setSelectedReportIds] = useState<Set<string>>(new Set())
   const [smartFilter, setSmartFilter] = useState('')
   const notifSocketRef = useRef<Socket | null>(null)
+  const [socketConnected, setSocketConnected] = useState(false)
   const [activityShowAll, setActivityShowAll] = useState(false)
   const [bulkProgress, setBulkProgress] = useState<{ current: number; total: number } | null>(null)
 
@@ -197,6 +199,10 @@ export default function AdminPage(): JSX.Element {
     })
     notifSocketRef.current = s
 
+    s.on('connect', () => setSocketConnected(true))
+    s.on('disconnect', () => setSocketConnected(false))
+    if (s.connected) setSocketConnected(true)
+
     s.on('community:chat:notification', (data: any) => {
       if (!data) return
       if (data.senderId && data.senderId === user.id) return
@@ -233,6 +239,7 @@ export default function AdminPage(): JSX.Element {
     return () => {
       s.disconnect()
       notifSocketRef.current = null
+      setSocketConnected(false)
     }
   }, [user?.id, loadCommandCenter])
 
@@ -252,7 +259,7 @@ export default function AdminPage(): JSX.Element {
 
   // Load audit log
   useEffect(()=>{
-    if(user) apiGetAuditLog({limit:'50'}).then(d=>{if(d&&d.length>0)setAuditLog(d);else setAuditLog([])}).catch(()=>setAuditLog([]))
+    if(user) apiGetAuditLog({limit:'500'}).then(d=>{if(d&&d.length>0)setAuditLog(d);else setAuditLog([])}).catch(()=>setAuditLog([]))
   },[user])
 
   useEffect(() => {
@@ -515,12 +522,12 @@ export default function AdminPage(): JSX.Element {
     {id:'dashboard',label:t('admin.dashboard', lang),icon:BarChart3},{id:'reports',label:t('admin.allReports', lang),icon:FileText},{id:'map',label:t('admin.liveMap', lang),icon:Map},
     {id:'analytics',label:t('admin.analytics', lang),icon:Activity},{id:'ai_models',label:t('admin.models', lang),icon:Brain},{id:'resources',label:t('admin.resources', lang),icon:Navigation},
     ...(user.role === 'admin' ? [{id:'users' as View,label:t('admin.users', lang),icon:Users}] : []),
-    {id:'messaging' as View,label:t('admin.messages', lang),icon:MessageSquare},
     {id:'community' as View,label:t('admin.community', lang),icon:Users},
     {id:'history',label:t('admin.history', lang),icon:History},{id:'audit',label:t('admin.audit', lang),icon:Clock},{id:'alert_send',label:t('admin.sendAlert', lang),icon:Bell},
     {id:'system_health' as View,label:t('admin.systemHealth', lang),icon:Activity},
     {id:'crowd' as View,label:t('admin.crowdDensity',lang),icon:Users},
     {id:'delivery' as View,label:t('admin.delivery',lang),icon:Archive},
+    {id:'incident_console' as View,label:'Incident Console',icon:Siren},
   ]
 
   const urgentCount   = reports.filter(r => r.status === 'Urgent').length
@@ -597,16 +604,28 @@ export default function AdminPage(): JSX.Element {
       )}
 
         {/* WELCOME HOME */}
-        {view==='home'&&(
+        {view==='home'&&(loading && reports.length === 0 ? (
+          <div className="space-y-6 animate-fade-in">
+            <div className="rounded-3xl bg-gradient-to-br from-aegis-600 via-aegis-700 to-blue-900 p-8 h-48 animate-pulse" />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard />
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <SkeletonChart height={200} /><SkeletonList count={3} />
+            </div>
+            <SkeletonList count={5} />
+          </div>
+        ) : (
           <WelcomeDashboard
             user={user}
             stats={stats}
             alerts={alerts}
             reports={reports}
             lang={lang}
+            socketConnected={socketConnected}
             onNavigate={(v) => setView(v as View)}
           />
-        )}
+        ))}
 
         {/* DASHBOARD - Command Center */}
         {view==='dashboard'&&(loading && reports.length === 0 ? (
@@ -627,6 +646,7 @@ export default function AdminPage(): JSX.Element {
             alerts={alerts}
             user={user}
             lang={lang}
+            socketConnected={socketConnected}
             onViewChange={(v) => setView(v as View)}
             onSelectReport={setSelReport}
             onRefresh={() => { refreshReports?.(); loadCommandCenter() }}
@@ -640,6 +660,13 @@ export default function AdminPage(): JSX.Element {
             setActivityShowAll={setActivityShowAll}
           />
         ))}
+
+        {/* INCIDENT COMMAND CONSOLE — Standalone SOC view */}
+        {view==='incident_console'&&(
+          <IncidentCommandConsole
+            onSelectIncident={(id) => { setFilterType(id || 'all'); setView('reports' as View) }}
+          />
+        )}
 
         {/* REPORTS — Professional Incident Manager */}
         {view==='reports'&&(loading && reports.length === 0 ? (
@@ -725,6 +752,7 @@ export default function AdminPage(): JSX.Element {
             stats={stats}
             auditLog={auditLog}
             lang={lang}
+            onRefresh={() => refreshReports?.()}
             onExportCSV={()=>{exportReportsCSV(reports);pushNotification(t('admin.csvExported',lang),'success')}}
             onExportJSON={()=>{exportReportsJSON(reports);pushNotification(t('admin.jsonExported',lang),'success')}}
             onSelectReport={r=>setSelReport(r)}
@@ -751,6 +779,7 @@ export default function AdminPage(): JSX.Element {
             lang={lang}
             pushNotification={(msg, type) => pushNotification(msg, (type as any) ?? 'info')}
             askConfirm={askConfirm}
+            onRefresh={() => refreshReports?.()}
           />
         )}
 
@@ -851,13 +880,14 @@ export default function AdminPage(): JSX.Element {
         {view==='alert_send'&&(
           <AdminAlertBroadcast
             alerts={alerts}
+            reports={reports}
             auditLog={auditLog}
             setAuditLog={setAuditLog}
             pushNotification={(msg, type) => pushNotification(msg, (type as any) ?? 'info')}
             refreshAlerts={refreshAlerts}
             setView={(v) => setView(v as View)}
             user={user}
-            locationName={loc.name || 'All Regions'}
+            locationName={loc.name}
           />
         )}
 
@@ -917,7 +947,7 @@ export default function AdminPage(): JSX.Element {
         }
 
         return <>
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-start sm:items-center justify-center p-0 sm:p-4 z-[70] animate-fade-in" onClick={()=>{setSelReport(null);setGalleryOpen(false);setNotesEditing(false)}}>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-start sm:items-center justify-center p-0 sm:p-4 z-[9999] animate-fade-in" onClick={()=>{setSelReport(null);setGalleryOpen(false);setNotesEditing(false)}}>
           <div className={`bg-white dark:bg-gray-900 sm:rounded-2xl shadow-2xl ${sevGlow} w-full max-w-2xl h-full sm:h-auto sm:max-h-[92vh] overflow-hidden flex flex-col`} onClick={e=>e.stopPropagation()}>
             {/* Gradient Header with severity-based theming */}
             <div className={`bg-gradient-to-r ${sevGradient} p-4 sm:p-5 relative`}>
@@ -1161,7 +1191,7 @@ export default function AdminPage(): JSX.Element {
 
         {/* FULLSCREEN PHOTO GALLERY OVERLAY */}
         {galleryOpen && mediaItems.length > 0 && (
-          <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[70] flex flex-col animate-fade-in" onClick={()=>setGalleryOpen(false)}>
+          <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[9999] flex flex-col animate-fade-in" onClick={()=>setGalleryOpen(false)}>
             {/* Gallery Header */}
             <div className="flex-shrink-0 flex items-center justify-between px-4 sm:px-6 py-3 bg-gradient-to-b from-black/80 to-transparent relative z-10" onClick={e=>e.stopPropagation()}>
               <div className="flex items-center gap-3">
@@ -1353,16 +1383,8 @@ function MapView({ filtered, loc, filterSeverity, setFilterSeverity, filterStatu
               <span className="flex items-center gap-1"><Layers className="w-3 h-3"/> {t('admin.mapView.layers',lang)}</span>
             </button>
           </div>
-          {/* Region Selector ? styled */}
-          <select
-            value={activeLocation}
-            onChange={e => setActiveLocation(e.target.value)}
-            className="text-xs bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm px-3 py-1.5 rounded-lg ring-1 ring-gray-200/60 dark:ring-gray-700/40 font-semibold shadow-sm"
-          >
-            {availableLocations.map(l => (
-              <option key={l.key} value={l.key}>{l.name}</option>
-            ))}
-          </select>
+          {/* Region Selector — Advanced LocationDropdown */}
+          <LocationDropdown compact />
           {/* 2D / 3D Toggle ? enhanced */}
           <div className="flex bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-lg p-0.5 ring-1 ring-gray-200/60 dark:ring-gray-700/40 shadow-sm">
             <button

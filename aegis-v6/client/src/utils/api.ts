@@ -70,9 +70,7 @@ export async function waitForAuth(): Promise<void> {
 
 /**
  * Determine the correct auth page to redirect to on 401.
-/**
- * Uses a priority chain: current URL path ? stored user data ? JWT role claim.
-/**
+ * Uses a priority chain: current URL path → stored user data → JWT role claim.
  * Must be called BEFORE clearToken() wipes state.
  */
 function detect401RedirectTarget(): string {
@@ -98,7 +96,7 @@ function detect401RedirectTarget(): string {
   return '/'
 }
 export function setUser(u: unknown): void { if (u) localStorage.setItem('aegis-user', JSON.stringify(u)); else localStorage.removeItem('aegis-user') }
-export function getUser(): Operator | null { const d = localStorage.getItem('aegis-user'); return d ? JSON.parse(d) : null }
+export function getUser(): Operator | null { try { const d = localStorage.getItem('aegis-user'); return d ? JSON.parse(d) : null } catch { return null } }
 export function isAuthenticated(): boolean { return !!getToken() }
 
 // API Response Types
@@ -198,11 +196,45 @@ export interface CommunityPost {
 
 export interface Deployment {
   id: string
-  resourceType: string
-  status: string
-  location?: string
-  deployedAt?: string
-  recalledAt?: string
+  zone: string
+  priority: string
+  active_reports: number
+  estimated_affected: string | null
+  ai_recommendation: string | null
+  ambulances: number
+  fire_engines: number
+  rescue_boats: number
+  deployed: boolean
+  deployed_at: string | null
+  deployed_by: string | null
+  created_at: string
+  updated_at: string | null
+  lat: number | null
+  lng: number | null
+  report_id: string | null
+  report_number: string | null
+  prediction_id: string | null
+  is_ai_draft: boolean
+  ai_draft_acknowledged_at: string | null
+  ai_draft_acknowledged_by: string | null
+  ops_log: Array<{ ts: string; operator: string; note: string }>
+  needs_mutual_aid: boolean
+  incident_commander: string | null
+  hazard_type: string | null
+}
+
+export interface DeploymentAsset {
+  id: string
+  deployment_id: string
+  asset_type: 'ambulance' | 'fire_engine' | 'rescue_boat' | 'helicopter' | 'hazmat_unit' | 'police' | 'medical_unit' | 'urban_search_rescue' | 'other'
+  call_sign: string
+  status: 'staging' | 'en_route' | 'on_site' | 'returning' | 'available' | 'off_duty'
+  crew_count: number
+  last_lat: number | null
+  last_lng: number | null
+  last_seen_at: string | null
+  notes: string | null
+  created_at: string
 }
 
 export interface Prediction {
@@ -251,6 +283,7 @@ export interface SubscriptionPayload {
   location_lng?: number | null
   radius_km?: number
   consent?: boolean
+  subscriber_name?: string | null
 }
 
 export interface SuspendPayload {
@@ -290,7 +323,12 @@ export async function apiFetch<T = unknown>(path: string, opts: RequestInit = {}
   const h: Record<string, string> = { ...(headerInit || {}) }
   if (token) h['Authorization'] = `Bearer ${token}`
   if (!(opts.body instanceof FormData)) h['Content-Type'] = 'application/json'
+  // Attach CSRF token for state-changing requests (double-submit cookie pattern)
   const method = (opts.method || 'GET').toUpperCase()
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+    const csrfToken = document.cookie.split('; ').find(c => c.startsWith('aegis_csrf='))?.split('=')[1]
+    if (csrfToken) h['X-CSRF-Token'] = csrfToken
+  }
   const canRetry = method === 'GET' || method === 'HEAD'
   const maxAttempts = canRetry ? API_RETRIES + 1 : 1
   let res: Response
@@ -344,7 +382,7 @@ export async function apiFetch<T = unknown>(path: string, opts: RequestInit = {}
 }
 
 export async function apiLogin(email: string, password: string) { return apiFetch<LoginResponse>('/api/auth/login', { method:'POST', body: JSON.stringify({email,password}) }) }
-export async function apiInviteOperator(fd: FormData) { const token = getToken(); const h: Record<string, string> = {}; if(token) h['Authorization']=`Bearer ${token}`; const r = await fetch('/api/auth/invite',{method:'POST',body:fd,headers:h}); if(!r.ok){const e=await r.json().catch(()=>({error:'failed'}));const msg=typeof e.error==='string'?e.error:e.error?.message||e.message||'Invite failed';throw new Error(msg)} return r.json() }
+export async function apiInviteOperator(fd: FormData) { const token = getToken(); const h: Record<string, string> = {}; if(token) h['Authorization']=`Bearer ${token}`; const r = await fetch(`${BASE}/api/auth/invite`,{method:'POST',body:fd,headers:h}); if(!r.ok){const e=await r.json().catch(()=>({error:'failed'}));const msg=typeof e.error==='string'?e.error:e.error?.message||e.message||'Invite failed';throw new Error(msg)} return r.json() }
 export async function apiForgotPassword(email: string) { return apiFetch('/api/auth/forgot-password', { method:'POST', body: JSON.stringify({ email }) }) }
 export async function apiResetPassword(token: string, password: string) { return apiFetch('/api/auth/reset-password', { method:'POST', body: JSON.stringify({ token, password }) }) }
 export async function apiGetCurrentOperator() { return apiFetch('/api/auth/me') }
@@ -469,8 +507,56 @@ export async function apiDeployResources(id: string, operatorId?: string, reason
   return apiFetch(`/api/deployments/${id}/deploy`, { method: 'POST', body: JSON.stringify({ operator_id: operatorId, reason: reason || '', report_id: reportId }) })
 }
 
-export async function apiRecallResources(id: string, reason?: string, outcomeSummary?: string, reportId?: string): Promise<Deployment> {
-  return apiFetch(`/api/deployments/${id}/recall`, { method: 'POST', body: JSON.stringify({ reason: reason || '', outcome_summary: outcomeSummary || '', report_id: reportId }) })
+export async function apiRecallResources(id: string, reason?: string, outcomeSummary?: string, reportId?: string, aiFeedback?: string): Promise<Deployment> {
+  return apiFetch(`/api/deployments/${id}/recall`, { method: 'POST', body: JSON.stringify({ reason: reason || '', outcome_summary: outcomeSummary || '', report_id: reportId, ai_feedback: aiFeedback }) })
+}
+
+export async function apiCreateDeployment(data: {
+  zone: string; priority: string; active_reports?: number; estimated_affected?: string;
+  ai_recommendation?: string; ambulances?: number; fire_engines?: number; rescue_boats?: number;
+  lat?: number; lng?: number; report_id?: string; prediction_id?: string; is_ai_draft?: boolean; hazard_type?: string;
+}): Promise<Deployment> {
+  return apiFetch('/api/deployments', { method: 'POST', body: JSON.stringify(data) })
+}
+
+export async function apiDeleteDeployment(id: string): Promise<{ deleted: boolean; id: string }> {
+  return apiFetch(`/api/deployments/${id}`, { method: 'DELETE' })
+}
+
+export async function apiUpdateDeployment(id: string, data: Partial<Pick<Deployment, 'zone' | 'priority' | 'active_reports' | 'estimated_affected' | 'ai_recommendation' | 'ambulances' | 'fire_engines' | 'rescue_boats' | 'hazard_type' | 'incident_commander'>>): Promise<Deployment> {
+  return apiFetch(`/api/deployments/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
+}
+
+export async function apiGetDeploymentAssets(deploymentId: string): Promise<DeploymentAsset[]> {
+  return apiFetch(`/api/deployments/${deploymentId}/assets`)
+}
+
+export async function apiAddDeploymentAsset(deploymentId: string, data: {
+  asset_type: string; call_sign: string; status?: string; crew_count?: number; notes?: string;
+}): Promise<DeploymentAsset> {
+  return apiFetch(`/api/deployments/${deploymentId}/assets`, { method: 'POST', body: JSON.stringify(data) })
+}
+
+export async function apiUpdateDeploymentAsset(assetId: string, data: {
+  status?: string; last_lat?: number; last_lng?: number; crew_count?: number; notes?: string;
+}): Promise<DeploymentAsset> {
+  return apiFetch(`/api/deployments/assets/${assetId}`, { method: 'PATCH', body: JSON.stringify(data) })
+}
+
+export async function apiDeleteDeploymentAsset(assetId: string): Promise<{ deleted: boolean; id: string }> {
+  return apiFetch(`/api/deployments/assets/${assetId}`, { method: 'DELETE' })
+}
+
+export async function apiAcknowledgeDraft(deploymentId: string): Promise<{ id: string; ai_draft_acknowledged_at: string; ai_draft_acknowledged_by: string }> {
+  return apiFetch(`/api/deployments/${deploymentId}/acknowledge`, { method: 'PATCH' })
+}
+
+export async function apiAddOpsLog(deploymentId: string, note: string): Promise<{ id: string; ops_log: Array<{ ts: string; operator: string; note: string }> }> {
+  return apiFetch(`/api/deployments/${deploymentId}/ops-log`, { method: 'PATCH', body: JSON.stringify({ note }) })
+}
+
+export async function apiToggleMutualAid(deploymentId: string, needsMutualAid: boolean, incidentCommander?: string): Promise<{ id: string; needs_mutual_aid: boolean; incident_commander: string | null }> {
+  return apiFetch(`/api/deployments/${deploymentId}/mutual-aid`, { method: 'PATCH', body: JSON.stringify({ needs_mutual_aid: needsMutualAid, incident_commander: incidentCommander }) })
 }
 
 /* REPORT MEDIA */
@@ -483,24 +569,9 @@ export async function apiGetAIStatus(): Promise<Record<string, unknown>> {
   return apiFetch('/api/ai/status')
 }
 
-/* ACCOUNT GOVERNANCE */
-export async function apiDeactivateOperator(id: string, data: { reason: string }): Promise<{ success: boolean }> {
-  return apiFetch(`/api/operators/${id}/deactivate`, { method: 'POST', body: JSON.stringify(data) })
-}
-export async function apiReactivateOperator(id: string, data: { reason: string }): Promise<{ success: boolean }> {
-  return apiFetch(`/api/operators/${id}/reactivate`, { method: 'POST', body: JSON.stringify(data) })
-}
-export async function apiSuspendOperator(id: string, data: SuspendPayload): Promise<{ success: boolean }> {
-  return apiFetch(`/api/operators/${id}/suspend`, { method: 'POST', body: JSON.stringify(data) })
-}
-export async function apiAnonymiseOperator(id: string, data: { reason: string; password: string }): Promise<{ success: boolean }> {
-  return apiFetch(`/api/operators/${id}/anonymise`, { method: 'POST', body: JSON.stringify(data) })
-}
-export async function apiGetOperators(): Promise<Operator[]> {
-  return apiFetch('/api/operators')
-}
+/* ACCOUNT GOVERNANCE — These use the correct /api/users endpoints */
 export async function apiUpdateProfile(id: string, data: Partial<Operator>): Promise<Operator> {
-  return apiFetch(`/api/operators/${id}/profile`, { method: 'PUT', body: JSON.stringify(data) })
+  return apiFetch('/api/auth/profile', { method: 'PUT', body: JSON.stringify(data) })
 }
 
 /* REGION-AWARE FLOOD DATA */
@@ -625,6 +696,17 @@ export async function apiGetRiskLayer(): Promise<GeoJSON.FeatureCollection> {
 export async function apiGetHeatmapData(): Promise<GeoJSON.FeatureCollection> {
   return apiFetch('/api/map/heatmap-data')
 }
+export async function apiGetSpatialDensity(bounds?: { north: number; south: number; east: number; west: number }): Promise<{ cell_size_km: number; point_count: number; points: { lat: number; lng: number; intensity: number }[] }> {
+  return apiFetch('/api/spatial/density', { method: 'POST', body: JSON.stringify({ bounds }) })
+}
+
+/* HISTORICAL DATA */
+export async function apiGetHistoricalEvents(): Promise<{ events: any[]; total: number; source: string }> {
+  return apiFetch('/api/reports/historical-events')
+}
+export async function apiGetSeasonalTrends(): Promise<{ trends: any[]; source: string }> {
+  return apiFetch('/api/reports/seasonal-trends')
+}
 
 /* USER MANAGEMENT (Super Admin only) */
 export async function apiGetUsers(): Promise<Operator[]> {
@@ -670,7 +752,9 @@ export async function apiGetAIModelVersions(modelName: string, limit = 20): Prom
   return apiFetch(`/api/ai/models/${modelName}/versions?limit=${limit}`)
 }
 export async function apiRetrainModel(hazardType: string, regionId?: string): Promise<{ success: boolean }> {
-  return apiFetch('/api/ai/retrain', { method: 'POST', body: JSON.stringify({ hazard_type: hazardType, region_id: regionId || 'uk-default' }) })
+  const body: Record<string, string> = { hazard_type: hazardType }
+  if (regionId) body.region_id = regionId
+  return apiFetch('/api/ai/retrain', { method: 'POST', body: JSON.stringify(body) })
 }
 
 /* TWO-FACTOR AUTHENTICATION */
@@ -739,5 +823,52 @@ export async function api2FADisable(password: string, code: string): Promise<{ s
 
 export async function api2FARegenerateBackupCodes(password: string, code: string): Promise<TwoFactorVerifyResponse> {
   return apiFetch('/api/auth/2fa/regenerate-backup-codes', { method: 'POST', body: JSON.stringify({ password, code }) })
+}
+
+// ── Citizen 2FA API ──────────────────────────────────────────────
+
+export interface CitizenTwoFactorAuthResponse {
+  success: boolean
+  token: string
+  user: Record<string, any>
+  preferences?: Record<string, any>
+  backupCodeUsed?: boolean
+  backupCodeWarning?: string
+  deviceTrusted?: boolean
+}
+
+export async function apiCitizen2FAGetStatus(): Promise<TwoFactorStatusResponse> {
+  return apiFetch('/api/citizen-auth/2fa/status')
+}
+
+export async function apiCitizen2FASetup(): Promise<TwoFactorSetupResponse> {
+  return apiFetch('/api/citizen-auth/2fa/setup', { method: 'POST', body: JSON.stringify({}) })
+}
+
+export async function apiCitizen2FAVerify(code: string): Promise<TwoFactorVerifyResponse> {
+  return apiFetch('/api/citizen-auth/2fa/verify', { method: 'POST', body: JSON.stringify({ code }) })
+}
+
+export async function apiCitizen2FAAuthenticate(tempToken: string, code: string, rememberDevice?: boolean): Promise<CitizenTwoFactorAuthResponse> {
+  const res = await fetch(`${BASE}/api/citizen-auth/2fa/authenticate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ tempToken, code, rememberDevice: rememberDevice || false }),
+  })
+  if (!res.ok) {
+    const e = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
+    const errMsg = typeof e.error === 'string' ? e.error : e.error?.message || e.message || `HTTP ${res.status}`
+    throw new Error(errMsg)
+  }
+  return res.json()
+}
+
+export async function apiCitizen2FADisable(password: string, code: string): Promise<{ success: boolean; message: string }> {
+  return apiFetch('/api/citizen-auth/2fa/disable', { method: 'POST', body: JSON.stringify({ password, code }) })
+}
+
+export async function apiCitizen2FARegenerateBackupCodes(password: string, code: string): Promise<TwoFactorVerifyResponse> {
+  return apiFetch('/api/citizen-auth/2fa/regenerate-backup-codes', { method: 'POST', body: JSON.stringify({ password, code }) })
 }
 

@@ -146,16 +146,9 @@ SELECT v.* FROM (VALUES
 ) AS v(area, probability, time_to_flood, matched_pattern, next_areas, severity, confidence, data_sources, model_version)
 WHERE NOT EXISTS (SELECT 1 FROM flood_predictions LIMIT 1);
 
--- Seed data for resource_deployments
--- Only insert if the table is empty (no unique constraint to conflict on)
-INSERT INTO resource_deployments (zone, priority, active_reports, estimated_affected, ai_recommendation, ambulances, fire_engines, rescue_boats, deployed)
-SELECT v.* FROM (VALUES
-('Zone A — City Centre'::VARCHAR(100), 'Critical'::VARCHAR(20), 15::INTEGER, '23 people needing help'::VARCHAR(200), 'Deploy 3 ambulances, 2 fire engines, 1 rescue boat. Prioritise Market Street and Union Street areas.'::TEXT, 3::INTEGER, 2::INTEGER, 1::INTEGER, false::BOOLEAN),
-('Zone B — Old Aberdeen / Bridge of Don', 'high', 8, '12 people needing help', 'Deploy 2 ambulances, 1 fire engine. Focus on King Street and St Machar Drive.', 2, 1, 0, false),
-('Zone C — Riverside / Dee Valley', 'medium', 4, '4 people needing help', 'Deploy 1 ambulance. Monitor Bridge of Dee and Riverside Drive.', 1, 0, 1, false),
-('Zone D — Coastal / Beach', 'low', 2, '1 person needing help', 'Standby 1 ambulance. Monitor Beach Esplanade and Footdee.', 1, 0, 0, false)
-) AS v(zone, priority, active_reports, estimated_affected, ai_recommendation, ambulances, fire_engines, rescue_boats, deployed)
-WHERE NOT EXISTS (SELECT 1 FROM resource_deployments LIMIT 1);
+-- resource_deployments: no seed data — zones are created by operators via the
+-- Resources console when a real incident requires deployment.
+-- The table starts empty. Use POST /api/deployments to create zones programmatically.
 
 --  SEED: Activity Log entries (matching Screenshot 3 style)
 --  Only insert if audit_log is empty (idempotent on re-run)
@@ -170,4 +163,4 @@ SELECT * FROM (VALUES
   ('Emergency Operator', 'Escalated to URGENT', 'urgent', 'report', NOW() - INTERVAL '25 minutes')
 ) AS v(operator_name, action, action_type, target_type, created_at)
 WHERE NOT EXISTS (SELECT 1 FROM audit_log LIMIT 1);
-
+

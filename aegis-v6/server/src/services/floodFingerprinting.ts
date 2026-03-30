@@ -296,6 +296,32 @@ export async function runFingerprinting(
     )
     prediction.id = result.rows[0].id
     prediction.createdAt = result.rows[0].created_at
+
+    // Module 1: Auto-create draft deployment zone for high-probability automated predictions
+    if (prediction.id && prediction.probability >= 0.7) {
+      const draftPriority = prediction.probability >= 0.85 ? 'Critical' : 'High'
+      const draftAiRec = `Auto-created by flood fingerprinting engine. Confidence: ${prediction.confidence}%. ` +
+        `${draftPriority} flood risk at ${area}. Best match: ${prediction.matchedPattern || 'pattern model'}.`
+      pool.query(
+        `INSERT INTO resource_deployments
+           (zone, priority, active_reports, estimated_affected, ai_recommendation,
+            ambulances, fire_engines, rescue_boats, coordinates, prediction_id, is_ai_draft)
+         SELECT $1, $2, 0, $3, $4, $5, $6, $7,
+                ST_SetSRID(ST_MakePoint($8, $9), 4326), $10, true
+         WHERE NOT EXISTS (SELECT 1 FROM resource_deployments WHERE prediction_id = $10)`,
+        [
+          area,
+          draftPriority,
+          `AI-flagged risk area — ${(prediction.probability * 100).toFixed(0)}% flood probability`,
+          draftAiRec,
+          draftPriority === 'Critical' ? 4 : 2,
+          draftPriority === 'Critical' ? 3 : 1,
+          draftPriority === 'Critical' ? 2 : 1,
+          longitude, latitude,
+          prediction.id,
+        ]
+      ).catch((e: any) => logger.warn({ err: e }, '[Fingerprinting] Auto-draft zone creation failed'))
+    }
   } catch (err: any) {
     logger.error({ err }, '[Fingerprinting] DB storage failed')
   }
@@ -430,4 +456,4 @@ export async function getActivePredictions(): Promise<FloodPrediction[]> {
     return []
   }
 }
-
+

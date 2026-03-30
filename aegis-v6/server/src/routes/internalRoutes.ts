@@ -160,6 +160,12 @@ router.get('/health/system', async (_req: Request, res: Response, next: NextFunc
 
     res.json({
       timestamp: new Date().toISOString(),
+      server_uptime_s: Math.floor(process.uptime()),
+      memory: {
+        rss_mb: Math.round(process.memoryUsage().rss / 1048576),
+        heap_used_mb: Math.round(process.memoryUsage().heapUsed / 1048576),
+        heap_total_mb: Math.round(process.memoryUsage().heapTotal / 1048576),
+      },
       database: { ok: dbOk, latency_ms: dbLatency },
       ai_engine: { ok: aiOk, url: aiUrl, latency_ms: aiLatency },
       n8n: {

@@ -36,3 +36,4 @@ migration_two_factor_auth.sql
 migration_device_trust.sql
 migration_missing_tables.sql
 migration_zz_schema_determinism.sql
+migration_deployment_integration.sql

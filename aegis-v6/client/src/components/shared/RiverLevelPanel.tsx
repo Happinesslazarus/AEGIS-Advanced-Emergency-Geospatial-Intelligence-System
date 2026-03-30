@@ -196,7 +196,7 @@ export default function RiverLevelPanel({ socket, collapsed: initialCollapsed = 
               <p className="text-xs text-gray-400 dark:text-gray-300">{t('river.fetchingRiverData', lang)}</p>
             </div>
           ) : (
-            <div className="max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600">
+            <div>
               {sorted.map((reading) => {
                 const cfg = STATUS_CONFIG[reading.status] || STATUS_CONFIG.NORMAL
                 const isExpanded = expandedStation === reading.stationId
@@ -241,7 +241,7 @@ export default function RiverLevelPanel({ socket, collapsed: initialCollapsed = 
                         <div className="grid grid-cols-2 gap-2 text-[10px]">
                           <div className="flex items-center gap-1 text-gray-400 dark:text-gray-300">
                             <Droplets className="w-3 h-3" />
-                            <span>{t('river.flow', lang)}: {reading.flowCumecs != null ? `${reading.flowCumecs.toFixed(1)} m—/s` : 'N/A'}</span>
+                            <span>{t('river.flow', lang)}: {reading.flowCumecs != null ? `${reading.flowCumecs.toFixed(1)} m³/s` : 'N/A'}</span>
                           </div>
                           <div className="flex items-center gap-1 text-gray-400 dark:text-gray-300">
                             <Clock className="w-3 h-3" />
@@ -302,4 +302,4 @@ export default function RiverLevelPanel({ socket, collapsed: initialCollapsed = 
     </div>
   )
 }
-
+

@@ -77,21 +77,31 @@ class FloodModule extends BaseIncidentModule {
     // Flood-specific: river extents GeoJSON
     this.router.get('/extents/:river', (req: Request, res: Response) => {
       try {
-        const filename = `${req.params.river}.geojson`
+        // Validate river name to prevent path traversal
+        const river = req.params.river
+        if (!/^[a-zA-Z0-9_-]+$/.test(river)) {
+          res.status(400).json({ error: 'Invalid river name' })
+          return
+        }
+        const filename = `${river}.geojson`
+        const baseDir = path.resolve(process.cwd(), 'src', 'data', 'floodExtents')
         const candidates = [
           path.join(process.cwd(), 'src', 'data', 'floodExtents', filename),
           path.resolve('src', 'data', 'floodExtents', filename),
           path.resolve('server', 'src', 'data', 'floodExtents', filename),
         ]
         for (const c of candidates) {
-          if (fs.existsSync(c)) {
-            res.json(JSON.parse(fs.readFileSync(c, 'utf-8')))
+          // Ensure resolved path stays within expected directories
+          const resolved = path.resolve(c)
+          if (!resolved.includes('floodExtents')) continue
+          if (fs.existsSync(resolved)) {
+            res.json(JSON.parse(fs.readFileSync(resolved, 'utf-8')))
             return
           }
         }
-        res.status(404).json({ error: `Flood extent data not found for: ${req.params.river}` })
+        res.status(404).json({ error: 'Flood extent data not found' })
       } catch (err: any) {
-        res.status(500).json({ error: 'Failed to load flood extent', details: err.message })
+        res.status(500).json({ error: 'Failed to load flood extent' })
       }
     })
   }
@@ -148,4 +158,4 @@ class FloodModule extends BaseIncidentModule {
 }
 
 export default new FloodModule()
-
+

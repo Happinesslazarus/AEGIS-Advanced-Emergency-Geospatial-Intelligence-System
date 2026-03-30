@@ -118,7 +118,7 @@ export async function sendVerificationEmail(
   const html = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
-        <h1 style="color: white; margin: 0; font-size: 24px;">??? AEGIS</h1>
+        <h1 style="color: white; margin: 0; font-size: 24px;">&#x1F6E1; AEGIS</h1>
         <p style="color: #bfdbfe; margin: 8px 0 0;">Emergency Management Platform</p>
       </div>
       <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
@@ -166,7 +166,7 @@ export async function sendPasswordResetEmail(
   const html = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
-        <h1 style="color: white; margin: 0; font-size: 24px;">??? AEGIS</h1>
+        <h1 style="color: white; margin: 0; font-size: 24px;">&#x1F6E1; AEGIS</h1>
         <p style="color: #fecaca; margin: 8px 0 0;">Password Reset</p>
       </div>
       <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
@@ -209,11 +209,11 @@ export async function sendLockoutNotification(
   const html = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
-        <h1 style="color: white; margin: 0; font-size: 24px;">??? AEGIS</h1>
+        <h1 style="color: white; margin: 0; font-size: 24px;">&#x1F6E1; AEGIS</h1>
         <p style="color: #fef3c7; margin: 8px 0 0;">Security Alert</p>
       </div>
       <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
-        <h2 style="color: #1f2937; margin-top: 0;">?? Account Locked</h2>
+        <h2 style="color: #1f2937; margin-top: 0;">&#x1F512; Account Locked</h2>
         <p style="color: #4b5563; line-height: 1.6;">Your account has been temporarily locked for <strong>${minutesLocked} minutes</strong> due to multiple failed login attempts.</p>
         <p style="color: #4b5563; line-height: 1.6;">If this wasn't you, please change your password as soon as possible.</p>
       </div>
@@ -225,4 +225,54 @@ export async function sendLockoutNotification(
 /* Expose the current email mode for startup logging and debugging */
 export function getEmailMode(): string {
   return EMAIL_MODE
+}
+
+/**
+ * Send a security alert email to an operator.
+ *
+ * @param to       - Recipient email
+ * @param title    - Alert title (e.g. "Two-Factor Authentication Disabled")
+ * @param message  - Alert detail message
+ * @param severity - 'info' | 'warning' | 'critical'
+ */
+export async function sendSecurityAlertEmail(
+  to: string,
+  title: string,
+  message: string,
+  severity: 'info' | 'warning' | 'critical'
+): Promise<void> {
+  const severityColors: Record<string, { bg: string; label: string }> = {
+    info: { bg: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)', label: 'Security Notice' },
+    warning: { bg: 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)', label: 'Security Warning' },
+    critical: { bg: 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)', label: 'Critical Security Alert' },
+  }
+  const style = severityColors[severity] || severityColors.warning
+
+  const subject = `AEGIS Security Alert: ${title}`
+  const text = [
+    style.label,
+    '',
+    title,
+    '',
+    message,
+    '',
+    'If you did not perform this action, please contact your administrator immediately.',
+    '',
+    '— The AEGIS Security Team',
+  ].join('\n')
+
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="background: ${style.bg}; padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">AEGIS</h1>
+        <p style="color: rgba(255,255,255,0.85); margin: 8px 0 0;">${style.label}</p>
+      </div>
+      <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
+        <h2 style="color: #1f2937; margin-top: 0;">${title}</h2>
+        <p style="color: #4b5563; line-height: 1.6;">${message.replace(/\n/g, '<br>')}</p>
+        <p style="color: #6b7280; font-size: 13px; margin-top: 20px;">If you did not perform this action, please contact your administrator immediately.</p>
+      </div>
+    </div>`
+
+  await sendEmail({ to, subject, text, html })
 }

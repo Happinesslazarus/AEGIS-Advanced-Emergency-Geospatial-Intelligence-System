@@ -30,6 +30,7 @@ import {
 } from '../utils/securityUtils.js'
 import { sendVerificationEmail, sendLockoutNotification, sendPasswordResetEmail } from '../services/emailService.js'
 import { logSecurityEvent, checkSuspiciousActivity } from '../services/securityLogger.js'
+import { generateTempToken, hashTempToken } from '../utils/twoFactorCrypto.js'
 import { AppError } from '../utils/AppError.js'
 import { logger } from '../services/logger.js'
 
@@ -291,7 +292,7 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next
       `SELECT id, email, password_hash, display_name, role, avatar_url,
               preferred_region, email_verified, is_active, phone, location_lat, location_lng,
               is_vulnerable, vulnerability_details, country, city, bio, date_of_birth,
-              deletion_requested_at, failed_login_attempts, locked_until
+              deletion_requested_at, failed_login_attempts, locked_until, two_factor_enabled
        FROM citizens WHERE LOWER(email) = LOWER($1) AND deleted_at IS NULL`,
       [email.trim()]
     )
@@ -356,6 +357,32 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next
 
     // Successful login — reset failed attempts
     await resetFailedLogins('citizens', citizen.id)
+
+    // 2FA Gate — if citizen has 2FA enabled, issue temp token instead of full JWT
+    if (citizen.two_factor_enabled) {
+      const tempTokenRaw = generateTempToken()
+      const tempTokenHash = hashTempToken(tempTokenRaw)
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000) // 5 minutes
+
+      // Invalidate old temp tokens and create new one
+      await pool.query(
+        `UPDATE two_factor_temp_tokens SET consumed = true WHERE user_id = $1 AND user_type = 'citizen' AND consumed = false`,
+        [citizen.id]
+      )
+      await pool.query(
+        `INSERT INTO two_factor_temp_tokens (user_id, token_hash, expires_at, ip_address, user_agent, user_type)
+         VALUES ($1, $2, $3, $4, $5, 'citizen')`,
+        [citizen.id, tempTokenHash, expiresAt, clientIp, userAgent || null]
+      )
+
+      await logSecurityEvent({
+        userId: citizen.id, userType: 'citizen', eventType: 'login_success',
+        ipAddress: clientIp, userAgent, metadata: { requires_2fa: true },
+      })
+
+      res.json({ requires2FA: true, tempToken: tempTokenRaw })
+      return
+    }
 
     // Update last login and increment login count
     const loginUpdate = await pool.query(

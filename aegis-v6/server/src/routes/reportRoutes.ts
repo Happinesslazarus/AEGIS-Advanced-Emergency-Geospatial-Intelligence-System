@@ -963,6 +963,123 @@ router.get('/analytics', authMiddleware, operatorOnly, async (req: AuthRequest, 
   }
 })
 
+/*
+ * GET /api/reports/historical-events
+ * Returns resolved/archived reports shaped as HistoricalEvent[] for the History page.
+ * Also incorporates historical_flood_events table data.
+ */
+router.get('/historical-events', authMiddleware, operatorOnly, async (_req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const [reportsRes, historicalRes] = await Promise.all([
+      pool.query(
+        `SELECT id, report_number, incident_category, incident_subtype, description,
+                severity, location_text,
+                ST_Y(coordinates::geometry) AS lat, ST_X(coordinates::geometry) AS lng,
+                created_at, resolved_at
+         FROM reports
+         WHERE deleted_at IS NULL AND status IN ('resolved', 'archived')
+         ORDER BY created_at DESC
+         LIMIT 200`
+      ),
+      pool.query(
+        `SELECT id, event_name, event_date, area, severity, affected_people, damage_gbp,
+                ST_Y(coordinates::geometry) AS lat, ST_X(coordinates::geometry) AS lng,
+                duration_hours, peak_water_level_m, rainfall_24h_mm
+         FROM historical_flood_events
+         ORDER BY event_date DESC
+         LIMIT 200`
+      ).catch(() => ({ rows: [] })),
+    ])
+
+    const events = reportsRes.rows.map((r: any) => ({
+      id: r.report_number || r.id,
+      date: (r.resolved_at || r.created_at || '').toString().slice(0, 10),
+      type: (r.incident_category || 'Flood').replace(/_/g, ' '),
+      location: r.location_text || 'Unknown Location',
+      coordinates: [r.lat || 57.15, r.lng || -2.09],
+      severity: r.severity === 'critical' ? 'High' : r.severity === 'high' ? 'High' : r.severity === 'medium' ? 'Medium' : 'Low',
+      description: r.description || '',
+      affectedPeople: 0,
+      damage: '',
+      source: 'database',
+    }))
+
+    const histEvents = historicalRes.rows.map((h: any) => ({
+      id: `HFE-${h.id?.toString().slice(0, 8)}`,
+      date: (h.event_date || '').toString().slice(0, 10),
+      type: 'Flood',
+      location: h.area || 'Unknown',
+      coordinates: [h.lat || 57.15, h.lng || -2.09],
+      severity: h.severity === 'critical' ? 'High' : h.severity === 'high' ? 'High' : h.severity === 'medium' ? 'Medium' : 'Low',
+      description: h.event_name || '',
+      affectedPeople: h.affected_people || 0,
+      damage: h.damage_gbp ? `£${Number(h.damage_gbp) >= 1000000 ? (Number(h.damage_gbp) / 1000000).toFixed(1) + 'M' : Number(h.damage_gbp) >= 1000 ? Math.round(Number(h.damage_gbp) / 1000) + 'K' : h.damage_gbp}` : '',
+      source: 'historical_flood_events',
+    }))
+
+    const combined = [...events, ...histEvents]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 200)
+
+    res.json({ events: combined, total: combined.length, source: combined.length > 0 ? 'database' : 'empty' })
+  } catch (err) {
+    next(err)
+  }
+})
+
+/*
+ * GET /api/reports/seasonal-trends
+ * Returns per-month aggregates for the seasonal trends chart.
+ */
+router.get('/seasonal-trends', authMiddleware, operatorOnly, async (_req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+    const [reportsMonthly, historicalMonthly] = await Promise.all([
+      pool.query(
+        `SELECT EXTRACT(MONTH FROM created_at)::int AS month_num,
+                COUNT(*)::int AS report_count,
+                AVG(CASE severity
+                  WHEN 'critical' THEN 3.0 WHEN 'high' THEN 2.5
+                  WHEN 'medium' THEN 1.5 ELSE 0.5 END)::numeric(3,1) AS avg_severity
+         FROM reports
+         WHERE deleted_at IS NULL AND incident_category ILIKE '%flood%'
+         GROUP BY month_num ORDER BY month_num`
+      ),
+      pool.query(
+        `SELECT EXTRACT(MONTH FROM event_date)::int AS month_num,
+                COUNT(*)::int AS event_count,
+                AVG(CASE severity
+                  WHEN 'critical' THEN 3.0 WHEN 'high' THEN 2.5
+                  WHEN 'medium' THEN 1.5 ELSE 0.5 END)::numeric(3,1) AS avg_severity,
+                AVG(rainfall_24h_mm)::numeric(5,1) AS avg_rainfall
+         FROM historical_flood_events
+         GROUP BY month_num ORDER BY month_num`
+      ).catch(() => ({ rows: [] })),
+    ])
+
+    const reportMap: Record<number, any> = {}
+    reportsMonthly.rows.forEach((r: any) => { reportMap[r.month_num] = r })
+    const histMap: Record<number, any> = {}
+    historicalMonthly.rows.forEach((h: any) => { histMap[h.month_num] = h })
+
+    const trends = monthNames.map((month, i) => {
+      const m = i + 1
+      const rep = reportMap[m]
+      const hist = histMap[m]
+      const floodCount = (rep?.report_count || 0) + (hist?.event_count || 0)
+      const avgSev = hist?.avg_severity ? Number(hist.avg_severity) : rep?.avg_severity ? Number(rep.avg_severity) : 0
+      const rainfall = hist?.avg_rainfall ? Number(hist.avg_rainfall) : 0
+      return { month, floodCount, avgSeverity: avgSev, rainfallMm: rainfall }
+    })
+
+    const hasData = trends.some(t => t.floodCount > 0)
+    res.json({ trends, source: hasData ? 'database' : 'empty' })
+  } catch (err) {
+    next(err)
+  }
+})
+
  /*
  * GET /api/reports/command-center
  * Executive command-center payload for the main admin dashboard.
@@ -1425,6 +1542,48 @@ router.post('/', reportSubmitLimiter, uploadEvidence, validateMagicBytes, async 
     ).catch((err: any) =>
       logger.error({ err }, '[Reports] AI pipeline error'),
     )
+
+    // Auto-create a draft deployment zone for urgent/high-severity reports (non-blocking)
+    // This ensures all critical multi-hazard incidents get an immediate resource draft,
+    // not just AI flood predictions.
+    if ((dbSeverity === 'high' || trappedPersons === 'yes') && Number.isFinite(parsedLat) && Number.isFinite(parsedLng)) {
+      const category: string = incidentCategory || 'other'
+      const subtype: string = incidentSubtype || ''
+      const hazardKey = subtype || category
+      const isHighestSeverity = dbSeverity === 'high' && trappedPersons === 'yes'
+      const draftPriority = isHighestSeverity ? 'Critical' : 'High'
+
+      // Inline per-hazard resource recommendation (mirrors server helper)
+      const h = hazardKey.toLowerCase()
+      let amb = draftPriority === 'Critical' ? 3 : 2
+      let fire = draftPriority === 'Critical' ? 2 : 1
+      let boats = 0
+      if (['flood', 'tsunami', 'coastal', 'flash_flood'].some(k => h.includes(k))) { amb = draftPriority === 'Critical' ? 4 : 2; fire = draftPriority === 'Critical' ? 2 : 1; boats = draftPriority === 'Critical' ? 4 : 2 }
+      else if (['wildfire', 'fire', 'burn'].some(k => h.includes(k))) { amb = draftPriority === 'Critical' ? 3 : 2; fire = draftPriority === 'Critical' ? 6 : 3; boats = 0 }
+      else if (['earthquake', 'building_collapse', 'structural', 'landslide', 'avalanche'].some(k => h.includes(k))) { amb = draftPriority === 'Critical' ? 5 : 3; fire = draftPriority === 'Critical' ? 3 : 2; boats = 0 }
+      else if (['chemical', 'gas_leak', 'hazmat', 'pollution', 'environmental'].some(k => h.includes(k))) { amb = draftPriority === 'Critical' ? 4 : 2; fire = draftPriority === 'Critical' ? 2 : 1; boats = 0 }
+      else if (['medical', 'mass_casualty'].some(k => h.includes(k))) { amb = draftPriority === 'Critical' ? 8 : 4; fire = 1; boats = 0 }
+
+      const draftZoneName = `${displayType || category.replace(/_/g, ' ')} — ${locationText.slice(0, 60)}`
+      const draftAiRec = `Auto-drafted from citizen report ${report.report_number}. ${draftPriority} severity ${hazardKey.replace(/_/g, ' ')} reported. Awaiting operator review.`
+      pool.query(
+        `INSERT INTO resource_deployments
+           (zone, priority, active_reports, estimated_affected, ai_recommendation,
+            ambulances, fire_engines, rescue_boats, coordinates, report_id, is_ai_draft)
+         SELECT $1, $2, 1, $3, $4, $5, $6, $7,
+                ST_SetSRID(ST_MakePoint($8, $9), 4326), $10, true
+         WHERE NOT EXISTS (
+           SELECT 1 FROM resource_deployments WHERE report_id = $10 AND is_ai_draft = true
+         )`,
+        [
+          draftZoneName, draftPriority,
+          `Citizen-reported ${hazardKey.replace(/_/g, ' ')}`,
+          draftAiRec, amb, fire, boats,
+          parsedLng, parsedLat,
+          report.id,
+        ]
+      ).catch(() => {})
+    }
 
     res.status(201).json({
       id: report.id,
@@ -2027,14 +2186,18 @@ function formatReport(row: any): any {
 
 async function generateReportNumberSafe(): Promise<string> {
   try {
-    // Try the DB function first (if it exists and handles current format)
-    const result = await pool.query(`SELECT generate_report_number() AS report_number`)
+    // Use the proper sequence for clean RPT-XXXX format
+    const result = await pool.query(`SELECT 'RPT-' || LPAD(NEXTVAL('report_num_seq')::TEXT, 4, '0') AS report_number`)
     return result.rows[0]?.report_number
   } catch {
-    // Fallback: RPT-<timestamp-hex> format
-    const ts = Date.now().toString(16).toUpperCase()
-    const rand = Math.floor(Math.random() * 0xFFFF).toString(16).padStart(4, '0').toUpperCase()
-    return `RPT-${ts}-${rand}`
+    // True last-resort fallback using a counter-based approach
+    try {
+      const countResult = await pool.query(`SELECT COUNT(*) + 1 AS next FROM reports`)
+      const next = parseInt(countResult.rows[0]?.next || '1', 10)
+      return `RPT-${String(next).padStart(4, '0')}`
+    } catch {
+      return `RPT-${String(Date.now()).slice(-4)}`
+    }
   }
 }
 

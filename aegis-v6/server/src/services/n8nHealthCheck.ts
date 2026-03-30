@@ -19,7 +19,7 @@ export interface N8nHealthState {
   fallbackActive: boolean
   lastChecked: Date | null
   lastHealthy: Date | null
-  status: 'not_configured' | 'connected' | 'unreachable' | 'checking'
+  status: 'not_configured' | 'standalone' | 'connected' | 'unreachable' | 'checking'
   version: string | null
   workflowCount: number
   activeWorkflowCount: number
@@ -162,11 +162,11 @@ export function startN8nHealthMonitor(): void {
 
   // If N8N_BASE_URL is not configured, immediately activate fallback
   if (!process.env.N8N_BASE_URL) {
-    logger.info('[n8n] N8N_BASE_URL not configured — running in fallback mode (cron jobs active)')
-    state.isHealthy = false
+    logger.info('[n8n] Standalone mode — built-in scheduler active (no external orchestrator)')
+    state.isHealthy = true
     state.fallbackActive = true
     state.lastChecked = new Date()
-    state.status = 'not_configured'
+    state.status = 'standalone'
     activateFallbackJobs()
     return
   }

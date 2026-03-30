@@ -64,11 +64,12 @@ export default function DistressPanel({ socket, operatorId, operatorName, classN
   const [distressCalls, setDistressCalls] = useState<DistressCall[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [triageValue, setTriageValue] = useState('medium')
-  const [resolution, setResolution] = useState('')
+  const [triageValues, setTriageValues] = useState<Record<string, string>>({})
+  const [resolutions, setResolutions] = useState<Record<string, string>>({})
   const [collapsed, setCollapsed] = useState(false)
   const [alarmEnabled, setAlarmEnabled] = useState(true)
-  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const [socketError, setSocketError] = useState<string | null>(null)
+  const audioCtxRef = useRef<AudioContext | null>(null)
 
   const fetchActive = useCallback(async () => {
     setLoading(true)
@@ -81,7 +82,9 @@ export default function DistressPanel({ socket, operatorId, operatorName, classN
         const data = await res.json()
         setDistressCalls(data.distressCalls || [])
       }
-    } catch {}
+    } catch (err) {
+      console.warn('[DistressPanel] Failed to fetch active distress calls:', err)
+    }
     setLoading(false)
   }, [])
 
@@ -138,10 +141,18 @@ export default function DistressPanel({ socket, operatorId, operatorName, classN
     }
   }, [socket, alarmEnabled])
 
+  // Cleanup AudioContext on unmount
+  useEffect(() => {
+    return () => { audioCtxRef.current?.close().catch(() => {}) }
+  }, [])
+
   const playAlarm = () => {
     try {
-      // Use Web Audio API to generate alarm tone
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+      if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
+        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
+      }
+      const ctx = audioCtxRef.current
+      if (ctx.state === 'suspended') ctx.resume()
       const osc = ctx.createOscillator()
       const gain = ctx.createGain()
       osc.connect(gain)
@@ -158,23 +169,29 @@ export default function DistressPanel({ socket, operatorId, operatorName, classN
   }
 
   const handleAcknowledge = async (distressId: string) => {
-    if (!socket) return
-    socket.emit('distress:acknowledge', { distressId, triageLevel: triageValue }, (res: any) => {
+    if (!socket) { setSocketError(t('distress.socketOffline', lang)); return }
+    setSocketError(null)
+    socket.emit('distress:acknowledge', { distressId, triageLevel: triageValues[distressId] || 'medium' }, (res: any) => {
       if (res?.success) {
         setDistressCalls(prev => prev.map(d =>
-          d.id === distressId ? { ...d, status: 'acknowledged', triage_level: triageValue, acknowledged_by: operatorId } : d
+          d.id === distressId ? { ...d, status: 'acknowledged', triage_level: triageValues[distressId] || 'medium', acknowledged_by: operatorId } : d
         ))
+      } else {
+        setSocketError(res?.error || t('distress.ackFailed', lang))
       }
     })
   }
 
   const handleResolve = async (distressId: string) => {
-    if (!socket) return
-    socket.emit('distress:resolve', { distressId, resolution: resolution || 'Resolved by operator' }, (res: any) => {
+    if (!socket) { setSocketError(t('distress.socketOffline', lang)); return }
+    setSocketError(null)
+    socket.emit('distress:resolve', { distressId, resolution: (resolutions[distressId] || '').trim() || t('distress.resolvedByOperator', lang) }, (res: any) => {
       if (res?.success) {
         setDistressCalls(prev => prev.filter(d => d.id !== distressId))
-        setResolution('')
+        setResolutions(prev => { const n = { ...prev }; delete n[distressId]; return n })
         setSelectedId(null)
+      } else {
+        setSocketError(res?.error || t('distress.resolveFailed', lang))
       }
     })
   }
@@ -225,7 +242,14 @@ export default function DistressPanel({ socket, operatorId, operatorName, classN
       </div>
 
       {!collapsed && (
-        <div className="border-t border-gray-200 dark:border-gray-700/40 max-h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600">
+        <div className="border-t border-gray-200 dark:border-gray-700/40">
+          {socketError && (
+            <div className="mx-3 mt-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 flex items-center gap-2">
+              <AlertTriangle className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />
+              <span className="text-xs text-red-600 dark:text-red-400">{socketError}</span>
+              <button onClick={() => setSocketError(null)} className="ml-auto text-red-400 hover:text-red-600" aria-label="Dismiss">✕</button>
+            </div>
+          )}
           {loading && distressCalls.length === 0 ? (
             <div className="px-4 py-6 text-center">
               <Loader2 className="w-6 h-6 text-gray-400 dark:text-gray-300 animate-spin mx-auto mb-2" />
@@ -313,8 +337,8 @@ export default function DistressPanel({ socket, operatorId, operatorName, classN
                             {triageOptions.map(opt => (
                               <button
                                 key={opt.value}
-                                onClick={() => setTriageValue(opt.value)}
-                                className={`flex-1 text-[10px] py-1.5 rounded-lg font-medium transition ${triageValue === opt.value ? opt.colour + ' ring-2 ring-white/30' : 'bg-gray-700 text-gray-300 dark:text-gray-300 hover:bg-gray-600'}`}
+                                onClick={() => setTriageValues(prev => ({ ...prev, [dc.id]: opt.value }))}
+                                className={`flex-1 text-[10px] py-1.5 rounded-lg font-medium transition ${(triageValues[dc.id] || 'medium') === opt.value ? opt.colour + ' ring-2 ring-white/30' : 'bg-gray-700 text-gray-300 dark:text-gray-300 hover:bg-gray-600'}`}
                               >
                                 {opt.label}
                               </button>
@@ -329,8 +353,8 @@ export default function DistressPanel({ socket, operatorId, operatorName, classN
                           <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-300 mb-1">{t('distress.resolutionNote', lang)}</p>
                           <input
                             type="text"
-                            value={resolution}
-                            onChange={e => setResolution(e.target.value)}
+                            value={resolutions[dc.id] || ''}
+                            onChange={e => setResolutions(prev => ({ ...prev, [dc.id]: e.target.value }))}
                             placeholder={t('distress.resolutionPlaceholder', lang)}
                             className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-xs text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                           />
@@ -357,7 +381,7 @@ export default function DistressPanel({ socket, operatorId, operatorName, classN
                         <button
                           onClick={() => {
                             // Open Google Maps directions
-                            window.open(`https://www.google.com/maps/dir/?api=1&destination=${dc.latitude},${dc.longitude}`, '_blank')
+                            window.open(`https://www.google.com/maps/dir/?api=1&destination=${dc.latitude},${dc.longitude}`, '_blank', 'noopener,noreferrer')
                           }}
                           className="px-3 py-2 bg-blue-600 rounded-lg text-xs font-bold text-white hover:bg-blue-500 transition flex items-center gap-1.5"
                         >
@@ -382,4 +406,4 @@ export default function DistressPanel({ socket, operatorId, operatorName, classN
     </div>
   )
 }
-
+

@@ -3,6 +3,7 @@
  * This is the main server file that:
  * 1. Loads environment configuration from .env
  * 2. Sets up security middleware (CORS, Helmet, rate limiting)
+ * [reloaded: resource deployment CREATE/DELETE routes added]
  * 3. Mounts all API route handlers
  * 4. Serves uploaded files statically
  * 5. Starts the HTTP server
@@ -232,6 +233,7 @@ import translationRoutes from './routes/translationRoutes.js'
 import spatialRoutes from './routes/spatialRoutes.js'
 import oauthRoutes from './routes/oauthRoutes.js'
 import twoFactorRoutes from './routes/twoFactorRoutes.js'
+import citizenTwoFactorRoutes from './routes/citizenTwoFactorRoutes.js'
 import securityRoutes from './routes/securityRoutes.js'
 import incidentRoutes from './routes/incidentRoutes.js'
 import setupRoutes from './routes/setupRoutes.js'
@@ -427,6 +429,7 @@ app.use('/api/auth/2fa', twoFactorRoutes) // TOTP Two-Factor Authentication
 app.use('/api/security', securityRoutes) // Device Trust, Security Dashboard, Alert Preferences
 app.use('/api/auth', oauthRoutes) // OAuth social login (Google etc.)
 app.use('/api/citizen-auth', citizenAuthRoutes) // Citizen auth
+app.use('/api/citizen-auth/2fa', citizenTwoFactorRoutes) // Citizen TOTP Two-Factor Authentication
 app.use('/api/citizen', citizenRoutes) // Citizen safety, messaging, dashboard
 app.use('/api/reports', reportRoutes) // Emergency report CRUD
 app.use('/api/users', userRoutes) // User management (Super Admin only)

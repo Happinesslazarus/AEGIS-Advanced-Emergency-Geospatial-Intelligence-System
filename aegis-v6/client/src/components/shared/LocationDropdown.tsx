@@ -11,6 +11,8 @@ import {
 } from 'lucide-react'
 import { useLocation } from '../../contexts/LocationContext'
 import { WORLD_REGIONS, getFlagUrl, type RegionGroup, type RegionEntry } from '../../data/worldRegions'
+import { t } from '../../utils/i18n'
+import { useLanguage } from '../../hooks/useLanguage'
 
 /* Map Lucide icon name ? component */
 const ICON_MAP: Record<string, React.ElementType> = {
@@ -26,6 +28,7 @@ interface Props {
 
 export default function LocationDropdown({ compact = false, className = '' }: Props): JSX.Element {
   const { activeLocation, setActiveLocation, availableLocations } = useLocation()
+  const lang = useLanguage()
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null)
@@ -92,7 +95,7 @@ export default function LocationDropdown({ compact = false, className = '' }: Pr
         }
       }
     }
-  }, [open])
+  }, [open, activeLocation])
 
   /* Filtered groups */
   const filteredGroups: (RegionGroup & { filteredEntries: RegionEntry[] })[] = useMemo(() => {
@@ -159,7 +162,7 @@ export default function LocationDropdown({ compact = false, className = '' }: Pr
       {/* Dropdown panel */}
       {open && (
         <div
-          className="absolute left-0 top-full mt-2 w-80 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700/80 rounded-2xl shadow-2xl shadow-black/15 dark:shadow-black/40 overflow-hidden z-[60]"
+          className="absolute left-0 top-full mt-2 w-80 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700/80 rounded-2xl shadow-2xl shadow-black/15 dark:shadow-black/40 overflow-hidden z-[9000]"
           style={{ animation: 'fadeIn 0.15s ease-out' }}
         >
           {/* Search header */}
@@ -171,7 +174,7 @@ export default function LocationDropdown({ compact = false, className = '' }: Pr
                 type="text"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder="Search countries & regions..."
+                placeholder={t('location.searchPlaceholder', lang)}
                 className="flex-1 bg-transparent text-xs font-medium outline-none text-gray-900 dark:text-white placeholder-gray-400"
               />
               {search && (
@@ -184,7 +187,7 @@ export default function LocationDropdown({ compact = false, className = '' }: Pr
             <div className="flex items-center gap-2 mt-2 px-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
               <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 tracking-wide">
-                Active: <span className="text-gray-900 dark:text-white">{activeName}</span>
+                {t('location.active', lang)} <span className="text-gray-900 dark:text-white">{activeName}</span>
               </span>
             </div>
           </div>
@@ -323,7 +326,7 @@ export default function LocationDropdown({ compact = false, className = '' }: Pr
             {filteredGroups.length === 0 && (
               <div className="py-8 text-center">
                 <Search className="w-5 h-5 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
-                <p className="text-xs text-gray-400 dark:text-gray-500">No countries or regions match your search</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500">{t('location.noResults', lang)}</p>
               </div>
             )}
           </div>
@@ -333,11 +336,11 @@ export default function LocationDropdown({ compact = false, className = '' }: Pr
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                <span className="text-[9px] font-semibold text-gray-400 dark:text-gray-500">Detailed monitoring</span>
+                <span className="text-[9px] font-semibold text-gray-400 dark:text-gray-500">{t('location.detailedMonitoring', lang)}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-blue-400 opacity-60" />
-                <span className="text-[9px] font-semibold text-gray-400 dark:text-gray-500">Country overview</span>
+                <span className="text-[9px] font-semibold text-gray-400 dark:text-gray-500">{t('location.countryOverview', lang)}</span>
               </div>
             </div>
           </div>

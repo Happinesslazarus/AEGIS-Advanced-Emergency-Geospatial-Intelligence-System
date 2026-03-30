@@ -56,6 +56,7 @@ export function AlertsProvider({ children }: { children: ReactNode }): JSX.Eleme
           source: a.created_by ? 'operator' : 'system',
           channels: a.channels || [],
           disasterType: a.alert_type || a.type || 'general',
+          expiresAt: a.expires_at || null,
           active: a.is_active !== false,
         }))
       setAlerts(fetchedAlerts)
@@ -100,8 +101,18 @@ export function AlertsProvider({ children }: { children: ReactNode }): JSX.Eleme
   )
 }
 
+const ALERTS_DEFAULTS: AlertsContextType = {
+  alerts: [], activeAlerts: [], notifications: [], loading: false, error: null,
+  addAlert: (a) => ({ ...a, id: '', timestamp: '', displayTime: '', active: false } as any),
+  dismissAlert: () => {}, pushNotification: () => 0, dismissNotification: () => {},
+  refreshAlerts: async () => {},
+}
+
 export function useAlerts(): AlertsContextType {
   const ctx = useContext(AlertsContext)
-  if (!ctx) throw new Error('useAlerts must be within AlertsProvider')
+  if (!ctx) {
+    if (import.meta.env.DEV) console.warn('[Alerts] Context unavailable — returning safe defaults.')
+    return ALERTS_DEFAULTS
+  }
   return ctx
 }

@@ -29,7 +29,7 @@ export const WORLD_REGIONS: RegionGroup[] = [
     label: 'Global',
     icon: 'Globe',
     entries: [
-      { code: '',   label: 'Global Overview', locationKey: 'world' },
+      { code: '',   label: 'All Regions', locationKey: 'world' },
     ],
   },
 

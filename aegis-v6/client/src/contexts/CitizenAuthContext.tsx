@@ -90,7 +90,8 @@ interface CitizenAuthContextType {
   loading: boolean
   isAuthenticated: boolean
   // Auth actions
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string; requires2FA?: boolean; tempToken?: string }>
+  complete2FA: (token: string, user: CitizenUser, preferences?: any) => void
   register: (data: RegisterData) => Promise<{ success: boolean; error?: string }>
   oauthLogin: (token: string) => Promise<{ success: boolean; error?: string }>
   logout: () => void
@@ -302,6 +303,10 @@ export function CitizenAuthProvider({ children }: { children: ReactNode }): JSX.
         method: 'POST',
         body: JSON.stringify({ email, password }),
       })
+      // 2FA gate: server returns requires2FA + tempToken when 2FA is enabled
+      if (data.requires2FA) {
+        return { success: false, requires2FA: true, tempToken: data.tempToken }
+      }
       saveToken(data.token)
       saveUser(data.user)
       setPreferences(data.preferences)
@@ -325,6 +330,13 @@ export function CitizenAuthProvider({ children }: { children: ReactNode }): JSX.
       return { success: false, error: err.message }
     }
   }, [saveToken])
+
+  // Complete 2FA — called after successful 2FA challenge to save auth state
+  const complete2FA = useCallback((authToken: string, authUser: CitizenUser, prefs?: any) => {
+    saveToken(authToken)
+    saveUser(authUser)
+    if (prefs) setPreferences(prefs)
+  }, [saveToken, saveUser])
 
   // OAuth login — use token from Google OAuth redirect hash
   const oauthLogin = useCallback(async (oauthToken: string) => {
@@ -476,7 +488,7 @@ export function CitizenAuthProvider({ children }: { children: ReactNode }): JSX.
     <CitizenAuthContext.Provider value={{
       user, token, preferences, emergencyContacts, recentSafety, unreadMessages,
       loading, isAuthenticated,
-      login, register, oauthLogin, logout,
+      login, complete2FA, register, oauthLogin, logout,
       updateProfile, uploadAvatar, changePassword, updatePreferences,
       addEmergencyContact, removeEmergencyContact,
       submitSafetyCheckIn, refreshProfile,
@@ -486,9 +498,40 @@ export function CitizenAuthProvider({ children }: { children: ReactNode }): JSX.
   )
 }
 
+/* Safe fallback returned when the provider is temporarily unavailable
+   (e.g. during Vite HMR, ErrorBoundary fallback renders, or SSR). */
+const CITIZEN_AUTH_DEFAULTS: CitizenAuthContextType = {
+  user: null,
+  token: null,
+  preferences: null,
+  emergencyContacts: [],
+  recentSafety: [],
+  unreadMessages: 0,
+  loading: true,
+  isAuthenticated: false,
+  login: async () => ({ success: false, error: 'Auth not initialised' }),
+  complete2FA: () => {},
+  register: async () => ({ success: false, error: 'Auth not initialised' }),
+  oauthLogin: async () => ({ success: false, error: 'Auth not initialised' }),
+  logout: () => {},
+  updateProfile: async () => false,
+  uploadAvatar: async () => null,
+  changePassword: async () => ({ success: false, error: 'Auth not initialised' }),
+  updatePreferences: async () => false,
+  addEmergencyContact: async () => false,
+  removeEmergencyContact: async () => false,
+  submitSafetyCheckIn: async () => false,
+  refreshProfile: async () => {},
+}
+
 export function useCitizenAuth(): CitizenAuthContextType {
   const ctx = useContext(CitizenAuthContext)
-  if (!ctx) throw new Error('useCitizenAuth must be within CitizenAuthProvider')
+  if (!ctx) {
+    if (import.meta.env.DEV) {
+      console.warn('[CitizenAuth] Context unavailable — returning safe defaults. This is normal during HMR.')
+    }
+    return CITIZEN_AUTH_DEFAULTS
+  }
   return ctx
 }
 

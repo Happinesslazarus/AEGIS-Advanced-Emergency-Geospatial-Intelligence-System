@@ -12,12 +12,13 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { getToken } from '../../utils/api'
 import {
   Users, MessageSquare, FileText, Shield, Activity, AlertTriangle,
-  Ban, VolumeX, Flag, TrendingUp, Eye, Trash2, CheckCircle2,
-  RefreshCw, Loader2, Search, X, BarChart3, Radio, Clock,
-  UserCheck, ShieldAlert, Hash, ArrowUpRight, Heart, MessageCircle
+  Ban, Flag, TrendingUp, Eye, Trash2, CheckCircle2,
+  RefreshCw, Loader2, Search, X, BarChart3, Radio,
+  ShieldAlert, Inbox, ArrowUpRight
 } from 'lucide-react'
 import CommunityChatRoom from '../citizen/CommunityChatRoom'
 import CommunityChat from '../citizen/CommunityChat'
+import AdminMessaging from './AdminMessaging'
 import { API_BASE } from '../../utils/helpers'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
@@ -91,6 +92,8 @@ function ModerationPanel({ reportedPosts, onRefresh, loading }: {
   const lang = useLanguage()
   const [searchTerm, setSearchTerm] = useState('')
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const filtered = reportedPosts.filter(p => {
     if (!searchTerm.trim()) return true
@@ -101,6 +104,7 @@ function ModerationPanel({ reportedPosts, onRefresh, loading }: {
   const handleDeletePost = async (postId: string) => {
     if (!window.confirm(t('community.confirmDeletePost', lang))) return
     setDeletingId(postId)
+    setDeleteError(null)
     try {
       const res = await fetch(`${API_BASE}/api/community/posts/${postId}`, {
         method: 'DELETE',
@@ -108,9 +112,13 @@ function ModerationPanel({ reportedPosts, onRefresh, loading }: {
       })
       if (res.ok) {
         onRefresh()
+      } else {
+        const errData = await res.json().catch(() => ({}))
+        setDeleteError(errData.error || 'Failed to remove post. Please try again.')
       }
     } catch (err) {
       console.error('Failed to delete post:', err)
+      setDeleteError('Network error. Please check your connection and try again.')
     } finally {
       setDeletingId(null)
     }
@@ -155,6 +163,17 @@ function ModerationPanel({ reportedPosts, onRefresh, loading }: {
               <X className="w-4 h-4 text-gray-400 dark:text-gray-300" />
             </button>
           )}
+        </div>
+      )}
+
+      {/* Delete error feedback */}
+      {deleteError && (
+        <div role="alert" className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/40 rounded-xl text-xs text-red-700 dark:text-red-400">
+          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+          <span className="flex-1">{deleteError}</span>
+          <button onClick={() => setDeleteError(null)} className="text-red-400 hover:text-red-600" aria-label="Dismiss error">
+            <X className="w-3.5 h-3.5" />
+          </button>
         </div>
       )}
 
@@ -206,7 +225,7 @@ function ModerationPanel({ reportedPosts, onRefresh, loading }: {
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-3">{post.content}</p>
+                    <p className={`text-sm text-gray-700 dark:text-gray-300 ${expandedId === post.id ? '' : 'line-clamp-3'}`}>{post.content}</p>
                     {post.image_url && (
                       <img src={post.image_url} alt="" className="mt-2 rounded-lg max-h-32 object-cover border border-gray-100 dark:border-gray-800" />
                     )}
@@ -223,9 +242,12 @@ function ModerationPanel({ reportedPosts, onRefresh, loading }: {
                     {deletingId === post.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
                     {t('community.removePost', lang)}
                   </button>
-                  <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg transition">
+                  <button
+                    onClick={() => setExpandedId(expandedId === post.id ? null : post.id)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg transition"
+                  >
                     <Eye className="w-3 h-3" />
-                    {t('community.viewFullPost', lang)}
+                    {expandedId === post.id ? 'Collapse' : t('community.viewFullPost', lang)}
                   </button>
                 </div>
               </div>
@@ -238,7 +260,7 @@ function ModerationPanel({ reportedPosts, onRefresh, loading }: {
 }
 
 /*  Overview Tab  */
-function OverviewPanel({ stats, reportedPosts }: { stats: CommunityStats; reportedPosts: ReportedPost[] }) {
+function OverviewPanel({ stats, reportedPosts, onTabChange }: { stats: CommunityStats; reportedPosts: ReportedPost[]; onTabChange: (tab: 'overview' | 'chat' | 'messages' | 'posts' | 'moderation') => void }) {
   const lang = useLanguage()
   return (
     <div className="space-y-6">
@@ -332,34 +354,34 @@ function OverviewPanel({ stats, reportedPosts }: { stats: CommunityStats; report
           Quick Actions
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          <div className="flex items-center gap-2.5 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30">
+          <button onClick={() => onTabChange('chat')} className="flex items-center gap-2.5 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-950/40 transition text-left w-full">
             <MessageSquare className="w-4 h-4 text-blue-500" />
             <div>
               <p className="text-xs font-semibold text-blue-700 dark:text-blue-300">{t('community.liveChat', lang)}</p>
               <p className="text-[10px] text-blue-500/70">{t('community.monitorConversations', lang)}</p>
             </div>
-          </div>
-          <div className="flex items-center gap-2.5 p-3 rounded-lg bg-violet-50 dark:bg-violet-950/20 border border-violet-100 dark:border-violet-900/30">
+          </button>
+          <button onClick={() => onTabChange('posts')} className="flex items-center gap-2.5 p-3 rounded-lg bg-violet-50 dark:bg-violet-950/20 border border-violet-100 dark:border-violet-900/30 hover:bg-violet-100 dark:hover:bg-violet-950/40 transition text-left w-full">
             <FileText className="w-4 h-4 text-violet-500" />
             <div>
               <p className="text-xs font-semibold text-violet-700 dark:text-violet-300">{t('community.postsFeed', lang)}</p>
               <p className="text-[10px] text-violet-500/70">{t('community.reviewCommunityPosts', lang)}</p>
             </div>
-          </div>
-          <div className="flex items-center gap-2.5 p-3 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30">
+          </button>
+          <button onClick={() => onTabChange('moderation')} className="flex items-center gap-2.5 p-3 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30 hover:bg-red-100 dark:hover:bg-red-950/40 transition text-left w-full">
             <ShieldAlert className="w-4 h-4 text-red-500" />
             <div>
               <p className="text-xs font-semibold text-red-700 dark:text-red-300">{t('community.moderation', lang)}</p>
               <p className="text-[10px] text-red-500/70">{reportedPosts.length > 0 ? `${reportedPosts.length} ${t('community.pending', lang)}` : t('community.allClear', lang)}</p>
             </div>
-          </div>
-          <div className="flex items-center gap-2.5 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30">
+          </button>
+          <button onClick={() => onTabChange('messages')} className="flex items-center gap-2.5 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-950/40 transition text-left w-full">
             <Ban className="w-4 h-4 text-emerald-500" />
             <div>
               <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">{t('community.userMgmt', lang)}</p>
               <p className="text-[10px] text-emerald-500/70">{t('community.banMuteKick', lang)}</p>
             </div>
-          </div>
+          </button>
         </div>
       </div>
     </div>
@@ -369,7 +391,7 @@ function OverviewPanel({ stats, reportedPosts }: { stats: CommunityStats; report
 // MAIN COMPONENT
 export default function AdminCommunityHub(): JSX.Element {
   const lang = useLanguage()
-  const [activeTab, setActiveTab] = useState<'overview' | 'chat' | 'posts' | 'moderation'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'chat' | 'messages' | 'posts' | 'moderation'>('overview')
   const [stats, setStats] = useState<CommunityStats>({
     totalMessages: 0,
     totalPosts: 0,
@@ -380,6 +402,7 @@ export default function AdminCommunityHub(): JSX.Element {
   })
   const [reportedPosts, setReportedPosts] = useState<ReportedPost[]>([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
 
   const fetchStats = useCallback(async () => {
     try {
@@ -401,34 +424,46 @@ export default function AdminCommunityHub(): JSX.Element {
           .sort((a: any, b: any) => Number(b.reports_count) - Number(a.reports_count))
       }
 
-      // Fetch chat messages count
-      const chatRes = await fetch(`${API_BASE}/api/community/chat/messages?limit=1`, { headers })
+      // Fetch recent chat messages count (approximate — API has no count endpoint)
+      const chatRes = await fetch(`${API_BASE}/api/community/chat/messages?limit=50`, { headers })
       let msgCount = 0
       if (chatRes.ok) {
         const msgs = await chatRes.json()
-        // The API returns messages array — count is approximate from what's available
-        msgCount = Array.isArray(msgs) ? msgs.length : 0
+        msgCount = Array.isArray(msgs) ? msgs.length : (Array.isArray(msgs?.messages) ? msgs.messages.length : 0)
       }
 
-      setStats({
-        totalMessages: msgCount > 0 ? msgCount : stats.totalMessages,
+      // Fetch community member stats
+      let totalMembers = 0
+      let onlineNow = 0
+      try {
+        const statsRes = await fetch(`${API_BASE}/api/community/stats`, { headers })
+        if (statsRes.ok) {
+          const sd = await statsRes.json()
+          totalMembers = sd.totalMembers || 0
+          onlineNow = sd.onlineNow || 0
+        }
+      } catch { /* stats endpoint unavailable — keep previous values */ }
+
+      setStats(prev => ({
+        totalMessages: msgCount > 0 ? msgCount : prev.totalMessages,
         totalPosts: posts.length,
-        totalMembers: stats.totalMembers || 0, // Will be updated from socket
-        onlineNow: stats.onlineNow || 0, // Will be updated from socket
+        totalMembers: totalMembers || prev.totalMembers,
+        onlineNow: onlineNow,
         reportedPosts: reported.length,
         recentActivity: posts.filter((p: any) => {
           const created = new Date(p.created_at)
           const dayAgo = new Date(Date.now() - 86400000)
           return created > dayAgo
         }).length,
-      })
+      }))
       setReportedPosts(reported)
+      setFetchError(null)
     } catch (err) {
-      console.error('[AdminCommunityHub] Failed to fetch stats:', err)
+      setFetchError(t('admin.community.fetchError', lang) || 'Failed to load community stats')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [lang])
 
   useEffect(() => {
     fetchStats()
@@ -436,11 +471,30 @@ export default function AdminCommunityHub(): JSX.Element {
     return () => clearInterval(interval)
   }, [fetchStats])
 
+  const TABS = ['overview', 'chat', 'messages', 'posts', 'moderation'] as const
+
+  // Keyboard shortcuts
+  const [showKeyboard, setShowKeyboard] = useState(false)
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+      const key = e.key.toLowerCase()
+      if (key === 'r' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); setLoading(true); fetchStats() }
+      else if (key >= '1' && key <= '5') { e.preventDefault(); setActiveTab(TABS[parseInt(key) - 1]) }
+      else if (key === '?' || (e.shiftKey && key === '/')) { e.preventDefault(); setShowKeyboard(p => !p) }
+      else if (key === 'escape') setShowKeyboard(false)
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [fetchStats])
+
   const tabs = [
-    { key: 'overview' as const, label: t('community.overview', lang), icon: BarChart3 },
-    { key: 'chat' as const, label: t('community.liveChat', lang), icon: MessageSquare },
-    { key: 'posts' as const, label: t('community.postsFeed', lang), icon: FileText },
-    { key: 'moderation' as const, label: t('community.moderation', lang), icon: ShieldAlert, badge: reportedPosts.length },
+    { key: 'overview' as const,    label: t('community.overview', lang),    icon: BarChart3 },
+    { key: 'chat' as const,        label: 'Community Chat',                  icon: MessageSquare },
+    { key: 'messages' as const,    label: 'Messages',                        icon: Inbox },
+    { key: 'posts' as const,       label: t('community.postsFeed', lang),    icon: FileText },
+    { key: 'moderation' as const,  label: t('community.moderation', lang),   icon: ShieldAlert, badge: reportedPosts.length },
   ]
 
   return (
@@ -471,16 +525,25 @@ export default function AdminCommunityHub(): JSX.Element {
         </button>
       </div>
 
-      {/* Tab Bar — Premium pill tabs */}
-      <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl w-fit shadow-inner">
+      {/* Fetch error banner */}
+      {fetchError && (
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-50 dark:bg-red-950/30 ring-1 ring-red-200 dark:ring-red-800 text-red-600 dark:text-red-400 text-xs font-medium">
+          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+          {fetchError}
+          <button onClick={() => setFetchError(null)} className="ml-auto"><X className="w-3.5 h-3.5" /></button>
+        </div>
+      )}
+
+      {/* Tab Bar — Premium pill tabs, scrollable on small screens */}
+      <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl overflow-x-auto scrollbar-none shadow-inner">
         {tabs.map(tab => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`px-5 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+            className={`flex-shrink-0 px-3 sm:px-5 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
               activeTab === tab.key
                 ? 'bg-white dark:bg-gray-700 text-aegis-700 dark:text-white shadow-md'
-                : 'text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300'
+                : 'text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300'
             }`}
           >
             <tab.icon className="w-3.5 h-3.5" />
@@ -499,8 +562,9 @@ export default function AdminCommunityHub(): JSX.Element {
       </div>
 
       {/* Tab Content */}
-      {activeTab === 'overview' && <OverviewPanel stats={stats} reportedPosts={reportedPosts} />}
+      {activeTab === 'overview' && <OverviewPanel stats={stats} reportedPosts={reportedPosts} onTabChange={setActiveTab} />}
       {activeTab === 'chat' && <CommunityChatRoom />}
+      {activeTab === 'messages' && <AdminMessaging />}
       {activeTab === 'posts' && <CommunityChat />}
       {activeTab === 'moderation' && (
         <ModerationPanel
@@ -509,7 +573,17 @@ export default function AdminCommunityHub(): JSX.Element {
           loading={loading}
         />
       )}
+
+      {showKeyboard && (
+        <div className="mt-3 bg-gray-900 text-white rounded-xl p-3 flex items-center gap-4 flex-wrap text-[10px] font-mono ring-1 ring-gray-700">
+          <span className="font-bold text-gray-400 uppercase tracking-wider mr-1">Shortcuts</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">R</kbd> Refresh</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">1-5</kbd> Switch Tabs</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">?</kbd> Toggle Shortcuts</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">Esc</kbd> Close</span>
+        </div>
+      )}
     </div>
   )
 }
-
+

@@ -105,7 +105,7 @@ if (VAPID_CONFIG.publicKey && VAPID_CONFIG.privateKey) {
 
 export interface Alert {
   id: string
-  type: 'flood' | 'drought' | 'heatwave' | 'storm' | 'general'
+  type: string
   severity: 'critical' | 'warning' | 'info'
   title: string
   message: string
@@ -113,6 +113,8 @@ export interface Alert {
   actionRequired?: string
   expiresAt?: Date
   metadata?: Record<string, any>
+  subscriberName?: string
+  issuedAt?: Date
 }
 
 export interface AlertRecipient {
@@ -128,6 +130,7 @@ export interface DeliveryResult {
   success: boolean
   messageId?: string
   error?: string
+  expired?: boolean  // true when push subscription is gone (410/404) — should be deactivated
   timestamp: Date
 }
 
@@ -181,10 +184,16 @@ export async function sendEmailAlert(
       from: `"${EMAIL_FROM_NAME}" <${EMAIL_FROM}>`,
       replyTo: EMAIL_REPLY_TO,
       to: recipient,
-      subject: `[${alert.severity.toUpperCase()}] ${alert.title}`,
+      subject: `AEGIS ${alert.severity.toUpperCase()} ALERT: ${alert.title}`,
       text: textContent,
       html: htmlContent,
       priority: alert.severity === 'critical' ? 'high' : 'normal',
+      headers: {
+        'X-Mailer': 'AEGIS Emergency Management System',
+        'X-Priority': alert.severity === 'critical' ? '1' : '3',
+        'Precedence': 'bulk',
+        'List-Unsubscribe': `<mailto:${EMAIL_REPLY_TO}?subject=unsubscribe>`,
+      },
     })
 
     logger.info({ recipient, messageId: info.messageId, durationMs: Date.now() - startTime }, 'Email sent')
@@ -223,7 +232,12 @@ function generateEmailHTML(alert: Alert): string {
 
   const color = severityColors[alert.severity] || '#2563eb'
   const bg = severityBg[alert.severity] || '#eff6ff'
-  const timestamp = new Date().toLocaleString('en-GB', { dateStyle: 'full', timeStyle: 'short' })
+  const issuedAt = alert.issuedAt || new Date()
+  const timestamp = issuedAt.toLocaleString('en-GB', { dateStyle: 'full', timeStyle: 'short' })
+  const refId = alert.id.substring(0, 8).toUpperCase()
+  const greeting = alert.subscriberName
+    ? `Dear ${alert.subscriberName},`
+    : 'Dear Subscriber,'
 
   return `
 <!DOCTYPE html>
@@ -242,15 +256,24 @@ function generateEmailHTML(alert: Alert): string {
         <td style="text-align: right;"><span style="font-size: 12px; opacity: 0.85;">AEGIS Emergency Management</span></td>
       </tr></table>
       <p style="margin: 8px 0 0 0; font-size: 12px; opacity: 0.8;">Issued: ${timestamp}</p>
+      <p style="margin: 4px 0 0 0; font-size: 11px; opacity: 0.7;">Ref: AEGIS-${refId}</p>
     </div>
 
-    <!-- Alert Title & Location -->
-    <div style="background-color: ${bg}; border-left: 4px solid ${color}; padding: 18px 20px; margin: 20px 24px;">
+    <!-- Greeting -->
+    <div style="padding: 20px 24px 0 24px;">
+      <p style="margin: 0; font-size: 14px; color: #374151;">${greeting}</p>
+      <p style="margin: 8px 0 0 0; font-size: 14px; color: #374151;">An emergency alert has been issued for your area. Please read the details below carefully.</p>
+    </div>
+
+    <!-- Alert Title & Details -->
+    <div style="background-color: ${bg}; border-left: 4px solid ${color}; padding: 18px 20px; margin: 16px 24px;">
       <h2 style="margin: 0 0 10px 0; font-size: 18px; font-weight: 700; color: ${color};">${alert.title}</h2>
       <table cellpadding="0" cellspacing="0" border="0" style="font-size: 13px; color: #4b5563;">
-        <tr><td style="padding: 2px 12px 2px 0; font-weight: 600; color: #374151;">Location:</td><td>${alert.area}</td></tr>
-        <tr><td style="padding: 2px 12px 2px 0; font-weight: 600; color: #374151;">Type:</td><td style="text-transform: capitalize;">${alert.type}</td></tr>
-        <tr><td style="padding: 2px 12px 2px 0; font-weight: 600; color: #374151;">Severity:</td><td style="text-transform: uppercase; font-weight: 600; color: ${color};">${alert.severity}</td></tr>
+        <tr><td style="padding: 3px 12px 3px 0; font-weight: 600; color: #374151;">Location:</td><td>${alert.area}</td></tr>
+        <tr><td style="padding: 3px 12px 3px 0; font-weight: 600; color: #374151;">Type:</td><td style="text-transform: capitalize;">${alert.type.replace(/_/g, ' ')}</td></tr>
+        <tr><td style="padding: 3px 12px 3px 0; font-weight: 600; color: #374151;">Severity:</td><td style="text-transform: uppercase; font-weight: 600; color: ${color};">${alert.severity}</td></tr>
+        <tr><td style="padding: 3px 12px 3px 0; font-weight: 600; color: #374151;">Date & Time:</td><td>${timestamp}</td></tr>
+        <tr><td style="padding: 3px 12px 3px 0; font-weight: 600; color: #374151;">Reference:</td><td>AEGIS-${refId}</td></tr>
       </table>
     </div>
 
@@ -260,7 +283,7 @@ function generateEmailHTML(alert: Alert): string {
 
       ${alert.actionRequired ? `
       <div style="background-color: #fef3c7; border-left: 4px solid #d97706; padding: 14px 16px; margin: 16px 0; border-radius: 6px;">
-        <p style="margin: 0; font-weight: 700; color: #92400e; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Action Required</p>
+        <p style="margin: 0; font-weight: 700; color: #92400e; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">ACTION REQUIRED</p>
         <p style="margin: 6px 0 0 0; color: #78350f; font-size: 13px; line-height: 1.6;">${alert.actionRequired}</p>
       </div>
       ` : ''}
@@ -272,11 +295,20 @@ function generateEmailHTML(alert: Alert): string {
       ` : ''}
     </div>
 
+    <!-- Safety tip -->
+    <div style="padding: 0 24px 16px 24px;">
+      <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 16px;">
+        <p style="margin: 0; font-size: 12px; color: #166534; font-weight: 600;">Stay Safe</p>
+        <p style="margin: 4px 0 0 0; font-size: 12px; color: #15803d; line-height: 1.5;">Follow official guidance, keep emergency supplies ready, and monitor updates on the AEGIS platform.</p>
+      </div>
+    </div>
+
     <!-- Footer -->
     <div style="background-color: #f9fafb; padding: 18px 24px; border-top: 1px solid #e5e7eb;">
       <p style="margin: 0; font-size: 11px; color: #9ca3af; text-align: center; line-height: 1.6;">
         AEGIS Emergency Management System<br>
-        For assistance, contact <strong>${SUPPORT_EMAIL}</strong> or call your local emergency services.
+        For assistance, contact <strong>${SUPPORT_EMAIL}</strong> or call your local emergency services.<br>
+        <span style="font-size: 10px;">To unsubscribe, reply with "unsubscribe" or contact support.</span>
       </p>
     </div>
 
@@ -287,22 +319,36 @@ function generateEmailHTML(alert: Alert): string {
 }
 
 function generateEmailText(alert: Alert): string {
-  const timestamp = new Date().toLocaleString('en-GB', { dateStyle: 'full', timeStyle: 'short' })
+  const issuedAt = alert.issuedAt || new Date()
+  const timestamp = issuedAt.toLocaleString('en-GB', { dateStyle: 'full', timeStyle: 'short' })
+  const refId = alert.id.substring(0, 8).toUpperCase()
+  const greeting = alert.subscriberName
+    ? `Dear ${alert.subscriberName},`
+    : 'Dear Subscriber,'
   return `
 AEGIS EMERGENCY MANAGEMENT
 ${alert.severity.toUpperCase()} ALERT
 Issued: ${timestamp}
+Reference: AEGIS-${refId}
+
+${greeting}
+
+An emergency alert has been issued for your area.
 
 ${alert.title}
 
 Location: ${alert.area}
-Type: ${alert.type}
+Type: ${alert.type.replace(/_/g, ' ')}
 Severity: ${alert.severity.toUpperCase()}
+Date & Time: ${timestamp}
 
 ${alert.message}
 ${alert.actionRequired ? `\nACTION REQUIRED\n${alert.actionRequired}\n` : ''}${alert.expiresAt ? `\nThis alert expires: ${new Date(alert.expiresAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}\n` : ''}
+Stay safe. Follow official guidance and monitor updates.
+
 AEGIS Emergency Management System
 For assistance, contact ${SUPPORT_EMAIL} or call your local emergency services.
+To unsubscribe, reply with "unsubscribe".
   `.trim()
 }
 
@@ -365,7 +411,11 @@ export async function sendSMSAlert(
 }
 
 function generateSMSText(alert: Alert): string {
-  return `AEGIS ${alert.severity.toUpperCase()} ALERT\n${alert.title}\nLocation: ${alert.area}\nType: ${alert.type}\n\n${alert.message}${alert.actionRequired ? `\n\nACTION REQUIRED: ${alert.actionRequired}` : ''}${alert.expiresAt ? `\nExpires: ${new Date(alert.expiresAt).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}` : ''}`
+  const issuedAt = alert.issuedAt || new Date()
+  const ts = issuedAt.toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })
+  const refId = alert.id.substring(0, 8).toUpperCase()
+  const name = alert.subscriberName ? `${alert.subscriberName}, ` : ''
+  return `AEGIS ${alert.severity.toUpperCase()} ALERT\n${name}${alert.title}\nLocation: ${alert.area}\nType: ${alert.type.replace(/_/g, ' ')}\n${ts} | Ref: ${refId}\n\n${alert.message}${alert.actionRequired ? `\n\nACTION: ${alert.actionRequired}` : ''}${alert.expiresAt ? `\nExpires: ${new Date(alert.expiresAt).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}` : ''}`
 }
 
 // WhatsApp Delivery (Twilio)
@@ -428,18 +478,24 @@ export async function sendWhatsAppAlert(
 }
 
 function generateWhatsAppText(alert: Alert): string {
-  const timestamp = new Date().toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })
+  const issuedAt = alert.issuedAt || new Date()
+  const timestamp = issuedAt.toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })
+  const refId = alert.id.substring(0, 8).toUpperCase()
+  const greeting = alert.subscriberName ? `Hi ${alert.subscriberName},\n\n` : ''
   return `*AEGIS ${alert.severity.toUpperCase()} ALERT*
 _Issued: ${timestamp}_
+_Ref: AEGIS-${refId}_
 
-*${alert.title}*
+${greeting}*${alert.title}*
 
 Location: ${alert.area}
-Type: ${alert.type}
+Type: ${alert.type.replace(/_/g, ' ')}
 Severity: ${alert.severity.toUpperCase()}
+Date & Time: ${timestamp}
 
 ${alert.message}
 ${alert.actionRequired ? `\n*ACTION REQUIRED*\n${alert.actionRequired}\n` : ''}${alert.expiresAt ? `\n_Expires: ${new Date(alert.expiresAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}_\n` : ''}
+Stay safe and follow official guidance.
 _AEGIS Emergency Management System_`
 }
 
@@ -555,10 +611,13 @@ function generateTelegramText(alert: Alert): string {
   const area = escapeMdV2(alert.area)
   const message = escapeMdV2(alert.message)
   const severity = escapeMdV2(alert.severity.toUpperCase())
-  const type = escapeMdV2(alert.type)
-  const timestamp = escapeMdV2(new Date().toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }))
+  const type = escapeMdV2(alert.type.replace(/_/g, ' '))
+  const issuedAt = alert.issuedAt || new Date()
+  const timestamp = escapeMdV2(issuedAt.toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }))
+  const refId = alert.id.substring(0, 8).toUpperCase()
+  const greeting = alert.subscriberName ? `Hi ${escapeMdV2(alert.subscriberName)},\n\n` : ''
 
-  let text = `*AEGIS ${severity} ALERT*\n_Issued: ${timestamp}_\n\n*${title}*\n\nLocation: ${area}\nType: ${type}\nSeverity: ${severity}`
+  let text = `*AEGIS ${severity} ALERT*\n_Issued: ${timestamp}_\n_Ref: AEGIS\\-${escapeMdV2(refId)}_\n\n${greeting}*${title}*\n\nLocation: ${area}\nType: ${type}\nSeverity: ${severity}\nDate \\& Time: ${timestamp}`
 
   text += `\n\n${message}`
 
@@ -569,7 +628,7 @@ function generateTelegramText(alert: Alert): string {
     text += `\n\n_Expires: ${escapeMdV2(new Date(alert.expiresAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }))}_`
   }
 
-  text += `\n\n_AEGIS Emergency Management System_`
+  text += `\n\nStay safe and follow official guidance\\.\n_AEGIS Emergency Management System_`
   return text
 }
 
@@ -594,9 +653,13 @@ export async function sendWebPushAlert(
     const severityLabel = alert.severity === 'critical' ? 'CRITICAL'
       : alert.severity === 'warning' ? 'WARNING' : 'INFO'
 
+    const issuedAt = alert.issuedAt || new Date()
+    const refId = alert.id.substring(0, 8).toUpperCase()
+    const namePrefix = alert.subscriberName ? `${alert.subscriberName}, ` : ''
+
     const payload = JSON.stringify({
       title: `AEGIS ${severityLabel}: ${alert.title}`,
-      body: `Location: ${alert.area}\nType: ${alert.type}\n\n${alert.message}${alert.actionRequired ? '\n\nAction Required: ' + alert.actionRequired : ''}`,
+      body: `${namePrefix}${alert.area}\n${alert.type.replace(/_/g, ' ')}\n${issuedAt.toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}\n\n${alert.message}${alert.actionRequired ? '\n\nAction Required: ' + alert.actionRequired : ''}`,
       icon: '/icons/icon-192x192.png',
       badge: '/icons/icon-96x96.png',
       tag: alert.id,
@@ -605,6 +668,7 @@ export async function sendWebPushAlert(
         alert_id: alert.id,
         severity: alert.severity,
         type: alert.type,
+        ref: `AEGIS-${refId}`,
         url: `/citizen?tab=safety&alert=${alert.id}`,
       },
     })
@@ -621,10 +685,14 @@ export async function sendWebPushAlert(
     }
   } catch (error: any) {
     logger.error({ err: error }, 'Web Push delivery failed')
+    // Detect expired/unregistered subscriptions (410 Gone, 404 Not Found)
+    const statusCode = error?.statusCode as number | undefined
+    const expired = statusCode === 410 || statusCode === 404
     return {
       channel: 'web',
       success: false,
       error: error.message,
+      expired,
       timestamp: new Date(),
     }
   }
@@ -769,4 +837,4 @@ export function getNotificationServiceStatus() {
     },
   }
 }
-
+

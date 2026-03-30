@@ -5,16 +5,16 @@
  * board with expandable details, timeline view, CSV export, and year grouping.
   */
 
-import { useState, useMemo, useEffect, useCallback, lazy, Suspense } from 'react'
+import { useState, useMemo, useEffect, lazy, Suspense } from 'react'
 import {
   History, Map, Clock, FileText, Search, Waves, Droplets,
-  Download, ChevronDown, ChevronUp, MapPin, Calendar,
-  TrendingUp, TrendingDown, AlertTriangle, CloudRain,
-  BarChart3, Maximize2, Minimize2, Filter, Eye, X
+  Download, ChevronDown, MapPin, Calendar,
+  TrendingUp, TrendingDown, AlertTriangle,
+  BarChart3, Maximize2, Minimize2, Eye, X
 } from 'lucide-react'
-import { HISTORICAL_EVENTS, SEASONAL_TRENDS } from '../../data/historical'
+import { HISTORICAL_EVENTS as STATIC_EVENTS, SEASONAL_TRENDS as STATIC_TRENDS } from '../../data/historical'
 import { useLocation } from '../../contexts/LocationContext'
-import { apiGetHeatmapData } from '../../utils/api'
+import { apiGetHeatmapData, apiGetHistoricalEvents, apiGetSeasonalTrends } from '../../utils/api'
 const LiveMap = lazy(() => import('../shared/LiveMap'))
 import type { HistoricalEvent } from '../../types'
 import { t } from '../../utils/i18n'
@@ -45,8 +45,9 @@ function formatDate(dateStr: string): string {
   } catch { return dateStr }
 }
 
-function getYearRange(): string {
-  const dates = HISTORICAL_EVENTS.map(e => new Date(e.date).getFullYear())
+function getYearRange(events: HistoricalEvent[]): string {
+  const dates = events.map(e => new Date(e.date).getFullYear())
+  if (dates.length === 0) return 'N/A'
   const min = Math.min(...dates)
   const max = Math.max(...dates)
   return min === max ? `${min}` : `${min}–${max}`
@@ -80,12 +81,19 @@ const SEV_CONFIG = {
 
 type SevKey = keyof typeof SEV_CONFIG
 
+interface HeatmapZone {
+  zone?: string
+  intensity?: number
+  eventCount?: number
+}
+
 export default function AdminHistoricalIntelligence() {
   const lang = useLanguage()
   const { location: loc } = useLocation()
 
   // State
-  const [heatmapData, setHeatmapData] = useState<any[]>([])
+  const [heatmapData, setHeatmapData] = useState<HeatmapZone[]>([])
+  const [heatmapError, setHeatmapError] = useState(false)
   const [histSearch, setHistSearch] = useState('')
   const [histSort, setHistSort] = useState<'date-desc' | 'date-asc' | 'severity' | 'affected'>('date-desc')
   const [histFilter, setHistFilter] = useState<'all' | 'High' | 'Medium' | 'Low'>('all')
@@ -98,11 +106,59 @@ export default function AdminHistoricalIntelligence() {
   const [page, setPage] = useState(0)
   const PAGE_SIZE = 6
 
-  // Fetch heatmap data
+  // Live data state with static fallback
+  const [HISTORICAL_EVENTS, setHistoricalEvents] = useState<HistoricalEvent[]>(STATIC_EVENTS)
+  const [SEASONAL_TRENDS, setSeasonalTrends] = useState(STATIC_TRENDS)
+  const [dataSource, setDataSource] = useState<'loading' | 'database' | 'demo'>('loading')
+  const [loading, setLoading] = useState(true)
+
+  // Fetch live data from APIs with fallback to static demo data
   useEffect(() => {
-    apiGetHeatmapData()
-      .then((d: any) => setHeatmapData(d?.intensity_data || []))
-      .catch(() => setHeatmapData([]))
+    let cancelled = false
+    async function fetchData() {
+      setLoading(true)
+      const results = await Promise.allSettled([
+        apiGetHistoricalEvents(),
+        apiGetSeasonalTrends(),
+        apiGetHeatmapData(),
+      ])
+
+      if (cancelled) return
+
+      const [eventsResult, trendsResult, heatmapResult] = results
+      let source: 'database' | 'demo' = 'demo'
+
+      // Historical events
+      if (eventsResult.status === 'fulfilled' && eventsResult.value?.events?.length > 0) {
+        setHistoricalEvents(eventsResult.value.events as HistoricalEvent[])
+        source = 'database'
+      } else {
+        setHistoricalEvents(STATIC_EVENTS)
+      }
+
+      // Seasonal trends
+      if (trendsResult.status === 'fulfilled' && trendsResult.value?.trends?.some((t: any) => t.floodCount > 0)) {
+        setSeasonalTrends(trendsResult.value.trends)
+      } else {
+        setSeasonalTrends(STATIC_TRENDS)
+      }
+
+      // Heatmap
+      if (heatmapResult.status === 'fulfilled') {
+        const d = heatmapResult.value as any
+        setHeatmapData(d?.intensity_data || [])
+        setHeatmapError(false)
+      } else {
+        console.warn('[Historical] Heatmap API unavailable, using local data')
+        setHeatmapData([])
+        setHeatmapError(true)
+      }
+
+      setDataSource(source)
+      setLoading(false)
+    }
+    fetchData()
+    return () => { cancelled = true }
   }, [])
 
   //  Computed stats
@@ -113,7 +169,7 @@ export default function AdminHistoricalIntelligence() {
     const avgAffected = HISTORICAL_EVENTS.length > 0 ? Math.round(totalAffected / HISTORICAL_EVENTS.length) : 0
     const types = [...new Set(HISTORICAL_EVENTS.map(e => e.type))]
     return { totalDamage, totalAffected, highCount, avgAffected, types }
-  }, [])
+  }, [HISTORICAL_EVENTS])
 
   //  Seasonal stats
   const seasonalStats = useMemo(() => {
@@ -122,7 +178,7 @@ export default function AdminHistoricalIntelligence() {
     const peakMonth = SEASONAL_TRENDS.reduce((best, t) => t.floodCount > best.floodCount ? t : best, SEASONAL_TRENDS[0])
     const avgSeverity = SEASONAL_TRENDS.filter(t => t.avgSeverity > 0).reduce((s, t, _, a) => s + t.avgSeverity / a.length, 0)
     return { totalFloods, totalRainfall, peakMonth, avgSeverity }
-  }, [])
+  }, [SEASONAL_TRENDS])
 
   //  Filtered + sorted events (memoized)
   const sortedEvents = useMemo(() => {
@@ -145,7 +201,7 @@ export default function AdminHistoricalIntelligence() {
       case 'affected': items.sort((a, b) => (b.affectedPeople || 0) - (a.affectedPeople || 0)); break
     }
     return items
-  }, [histSearch, histSort, histFilter, histType])
+  }, [HISTORICAL_EVENTS, histSearch, histSort, histFilter, histType])
 
   //  Year-grouped events
   const yearGroups = useMemo(() => {
@@ -168,13 +224,13 @@ export default function AdminHistoricalIntelligence() {
   //  Heatmap zone cards
   const zoneCards = useMemo(() => {
     if (heatmapData.length > 0) {
-      return heatmapData.slice(0, 4).map((h: any) => {
+      return heatmapData.slice(0, 4).map((h) => {
         const risk = Math.round((h.intensity || 0) * 100)
         const color = risk >= 80 ? 'from-red-600 to-red-700' : risk >= 65 ? 'from-red-500 to-red-600' : risk >= 50 ? 'from-orange-500 to-orange-600' : 'from-cyan-600 to-cyan-700'
         return { area: h.zone || 'Zone', risk, events: h.eventCount || 0, color }
       })
     }
-    return (loc.floodZones || []).slice(0, 4).map((z: any, i: number) => {
+    return (loc.floodZones || []).slice(0, 4).map((z: { name?: string }, i: number) => {
       const risks = [92, 78, 65, 55]
       const evts = [12, 8, 6, 5]
       const colors = ['from-red-600 to-red-700', 'from-red-500 to-red-600', 'from-orange-500 to-orange-600', 'from-cyan-600 to-cyan-700']
@@ -184,10 +240,29 @@ export default function AdminHistoricalIntelligence() {
 
   //  Event type distribution for header
   const typeDist = useMemo(() => {
+    const total = HISTORICAL_EVENTS.length
+    if (total === 0) return []
     const map: Record<string, number> = {}
     HISTORICAL_EVENTS.forEach(e => { map[e.type] = (map[e.type] || 0) + 1 })
     return Object.entries(map).sort(([, a], [, b]) => b - a)
-  }, [])
+  }, [HISTORICAL_EVENTS])
+
+  // Keyboard shortcuts
+  const [showKeyboard, setShowKeyboard] = useState(false)
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+      const key = e.key.toLowerCase()
+      if (key === 'm') { e.preventDefault(); setMapExpanded(p => !p) }
+      else if (key === 'v') { e.preventDefault(); setEventsView(p => p === 'list' ? 'timeline' : 'list') }
+      else if (key === 'e') { e.preventDefault(); exportCSV(sortedEvents) }
+      else if (key === '?' || (e.shiftKey && key === '/')) { e.preventDefault(); setShowKeyboard(p => !p) }
+      else if (key === 'escape') setShowKeyboard(false)
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [sortedEvents])
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -204,8 +279,19 @@ export default function AdminHistoricalIntelligence() {
               </div>
               <div>
                 <h2 className="text-slate-900 dark:text-white font-bold text-xl tracking-tight">{t('historical.title', lang)}</h2>
-                <p className="text-gray-400 dark:text-gray-300 text-sm">{t('historical.subtitle', lang)} &middot; {loc.name || t('historical.allRegions', lang)} &middot; {getYearRange()}</p>
+                <p className="text-gray-400 dark:text-gray-300 text-sm">{t('historical.subtitle', lang)} &middot; {loc.name || t('historical.allRegions', lang)} &middot; {getYearRange(HISTORICAL_EVENTS)}</p>
               </div>
+              {/* Data source indicator */}
+              <span
+                className={`ml-2 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider cursor-help ${
+                  dataSource === 'loading' ? 'bg-gray-600/30 text-gray-400 animate-pulse' :
+                  dataSource === 'database' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                  'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                }`}
+                title={dataSource === 'demo' ? t('historical.demoTooltip', lang) : dataSource === 'database' ? t('historical.liveTooltip', lang) : ''}
+              >
+                {dataSource === 'loading' ? t('common.loading', lang) : dataSource === 'database' ? t('historical.liveData', lang) : t('historical.sampleData', lang)}
+              </span>
             </div>
             <button
               onClick={() => exportCSV(HISTORICAL_EVENTS)}
@@ -290,7 +376,7 @@ export default function AdminHistoricalIntelligence() {
           </div>
         </div>
 
-        <Suspense fallback={<div className="h-64 animate-pulse bg-gray-200 dark:bg-gray-800 rounded" />}>
+        <Suspense fallback={<div className="animate-pulse bg-gray-200 dark:bg-gray-800 rounded" style={{ height: mapExpanded ? '620px' : '420px' }} />}>
           <LiveMap showFloodPredictions height={mapExpanded ? '620px' : '420px'} className="w-full transition-all duration-300" />
         </Suspense>
 
@@ -311,9 +397,11 @@ export default function AdminHistoricalIntelligence() {
         {/* Risk summary footer */}
         <div className="px-4 pb-3 flex items-center justify-between">
           <p className="text-[10px] text-gray-400 dark:text-gray-300 italic">
-            {heatmapData.length > 0
-              ? `${heatmapData.length} ${t('historical.historicalEvents', lang)}`
-              : `${t('common.risk', lang)} ${t('map.floodZone', lang).toLowerCase()}`}
+            {heatmapError
+              ? t('historical.heatmapFallback', lang) || 'Showing local flood zone data (live heatmap unavailable)'
+              : heatmapData.length > 0
+                ? `${heatmapData.length} ${t('historical.historicalEvents', lang)}`
+                : `${t('common.risk', lang)} ${t('map.floodZone', lang).toLowerCase()}`}
           </p>
           {zoneCards.length > 0 && (
             <div className="flex items-center gap-1.5">
@@ -814,7 +902,18 @@ export default function AdminHistoricalIntelligence() {
           </div>
         )}
       </div>
+
+      {showKeyboard && (
+        <div className="mt-3 bg-gray-900 text-white rounded-xl p-3 flex items-center gap-4 flex-wrap text-[10px] font-mono ring-1 ring-gray-700">
+          <span className="font-bold text-gray-400 uppercase tracking-wider mr-1">{t('common.shortcuts', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">M</kbd> {t('shortcuts.toggleMap', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">V</kbd> {t('shortcuts.listTimeline', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">E</kbd> {t('shortcuts.exportCsv', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">?</kbd> {t('shortcuts.toggleShortcuts', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">Esc</kbd> {t('shortcuts.close', lang)}</span>
+        </div>
+      )}
     </div>
   )
 }
-
+

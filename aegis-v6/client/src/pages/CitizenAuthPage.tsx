@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import { useCitizenAuth } from '../contexts/CitizenAuthContext'
+import type { CitizenUser } from '../contexts/CitizenAuthContext'
 import { t } from '../utils/i18n'
 import { useLanguage } from '../hooks/useLanguage'
 import { ModernNotification } from '../components/shared/ModernNotification'
@@ -31,7 +32,7 @@ import { useTheme } from '../contexts/ThemeContext'
 
 import { API_BASE, getPasswordStrength } from '../utils/helpers'
 import { validateEmail } from '../utils/validation'
-import { apiCheckAvailability } from '../utils/api'
+import { apiCheckAvailability, apiCitizen2FAAuthenticate } from '../utils/api'
 import ProfileCountryPicker, { ProfileRegionPicker } from '../components/shared/ProfileCountryPicker'
 import { REGION_MAP as FULL_REGION_MAP, getCountryEntryByName } from '../data/allCountries'
 import { getFlagUrl } from '../data/worldRegions'
@@ -62,7 +63,7 @@ const STATUS_OPTIONS = [
 ]
 
 export default function CitizenAuthPage(): JSX.Element {
-  const { login, register, uploadAvatar, isAuthenticated, loading } = useCitizenAuth()
+  const { login, complete2FA, register, uploadAvatar, isAuthenticated, loading } = useCitizenAuth()
   const navigate = useNavigate()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const navDropdownRef = useRef<HTMLDivElement>(null)
@@ -117,6 +118,16 @@ export default function CitizenAuthPage(): JSX.Element {
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null)
   // Field-level validation errors (shown onBlur and real-time)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+
+  // 2FA challenge state
+  const [twoFactorRequired, setTwoFactorRequired] = useState(false)
+  const [tempToken, setTempToken] = useState('')
+  const [twoFactorCode, setTwoFactorCode] = useState('')
+  const [twoFactorError, setTwoFactorError] = useState('')
+  const [twoFactorLoading, setTwoFactorLoading] = useState(false)
+  const [twoFactorMode, setTwoFactorMode] = useState<'totp' | 'backup'>('totp')
+  const [rememberDevice, setRememberDevice] = useState(false)
+  const twoFactorInputRef = useRef<HTMLInputElement>(null)
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -379,7 +390,13 @@ export default function CitizenAuthPage(): JSX.Element {
         }
       } else {
         const result = await login(email.trim(), password)
-        if (result.success) {
+        if (result.requires2FA && result.tempToken) {
+          setTwoFactorRequired(true)
+          setTempToken(result.tempToken)
+          setTwoFactorCode('')
+          setTwoFactorError('')
+          setTimeout(() => twoFactorInputRef.current?.focus(), 100)
+        } else if (result.success) {
           setNotification({ message: t('citizen.auth.success.login', lang), type: 'success' })
           setTimeout(() => navigate('/citizen/dashboard', { replace: true }), 300)
         } else {
@@ -395,6 +412,39 @@ export default function CitizenAuthPage(): JSX.Element {
     } finally {
       setSubmitting(false)
     }
+  }
+
+  // 2FA Challenge handler
+  const handle2FASubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setTwoFactorError('')
+    const trimmed = twoFactorCode.trim()
+    if (!trimmed) { setTwoFactorError('Enter your authentication code.'); return }
+    if (twoFactorMode === 'totp' && (trimmed.length !== 6 || !/^\d{6}$/.test(trimmed))) {
+      setTwoFactorError('Enter a valid 6-digit code.'); return
+    }
+    setTwoFactorLoading(true)
+    try {
+      const res = await apiCitizen2FAAuthenticate(tempToken, trimmed, rememberDevice)
+      complete2FA(res.token, res.user as CitizenUser, res.preferences)
+      setNotification({ message: t('citizen.auth.success.login', lang), type: 'success' })
+      setTimeout(() => navigate('/citizen/dashboard', { replace: true }), 300)
+    } catch (err: any) {
+      const msg = err.message || 'Verification failed.'
+      if (msg.includes('expired') || msg.includes('log in again')) {
+        setTwoFactorRequired(false); setTempToken('')
+        setError('Session expired. Please log in again.')
+      } else {
+        setTwoFactorError(msg)
+        setTwoFactorCode('')
+        twoFactorInputRef.current?.focus()
+      }
+    } finally { setTwoFactorLoading(false) }
+  }
+
+  const handle2FACancel = () => {
+    setTwoFactorRequired(false); setTempToken(''); setTwoFactorCode('')
+    setTwoFactorError(''); setTwoFactorMode('totp'); setRememberDevice(false)
   }
 
   const STEPS = [
@@ -524,6 +574,75 @@ export default function CitizenAuthPage(): JSX.Element {
         )}
 
         <div className="w-full max-w-md mx-auto">
+          {/* 2FA Challenge Screen */}
+          {twoFactorRequired ? (
+            <div className="space-y-6" style={{ animation: 'aegis-fade-up 0.3s ease-out' }}>
+              <div className="text-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-aegis-500 to-aegis-700 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-aegis-600/30">
+                  <Shield className="w-8 h-8 text-white" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Two-Factor Authentication</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-300 mt-1">
+                  {twoFactorMode === 'totp' ? 'Enter the 6-digit code from your authenticator app' : 'Enter one of your backup recovery codes'}
+                </p>
+              </div>
+
+              {twoFactorError && (
+                <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-3 py-2 rounded-xl text-sm flex items-center gap-2" role="alert">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />{twoFactorError}
+                </div>
+              )}
+
+              <form onSubmit={handle2FASubmit} className="bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700/50 rounded-2xl p-6 shadow-xl shadow-gray-200/30 dark:shadow-black/20 space-y-4">
+                {/* Mode tabs */}
+                <div className="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
+                  <button type="button" onClick={() => { setTwoFactorMode('totp'); setTwoFactorCode(''); setTwoFactorError('') }}
+                    className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${twoFactorMode === 'totp' ? 'bg-white dark:bg-gray-700 text-aegis-700 dark:text-aegis-300 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}>
+                    Authenticator Code
+                  </button>
+                  <button type="button" onClick={() => { setTwoFactorMode('backup'); setTwoFactorCode(''); setTwoFactorError('') }}
+                    className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${twoFactorMode === 'backup' ? 'bg-white dark:bg-gray-700 text-aegis-700 dark:text-aegis-300 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}>
+                    Backup Code
+                  </button>
+                </div>
+
+                {/* Code input */}
+                <div>
+                  <input
+                    ref={twoFactorInputRef}
+                    type="text"
+                    inputMode={twoFactorMode === 'totp' ? 'numeric' : 'text'}
+                    autoComplete="one-time-code"
+                    placeholder={twoFactorMode === 'totp' ? '000000' : 'XXXX-XXXX'}
+                    value={twoFactorCode}
+                    onChange={e => setTwoFactorCode(twoFactorMode === 'totp' ? e.target.value.replace(/\D/g, '').slice(0, 6) : e.target.value)}
+                    maxLength={twoFactorMode === 'totp' ? 6 : 20}
+                    className="w-full text-center text-xl font-mono tracking-[0.3em] py-3 bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 focus:border-aegis-500 focus:ring-2 focus:ring-aegis-500/20 outline-none"
+                  />
+                </div>
+
+                {/* Remember device */}
+                <label className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                  <input type="checkbox" checked={rememberDevice} onChange={e => setRememberDevice(e.target.checked)} className="rounded border-gray-300 text-aegis-600 focus:ring-aegis-500" />
+                  Trust this device for 30 days
+                </label>
+
+                {/* Buttons */}
+                <div className="flex gap-2">
+                  <button type="button" onClick={handle2FACancel}
+                    className="flex-1 py-3 text-sm font-semibold rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                    <ArrowLeft className="w-4 h-4 inline mr-1" />Back
+                  </button>
+                  <button type="submit" disabled={twoFactorLoading || !twoFactorCode.trim()}
+                    className="flex-1 py-3 text-sm font-semibold rounded-xl bg-gradient-to-r from-aegis-600 to-aegis-700 text-white hover:from-aegis-700 hover:to-aegis-800 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed transition-all shadow-lg shadow-aegis-600/20 flex items-center justify-center gap-2">
+                    {twoFactorLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
+                    Verify
+                  </button>
+                </div>
+              </form>
+            </div>
+          ) : (
+          <>
           {/* Auth Form */}
           {/* Header */}
           <div className="text-center mb-6">
@@ -1031,6 +1150,8 @@ export default function CitizenAuthPage(): JSX.Element {
               <Link to="/citizen" className="text-gray-400 dark:text-gray-300 hover:text-gray-600">{t('citizen.auth.continueWithout', lang)}</Link>
             </p>
           </div>
+          )}
+          </>
           )}
         </div>
       </div>

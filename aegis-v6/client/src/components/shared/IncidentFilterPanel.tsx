@@ -5,10 +5,32 @@
  * to display on dashboards and maps. Uses the IncidentContext.
  */
 
+import { type ElementType } from 'react'
+import {
+  Droplets, CloudLightning, Thermometer, Flame, MountainSnow,
+  Zap, Pipette, Building2, Shield, Radiation, Sun, Globe, HelpCircle,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useIncidents, type IncidentTypeId } from '../../contexts/IncidentContext'
-import { INCIDENT_COLORS, INCIDENT_ICONS } from './IncidentMapLayers'
+import { INCIDENT_COLORS } from './IncidentMapLayers'
 import { useLanguage } from '../../hooks/useLanguage'
+
+/** Lucide icon for each incident type — no unicode emoji */
+const INCIDENT_LUCIDE_ICONS: Record<string, ElementType> = {
+  flood:                    Droplets,
+  severe_storm:             CloudLightning,
+  heatwave:                 Thermometer,
+  wildfire:                 Flame,
+  landslide:                MountainSnow,
+  power_outage:             Zap,
+  water_supply:             Pipette,
+  water_supply_disruption:  Pipette,
+  infrastructure_damage:    Building2,
+  public_safety:            Shield,
+  public_safety_incident:   Shield,
+  environmental_hazard:     Radiation,
+  drought:                  Sun,
+}
 
 const SEVERITY_OPTIONS = [
   { value: null, label: 'all' },
@@ -31,15 +53,6 @@ export default function IncidentFilterPanel(): JSX.Element {
     activeIncidentCount,
     operationalTypes,
   } = useIncidents()
-
-  const toggleType = (type: IncidentTypeId) => {
-    const currentTypes = filter.types
-    if (currentTypes.includes(type)) {
-      setFilter({ types: currentTypes.filter(t => t !== type) })
-    } else {
-      setFilter({ types: [...currentTypes, type] })
-    }
-  }
 
   const selectSingleType = (type: IncidentTypeId | null) => {
     setSelectedIncidentType(type)
@@ -76,19 +89,20 @@ export default function IncidentFilterPanel(): JSX.Element {
       <div className="flex flex-wrap gap-2 mb-3">
         <button
           onClick={() => selectSingleType(null)}
-          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${
             !selectedIncidentType
               ? 'bg-aegis-600 text-white shadow-sm'
               : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
           }`}
         >
+          <Globe className="w-3 h-3" />
           {t('dashboard:incidentFilter.all')}
         </button>
         {operationalTypes.map(type => {
           const mod = registry.find(m => m.id === type)
           const isSelected = selectedIncidentType === type || filter.types.includes(type)
           const color = INCIDENT_COLORS[type] || '#6B7280'
-          const iconEmoji = INCIDENT_ICONS[type] || '??'
+          const IconComp: ElementType = INCIDENT_LUCIDE_ICONS[type] ?? HelpCircle
 
           return (
             <button
@@ -102,7 +116,7 @@ export default function IncidentFilterPanel(): JSX.Element {
               style={isSelected ? { backgroundColor: color } : {}}
               title={mod?.description || type}
             >
-              <span>{iconEmoji}</span>
+              <IconComp className="w-3 h-3 flex-shrink-0" />
               <span className="capitalize">{t(`incidents:types.${type}.name`, type.replace(/_/g, ' '))}</span>
             </button>
           )
@@ -129,7 +143,7 @@ export default function IncidentFilterPanel(): JSX.Element {
                   : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 hover:bg-gray-200'
               }`}
             >
-              {t(`common:severity.${opt.label}`, opt.label)}
+              {(() => { const label = t(`common:severity.${opt.label}`, opt.label); return label.charAt(0).toUpperCase() + label.slice(1) })()}
             </button>
           ))}
         </div>
@@ -137,4 +151,3 @@ export default function IncidentFilterPanel(): JSX.Element {
     </div>
   )
 }
-

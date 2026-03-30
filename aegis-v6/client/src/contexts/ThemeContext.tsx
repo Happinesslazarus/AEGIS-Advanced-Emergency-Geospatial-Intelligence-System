@@ -82,8 +82,16 @@ export function ThemeProvider({ children }: { children: ReactNode }): JSX.Elemen
   )
 }
 
+const THEME_DEFAULTS: ThemeContextType = {
+  dark: false, toggle: () => {}, darkMode: false, toggleDarkMode: () => {},
+  theme: 'default', setTheme: () => {}, themeConfig: THEMES[0],
+}
+
 export function useTheme(): ThemeContextType {
   const ctx = useContext(ThemeContext)
-  if (!ctx) throw new Error('useTheme must be within ThemeProvider')
+  if (!ctx) {
+    if (import.meta.env.DEV) console.warn('[Theme] Context unavailable — returning safe defaults.')
+    return THEME_DEFAULTS
+  }
   return ctx
 }

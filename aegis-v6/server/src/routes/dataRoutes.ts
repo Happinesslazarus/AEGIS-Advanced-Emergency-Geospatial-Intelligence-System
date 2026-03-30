@@ -10,6 +10,7 @@
   */
 
 import { Router, Request, Response, NextFunction } from 'express'
+import rateLimit from 'express-rate-limit'
 import pool from '../models/db.js'
 import { adminOnly, authMiddleware, operatorOnly, AuthRequest, verifyToken } from '../middleware/auth.js'
 import { FloodDataClient } from '../utils/FloodDataClient.js'
@@ -27,6 +28,15 @@ const floodDataClient = new FloodDataClient()
 const activeRegion = getActiveCityRegion()
 const defaultLat = activeRegion.centre.lat
 const defaultLng = activeRegion.centre.lng
+
+// Rate limiter for public notification subscription endpoints
+const pushSubscriptionLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { error: 'Too many subscription requests, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+})
 
  /*
  * ALERTS ENDPOINTS
@@ -88,20 +98,30 @@ router.post('/alerts', authMiddleware, operatorOnly, async (req: AuthRequest, re
     }
 
     const hasCoords = lat != null && lng != null
-    const coordsSql = hasCoords
-      ? 'ST_SetSRID(ST_Point($6::float8, $7::float8), 4326)'
-      : 'NULL'
 
-    const result = await pool.query(
-      `INSERT INTO alerts (title, message, severity, alert_type, location_text, coordinates, radius_km, expires_at, created_by)
-       VALUES ($1, $2, $3, $4, $5, ${coordsSql}, $8, $9, $10)
-       RETURNING id, created_at`,
-      [
-        title, message, severity, alertType || 'general', locationText || '',
-        hasCoords ? parseFloat(lng as string) : null, hasCoords ? parseFloat(lat as string) : null,
-        radiusKm || 10.0, expiresAt || null, req.user!.id
-      ]
-    )
+    let result: any
+    if (hasCoords) {
+      result = await pool.query(
+        `INSERT INTO alerts (title, message, severity, alert_type, location_text, coordinates, radius_km, expires_at, created_by)
+         VALUES ($1, $2, $3, $4, $5, ST_SetSRID(ST_Point($6::float8, $7::float8), 4326), $8, $9::timestamptz, $10::uuid)
+         RETURNING id, created_at`,
+        [
+          title, message, severity, alertType || 'general', locationText || '',
+          parseFloat(lng as string), parseFloat(lat as string),
+          radiusKm || 10.0, expiresAt || null, req.user!.id,
+        ]
+      )
+    } else {
+      result = await pool.query(
+        `INSERT INTO alerts (title, message, severity, alert_type, location_text, coordinates, radius_km, expires_at, created_by)
+         VALUES ($1, $2, $3, $4, $5, NULL, $6, $7::timestamptz, $8::uuid)
+         RETURNING id, created_at`,
+        [
+          title, message, severity, alertType || 'general', locationText || '',
+          radiusKm || 10.0, expiresAt || null, req.user!.id,
+        ]
+      )
+    }
 
     // Log the alert creation
     await pool.query(
@@ -113,7 +133,7 @@ router.post('/alerts', authMiddleware, operatorOnly, async (req: AuthRequest, re
     const alertId = result.rows[0].id
     const targetChannels = sanitizeChannels(channels)
     const recipients = await getSubscribersForChannels(targetChannels, severity)
-    const deliveryResults = await dispatchAlertDeliveries(alertId, title, message, targetChannels, recipients)
+    const deliveryResults = await dispatchAlertDeliveries(alertId, title, message, targetChannels, recipients, locationText, alertType)
     alertBroadcastsTotal.inc()
 
     // Invalidate cached alert and flood-data listings so consumers see the new alert immediately
@@ -660,7 +680,7 @@ async function getSubscribersForChannels(channels: string[], severity: string): 
     const queryChannels = Array.from(new Set(channels))
 
     const query = `
-      SELECT id, email, phone, telegram_id, whatsapp, channels, severity_filter, verified
+      SELECT id, email, phone, telegram_id, whatsapp, channels, severity_filter, verified, subscriber_name
       FROM alert_subscriptions
       WHERE verified = true
         AND ($1 = ANY(severity_filter) OR cardinality(severity_filter) = 0)
@@ -679,7 +699,9 @@ async function dispatchAlertDeliveries(
   title: string,
   message: string,
   channels: string[],
-  subscribers: any[]
+  subscribers: any[],
+  locationText?: string,
+  alertType?: string
 ): Promise<Array<{ channel: string; recipient: string; status: string; error?: string }>> {
   const results: Array<{ channel: string; recipient: string; status: string; error?: string }> = []
 
@@ -688,11 +710,11 @@ async function dispatchAlertDeliveries(
 
   const alertPayload: notificationService.Alert = {
     id: alertId,
-    type: 'general',
+    type: alertType || 'general',
     severity: severityLevel,
     title,
     message,
-    area: 'AEGIS Coverage Area',
+    area: locationText || 'AEGIS Coverage Area',
   }
 
   let webPushSubs: { rows: any[] } = { rows: [] }
@@ -721,28 +743,35 @@ async function dispatchAlertDeliveries(
       const recipient = getRecipientForChannel(subscriber, channel)
       if (!recipient) continue
 
+      // Create per-subscriber payload with their name
+      const subscriberPayload: notificationService.Alert = {
+        ...alertPayload,
+        subscriberName: subscriber.subscriber_name || undefined,
+        issuedAt: new Date(),
+      }
+
       let status = 'failed'
       let error: string | undefined
       let providerId: string | null = null
 
       try {
         if (channel === 'email') {
-          const delivery = await notificationService.sendEmailAlert(recipient, alertPayload)
+          const delivery = await notificationService.sendEmailAlert(recipient, subscriberPayload)
           status = delivery.success ? 'sent' : 'failed'
           providerId = delivery.messageId || null
           if (!delivery.success) error = delivery.error || 'email_delivery_failed'
         } else if (channel === 'sms') {
-          const delivery = await notificationService.sendSMSAlert(recipient, alertPayload)
+          const delivery = await notificationService.sendSMSAlert(recipient, subscriberPayload)
           status = delivery.success ? 'sent' : 'failed'
           providerId = delivery.messageId || null
           if (!delivery.success) error = delivery.error || 'sms_delivery_failed'
         } else if (channel === 'telegram') {
-          const delivery = await notificationService.sendTelegramAlert(recipient, alertPayload)
+          const delivery = await notificationService.sendTelegramAlert(recipient, subscriberPayload)
           status = delivery.success ? 'sent' : 'failed'
           providerId = delivery.messageId || null
           if (!delivery.success) error = delivery.error || 'telegram_delivery_failed'
         } else if (channel === 'whatsapp') {
-          const delivery = await notificationService.sendWhatsAppAlert(recipient, alertPayload)
+          const delivery = await notificationService.sendWhatsAppAlert(recipient, subscriberPayload)
           status = delivery.success ? 'sent' : 'failed'
           providerId = delivery.messageId || null
           if (!delivery.success) error = delivery.error || 'whatsapp_delivery_failed'
@@ -788,6 +817,11 @@ async function dispatchAlertDeliveries(
       )
       status = delivery.success ? 'sent' : 'failed'
       error = delivery.success ? undefined : (delivery.error || 'web_push_failed')
+
+      // Auto-deactivate expired/unregistered subscriptions (410 Gone, 404 Not Found)
+      if (!delivery.success && (delivery as any).expired) {
+        pool.query(`UPDATE push_subscriptions SET active = false WHERE endpoint = $1`, [sub.endpoint]).catch(() => {})
+      }
 
       const sentAt = (status === 'sent' || status === 'delivered') ? new Date() : null
       const deliveredAt = status === 'delivered' ? new Date() : null
@@ -938,7 +972,7 @@ router.get('/notifications/status', async (_req: Request, res: Response, next: N
  * Save browser push subscription for authenticated user or guest
  * Stores endpoint, p256dh, and auth in push_subscriptions table
   */
-router.post('/notifications/subscribe', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.post('/notifications/subscribe', pushSubscriptionLimiter, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { subscription } = req.body
 
@@ -1012,7 +1046,7 @@ router.post('/notifications/subscribe', async (req: Request, res: Response, next
  * POST /api/notifications/unsubscribe
  * Remove browser push subscription
   */
-router.post('/notifications/unsubscribe', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.post('/notifications/unsubscribe', pushSubscriptionLimiter, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { endpoint } = req.body
 

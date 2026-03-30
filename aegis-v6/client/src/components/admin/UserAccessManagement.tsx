@@ -4,11 +4,10 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import {
   Shield, Users, Activity, Eye, Search, RefreshCw, Clock, ChevronDown,
-  ChevronRight, Edit2, Ban, CheckCircle2, Trash2, Key, Filter, Layers,
-  AlertTriangle, Lock, Unlock, UserPlus, Download, ArrowUpDown, ArrowUp,
-  ArrowDown, Fingerprint, Globe, Monitor, Smartphone, Mail, Phone, Building2,
-  ShieldAlert, History, BarChart3, User, XCircle, Check, X, FileText,
-  MoreVertical, Copy, ExternalLink, Zap, Settings
+  ChevronRight, Edit2, Ban, CheckCircle2, Trash2, Key,
+  AlertTriangle, Lock, UserPlus, ArrowUpDown, ArrowUp,
+  ArrowDown, Fingerprint, Building2,
+  ShieldAlert, History, BarChart3, User, XCircle, Check, X, FileText
 } from 'lucide-react'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
@@ -190,7 +189,6 @@ export default function UserAccessManagement({
   const [bulkAction, setBulkAction] = useState('')
   const [auditSearch, setAuditSearch] = useState('')
   const [auditTypeFilter, setAuditTypeFilter] = useState('all')
-  const [showFilters, setShowFilters] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [fullAuditLog, setFullAuditLog] = useState<any[]>([])
   const searchRef = useRef<HTMLInputElement>(null)
@@ -226,6 +224,12 @@ export default function UserAccessManagement({
     setInviteError('')
     if (!inviteForm.email || !inviteForm.password || !inviteForm.displayName) {
       setInviteError('Email, password, and display name are required.')
+      return
+    }
+    // Basic email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(inviteForm.email)) {
+      setInviteError('Please enter a valid email address.')
       return
     }
     setInviteLoading(true)
@@ -622,7 +626,7 @@ export default function UserAccessManagement({
                           <tr>
                             <td colSpan={8} className="bg-gray-50/50 dark:bg-gray-800/20 px-5 py-4">
                               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 text-xs">
-                                <div><span className="text-gray-400 dark:text-gray-300 font-medium block mb-0.5">{t('users.accountId', lang)}</span><p className="font-mono text-[10px] font-bold text-gray-600 dark:text-gray-300 break-all">{u.id || '—'}</p></div>
+                                <div><span className="text-gray-400 dark:text-gray-300 font-medium block mb-0.5">{t('users.accountId', lang)}</span><div className="flex items-center gap-1.5 group/aid"><span className="font-mono text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/30 px-2 py-0.5 rounded-md border border-indigo-200 dark:border-indigo-800">ACC-{(u.id || '').slice(0, 6).toUpperCase()}</span><button className="opacity-0 group-hover/aid:opacity-100 transition-opacity text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(u.id || '') }} title={u.id || ''}><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg></button></div></div>
                                 <div><span className="text-gray-400 dark:text-gray-300 font-medium block mb-0.5">{t('common.email', lang)}</span><p className="font-bold text-gray-700 dark:text-gray-300 truncate">{u.email}</p></div>
                                 <div><span className="text-gray-400 dark:text-gray-300 font-medium block mb-0.5">{t('common.phone', lang)}</span><p className="font-bold text-gray-700 dark:text-gray-300">{u.phone || '—'}</p></div>
                                 <div><span className="text-gray-400 dark:text-gray-300 font-medium block mb-0.5">{t('users.role', lang)}</span><p className={`font-bold ${rm.color}`}>{rm.label}</p></div>
@@ -722,7 +726,7 @@ export default function UserAccessManagement({
                           <span className={`inline-flex text-[10px] px-2 py-0.5 rounded-md font-bold ${at.color}`}>{at.label}</span>
                         </td>
                         <td className="px-3 py-3 text-gray-600 dark:text-gray-300">{log.operator_name || t('common.system', lang)}</td>
-                        <td className="px-3 py-3 font-mono text-[10px] text-gray-400 dark:text-gray-300 truncate max-w-[120px]">{log.target_id || '-'}</td>
+                        <td className="px-3 py-3">{log.target_id ? <span className="font-mono text-[10px] font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/30 px-1.5 py-0.5 rounded border border-purple-200 dark:border-purple-800 cursor-pointer hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors" title={log.target_id} onClick={() => navigator.clipboard.writeText(log.target_id || '')}>TGT-{(log.target_id || '').slice(0, 6).toUpperCase()}</span> : <span className="text-[10px] text-gray-400 dark:text-gray-300">—</span>}</td>
                         <td className="px-3 py-3 text-gray-400 dark:text-gray-300 text-[10px] truncate max-w-[160px]">{log.before_state ? t('common.stateChangeCaptured', lang) : log.ip_address || '-'}</td>
                         <td className="px-5 py-3 text-right text-gray-500 dark:text-gray-300 whitespace-nowrap">
                           <div>{new Date(log.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })}</div>
@@ -943,7 +947,7 @@ export default function UserAccessManagement({
               </div>
               <div>
                 <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">{t('users.roleAssignment', lang)}</label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   {Object.entries(roleMeta).map(([key, r]) => {
                     const RIcon = r.icon
                     return (
@@ -1083,4 +1087,4 @@ export default function UserAccessManagement({
     </div>
   )
 }
-
+

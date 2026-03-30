@@ -225,7 +225,7 @@ export default function FloodPredictionTimeline({ onTimeChange, className = '' }
         </div>
         <div className="flex justify-between mt-1">
           {timePoints.map(tp => (
-            <span key={tp} className="text-[9px] text-gray-500 dark:text-gray-300">{tp === 0 ? 'Now' : `+${tp}h`}</span>
+            <span key={tp} className="text-[9px] text-gray-500 dark:text-gray-300">{tp === 0 ? t('floodPred.nowLabel', lang) : `+${tp}h`}</span>
           ))}
         </div>
       </div>
@@ -288,4 +288,4 @@ export default function FloodPredictionTimeline({ onTimeChange, className = '' }
     </div>
   )
 }
-
+

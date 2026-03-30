@@ -254,11 +254,11 @@ export default function ImageAnalysisResults({ analysis, loading = false, classN
               </div>
               {exif.distanceFromReportKm != null && (
                 <p className="text-[9px] text-gray-400">
-                  ?? {exif.distanceFromReportKm.toFixed(1)}km from reported location
+                  📍 {exif.distanceFromReportKm.toFixed(1)}km from reported location
                 </p>
               )}
               {exif.cameraModel && (
-                <p className="text-[9px] text-gray-400">?? {exif.cameraModel}</p>
+                <p className="text-[9px] text-gray-400">📷 {exif.cameraModel}</p>
               )}
             </div>
           )}
@@ -320,4 +320,4 @@ export default function ImageAnalysisResults({ analysis, loading = false, classN
     </div>
   )
 }
-
+

@@ -8,7 +8,7 @@ import { AppError } from '../utils/AppError.js'
 const router = Router()
 
 function isSuperAdmin(req: AuthRequest): boolean {
-  return req.user?.role === 'admin' || req.user?.department === 'Command & Control'
+  return req.user?.role === 'admin'
 }
 
 async function findUserById(userId: string): Promise<{ table: 'citizens' | 'operators'; id: string; display_name: string } | null> {

@@ -2,7 +2,7 @@
  * authRoutes.ts - Authentication and operator management API
  *
  * Handles all auth-related endpoints:
- *   POST /api/auth/register  - Create new operator account (with optional avatar)
+ *   POST /api/auth/invite    - Create new operator account (with optional avatar)
  *   POST /api/auth/login     - Authenticate and receive JWT token
  *   GET  /api/auth/me        - Get current operator profile
  *   PUT  /api/auth/profile   - Update profile (name, avatar, etc.)
@@ -540,7 +540,7 @@ router.post('/reset-password', resetPasswordLimiter, async (req: AuthRequest, re
     }
 
     // Prevent reuse of last 5 passwords
-    const reused = await isPasswordReused(resetToken.operator_id, 'operator', password)
+    const reused = await isPasswordReused(password, resetToken.operator_id, 'operator')
     if (reused) {
       throw AppError.badRequest('You cannot reuse any of your last 5 passwords.')
     }

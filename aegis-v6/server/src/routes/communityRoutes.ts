@@ -6,6 +6,7 @@
  */
 
 import express, { Request, Response, NextFunction } from 'express'
+import rateLimit from 'express-rate-limit'
 import pool from '../models/db.js'
 import { v4 as uuid } from 'uuid'
 import multer from 'multer'
@@ -18,6 +19,15 @@ import { validate, paginationSchema } from '../middleware/validate.js'
 import { logger } from '../services/logger.js'
 
 const router = express.Router()
+
+// Rate limiting for community write operations
+const communityWriteLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 15,
+  message: { error: 'Too many requests. Please slow down.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+})
 
 // File Upload Configuration
 const uploadsDir = path.join(process.cwd(), 'uploads', 'community')
@@ -61,6 +71,26 @@ async function getUserInfo(userId: string) {
   )
   return result.rows[0] || null
 }
+
+// GET /stats — Community member & activity stats (admin dashboard)
+router.get('/stats', authMiddleware, async (_req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const [membersRes, onlineRes] = await Promise.all([
+      pool.query('SELECT COUNT(*)::int AS total FROM community_members'),
+      pool.query(
+        `SELECT COUNT(DISTINCT sender_id)::int AS active
+         FROM community_chat_messages
+         WHERE created_at >= NOW() - INTERVAL '5 minutes' AND deleted_at IS NULL`
+      ),
+    ])
+    res.json({
+      totalMembers: membersRes.rows[0]?.total || 0,
+      onlineNow: onlineRes.rows[0]?.active || 0,
+    })
+  } catch (err) {
+    next(err)
+  }
+})
 
 // GET /posts/hazard-updates — Hazard-flagged posts only (M6)
 router.get('/posts/hazard-updates', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -142,7 +172,7 @@ router.get('/posts', authMiddleware, async (req: AuthRequest, res: Response, nex
 })
 
 // POST /posts — Create a new community post
-router.post('/posts', authMiddleware, upload.single('image'), validateMagicBytes, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post('/posts', authMiddleware, communityWriteLimiter, upload.single('image'), validateMagicBytes, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id
     if (!userId) throw AppError.unauthorized('Authentication required')
@@ -187,7 +217,7 @@ router.post('/posts', authMiddleware, upload.single('image'), validateMagicBytes
 })
 
 // POST /posts/:postId/like — Like/unlike a post
-router.post('/posts/:postId/like', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post('/posts/:postId/like', authMiddleware, communityWriteLimiter, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id
     if (!userId) throw AppError.unauthorized('Authentication required')
@@ -288,14 +318,14 @@ router.get('/posts/:postId/comments', authMiddleware, validate({ query: paginati
       LIMIT $2 OFFSET $3
     `, [postId, limit, offset])
 
-    res.json({ data: result.rows, total, page, limit })
+    res.json({ comments: result.rows, total, page, limit })
   } catch (err) {
     next(err)
   }
 })
 
 // POST /posts/:postId/comments — Add a comment
-router.post('/posts/:postId/comments', authMiddleware, upload.single('image'), validateMagicBytes, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post('/posts/:postId/comments', authMiddleware, communityWriteLimiter, upload.single('image'), validateMagicBytes, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id
     if (!userId) throw AppError.unauthorized('Authentication required')
@@ -439,6 +469,12 @@ router.delete('/posts/:postId', authMiddleware, async (req: AuthRequest, res: Re
         throw AppError.forbidden('Admins can only delete reported posts')
       }
       await pool.query('UPDATE community_posts SET deleted_at = NOW() WHERE id = $1', [postId])
+      // Log moderation action for audit trail
+      await pool.query(
+        `INSERT INTO community_moderation_logs (id, admin_id, action, target_type, target_id, reason, created_at)
+         VALUES (gen_random_uuid(), $1, 'delete_post', 'post', $2, 'Reported post removed by admin', NOW())`,
+        [userId, postId]
+      ).catch(() => {})
       logger.info({ userId, postId }, '[Community] Admin deleted reported post')
       return res.json({ deleted: true })
     }
@@ -450,7 +486,7 @@ router.delete('/posts/:postId', authMiddleware, async (req: AuthRequest, res: Re
 })
 
 // POST /posts/:postId/report — Report a community post
-router.post('/posts/:postId/report', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post('/posts/:postId/report', authMiddleware, communityWriteLimiter, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id
     if (!userId) throw AppError.unauthorized('Authentication required')
@@ -808,4 +844,4 @@ router.delete('/citizens/:citizenId', authMiddleware, async (req: AuthRequest, r
 })
 
 export default router
-
+

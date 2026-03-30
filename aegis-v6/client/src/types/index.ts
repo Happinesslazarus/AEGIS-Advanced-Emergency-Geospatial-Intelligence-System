@@ -83,6 +83,7 @@ export interface Alert {
   id: string; severity: AlertSeverity; title: string; message: string
   area: string; source: string; timestamp: string; displayTime: string
   active: boolean; channels: AlertChannel[]; disasterType: string
+  expiresAt?: string | null
 }
 
 export interface Notification { id: number; message: string; type: 'success' | 'warning' | 'error' | 'info' }

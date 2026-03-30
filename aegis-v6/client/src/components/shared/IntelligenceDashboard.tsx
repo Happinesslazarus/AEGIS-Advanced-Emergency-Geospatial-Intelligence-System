@@ -105,6 +105,7 @@ interface Props {
   socket?: any
   className?: string
   collapsed?: boolean
+  region?: string
 }
 
 const RISK_COLORS: Record<string, string> = RISK_CLASSES
@@ -151,7 +152,7 @@ function incidentLabel(id: string): string {
   return id.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
 
-export default function IntelligenceDashboard({ socket, className = '', collapsed: initCollapsed = false }: Props): JSX.Element {
+export default function IntelligenceDashboard({ socket, className = '', collapsed: initCollapsed = false, region }: Props): JSX.Element {
   const lang = useLanguage()
   const [dashboard, setDashboard] = useState<DashboardData | null>(null)
   const [rivers, setRivers] = useState<RiverSummary[]>([])
@@ -206,7 +207,7 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
       const canReadDistress = ['admin', 'operator', 'manager'].includes(String(role || ''))
 
       const [dashRes, riverRes, distressRes, clusterRes, cascadeRes, incidentsRes, changesRes] = await Promise.all([
-        isAuthenticated ? safeFetch(`${API}/api/v1/incidents/all/dashboard`, { headers: authHeaders, signal }) : Promise.resolve(null),
+        isAuthenticated ? safeFetch(`${API}/api/v1/incidents/all/dashboard${region ? `?region=${encodeURIComponent(region)}` : ''}`, { headers: authHeaders, signal }) : Promise.resolve(null),
         safeFetch(`${API}/api/rivers/levels`, { signal }),
         canReadDistress ? safeFetch(`${API}/api/distress/active`, { headers: authHeaders, signal }) : Promise.resolve(null),
         safeFetch(`${API}/api/reports/clusters?minutes=180&radiusMeters=1000&minReports=3`, { headers: authHeaders, signal }),
@@ -285,7 +286,7 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
       }
     } catch {}
     setLoading(false)
-  }, [getAuthContext, safeFetch, selectedIncidentId])
+  }, [getAuthContext, safeFetch, region])
 
   useEffect(() => {
     if (!selectedIncidentId) {
@@ -349,9 +350,11 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
       fetchAll()
     }
 
+    const onStatusChanged = (data: any) => { if (data.status === 'resolved') onDistressDone() }
+
     socket.on('distress:new_alert',      onDistressNew)
     socket.on('distress:cancelled',      onDistressDone)
-    socket.on('distress:status_changed', (data: any) => { if (data.status === 'resolved') onDistressDone() })
+    socket.on('distress:status_changed', onStatusChanged)
     socket.on('incident:alert',          onIncidentAlert)
     socket.on('incident:alert:priority', onIncidentAlert)
     socket.on('incident:predictions_updated', onPredictionsUpdated)
@@ -359,7 +362,7 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
     return () => {
       socket.off('distress:new_alert',      onDistressNew)
       socket.off('distress:cancelled',      onDistressDone)
-      socket.off('distress:status_changed')
+      socket.off('distress:status_changed', onStatusChanged)
       socket.off('incident:alert',          onIncidentAlert)
       socket.off('incident:alert:priority', onIncidentAlert)
       socket.off('incident:predictions_updated', onPredictionsUpdated)
@@ -434,7 +437,7 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
           </div>
 
           {/* Cross-incident stats */}
-          <div className="px-4 py-3 grid grid-cols-3 md:grid-cols-6 gap-2 border-b border-gray-100 dark:border-gray-700/30">
+          <div className="px-4 py-3 grid grid-cols-3 gap-2 border-b border-gray-100 dark:border-gray-700/30">
             <div className="text-center p-2 bg-gray-100 dark:bg-gray-800/40 rounded-lg">
               <div className={`text-lg font-bold ${(dashboard?.totalActiveIncidents ?? 0) > 0 ? 'text-red-400' : 'text-gray-400 dark:text-gray-300'}`}>
                 {dashboard?.totalActiveIncidents ?? 0}
@@ -648,4 +651,4 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
     </div>
   )
 }
-
+

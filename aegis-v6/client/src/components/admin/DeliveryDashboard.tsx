@@ -8,7 +8,7 @@ import {
   Mail, Smartphone, MessageCircle, Send, Bell, RefreshCw, Download, Search,
   CheckCircle, XCircle, Clock, AlertTriangle, RotateCcw, ChevronRight,
   TrendingUp, Activity, Zap, Filter, Calendar, Eye, BarChart2, List,
-  X, Info, Layers, Loader2,
+  X, Info, Layers, Loader2, Users,
 } from 'lucide-react'
 import { getLanguage, t } from '../../utils/i18n'
 import { getToken as _getToken, clearToken } from '../../utils/api'
@@ -59,12 +59,24 @@ interface ChannelStat {
 
 interface HourlyPoint { hour: string; total: number; sent: number; failed: number }
 
+interface SubscriberStats {
+  total_subscribers: number
+  verified_subscribers: number
+  unverified_subscribers: number
+  email_subscribers: number
+  sms_subscribers: number
+  whatsapp_subscribers: number
+  telegram_subscribers: number
+  webpush_subscribers: number
+}
+
 interface Stats {
   overall: { total: number; sent: number; delivered: number; failed: number; pending: number; success_rate: number }
   by_channel: ChannelStat[]
   hourly_trend: HourlyPoint[]
   top_failing: { alert_id: string; alert_title?: string; severity?: string; fail_count: number }[]
   recent_errors: { channel: string; error_message: string; count: number }[]
+  subscribers?: SubscriberStats
 }
 
 // Channel Config
@@ -226,12 +238,12 @@ function AlertGroupRow({ group, onRetry, onRetryAll, retrying }: {
         <ChevronRight className={`w-4 h-4 text-gray-500 dark:text-gray-300 flex-shrink-0 transition-transform ${open ? 'rotate-90' : ''}`}/>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-bold text-gray-900 dark:text-white truncate max-w-[280px]">{group.alert_title || group.alert_id.slice(0, 10) + '—'}</span>
+            <span className="text-sm font-bold text-gray-900 dark:text-white truncate max-w-[280px]">{group.alert_title || <span className="font-mono text-gray-400 dark:text-gray-300">ALT-{group.alert_id?.slice(0, 6).toUpperCase()}</span>}</span>
             {group.alert_severity && <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase ${sev}`}>{group.alert_severity}</span>}
             {group.alert_type && <span className="text-[9px] text-gray-600 font-mono">{group.alert_type}</span>}
           </div>
           <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-            <span className="text-[10px] text-gray-600">{new Date(group.last_attempt).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}</span>
+            <span className="text-[10px] text-gray-600">{new Date(group.last_attempt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}</span>
             <span className="text-[10px] text-emerald-400 font-bold">{group.sent} {t('delivery.sentLower', lang)}</span>
             {group.failed > 0  && <span className="text-[10px] text-red-400 font-bold">{group.failed} {t('delivery.failed', lang).toLowerCase()}</span>}
             {group.pending > 0 && <span className="text-[10px] text-amber-400 font-bold">{group.pending} {t('delivery.pending', lang).toLowerCase()}</span>}
@@ -277,8 +289,8 @@ function AlertGroupRow({ group, onRetry, onRetryAll, retrying }: {
                     {d.provider_id && <span className="text-[9px] text-gray-600 font-mono truncate max-w-[100px]">{d.provider_id}</span>}
                   </div>
                   <p className="text-[10px] text-gray-500 dark:text-gray-300 truncate mt-0.5 font-mono">{d.recipient || '—'}</p>
-                  {d.error_message && <p className="text-[10px] text-red-400 mt-0.5 truncate">? {d.error_message}</p>}
-                  {d.sent_at && <p className="text-[9px] text-gray-600 mt-0.5">{new Date(d.sent_at).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'medium' })}</p>}
+                  {d.error_message && <p className="text-[10px] text-red-400 mt-0.5 truncate flex items-center gap-1"><AlertTriangle className="w-3 h-3 flex-shrink-0" />{d.error_message}</p>}
+                  {d.sent_at && <p className="text-[9px] text-gray-600 mt-0.5">{new Date(d.sent_at).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'medium' })}</p>}
                 </div>
                 {!ok && d.channel !== 'web' && d.retry_count < 3 ? (
                   <button onClick={() => onRetry(d.id)} disabled={isRetrying}
@@ -307,7 +319,7 @@ function FlatTable({ rows, onRetry, retrying, onSort, sortCol, sortDir }: {
     <th onClick={() => onSort(col)}
       className="px-3 py-2.5 text-left text-[10px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:text-gray-900 dark:hover:text-white transition-colors select-none whitespace-nowrap">
       <span className="flex items-center gap-1">{children}
-        {sortCol === col && <span className="text-violet-400">{sortDir === 'asc' ? '?' : '?'}</span>}
+        {sortCol === col && <span className="text-violet-400">{sortDir === 'asc' ? '\u2191' : '\u2193'}</span>}
       </span>
     </th>
   )
@@ -334,14 +346,14 @@ function FlatTable({ rows, onRetry, retrying, onSort, sortCol, sortDir }: {
             return (
               <tr key={r.id || i} className={`hover:bg-gray-50 dark:hover:bg-white/3 transition-colors ${!ok && r.status !== 'pending' ? 'bg-red-50 dark:bg-red-950/5' : ''}`}>
                 <td className="px-3 py-2 text-[11px] text-gray-500 dark:text-gray-300 whitespace-nowrap font-mono">
-                  {r.created_at ? new Date(r.created_at).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'medium' }) : '—'}
+                  {r.created_at ? new Date(r.created_at).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'medium' }) : '—'}
                 </td>
                 <td className="px-3 py-2 max-w-[180px]">
                   <div className="flex items-center gap-1.5">
                     {r.alert_severity && (
                       <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${r.alert_severity === 'critical' ? 'bg-red-400' : r.alert_severity === 'warning' ? 'bg-amber-400' : 'bg-blue-400'}`}/>
                     )}
-                    <span className="text-xs text-gray-600 dark:text-gray-200 truncate">{r.alert_title || <span className="font-mono text-gray-400 dark:text-gray-300">{r.alert_id?.slice(0, 8)}</span>}</span>
+                    <span className="text-xs text-gray-600 dark:text-gray-200 truncate">{r.alert_title || <span className="font-mono text-gray-400 dark:text-gray-300">ALT-{r.alert_id?.slice(0, 6).toUpperCase()}</span>}</span>
                   </div>
                 </td>
                 <td className="px-3 py-2">
@@ -552,6 +564,25 @@ export default function DeliveryDashboard() {
   }
 
   const filterActive = !!(channel || status || severity || dateFrom || dateTo || search)
+
+  // Keyboard shortcuts
+  const [showKeyboard, setShowKeyboard] = useState(false)
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+      const key = e.key.toLowerCase()
+      if (key === 'r' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); refresh() }
+      else if (key === 'e') { e.preventDefault(); handleExportCSV() }
+      else if (key === 'v') { e.preventDefault(); setViewMode(p => p === 'grouped' ? 'flat' : 'grouped') }
+      else if (key === 'x') { e.preventDefault(); clearFilters() }
+      else if (key === '?' || (e.shiftKey && key === '/')) { e.preventDefault(); setShowKeyboard(p => !p) }
+      else if (key === 'escape') setShowKeyboard(false)
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [refresh])
+
   const s = stats?.overall
   const successRate = s ? Number(s.success_rate) || 0 : 0
   const hourlyTrend = stats?.hourly_trend?.map(h => h.total) ?? []
@@ -596,7 +627,7 @@ export default function DeliveryDashboard() {
           </h1>
           <p className="text-[11px] text-gray-600 dark:text-gray-300 mt-0.5 ml-12">
             {t('delivery.subtitle', lang)}
-            <span className="ml-2">— {lastRefresh.toLocaleTimeString('en-GB', { timeStyle: 'medium' })}</span>
+            <span className="ml-2">— {lastRefresh.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -613,12 +644,13 @@ export default function DeliveryDashboard() {
       </div>
 
       {/* Stats*/}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <StatCard label={t('delivery.attempted', lang)} value={Number(s?.total ?? 0).toLocaleString()} icon={Layers}     color="text-violet-400" accent="bg-violet-500/15" trend={hourlyTrend}/>
         <StatCard label={t('delivery.successRate', lang)} value={s ? successRate + '%' : '—'} sub={s ? `${s.sent} ${t('delivery.delivered', lang).toLowerCase()}` : undefined} icon={TrendingUp} color={successRate >= 95 ? 'text-emerald-400' : successRate >= 80 ? 'text-amber-400' : 'text-red-400'} accent={successRate >= 95 ? 'bg-emerald-500/15' : successRate >= 80 ? 'bg-amber-500/15' : 'bg-red-500/15'}/>
         <StatCard label={t('common.sent', lang)} value={Number(s?.sent    ?? 0).toLocaleString()} icon={CheckCircle} color="text-emerald-400" accent="bg-emerald-500/15"/>
         <StatCard label={t('delivery.failed', lang)} value={Number(s?.failed  ?? 0).toLocaleString()} icon={XCircle}     color={s?.failed ? 'text-red-400' : 'text-gray-600'} accent={s?.failed ? 'bg-red-500/15' : 'bg-gray-500/10'}/>
         <StatCard label={t('delivery.pending', lang)} value={Number(s?.pending ?? 0).toLocaleString()} icon={Clock}       color="text-amber-400" accent="bg-amber-500/15"/>
+        <StatCard label="Subscribers" value={Number(stats?.subscribers?.verified_subscribers ?? 0).toLocaleString()} sub={stats?.subscribers ? `${stats.subscribers.total_subscribers} total` : undefined} icon={Users} color="text-cyan-400" accent="bg-cyan-500/15"/>
       </div>
 
       {/* Charts*/}
@@ -694,7 +726,7 @@ export default function DeliveryDashboard() {
             {stats!.top_failing.map(f => (
               <div key={f.alert_id} className="flex items-center gap-3 py-2 px-3 rounded-xl bg-red-950/20 ring-1 ring-red-500/10">
                 <XCircle className="w-4 h-4 text-red-400 flex-shrink-0"/>
-                <span className="text-xs text-gray-700 dark:text-gray-300 flex-1 truncate">{f.alert_title || f.alert_id.slice(0, 12) + '—'}</span>
+                <span className="text-xs text-gray-700 dark:text-gray-300 flex-1 truncate">{f.alert_title || <span className="font-mono">ALT-{f.alert_id?.slice(0, 6).toUpperCase()}</span>}</span>
                 {f.severity && <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${SEV_BADGE[f.severity] || ''}`}>{f.severity}</span>}
                 <span className="text-xs font-black text-red-400 tabular-nums flex-shrink-0">{f.fail_count}—</span>
                 <button onClick={() => handleRetryAll(f.alert_id)}
@@ -739,7 +771,7 @@ export default function DeliveryDashboard() {
             <Calendar className="w-3.5 h-3.5 text-gray-600 flex-shrink-0"/>
             <input type="datetime-local" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
               className="px-2.5 py-2 text-xs bg-gray-100 dark:bg-gray-800/60 ring-1 ring-gray-200 dark:ring-white/8 rounded-xl text-gray-800 dark:text-gray-200 focus:ring-violet-500/50 focus:outline-none"/>
-            <span className="text-gray-400 dark:text-gray-300 text-xs">?</span>
+            <span className="text-gray-400 dark:text-gray-300 text-xs">\u2192</span>
             <input type="datetime-local" value={dateTo} onChange={e => setDateTo(e.target.value)}
               className="px-2.5 py-2 text-xs bg-gray-100 dark:bg-gray-800/60 ring-1 ring-gray-200 dark:ring-white/8 rounded-xl text-gray-800 dark:text-gray-200 focus:ring-violet-500/50 focus:outline-none"/>
           </div>
@@ -834,7 +866,18 @@ export default function DeliveryDashboard() {
           </div>
         </div>
       )}
+
+      {showKeyboard && (
+        <div className="mt-3 bg-gray-900 text-white rounded-xl p-3 flex items-center gap-4 flex-wrap text-[10px] font-mono ring-1 ring-gray-700">
+          <span className="font-bold text-gray-400 uppercase tracking-wider mr-1">{t('delivery.shortcuts', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">R</kbd> {t('common.refresh', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">E</kbd> {t('delivery.exportCSV', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">V</kbd> {t('delivery.toggleView', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">X</kbd> {t('delivery.clearFilters', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">?</kbd> {t('delivery.toggleShortcuts', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">Esc</kbd> {t('common.close', lang)}</span>
+        </div>
+      )}
     </div>
   )
 }
-

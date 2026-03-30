@@ -278,9 +278,9 @@ export default function Map3D({
           new mapboxgl.Popup({ offset: 20 })
             .setHTML(`
               <div style="padding:8px; font-family:system-ui;">
-                <h4 style="margin:0 0 4px; font-size:13px; font-weight:600; color:#dc2626;">?? ${esc(t('map.distressBeacon', lang))}</h4>
+                <h4 style="margin:0 0 4px; font-size:13px; font-weight:600; color:#dc2626;">🚨 ${esc(t('map.distressBeacon', lang))}</h4>
                 <p style="margin:0; font-size:12px;">${esc(dm.citizenName)}</p>
-                <p style="margin:2px 0; font-size:10px; color:#aaa;">${dm.isVulnerable ? `?? ${esc(t('map.vulnerablePerson', lang))}` : ''}</p>
+                <p style="margin:2px 0; font-size:10px; color:#aaa;">${dm.isVulnerable ? `⚠️ ${esc(t('map.vulnerablePerson', lang))}` : ''}</p>
                 <p style="margin:2px 0; font-size:10px; color:#aaa;">${esc(t('map.status', lang))}: ${esc(dm.status)}</p>
               </div>
             `)
@@ -524,4 +524,4 @@ export default function Map3D({
     </div>
   )
 }
-
+

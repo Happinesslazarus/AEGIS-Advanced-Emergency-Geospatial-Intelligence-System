@@ -19,7 +19,7 @@ import {
   Trash2, Flag, MoreHorizontal, Shield,
   AlertTriangle, Sparkles,
   CheckCircle2, EyeOff, Camera,
-  Globe, ShieldAlert, Ban, Flame, Pencil, Bell
+  Globe, ShieldAlert, Ban, Flame, Pencil
 } from 'lucide-react'
 import { useCitizenAuth } from '../../contexts/CitizenAuthContext'
 import type { Socket } from 'socket.io-client'
@@ -1224,4 +1224,4 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
     </div>
   )
 }
-
+

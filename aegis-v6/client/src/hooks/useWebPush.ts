@@ -117,17 +117,16 @@ export const useWebPush = () => {
         throw new Error('Web Push is not configured on the server. Please contact support.')
       }
 
-      // Get existing or create new subscription
-      let subscription = await registration.pushManager.getSubscription()
-      if (!subscription) {
-        subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(publicKey) as BufferSource,
-        })
-        // // console.log('[OK] Push subscription created')
-      } else {
-        // // console.log('[OK] Using existing push subscription')
+      // Always create a fresh subscription to ensure it matches the current server VAPID key.
+      // Stale subscriptions (created with old/ephemeral keys) cause silent delivery failures.
+      const existingSub = await registration.pushManager.getSubscription()
+      if (existingSub) {
+        await existingSub.unsubscribe()
       }
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey) as BufferSource,
+      })
 
       if (!subscription) {
         throw new Error('Failed to create push subscription. Try reloading the page.')

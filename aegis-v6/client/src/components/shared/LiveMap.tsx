@@ -167,7 +167,7 @@ const MARKER_CSS = `
 `
 
 export default function LiveMap({
-  reports = [],
+  reports = EMPTY_REPORTS,
   showFloodPredictions = true,
   showEvacuationRoutes = false,
   center = DEFAULT_CENTER,
@@ -440,7 +440,7 @@ export default function LiveMap({
         const marker = L.marker([lat, lng], { icon: createDistressIcon() })
         marker.bindPopup(`
           <div style="min-width:180px;">
-            <div style="color:#ef4444;font-weight:700;font-size:14px;margin-bottom:4px;">? ${t('map.distressBeacon', lang)}</div>
+            <div style="color:#ef4444;font-weight:700;font-size:14px;margin-bottom:4px;">🚨 ${t('map.distressBeacon', lang)}</div>
             <p style="font-size:12px;margin:0 0 4px;">${b.citizenName || b.citizen_name || t('map.citizen', lang)}</p>
             <p style="font-size:10px;color:#9ca3af;margin:0;">${b.message || t('map.emergencyAssistance', lang)}</p>
             <div style="margin-top:6px;border-top:1px solid #374151;padding-top:4px;font-size:9px;color:#6b7280;">
@@ -631,9 +631,9 @@ export default function LiveMap({
                 <div style="height:100%;width:${pctLabel};background:${colour};border-radius:99px;"></div>
               </div>
             </div>
-            <div style="font-size:9px;color:#9ca3af;margin-bottom:4px;">? ${p.time_to_flood || 'Unknown'}</div>
-            <div style="font-size:9px;color:#60a5fa;margin-bottom:4px;">?? ${p.matched_pattern || ''}</div>
-            ${p.next_areas?.length ? `<div style="font-size:9px;color:#fbbf24;">? ${t('map.downstream', lang)}: ${p.next_areas.join(', ')}</div>` : ''}
+            <div style="font-size:9px;color:#9ca3af;margin-bottom:4px;">⏰ ${p.time_to_flood || 'Unknown'}</div>
+            <div style="font-size:9px;color:#60a5fa;margin-bottom:4px;">🔍 ${p.matched_pattern || ''}</div>
+            ${p.next_areas?.length ? `<div style="font-size:9px;color:#fbbf24;">➡️ ${t('map.downstream', lang)}: ${p.next_areas.join(', ')}</div>` : ''}
             <div style="border-top:1px solid #374151;padding-top:4px;margin-top:4px;font-size:8px;color:#6b7280;">
               ${t('map.confidence', lang)}: ${p.confidence}% — ${p.model_version}
             </div>
@@ -865,4 +865,4 @@ export default function LiveMap({
     </div>
   )
 }
-
+

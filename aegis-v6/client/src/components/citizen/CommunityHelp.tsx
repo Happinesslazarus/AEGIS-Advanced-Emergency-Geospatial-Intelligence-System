@@ -1,7 +1,7 @@
 /* CommunityHelp.tsx — Community mutual aid board for citizens to offer/request help. */
 
 import { useState, useEffect, useCallback } from 'react'
-import { X, Heart, HelpCircle, MapPin, Clock, Phone, ExternalLink, Navigation, Shield, AlertTriangle, Flag, Home, Droplets, Car, HeartPulse, Shirt, Crosshair, Star, Lock, UserCheck, ChevronRight, Info, CheckCircle, Search, Wifi, Globe, Loader2 } from 'lucide-react'
+import { X, Heart, HelpCircle, MapPin, Clock, Phone, ExternalLink, Navigation, Shield, AlertTriangle, Flag, Home, Droplets, Car, HeartPulse, Shirt, Crosshair, Star, Lock, UserCheck, Info, CheckCircle, Search, Globe, Loader2 } from 'lucide-react'
 import { COMMUNITY_HELP_TYPES } from '../../data/disasterTypes'
 import { useAlerts } from '../../contexts/AlertsContext'
 import { useLocation } from '../../contexts/LocationContext'
@@ -288,8 +288,8 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
             safe_meeting: undefined,
             translationEligible: true,
           }))
-          // Merge with initial seed posts for demo, API posts first
-          setPosts([...apiPosts, ...INITIAL_POSTS])
+          // Use API posts if available, fall back to seed data only when empty
+          setPosts(apiPosts.length > 0 ? apiPosts : INITIAL_POSTS)
         }
       } catch {
         // Silently fall back to initial posts if API is unavailable

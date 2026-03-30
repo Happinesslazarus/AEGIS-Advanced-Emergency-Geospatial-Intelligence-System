@@ -6,7 +6,7 @@
  * control which flood data layers are visible.
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import {
   Layers, ChevronDown, ChevronUp, Eye, EyeOff,
   Droplets, Navigation, AlertTriangle, Zap, Map
@@ -30,25 +30,21 @@ interface Props {
 }
 
 const DEFAULT_LAYERS: FloodLayer[] = [
-  { id: 'wms_fluvial_high', name: 'Fluvial Flood (High)', type: 'wms', enabled: true, icon: Droplets, colour: 'text-blue-400', description: '1 in 10 year return period' },
-  { id: 'wms_fluvial_medium', name: 'Fluvial Flood (Medium)', type: 'wms', enabled: false, icon: Droplets, colour: 'text-cyan-400', description: '1 in 200 year return period' },
-  { id: 'wms_surface', name: 'Surface Water', type: 'wms', enabled: false, icon: Droplets, colour: 'text-teal-400', description: 'Surface water flooding' },
-  { id: 'wms_coastal', name: 'Coastal Flood', type: 'wms', enabled: false, icon: Droplets, colour: 'text-indigo-400', description: 'Coastal / tidal flooding' },
-  { id: 'prediction_1h', name: 'Prediction: 1 Hour', type: 'prediction', enabled: false, icon: Zap, colour: 'text-yellow-400', description: 'Predicted flood extent in 1 hour' },
-  { id: 'prediction_4h', name: 'Prediction: 4 Hours', type: 'prediction', enabled: false, icon: Zap, colour: 'text-orange-400', description: 'Predicted flood extent in 4 hours' },
-  { id: 'prediction_6h', name: 'Prediction: 6 Hours', type: 'prediction', enabled: false, icon: Zap, colour: 'text-red-400', description: 'Predicted flood extent in 6 hours' },
-  { id: 'evacuation', name: 'Evacuation Routes', type: 'evacuation', enabled: false, icon: Navigation, colour: 'text-green-400', description: 'Pre-calculated evacuation corridors' },
+  { id: 'wms_fluvial_high', name: 'floodLayer.fluvialHigh', type: 'wms', enabled: true, icon: Droplets, colour: 'text-blue-400', description: 'floodLayer.fluvialHighDesc' },
+  { id: 'wms_fluvial_medium', name: 'floodLayer.fluvialMedium', type: 'wms', enabled: false, icon: Droplets, colour: 'text-cyan-400', description: 'floodLayer.fluvialMediumDesc' },
+  { id: 'wms_surface', name: 'floodLayer.surfaceWater', type: 'wms', enabled: false, icon: Droplets, colour: 'text-teal-400', description: 'floodLayer.surfaceWaterDesc' },
+  { id: 'wms_coastal', name: 'floodLayer.coastalFlood', type: 'wms', enabled: false, icon: Droplets, colour: 'text-indigo-400', description: 'floodLayer.coastalFloodDesc' },
+  { id: 'prediction_1h', name: 'floodLayer.prediction1h', type: 'prediction', enabled: false, icon: Zap, colour: 'text-yellow-400', description: 'floodLayer.prediction1hDesc' },
+  { id: 'prediction_4h', name: 'floodLayer.prediction4h', type: 'prediction', enabled: false, icon: Zap, colour: 'text-orange-400', description: 'floodLayer.prediction4hDesc' },
+  { id: 'prediction_6h', name: 'floodLayer.prediction6h', type: 'prediction', enabled: false, icon: Zap, colour: 'text-red-400', description: 'floodLayer.prediction6hDesc' },
+  { id: 'evacuation', name: 'floodLayer.evacuationRoutes', type: 'evacuation', enabled: false, icon: Navigation, colour: 'text-green-400', description: 'floodLayer.evacuationRoutesDesc' },
 ]
 
 export default function FloodLayerControl({ onLayerChange, className = '' }: Props): JSX.Element {
   const lang = useLanguage()
   const [layers, setLayers] = useState<FloodLayer[]>(DEFAULT_LAYERS)
   const [expanded, setExpanded] = useState(false)
-  const [activeCount, setActiveCount] = useState(1)
-
-  useEffect(() => {
-    setActiveCount(layers.filter(l => l.enabled).length)
-  }, [layers])
+  const activeCount = useMemo(() => layers.filter(l => l.enabled).length, [layers])
 
   const toggleLayer = (id: string) => {
     setLayers(prev => prev.map(l => {
@@ -76,9 +72,9 @@ export default function FloodLayerControl({ onLayerChange, className = '' }: Pro
   }
 
   const groupedLayers = {
-    'Flood Zones (WMS)': layers.filter(l => l.type === 'wms'),
-    'Predictions': layers.filter(l => l.type === 'prediction'),
-    'Evacuation': layers.filter(l => l.type === 'evacuation'),
+    [t('floodLayer.floodZonesWms', lang)]: layers.filter(l => l.type === 'wms'),
+    [t('floodLayer.predictions', lang)]: layers.filter(l => l.type === 'prediction'),
+    [t('floodLayer.evacuation', lang)]: layers.filter(l => l.type === 'evacuation'),
   }
 
   return (
@@ -105,11 +101,11 @@ export default function FloodLayerControl({ onLayerChange, className = '' }: Pro
           {/* Quick actions */}
           <div className="px-4 py-2 flex gap-2 border-b border-gray-100 dark:border-gray-700/30">
             <button onClick={enableAll} className="text-[10px] text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition">{t('floodLayer.showAll', lang)}</button>
-            <button onClick={disableAll} className="text-[10px] text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 dark:text-gray-300 px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800/50 hover:bg-gray-200 dark:hover:bg-gray-700/50 transition">{t('floodLayer.hideAll', lang)}</button>
+            <button onClick={disableAll} className="text-[10px] text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800/50 hover:bg-gray-200 dark:hover:bg-gray-700/50 transition">{t('floodLayer.hideAll', lang)}</button>
           </div>
 
           {/* Grouped layers */}
-          <div className="max-h-[350px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600">
+          <div className="max-h-[240px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600">
             {Object.entries(groupedLayers).map(([group, items]) => (
               <div key={group}>
                 <div className="px-4 py-1.5 bg-gray-100 dark:bg-gray-800/40">
@@ -135,9 +131,9 @@ export default function FloodLayerControl({ onLayerChange, className = '' }: Pro
                     
                     {/* Label */}
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs text-gray-800 dark:text-white truncate">{layer.name}</p>
+                      <p className="text-xs text-gray-800 dark:text-white truncate">{t(layer.name, lang)}</p>
                       {layer.description && (
-                        <p className="text-[9px] text-gray-500 dark:text-gray-300 truncate">{layer.description}</p>
+                        <p className="text-[9px] text-gray-500 dark:text-gray-300 truncate">{t(layer.description, lang)}</p>
                       )}
                     </div>
 
@@ -153,4 +149,4 @@ export default function FloodLayerControl({ onLayerChange, className = '' }: Pro
     </div>
   )
 }
-
+

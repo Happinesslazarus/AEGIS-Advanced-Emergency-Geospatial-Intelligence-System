@@ -387,10 +387,12 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
           <div className="flex flex-col gap-1 p-2 rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              <div className={`w-2 h-2 rounded-full ${data ? 'bg-green-500 animate-pulse' : error ? 'bg-red-500' : 'bg-amber-500 animate-pulse'}`} />
               <span className="text-gray-600 dark:text-gray-300">{t('analytics.database', lang)}</span>
             </div>
-            <span className="text-sm font-bold text-green-600">{t('common.connected', lang)}</span>
+            <span className={`text-sm font-bold ${data ? 'text-green-600' : error ? 'text-red-600' : 'text-amber-600'}`}>
+              {data ? t('common.connected', lang) : error ? t('common.error', lang) : t('common.connecting', lang)}
+            </span>
           </div>
           <div className="flex flex-col gap-1 p-2 rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-1.5">
@@ -403,10 +405,12 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
           </div>
           <div className="flex flex-col gap-1 p-2 rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              <div className={`w-2 h-2 rounded-full ${data?.kpis?.aiScored != null && data.kpis.aiScored > 0 ? 'bg-green-500 animate-pulse' : data ? 'bg-amber-500' : 'bg-gray-400'}`} />
               <span className="text-gray-600 dark:text-gray-300">{t('analytics.analyticsEngine', lang)}</span>
             </div>
-            <span className="text-sm font-bold text-green-600">{t('common.running', lang)}</span>
+            <span className={`text-sm font-bold ${data?.kpis?.aiScored != null && data.kpis.aiScored > 0 ? 'text-green-600' : data ? 'text-amber-600' : 'text-gray-500'}`}>
+              {data?.kpis?.aiScored != null && data.kpis.aiScored > 0 ? t('common.running', lang) : data ? t('analytics.idle', lang) : '--'}
+            </span>
           </div>
           <div className="flex flex-col gap-1 p-2 rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-1.5">
@@ -683,4 +687,4 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
     </div>
   )
 }
-
+

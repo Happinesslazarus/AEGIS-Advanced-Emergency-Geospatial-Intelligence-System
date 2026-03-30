@@ -15,10 +15,10 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
   MessageSquare, Send, Search, AlertTriangle, Heart, CheckCircle,
-  Clock, User, ChevronRight, ArrowLeft, Loader2, Check, CheckCheck,
-  X, Shield, Filter, RefreshCw, UserCheck, Ban, ChevronDown,
-  Zap, Bell, CircleDot, FileText, Users, Image as ImageIcon, Languages,
-  Sparkles, Pin, Star, Timer, Inbox, Archive, MailOpen, Reply, Bookmark, Hash
+  Clock, ArrowLeft, Loader2,
+  X, Shield, RefreshCw, UserCheck, ChevronDown,
+  Zap, Bell, FileText, Image as ImageIcon, Languages,
+  Sparkles, Inbox, Archive, MailOpen, Hash
 } from 'lucide-react'
 import { type ChatThread, type ChatMessage } from '../../hooks/useSocket'
 import { useSharedSocket } from '../../contexts/SocketContext'
@@ -86,6 +86,8 @@ export default function AdminMessaging(): JSX.Element {
   const [msgInput, setMsgInput] = useState('')
   const [selectedImage, setSelectedImage] = useState<File | null>(null)
   const [showQuickReplies, setShowQuickReplies] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [loadingThreads, setLoadingThreads] = useState(true)
 
   // Quick reply templates for common responses
   const QUICK_REPLIES = [
@@ -135,13 +137,28 @@ export default function AdminMessaging(): JSX.Element {
   // Fetch admin threads when connected
   useEffect(() => {
     if (connected) {
-      // // console.log('[AdminMessaging] Socket connected! Fetching admin threads...')
+      setLoadingThreads(true)
       fetchAdminThreads()
+      // Once threads arrive, loading will clear
+      const t = setTimeout(() => setLoadingThreads(false), 1500)
       // Refresh every 30 seconds
       const interval = setInterval(() => fetchAdminThreads(), 30000)
-      return () => clearInterval(interval)
+      return () => { clearInterval(interval); clearTimeout(t) }
     }
   }, [connected])
+
+  // Clear loadingThreads when threads actually arrive
+  useEffect(() => {
+    if (threads.length > 0) setLoadingThreads(false)
+  }, [threads])
+
+  // Auto-dismiss error toast
+  useEffect(() => {
+    if (error) {
+      const t = setTimeout(() => setError(null), 5000)
+      return () => clearTimeout(t)
+    }
+  }, [error])
 
   // Scroll to bottom on messages change
   useEffect(() => {
@@ -274,7 +291,7 @@ export default function AdminMessaging(): JSX.Element {
     // Mark thread as read to clear unread badge - use admin endpoint
     const token = localStorage.getItem('aegis-token') || localStorage.getItem('token')
     if (token) {
-      fetch(`/api/admin/messages/${thread.id}/read`, {
+      fetch(`${API_BASE}/api/admin/messages/${thread.id}/read`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
       }).catch(err => console.error('[AdminMessaging] Mark read error:', err))
@@ -284,8 +301,8 @@ export default function AdminMessaging(): JSX.Element {
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    if (!file.type.startsWith('image/')) return
-    if (file.size > 5 * 1024 * 1024) return
+    if (!file.type.startsWith('image/')) { setError(t('communityChat.selectImageFile', lang)); return }
+    if (file.size > 5 * 1024 * 1024) { setError(t('communityChat.imageSizeLimit', lang)); return }
     setSelectedImage(file)
     const reader = new FileReader()
     reader.onload = (evt) => setPreviewUrl((evt.target?.result as string) || '')
@@ -302,7 +319,7 @@ export default function AdminMessaging(): JSX.Element {
         const formData = new FormData()
         formData.append('file', selectedImage)
         const token = localStorage.getItem('aegis-token') || localStorage.getItem('token')
-        const uploadRes = await fetch('/api/upload', {
+        const uploadRes = await fetch(`${API_BASE}/api/upload`, {
           method: 'POST',
           body: formData,
           headers: token ? { Authorization: `Bearer ${token}` } : undefined,
@@ -310,8 +327,9 @@ export default function AdminMessaging(): JSX.Element {
         if (!uploadRes.ok) throw new Error('Failed to upload image')
         const data = await uploadRes.json()
         attachmentUrl = data.url
-      } catch {
+      } catch (err) {
         setUploadingImage(false)
+        setError(t('admin.messaging.uploadFailed', lang) || 'Image upload failed. Please try again.')
         return
       }
     }
@@ -358,10 +376,28 @@ export default function AdminMessaging(): JSX.Element {
   const openCount = threads.filter(t => t.status === 'open').length
   const inProgressCount = threads.filter(t => t.status === 'in_progress').length
 
+  // Keyboard shortcuts
+  const [showKeyboard, setShowKeyboard] = useState(false)
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+      const key = e.key.toLowerCase()
+      if (key === 'r' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); handleRefresh() }
+      else if (key === 'q') { e.preventDefault(); setShowQuickReplies(p => !p) }
+      else if (key === 't' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); setAutoTranslate(p => !p) }
+      else if (key === '?' || (e.shiftKey && key === '/')) { e.preventDefault(); setShowKeyboard(p => !p) }
+      else if (key === 'escape') setShowKeyboard(false)
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [activeThread])
+
   // PROFESSIONAL SPLIT LAYOUT
 
   return (
-    <div className="flex h-[calc(100vh-180px)] bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950 dark:to-gray-900 rounded-2xl overflow-hidden shadow-xl border border-gray-200/80 dark:border-gray-800/80">
+    <>
+    <div className="flex h-[calc(100vh-240px)] min-h-[400px] bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950 dark:to-gray-900 rounded-2xl overflow-hidden shadow-xl border border-gray-200/80 dark:border-gray-800/80">
       {/* LEFT: Thread Inbox Panel */}
       <div className={`w-full md:w-[420px] flex flex-col bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 ${activeThread ? 'hidden md:flex' : 'flex'}`}>
         {/* Premium Header */}
@@ -446,7 +482,12 @@ export default function AdminMessaging(): JSX.Element {
 
         {/* Thread List */}
         <div className="flex-1 overflow-y-auto">
-          {filteredThreads.length === 0 ? (
+          {loadingThreads && filteredThreads.length === 0 ? (
+            <div className="p-10 text-center">
+              <Loader2 className="w-8 h-8 mx-auto mb-3 text-aegis-500 animate-spin" />
+              <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">{t('common.loading', lang)}...</p>
+            </div>
+          ) : filteredThreads.length === 0 ? (
             <div className="p-10 text-center">
               <div className="w-16 h-16 mx-auto mb-3 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
                 <MessageSquare className="w-8 h-8 text-gray-300 dark:text-gray-400" />
@@ -827,6 +868,27 @@ export default function AdminMessaging(): JSX.Element {
         )}
       </div>
     </div>
+    {/* Error Toast */}
+    {error && (
+      <div className="fixed bottom-6 right-6 z-50 bg-red-600 text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 animate-in slide-in-from-bottom-4">
+        <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+        <span className="text-sm font-medium">{error}</span>
+        <button onClick={() => setError(null)} className="ml-2 hover:bg-red-700 rounded p-0.5 transition">
+          <X className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    )}
+    {showKeyboard && (
+      <div className="mt-3 bg-gray-900 text-white rounded-xl p-3 flex items-center gap-4 flex-wrap text-[10px] font-mono ring-1 ring-gray-700">
+        <span className="font-bold text-gray-400 uppercase tracking-wider mr-1">Shortcuts</span>
+        <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">R</kbd> Refresh</span>
+        <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">Q</kbd> Quick Replies</span>
+        <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">T</kbd> Auto-Translate</span>
+        <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">?</kbd> Toggle Shortcuts</span>
+        <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">Esc</kbd> Close</span>
+      </div>
+    )}
+    </>
   )
 }
 

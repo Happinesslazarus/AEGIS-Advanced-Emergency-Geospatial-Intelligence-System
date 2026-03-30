@@ -23,6 +23,7 @@ import {
 } from '../services/metrics.js'
 import { AppError } from '../utils/AppError.js'
 import { logger } from '../services/logger.js'
+import { regionRegistry } from '../adapters/regions/index.js'
 
 const router = Router()
 
@@ -309,11 +310,13 @@ router.post('/retrain', authMiddleware, adminOnly, async (req: AuthRequest, res:
   try {
     const { hazard_type, region_id } = req.body
 
-    if (!hazard_type || !region_id) {
-      throw AppError.badRequest('Missing hazard_type or region_id')
+    if (!hazard_type) {
+      throw AppError.badRequest('Missing hazard_type')
     }
 
-    const result = await aiClient.triggerRetrain(hazard_type, region_id)
+    const resolvedRegionId = (typeof region_id === 'string' && region_id.trim()) || regionRegistry.getActiveRegion().getMetadata().regionId
+
+    const result = await aiClient.triggerRetrain(hazard_type, resolvedRegionId)
 
     // Log the retrain request
     await pool.query(
@@ -323,7 +326,7 @@ router.post('/retrain', authMiddleware, adminOnly, async (req: AuthRequest, res:
         req.user?.id,
         `Triggered AI model retraining: ${hazard_type}`,
         'note',
-        JSON.stringify({ targetType: 'ai_model', hazard_type, region_id, job_id: result.job_id }),
+        JSON.stringify({ targetType: 'ai_model', hazard_type, region_id: resolvedRegionId, job_id: result.job_id }),
       ]
     )
 

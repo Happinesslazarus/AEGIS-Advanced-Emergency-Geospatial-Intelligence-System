@@ -89,6 +89,8 @@ export default function Map3DView({
   const mapRef = useRef<MapLibreMap | null>(null)
   const deckRef = useRef<Deck | null>(null)
   const animFrameRef = useRef<number>(0)
+  const onReportClickRef = useRef(onReportClick)
+  useEffect(() => { onReportClickRef.current = onReportClick }, [onReportClick])
 
   const [riverData, setRiverData] = useState<any[]>([])
   const [distressData, setDistressData] = useState<any[]>([])
@@ -204,14 +206,14 @@ export default function Map3DView({
           return { html: `<div style="background:#1f2937;color:white;padding:8px 12px;border-radius:8px;font-size:12px;border:1px solid #374151;"><b>${object.stationName || object.riverName}</b><br/><span style="font-size:18px;font-weight:800;font-family:monospace">${object.levelMetres?.toFixed(2)}m</span><br/><span style="color:${object.status === 'NORMAL' ? '#22c55e' : '#ef4444'}">${object.status}</span></div>` }
         }
         if (object._type === 'distress') {
-          return { html: `<div style="background:#1f2937;color:#ef4444;padding:8px 12px;border-radius:8px;font-size:12px;border:1px solid #7f1d1d;"><b>? DISTRESS BEACON</b><br/><span style="color:white">${object.citizenName || 'Citizen'}</span></div>` }
+          return { html: `<div style="background:#1f2937;color:#ef4444;padding:8px 12px;border-radius:8px;font-size:12px;border:1px solid #7f1d1d;"><b>🚨 DISTRESS BEACON</b><br/><span style="color:white">${object.citizenName || 'Citizen'}</span></div>` }
         }
         if (object._type === 'globalZone') {
           const pop = object.population >= 1000000 ? `${(object.population / 1000000).toFixed(1)}M` : `${(object.population / 1000).toFixed(0)}K`
-          return { html: `<div style="background:#1f2937;color:white;padding:10px 14px;border-radius:10px;font-size:12px;border:1px solid #374151;max-width:300px;"><b style="font-size:14px;">${object.name}</b><br/><span style="color:${(RISK_COLORS as any)[object.risk]};font-weight:700;text-transform:uppercase;font-size:10px;">${object.risk} RISK</span> <span style="color:#9ca3af;font-size:10px;">— ${object.type} — ${object.country}</span><br/><span style="color:#d1d5db;font-size:11px;line-height:1.4;">${object.description}</span><br/><span style="color:#60a5fa;font-size:10px;">Pop: ${pop}</span>${object.rivers?.length ? `<br/><span style="color:#22d3ee;font-size:10px;">?? ${object.rivers.join(', ')}</span>` : ''}</div>` }
+          return { html: `<div style="background:#1f2937;color:white;padding:10px 14px;border-radius:10px;font-size:12px;border:1px solid #374151;max-width:300px;"><b style="font-size:14px;">${object.name}</b><br/><span style="color:${(RISK_COLORS as any)[object.risk]};font-weight:700;text-transform:uppercase;font-size:10px;">${object.risk} RISK</span> <span style="color:#9ca3af;font-size:10px;">— ${object.type} — ${object.country}</span><br/><span style="color:#d1d5db;font-size:11px;line-height:1.4;">${object.description}</span><br/><span style="color:#60a5fa;font-size:10px;">Pop: ${pop}</span>${object.rivers?.length ? `<br/><span style="color:#22d3ee;font-size:10px;">🌊 ${object.rivers.join(', ')}</span>` : ''}</div>` }
         }
         if (object._type === 'globalRiver') {
-          return { html: `<div style="background:#1f2937;color:white;padding:10px 14px;border-radius:10px;font-size:12px;border:1px solid #374151;max-width:280px;"><b style="font-size:14px;">?? ${object.name}</b><br/><span style="color:${(RISK_COLORS as any)[object.floodRisk]};font-weight:700;text-transform:uppercase;font-size:10px;">${object.floodRisk} flood risk</span><br/><span style="color:#9ca3af;">${object.country}</span><br/><span style="font-family:monospace;font-size:13px;font-weight:700;">${object.lengthKm?.toLocaleString()} km</span> <span style="color:#9ca3af;">— Basin: ${object.basinPopulationMillions}M people</span></div>` }
+          return { html: `<div style="background:#1f2937;color:white;padding:10px 14px;border-radius:10px;font-size:12px;border:1px solid #374151;max-width:280px;"><b style="font-size:14px;">🌊 ${object.name}</b><br/><span style="color:${(RISK_COLORS as any)[object.floodRisk]};font-weight:700;text-transform:uppercase;font-size:10px;">${object.floodRisk} flood risk</span><br/><span style="color:#9ca3af;">${object.country}</span><br/><span style="font-family:monospace;font-size:13px;font-weight:700;">${object.lengthKm?.toLocaleString()} km</span> <span style="color:#9ca3af;">— Basin: ${object.basinPopulationMillions}M people</span></div>` }
         }
         if (object._type === 'globalStation') {
           return { html: `<div style="background:#1f2937;color:white;padding:10px 14px;border-radius:10px;font-size:12px;border:1px solid #374151;max-width:260px;"><b style="font-size:13px;">${object.name}</b><br/><span style="color:${(STATION_COLORS as any)[object.status]};font-weight:700;text-transform:uppercase;font-size:10px;">${object.status}</span> <span style="color:#9ca3af;">— ${object.country}</span>${object.waterLevel != null ? `<br/><span style="font-size:18px;font-weight:800;font-family:monospace;">${object.waterLevel}m</span> <span style="color:#6b7280;">/ ${object.maxLevel}m max</span><br/><span style="color:#9ca3af;font-size:10px;">Trend: ${object.trend || 'unknown'}</span>` : ''}</div>` }
@@ -232,6 +234,22 @@ export default function Map3DView({
           bearing: map.getBearing(),
         },
       })
+    })
+
+    // Click handler — pick Deck.gl objects via MapLibre click event
+    map.on('click', (e) => {
+      if (!deckRef.current) return
+      const picked = deckRef.current.pickObject({ x: e.point.x, y: e.point.y, radius: 10 })
+      if (picked?.object?._type === 'report' && onReportClickRef.current) {
+        onReportClickRef.current(picked.object)
+      }
+    })
+
+    // Cursor change on hover over clickable layers
+    map.on('mousemove', (e) => {
+      if (!deckRef.current) return
+      const picked = deckRef.current.pickObject({ x: e.point.x, y: e.point.y, radius: 6 })
+      map.getCanvas().style.cursor = picked?.object?._type === 'report' ? 'pointer' : ''
     })
 
     deckRef.current = deck
@@ -832,4 +850,4 @@ export default function Map3DView({
     </div>
   )
 }
-
+

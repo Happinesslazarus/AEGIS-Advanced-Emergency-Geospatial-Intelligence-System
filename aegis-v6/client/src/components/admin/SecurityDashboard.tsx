@@ -8,11 +8,13 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   ShieldCheck, AlertTriangle, Lock, Monitor, RefreshCw,
-  Trash2, Eye, Clock, Users, Activity, ChevronDown, ChevronUp,
+  Trash2, Eye, Users, Activity, ChevronDown, ChevronUp,
   Shield, Smartphone, Settings,
 } from 'lucide-react'
 import { apiFetch } from '../../utils/api'
 import { SECURITY_SEVERITY_CLASSES } from '../../utils/colorTokens'
+import { t } from '../../utils/i18n'
+import { useLanguage } from '../../hooks/useLanguage'
 
 interface SecurityAlert {
   id: string
@@ -60,6 +62,7 @@ const SEVERITY_ICONS: Record<string, React.ElementType> = {
 }
 
 export default function SecurityDashboard(): JSX.Element {
+  const lang = useLanguage()
   const [alerts, setAlerts] = useState<SecurityAlert[]>([])
   const [stats, setStats] = useState<Record<string, number>>({})
   const [failures, setFailures] = useState<FailedOperator[]>([])
@@ -92,7 +95,7 @@ export default function SecurityDashboard(): JSX.Element {
       setDevices(devicesRes.devices || [])
       if (prefsRes) setPreferences(prefsRes)
     } catch {
-      setError('Failed to load security data.')
+      setError(t('security.loadFailed', lang))
     } finally {
       setLoading(false)
     }
@@ -100,21 +103,37 @@ export default function SecurityDashboard(): JSX.Element {
 
   useEffect(() => { loadData() }, [loadData])
 
+  // Keyboard shortcuts
+  const [showKeyboard, setShowKeyboard] = useState(false)
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+      const key = e.key.toLowerCase()
+      if (key === 'r' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); loadData() }
+      else if (key === '?' || (e.shiftKey && key === '/')) { e.preventDefault(); setShowKeyboard(p => !p) }
+      else if (key === 'escape') setShowKeyboard(false)
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [loadData])
+
   const revokeDevice = async (deviceId: string) => {
     try {
       await apiFetch(`/api/security/devices/${deviceId}`, { method: 'DELETE' })
       setDevices(prev => prev.filter(d => d.id !== deviceId))
     } catch {
-      setError('Failed to revoke device.')
+      setError(t('security.revokeFailed', lang))
     }
   }
 
   const revokeAllDevices = async () => {
+    if (!window.confirm(t('security.revokeAllConfirm', lang))) return
     try {
       await apiFetch('/api/security/devices', { method: 'DELETE' })
       setDevices([])
     } catch {
-      setError('Failed to revoke devices.')
+      setError(t('security.revokeAllFailed', lang))
     }
   }
 
@@ -129,6 +148,7 @@ export default function SecurityDashboard(): JSX.Element {
       })
     } catch {
       setPreferences(preferences) // revert
+      setError(t('security.prefFailed', lang))
     }
   }
 
@@ -142,7 +162,7 @@ export default function SecurityDashboard(): JSX.Element {
     return (
       <div className="flex items-center justify-center py-20">
         <RefreshCw className="w-6 h-6 animate-spin text-aegis-500" />
-        <span className="ml-2 text-gray-500">Loading security data...</span>
+        <span className="ml-2 text-gray-500">{t('security.loading', lang)}</span>
       </div>
     )
   }
@@ -156,11 +176,11 @@ export default function SecurityDashboard(): JSX.Element {
             <ShieldCheck className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h2 className="text-lg font-extrabold text-gray-900 dark:text-white">Security Dashboard</h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Monitor authentication, device trust, and security events</p>
+            <h2 className="text-lg font-extrabold text-gray-900 dark:text-white">{t('security.title', lang)}</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{t('security.subtitle', lang)}</p>
           </div>
         </div>
-        <button onClick={loadData} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" title="Refresh">
+        <button onClick={loadData} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" title={t('common.refresh', lang)}>
           <RefreshCw className="w-4 h-4 text-gray-500" />
         </button>
       </div>
@@ -173,15 +193,15 @@ export default function SecurityDashboard(): JSX.Element {
 
       {/* Stats Summary Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatCard icon={Activity} label="Events (24h)" value={totalEvents} color="blue" />
-        <StatCard icon={AlertTriangle} label="Alerts" value={alerts.length} color="red" />
-        <StatCard icon={Users} label="Failed Operators" value={failures.length} color="amber" />
-        <StatCard icon={Monitor} label="Trusted Devices" value={devices.length} color="green" />
+        <StatCard icon={Activity} label={t('security.events24h', lang)} value={totalEvents} color="blue" />
+        <StatCard icon={AlertTriangle} label={t('security.alertsLabel', lang)} value={alerts.length} color="red" />
+        <StatCard icon={Users} label={t('security.failedOps', lang)} value={failures.length} color="amber" />
+        <StatCard icon={Monitor} label={t('security.trustedDevices', lang)} value={devices.length} color="green" />
       </div>
 
       {/* Security Alerts */}
       <CollapsibleSection
-        title="Security Alerts"
+        title={t('security.securityAlerts', lang)}
         icon={AlertTriangle}
         expanded={expandedSections.alerts}
         onToggle={() => toggleSection('alerts')}
@@ -189,7 +209,7 @@ export default function SecurityDashboard(): JSX.Element {
         badgeColor="red"
       >
         {alerts.length === 0 ? (
-          <p className="text-sm text-gray-400 dark:text-gray-500 py-4 text-center">No recent security alerts</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500 py-4 text-center">{t('security.noAlerts', lang)}</p>
         ) : (
           <div className="space-y-2 max-h-80 overflow-y-auto">
             {alerts.slice(0, 20).map(alert => {
@@ -216,13 +236,13 @@ export default function SecurityDashboard(): JSX.Element {
 
       {/* Event Stats */}
       <CollapsibleSection
-        title="Event Statistics (24h)"
+        title={t('security.eventStats', lang)}
         icon={Activity}
         expanded={expandedSections.stats}
         onToggle={() => toggleSection('stats')}
       >
         {Object.keys(stats).length === 0 ? (
-          <p className="text-sm text-gray-400 dark:text-gray-500 py-4 text-center">No events in the last 24 hours</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500 py-4 text-center">{t('security.noEvents', lang)}</p>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {Object.entries(stats).sort(([, a], [, b]) => b - a).map(([type, count]) => (
@@ -239,7 +259,7 @@ export default function SecurityDashboard(): JSX.Element {
 
       {/* Failed Login Operators */}
       <CollapsibleSection
-        title="Most Failed Operators (24h)"
+        title={t('security.failedOps24h', lang)}
         icon={Lock}
         expanded={expandedSections.failures}
         onToggle={() => toggleSection('failures')}
@@ -247,16 +267,16 @@ export default function SecurityDashboard(): JSX.Element {
         badgeColor="amber"
       >
         {failures.length === 0 ? (
-          <p className="text-sm text-gray-400 dark:text-gray-500 py-4 text-center">No failed login attempts</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500 py-4 text-center">{t('security.noFailures', lang)}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
-                  <th className="pb-2 font-medium">Operator</th>
-                  <th className="pb-2 font-medium">Email</th>
-                  <th className="pb-2 font-medium text-center">Failures</th>
-                  <th className="pb-2 font-medium">Last Failed</th>
+                  <th className="pb-2 font-medium">{t('common.operator', lang)}</th>
+                  <th className="pb-2 font-medium">{t('security.email', lang)}</th>
+                  <th className="pb-2 font-medium text-center">{t('security.failures', lang)}</th>
+                  <th className="pb-2 font-medium">{t('security.lastFailed', lang)}</th>
                 </tr>
               </thead>
               <tbody>
@@ -284,7 +304,7 @@ export default function SecurityDashboard(): JSX.Element {
 
       {/* Trusted Devices */}
       <CollapsibleSection
-        title="Your Trusted Devices"
+        title={t('security.yourDevices', lang)}
         icon={Smartphone}
         expanded={expandedSections.devices}
         onToggle={() => toggleSection('devices')}
@@ -292,7 +312,7 @@ export default function SecurityDashboard(): JSX.Element {
         badgeColor="green"
       >
         {devices.length === 0 ? (
-          <p className="text-sm text-gray-400 dark:text-gray-500 py-4 text-center">No trusted devices</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500 py-4 text-center">{t('security.noDevices', lang)}</p>
         ) : (
           <>
             <div className="space-y-2">
@@ -309,14 +329,14 @@ export default function SecurityDashboard(): JSX.Element {
                       <div className="flex items-center gap-2 text-[10px] text-gray-400">
                         {device.ipAddress && <span>IP: {device.ipAddress}</span>}
                         <span>Last used: {formatDate(device.lastUsedAt)}</span>
-                        {device.isExpired && <span className="text-red-400 font-semibold">Expired</span>}
+                        {device.isExpired && <span className="text-red-400 font-semibold">{t('security.expired', lang)}</span>}
                       </div>
                     </div>
                   </div>
                   <button
                     onClick={() => revokeDevice(device.id)}
                     className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 transition-colors"
-                    title="Revoke trust"
+                    title={t('security.revokeTrust', lang)}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -328,7 +348,7 @@ export default function SecurityDashboard(): JSX.Element {
                 onClick={revokeAllDevices}
                 className="mt-3 text-xs text-red-500 hover:text-red-600 flex items-center gap-1"
               >
-                <Trash2 className="w-3 h-3" /> Revoke all devices
+                <Trash2 className="w-3 h-3" /> {t('security.revokeAll', lang)}
               </button>
             )}
           </>
@@ -337,7 +357,7 @@ export default function SecurityDashboard(): JSX.Element {
 
       {/* Alert Preferences */}
       <CollapsibleSection
-        title="Alert Preferences"
+        title={t('security.alertPrefs', lang)}
         icon={Settings}
         expanded={expandedSections.preferences}
         onToggle={() => toggleSection('preferences')}
@@ -345,40 +365,49 @@ export default function SecurityDashboard(): JSX.Element {
         {preferences ? (
           <div className="space-y-3">
             <PreferenceToggle
-              label="2FA Disabled"
-              description="Get notified when two-factor authentication is disabled"
+              label={t('security.pref2faDisabled', lang)}
+              description={t('security.pref2faDisabledDesc', lang)}
               checked={preferences.alert_on_2fa_disabled}
               onChange={v => updatePreference('alert_on_2fa_disabled', v)}
             />
             <PreferenceToggle
-              label="Backup Code Used"
-              description="Get notified when a backup recovery code is used"
+              label={t('security.prefBackupUsed', lang)}
+              description={t('security.prefBackupUsedDesc', lang)}
               checked={preferences.alert_on_backup_code_used}
               onChange={v => updatePreference('alert_on_backup_code_used', v)}
             />
             <PreferenceToggle
-              label="New Device Login"
-              description="Get notified when your account is accessed from a new device"
+              label={t('security.prefNewDevice', lang)}
+              description={t('security.prefNewDeviceDesc', lang)}
               checked={preferences.alert_on_new_device_login}
               onChange={v => updatePreference('alert_on_new_device_login', v)}
             />
             <PreferenceToggle
-              label="Suspicious Access"
-              description="Get notified when suspicious activity is detected"
+              label={t('security.prefSuspicious', lang)}
+              description={t('security.prefSuspiciousDesc', lang)}
               checked={preferences.alert_on_suspicious_access}
               onChange={v => updatePreference('alert_on_suspicious_access', v)}
             />
             <PreferenceToggle
-              label="Account Lockout"
-              description="Get notified when your account is locked due to failed attempts"
+              label={t('security.prefLockout', lang)}
+              description={t('security.prefLockoutDesc', lang)}
               checked={preferences.alert_on_lockout}
               onChange={v => updatePreference('alert_on_lockout', v)}
             />
           </div>
         ) : (
-          <p className="text-sm text-gray-400 py-4 text-center">Unable to load preferences</p>
+          <p className="text-sm text-gray-400 py-4 text-center">{t('security.noPrefs', lang)}</p>
         )}
       </CollapsibleSection>
+
+      {showKeyboard && (
+        <div className="mt-3 bg-gray-900 text-white rounded-xl p-3 flex items-center gap-4 flex-wrap text-[10px] font-mono ring-1 ring-gray-700">
+          <span className="font-bold text-gray-400 uppercase tracking-wider mr-1">{t('security.shortcuts', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">R</kbd> {t('common.refresh', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">?</kbd> {t('security.toggleShortcuts', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">Esc</kbd> {t('common.close', lang)}</span>
+        </div>
+      )}
     </div>
   )
 }
