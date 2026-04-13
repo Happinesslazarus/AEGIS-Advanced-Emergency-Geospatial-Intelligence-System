@@ -1,5 +1,13 @@
 /**
- * incidents/water_supply/schema.ts — Water Supply Disruption report validation schema
+ * Module: schema.ts
+ *
+ * Water supply disruptions incident module (handles water supply specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for water supply events.
  */
 
 export interface WaterSupplyCustomFields {
@@ -42,4 +50,4 @@ export function sanitizeWaterSupplyCustomFields(fields: Record<string, unknown>)
     alternativeSupply: typeof fields.alternativeSupply === 'boolean' ? fields.alternativeSupply : undefined
   }
 }
-
+

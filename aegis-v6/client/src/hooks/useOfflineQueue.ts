@@ -1,13 +1,10 @@
 /**
- * hooks/useOfflineQueue.ts — Offline-first report submission queue.
+ * Module: useOfflineQueue.ts
  *
- * When the user is offline, report submissions are saved to IndexedDB
- * and queued for background sync. When back online, the service worker
- * replays them automatically.
+ * useOfflineQueue custom React hook (offline queue logic).
  *
- * This hook also provides manual replay for browsers without
- * Background Sync API support.
- */
+ * How it connects:
+ * - Used by React components that need this functionality */
 
 import { useState, useEffect, useCallback } from 'react'
 
@@ -35,7 +32,9 @@ export function useOfflineQueue(): OfflineQueueState {
 
   // Track online/offline status
   useEffect(() => {
-    const goOnline = () => {
+  // When connectivity returns, immediately tell the service worker to trim
+  // any stale caches (removes old precached assets that may have expired).
+  const goOnline = () => {
       setIsOnline(true)
       // Trigger sync on reconnect
       if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
@@ -52,7 +51,9 @@ export function useOfflineQueue(): OfflineQueueState {
     }
   }, [])
 
-  // Listen for service worker sync messages
+  // Listen for messages coming FROM the service worker back to this page.
+  // SYNC_SUCCESS = the SW successfully replayed a queued request, remove it from our local list.
+  // QUEUE_STATUS = the SW reports its full queue (e.g. on page load so our state stays in sync).
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return
 
@@ -95,6 +96,9 @@ export function useOfflineQueue(): OfflineQueueState {
     setQueue(prev => [...prev, entry])
   }, [])
 
+  // replayAll: manually retry every queued request in order.
+  // This is the fallback path when Background Sync is not available —
+  // we just fire the requests directly from the browser tab.
   const replayAll = useCallback(async (): Promise<{ success: number; failed: number }> => {
     let success = 0
     let failed = 0
@@ -137,4 +141,4 @@ export function useOfflineQueue(): OfflineQueueState {
     clearQueue,
   }
 }
-
+

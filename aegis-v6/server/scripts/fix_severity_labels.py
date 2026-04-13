@@ -1,9 +1,19 @@
+"""
+Module: fix_severity_labels.py
+
+Fix_severity_labels utility script.
+
+Simple explanation:
+Standalone script for fix_severity_labels.
+"""
+
+import os
 """Update severity labels to be correlated with text features for better ML training."""
 import asyncio
 import asyncpg
 import re
 
-DB_URL = "postgresql://postgres:Happylove%40%21@localhost:5432/aegis"
+DB_URL = os.environ.get('DATABASE_URL', 'postgresql://localhost:5432/aegis')
 
 # Keywords that indicate severity levels
 CRITICAL_KEYWORDS = [

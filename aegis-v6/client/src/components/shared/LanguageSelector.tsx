@@ -1,7 +1,15 @@
+/**
+ * Module: LanguageSelector.tsx
+ *
+ * Language selector shared component (reusable UI element used across pages).
+ *
+ * How it connects:
+ * - Used across both admin and citizen interfaces */
+
 import { Globe } from 'lucide-react'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useTranslation } from 'react-i18next'
-import { SUPPORTED_LANGUAGES } from '../../i18n/config'
+import { SUPPORTED_LANGUAGES, loadLanguage } from '../../i18n/config'
 import { setLanguage, t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 import { clearTranslationCache } from '../../utils/translateService'
@@ -38,6 +46,7 @@ export default function LanguageSelector({ darkNav = false, className = '' }: La
           const next = e.target.value
           setLanguage(next)
           try {
+            await loadLanguage(next)
             await i18n.changeLanguage(next)
           } catch {
             // Keep UI responsive even if i18n backend fails.
@@ -61,4 +70,4 @@ export default function LanguageSelector({ darkNav = false, className = '' }: La
     </div>
   )
 }
-
+

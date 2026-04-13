@@ -1,6 +1,13 @@
 /**
- * incidents/public_safety/dataIngestion.ts — Data ingestion for public safety monitoring
- * Data Source: Citizen Reports, Emergency Services Integration
+ * Module: dataIngestion.ts
+ *
+ * Public safety incidents incident module (handles public safety specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for public safety events.
  */
 
 import pool from '../../models/db.js'

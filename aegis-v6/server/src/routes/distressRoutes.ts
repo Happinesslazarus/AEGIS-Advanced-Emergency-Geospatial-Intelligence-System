@@ -1,14 +1,38 @@
- /*
- * routes/distressRoutes.ts — Personal Distress Beacon / SOS REST API
- *   POST /api/distress/activate          — Citizen activates SOS beacon
- *   POST /api/distress/location          — Push GPS location update
- *   POST /api/distress/cancel            — Citizen cancels SOS
- *   GET  /api/distress/active            — List all active distress calls (operator)
- *   GET  /api/distress/:id               — Get single distress call details
- *   POST /api/distress/:id/acknowledge   — Operator acknowledges
- *   POST /api/distress/:id/resolve       — Operator marks resolved
- *   GET  /api/distress/history           — Historical distress calls
-  */
+/**
+ * File: distressRoutes.ts
+ *
+ * What this file does:
+ * SOS distress beacon system. Citizens can activate an emergency beacon
+ * with their GPS location, push live location updates, and cancel when
+ * safe. Operators receive real-time alerts and can acknowledge/resolve calls.
+ * Vulnerable citizens are flagged so operators prioritise appropriately.
+ *
+ * How it connects:
+ * - Mounted at /api/distress in server/src/index.ts
+ * - One active distress call per citizen enforced (409 if already active)
+ * - Real-time location updates broadcast via Socket.IO
+ *   (server/src/services/socket.ts emits to the 'admin' room)
+ * - Vulnerability status pulled from the citizens table in PostgreSQL
+ * - Client activation UI: client/src/pages/CitizenDashboard.tsx → distress button
+ * - Operator view: client/src/pages/AdminPage.tsx → distress panel
+ *
+ * Key endpoints:
+ * POST /api/distress/activate             — Citizen activates SOS
+ * POST /api/distress/location             — Push a GPS coordinate update
+ * POST /api/distress/cancel               — Citizen cancels their SOS
+ * GET  /api/distress/active               — List all active beacons (operator)
+ * POST /api/distress/:id/acknowledge      — Operator acknowledges a call
+ * POST /api/distress/:id/resolve          — Operator marks call as resolved
+ * GET  /api/distress/history              — Resolved/archived calls (operator)
+ *
+ * Learn more:
+ * - server/src/services/socket.ts          — how real-time updates are pushed
+ * - server/src/middleware/auth.ts          — citizenOnly / operatorOnly guards used here
+ *
+ * Simple explanation:
+ * The emergency SOS button. Citizens press it, pick up their phone with GPS on,
+ * and responders can see exactly where they are and respond in real time.
+ */
 
 import { Router, Request, Response, NextFunction } from 'express'
 import pool from '../models/db.js'

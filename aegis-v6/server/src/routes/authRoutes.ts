@@ -1,14 +1,29 @@
-﻿/*
- * authRoutes.ts - Authentication and operator management API
+/**
+ * File: authRoutes.ts
  *
- * Handles all auth-related endpoints:
- *   POST /api/auth/invite    - Create new operator account (with optional avatar)
- *   POST /api/auth/login     - Authenticate and receive JWT token
- *   GET  /api/auth/me        - Get current operator profile
- *   PUT  /api/auth/profile   - Update profile (name, avatar, etc.)
+ * What this file does:
+ * Operator/admin authentication: invite-based registration, login with
+ * lockout protection, JWT token refresh with rotation, password reset
+ * via email, profile management, and email verification.
  *
- * Passwords are hashed with bcrypt (12 rounds) before storage.
- * JWTs are issued on successful login and expire after 24 hours.
+ * How it connects:
+ * - Mounted at /api/auth in index.ts
+ * - Uses auth.ts middleware for JWT verification and session management
+ * - Passwords hashed with bcrypt (12 rounds)
+ * - Login triggers risk assessment and device trust checks
+ * - Security events logged to securityLogger for audit trail
+ *
+ * Endpoints:
+ * POST /api/auth/invite    — Create operator account (admin-only)
+ * POST /api/auth/login     — Authenticate and get JWT + refresh token
+ * POST /api/auth/refresh   — Rotate refresh token
+ * GET  /api/auth/me        — Current operator profile
+ * PUT  /api/auth/profile   — Update profile
+ * POST /api/auth/forgot-password   — Request password reset email
+ * POST /api/auth/reset-password    — Reset password with token
+ *
+ * Simple explanation:
+ * Login, signup, and account management for operators and admins.
  */
 
 import { Router, Response, NextFunction } from 'express'
@@ -32,16 +47,18 @@ import { assessLoginRisk } from '../services/riskAuthService.js'
 import { alertAccountLocked, alertRepeatedFailures, alertSuspiciousAccess } from '../services/securityAlertService.js'
 import { AppError } from '../utils/AppError.js'
 import { logger } from '../services/logger.js'
+import { authFailuresTotal, accountLockoutsTotal, riskAssessmentTotal } from '../services/metrics.js'
 
 const router = Router()
 
 // Rate limiter for login attempts only (brute-force protection)
 const loginLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 50, // 50 login attempts per hour
-  message: { error: 'Too many login attempts. Please try again in 1 hour.' },
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 login attempts per 15 minutes per IP
+  message: { error: 'Too many login attempts. Please try again in 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
+  skipSuccessfulRequests: true, // Only count failed attempts toward the limit
 })
 
 const registerLimiter = rateLimit({
@@ -65,7 +82,7 @@ const resetPasswordLimiter = rateLimit({
  * Creates a new operator account (admin-only invite flow).
  * Only authenticated admins can create new operator accounts.
  * The invited operator receives a verification email to set up their account.
- * Role is always 'operator' — admin promotion requires a separate super-admin action.
+ * Role is always 'operator' - admin promotion requires a separate super-admin action.
  */
 router.post('/invite', authMiddleware, adminOnly, registerLimiter, uploadAvatar, validateMagicBytes, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -189,6 +206,7 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next
 
     if (result.rows.length === 0) {
       await logSecurityEvent({ eventType: 'login_failed', ipAddress: clientIp, userAgent, metadata: { reason: 'unknown_email' } })
+      authFailuresTotal.inc({ failure_type: 'unknown_email', user_type: 'operator' })
       throw AppError.unauthorized('Invalid email or password.')
     }
 
@@ -201,6 +219,7 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next
         userId: user.id, userType: 'operator', eventType: 'login_failed',
         ipAddress: clientIp, userAgent, metadata: { reason: 'account_locked', remaining_minutes: lockoutStatus.remainingMinutes },
       })
+      authFailuresTotal.inc({ failure_type: 'account_locked', user_type: 'operator' })
       res.status(423).json({
         error: `Account is temporarily locked. Try again in ${lockoutStatus.remainingMinutes} minute(s).`,
         code: 'ACCOUNT_LOCKED',
@@ -217,7 +236,7 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next
       if (new Date(user.suspended_until) > new Date()) {
         throw AppError.forbidden(`Account is suspended until ${new Date(user.suspended_until).toUTCString()}. Contact system administrator.`)
       }
-      // Suspension expired — auto-lift it
+      // Suspension expired - auto-lift it
       await pool.query('UPDATE operators SET is_suspended = false, suspended_until = NULL WHERE id = $1', [user.id])
     }
 
@@ -236,6 +255,7 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next
         ipAddress: clientIp, userAgent, metadata: { attempts: newLockout.attempts },
       })
 
+      authFailuresTotal.inc({ failure_type: 'invalid_password', user_type: 'operator' })
       await checkSuspiciousActivity(user.id, 'operator', clientIp)
 
       if (newLockout.locked) {
@@ -243,6 +263,7 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next
           userId: user.id, userType: 'operator', eventType: 'account_locked',
           ipAddress: clientIp, userAgent, metadata: { duration_minutes: LOCKOUT_DURATION_MINUTES },
         })
+        accountLockoutsTotal.inc({ user_type: 'operator' })
         sendLockoutNotification(user.email, LOCKOUT_DURATION_MINUTES).catch(() => {})
         alertAccountLocked(user.id, LOCKOUT_DURATION_MINUTES, clientIp).catch(() => {})
         res.status(423).json({
@@ -261,18 +282,18 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next
       throw AppError.unauthorized('Invalid email or password.')
     }
 
-    // Successful password verification — reset failed attempts
+    // Successful password verification - reset failed attempts
     await resetFailedLogins('operators', user.id)
 
     // 2FA Gate
     // If operator has 2FA enabled, check trusted device first.
-    // Trusted device → skip 2FA challenge. Otherwise issue a temp token.
+    // Trusted device ? skip 2FA challenge. Otherwise issue a temp token.
     if (user.two_factor_enabled) {
       // Check if this device is already trusted (30-day remember-me)
       const trustedDevice = await isDeviceTrusted(user.id, userAgent || '', clientIp).catch(() => null)
 
       if (trustedDevice) {
-        // Trusted device — skip 2FA, issue full JWT
+        // Trusted device - skip 2FA, issue full JWT
         await pool.query('UPDATE operators SET last_login = NOW() WHERE id = $1', [user.id])
 
         await logSecurityEvent({
@@ -301,7 +322,7 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next
         res.cookie('aegis_refresh', refreshToken, {
           httpOnly: true,
           secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
+          sameSite: 'strict',
           maxAge: 30 * 24 * 60 * 60 * 1000,
           path: '/api/auth',
         })
@@ -318,7 +339,7 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next
         return
       }
 
-      // Not a trusted device — issue temp token for 2FA challenge
+      // Not a trusted device - issue temp token for 2FA challenge
       const tempTokenRaw = generateTempToken()
       const tempTokenHash = hashTempToken(tempTokenRaw)
       const expiresAt = new Date(Date.now() + 5 * 60 * 1000) // 5 minutes
@@ -352,6 +373,9 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next
 
       // Assess login risk for the dashboard
       const risk = await assessLoginRisk(user.id, clientIp, userAgent || '').catch(() => null)
+      if (risk) {
+        riskAssessmentTotal.inc({ level: risk.level })
+      }
       if (risk?.alertAdmin) {
         alertSuspiciousAccess(user.id, `High-risk login attempt (score: ${risk.score})`, clientIp).catch(() => {})
       }
@@ -400,11 +424,11 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next
       ipAddress: clientIp, userAgent,
     })
 
-    // Refresh token lives in an httpOnly cookie — JS cannot read or steal it
+    // Refresh token lives in an httpOnly cookie - JS cannot read or steal it
     res.cookie('aegis_refresh', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: 'strict',
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       path: '/api/auth',
     })
@@ -456,6 +480,12 @@ router.post('/forgot-password', async (req: AuthRequest, res: Response, next: Ne
       ).catch(() => {})
 
       const resetBase = process.env.RESET_PASSWORD_URL || `${process.env.CLIENT_URL || 'http://localhost:5173'}/reset-password`
+      // Enforce HTTPS for password reset links in production to prevent token interception
+      if (process.env.NODE_ENV === 'production' && !resetBase.startsWith('https://')) {
+        logger.error('[SECURITY] RESET_PASSWORD_URL or CLIENT_URL must use HTTPS in production. Set RESET_PASSWORD_URL env var.')
+        res.status(500).json({ error: 'The password reset service is not properly configured. Please contact your system administrator.' })
+        return
+      }
       const resetLink = `${resetBase}?token=${rawToken}`
 
       // SECURITY: Send reset link via email only, never return it in the response
@@ -696,7 +726,7 @@ router.post('/refresh', async (req: AuthRequest, res: Response, next: NextFuncti
     res.cookie('aegis_refresh', newRefreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: 'strict',
       maxAge: 30 * 24 * 60 * 60 * 1000,
       path: '/api/auth',
     })

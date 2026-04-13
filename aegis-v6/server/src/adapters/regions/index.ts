@@ -1,5 +1,13 @@
 /**
- * adapters/regions/index.ts — Public API for the region adapter system
+ * Module: index.ts
+ *
+ * Regions barrel export (re-exports module contents).
+ *
+ * How it connects:
+ * - Used by services for external data fetching
+ *
+ * Simple explanation:
+ * Gathers and re-exports everything from the regions directory.
  */
 
 export { regionRegistry, initRegionRegistry } from './RegionRegistry.js'
@@ -16,4 +24,4 @@ export type {
   RegionMetadata,
   MonitoredCity,
 } from './RegionAdapter.interface.js'
-
+

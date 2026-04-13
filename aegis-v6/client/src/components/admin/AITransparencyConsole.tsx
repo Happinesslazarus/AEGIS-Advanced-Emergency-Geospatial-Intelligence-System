@@ -1,18 +1,10 @@
-﻿/*
- * AITransparencyConsole.tsx — Professional {t('ai.commandGovernance', lang)} Console
- * Modeled after IBM Watson OpenScale, Google Vertex AI Model Monitoring,
- * Palantir Gotham ML Ops, FEMA IPAWS AI Decision Support, UK Met Office
- * Hazard Manager AI/ML Transparency frameworks.
- * Wraps the existing AITransparencyDashboard (~840 lines, 5 tabs, 7 API
- * endpoints, WebSocket) and the inline Flood Intelligence section, adding:
- * Dark tactical command header with ZULU clock & system feed indicators
- * AI Pipeline Status Strip (Ingest → Classify → Predict → Alert)
- * Model Health Traffic Light Board (all models at one glance)
- * Inference Performance Gauges (latency, throughput, queue)
- * Data Lineage & Training Recency summary
- * Flood Intelligence Engine (predictions, on-demand analysis)
- * Existing AITransparencyDashboard component
-  */
+/**
+ * Module: AITransparencyConsole.tsx
+ *
+ * AI transparency console (shows AI decision explanations and confidence scores).
+ *
+ * How it connects:
+ * - Rendered inside AdminPage.tsx based on active view */
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import {
@@ -459,13 +451,10 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
   return (
     <div className="space-y-4 animate-fade-in">
 
-      {/* ══════════════════════════════════════════════
-          UNIFIED AI COMMAND CONSOLE
-          Dark header + KPI strip + 5 horizontal tabs
-          ══════════════════════════════════════════════ */}
+      {/* Unified AI Command Console — dark header + KPI strip + 5 horizontal tabs */}
       <div className="rounded-2xl overflow-hidden shadow-2xl ring-1 ring-slate-800/60">
 
-        {/* ── HEADER ── */}
+        {/* HEADER */}
         <div className="bg-gradient-to-br from-slate-950 via-gray-900 to-slate-900 px-6 pt-5 pb-0">
 
           {/* Title row */}
@@ -545,10 +534,10 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
           </div>
         </div>
 
-        {/* ── TAB CONTENT ── */}
+        {/* TAB CONTENT */}
         <div className="bg-white dark:bg-gray-900 border-t border-slate-800/50 p-5 space-y-5 min-h-[320px]">
 
-          {/* ─── TAB: LIVE FEED ─── */}
+          {/* TAB: LIVE FEED */}
           {consoleTab === 'feed' && (
             <div className="space-y-5">
               {/* Intelligence Summary Banner */}
@@ -572,7 +561,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
 
               {/* Pipeline flow */}
               <div>
-                <h4 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">{t('ai.pipeline', lang)}</h4>
+                <h4 className="text-xs font-bold text-gray-400 dark:text-gray-400 uppercase tracking-wider mb-3">{t('ai.pipeline', lang)}</h4>
                 <div className="flex items-center gap-1.5 overflow-x-auto pb-1 flex-wrap sm:flex-nowrap">
                   {[
                     { label: t('ai.ingest', lang),   desc: t('ai.dataCollection', lang),    icon: Database, color: 'text-cyan-700 dark:text-cyan-400',   bg: 'bg-cyan-50   dark:bg-cyan-900/20   border-cyan-200   dark:border-cyan-800' },
@@ -589,7 +578,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                           <p className="text-[10px] text-gray-500 dark:text-gray-400">{stage.desc}</p>
                         </div>
                       </div>
-                      {i < arr.length - 1 && <ArrowRight className="w-3 h-3 text-gray-300 dark:text-gray-600 flex-shrink-0" />}
+                      {i < arr.length - 1 && <ArrowRight className="w-3 h-3 text-gray-300 dark:text-gray-400 flex-shrink-0" />}
                     </React.Fragment>
                   ))}
                 </div>
@@ -602,7 +591,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                 </h4>
                 {localPredictions.length === 0 ? (
                   <div className="text-center py-12 bg-gray-50 dark:bg-gray-800/30 rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
-                    <Waves className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                    <Waves className="w-10 h-10 text-gray-300 dark:text-gray-400 mx-auto mb-2" />
                     <p className="text-sm text-gray-500 dark:text-gray-400">{t('ai.noActivePredictions', lang)}</p>
                   </div>
                 ) : (
@@ -705,7 +694,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
             </div>
           )}
 
-          {/* ─── TAB: ON-DEMAND ANALYSIS ─── */}
+          {/* TAB: ON-DEMAND ANALYSIS */}
           {consoleTab === 'analysis' && (
             <div className="space-y-5">
               <div className="bg-gray-50 dark:bg-gray-800/30 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
@@ -819,7 +808,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
             </div>
           )}
 
-          {/* ─── TAB: MODELS (Explorer + Versions) ─── */}
+          {/* TAB: MODELS (Explorer + Versions) */}
           {consoleTab === 'models' && (
             <div className="space-y-6">
 
@@ -841,7 +830,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                   <div className="flex items-center justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
                 ) : explorerModels.length === 0 ? (
                   <div className="text-center py-8 bg-gray-50 dark:bg-gray-800/30 rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
-                    <Brain className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                    <Brain className="w-8 h-8 text-gray-300 dark:text-gray-400 mx-auto mb-2" />
                     <p className="text-sm text-gray-500 dark:text-gray-400">{t('ai.noModelsAvailable', lang)}</p>
                   </div>
                 ) : (
@@ -990,7 +979,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                               </div>
                               <div className="flex gap-1.5 mt-1 px-2">
                                 {cd.map((bucket: any, bi: number) => (
-                                  <div key={bi} className="flex-1 text-center text-[10px] text-gray-400 dark:text-gray-500 truncate">{bucket.l || bucket.label || ''}</div>
+                                  <div key={bi} className="flex-1 text-center text-[10px] text-gray-400 dark:text-gray-400 truncate">{bucket.l || bucket.label || ''}</div>
                                 ))}
                               </div>
                             </div>
@@ -1094,7 +1083,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                   <div className="flex items-center justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
                 ) : versions.length === 0 ? (
                   <div className="text-center py-8 bg-gray-50 dark:bg-gray-800/30 rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
-                    <Package className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                    <Package className="w-8 h-8 text-gray-300 dark:text-gray-400 mx-auto mb-2" />
                     <p className="text-sm text-gray-500 dark:text-gray-400">{t('ai.noVersionsFound', lang)}</p>
                   </div>
                 ) : (
@@ -1122,7 +1111,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                                   : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
                                 }`}>{humanizeName(v.promotion_status || 'pending')}</span>
                                 {aucStr && <span className="text-[10px] text-gray-500 dark:text-gray-400 font-mono">{aucStr}</span>}
-                                <span className="text-[10px] text-gray-400 dark:text-gray-500">{v.trained_at?.split('T')[0]}</span>
+                                <span className="text-[10px] text-gray-400 dark:text-gray-400">{v.trained_at?.split('T')[0]}</span>
                                 {!v.has_model_file && <span className="text-[10px] text-red-500 font-bold">{t('ai.noFile', lang)}</span>}
                               </div>
                             </div>
@@ -1156,7 +1145,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
             </div>
           )}
 
-          {/* ─── TAB: DRIFT & HEALTH ─── */}
+          {/* TAB: DRIFT & HEALTH */}
           {consoleTab === 'drift' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -1294,7 +1283,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
             </div>
           )}
 
-          {/* ─── TAB: AUDIT TRAIL ─── */}
+          {/* TAB: AUDIT TRAIL */}
           {consoleTab === 'audit' && (
             <div className="space-y-4">
               {/* Activity Intelligence Bar */}
@@ -1375,7 +1364,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                 <div className="flex items-center justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
               ) : filteredAuditEntries.length === 0 ? (
                 <div className="text-center py-8 bg-gray-50 dark:bg-gray-800/30 rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
-                  <Eye className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                  <Eye className="w-8 h-8 text-gray-300 dark:text-gray-400 mx-auto mb-2" />
                   <p className="text-sm text-gray-500 dark:text-gray-400">{t('ai.noAuditEntries', lang)}</p>
                 </div>
               ) : (

@@ -1,5 +1,13 @@
 /**
- * incidents/power_outage/schema.ts — Power Outage report validation schema
+ * Module: schema.ts
+ *
+ * Electrical grid failures incident module (handles power outage specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for power outage events.
  */
 
 export interface PowerOutageCustomFields {
@@ -40,4 +48,4 @@ export function sanitizePowerOutageCustomFields(fields: Record<string, unknown>)
     backupPowerAvailable: typeof fields.backupPowerAvailable === 'boolean' ? fields.backupPowerAvailable : undefined
   }
 }
-
+

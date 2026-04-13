@@ -1,6 +1,13 @@
 /**
- * incidents/environmental_hazard/dataIngestion.ts — Data ingestion for environmental hazard monitoring
- * Data Source: OpenAQ Air Quality API
+ * Module: dataIngestion.ts
+ *
+ * Environmental contamination events incident module (handles environmental hazard specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for environmental hazard events.
  */
 
 import { OPENAQ_CONFIG } from './config.js'

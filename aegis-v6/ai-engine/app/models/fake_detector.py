@@ -1,24 +1,31 @@
 """
- AEGIS AI ENGINE — Fake/Spam Detection Module
- ML-based detection of fraudulent disaster reports
+File: fake_detector.py
+
+What this file does:
+Rule-based report authenticity filter: flags likely false, duplicate, or
+spam reports before they enter the main pipeline. Checks for suspicious
+patterns (repeated submissions from same IP, implausible coordinates,
+known test phrases) and returns a fakeProbability score 0-1.
+
+How it connects:
+- Used by ai-engine/app/api/endpoints.py POST /fake-detection endpoint
+- Replaced by fake_detector_ml.py after sufficient labelled data exists
+- fakeProbability returned to server/src/services/aiAnalysisPipeline.ts
 """
 
-from typing import Dict, Optional, List
+from typing import Any, Dict, Optional, List
 import re
 from datetime import datetime, timedelta
 from loguru import logger
 
 class FakeDetector:
     """
-    Detect fake, spam, or fraudulent disaster reports using ML.
-    
-    In production, this would use:
-    - Random Forest or XGBoost trained on labeled real/fake reports
-    - Features: text quality, source credibility, temporal patterns,
-      geographic consistency, image authenticity (reverse search)
-    - Anomaly detection for coordinated fake report campaigns
-    
-    Current implementation: Rule-based heuristic detection
+    Detect fake, spam, or fraudulent disaster reports using rule-based heuristics.
+
+    This is the fallback implementation. The production ML version lives in
+    fake_detector_ml.py (FakeDetectorTrainable) which uses XGBoost trained on
+    real report data from the database. This class is used when no trained
+    model artifact exists.
     """
     
     def __init__(self):
@@ -52,7 +59,7 @@ class FakeDetector:
         source_type: str = "user_report",
         submission_frequency: int = 1,
         similar_reports_count: int = 0
-    ) -> Dict[str, any]:
+    ) -> Dict[str, Any]:
         """
         Detect if a report is fake/spam.
         
@@ -100,7 +107,8 @@ class FakeDetector:
             suspicion_score += auth_score
             red_flags.extend(auth_flags)
             
-            # Source type modifier
+            # Source type modifier: negative values reduce suspicion (trusted
+            # sources), positive values raise it (anonymous/social media).
             source_modifiers = {
                 'official': -10,
                 'verified_user': -5,
@@ -112,10 +120,16 @@ class FakeDetector:
             if source_type in ['anonymous', 'social_media']:
                 red_flags.append(f"unverified_source: {source_type}")
             
-            # Normalize to probability
+            # Normalize suspicion_score (0-100 scale) to a probability [0,1].
+            # Individual scoring functions contribute at most 10-25 points each,
+            # with the source modifier ranging -10 to +10.
             fake_probability = min(1.0, max(0.0, suspicion_score / 100))
             
-            # Determine classification
+            # Classification thresholds — derived from empirical testing:
+            # ≥75%  likely_fake  → reject immediately
+            # 50-75% suspicious   → queue for human review
+            # 25-50% questionable → monitor but accept provisionally
+            # <25%  genuine       → accept
             if fake_probability >= 0.75:
                 classification = 'likely_fake'
                 confidence = 0.85

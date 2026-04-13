@@ -1,14 +1,18 @@
-﻿ /*
- * services/imageAnalysisService.ts — CNN-based Image Analysis
- * Feature #5: Photo/Image Validation (Computer Vision)
- * Feature #14: Photo Metadata Analysis (EXIF)
- * Feature #23: Photo CNN Analysis (Fusion input)
- * Uses HuggingFace Inference API for:
- * Image classification (flood/disaster detection via google/vit-base-patch16-224)
- * Object detection (facebook/detr-resnet-50)
- * Image quality assessment
- * Also extracts EXIF metadata for location/time verification.
-  */
+/**
+ * File: imageAnalysisService.ts
+ *
+ * Disaster photo analyser — processes uploaded images through HuggingFace
+ * vision models (ViT for classification, DETR for object detection), extracts
+ * EXIF metadata (GPS, timestamps), and estimates flood damage severity.
+ *
+ * How it connects:
+ * - Called by aiAnalysisPipeline when a report includes photos
+ * - Calls HuggingFace Vision APIs (ViT, DETR) for classification/detection
+ * - Parses EXIF data with the exifr library for geolocation and timestamps
+ *
+ * Simple explanation:
+ * Looks at uploaded disaster photos and figures out what happened and how bad it is.
+ */
 
 import pool from '../models/db.js'
 import * as fs from 'fs'
@@ -56,7 +60,7 @@ export interface ExifAnalysisResult {
   locationMatch: boolean | null
   timeMatch: boolean | null
   locationDistanceKm: number | null
-  /* Formal temporal plausibility score 0.0—1.0 (null if no EXIF timestamp) */
+  /* Formal temporal plausibility score 0.0-1.0 (null if no EXIF timestamp) */
   temporalPlausibilityScore: number | null
   /* Human-readable plausibility classification */
   temporalPlausibilityLabel: 'verified' | 'recent' | 'outdated' | 'suspicious' | 'unknown'
@@ -71,11 +75,11 @@ export interface FullImageAnalysis {
   processingTimeMs: number
 }
 
-// —1  IMAGE CLASSIFICATION (ViT — Is this a disaster/flood image?)
+// -1  IMAGE CLASSIFICATION (ViT - Is this a disaster/flood image?)
 
 async function classifyImage(imageBuffer: Buffer): Promise<Array<{ label: string; score: number }>> {
   if (!HF_API_KEY) {
-    logger.warn('[ImageAnalysis] No HF_API_KEY — using heuristic fallback')
+    logger.warn('[ImageAnalysis] No HF_API_KEY - using heuristic fallback')
     return [{ label: 'unknown', score: 0 }]
   }
 
@@ -102,7 +106,7 @@ async function classifyImage(imageBuffer: Buffer): Promise<Array<{ label: string
   }
 }
 
-// —2  OBJECT DETECTION (DETR — What objects are in the image?)
+// -2  OBJECT DETECTION (DETR - What objects are in the image?)
 
 async function detectObjects(imageBuffer: Buffer): Promise<Array<{ label: string; score: number; box: any }>> {
   if (!HF_API_KEY) return []
@@ -126,7 +130,7 @@ async function detectObjects(imageBuffer: Buffer): Promise<Array<{ label: string
   }
 }
 
-// —3  EXIF METADATA EXTRACTION (using exifr library)
+// -3  EXIF METADATA EXTRACTION (using exifr library)
 
 async function extractExif(imageBuffer: Buffer): Promise<ExifAnalysisResult> {
   const result: ExifAnalysisResult = {
@@ -157,7 +161,7 @@ async function extractExif(imageBuffer: Buffer): Promise<ExifAnalysisResult> {
     if (!parsed) return result
     result.hasExif = true
 
-    // Extract GPS coordinates — exifr auto-converts DMS to decimal degrees
+    // Extract GPS coordinates - exifr auto-converts DMS to decimal degrees
     // and applies N/S, E/W sign correction when returning latitude/longitude
     const lat = parsed.latitude ?? parsed.GPSLatitude ?? null
     const lng = parsed.longitude ?? parsed.GPSLongitude ?? null
@@ -167,7 +171,7 @@ async function extractExif(imageBuffer: Buffer): Promise<ExifAnalysisResult> {
       result.exifLng = lng
     }
 
-    // Extract timestamp — exifr returns Date objects for date fields
+    // Extract timestamp - exifr returns Date objects for date fields
     const rawDate = parsed.DateTimeOriginal ?? parsed.DateTime ?? parsed.CreateDate ?? null
     if (rawDate instanceof Date && !isNaN(rawDate.getTime())) {
       result.exifTimestamp = rawDate
@@ -183,24 +187,24 @@ async function extractExif(imageBuffer: Buffer): Promise<ExifAnalysisResult> {
       }
     }
   } catch {
-    // EXIF parsing failures are non-critical — return default result
+    // EXIF parsing failures are non-critical - return default result
   }
 
   return result
 }
 
-// —3b  TEMPORAL PLAUSIBILITY SCORING
+// -3b  TEMPORAL PLAUSIBILITY SCORING
 
  /*
  * Grades how plausible it is that an image was captured at the reported incident time.
  * Scoring rubric:
  * Future image (EXIF after submission)        ? 0.00  suspicious (fabricated/system clock error)
  * Captured within 1 hour of submission        ? 1.00  verified
- * 1h—6h before submission                     ? 0.90  verified  (minor gap, same event window)
- * 6h—24h before                               ? 0.72  recent    (same-day, plausible)
- * 1—3 days before                             ? 0.48  outdated  (possibly archived photo)
- * 3—7 days before                             ? 0.25  outdated  (low plausibility)
- * 7—30 days before                            ? 0.10  suspicious (archive, wrong event)
+ * 1h-6h before submission                     ? 0.90  verified  (minor gap, same event window)
+ * 6h-24h before                               ? 0.72  recent    (same-day, plausible)
+ * 1-3 days before                             ? 0.48  outdated  (possibly archived photo)
+ * 3-7 days before                             ? 0.25  outdated  (low plausibility)
+ * 7-30 days before                            ? 0.10  suspicious (archive, wrong event)
  * >30 days before                             ? 0.02  suspicious (clearly recycled)
  * @param exifTimestamp   DateTime extracted from EXIF (UTC)
  * @param submissionTime  When the report was submitted (defaults to now)
@@ -222,30 +226,30 @@ function computeTemporalPlausibility(
   let label: ExifAnalysisResult['temporalPlausibilityLabel']
 
   if (deltaHours < 0) {
-    // EXIF timestamp is after submission — clock skew or fabrication
+    // EXIF timestamp is after submission - clock skew or fabrication
     score = 0.00
     label = 'suspicious'
   } else if (deltaHours <= 1) {
     score = 1.00
     label = 'verified'
   } else if (deltaHours <= 6) {
-    // Linear decay from 1.00 ? 0.90 over the 1h—6h window
+    // Linear decay from 1.00 ? 0.90 over the 1h-6h window
     score = Number((0.90 + (1 - (deltaHours - 1) / 5) * 0.10).toFixed(3))
     label = 'verified'
   } else if (deltaHours <= 24) {
-    // Decay from 0.90 ? 0.72 over 6h—24h
+    // Decay from 0.90 ? 0.72 over 6h-24h
     score = Number((0.72 + (1 - (deltaHours - 6) / 18) * 0.18).toFixed(3))
     label = 'recent'
   } else if (deltaHours <= 72) {
-    // 1—3 days
+    // 1-3 days
     score = Number((0.48 + (1 - (deltaHours - 24) / 48) * 0.24).toFixed(3))
     label = 'outdated'
   } else if (deltaHours <= 168) {
-    // 3—7 days
+    // 3-7 days
     score = Number((0.25 + (1 - (deltaHours - 72) / 96) * 0.23).toFixed(3))
     label = 'outdated'
   } else if (deltaHours <= 720) {
-    // 7—30 days
+    // 7-30 days
     score = Number((0.10 + (1 - (deltaHours - 168) / 552) * 0.15).toFixed(3))
     label = 'suspicious'
   } else {
@@ -268,7 +272,7 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
-// —4  IMAGE QUALITY ASSESSMENT
+// -4  IMAGE QUALITY ASSESSMENT
 
 function assessImageQuality(imageBuffer: Buffer): 'low' | 'medium' | 'high' {
   const sizeKB = imageBuffer.length / 1024
@@ -310,7 +314,7 @@ function assessImageQuality(imageBuffer: Buffer): 'low' | 'medium' | 'high' {
   return 'high'
 }
 
-// —5  MAIN ANALYSIS FUNCTION
+// -5  MAIN ANALYSIS FUNCTION
 
  /*
  * Analyse an uploaded image for disaster relevance, objects, EXIF metadata.
@@ -407,7 +411,7 @@ export async function analyseImage(
     exifAnalysis.locationMatch = distKm < 5 // Within 5km = match
   }
 
-  // EXIF time verification — formal temporal plausibility scoring
+  // EXIF time verification - formal temporal plausibility scoring
   if (exifRaw.exifTimestamp) {
     const submissionTime = new Date()
     const timeDiffHours = (submissionTime.getTime() - exifRaw.exifTimestamp.getTime()) / 3_600_000
@@ -485,7 +489,7 @@ export async function analyseImage(
     }
   }
 
-  devLog(`[ImageAnalysis] Completed in ${processingTimeMs}ms — disaster:${disasterConfidence.toFixed(2)} water:${waterConfidence.toFixed(2)}`)
+  devLog(`[ImageAnalysis] Completed in ${processingTimeMs}ms - disaster:${disasterConfidence.toFixed(2)} water:${waterConfidence.toFixed(2)}`)
 
   return {
     photoValidation,
@@ -495,7 +499,7 @@ export async function analyseImage(
   }
 }
 
-// —6  DAMAGE SEVERITY ESTIMATION FROM IMAGE CLASSIFICATIONS & DETECTIONS
+// -6  DAMAGE SEVERITY ESTIMATION FROM IMAGE CLASSIFICATIONS & DETECTIONS
 
 const FIRE_LABELS = new Set([
   'fire', 'volcano', 'wildfire', 'smoke', 'flame', 'blaze', 'torch',
@@ -506,7 +510,7 @@ const STRUCTURAL_DAMAGE_LABELS = new Set([
   'crane', 'bulldozer', 'container', 'barrier',
 ])
 
- /**
+/**
  * Estimate damage severity from image classification and object detection results.
  * Combines water-related, fire-related, and structural indicators to produce
  * an overall severity grade with confidence score.
@@ -577,7 +581,7 @@ export function estimateDamageSeverityFromImage(
   return { severity, confidence: Number(confidence.toFixed(3)), indicators }
 }
 
-// —7  IMAGE MANIPULATION DETECTION
+// -7  IMAGE MANIPULATION DETECTION
 
 /* Known editor software signatures found in EXIF/metadata */
 const EDITOR_SIGNATURES = [
@@ -586,7 +590,7 @@ const EDITOR_SIGNATURES = [
   'Adobe', 'CorelDRAW', 'Illustrator', 'FaceApp',
 ]
 
- /**
+/**
  * Detect signs of image manipulation by inspecting the raw buffer for
  * editing software signatures, double-JPEG compression, EXIF stripping,
  * and suspicious file-size-to-format ratios.
@@ -653,7 +657,7 @@ export function detectManipulation(imageBuffer: Buffer): {
   }
 }
 
-// —8  SCENE UNDERSTANDING
+// -8  SCENE UNDERSTANDING
 
 const URBAN_LABELS = new Set([
   'building', 'skyscraper', 'office', 'apartment', 'church', 'mosque',
@@ -678,7 +682,7 @@ const RIVERSIDE_LABELS = new Set([
 const WEATHER_RAIN_LABELS = new Set(['rain', 'storm', 'overcast', 'fog', 'mist'])
 const WEATHER_CLEAR_LABELS = new Set(['clear', 'sunny', 'blue sky'])
 
- /**
+/**
  * Understand the scene depicted in an image by aggregating classification
  * and detection results into environment type, weather indicators, hazard
  * indicators, and a human-readable description.
@@ -743,9 +747,9 @@ export function understandScene(
   return { description, environmentType, weatherIndicators, hazardIndicators }
 }
 
-// —9  MULTI-FRAME COMPARISON
+// -9  MULTI-FRAME COMPARISON
 
- /**
+/**
  * Compare two PhotoValidationResult analyses (e.g., before/after images) to
  * determine the magnitude, direction, and nature of change between frames.
  */
@@ -789,9 +793,9 @@ export function compareImageAnalyses(
   }
 }
 
-// —10  ENHANCED IMAGE QUALITY ASSESSMENT
+// -10  ENHANCED IMAGE QUALITY ASSESSMENT
 
- /**
+/**
  * Perform an enhanced quality assessment on a raw image buffer, checking
  * format, estimated resolution, aspect ratio hints, and common issues.
  * Returns a composite usability score (0-100).

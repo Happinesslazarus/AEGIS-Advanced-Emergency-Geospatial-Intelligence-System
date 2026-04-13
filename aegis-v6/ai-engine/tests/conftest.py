@@ -1,5 +1,7 @@
 """
-conftest.py — Shared pytest fixtures for ai-engine tests
+Module: conftest.py
+
+Conftest AI engine module.
 """
 
 import sys

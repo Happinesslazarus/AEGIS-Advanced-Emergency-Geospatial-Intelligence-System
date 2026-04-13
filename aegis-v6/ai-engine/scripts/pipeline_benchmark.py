@@ -1,21 +1,7 @@
 """
-AEGIS Vision -- 3-Layer Pipeline Benchmark
-Architecture:
-  Layer 1: Moondream (safe/unsafe binary gate via Ollama vision)
-  Layer 2: CLIP ViT-B-32 (disaster type classification)
-  Layer 3: Gemma3:4b (reasoning brain -- receives structured inputs, no images)
+Module: pipeline_benchmark.py
 
-Flow:
-  IMAGE --> Moondream: safe or unsafe?
-    if SAFE --> return "safe/normal" immediately (skip CLIP + Gemma3)
-    if UNSAFE --> CLIP classifies disaster type + confidence
-      --> Gemma3 receives: moondream=UNSAFE, clip_type=X, clip_conf=Y%
-      --> Gemma3 validates/adjusts final classification
-
-Usage:
-    python scripts/pipeline_benchmark.py
-    python scripts/pipeline_benchmark.py --skip-gemma     # Only Layer 1+2
-    python scripts/pipeline_benchmark.py --single path.jpg
+Pipeline_benchmark AI engine module.
 """
 
 import json
@@ -577,4 +563,4 @@ if __name__ == "__main__":
         sys.exit(0)
 
     run_pipeline(skip_gemma=args.skip_gemma)
-
+

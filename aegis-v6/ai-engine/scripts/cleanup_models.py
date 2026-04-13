@@ -1,13 +1,7 @@
 """
-AEGIS AI Engine — Model Cleanup CLI
+Module: cleanup_models.py
 
-Remove old model versions from the registry, keeping the N newest
-plus any manually promoted version.
-
-Usage:
-    python -m scripts.cleanup_models --keep 3 --dry-run
-    python -m scripts.cleanup_models --model flood --region uk-default --keep 2
-    python -m scripts.cleanup_models --all --keep 3
+Cleanup_models AI engine module.
 """
 
 from __future__ import annotations

@@ -1,3 +1,12 @@
+"""
+Module: patch_training_ts2.py
+
+Patch_training_ts2 utility script.
+
+Simple explanation:
+Standalone script for patch_training_ts2.
+"""
+
 import pathlib
 
 f = pathlib.Path(r'e:\aegis-v6-fullstack\aegis-v6\server\src\services\mlTrainingPipeline.ts')

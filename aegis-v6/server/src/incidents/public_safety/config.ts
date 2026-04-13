@@ -1,7 +1,13 @@
 /**
- * incidents/public_safety/config.ts — Public Safety Incident configuration
- * AI Tier: tier1 (rule-based) — Uses rule-based logic
- * Data Sources: Citizen Reports, Emergency Services
+ * Module: config.ts
+ *
+ * Public safety incidents incident module (handles public safety specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for public safety events.
  */
 
 import type { IncidentRegistryEntry } from '../types.js'
@@ -41,4 +47,4 @@ export const PUBLIC_SAFETY_PRIORITY_KEYWORDS = [
   'evacuation',
   'active threat'
 ]
-
+

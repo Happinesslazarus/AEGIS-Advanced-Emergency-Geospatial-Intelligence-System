@@ -1,4 +1,20 @@
-﻿import { Router, Response, NextFunction } from 'express'
+/**
+ * File: adminCommunityRoutes.ts
+ *
+ * What this file does:
+ * Admin moderation endpoints for community content. Admins and operators
+ * can review flagged posts, ban users, and manage community guidelines.
+ *
+ * How it connects:
+ * - Mounted at /api/admin/community in index.ts
+ * - Reads from the same community tables as communityRoutes.ts
+ * - Emits real-time moderation events via communityRealtime service
+ * - Requires admin or operator authentication
+ *
+ * Simple explanation:
+ * Gives admins tools to moderate community posts and manage users.
+ */
+import { Router, Response, NextFunction } from 'express'
 import pool from '../models/db.js'
 import { authMiddleware, operatorOnly, AuthRequest } from '../middleware/auth.js'
 import { v4 as uuid } from 'uuid'
@@ -7,11 +23,19 @@ import { AppError } from '../utils/AppError.js'
 
 const router = Router()
 
+/** Explicit whitelist for user tables - prevents SQL injection if findUserById is ever modified */
+const VALID_USER_TABLES = ['citizens', 'operators'] as const
+type UserTable = typeof VALID_USER_TABLES[number]
+
+function isValidUserTable(table: string): table is UserTable {
+  return VALID_USER_TABLES.includes(table as UserTable)
+}
+
 function isSuperAdmin(req: AuthRequest): boolean {
   return req.user?.role === 'admin'
 }
 
-async function findUserById(userId: string): Promise<{ table: 'citizens' | 'operators'; id: string; display_name: string } | null> {
+async function findUserById(userId: string): Promise<{ table: UserTable; id: string; display_name: string } | null> {
   const c = await pool.query('SELECT id, display_name FROM citizens WHERE id = $1 AND deleted_at IS NULL', [userId])
   if (c.rows[0]) return { table: 'citizens', ...c.rows[0] }
   const o = await pool.query('SELECT id, display_name FROM operators WHERE id = $1 AND deleted_at IS NULL', [userId])
@@ -29,6 +53,11 @@ router.post('/users/:id/suspend', authMiddleware, operatorOnly, async (req: Auth
 
     const target = await findUserById(targetId)
     if (!target) throw AppError.notFound('User not found.')
+    
+    // Validate table name against whitelist (defense-in-depth)
+    if (!isValidUserTable(target.table)) {
+      throw AppError.internal('Invalid user table')
+    }
 
     await pool.query(
       `UPDATE ${target.table}
@@ -62,6 +91,11 @@ router.post('/users/:id/ban', authMiddleware, operatorOnly, async (req: AuthRequ
 
     const target = await findUserById(targetId)
     if (!target) throw AppError.notFound('User not found.')
+    
+    // Validate table name against whitelist (defense-in-depth)
+    if (!isValidUserTable(target.table)) {
+      throw AppError.internal('Invalid user table')
+    }
 
     await pool.query(
       `UPDATE ${target.table}
@@ -105,11 +139,15 @@ router.post('/users/bulk-ban', authMiddleware, operatorOnly, async (req: AuthReq
 
     const banned: string[] = []
     const failed: string[] = []
+    const logEntries: { id: string; table: string; targetId: string }[] = []
 
     for (const targetId of userIds) {
       try {
         const target = await findUserById(targetId)
         if (!target) { failed.push(targetId); continue }
+        
+        // Validate table name against whitelist (defense-in-depth)
+        if (!isValidUserTable(target.table)) { failed.push(targetId); continue }
 
         await pool.query(
           `UPDATE ${target.table}
@@ -118,13 +156,24 @@ router.post('/users/bulk-ban', authMiddleware, operatorOnly, async (req: AuthReq
            WHERE id = $1`,
           [targetId, trimmedReason]
         )
-        await pool.query(
-          `INSERT INTO community_moderation_logs (id, admin_id, action, target_type, target_id, target_user_id, reason, metadata, created_at)
-           VALUES ($1, $2, 'bulk_ban', 'user', $3, $3, $4, $5::jsonb, NOW())`,
-          [uuid(), req.user!.id, targetId, trimmedReason, JSON.stringify({ table: target.table, bulk: true })]
-        )
         banned.push(targetId)
+        logEntries.push({ id: uuid(), table: target.table, targetId })
       } catch { failed.push(targetId) }
+    }
+
+    // Batch-insert all moderation log entries in a single query (eliminates N+1)
+    if (logEntries.length > 0) {
+      const values: any[] = []
+      const placeholders = logEntries.map((entry, i) => {
+        const base = i * 5
+        values.push(entry.id, req.user!.id, entry.targetId, trimmedReason, JSON.stringify({ table: entry.table, bulk: true }))
+        return `($${base + 1}, $${base + 2}, 'bulk_ban', 'user', $${base + 3}, $${base + 3}, $${base + 4}, $${base + 5}::jsonb, NOW())`
+      })
+      await pool.query(
+        `INSERT INTO community_moderation_logs (id, admin_id, action, target_type, target_id, target_user_id, reason, metadata, created_at)
+         VALUES ${placeholders.join(', ')}`,
+        values
+      )
     }
 
     emitCommunityEvent('community:user:bulk_moderated', { action: 'banned', count: banned.length })

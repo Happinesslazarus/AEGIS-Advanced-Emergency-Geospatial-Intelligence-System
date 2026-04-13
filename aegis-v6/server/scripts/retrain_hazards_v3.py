@@ -1,5 +1,10 @@
 """
-Retrain all hazard models with grid-searched hyperparameters for better accuracy.
+Module: retrain_hazards_v3.py
+
+Retrain_hazards_v3 utility script.
+
+Simple explanation:
+Standalone script for retrain_hazards_v3.
 """
 import asyncio
 import sys
@@ -12,7 +17,7 @@ warnings.filterwarnings('ignore')
 sys.path.insert(0, r'e:\aegis-v6-fullstack\aegis-v6\ai-engine')
 os.chdir(r'e:\aegis-v6-fullstack\aegis-v6\ai-engine')
 
-DB_URL = 'postgresql://postgres:Happylove%40%21@localhost:5432/aegis'
+DB_URL = os.environ.get('DATABASE_URL', 'postgresql://localhost:5432/aegis')
 
 async def train_hazard(hazard_type: str):
     from app.training.training_pipeline import TrainingPipeline
@@ -134,7 +139,7 @@ async def train_hazard(hazard_type: str):
                     'recall': recall_score(y_val, y_pred),
                 }
             
-            print(f"    Config {i+1}: acc={acc:.3f} auc={auc:.3f} f1={f1:.3f} score={score:.3f}{' ← BEST' if score == best_score else ''}")
+            print(f"    Config {i+1}: acc={acc:.3f} auc={auc:.3f} f1={f1:.3f} score={score:.3f}{' Ã¢â€ Â BEST' if score == best_score else ''}")
         
         print(f"\n  Best config: {best_params}")
         print(f"  Best metrics:")

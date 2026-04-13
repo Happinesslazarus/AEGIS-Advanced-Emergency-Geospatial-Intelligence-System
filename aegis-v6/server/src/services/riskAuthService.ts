@@ -1,16 +1,16 @@
-/*
- * riskAuthService.ts — Risk-Based Authentication for AEGIS
+/**
+ * File: riskAuthService.ts
  *
- * Computes a risk score for each login attempt based on:
- * Device familiarity (trusted vs new)
- * IP reputation (known vs suspicious)
- * Recent security events (failures, lockouts)
- * Time-based patterns (unusual hours)
+ * Login risk scorer — evaluates each login attempt on a 0–100 scale using
+ * known IPs, recent failures, User-Agent history, and time-of-day heuristics.
  *
- * Risk levels:
- *   low    (0—30):  Trusted device, known IP ? may skip 2FA
- *   medium (31—60): New device or minor anomaly ? require 2FA
- *   high   (61—100): Suspicious patterns ? require 2FA + alert admin
+ * How it connects:
+ * - Called by auth routes before issuing tokens
+ * - Reads login history from the security_events table via securityLogger
+ * - Sets require2FA / alertAdmin flags based on computed risk level
+ *
+ * Simple explanation:
+ * Decides whether a login looks suspicious and whether to force 2FA or alert an admin.
  */
 
 import pool from '../models/db.js'
@@ -26,7 +26,7 @@ export interface RiskAssessment {
   alertAdmin: boolean
 }
 
- /**
+/**
  * Assess the risk of a login attempt for an operator.
  */
 export async function assessLoginRisk(
@@ -131,7 +131,7 @@ export async function assessLoginRisk(
   return { score, level, factors, require2FA, alertAdmin }
 }
 
- /**
+/**
  * Check if an action is high-risk and requires re-authentication.
  * Used for sensitive admin operations.
  */
@@ -149,7 +149,7 @@ export function isHighRiskAction(action: string): boolean {
   return highRiskActions.includes(action)
 }
 
- /**
+/**
  * Get a security summary for an operator (for the security dashboard).
  */
 export async function getOperatorSecuritySummary(operatorId: string): Promise<{

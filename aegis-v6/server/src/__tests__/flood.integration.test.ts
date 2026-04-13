@@ -1,10 +1,15 @@
-﻿/**
- * tests__/flood.integration.test.ts — Flood Prediction & Monitoring
+/**
+ * File: flood.integration.test.ts
  *
- * Tests flood prediction DB storage/retrieval, cosine-similarity
- * fingerprinting, API validation (river-name allowlist, coordinates),
- * evacuation input validation, and threat-level aggregation — all
- * against a real PostgreSQL test database.
+ * What it tests:
+ * Integration tests for the flood data routes.
+  * Verifies river level queries, alert triggering, SEPA data ingestion,
+  * and spatial proximity queries against PostGIS.
+  *
+  * How it connects:
+  * - Tests server/src/routes/floodRoutes.ts
+  * - Relies on PostGIS geometry columns in the gauges table
+  * - Run via: npm test -- flood.integration
  */
 
 import { describe, it, expect, beforeAll, afterAll, afterEach } from '@jest/globals'
@@ -449,4 +454,4 @@ describe('Flood Integration Tests', () => {
     })
   })
 })
-
+

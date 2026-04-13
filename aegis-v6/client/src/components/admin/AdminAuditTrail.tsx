@@ -1,9 +1,13 @@
- /*
- * AdminAuditTrail.tsx — Professional Compliance Audit Trail Dashboard
- * Enterprise-grade audit log viewer with expandable rows showing before/after
- * state diffs, IP forensics, activity timeline chart, date range filtering,
- * operator breakdown, CSV export, and pagination.
-  */
+/**
+ * Module: AdminAuditTrail.tsx
+ *
+ * Full audit trail viewer (detailed security and action logs).
+ *
+ * How it connects:
+ * - Fetches data from apiGetAuditLog
+ * - Used in the admin dashboard for compliance tracking
+ * Simple explanation:
+ * Admin page that lets operators review and export the full audit trail. */
 
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import {
@@ -543,7 +547,7 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
         <div className="divide-y divide-gray-100 dark:divide-gray-800">
           {paginatedItems.length === 0 ? (
             <div className="text-center py-14">
-              <Shield className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+              <Shield className="w-12 h-12 text-gray-300 dark:text-gray-400 mx-auto mb-3" />
               <p className="text-gray-600 dark:text-gray-300 font-semibold">{t('audit.noEntriesFound', lang)}</p>
               <p className="text-sm text-gray-500 dark:text-gray-300 mt-1">
                 {hasFilters ? t('audit.tryAdjustingFilters', lang) : t('audit.actionsWillBeRecorded', lang)}
@@ -609,7 +613,7 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
                             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
                           </button>
                         </div>
-                        {entry.target_type && <p className="text-[9px] text-gray-400 dark:text-gray-500 mt-0.5 capitalize">{entry.target_type}</p>}
+                        {entry.target_type && <p className="text-[9px] text-gray-400 dark:text-gray-400 mt-0.5 capitalize">{entry.target_type}</p>}
                       </div>
                     ) : (
                       <span className="text-xs text-gray-400 dark:text-gray-300">—</span>
@@ -769,14 +773,14 @@ export default function AdminAuditTrail({ auditLog, setAuditLog }: Props) {
 
       {showKeyboard && (
         <div className="mt-3 bg-gray-900 text-white rounded-xl p-3 flex items-center gap-4 flex-wrap text-[10px] font-mono ring-1 ring-gray-700">
-          <span className="font-bold text-gray-400 uppercase tracking-wider mr-1">Shortcuts</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">R</kbd> Refresh</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">E</kbd> Export CSV</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">N</kbd> Newest</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">O</kbd> Oldest</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">X</kbd> Clear Filters</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">?</kbd> Toggle Shortcuts</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">Esc</kbd> Close</span>
+          <span className="font-bold text-gray-400 uppercase tracking-wider mr-1">{t('common.shortcuts', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">R</kbd> {t('common.refresh', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">E</kbd> {t('common.exportCsv', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">N</kbd> {t('common.newest', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">O</kbd> {t('common.oldest', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">X</kbd> {t('common.clearFilters', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">?</kbd> {t('common.toggleShortcuts', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">{t('common.esc', lang)}</kbd> {t('common.close', lang)}</span>
         </div>
       )}
     </div>

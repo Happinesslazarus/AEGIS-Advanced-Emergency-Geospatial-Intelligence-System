@@ -1,3 +1,11 @@
+/**
+ * Module: ThreatRadarWidget.tsx
+ *
+ * Threat radar widget shared component (reusable UI element used across pages).
+ *
+ * How it connects:
+ * - Used across both admin and citizen interfaces */
+
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { AlertTriangle, Activity, Droplets, Flame, Wind, CloudLightning, RefreshCw, MapPin, Clock, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react'
 import { useLocation } from '../../contexts/LocationContext'
@@ -131,9 +139,13 @@ export default function ThreatRadarWidget(): JSX.Element {
 
   useEffect(() => {
     fetchThreats()
-    intervalRef.current = setInterval(fetchThreats, 120000) // refresh every 2 min
-    return () => clearInterval(intervalRef.current)
-  }, [activeLocation])
+    const id = setInterval(fetchThreats, 120000) // refresh every 2 min
+    intervalRef.current = id
+    return () => {
+      clearInterval(id)
+      intervalRef.current = undefined
+    }
+  }, [activeLocation]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const severeCount = threats.filter(t => t.severity === 'severe' || t.severity === 'extreme').length
 

@@ -1,0 +1,2 @@
+hazard,train_regions,test_region,train_end,test_start,lag_dynamic,n_features,n_train,n_test,train_positive_rate,test_positive_rate,location_overlap,roc_auc,pr_auc,accuracy,precision,recall,f1
+drought,"['English Lowlands', 'Northern England']",Scotland,2023-01-01,2023-01-01,True,14,1658520,407772,0.05753503123266527,0.0034602670119576627,0,0.9676664137706745,0.09429293363603655,0.9652894264441894,0.0728698800026815,0.7703756201275691,0.1331455169034787

@@ -1,12 +1,20 @@
 /**
- * incidents/wildfire/aiClient.ts — AI client for wildfire predictions
- * AI Tier: tier3 (ML) - Uses trained machine learning models
+ * Module: aiClient.ts
+ *
+ * Wildfire and bushfire events incident module (handles wildfire specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for wildfire events.
  */
 
 import type { IncidentPrediction } from '../types.js'
 import { logger } from '../../services/logger.js'
 
 const AI_ENGINE_URL = process.env.AI_ENGINE_URL || 'http://localhost:8000'
+const AI_API_KEY = process.env.AI_ENGINE_API_KEY || process.env.API_SECRET_KEY || ''
 
 export class WildfireAIClient {
    /**
@@ -14,18 +22,24 @@ export class WildfireAIClient {
    */
   static async getPredictions(region: string, features: Record<string, unknown>): Promise<IncidentPrediction[]> {
     try {
-      const response = await fetch(`${AI_ENGINE_URL}/api/ai/predict/wildfire`, {
+      const response = await fetch(`${AI_ENGINE_URL}/api/predict`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(AI_API_KEY ? { 'X-API-Key': AI_API_KEY, 'Authorization': `Bearer ${AI_API_KEY}` } : {}),
+        },
         body: JSON.stringify({
-          region,
-          features: {
-            temperature: features.temperature || 20,
-            humidity: features.humidity || 50,
-            windSpeed: features.windSpeed || 10,
-            vegetationDryness: features.vegetationDryness || 0.5,
-            hotspotCount: features.hotspotCount || 0
-          }
+          hazard_type: 'wildfire',
+          region_id: region,
+          latitude: Number(features.latitude) || 56.5,
+          longitude: Number(features.longitude) || -3.5,
+          feature_overrides: {
+            temperature: Number(features.temperature) || 20,
+            humidity: Number(features.humidity) || 50,
+            wind_speed: Number(features.windSpeed) || 10,
+            vegetation_dryness: Number(features.vegetationDryness) || 0.5,
+            hotspot_count: Number(features.hotspotCount) || 0,
+          },
         })
       })
 

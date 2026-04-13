@@ -1,10 +1,10 @@
 """
-Patch data_loaders.py: Stronger weather separation for flood and drought.
-- Flood positive: top 15% rainfall (was 25%)
-- Flood negative: bottom 50% (was 60%)
-- Drought positive: bottom 15% rain + top 60% temp (was 25%/50%)
-- Drought negative: top 50% rainfall (was 40%)
-This widens the gap between positive and negative feature distributions.
+Module: patch_wider_gap.py
+
+Patch_wider_gap utility script.
+
+Simple explanation:
+Standalone script for patch_wider_gap.
 """
 import os
 

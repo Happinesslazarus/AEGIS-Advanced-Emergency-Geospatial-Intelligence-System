@@ -1,9 +1,10 @@
 /**
- * IncidentFilterPanel.tsx — Dashboard incident type filter
+ * Module: IncidentFilterPanel.tsx
  *
- * A compact filter bar that lets users select which incident types
- * to display on dashboards and maps. Uses the IncidentContext.
- */
+ * Incident filter panel shared component (reusable UI element used across pages).
+ *
+ * How it connects:
+ * - Used across both admin and citizen interfaces */
 
 import { type ElementType } from 'react'
 import {
@@ -12,7 +13,7 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useIncidents, type IncidentTypeId } from '../../contexts/IncidentContext'
-import { INCIDENT_COLORS } from './IncidentMapLayers'
+import { INCIDENT_HEX as INCIDENT_COLORS } from '../../utils/colorTokens'
 import { useLanguage } from '../../hooks/useLanguage'
 
 /** Lucide icon for each incident type — no unicode emoji */

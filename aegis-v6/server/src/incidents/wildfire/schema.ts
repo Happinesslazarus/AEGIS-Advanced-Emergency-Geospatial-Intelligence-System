@@ -1,5 +1,13 @@
 /**
- * incidents/wildfire/schema.ts — Wildfire report validation schema
+ * Module: schema.ts
+ *
+ * Wildfire and bushfire events incident module (handles wildfire specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for wildfire events.
  */
 
 export interface WildfireCustomFields {
@@ -41,4 +49,4 @@ export function sanitizeWildfireCustomFields(fields: Record<string, unknown>): W
     smokeVisible: typeof fields.smokeVisible === 'boolean' ? fields.smokeVisible : undefined
   }
 }
-
+

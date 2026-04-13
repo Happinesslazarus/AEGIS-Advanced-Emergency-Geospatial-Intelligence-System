@@ -1,13 +1,17 @@
 """
-AEGIS AI ENGINE — Model Validation Framework
+File: validate_models.py
 
-Compares ML model predictions against rule-based stub predictions for each hazard.
-Reports improvement, degradation, or equivalent performance.
+What this file does:
+Post-training validation script that loads every model from the registry,
+runs a smoke-test prediction with dummy input, and asserts that predictions
+fall within expected ranges. Exits non-zero on any validation failure so
+CI can catch broken models before deployment.
 
-Usage:
-    python -m app.training.validate_models
-    python -m app.training.validate_models --hazard flood
-    python -m app.training.validate_models --region uk
+How it connects:
+- Called by CI workflows after train_all.py completes
+- Loads each model via ModelRegistry
+- Smoke-test inputs defined inline per hazard type
+- Failures block model promotion in governance.py
 """
 
 import asyncio

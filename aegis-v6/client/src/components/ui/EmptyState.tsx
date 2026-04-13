@@ -1,14 +1,17 @@
-﻿/**
- * EmptyState.tsx — Friendly placeholder when lists/feeds are empty.
+/**
+ * File: EmptyState.tsx
  *
- * Features:
- * i18n-ready via t() helper
- * Contextual primary + secondary action buttons
- * Consistent a11y: role="status" with clear label
- * Design token-aligned colours
- * Compact and full-size variants via `compact` prop
- * All pre-configured variants export a single-import API
+ * What this file does:
+ * Reusable empty-state illustration shown when a list has no items
+ * (no reports, no alerts, no messages, etc.). Accepts an icon, title,
+ * description, and up to two action buttons.
+ *
+ * How it connects:
+ * - Used across AdminPage, AlertsPage, and any list component
+ * - Compact prop shrinks padding for use inside table cells
+ * - Uses i18n t() for button/label text
  */
+
 import { type LucideIcon, Inbox, MessageSquare, FileText, Users, Shield, Bell, Database, BarChart3, CloudOff } from 'lucide-react'
 import { t, getLanguage } from '../../utils/i18n'
 

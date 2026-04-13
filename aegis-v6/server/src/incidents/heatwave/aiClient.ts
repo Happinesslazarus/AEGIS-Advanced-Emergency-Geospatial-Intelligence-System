@@ -1,6 +1,13 @@
 /**
- * incidents/heatwave/aiClient.ts — AI client for heatwave predictions
- * AI Tier: tier2 (statistical) - Uses statistical models
+ * Module: aiClient.ts
+ *
+ * Extreme heat events incident module (handles heatwave specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for heatwave events.
  */
 
 import type { IncidentPrediction } from '../types.js'

@@ -3,8 +3,8 @@
 
 FROM node:20-alpine AS build
 WORKDIR /app
-COPY package.json package-lock.json* ./
-RUN npm ci && npm cache clean --force
+COPY package.json ./
+RUN npm install --legacy-peer-deps && npm cache clean --force
 COPY tsconfig.json ./
 COPY src/ src/
 COPY sql/ sql/

@@ -1,3 +1,12 @@
+"""
+Module: fix_path.py
+
+Fix_path utility script.
+
+Simple explanation:
+Standalone script for fix_path.
+"""
+
 f = r'e:\aegis-v6-fullstack\aegis-v6\server\scripts\train_all_models.py'
 t = open(f).read()
 t = t.replace(

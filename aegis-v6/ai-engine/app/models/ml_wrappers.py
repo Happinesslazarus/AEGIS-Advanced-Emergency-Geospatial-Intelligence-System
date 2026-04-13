@@ -1,12 +1,36 @@
 """
- AEGIS AI ENGINE — Real ML Model Wrappers
- Load and use trained models from model registry
+File: ml_wrappers.py
+
+What this file does:
+Standardised wrapper classes for all trained scikit-learn models. Each
+wrapper (ReportClassifierML, SeverityPredictorML, FakeDetectorML) handles
+input preparation, model loading from registry, inference, and fallback to
+the rule-based version if no trained model is available.
+
+How it connects:
+- Imported by ai-engine/app/api/endpoints.py for all ML inference calls
+- Loads models via ai-engine/app/core/model_registry.py ModelRegistry
+- Falls back to rule-based models in report_classifier.py etc.
+- TrainedModelLoader used by training scripts to validate saved models
 """
 
 import pickle
 from pathlib import Path
 from typing import Dict, Any, Optional, Tuple
 from loguru import logger
+
+
+def safe_pickle_load(file_path: Path, registry_root: Path) -> Any:
+    """Load a pickle file with path validation to prevent directory traversal.
+    Only loads files that are within the trusted model registry directory."""
+    resolved = file_path.resolve()
+    root_resolved = registry_root.resolve()
+    if not str(resolved).startswith(str(root_resolved)):
+        raise ValueError(f"Model path {resolved} is outside the trusted registry {root_resolved}")
+    if not resolved.suffix == '.pkl':
+        raise ValueError(f"Model file must have .pkl extension, got: {resolved.suffix}")
+    with open(resolved, 'rb') as f:
+        return pickle.load(f)
 from datetime import datetime
 import numpy as np
 from scipy.sparse import hstack
@@ -35,11 +59,10 @@ class TrainedModelLoader:
             try:
                 model_path = self._get_latest_model(model_type)
                 if model_path and model_path.exists():
-                    with open(model_path, 'rb') as f:
-                        model_data = pickle.load(f)
-                        self.models[model_type] = model_data['model']
-                        self.metadata[model_type] = model_data.get('metadata', {})
-                        logger.success(f"✓ Loaded {model_type}")
+                    model_data = safe_pickle_load(model_path, self.registry_path)
+                    self.models[model_type] = model_data['model']
+                    self.metadata[model_type] = model_data.get('metadata', {})
+                    logger.success(f"✓ Loaded {model_type}")
                 else:
                     logger.warning(f"⚠ No trained model found for {model_type}")
             except Exception as e:

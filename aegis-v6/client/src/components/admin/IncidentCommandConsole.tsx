@@ -1,14 +1,12 @@
-﻿/**
- * IncidentCommandConsole.tsx — Security Operations Center–grade
- * multi-incident command view with real-time data visualisation.
+/**
+ * Module: IncidentCommandConsole.tsx
  *
- * Data: 3 parallel API calls (dashboard, predictions, alerts) every 30 s.
- * Features: per-type threat cards with radial activity gauges, compound/
- * cascading event detection, AI tier + operational status, severity heatmap
- * bar, and animated micro-interactions.
- */
+ * Incident command console (manage active incidents).
+ *
+ * How it connects:
+ * - Rendered inside AdminPage.tsx based on active view */
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   AlertTriangle, Activity, Zap, Thermometer, Flame, CloudLightning,
   Mountain, Droplets, ZapOff, Shield, Biohazard, RefreshCw, Circle,
@@ -24,7 +22,7 @@ import {
 import { useLanguage } from '../../hooks/useLanguage'
 import { t as i18n } from '../../utils/i18n'
 
-/* ── Icon map ── */
+/* Icon map*/
 const INCIDENT_ICONS: Record<string, React.ElementType> = {
   flood: Droplets, severe_storm: CloudLightning, heatwave: Thermometer,
   wildfire: Flame, landslide: Mountain, power_outage: ZapOff,
@@ -39,14 +37,14 @@ const INCIDENT_ICONS: Record<string, React.ElementType> = {
   crowd: AlertTriangle, crowd_crush: AlertTriangle,
 }
 
-/* ── AI Tier config ── */
+/* AI Tier config*/
 const AI_TIER: Record<string, { label: string; gradient: string; glow: string }> = {
   ml:          { label: 'ML',   gradient: 'from-purple-500 to-violet-600', glow: 'shadow-purple-500/20' },
   statistical: { label: 'STAT', gradient: 'from-blue-500 to-cyan-600',    glow: 'shadow-blue-500/20' },
   rule_based:  { label: 'RULE', gradient: 'from-gray-400 to-gray-500',    glow: 'shadow-gray-400/10' },
 }
 
-/* ── Status config ── */
+/* Status config*/
 const STATUS_CFG: Record<string, { dot: string; label: string }> = {
   fully_operational: { dot: 'bg-emerald-400', label: 'icc.statusOperational' },
   partial:           { dot: 'bg-amber-400',   label: 'icc.statusPartial' },
@@ -54,7 +52,7 @@ const STATUS_CFG: Record<string, { dot: string; label: string }> = {
   disabled:          { dot: 'bg-red-400',      label: 'icc.statusDisabled' },
 }
 
-/* ── Severity palette ── */
+/* Severity palette*/
 const SEV_PALETTE: Record<string, { ring: string; bg: string; text: string; glow: string; gradient: string }> = {
   critical: { ring: 'ring-red-500/40',    bg: 'bg-red-500',    text: 'text-red-400',    glow: 'shadow-red-500/30',    gradient: 'from-red-500 to-rose-600' },
   high:     { ring: 'ring-orange-500/40', bg: 'bg-orange-500', text: 'text-orange-400', glow: 'shadow-orange-500/30', gradient: 'from-orange-500 to-amber-600' },
@@ -74,7 +72,7 @@ interface Props {
   selectedIncidentId?: string | null
 }
 
-/* ── Mini radial gauge ── */
+/* Mini radial gauge*/
 function MiniGauge({ value, max, color, size = 28 }: { value: number; max: number; color: string; size?: number }) {
   const r = (size - 4) / 2
   const circ = 2 * Math.PI * r
@@ -90,9 +88,8 @@ function MiniGauge({ value, max, color, size = 28 }: { value: number; max: numbe
   )
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   MAIN COMPONENT
-   ══════════════════════════════════════════════════════════════════ */
+// MAIN COMPONENT
+
 export default function IncidentCommandConsole({
   onSelectIncident,
   selectedIncidentId,
@@ -108,7 +105,7 @@ export default function IncidentCommandConsole({
   const [totalAlerts, setTotalAlerts] = useState(0)
   const [totalPredictions, setTotalPredictions] = useState(0)
 
-  /* ── Data fetching ── */
+  /* Data fetching*/
   const refresh = useCallback(async () => {
     if (registryLoading) return
     if (!registry.length) {
@@ -178,21 +175,25 @@ export default function IncidentCommandConsole({
   useEffect(() => { refresh(); const iv = setInterval(refresh, 30_000); return () => clearInterval(iv) }, [refresh])
 
   // Keyboard shortcuts
+  const refreshRef = useRef(refresh)
+  useEffect(() => { refreshRef.current = refresh }, [refresh])
+
   const [showKeyboard, setShowKeyboard] = useState(false)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
       const key = e.key.toLowerCase()
-      if (key === 'r' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); refresh() }
+      if (key === 'r' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); refreshRef.current() }
       else if (key === '?' || (e.shiftKey && key === '/')) { e.preventDefault(); setShowKeyboard(p => !p) }
       else if (key === 'escape') setShowKeyboard(false)
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
-  }, [refresh])
+  }, [])
 
-  /* ── Derived data ── */
+  
+  /* Derived data*/
   const criticalCount = useMemo(() => stats.filter(s => s.highestSeverity === 'critical').length, [stats])
   const highCount = useMemo(() => stats.filter(s => s.highestSeverity === 'high').length, [stats])
   const activeTypes = useMemo(() => stats.filter(s => s.predictions > 0 || s.alerts > 0), [stats])
@@ -211,13 +212,12 @@ export default function IncidentCommandConsole({
   const banner = threatBannerCfg[overallThreat]
   const BannerIcon = banner.icon
 
-  /* ══════════════════════════════════════════════════════════════════
-     RENDER
-     ══════════════════════════════════════════════════════════════════ */
+  // RENDER
+
   return (
     <div className="space-y-5 animate-fade-in">
 
-      {/* ─────────── ERROR BANNER ─────────── */}
+      {/* ERROR BANNER */}
       {error && (
         <div role="alert" className="flex items-center gap-3 p-3.5 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/40 rounded-xl text-sm text-red-700 dark:text-red-300">
           <AlertTriangle className="w-4 h-4 flex-shrink-0 text-red-500" />
@@ -226,26 +226,26 @@ export default function IncidentCommandConsole({
         </div>
       )}
 
-      {/* ─────────── REGISTRY EMPTY STATE ─────────── */}
+      {/* REGISTRY EMPTY STATE */}
       {!loading && !registryLoading && registry.length === 0 && (
         <div className="text-center py-12 bg-white dark:bg-gray-800/60 rounded-2xl ring-1 ring-gray-200 dark:ring-gray-700/60">
-          <Activity className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+          <Activity className="w-10 h-10 text-gray-300 dark:text-gray-400 mx-auto mb-3" />
           <p className="text-sm font-semibold text-gray-600 dark:text-gray-400">{i18n('icc.registryNotLoaded', lang)}</p>
-          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{i18n('icc.checkConnection', lang)}</p>
+          <p className="text-xs text-gray-400 dark:text-gray-400 mt-1">{i18n('icc.checkConnection', lang)}</p>
           <button onClick={refresh} className="mt-3 px-4 py-2 bg-aegis-600 hover:bg-aegis-500 text-white text-xs font-bold rounded-xl transition">
             {i18n('icc.retry', lang)}
           </button>
         </div>
       )}
 
-      {/* ─────────── LOADING STATE ─────────── */}
+      {/* LOADING STATE */}
       {loading && registry.length === 0 && (
         <div className="flex items-center justify-center py-16">
           <RefreshCw className="w-7 h-7 text-aegis-400 animate-spin" />
         </div>
       )}
 
-      {/* ─────────── HEADER: Threat Banner (only when registry loaded) ─────────── */}
+      {/* HEADER: Threat Banner (only when registry loaded) */}
       {registry.length > 0 && <div className={`relative overflow-hidden bg-gradient-to-r ${banner.bg} rounded-2xl p-4 shadow-lg border ${banner.border} transition-all duration-500`}>
         {/* Animated background grid overlay */}
         <div className="absolute inset-0 opacity-[0.07]" style={{
@@ -290,7 +290,7 @@ export default function IncidentCommandConsole({
         </div>
       </div>}
 
-      {/* ─────────── COMPOUND WARNINGS ─────────── */}
+      {/* COMPOUND WARNINGS */}
       {compoundWarnings.length > 0 && (
         <div className="space-y-2" role="alert" aria-live="assertive">
           {compoundWarnings.map((w, i) => (
@@ -305,7 +305,7 @@ export default function IncidentCommandConsole({
         </div>
       )}
 
-      {/* ─────────── KPI STRIP ─────────── */}
+      {/* KPI STRIP */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 stagger-children">
         {[
           { label: i18n('icc.criticalIncidents', lang), value: criticalCount, icon: AlertTriangle, color: 'from-red-500 to-rose-600', glow: 'shadow-red-500/20', textColor: 'text-red-600 dark:text-red-400' },
@@ -326,7 +326,7 @@ export default function IncidentCommandConsole({
         ))}
       </div>
 
-      {/* ─────────── SEVERITY HEATMAP BAR ─────────── */}
+      {/* SEVERITY HEATMAP BAR */}
       {stats.length > 0 && (
         <div className="bg-white dark:bg-gray-800/80 backdrop-blur rounded-xl ring-1 ring-gray-200 dark:ring-gray-700/60 p-3.5 shadow-sm animate-slide-up" style={{ animationDelay: '0.1s' }}>
           <div className="flex items-center justify-between mb-2.5">
@@ -334,7 +334,7 @@ export default function IncidentCommandConsole({
               <Gauge className="w-3 h-3" />
               {i18n('icc.severityHeatmap', lang)}
             </span>
-            <span className="text-[9px] text-gray-400 dark:text-gray-500 font-mono">
+            <span className="text-[9px] text-gray-400 dark:text-gray-400 font-mono">
               {stats.filter(s => s.highestSeverity).length}/{stats.length} {i18n('icc.typesWithActivity', lang)}
             </span>
           </div>
@@ -366,13 +366,13 @@ export default function IncidentCommandConsole({
         </div>
       )}
 
-      {/* ─────────── ACTIVE INCIDENT CARDS ─────────── */}
+      {/* ACTIVE INCIDENT CARDS */}
       {activeTypes.length > 0 && (
         <div>
           <div className="flex items-center gap-2 mb-3">
             <Sparkles className="w-3.5 h-3.5 text-aegis-500" />
             <span className="text-[10px] font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">{i18n('icc.activeThreats', lang)}</span>
-            <span className="text-[10px] text-gray-400 dark:text-gray-500 font-mono">({activeTypes.length})</span>
+            <span className="text-[10px] text-gray-400 dark:text-gray-400 font-mono">({activeTypes.length})</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 stagger-children">
             {activeTypes.map((mod) => {
@@ -456,7 +456,7 @@ export default function IncidentCommandConsole({
                           <span className="text-[10px] font-bold text-gray-600 dark:text-gray-300">{stat.reports}</span>
                         </div>
                       )}
-                      <ChevronRight className={`w-3.5 h-3.5 ml-auto text-gray-300 dark:text-gray-600 group-hover:text-aegis-500 transition-all ${isSelected ? 'rotate-90' : ''}`} />
+                      <ChevronRight className={`w-3.5 h-3.5 ml-auto text-gray-300 dark:text-gray-400 group-hover:text-aegis-500 transition-all ${isSelected ? 'rotate-90' : ''}`} />
                     </div>
                   </div>
                 </button>
@@ -466,13 +466,13 @@ export default function IncidentCommandConsole({
         </div>
       )}
 
-      {/* ─────────── IDLE / MONITORING INCIDENTS ─────────── */}
+      {/* IDLE / MONITORING INCIDENTS */}
       {inactiveTypes.length > 0 && (
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <Shield className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
-            <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">{i18n('icc.monitoring', lang)}</span>
-            <span className="text-[10px] text-gray-400 dark:text-gray-600 font-mono">({inactiveTypes.length})</span>
+            <Shield className="w-3.5 h-3.5 text-gray-400 dark:text-gray-400" />
+            <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest">{i18n('icc.monitoring', lang)}</span>
+            <span className="text-[10px] text-gray-400 dark:text-gray-400 font-mono">({inactiveTypes.length})</span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
             {inactiveTypes.map((mod) => {
@@ -508,7 +508,7 @@ export default function IncidentCommandConsole({
         </div>
       )}
 
-      {/* ─────────── FOOTER: System Health Strip ─────────── */}
+      {/* FOOTER: System Health Strip */}
       <div className="flex items-center gap-1 pt-3 border-t border-gray-100 dark:border-gray-800 flex-wrap">
         {[
           { icon: Workflow, label: i18n('icc.builtInScheduler', lang),  status: healthOk ? 'bg-emerald-400' : 'bg-red-400' },
@@ -522,7 +522,7 @@ export default function IncidentCommandConsole({
           </div>
         ))}
         {lastUpdated && (
-          <span className="ml-auto text-[9px] text-gray-400 dark:text-gray-500 font-mono">
+          <span className="ml-auto text-[9px] text-gray-400 dark:text-gray-400 font-mono">
             {i18n('icc.updated', lang)} {lastUpdated.toLocaleTimeString([], { hour12: false })}
           </span>
         )}
@@ -533,7 +533,7 @@ export default function IncidentCommandConsole({
           <span className="font-bold text-gray-400 uppercase tracking-wider mr-1">{i18n('icc.shortcuts', lang)}</span>
           <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">R</kbd> {i18n('common.refresh', lang)}</span>
           <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">?</kbd> {i18n('icc.toggleShortcuts', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">Esc</kbd> {i18n('common.close', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">{i18n('common.esc', lang)}</kbd> {i18n('common.close', lang)}</span>
         </div>
       )}
     </div>

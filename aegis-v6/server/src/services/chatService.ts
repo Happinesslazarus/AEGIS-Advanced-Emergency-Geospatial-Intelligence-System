@@ -1,19 +1,42 @@
-﻿ /*
- * services/chatService.ts — LLM-powered chat with RAG and tool calling
- * The AEGIS chatbot uses Retrieval-Augmented Generation (RAG) to answer
- * citizen questions with context from the knowledge base. It also has
- * access to "tools" — functions the LLM can invoke to look up real-time
- * data (weather, flood warnings, shelter locations, report status).
- * Flow:
- *   1. Citizen sends message
- *   2. We embed the message and find relevant RAG documents
- *   3. We build a prompt with system instruction + RAG context + tools
- *   4. LLM generates a response (may include tool calls)
- *   5. If tool calls: execute them, inject results, re-call LLM
- *   6. Final response is returned and persisted
- * Safety: All responses pass through a content filter that checks for
- * harmful advice before being sent to the citizen.
-  */
+/**
+ * File: chatService.ts
+ *
+ * What this file does:
+ * Orchestrates everything that happens when a user sends a chat message.
+ * It builds the system prompt (with regional emergency context), retrieves
+ * relevant knowledge via RAG, classifies the query type, sends it to the
+ * LLM via llmRouter, then stores the conversation in the database. Also
+ * manages session token budgets so conversations don't overflow context windows.
+ *
+ * How it connects:
+ * - Called by server/src/routes/chatRoutes.ts (both POST /api/chat and /stream)
+ * - Routes completions through server/src/services/llmRouter.ts (provider selection)
+ * - Builds system prompts via server/src/services/chatPromptBuilder.ts
+ * - Retrieves relevant docs via server/src/services/ragExpansionService.ts
+ * - Personalises responses via server/src/services/personalizationEngine.ts
+ * - Classifies query intent via server/src/services/classifierRouter.ts
+ * - Stores sessions and messages in chat_sessions / chat_messages tables in PostgreSQL
+ * - Client chat UI: client/src/components/Chatbot.tsx or FloatingChatWidget.tsx
+ *
+ * Key exports:
+ * - processChat()        — handles a single message, returns JSON response
+ * - processChatStream()  — same as processChat but streams tokens via SSE
+ * - getChatHistory()     — loads previous messages for a session
+ * - listSessions()       — lists a user's sessions
+ * - endChatSession()     — closes a session and generates an AI summary
+ *
+ * Learn more:
+ * - server/src/services/llmRouter.ts         — picks which LLM provider/model to use
+ * - server/src/services/chatPromptBuilder.ts — shapes the system prompt for the region
+ * - server/src/services/ragExpansionService.ts — retrieves relevant knowledge docs
+ * - server/src/services/personalizationEngine.ts — user memory and behaviour context
+ * - server/src/routes/chatRoutes.ts          — the HTTP/SSE endpoints that call this
+ *
+ * Simple explanation:
+ * This is the brain of the chatbot. It gathers all the context (who you are, what
+ * region you're in, what's happened recently), builds a smart prompt, asks the AI,
+ * and sends the reply back. It also remembers your previous conversations.
+ */
 
 import pool from '../models/db.js'
 import { chatCompletion, chatCompletionStream, classifyQuery, preloadModelForClassification } from './llmRouter.js'
@@ -2778,7 +2801,7 @@ async function executeCompositeToolCalls(
 
 // —4  RAG — Retrieve relevant knowledge base documents
 
- /**
+/**
  * Cross-encoder re-ranking: score each (query, document) pair with a
  * HuggingFace Inference API cross-encoder model, then sort by score.
  * Uses ms-marco-MiniLM-L-6-v2 — free tier, ~6ms per pair.
@@ -3717,7 +3740,7 @@ interface DialogueState {
   userSentiment: string
 }
 
- /**
+/**
  * Infer dialogue state from conversation history — tracks intent, slots, and stage
  * so the LLM has full conversational context without re-inferring each turn.
  */

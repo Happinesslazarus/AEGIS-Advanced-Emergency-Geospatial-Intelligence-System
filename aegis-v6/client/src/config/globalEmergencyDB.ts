@@ -1,12 +1,10 @@
-﻿/**
- * globalEmergencyDB.ts - Comprehensive global emergency numbers database
+/**
+ * Module: globalEmergencyDB.ts
  *
- * Covers 60+ countries with emergency numbers, mental health lines,
- * disaster agencies, and basic metadata. Used as fallback when a
- * country doesn't have a full RegionConfig entry.
+ * Global emergency d b frontend module.
  *
- * Sources: ITU, WHO, IASP, national government websites
- */
+ * How it connects:
+ * - Imported by services and components that need this configuration */
 
 import { codeToFlag } from '../data/countryCodes'
 
@@ -486,4 +484,4 @@ export function emergencyCard(code: string): string {
 
   return lines.join('\n')
 }
-
+

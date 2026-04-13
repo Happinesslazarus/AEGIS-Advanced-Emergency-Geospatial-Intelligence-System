@@ -1,9 +1,32 @@
 """
- AEGIS AI ENGINE — API Endpoints (SECURED)
- REST API for hazard prediction and model management
- 
- SECURITY: Sensitive endpoints require API key authentication.
- Set API_SECRET_KEY environment variable and pass X-API-Key header.
+File: endpoints.py
+
+What this file does:
+FastAPI router that exposes all AI prediction endpoints. Each route accepts
+a location and optional context, runs the appropriate hazard predictor, and
+returns a structured PredictionResponse. Also handles model status queries,
+manual retraining triggers, SHAP explanations, and the LLM chat endpoint.
+
+How it connects:
+- Mounted in ai-engine/main.py as the primary API router
+- Imports all 10 hazard predictors from ai-engine/app/hazards/
+- Input/output shapes validated by ai-engine/app/schemas/predictions.py
+- Rate limited by ai-engine/app/core/rate_limit.py (120 req/min default)
+- API key auth via ai-engine/app/core/auth.py (X-API-Key header)
+
+Key endpoints:
+- POST /predict               -- single hazard prediction
+- POST /predict/batch         -- multiple locations in one call
+- POST /classify              -- report category classification
+- POST /severity              -- severity level prediction
+- POST /fake-detection        -- report authenticity check
+- GET  /models                -- list models and health status
+- POST /retrain/{hazard_type} -- trigger manual retraining
+- POST /chat                  -- LLM situational-awareness chat
+
+Learn more:
+- ai-engine/app/schemas/predictions.py          -- request/response models
+- server/src/services/aiAnalysisPipeline.ts     -- how server calls these routes
 """
 
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Query, Body, Request, UploadFile, File
@@ -19,6 +42,10 @@ from app.core.auth import verify_api_key
 
 # Input sanitization 
 
+# _CTRL_RE: matches ASCII control characters EXCEPT tab (\t), newline (\n),
+# and carriage return (\r) which are valid in multi-line text inputs.
+# Strips null bytes and other non-printable chars that could confuse the
+# NLP models or cause JSON serialization issues downstream.
 _CTRL_RE = re.compile(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]')
 
 def sanitize_text(value: str, max_len: int = 2000) -> str:
@@ -61,7 +88,15 @@ from app.core.config import settings
 from app.core.governance import governance, prediction_logger, drift_detector
 from app.monitoring.model_monitor import ModelMonitor
 
-# Request body models 
+
+def _safe_error_detail(msg: str, exc: Exception) -> str:
+    """Return exception detail only in debug mode; generic message in production."""
+    if settings.DEBUG:
+        return f"{msg}: {str(exc)}"
+    return msg
+
+
+# Request body models
 class ClassifyReportBody(BaseModel):
     text: str
     description: str = ""
@@ -88,7 +123,9 @@ class DetectFakeBody(BaseModel):
 # Create router
 router = APIRouter()
 
-# Initialize model loader (real trained models)
+# Model initialization: each block is wrapped individually so one missing
+# model file doesn't prevent other models from loading.  When a block fails,
+# the global is set to None and endpoints that require it return 503.
 try:
     model_loader = TrainedModelLoader(settings.MODEL_REGISTRY_PATH)
     report_classifier_ml = ReportClassifierML(model_loader)
@@ -117,7 +154,12 @@ _feature_store: FeatureStore = None
 _model_monitor: Optional[ModelMonitor] = None
 
 def get_model_registry() -> ModelRegistry:
-    """Dependency injection for model registry."""
+    """Dependency injection for model registry.
+    
+    Importing from main inside the function (lazy import) avoids a circular
+    import at module load time: main.py imports this router, which would
+    otherwise try to import main.py at the top level.
+    """
     from main import model_registry
     return model_registry
 
@@ -158,6 +200,10 @@ async def predict_hazard(
         )
         
         # Route to appropriate hazard predictor
+        # Hazard predictor dispatch: each hazard type encapsulates its own
+        # feature engineering, model artifact path, and risk thresholds.
+        # Adding a new hazard only requires a new elif branch here and a
+        # corresponding predictor class under app/hazards/.
         if payload.hazard_type == HazardType.FLOOD:
             predictor = FloodPredictor(model_registry, feature_store)
         elif payload.hazard_type == HazardType.HEATWAVE:
@@ -181,6 +227,8 @@ async def predict_hazard(
             predictor = PublicSafetyPredictor(model_registry, feature_store)
         elif payload.hazard_type == HazardType.ENVIRONMENTAL:
             predictor = EnvironmentalHazardPredictor(model_registry, feature_store)
+        # No predictor registered: return a safe LOW baseline rather than 404/500.
+        # This lets front-end calls succeed even for hazard types still in development.
         else:
             logger.warning(f"No predictor for {payload.hazard_type.value} — returning safe LOW")
             from app.schemas.predictions import ContributingFactor
@@ -219,7 +267,7 @@ async def predict_hazard(
         logger.exception("Prediction failed")
         raise HTTPException(
             status_code=500,
-            detail=f"Prediction failed: {str(e)}"
+            detail=_safe_error_detail("Prediction failed", e)
         )
 
 @router.get("/model-status", response_model=Dict[str, Any])
@@ -232,23 +280,53 @@ async def get_model_status(
     
     try:
         models = model_registry.list_models()
+        try:
+            drift_threshold = float(getattr(settings, 'DRIFT_THRESHOLD', 0.3) or 0.3)
+        except (TypeError, ValueError):
+            drift_threshold = 0.3
         
         model_statuses = []
         for model in models:
+            try:
+                prediction_count = int(model.get('prediction_count', 0) or 0)
+            except (TypeError, ValueError):
+                prediction_count = 0
+            raw_status = str(model.get('health_status') or model.get('status') or '').strip().lower()
+            try:
+                drift_score = float(model.get('drift_score', 0.0) or 0.0)
+            except (TypeError, ValueError):
+                drift_score = 0.0
+            drift_detected = bool(model.get('drift_detected', False)) or drift_score >= drift_threshold
+
+            if raw_status in {'offline', 'failed', 'error', 'unavailable'}:
+                normalized_status = 'offline'
+            elif raw_status in {'degraded', 'warning', 'critical'} or drift_detected:
+                normalized_status = 'degraded'
+            elif prediction_count > 0:
+                normalized_status = 'operational'
+            else:
+                normalized_status = 'standby'
+
             status = ModelStatus(
                 model_name=model['name'],
                 model_version=model['version'],
-                status="operational" if model['prediction_count'] > 0 else "standby",
-                last_prediction=None,  # Would track in production
-                total_predictions=model['prediction_count'],
+                status=normalized_status,
+                last_prediction=model.get('last_prediction') or model.get('last_prediction_at'),
+                total_predictions=prediction_count,
                 average_latency_ms=model['avg_latency_ms'],
-                drift_detected=False,  # Would implement drift detection
+                drift_detected=drift_detected,
                 last_trained=model.get('trained_at')
             )
             model_statuses.append(status)
+
+        overall_status = 'operational'
+        if any(m.status == 'offline' for m in model_statuses):
+            overall_status = 'degraded'
+        if any(m.status == 'degraded' for m in model_statuses):
+            overall_status = 'degraded'
         
         return {
-            "status": "operational",
+            "status": overall_status,
             "timestamp": datetime.utcnow().isoformat(),
             "models_loaded": model_registry.count_models(),
             "models": [m.dict() for m in model_statuses]
@@ -256,7 +334,7 @@ async def get_model_status(
         
     except Exception as e:
         logger.error(f"Failed to get model status: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=_safe_error_detail("Internal server error", e))
 
 @router.get("/hazard-types", response_model=List[HazardTypeInfo])
 async def get_hazard_types(
@@ -315,12 +393,40 @@ async def get_hazard_types(
                 supported_regions=["global"],
                 forecast_horizons=[6, 12, 24]
             ))
+
+        # Remaining 7 hazard types (always enabled, use trained models or heuristic fallback)
+        all_models = model_registry.list_models()
+
+        ADDITIONAL_HAZARDS = [
+            (HazardType.SEVERE_STORM, "severe_storm", [6, 12, 24, 48]),
+            (HazardType.LANDSLIDE, "landslide", [12, 24, 48]),
+            (HazardType.POWER_OUTAGE, "power_outage", [6, 12, 24]),
+            (HazardType.WATER_SUPPLY, "water_supply_disruption", [24, 48, 168]),
+            (HazardType.INFRASTRUCTURE, "infrastructure_damage", [12, 24, 48]),
+            (HazardType.PUBLIC_SAFETY, "public_safety_incident", [6, 12, 24]),
+            (HazardType.ENVIRONMENTAL, "environmental_hazard", [12, 24, 48]),
+        ]
+
+        for hazard_enum, hazard_key, horizons in ADDITIONAL_HAZARDS:
+            hazard_models = [m['name'] for m in all_models if m.get('hazard_type') == hazard_key]
+            # Also check shortened key variants
+            if not hazard_models:
+                short_key = hazard_key.replace("_disruption", "").replace("_incident", "").replace("_damage", "")
+                hazard_models = [m['name'] for m in all_models if m.get('hazard_type') == short_key]
+
+            hazard_types.append(HazardTypeInfo(
+                hazard_type=hazard_enum,
+                enabled=True,
+                models_available=hazard_models if hazard_models else [f"{hazard_key}_heuristic_v1"],
+                supported_regions=model_registry.get_supported_regions(hazard_key) or ["global"],
+                forecast_horizons=horizons,
+            ))
         
         return hazard_types
         
     except Exception as e:
         logger.error(f"Failed to get hazard types: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=_safe_error_detail("Internal server error", e))
 
 @router.post("/retrain", response_model=RetrainResponse, dependencies=[Depends(verify_api_key)])
 async def trigger_retrain(
@@ -381,7 +487,8 @@ async def trigger_retrain(
                 results['fake_detector'] = {'error': str(e)}
                 logger.error(f"Fake detector training failed: {e}")
         
-        # Determine overall status
+        # Determine overall status: 'completed' if all models succeeded,
+        # 'partial' if at least one succeeded, 'failed' if all errored.
         has_errors = any('error' in r for r in results.values())
         has_success = any('accuracy' in r or 'f1_weighted' in r for r in results.values())
         
@@ -396,7 +503,7 @@ async def trigger_retrain(
         
     except Exception as e:
         logger.error(f"Failed to queue retrain job: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=_safe_error_detail("Internal server error", e))
 
 @router.post("/classify-image", dependencies=[Depends(verify_api_key)])
 async def classify_image(file: UploadFile = File(...)):
@@ -406,11 +513,28 @@ async def classify_image(file: UploadFile = File(...)):
     """
     from app.models import ImageClassifier
 
+    # Validate MIME type before reading full content
+    allowed_types = {"image/jpeg", "image/png", "image/webp", "image/gif", "image/tiff"}
+    if file.content_type and file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail=f"Unsupported file type: {file.content_type}. Allowed: {', '.join(sorted(allowed_types))}")
+
     image_bytes = await file.read()
     if len(image_bytes) == 0:
         raise HTTPException(status_code=400, detail="Empty file uploaded")
     if len(image_bytes) > 20 * 1024 * 1024:
         raise HTTPException(status_code=413, detail="File too large (max 20MB)")
+
+    # Validate magic bytes match an image format
+    magic_signatures = {
+        b'\xff\xd8\xff': 'JPEG',
+        b'\x89PNG': 'PNG',
+        b'RIFF': 'WebP',  # WebP starts with RIFF
+        b'GIF8': 'GIF',
+        b'II\x2a\x00': 'TIFF',
+        b'MM\x00\x2a': 'TIFF',
+    }
+    if not any(image_bytes[:4].startswith(sig) for sig in magic_signatures):
+        raise HTTPException(status_code=400, detail="File does not appear to be a valid image")
 
     classifier = ImageClassifier()
     result = await classifier.classify(image_bytes)
@@ -443,7 +567,9 @@ async def classify_report(
         if len(_text.strip()) < 3:
             raise HTTPException(status_code=400, detail="Report text too short")
 
-        # Try trainable classifier first (directly trained, more recent)
+        # Three-tier fallback: trainable (directly trained XGBoost) → ML wrapper
+        # (loaded from artifact store) → keyword rule engine.  Each falls through
+        # only when the previous tier's model hasn't been fitted yet.
         if report_classifier_trainable and report_classifier_trainable.model is not None:
             import time as _time
             _start = _time.time()
@@ -490,7 +616,7 @@ async def classify_report(
         raise
     except Exception as e:
         logger.error(f"Report classification failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=_safe_error_detail("Internal server error", e))
 
 @router.post("/predict-severity", dependencies=[Depends(verify_api_key)])
 @limiter.limit("30/minute")
@@ -551,7 +677,7 @@ async def predict_severity(
         raise
     except Exception as e:
         logger.error(f"Severity prediction failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=_safe_error_detail("Internal server error", e))
 
 @router.post("/detect-fake", dependencies=[Depends(verify_api_key)])
 @limiter.limit("30/minute")
@@ -617,7 +743,7 @@ async def detect_fake(
         raise
     except Exception as e:
         logger.error(f"Fake detection failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=_safe_error_detail("Internal server error", e))
 
 # LIVE DATA ENDPOINT — Real-time sensor data from SEPA, EA, Open-Meteo, NOAA
 @router.get("/live-data")
@@ -651,7 +777,7 @@ async def get_live_data(
         }
     except Exception as e:
         logger.error(f"Live data fetch failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Live data unavailable: {str(e)}")
+        raise HTTPException(status_code=500, detail=_safe_error_detail("Live data unavailable", e))
 
 @router.get("/health")
 async def health_check():
@@ -673,7 +799,7 @@ async def root():
     return {
         "service": "AEGIS AI Engine",
         "version": "2.0.0",
-        "description": "Sovereign-grade multi-hazard environmental intelligence platform",
+        "description": "Multi-hazard environmental intelligence platform",
         "endpoints": {
             "predict": "/api/predict",
             "model_status": "/api/model-status",
@@ -701,7 +827,7 @@ async def root():
 
 # §  MODEL GOVERNANCE ENDPOINTS
 
-@router.get("/models")
+@router.get("/models", dependencies=[Depends(verify_api_key)])
 async def list_governed_models():
     """List all models with their active version and governance status."""
     try:
@@ -713,11 +839,15 @@ async def list_governed_models():
         }
     except Exception as e:
         logger.error(f"List models failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=_safe_error_detail("Internal server error", e))
 
-@router.get("/models/{model_name}/versions")
+@router.get("/models/{model_name}/versions", dependencies=[Depends(verify_api_key)])
 async def list_model_versions(model_name: str, limit: int = 20):
     """List all versions for a specific model."""
+    import re
+    if not re.match(r'^[a-zA-Z0-9_-]+$', model_name):
+        raise HTTPException(status_code=400, detail="Invalid model name (alphanumeric, hyphens, underscores only)")
+    limit = max(1, min(limit, 100))
     try:
         versions = await governance.list_versions(model_name, limit)
         active = await governance.get_active_version(model_name)
@@ -729,7 +859,7 @@ async def list_model_versions(model_name: str, limit: int = 20):
         }
     except Exception as e:
         logger.error(f"List versions failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=_safe_error_detail("Internal server error", e))
 
 @router.post("/models/rollback", dependencies=[Depends(verify_api_key)])
 async def rollback_model(model_name: str, target_version: Optional[str] = None):
@@ -737,6 +867,11 @@ async def rollback_model(model_name: str, target_version: Optional[str] = None):
     Roll back a model to its previous stable version.
     If target_version is not specified, rolls back to the most recent archived version.
     """
+    import re
+    if not re.match(r'^[a-zA-Z0-9_-]+$', model_name):
+        raise HTTPException(status_code=400, detail="Invalid model name")
+    if target_version and not re.match(r'^[a-zA-Z0-9._-]+$', target_version):
+        raise HTTPException(status_code=400, detail="Invalid version string")
     try:
         result = await governance.rollback(model_name, target_version)
 
@@ -754,7 +889,7 @@ async def rollback_model(model_name: str, target_version: Optional[str] = None):
         raise
     except Exception as e:
         logger.error(f"Rollback failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=_safe_error_detail("Internal server error", e))
 
 async def _reload_model_after_rollback(model_name: str, version: str):
     """Reload model artifacts from the rolled-back version directory."""
@@ -805,7 +940,7 @@ async def _reload_model_after_rollback(model_name: str, version: str):
 
 # §  DRIFT DETECTION ENDPOINTS
 
-@router.get("/drift/check")
+@router.get("/drift/check", dependencies=[Depends(verify_api_key)])
 async def check_drift(
     model_name: Optional[str] = None,
     hours: int = 24,
@@ -824,6 +959,9 @@ async def check_drift(
                 model_name, active["version"], window_hours=hours
             )
             return result
+        # Dual-source drift check: run the newer per-hazard model_monitor for
+        # hazard predictors PLUS the governance-based checker for classifier
+        # models that aren't yet tracked by model_monitor.
         else:
             hazard_results = await model_monitor.run_for_all_current_models(hours=hours)
 
@@ -841,7 +979,7 @@ async def check_drift(
         raise
     except Exception as e:
         logger.error(f"Drift check failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=_safe_error_detail("Internal server error", e))
 
 @router.post("/predictions/{prediction_id}/feedback", dependencies=[Depends(verify_api_key)])
 async def submit_prediction_feedback(prediction_id: str, feedback: str):
@@ -859,9 +997,9 @@ async def submit_prediction_feedback(prediction_id: str, feedback: str):
         raise
     except Exception as e:
         logger.error(f"Feedback submission failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=_safe_error_detail("Internal server error", e))
 
-@router.get("/predictions/stats")
+@router.get("/predictions/stats", dependencies=[Depends(verify_api_key)])
 async def prediction_stats(model_name: Optional[str] = None, hours: int = 24):
     """Get prediction statistics for monitoring."""
     try:
@@ -876,11 +1014,11 @@ async def prediction_stats(model_name: Optional[str] = None, hours: int = 24):
             return {"models": all_stats, "window_hours": hours}
     except Exception as e:
         logger.error(f"Prediction stats failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=_safe_error_detail("Internal server error", e))
 
 # §  MODEL LIFECYCLE ENDPOINTS
 
-@router.get("/registry/versions/{hazard_type}/{region_id}")
+@router.get("/registry/versions/{hazard_type}/{region_id}", dependencies=[Depends(verify_api_key)])
 async def list_registry_versions(
     hazard_type: str,
     region_id: str,
@@ -919,7 +1057,7 @@ async def demote_registry_model(
     """Remove manual promotion override, revert to automatic selection."""
     return model_registry.demote_model(hazard_type, region_id)
 
-@router.get("/registry/validate/{hazard_type}/{region_id}/{version}")
+@router.get("/registry/validate/{hazard_type}/{region_id}/{version}", dependencies=[Depends(verify_api_key)])
 async def validate_registry_model(
     hazard_type: str,
     region_id: str,
@@ -949,7 +1087,7 @@ async def cleanup_all_registry(
     """Run cleanup across all hazard+region combinations."""
     return model_registry.cleanup_all_hazards(keep=keep, dry_run=dry_run)
 
-@router.get("/registry/health/{hazard_type}/{region_id}")
+@router.get("/registry/health/{hazard_type}/{region_id}", dependencies=[Depends(verify_api_key)])
 async def get_registry_model_health(
     hazard_type: str,
     region_id: str,
@@ -958,7 +1096,7 @@ async def get_registry_model_health(
     """Get health summary for active model in hazard/region."""
     return model_registry.get_model_health(hazard_type, region_id)
 
-@router.get("/registry/health")
+@router.get("/registry/health", dependencies=[Depends(verify_api_key)])
 async def get_all_registry_model_health(
     model_registry: ModelRegistry = Depends(get_model_registry),
 ):
@@ -971,7 +1109,7 @@ async def get_all_registry_model_health(
         "generated_at": datetime.utcnow().isoformat(),
     }
 
-@router.get("/registry/drift/{hazard_type}/{region_id}/{version}")
+@router.get("/registry/drift/{hazard_type}/{region_id}/{version}", dependencies=[Depends(verify_api_key)])
 async def get_registry_drift_snapshot(
     hazard_type: str,
     region_id: str,
@@ -1013,7 +1151,7 @@ async def mark_registry_model_degraded(
         raise HTTPException(status_code=400, detail=result.get("error", "Failed to mark degraded"))
     return result
 
-@router.get("/registry/recommend-rollback/{hazard_type}/{region_id}")
+@router.get("/registry/recommend-rollback/{hazard_type}/{region_id}", dependencies=[Depends(verify_api_key)])
 async def recommend_registry_rollback(
     hazard_type: str,
     region_id: str,

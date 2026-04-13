@@ -1,12 +1,18 @@
-﻿ /*
- * notificationService.ts - Alert Delivery Service
- * Handles multi-channel alert delivery via:
- * Email (SMTP via nodemailer)
- * SMS (Twilio)
- * WhatsApp (Twilio)
- * Telegram (Bot API)
- * Web Push (VAPID)
-  */
+/**
+ * File: notificationService.ts
+ *
+ * Multi-channel notification dispatcher — initialises and manages SMTP email
+ * (nodemailer), SMS/WhatsApp (Twilio), Telegram Bot API, and Web Push (VAPID)
+ * with graceful degradation when credentials are not configured.
+ *
+ * How it connects:
+ * - Called by alert, auth, and admin routes to send notifications
+ * - Configures channels based on available environment variables
+ * - Uses logger for delivery status and errors
+ *
+ * Simple explanation:
+ * Sends alerts and notifications through email, SMS, Telegram, or push — whatever's available.
+ */
 
 import nodemailer from 'nodemailer'
 import twilio from 'twilio'
@@ -61,7 +67,7 @@ if (SMTP_CONFIG.auth.user && SMTP_CONFIG.auth.pass) {
 }
 
 // Initialize Twilio client
-if (TWILIO_CONFIG.accountSid && TWILIO_CONFIG.authToken) {
+if (TWILIO_CONFIG.accountSid && TWILIO_CONFIG.accountSid.startsWith('AC') && TWILIO_CONFIG.authToken) {
   twilioClient = twilio(TWILIO_CONFIG.accountSid, TWILIO_CONFIG.authToken)
   logger.info('Twilio client initialized')
 } else {
@@ -114,7 +120,30 @@ export interface Alert {
   expiresAt?: Date
   metadata?: Record<string, any>
   subscriberName?: string
+  subscriberAuthStatus?: string
   issuedAt?: Date
+}
+
+function resolveRecipientIdentity(alert: Alert): {
+  name?: string
+  authStatus: string
+  line: string
+  greetingEmail: string
+  greetingChat: string
+} {
+  const name = alert.subscriberName?.trim() || undefined
+  const authStatus = alert.subscriberAuthStatus || (name ? 'Signed in user' : 'Anonymous / not signed in')
+  const line = name
+    ? `Recipient: ${name} (${authStatus})`
+    : `Recipient status: ${authStatus}`
+
+  return {
+    name,
+    authStatus,
+    line,
+    greetingEmail: name ? `Dear ${name},` : 'Dear Subscriber,',
+    greetingChat: name ? `Hi ${name},` : 'Hello,',
+  }
 }
 
 export interface AlertRecipient {
@@ -130,7 +159,7 @@ export interface DeliveryResult {
   success: boolean
   messageId?: string
   error?: string
-  expired?: boolean  // true when push subscription is gone (410/404) — should be deactivated
+  expired?: boolean  // true when push subscription is gone (410/404) - should be deactivated
   timestamp: Date
 }
 
@@ -235,9 +264,8 @@ function generateEmailHTML(alert: Alert): string {
   const issuedAt = alert.issuedAt || new Date()
   const timestamp = issuedAt.toLocaleString('en-GB', { dateStyle: 'full', timeStyle: 'short' })
   const refId = alert.id.substring(0, 8).toUpperCase()
-  const greeting = alert.subscriberName
-    ? `Dear ${alert.subscriberName},`
-    : 'Dear Subscriber,'
+  const recipient = resolveRecipientIdentity(alert)
+  const greeting = recipient.greetingEmail
 
   return `
 <!DOCTYPE html>
@@ -272,6 +300,7 @@ function generateEmailHTML(alert: Alert): string {
         <tr><td style="padding: 3px 12px 3px 0; font-weight: 600; color: #374151;">Location:</td><td>${alert.area}</td></tr>
         <tr><td style="padding: 3px 12px 3px 0; font-weight: 600; color: #374151;">Type:</td><td style="text-transform: capitalize;">${alert.type.replace(/_/g, ' ')}</td></tr>
         <tr><td style="padding: 3px 12px 3px 0; font-weight: 600; color: #374151;">Severity:</td><td style="text-transform: uppercase; font-weight: 600; color: ${color};">${alert.severity}</td></tr>
+        <tr><td style="padding: 3px 12px 3px 0; font-weight: 600; color: #374151;">Recipient:</td><td>${recipient.name ? `${recipient.name} (${recipient.authStatus})` : recipient.authStatus}</td></tr>
         <tr><td style="padding: 3px 12px 3px 0; font-weight: 600; color: #374151;">Date & Time:</td><td>${timestamp}</td></tr>
         <tr><td style="padding: 3px 12px 3px 0; font-weight: 600; color: #374151;">Reference:</td><td>AEGIS-${refId}</td></tr>
       </table>
@@ -322,9 +351,8 @@ function generateEmailText(alert: Alert): string {
   const issuedAt = alert.issuedAt || new Date()
   const timestamp = issuedAt.toLocaleString('en-GB', { dateStyle: 'full', timeStyle: 'short' })
   const refId = alert.id.substring(0, 8).toUpperCase()
-  const greeting = alert.subscriberName
-    ? `Dear ${alert.subscriberName},`
-    : 'Dear Subscriber,'
+  const recipient = resolveRecipientIdentity(alert)
+  const greeting = recipient.greetingEmail
   return `
 AEGIS EMERGENCY MANAGEMENT
 ${alert.severity.toUpperCase()} ALERT
@@ -340,6 +368,7 @@ ${alert.title}
 Location: ${alert.area}
 Type: ${alert.type.replace(/_/g, ' ')}
 Severity: ${alert.severity.toUpperCase()}
+${recipient.line}
 Date & Time: ${timestamp}
 
 ${alert.message}
@@ -414,8 +443,9 @@ function generateSMSText(alert: Alert): string {
   const issuedAt = alert.issuedAt || new Date()
   const ts = issuedAt.toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })
   const refId = alert.id.substring(0, 8).toUpperCase()
-  const name = alert.subscriberName ? `${alert.subscriberName}, ` : ''
-  return `AEGIS ${alert.severity.toUpperCase()} ALERT\n${name}${alert.title}\nLocation: ${alert.area}\nType: ${alert.type.replace(/_/g, ' ')}\n${ts} | Ref: ${refId}\n\n${alert.message}${alert.actionRequired ? `\n\nACTION: ${alert.actionRequired}` : ''}${alert.expiresAt ? `\nExpires: ${new Date(alert.expiresAt).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}` : ''}`
+  const recipient = resolveRecipientIdentity(alert)
+  const name = recipient.name ? `${recipient.name}, ` : ''
+  return `AEGIS ${alert.severity.toUpperCase()} ALERT\n${name}${alert.title}\n${recipient.line}\nLocation: ${alert.area}\nType: ${alert.type.replace(/_/g, ' ')}\n${ts} | Ref: ${refId}\n\n${alert.message}${alert.actionRequired ? `\n\nACTION: ${alert.actionRequired}` : ''}${alert.expiresAt ? `\nExpires: ${new Date(alert.expiresAt).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}` : ''}`
 }
 
 // WhatsApp Delivery (Twilio)
@@ -481,7 +511,8 @@ function generateWhatsAppText(alert: Alert): string {
   const issuedAt = alert.issuedAt || new Date()
   const timestamp = issuedAt.toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })
   const refId = alert.id.substring(0, 8).toUpperCase()
-  const greeting = alert.subscriberName ? `Hi ${alert.subscriberName},\n\n` : ''
+  const recipient = resolveRecipientIdentity(alert)
+  const greeting = `${recipient.greetingChat}\n\n`
   return `*AEGIS ${alert.severity.toUpperCase()} ALERT*
 _Issued: ${timestamp}_
 _Ref: AEGIS-${refId}_
@@ -491,6 +522,7 @@ ${greeting}*${alert.title}*
 Location: ${alert.area}
 Type: ${alert.type.replace(/_/g, ' ')}
 Severity: ${alert.severity.toUpperCase()}
+${recipient.line}
 Date & Time: ${timestamp}
 
 ${alert.message}
@@ -615,9 +647,13 @@ function generateTelegramText(alert: Alert): string {
   const issuedAt = alert.issuedAt || new Date()
   const timestamp = escapeMdV2(issuedAt.toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }))
   const refId = alert.id.substring(0, 8).toUpperCase()
-  const greeting = alert.subscriberName ? `Hi ${escapeMdV2(alert.subscriberName)},\n\n` : ''
+  const recipient = resolveRecipientIdentity(alert)
+  const greeting = `${escapeMdV2(recipient.greetingChat)}\n\n`
+  const recipientLine = escapeMdV2(recipient.line)
 
   let text = `*AEGIS ${severity} ALERT*\n_Issued: ${timestamp}_\n_Ref: AEGIS\\-${escapeMdV2(refId)}_\n\n${greeting}*${title}*\n\nLocation: ${area}\nType: ${type}\nSeverity: ${severity}\nDate \\& Time: ${timestamp}`
+
+  text += `\n${recipientLine}`
 
   text += `\n\n${message}`
 
@@ -655,11 +691,12 @@ export async function sendWebPushAlert(
 
     const issuedAt = alert.issuedAt || new Date()
     const refId = alert.id.substring(0, 8).toUpperCase()
-    const namePrefix = alert.subscriberName ? `${alert.subscriberName}, ` : ''
+    const recipient = resolveRecipientIdentity(alert)
+    const namePrefix = recipient.name ? `${recipient.name}, ` : ''
 
     const payload = JSON.stringify({
       title: `AEGIS ${severityLabel}: ${alert.title}`,
-      body: `${namePrefix}${alert.area}\n${alert.type.replace(/_/g, ' ')}\n${issuedAt.toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}\n\n${alert.message}${alert.actionRequired ? '\n\nAction Required: ' + alert.actionRequired : ''}`,
+      body: `${namePrefix}${alert.area}\n${alert.type.replace(/_/g, ' ')}\n${recipient.line}\n${issuedAt.toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}\n\n${alert.message}${alert.actionRequired ? '\n\nAction Required: ' + alert.actionRequired : ''}`,
       icon: '/icons/icon-192x192.png',
       badge: '/icons/icon-96x96.png',
       tag: alert.id,
@@ -762,7 +799,7 @@ export async function sendMultiChannelAlert(
  * thousands of simultaneous connections during a major incident alert.
  * Default concurrency: 50 simultaneous deliveries (configurable via
  * NOTIFICATION_CONCURRENCY env var). With 50 concurrent and 5000 subscribers,
- * total delivery time ≈ (5000/50) × avg_latency_per_batch.
+ * total delivery time - (5000/50) - avg_latency_per_batch.
   */
 export async function sendAlertToSubscribers(
   alert: Alert,
@@ -784,7 +821,13 @@ export async function sendAlertToSubscribers(
         telegram_id: sub.telegram_id,
         whatsapp: sub.whatsapp,
       }
-      return sendMultiChannelAlert(recipient, alert, sub.channels || ['email'])
+      const perSubscriberAlert: Alert = {
+        ...alert,
+        subscriberName: sub.subscriber_name || undefined,
+        subscriberAuthStatus: sub.subscriber_name ? 'Signed in user' : 'Anonymous / not signed in',
+        issuedAt: new Date(),
+      }
+      return sendMultiChannelAlert(recipient, perSubscriberAlert, sub.channels || ['email'])
     })
 
     const batchSettled = await Promise.allSettled(batchPromises)

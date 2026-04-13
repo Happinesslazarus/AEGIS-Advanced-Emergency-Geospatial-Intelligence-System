@@ -1,5 +1,11 @@
-"""Patch training_pipeline.py to use stratified split instead of time_series_split
-when the time-based split would result in single-class validation set."""
+"""
+Module: patch_split.py
+
+Patch_split utility script.
+
+Simple explanation:
+Standalone script for patch_split.
+"""
 import pathlib
 
 f = pathlib.Path(r'e:\aegis-v6-fullstack\aegis-v6\ai-engine\app\training\training_pipeline.py')

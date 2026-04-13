@@ -1,9 +1,14 @@
-﻿ /*
- * incidents/baseModule.ts — Abstract base for all incident modules
- * Provides shared functionality so each incident plugin only needs to
- * implement incident-specific logic. Includes rule-based prediction
- * fallback, common alert evaluation, and standard route scaffolding.
-  */
+/**
+ * Module: baseModule.ts
+ *
+ * Base incident module (abstract class all incident types extend).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Defines the common interface and shared logic for every incident handler.
+ */
 
 import { Router, Request, Response } from 'express'
 import rateLimit from 'express-rate-limit'
@@ -56,35 +61,32 @@ export abstract class BaseIncidentModule implements IncidentModule {
         const reports = await this.getActiveReports(region)
         res.json({ incidentType: this.id, reports, count: reports.length })
       } catch (err: any) {
-        res.status(500).json({ error: `Failed to get active ${this.id} incidents`, details: err.message })
+        res.status(500).json({ error: `Could not load active ${this.id} incidents. The database may be temporarily unavailable — please try again.` })
       }
     })
 
-    // GET /predictions — predictions for this incident type
-    // GET /predictions — predictions for this incident type (auth required)
+    // GET /predictions — AI predictions for this incident type (auth required)
     this.router.get('/predictions', authMiddleware, async (req: Request, res: Response) => {
       try {
         const region = this.getRequestRegion(req)
         const predictions = await this.getPredictions(region)
         res.json({ incidentType: this.id, predictions, count: predictions.length })
       } catch (err: any) {
-        res.status(500).json({ error: `Failed to get ${this.id} predictions`, details: err.message })
+        res.status(500).json({ error: `Could not generate ${this.id} predictions. The AI service may be temporarily unavailable — please try again shortly.` })
       }
     })
 
-    // POST /report — submit a report for this incident type
-    // POST /report — submit a report for this incident type (auth required)
+    // POST /report — submit a report for this incident type (rate-limited, auth required)
     this.router.post('/report', reportLimiter, authMiddleware, async (req: Request, res: Response) => {
       try {
         const report = await this.submitReport(req.body)
         res.status(201).json({ incidentType: this.id, report, success: true })
       } catch (err: any) {
-        res.status(500).json({ error: `Failed to submit ${this.id} report`, details: err.message })
+        res.status(500).json({ error: `Could not submit your ${this.id} report. Please check your connection and try again.` })
       }
     })
 
-    // GET /history — historical data
-    // GET /history — historical data (auth required)
+    // GET /history — historical data for this incident type (auth required)
     this.router.get('/history', authMiddleware, async (req: Request, res: Response) => {
       try {
         const region = this.getRequestRegion(req)
@@ -92,7 +94,7 @@ export abstract class BaseIncidentModule implements IncidentModule {
         const history = await this.getHistory(region, days)
         res.json({ incidentType: this.id, history, count: history.length })
       } catch (err: any) {
-        res.status(500).json({ error: `Failed to get ${this.id} history`, details: err.message })
+        res.status(500).json({ error: `Could not load ${this.id} historical data. Please try again.` })
       }
     })
 
@@ -103,7 +105,7 @@ export abstract class BaseIncidentModule implements IncidentModule {
         const alerts = await this.getAlerts(region)
         res.json({ incidentType: this.id, alerts, count: alerts.length })
       } catch (err: any) {
-        res.status(500).json({ error: `Failed to get ${this.id} alerts`, details: err.message })
+        res.status(500).json({ error: `Could not load ${this.id} alerts. Please refresh or try again shortly.` })
       }
     })
 
@@ -114,7 +116,7 @@ export abstract class BaseIncidentModule implements IncidentModule {
         const mapData = await this.getMapData(region)
         res.json({ incidentType: this.id, ...mapData })
       } catch (err: any) {
-        res.status(500).json({ error: `Failed to get ${this.id} map data`, details: err.message })
+        res.status(500).json({ error: `Could not load ${this.id} map data. Please refresh or try again shortly.` })
       }
     })
 
@@ -394,4 +396,4 @@ export abstract class BaseIncidentModule implements IncidentModule {
     }
   }
 }
-
+

@@ -1,12 +1,17 @@
 """
-SHAP Explainability Module for Hazard Predictors.
+File: shap_explainer.py
 
-Provides on-the-fly SHAP explanations for individual predictions
-alongside the global feature importance stored in model metadata.
+What this file does:
+Generates SHAP (SHapley Additive exPlanations) feature importance values
+for any hazard prediction. Explains which weather or geographical features
+drove the model to its risk score so responders can understand and trust
+the prediction. Falls back gracefully if the shap package is unavailable.
 
-Usage in a predictor:
-    from app.hazards.shap_explainer import explain_prediction
-    explanations = explain_prediction(model, feature_values, feature_names)
+How it connects:
+- Called by all hazard predictors in ai-engine/app/hazards/
+- SHAP values returned as part of PredictionResponse.shap_features
+- shap package optionally installed (see ai-engine/requirements.txt)
+- Explanation text surfaced in the Admin AI panel (client AdminPage.tsx)
 """
 
 from __future__ import annotations

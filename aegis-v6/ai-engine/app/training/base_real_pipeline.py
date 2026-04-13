@@ -1,20 +1,17 @@
 """
-AEGIS AI Engine — Base Real-Data Training Pipeline
+File: base_real_pipeline.py
 
-Shared training harness used by all 11 hazard ``train_{hazard}_real.py``
-scripts.  Handles:
+What this file does:
+Abstract base class for all real-world-data hazard training pipelines.
+Fetches historical weather and hazard data from Open-Meteo, runs feature
+engineering (LeakagePrevention, rolling statistics), trains with
+cross-validation, and registers the model with governance metadata.
 
-  * Provider resolution and data fetching
-  * Feature engineering orchestration
-  * Chronological train/val/test split
-  * Multi-model hyperparameter search (XGBoost, LightGBM, LogisticRegression)
-  * Evaluation, SHAP, backtesting, calibration
-  * Model promotion gates
-  * Registry output (model.pkl, metadata.json, training_report.json,
-    data_quality_report.json)
-
-Subclasses override only ``fetch_data()``, ``build_labels()``,
-``hazard_feature_columns()``, and declare ``HAZARD_CONFIG``.
+How it connects:
+- Extended by ai-engine/app/training/train_*_real.py scripts
+- Fetches data via ai-engine/app/training/data_fetch_open_meteo.py
+- Saves via ai-engine/app/core/model_registry.py
+- Training can be run per-hazard or via train_all.py
 """
 
 from __future__ import annotations
@@ -42,13 +39,29 @@ if str(_AI_ROOT) not in sys.path:
 from data.providers import get_provider
 from app.training.feature_engineering import FeatureEngineer, LeakagePrevention
 from app.training.evaluate import ModelEvaluator, DataQualityReporter, UK_KNOWN_EVENTS
+from app.training.hazard_validator import HazardValidator
+from app.training.hazard_status import HazardStatus, ValidationResult, UNSUPPORTED_HAZARDS
 
 REGISTRY_ROOT = _AI_ROOT / "model_registry"
 
 # Hazard configuration dataclass
 
 class HazardConfig:
-    """Per-hazard training configuration."""
+    """Per-hazard training configuration.
+
+    region_scope  - "UK" | "MULTI-REGION" | "GLOBAL".  Defaults to UK.
+                    Set to MULTI-REGION or GLOBAL when UK data alone are
+                    insufficient for class balance or scientific validity.
+    label_source  - Human-readable description of where labels come from.
+                    Must be an independent external source; not a threshold
+                    applied to the same variables used as features.
+    data_validity - "independent" | "proxy" | "invalid".  "independent" means
+                    labels come from a source completely decoupled from the
+                    feature set.  "proxy" means labels are a scientifically
+                    accepted indicator but derived from the same data domain
+                    (e.g. SPI from ERA5 precipitation).  "invalid" blocks
+                    training and must not be used for new hazards.
+    """
 
     def __init__(
         self,
@@ -60,6 +73,9 @@ class HazardConfig:
         min_positive_samples: int = 20,
         min_stations: int = 5,
         promotion_min_roc_auc: float = 0.70,
+        region_scope: str = "UK",
+        label_source: str = "",
+        data_validity: str = "proxy",
     ):
         self.hazard_type = hazard_type
         self.task_type = task_type
@@ -69,6 +85,9 @@ class HazardConfig:
         self.min_positive_samples = min_positive_samples
         self.min_stations = min_stations
         self.promotion_min_roc_auc = promotion_min_roc_auc
+        self.region_scope = region_scope
+        self.label_source = label_source or label_provenance.get("source", "")
+        self.data_validity = data_validity
 
 # Abstract base pipeline
 
@@ -85,6 +104,7 @@ class BaseRealPipeline(ABC):
         self.evaluator = ModelEvaluator()
         self.quality_reporter = DataQualityReporter()
         self.feature_engineer = FeatureEngineer
+        self.validator = HazardValidator()
 
     # Abstract methods (hazard-specific)
 
@@ -106,7 +126,7 @@ class BaseRealPipeline(ABC):
     def build_features(self, raw_data: dict[str, pd.DataFrame]) -> pd.DataFrame:
         """Default feature engineering using shared FeatureEngineer.
         Override in subclass if hazard needs custom features.
-        Returns DataFrame indexed by (timestamp, station_id) with feature columns.
+        Returns DataFrame with a 'timestamp' column and feature columns.
         """
         frames = []
 
@@ -115,30 +135,41 @@ class BaseRealPipeline(ABC):
             tf = self.feature_engineer.compute_temporal_features(
                 raw_data["weather"]["timestamp"]
             )
+            # wf is indexed by timestamp; tf has integer index — align tf
+            tf.index = wf.index
             wf = pd.concat([wf, tf], axis=1)
+            wf = wf.reset_index()  # timestamp becomes a column
             frames.append(wf)
 
         if "rainfall" in raw_data and not raw_data["rainfall"].empty:
             rf = self.feature_engineer.compute_rainfall_features(raw_data["rainfall"])
+            # rf is indexed by (timestamp, station_id) — aggregate per timestamp
+            rf = rf.reset_index()
+            if "station_id" in rf.columns:
+                rf = rf.drop(columns=["station_id"]).groupby("timestamp").mean().reset_index()
             frames.append(rf)
 
         if "river" in raw_data and not raw_data["river"].empty:
             rv = self.feature_engineer.compute_river_features(raw_data["river"])
+            # rv is indexed by (timestamp, station_id) — aggregate per timestamp
+            rv = rv.reset_index()
+            if "station_id" in rv.columns:
+                rv = rv.drop(columns=["station_id"]).groupby("timestamp").mean().reset_index()
             frames.append(rv)
 
         if not frames:
             raise RuntimeError("No feature data available — cannot build features")
 
-        # Merge all feature frames on shared index
+        # Merge all feature frames on timestamp column
         combined = frames[0]
         for f in frames[1:]:
-            combined = combined.join(f, how="outer", rsuffix="_dup")
-            # Drop duplicate columns
-            dup_cols = [c for c in combined.columns if c.endswith("_dup")]
-            combined.drop(columns=dup_cols, inplace=True)
+            overlap_cols = [c for c in f.columns if c in combined.columns and c != "timestamp"]
+            if overlap_cols:
+                f = f.drop(columns=overlap_cols)
+            combined = pd.merge(combined, f, on="timestamp", how="outer")
 
         # Forward fill then zero fill remaining NaN
-        combined = combined.ffill().fillna(0.0)
+        combined = combined.sort_values("timestamp").ffill().fillna(0.0)
         return combined
 
     # Main training flow
@@ -151,6 +182,16 @@ class BaseRealPipeline(ABC):
         logger.info(f"Task type: {cfg.task_type}")
         logger.info(f"Date range: {self.start_date} to {self.end_date}")
         logger.info(f"{'='*60}")
+
+        # Step 0: block UNSUPPORTED hazards before fetching any data.
+        # These hazards have no valid training path with currently available
+        # public data — return immediately with a clear UNSUPPORTED result.
+        unsupported_result = self.validator.validate_unsupported(cfg.hazard_type)
+        if unsupported_result is not None:
+            return self._failure_result(
+                unsupported_result.reasons[0] if unsupported_result.reasons else "UNSUPPORTED",
+                validation=unsupported_result,
+            )
 
         t0 = time.time()
 
@@ -215,6 +256,33 @@ class BaseRealPipeline(ABC):
             )
         logger.success("  Data quality gates passed")
 
+        # Step 5b: check label integrity and label/feature leakage.
+        # This runs after the quantity check so sample numbers are final.
+        # It blocks training for any hazard whose label is directly derived
+        # from the same variables used as model input features (tautology).
+        labels_for_validation = pd.DataFrame({"label": y})
+        validation = self.validator.validate_data(
+            hazard_type=cfg.hazard_type,
+            task_type=cfg.task_type,
+            lead_hours=cfg.lead_hours,
+            labels_df=labels_for_validation,
+            feature_cols=available_cols,
+            min_positive=cfg.min_positive_samples,
+            min_total=cfg.min_total_samples,
+            label_provenance=cfg.label_provenance,
+            region_scope=cfg.region_scope,
+            label_source=cfg.label_source,
+            data_validity=cfg.data_validity,
+        )
+        if validation.status == HazardStatus.NOT_TRAINABLE:
+            return self._failure_result(
+                "; ".join(validation.reasons),
+                validation=validation,
+            )
+        if validation.status == HazardStatus.PARTIAL:
+            for w in validation.warnings:
+                logger.warning(f"  PARTIAL: {w}")
+
         # 6. Chronological split
         logger.info("Step 6/8: Chronological train/val/test split...")
         splits = self._chronological_split(X, y, timestamps)
@@ -227,17 +295,45 @@ class BaseRealPipeline(ABC):
             f"Test: {len(y_test)} ({y_test.sum():.0f}+)"
         )
 
-        # 7. Train candidates
+        # Step 6b: check that val and test folds each contain positive samples.
+        # A test fold with 0 positives makes evaluation completely meaningless —
+        # the model looks perfect on accuracy alone by always predicting 0.
+        # This is a hard block because no valid ROC-AUC or F1 can be reported.
+        validation = self.validator.validate_splits(validation, y_train, y_val, y_test)
+        if validation.status == HazardStatus.NOT_TRAINABLE:
+            return self._failure_result(
+                "; ".join(validation.reasons),
+                validation=validation,
+            )
+        if validation.status == HazardStatus.PARTIAL:
+            for w in validation.warnings:
+                logger.warning(f"  PARTIAL: {w}")
         logger.info("Step 7/8: Training candidate models...")
         best_model, search_results = self._train_candidates(
             X_train, y_train, X_val, y_val
         )
         logger.success(f"  Best model: {search_results['chosen_model']}")
 
-        # 8. Evaluate
+        # Step 7b: Platt (sigmoid) calibration on val set.
+        # Calibration corrects predicted probabilities so P(y=1|score) is
+        # reliable — important for threshold selection and downstream risk scoring.
+        # Rules:
+        #   - calibrate on val set ONLY (held-out; not seen during training)
+        #   - use sigmoid/Platt (not isotonic) because isotonic overfits for
+        #     rare-event hazards with few positive val samples (see Niculescu-
+        #     Mizil & Caruana, 2005)
+        #   - derive operational threshold on val set via cost sweep:
+        #     FN_WEIGHT = 10 (missing a real event costs 10x a false alarm)
+        calibrated_model, optimal_threshold, calibration_notes = (
+            self._calibrate_model(best_model, X_val, y_val)
+        )
+        search_results["calibration"] = calibration_notes
+
+        # 8. Evaluate — use calibrated model with optimal threshold on test set
         logger.info("Step 8/8: Full evaluation...")
         test_metrics = self.evaluator.full_evaluation(
-            best_model, X_test, y_test, available_cols
+            calibrated_model, X_test, y_test, available_cols,
+            threshold=optimal_threshold,
         )
 
         # Temporal stability
@@ -275,8 +371,11 @@ class BaseRealPipeline(ABC):
         output_dir = REGISTRY_ROOT / f"{cfg.hazard_type}_{self.region_id}_{version}"
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        # model.pkl
-        joblib.dump(best_model, output_dir / "model.pkl")
+        # model.pkl — save calibrated model as the primary artifact so
+        # inference always uses well-calibrated probabilities.
+        # raw_model.pkl preserved separately for diagnostic/comparison use.
+        joblib.dump(calibrated_model, output_dir / "model.pkl")
+        joblib.dump(best_model, output_dir / "raw_model.pkl")
 
         # metadata.json
         if hasattr(X, "mean"):
@@ -307,6 +406,9 @@ class BaseRealPipeline(ABC):
             "task_type": cfg.task_type,
             "label_strategy": cfg.label_provenance.get("description", ""),
             "label_provenance": cfg.label_provenance,
+            "region_scope": cfg.region_scope,
+            "label_source": cfg.label_source,
+            "data_validity": cfg.data_validity,
             "trained_at": datetime.utcnow().isoformat(),
             "feature_names": available_cols,
             "performance_metrics": {
@@ -354,6 +456,13 @@ class BaseRealPipeline(ABC):
             },
             "promotion_status": promotion["status"],
             "known_limitations": cfg.label_provenance.get("limitations", ""),
+            # Calibration and operational threshold
+            # optimal_threshold: use this (not 0.5) when converting probability
+            # scores to binary alert decisions.  Derived via cost-based sweep
+            # on val set (FN_WEIGHT=10: missing a real event costs 10x a false
+            # alarm).  Always evaluate on test set — threshold NEVER sees test.
+            "optimal_threshold": optimal_threshold,
+            "calibration": calibration_notes,
         }
         with open(output_dir / "metadata.json", "w") as f:
             json.dump(metadata, f, indent=2, default=str)
@@ -378,7 +487,14 @@ class BaseRealPipeline(ABC):
             json.dump(training_report, f, indent=2, default=str)
 
         # data_quality_report.json
-        quality_report["leakage_checks_passed"] = True
+        # Replace the previously hardcoded leakage_checks_passed=True with
+        # the actual result from the validator so the report reflects reality.
+        quality_report["leakage_checks_passed"] = validation.label_integrity == "clean"
+        quality_report["label_integrity"] = validation.label_integrity
+        quality_report["leakage_severity"] = validation.leakage_severity.value
+        quality_report["tainted_columns"] = validation.tainted_columns
+        quality_report["validation_reasons"] = validation.reasons
+        quality_report["validation_warnings"] = validation.warnings
         with open(output_dir / "data_quality_report.json", "w") as f:
             json.dump(quality_report, f, indent=2, default=str)
 
@@ -398,6 +514,9 @@ class BaseRealPipeline(ABC):
             "shap_top5": dict(list(test_metrics.get("shap_feature_importance", {}).items())[:5]),
             "samples": int(len(y)),
             "elapsed_seconds": round(elapsed, 1),
+            # Attach the validation so train_all.py can include it in the session report
+            "validation": validation,
+            "validation_status": validation.status.value,
         }
 
     # Internal helpers
@@ -417,9 +536,11 @@ class BaseRealPipeline(ABC):
 
         # For forecast tasks, apply lead-time cutoff
         if cfg.task_type == "forecast" and cfg.lead_hours > 0:
-            # Features must be from before the event
-            # We shift feature timestamps forward by lead_hours for merge
-            pass  # Labels already have the event timestamp; features are pre-event
+            # To forecast what happens at T + lead_hours from features at T,
+            # shift the label timestamps backward by lead_hours before merging.
+            # After the merge, features[T] will align with labels[T + lead_hours],
+            # giving the model genuine predictive separation from the label.
+            lab["timestamp"] = lab["timestamp"] - pd.Timedelta(hours=cfg.lead_hours)
 
         # Merge on timestamp (and station_id if both have it)
         merge_cols = ["timestamp"]
@@ -453,10 +574,66 @@ class BaseRealPipeline(ABC):
     def _chronological_split(
         self, X: np.ndarray, y: np.ndarray, timestamps: Optional[pd.Series]
     ) -> dict:
-        """70/15/15 chronological split (no shuffle)."""
+        """70/15/15 chronological split (no shuffle).
+
+        For sparse-event hazards the default 70/15/15 split can leave the
+        val and/or test fold with zero positive samples, making evaluation
+        and hyperparameter selection meaningless.
+
+        Fix strategy (applied in order, strict chronological order preserved):
+          1. Ensure test fold (last 15%) has ≥5% of all positives (min 1).
+             Slide val/test boundary backward if needed.
+          2. Ensure val fold (next 15%) has ≥5% of all positives (min 1).
+             Slide train/val boundary backward if needed.
+          Both adjustments only move boundaries; no rows are shuffled.
+        """
         n = len(y)
+        n_pos_total = int(y.sum())
+        min_fold_pos = max(1, int(n_pos_total * 0.05)) if n_pos_total > 0 else 0
+
         train_end = int(n * 0.70)
-        val_end = int(n * 0.85)
+        val_end   = int(n * 0.85)
+
+        # Step 1 — ensure test fold has enough positives
+        if min_fold_pos > 0 and int(y[val_end:].sum()) < min_fold_pos:
+            adjusted = False
+            for probe in range(val_end - 1, train_end, -1):
+                if int(y[probe:].sum()) >= min_fold_pos:
+                    logger.warning(
+                        f"  Test fold had {int(y[val_end:].sum())} positives at default "
+                        f"85% boundary. Adjusted to {probe/n*100:.1f}% "
+                        f"→ {int(y[probe:].sum())} positives in test."
+                    )
+                    train_end = int(probe * 0.824)   # keep ~70% of adjusted boundary
+                    val_end   = probe
+                    adjusted  = True
+                    break
+            if not adjusted:
+                logger.warning(
+                    f"  Cannot find a test split with {min_fold_pos}+ positives. "
+                    "Using default 70/15/15."
+                )
+
+        # Step 2 — ensure val fold has enough positives for hyperparameter tuning.
+        # Slide train_end backward so more positives fall in [train_end:val_end].
+        if min_fold_pos > 0 and int(y[train_end:val_end].sum()) < min_fold_pos:
+            adjusted = False
+            min_train_end = int(n * 0.30)   # never shrink train below 30%
+            for probe in range(train_end - 1, min_train_end, -1):
+                if int(y[probe:val_end].sum()) >= min_fold_pos:
+                    logger.warning(
+                        f"  Val fold had {int(y[train_end:val_end].sum())} positives. "
+                        f"Adjusted train/val boundary to {probe/n*100:.1f}% "
+                        f"→ {int(y[probe:val_end].sum())} positives in val."
+                    )
+                    train_end = probe
+                    adjusted  = True
+                    break
+            if not adjusted:
+                logger.warning(
+                    f"  Cannot find a val split with {min_fold_pos}+ positives. "
+                    "Hyperparameter selection may be unreliable."
+                )
 
         return {
             "train": (X[:train_end], y[:train_end]),
@@ -495,11 +672,11 @@ class BaseRealPipeline(ABC):
                 eval_metric="logloss",
                 use_label_encoder=False,
                 random_state=42,
-                n_jobs=-1,
+                n_jobs=2,
             )
             search = RandomizedSearchCV(
                 xgb_model, xgb_params, n_iter=50, scoring="roc_auc",
-                cv=tscv, random_state=42, n_jobs=-1, error_score=0.0,
+                cv=tscv, random_state=42, n_jobs=2, error_score=0.0,
             )
             search.fit(X_train, y_train)
             candidates["xgboost"] = {
@@ -526,12 +703,12 @@ class BaseRealPipeline(ABC):
             lgb_model = lgb.LGBMClassifier(
                 scale_pos_weight=scale_pos_weight,
                 random_state=42,
-                n_jobs=-1,
+                n_jobs=2,
                 verbose=-1,
             )
             search = RandomizedSearchCV(
                 lgb_model, lgb_params, n_iter=50, scoring="roc_auc",
-                cv=tscv, random_state=42, n_jobs=-1, error_score=0.0,
+                cv=tscv, random_state=42, n_jobs=2, error_score=0.0,
             )
             search.fit(X_train, y_train)
             candidates["lightgbm"] = {
@@ -590,6 +767,111 @@ class BaseRealPipeline(ABC):
 
         return best["model"], search_results
 
+    def _calibrate_model(
+        self,
+        model: Any,
+        X_val: np.ndarray,
+        y_val: np.ndarray,
+        fn_weight: float = 10.0,
+    ) -> tuple[Any, float, dict]:
+        """Apply Platt (sigmoid) calibration and find cost-optimal threshold.
+
+        Calibration is performed entirely on the val set (held-out from training).
+        The test set is NEVER used here.
+
+        Why Platt/sigmoid over isotonic:
+          Isotonic regression uses a non-parametric step function that can
+          overfit when the number of positive validation samples is small
+          (Niculescu-Mizil & Caruana, ICML 2005).  Sigmoid calibration fits
+          only two parameters and is robust for rare-event hazards.
+
+        Cost-based threshold:
+          Emergency hazard systems have asymmetric costs — missing a real event
+          (false negative, FN) causes harm; a false alarm (FP) costs responder
+          effort.  We model this as FN_WEIGHT = 10 (configurable per-hazard).
+          The threshold t* minimises:
+              total_cost(t) = fp_weight * FP(t) + fn_weight * FN(t)
+          over the val set.  This is equivalent to the Bayes-optimal decision
+          boundary: t* = fp_weight / (fp_weight + fn_weight) = 1/11 ≈ 0.091
+          under a linear cost model, but we compute it empirically from the
+          actual PR curve so it reflects the true data distribution.
+        """
+        from sklearn.calibration import CalibratedClassifierCV
+        from sklearn.metrics import precision_recall_curve
+        import numpy as np
+
+        notes: dict = {
+            "method": "platt_sigmoid",
+            "fn_weight": fn_weight,
+            "n_val_samples": int(len(y_val)),
+            "n_val_positives": int(y_val.sum()),
+        }
+
+        X_arr = np.asarray(X_val)
+        y_arr = np.asarray(y_val).ravel()
+
+        # --- Calibration ---
+        try:
+            cal = CalibratedClassifierCV(model, method="sigmoid", cv="prefit")
+            cal.fit(X_arr, y_arr)
+            calibrated = cal
+            notes["calibration_applied"] = True
+            logger.info("  Platt calibration applied on val set")
+        except Exception as e:
+            logger.warning(f"  Calibration failed ({e}); using uncalibrated model")
+            calibrated = model
+            notes["calibration_applied"] = False
+
+        # --- Cost-optimal threshold from val set PR curve ---
+        optimal_threshold = 0.5  # fallback
+        try:
+            if hasattr(calibrated, "predict_proba"):
+                val_probs = calibrated.predict_proba(X_arr)[:, 1]
+            else:
+                val_probs = model.predict_proba(X_arr)[:, 1]
+
+            n_pos = max(int(y_arr.sum()), 1)
+            n_neg = max(len(y_arr) - n_pos, 1)
+
+            if len(np.unique(y_arr)) >= 2:
+                precisions, recalls, thresholds = precision_recall_curve(y_arr, val_probs)
+                # Compute expected cost at each threshold on val set.
+                # Sweep from high threshold → low threshold to match precision/recall ordering.
+                best_cost = float("inf")
+                best_t = 0.5
+                fp_weight = 1.0
+                for prec, rec, t in zip(precisions[:-1], recalls[:-1], thresholds):
+                    # Infer FP and FN counts from precision/recall at this threshold
+                    tp_rate = rec  # recall = TP / (TP + FN)
+                    tp = tp_rate * n_pos
+                    fn = n_pos - tp
+                    if prec > 0:
+                        fp = tp * (1 - prec) / prec
+                    else:
+                        fp = float(n_neg)
+                    cost = fp_weight * fp + fn_weight * fn
+                    if cost < best_cost:
+                        best_cost = cost
+                        best_t = float(t)
+
+                optimal_threshold = best_t
+                notes["optimal_threshold"] = optimal_threshold
+                notes["threshold_method"] = f"cost_sweep_val (fn_weight={fn_weight})"
+                logger.info(
+                    f"  Optimal threshold: {optimal_threshold:.4f} "
+                    f"(FN_weight={fn_weight}x FP_weight)"
+                )
+            else:
+                notes["optimal_threshold"] = 0.5
+                notes["threshold_method"] = "fallback_single_class_val"
+        except Exception as e:
+            logger.warning(f"  Threshold sweep failed ({e}); using 0.5")
+            optimal_threshold = 0.5
+            notes["optimal_threshold"] = 0.5
+            notes["threshold_method"] = "fallback_error"
+
+        return calibrated, optimal_threshold, notes
+
     def _score_auc(self, model, X, y) -> float:
         from sklearn.metrics import roc_auc_score
         try:
@@ -644,8 +926,18 @@ class BaseRealPipeline(ABC):
             ],
         }
 
-    def _failure_result(self, reason: str, quality_report: dict = None) -> dict:
-        """Return a failure summary when training can't proceed."""
+    def _failure_result(
+        self,
+        reason: str,
+        quality_report: dict = None,
+        validation: ValidationResult = None,
+    ) -> dict:
+        """Return a structured failure summary when training cannot proceed.
+
+        Always returns a complete dict — no crashes, no silent exits. The
+        validation object carries the human-readable reason and recommended
+        fix so that session_report.py can surface them in the summary table.
+        """
         logger.error(f"Training aborted: {reason}")
         return {
             "status": "failed",
@@ -653,6 +945,12 @@ class BaseRealPipeline(ABC):
             "region_id": self.region_id,
             "error": reason,
             "quality_report": quality_report,
+            "validation": validation,
+            "validation_status": (
+                validation.status.value
+                if validation is not None
+                else HazardStatus.NOT_TRAINABLE.value
+            ),
         }
 
 # CLI entrypoint helper

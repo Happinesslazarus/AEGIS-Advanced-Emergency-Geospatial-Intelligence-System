@@ -1,19 +1,15 @@
-﻿/**
- * tests__/auth.e2e.test.ts — End-to-End Authentication Flow Tests
+/**
+ * File: auth.e2e.test.ts
  *
- * Tests the COMPLETE authentication lifecycle:
- *   1. Register operator account
- *   2. Login ? receive JWT + refresh cookie
- *   3. Access protected endpoint with JWT
- *   4. Silent token refresh via httpOnly cookie
- *   5. Token expiry ? automatic refresh
- *   6. Role-based access control (admin vs operator vs viewer)
- *   7. Logout ? session revocation
- *   8. Expired/revoked tokens rejected
- *   9. Password reset flow
- *  10. Session rotation (old refresh token invalidated)
- *
- * Requires: PostgreSQL test database (DATABASE_URL)
+ * What it tests:
+ * End-to-end tests for the full authentication flow.
+  * Covers registration → email verification → login → token refresh
+  * → logout using real HTTP requests against the running server.
+  *
+  * How it connects:
+  * - Tests server/src/routes/authRoutes.ts end-to-end
+  * - Requires running server + PostgreSQL
+  * - Run via: npm test -- auth.e2e
  */
 
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals'
@@ -472,4 +468,4 @@ describe('E2E Auth Flow', () => {
     })
   })
 })
-
+

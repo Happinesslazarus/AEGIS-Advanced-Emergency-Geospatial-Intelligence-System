@@ -1,14 +1,20 @@
 /**
- * config/hazards.ts — Hazard module configuration
+ * File: hazards.ts
  *
- * Defines every hazard type AEGIS can monitor and analyse. Each hazard
- * specifies its display metadata, data sources, risk thresholds, and
- * AI model identifiers. Hazards are toggled on/off per-region.
+ * What this file does:
+ * Defines the set of hazard types the platform monitors, including their
+ * display config (icon, colour), enabled data sources, trigger thresholds,
+ * and AI model names. `wildfire` is currently disabled (enabled: false)
+ * because the satellite hot-spot feed integration is not yet live.
  *
- * The system ships with flood, drought, heatwave, and wildfire.
- * New hazard types (earthquake, storm surge, landslide) can be added
- * by extending the HAZARD_MODULES map — no code changes needed in
- * route handlers because they iterate this config dynamically.
+ * How it connects:
+ * - Imported by aiRoutes.ts and prediction services that filter by hazard type
+ * - `getEnabledHazards()` drives the hazard selector in the admin dashboard
+ * - Threshold values are referenced by the AI engine when deciding alert levels
+ *
+ * Simple explanation:
+ * A lookup table of every natural hazard the system can monitor,
+ * with the configuration that tells it when to raise an alert.
  */
 
 import type { HazardConfig } from '../types/index.js'
@@ -100,21 +106,21 @@ export const HAZARD_MODULES: Record<string, HazardConfig> = {
   },
 }
 
- /**
+/**
  * Get enabled hazard types for the current deployment.
  */
 export function getEnabledHazards(): HazardConfig[] {
   return Object.values(HAZARD_MODULES).filter((h) => h.enabled)
 }
 
- /**
+/**
  * Get a specific hazard config by type key.
  */
 export function getHazardConfig(type: string): HazardConfig | undefined {
   return HAZARD_MODULES[type]
 }
 
- /**
+/**
  * List all hazard type keys regardless of enabled state.
  */
 export function listHazardTypes(): string[] {

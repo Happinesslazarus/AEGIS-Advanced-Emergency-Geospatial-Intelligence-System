@@ -1,28 +1,38 @@
-﻿ /*
- * CitizenAuthPage.tsx - Citizen Login & Registration v6.9
- * Full-featured authentication page with:
- * Login / Register toggle with step wizard for registration
- * Profile photo upload during signup
- * Bio, address line, all citizen fields
- * Global country/region selection
- * Password strength indicator
- * Vulnerability indicator (priority help)
- * Status color selector (green/yellow/red)
- * Form validation, loading states
- * Direct redirect to dashboard on success
-  */
+/**
+ * File: CitizenAuthPage.tsx
+ *
+ * What this file does:
+ * The citizen login and registration page. Handles both flows with a
+ * toggled form — sign up (name, email, phone, location, password) or
+ * sign in (email + password). On success, navigates to CitizenDashboard.
+ * Also supports Google OAuth and shows 2FA challenge when applicable.
+ *
+ * How it connects:
+ * - Routed by client/src/App.tsx at /citizen/auth
+ * - Auth state written to client/src/contexts/CitizenAuthContext.tsx
+ * - Calls POST /api/citizen-auth/register and POST /api/citizen-auth/login
+ * - On 2FA required, renders TwoFactorChallenge component inline
+ * - Redirects to /citizen/dashboard after successful login
+ *
+ * Learn more:
+ * - server/src/routes/citizenAuthRoutes.ts    — the backend login/register endpoints
+ * - client/src/contexts/CitizenAuthContext.tsx — token storage and auth state
+ * - client/src/pages/CitizenDashboard.tsx     — destination after login
+ */
 
 import { useState, useRef, useEffect } from 'react'
+import { usePageTitle } from '../hooks/usePageTitle'
 import { useNavigate, Link } from 'react-router-dom'
 import {
   Shield, Mail, Lock, User, Phone, MapPin, Eye, EyeOff,
   ArrowRight, ArrowLeft, AlertCircle, CheckCircle, Loader2,
   Globe, Calendar, Heart, Building2, Camera, FileText, Home,
-  ChevronRight, ChevronDown, Menu, Users, Info
+  ChevronRight, ChevronDown, Menu, Users, Info, Github, Fingerprint, QrCode, Wand2,
+  Smartphone
 } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import { useCitizenAuth } from '../contexts/CitizenAuthContext'
-import type { CitizenUser } from '../contexts/CitizenAuthContext'
+import type { CitizenUser, CitizenPreferences } from '../contexts/CitizenAuthContext'
 import { t } from '../utils/i18n'
 import { useLanguage } from '../hooks/useLanguage'
 import { ModernNotification } from '../components/shared/ModernNotification'
@@ -63,6 +73,7 @@ const STATUS_OPTIONS = [
 ]
 
 export default function CitizenAuthPage(): JSX.Element {
+  usePageTitle('Sign In')
   const { login, complete2FA, register, uploadAvatar, isAuthenticated, loading } = useCitizenAuth()
   const navigate = useNavigate()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -81,6 +92,11 @@ export default function CitizenAuthPage(): JSX.Element {
   const [forgotEmail, setForgotEmail] = useState('')
   const [forgotSent, setForgotSent] = useState(false)
   const [navDropdownOpen, setNavDropdownOpen] = useState(false)
+  const [magicLinkEmail, setMagicLinkEmail] = useState('')
+  const [magicLinkSent, setMagicLinkSent] = useState(false)
+  const [magicLinkLoading, setMagicLinkLoading] = useState(false)
+  const [showMagicLink, setShowMagicLink] = useState(false)
+  const [showMoreAuth, setShowMoreAuth] = useState(false)
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -105,6 +121,13 @@ export default function CitizenAuthPage(): JSX.Element {
   const [region, setRegion] = useState('')
   const [addressLine, setAddressLine] = useState('')
   const [dateOfBirth, setDateOfBirth] = useState('')
+
+  // When country changes, look up the calling code and pre-fill the prefix
+  useEffect(() => {
+    if (!country) { setDialCode(''); setLocalPhone(''); return }
+    const entry = getCountryEntryByName(country)
+    if (entry?.dial) { setDialCode(entry.dial); setLocalPhone('') }
+  }, [country])
 
   // Form fields — Step 3 (Profile & Preferences)
   const [bio, setBio] = useState('')
@@ -171,13 +194,6 @@ export default function CitizenAuthPage(): JSX.Element {
 
   // Derive full phone from dial prefix + local number
   const fullPhone = dialCode ? `${dialCode}${localPhone.replace(/\s/g, '')}` : localPhone
-
-  // When country changes, look up the calling code and pre-fill the prefix
-  useEffect(() => {
-    if (!country) { setDialCode(''); setLocalPhone(''); return }
-    const entry = getCountryEntryByName(country)
-    if (entry?.dial) { setDialCode(entry.dial); setLocalPhone('') }
-  }, [country])
 
   // Compute max local digits for the selected country
   const phoneCountryEntry = getCountryEntryByName(country)
@@ -276,6 +292,10 @@ export default function CitizenAuthPage(): JSX.Element {
       setNotification({ message: msg, type: 'warning' })
       return false
     }
+    if (displayName.trim().length < 2) {
+      const msg = 'Display name must be at least 2 characters.'
+      setError(msg); setNotification({ message: msg, type: 'warning' }); return false
+    }
     if (!email.trim()) {
       const msg = t('citizen.auth.error.emailRequired', lang)
       setError(msg)
@@ -334,8 +354,43 @@ export default function CitizenAuthPage(): JSX.Element {
       const msg = t('citizen.auth.error.addressRequired', lang) || 'Address is required'
       setError(msg); setNotification({ message: msg, type: 'warning' }); return false
     }
+    // Date of birth smart validation
+    if (dateOfBirth) {
+      const dob = new Date(dateOfBirth)
+      const today = new Date(); today.setHours(0, 0, 0, 0)
+      if (dob >= today) {
+        const msg = 'Date of birth cannot be today or in the future.'
+        setError(msg); setNotification({ message: msg, type: 'warning' }); return false
+      }
+      const minAgeDate = new Date(today); minAgeDate.setFullYear(minAgeDate.getFullYear() - 13)
+      if (dob > minAgeDate) {
+        const msg = 'You must be at least 13 years old to create an account.'
+        setError(msg); setNotification({ message: msg, type: 'warning' }); return false
+      }
+      const maxAgeDate = new Date(today); maxAgeDate.setFullYear(maxAgeDate.getFullYear() - 120)
+      if (dob < maxAgeDate) {
+        const msg = 'Please enter a valid date of birth.'
+        setError(msg); setNotification({ message: msg, type: 'warning' }); return false
+      }
+    }
     setError('')
     return true
+  }
+
+  const handleMagicLink = async () => {
+    if (!magicLinkEmail) return
+    setMagicLinkLoading(true)
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/magic-link/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: magicLinkEmail }),
+      })
+      const data = await res.json()
+      if (data.success) setMagicLinkSent(true)
+      else setError(data.error || 'Failed to send magic link')
+    } catch { setError('Failed to send magic link') }
+    finally { setMagicLinkLoading(false) }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -426,7 +481,7 @@ export default function CitizenAuthPage(): JSX.Element {
     setTwoFactorLoading(true)
     try {
       const res = await apiCitizen2FAAuthenticate(tempToken, trimmed, rememberDevice)
-      complete2FA(res.token, res.user as CitizenUser, res.preferences)
+      complete2FA(res.token, res.user as CitizenUser, res.preferences as CitizenPreferences | undefined)
       setNotification({ message: t('citizen.auth.success.login', lang), type: 'success' })
       setTimeout(() => navigate('/citizen/dashboard', { replace: true }), 300)
     } catch (err: any) {
@@ -790,7 +845,7 @@ export default function CitizenAuthPage(): JSX.Element {
                     <Mail className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-300" />
                     <input type="email" value={email} onChange={e => setEmail(e.target.value)} disabled={submitting}
                       className="w-full pl-10 pr-3 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition disabled:opacity-50 disabled:cursor-not-allowed"
-                      placeholder={t('subscribe.placeholder.email', lang)} required autoComplete="email" />
+                      placeholder={t('subscribe.placeholder.email', lang)} required aria-required="true" autoComplete="email" />
                   </div>
                 </div>
                 <div>
@@ -799,7 +854,7 @@ export default function CitizenAuthPage(): JSX.Element {
                     <Lock className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-300" />
                     <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} disabled={submitting}
                       className="w-full pl-10 pr-10 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition disabled:opacity-50 disabled:cursor-not-allowed"
-                      placeholder={t('citizen.auth.passwordPlaceholder', lang)} required autoComplete="current-password" />
+                      placeholder={t('citizen.auth.passwordPlaceholder', lang)} required aria-required="true" autoComplete="current-password" />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} disabled={submitting} className="absolute right-3 top-2.5 text-gray-400 dark:text-gray-300 hover:text-gray-600 disabled:cursor-not-allowed" aria-label={showPassword ? 'Hide password' : 'Show password'}>
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -821,20 +876,121 @@ export default function CitizenAuthPage(): JSX.Element {
                   </button>
                 </div>
 
-                {/*  OAuth Divider & Google Sign-In (#26)  */}
-                <div className="relative my-2">
+                {/*  ─── Alternative Sign-In Methods ─── */}
+                <div className="relative my-3">
                   <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200 dark:border-gray-700" /></div>
                   <div className="relative flex justify-center text-xs">
                     <span className="px-3 bg-white dark:bg-gray-900 text-gray-400 dark:text-gray-300">{t('citizen.auth.orContinueWith', lang) || 'or continue with'}</span>
                   </div>
                 </div>
-                <a
-                  href={`${API_BASE}/api/auth/google`}
-                  className="w-full flex items-center justify-center gap-3 py-2.5 px-4 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors text-sm font-medium text-gray-700 dark:text-gray-200 shadow-sm"
-                >
-                  <svg className="w-5 h-5" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-                  <span>{t('citizen.auth.signInGoogle', lang) || 'Sign in with Google'}</span>
-                </a>
+
+                {/* Primary quick options — 2-col grid, always visible */}
+                <div className="grid grid-cols-2 gap-2">
+                  <a href={`${API_BASE}/api/auth/google`}
+                    className="flex items-center justify-center gap-2 py-2.5 px-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 transition text-sm font-medium text-gray-700 dark:text-gray-200 shadow-sm">
+                    <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                    <span className="truncate">Google</span>
+                  </a>
+                  <a href={`${API_BASE}/api/auth/github`}
+                    className="flex items-center justify-center gap-2 py-2.5 px-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 transition text-sm font-medium text-white shadow-sm">
+                    <Github className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate">GitHub</span>
+                  </a>
+                </div>
+
+                {/* Expandable advanced methods */}
+                <button type="button" onClick={() => setShowMoreAuth(prev => !prev)}
+                  className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition">
+                  <span>{showMoreAuth ? 'Hide' : 'More sign-in options'}</span>
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showMoreAuth ? 'rotate-180' : ''}`} />
+                </button>
+
+                {showMoreAuth && (
+                  <div className="space-y-2 animate-[aegis-fade-up_0.25s_ease-out]">
+
+                    {/* Passkey */}
+                    <button type="button"
+                      onClick={async () => {
+                        try {
+                          if (!window.PublicKeyCredential) { setError('Passkeys not supported on this device'); return }
+                          const res = await fetch(`${API_BASE}/api/security/passkeys/auth-options`, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+                          const { data } = await res.json()
+                          const credential = await navigator.credentials.get({ publicKey: { ...data, challenge: Uint8Array.from(atob(data.challenge.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)), allowCredentials: (data.allowCredentials || []).map((c: any) => ({ ...c, id: Uint8Array.from(atob(c.id.replace(/-/g, '+').replace(/_/g, '/')), ch => ch.charCodeAt(0)) })) } }) as PublicKeyCredential
+                          const authRes = credential.response as AuthenticatorAssertionResponse
+                          const toBase64Url = (buf: ArrayBuffer) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
+                          const verifyRes = await fetch(`${API_BASE}/api/security/passkeys/auth-verify`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: credential.id, rawId: toBase64Url(credential.rawId), response: { authenticatorData: toBase64Url(authRes.authenticatorData), clientDataJSON: toBase64Url(authRes.clientDataJSON), signature: toBase64Url(authRes.signature) }, type: 'public-key' }) })
+                          const verifyData = await verifyRes.json()
+                          if (verifyData.success && verifyData.token) {
+                            login({ token: verifyData.token, user: verifyData.user })
+                            navigate('/citizen/dashboard')
+                          } else { setError(verifyData.error || 'Passkey authentication failed') }
+                        } catch (err: any) { setError(err?.message || 'Passkey authentication failed') }
+                      }}
+                      className="w-full flex items-center gap-3 py-2.5 px-4 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 transition text-sm text-gray-700 dark:text-gray-200 shadow-sm">
+                      <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center flex-shrink-0">
+                        <Fingerprint className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                      </div>
+                      <div className="text-left min-w-0">
+                        <p className="font-medium text-sm">Passkey / Biometric</p>
+                        <p className="text-[11px] text-gray-400 dark:text-gray-500">Face ID, fingerprint, or security key</p>
+                      </div>
+                    </button>
+
+                    {/* Magic Link */}
+                    {!showMagicLink ? (
+                      <button type="button" onClick={() => setShowMagicLink(true)}
+                        className="w-full flex items-center gap-3 py-2.5 px-4 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 transition text-sm text-gray-700 dark:text-gray-200 shadow-sm">
+                        <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center flex-shrink-0">
+                          <Wand2 className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                        </div>
+                        <div className="text-left min-w-0">
+                          <p className="font-medium text-sm">Magic Link</p>
+                          <p className="text-[11px] text-gray-400 dark:text-gray-500">Passwordless sign-in via email</p>
+                        </div>
+                      </button>
+                    ) : magicLinkSent ? (
+                      <div className="w-full p-3 rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/30 text-center">
+                        <CheckCircle className="w-5 h-5 text-green-500 mx-auto mb-1" />
+                        <p className="text-sm font-medium text-green-700 dark:text-green-300">Check your email!</p>
+                        <p className="text-xs text-green-600 dark:text-green-400 mt-0.5">We sent a sign-in link to {magicLinkEmail}</p>
+                      </div>
+                    ) : (
+                      <div className="w-full p-3 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/20 space-y-2">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Wand2 className="w-4 h-4 text-amber-500" />
+                          <span className="text-xs font-semibold text-amber-700 dark:text-amber-300">Magic Link</span>
+                        </div>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                          <input type="email" value={magicLinkEmail} onChange={e => setMagicLinkEmail(e.target.value)}
+                            placeholder="Enter email for magic link" className="w-full pl-10 pr-3 py-2.5 text-sm bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-amber-500 focus:border-transparent transition" />
+                        </div>
+                        <div className="flex gap-2">
+                          <button type="button" onClick={() => setShowMagicLink(false)}
+                            className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 transition">Cancel</button>
+                          <button type="button" onClick={handleMagicLink} disabled={magicLinkLoading || !magicLinkEmail}
+                            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-xs font-semibold text-white transition">
+                            {magicLinkLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
+                            <span>Send Link</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Emergency QR */}
+                    <Link to="/citizen/qr-auth"
+                      className="w-full flex items-center gap-3 py-2.5 px-4 border border-red-200 dark:border-red-800/60 rounded-xl bg-red-50/50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 transition text-sm text-red-700 dark:text-red-300 shadow-sm">
+                      <div className="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/40 flex items-center justify-center flex-shrink-0">
+                        <QrCode className="w-4 h-4 text-red-600 dark:text-red-400" />
+                      </div>
+                      <div className="text-left min-w-0">
+                        <p className="font-medium text-sm">Emergency QR</p>
+                        <p className="text-[11px] text-red-500/70 dark:text-red-400/60">Scan from kiosk or phone — no password needed</p>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-red-300 dark:text-red-600 ml-auto flex-shrink-0" />
+                    </Link>
+                  </div>
+                )}
               </>
             )}
 
@@ -863,7 +1019,7 @@ export default function CitizenAuthPage(): JSX.Element {
                     <Mail className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-300" />
                     <input type="email" value={email} onChange={e => setEmail(e.target.value)} onBlur={() => validateFieldOnBlur('email')}
                       className={`w-full pl-10 pr-3 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition ${fieldErrors.email ? 'border-red-300 dark:border-red-700' : 'border-gray-200 dark:border-gray-700'}`}
-                      placeholder={t('subscribe.placeholder.email', lang)} required autoComplete="email" />
+                      placeholder={t('subscribe.placeholder.email', lang)} required aria-required="true" autoComplete="email" />
                   </div>
                   {fieldErrors.email && <p className="text-[10px] text-red-500 mt-1">{fieldErrors.email}</p>}
                 </div>
@@ -873,7 +1029,7 @@ export default function CitizenAuthPage(): JSX.Element {
                     <Lock className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-300" />
                     <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} onBlur={() => validateFieldOnBlur('password')}
                       className={`w-full pl-10 pr-10 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition ${fieldErrors.password ? 'border-red-300 dark:border-red-700' : password && allPwReqsMet ? 'border-green-300 dark:border-green-700' : 'border-gray-200 dark:border-gray-700'}`}
-                      placeholder={t('citizen.auth.passwordMin', lang)} required autoComplete="new-password" />
+                      placeholder={t('citizen.auth.passwordMin', lang)} required aria-required="true" autoComplete="new-password" />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-2.5 text-gray-400 dark:text-gray-300 hover:text-gray-600" aria-label={showPassword ? 'Hide password' : 'Show password'}>
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -1011,7 +1167,8 @@ export default function CitizenAuthPage(): JSX.Element {
                   <div className="relative">
                     <Calendar className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-300" />
                     <input type="date" value={dateOfBirth} onChange={e => setDateOfBirth(e.target.value)}
-                      max={new Date().toISOString().split('T')[0]}
+                      max={(() => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().split('T')[0] })()}
+                      min={(() => { const d = new Date(); d.setFullYear(d.getFullYear() - 120); return d.toISOString().split('T')[0] })()}
                       className="w-full pl-10 pr-3 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition" />
                   </div>
                 </div>

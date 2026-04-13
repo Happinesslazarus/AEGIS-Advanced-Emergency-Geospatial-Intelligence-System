@@ -1,7 +1,17 @@
+"""
+Module: find_users.py
+
+Find_users utility script.
+
+Simple explanation:
+Standalone script for find_users.
+"""
+
+import os
 import asyncio, asyncpg
 
 async def main():
-    c = await asyncpg.connect('postgresql://postgres:Happylove%40%21@localhost:5432/aegis')
+    c = await asyncpg.connect(os.environ.get('DATABASE_URL', 'postgresql://localhost:5432/aegis'))
     rows = await c.fetch("SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename LIKE '%user%'")
     print("User tables:")
     for r in rows:

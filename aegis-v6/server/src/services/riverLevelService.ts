@@ -1,17 +1,18 @@
-﻿ /*
- * services/riverLevelService.ts — Live river level monitoring service
- * Central service for fetching, caching, storing, and broadcasting
- * river level data. Uses the adapter pattern: primary data provider
- * (SEPA for Scotland) with automatic fallback to OpenMeteo, then to
- * realistic mock data so the map always renders.
- * Features:
- * 5 minute polling with in-memory cache
- * Trend calculation (rising/falling/stable)
- * Dynamic threshold calibration via percentage of historical flood level
- * Every reading stored in river_levels table for historical analysis
- * Socket.IO broadcast on update so clients refresh without page reload
- * Falls back gracefully through SEPA → OpenMeteo → mock data
-  */
+/**
+ * File: riverLevelService.ts
+ *
+ * River gauge monitoring service — fetches real-time readings using provider
+ * adapters with fallback support, caches them in memory (5-min TTL), calculates
+ * flood status and trends, and broadcasts updates via Socket.IO.
+ *
+ * How it connects:
+ * - Polled by cronJobs on a schedule for each active region
+ * - Consumed by floodPredictionService and threatLevelService
+ * - Broadcasts level updates to connected clients via Socket.IO
+ *
+ * Simple explanation:
+ * Polls river gauges and triggers flood warnings when thresholds are exceeded.
+ */
 
 import pool from '../models/db.js'
 import { getActiveCityRegion } from '../config/regions/index.js'
@@ -250,7 +251,7 @@ export async function getStationHistory(
   }))
 }
 
-// Cron Integration — called every 5 minutes
+// Cron Integration - called every 5 minutes
 
 let ioInstance: IOServer | null = null
 
@@ -275,4 +276,4 @@ export async function fetchAndBroadcastLevels(): Promise<number> {
 
   return levels.length
 }
-
+

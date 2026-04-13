@@ -1,3 +1,9 @@
+"""
+Module: registry/__init__.py
+
+Package initialiser for the registry module (makes Python treat this directory as an importable package).
+"""
+
 from .region_registry import (
     REGION_REGISTRY,
     RegionConfig,

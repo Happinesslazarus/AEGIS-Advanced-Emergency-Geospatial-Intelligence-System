@@ -1,9 +1,10 @@
-﻿/*
- * SecurityDashboard.tsx — Admin Security Monitoring Panel
+/**
+ * Module: SecurityDashboard.tsx
  *
- * Displays: security alerts, event stats, failed login operators,
- * device trust management, and alert preference configuration.
- */
+ * Security monitoring dashboard (threat indicators and alerts).
+ *
+ * How it connects:
+ * - Rendered inside AdminPage.tsx based on active view */
 
 import { useState, useEffect, useCallback } from 'react'
 import {
@@ -99,7 +100,7 @@ export default function SecurityDashboard(): JSX.Element {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [lang])
 
   useEffect(() => { loadData() }, [loadData])
 
@@ -209,7 +210,7 @@ export default function SecurityDashboard(): JSX.Element {
         badgeColor="red"
       >
         {alerts.length === 0 ? (
-          <p className="text-sm text-gray-400 dark:text-gray-500 py-4 text-center">{t('security.noAlerts', lang)}</p>
+          <p className="text-sm text-gray-400 dark:text-gray-400 py-4 text-center">{t('security.noAlerts', lang)}</p>
         ) : (
           <div className="space-y-2 max-h-80 overflow-y-auto">
             {alerts.slice(0, 20).map(alert => {
@@ -242,7 +243,7 @@ export default function SecurityDashboard(): JSX.Element {
         onToggle={() => toggleSection('stats')}
       >
         {Object.keys(stats).length === 0 ? (
-          <p className="text-sm text-gray-400 dark:text-gray-500 py-4 text-center">{t('security.noEvents', lang)}</p>
+          <p className="text-sm text-gray-400 dark:text-gray-400 py-4 text-center">{t('security.noEvents', lang)}</p>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {Object.entries(stats).sort(([, a], [, b]) => b - a).map(([type, count]) => (
@@ -267,7 +268,7 @@ export default function SecurityDashboard(): JSX.Element {
         badgeColor="amber"
       >
         {failures.length === 0 ? (
-          <p className="text-sm text-gray-400 dark:text-gray-500 py-4 text-center">{t('security.noFailures', lang)}</p>
+          <p className="text-sm text-gray-400 dark:text-gray-400 py-4 text-center">{t('security.noFailures', lang)}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -312,7 +313,7 @@ export default function SecurityDashboard(): JSX.Element {
         badgeColor="green"
       >
         {devices.length === 0 ? (
-          <p className="text-sm text-gray-400 dark:text-gray-500 py-4 text-center">{t('security.noDevices', lang)}</p>
+          <p className="text-sm text-gray-400 dark:text-gray-400 py-4 text-center">{t('security.noDevices', lang)}</p>
         ) : (
           <>
             <div className="space-y-2">
@@ -405,7 +406,7 @@ export default function SecurityDashboard(): JSX.Element {
           <span className="font-bold text-gray-400 uppercase tracking-wider mr-1">{t('security.shortcuts', lang)}</span>
           <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">R</kbd> {t('common.refresh', lang)}</span>
           <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">?</kbd> {t('security.toggleShortcuts', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">Esc</kbd> {t('common.close', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">{t('common.esc', lang)}</kbd> {t('common.close', lang)}</span>
         </div>
       )}
     </div>

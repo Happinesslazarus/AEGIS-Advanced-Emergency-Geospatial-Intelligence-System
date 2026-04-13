@@ -1,17 +1,7 @@
-﻿ /*
- * AdminAlertBroadcast.tsx — Smart Emergency Alert Broadcast Console
- * Enterprise-grade multi-channel alert broadcasting with:
- * Report-linked mode: pick a report → auto-populate severity, title, area, type
- * Smart title generator: professional alert titles from report data
- * Severity-reactive visual design (critical/warning/advisory)
- * Confirmation dialog before broadcast
- * Loading state + double-click protection
- * Channel selector with visual indicators
- * Live message preview matching each channel's format
- * Message character counter with SMS segment estimator
- * Delivery result summary panel
- * Recent broadcast history
- */
+/**
+ * Module: AdminAlertBroadcast.tsx
+ *
+ * Alert broadcast panel (compose and send emergency alerts). */
 
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import {
@@ -856,7 +846,7 @@ export default function AdminAlertBroadcast({
 
                   {actionableReports.length === 0 ? (
                     <div className="text-center py-6">
-                      <FileWarning className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                      <FileWarning className="w-8 h-8 text-gray-300 dark:text-gray-400 mx-auto mb-2" />
                       <p className="text-xs text-gray-500 dark:text-gray-400">{reportSearch ? t('broadcast.noMatchingReports', lang) : t('broadcast.noActiveReports', lang)}</p>
                       <button onClick={() => setMode('custom')} className="text-[11px] text-purple-600 dark:text-purple-400 font-semibold mt-2 hover:underline">
                         {t('broadcast.switchToCustom', lang)}
@@ -892,7 +882,7 @@ export default function AdminAlertBroadcast({
                               <p className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate capitalize">{(r.type || r.incidentSubtype || '').replace(/_/g, ' ')}</p>
                               <div className="flex items-center gap-2 mt-0.5">
                                 <span className="text-[10px] text-gray-500 dark:text-gray-400 flex items-center gap-0.5 truncate"><MapPin className="w-2.5 h-2.5" />{r.location}</span>
-                                <span className="text-[10px] text-gray-400 dark:text-gray-500 flex items-center gap-0.5"><Clock className="w-2.5 h-2.5" />{r.displayTime}</span>
+                                <span className="text-[10px] text-gray-400 dark:text-gray-400 flex items-center gap-0.5"><Clock className="w-2.5 h-2.5" />{r.displayTime}</span>
                               </div>
                             </div>
                             <Zap className="w-4 h-4 text-gray-300 group-hover:text-purple-500 transition-colors flex-shrink-0" />
@@ -1057,7 +1047,7 @@ export default function AdminAlertBroadcast({
                 min={new Date().toISOString().slice(0, 16)}
               />
             </div>
-            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">{t('broadcast.expiresAtHint', lang)}</p>
+            <p className="text-[10px] text-gray-400 dark:text-gray-400 mt-1">{t('broadcast.expiresAtHint', lang)}</p>
           </div>
         </div>
 
@@ -1078,7 +1068,7 @@ export default function AdminAlertBroadcast({
                 >
                   <ToggleRight className="w-3 h-3" /> {t('common.selectAll', lang)}
                 </button>
-                <span className="text-gray-300 dark:text-gray-600">|</span>
+                <span className="text-gray-300 dark:text-gray-400">|</span>
                 <button
                   onClick={() => setChannels({ web: false, telegram: false, email: false, sms: false, whatsapp: false })}
                   className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 hover:underline flex items-center gap-1"
@@ -1413,7 +1403,7 @@ export default function AdminAlertBroadcast({
           <span className="font-bold text-gray-400 uppercase tracking-wider mr-1">{t('broadcast.shortcuts', lang)}</span>
           <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">H</kbd> {t('broadcast.toggleHistory', lang)}</span>
           <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">?</kbd> {t('broadcast.toggleShortcuts', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">Esc</kbd> {t('broadcast.closeKey', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">{t('common.esc', lang)}</kbd> {t('broadcast.closeKey', lang)}</span>
         </div>
       )}
     </div>

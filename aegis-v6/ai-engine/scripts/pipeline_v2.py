@@ -1,11 +1,7 @@
 """
-AEGIS Vision -- 3-Layer Pipeline Benchmark (v2 - phased GPU)
-Runs moondream BEFORE loading CLIP on GPU to avoid VRAM contention.
+Module: pipeline_v2.py
 
-Architecture:
-  Phase 1: Moondream safety gate on all images (Ollama, no CLIP on GPU)
-  Phase 2: Load CLIP, classify all images
-  Phase 3: Gemma3 reasoning (optional) + scoring
+Pipeline_v2 AI engine module.
 """
 
 import json

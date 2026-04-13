@@ -1,11 +1,24 @@
- /*
- * middleware/validate.ts — Zod request validation middleware
- * Wraps Zod schemas into Express middleware that validates request
- * body, query params, or route params. Returns 400 with detailed
- * error messages on validation failure.
+/**
+ * File: validate.ts
+ *
+ * What this file does:
+ * Zod schema validation middleware. Validates request body, query params,
+ * and URL params against schemas before the request reaches route handlers.
+ * Also exports shared validation schemas used across multiple routes.
+ *
+ * How it connects:
+ * - Route files use validate(schema) as middleware before their handlers
+ * - Common schemas (pagination, UUID params) are imported by many route files
+ * - On failure, returns 400 with structured error details listing each field
+ *
  * Usage:
  *   router.post('/reports', validate(createReportSchema), handler)
-  */
+ *   router.get('/list', validate({ query: paginationSchema }), handler)
+ *
+ * Simple explanation:
+ * Checks that incoming data has the right shape and values before processing.
+ * If something is wrong, the request is rejected with a clear explanation.
+ */
 
 import { Request, Response, NextFunction } from 'express'
 import { z, ZodSchema, ZodError } from 'zod'
@@ -16,11 +29,11 @@ interface ValidateOptions {
   params?: ZodSchema
 }
 
- /*
+/**
  * Create validation middleware from Zod schema(s).
  * Validates body, query, and/or params. Attaches parsed data back
  * to the request so handlers get typed, sanitised input.
-  */
+ */
 export function validate(schemas: ValidateOptions | ZodSchema) {
   // Allow passing a single schema for body validation
   const opts: ValidateOptions = schemas instanceof z.ZodType
@@ -70,7 +83,7 @@ export function validate(schemas: ValidateOptions | ZodSchema) {
 }
 
 function formatErrors(error: ZodError): string[] {
-  return error.issues.map((e: any) => {
+  return error.issues.map((e: z.ZodIssue) => {
     const path = (e.path || []).map(String).join('.')
     return path ? `${path}: ${e.message}` : e.message
   })
@@ -78,10 +91,15 @@ function formatErrors(error: ZodError): string[] {
 
 // COMMON VALIDATION SCHEMAS
 
+// Allowed column names for ORDER BY — prevents SQL injection if sortBy is ever interpolated
+const ALLOWED_SORT_COLUMNS = [
+  'created_at', 'updated_at', 'id', 'severity', 'status', 'title', 'name',
+] as const
+
 export const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
-  sortBy: z.string().optional(),
+  sortBy: z.enum(ALLOWED_SORT_COLUMNS).optional(),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 })
 

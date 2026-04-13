@@ -1,12 +1,14 @@
- /*
- * config/regions/index.ts — Region configuration registry
- * Provides getRegionConfig(regionId) to retrieve city-level configs.
- * The active region is selected via the REGION_ID environment variable.
- * Defaults to 'aberdeen_scotland_uk' if unset.
- * To add a new city, create a new file in this directory and register
- * it in the CITY_REGIONS map below. That's it — the entire system
- * (map centre, rivers, thresholds, WMS layers, shelters) reconfigures.
-  */
+/**
+ * Module: index.ts
+ *
+ * Regions barrel export (re-exports module contents).
+ *
+ * How it connects:
+ * - Imported by services and components that need this configuration
+ *
+ * Simple explanation:
+ * Gathers and re-exports everything from the regions directory.
+ */
 
 import type { CityRegionConfig } from './types.js'
 import aberdeen from './aberdeen.js'

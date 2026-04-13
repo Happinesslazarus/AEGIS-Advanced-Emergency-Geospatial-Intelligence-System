@@ -22,7 +22,7 @@ const APP_SHELL = [
   '/icons/icon-512x512.png',
 ]
 
-// §1  INSTALL — Pre-cache app shell
+// INSTALL — Pre-cache app shell
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -33,7 +33,7 @@ self.addEventListener('install', (event) => {
   )
 })
 
-// §2  ACTIVATE — Clean old caches
+// ACTIVATE — Clean old caches
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
@@ -50,7 +50,7 @@ self.addEventListener('activate', (event) => {
   )
 })
 
-// §3  FETCH — Routing strategies
+// FETCH — Routing strategies
 
 self.addEventListener('fetch', (event) => {
   const { request } = event
@@ -167,7 +167,7 @@ async function staleWhileRevalidate(request, cacheName) {
   return cached || (await networkPromise) || new Response('', { status: 503 })
 }
 
-// §4  OFFLINE QUEUE — Store failed POST/PUT requests for background sync
+// OFFLINE QUEUE — Store failed POST/PUT requests for background sync
 
 const QUEUE_STORE = 'aegis-offline-queue'
 
@@ -248,7 +248,7 @@ self.addEventListener('message', (event) => {
   }
 })
 
-// §5  BACKGROUND SYNC — Replay offline queue when back online
+// BACKGROUND SYNC — Replay offline queue when back online
 
 self.addEventListener('sync', (event) => {
   if (event.tag === 'aegis-sync') {
@@ -283,7 +283,7 @@ async function replayQueue() {
   }
 }
 
-// §6  PUSH NOTIFICATIONS
+// PUSH NOTIFICATIONS
 
 self.addEventListener('push', (event) => {
   let data = {}
@@ -322,7 +322,7 @@ self.addEventListener('push', (event) => {
   event.waitUntil(self.registration.showNotification(title, options))
 })
 
-// §7  NOTIFICATION CLICK
+// NOTIFICATION CLICK
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
@@ -345,7 +345,7 @@ self.addEventListener('notificationclick', (event) => {
   )
 })
 
-// §8  PERIODIC CACHE CLEANUP
+// PERIODIC CACHE CLEANUP
 
 // Clean image cache if it gets too large (max 200 entries)
 async function trimCache(cacheName, maxItems = 200) {
@@ -365,4 +365,4 @@ self.addEventListener('message', (event) => {
     trimCache(DATA_CACHE, 100)
   }
 })
-
+

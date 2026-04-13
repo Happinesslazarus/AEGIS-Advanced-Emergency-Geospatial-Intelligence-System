@@ -1,16 +1,10 @@
-/*
- * AdminMessaging.tsx — Admin Citizen Messaging Panel
- * 
- * Real-time Socket.IO inbox for operators/admins to handle citizen
- * support threads. Features:
- *   - Thread list sorted by: emergency > vulnerable > priority > date
- *   - Conversation view with reply
- *   - Assign/resolve controls
- *   - Emergency highlighting
- *   - Typing indicators
- *   - Message status (sent/delivered/read)
- *   - Vulnerability badges
- */
+/**
+ * Module: AdminMessaging.tsx
+ *
+ * Operator messaging panel (internal team communication).
+ *
+ * How it connects:
+ * - Rendered inside AdminPage.tsx based on active view */
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
@@ -22,6 +16,7 @@ import {
 } from 'lucide-react'
 import { type ChatThread, type ChatMessage } from '../../hooks/useSocket'
 import { useSharedSocket } from '../../contexts/SocketContext'
+import { getToken } from '../../utils/api'
 import { getSession } from '../../utils/auth'
 import {
   translateText,
@@ -120,9 +115,9 @@ export default function AdminMessaging(): JSX.Element {
     assignThread, resolveThread, setActiveThread
   } = socket
 
-  // Connect on mount with operator token
+  // Connect on mount with operator token; reconnect if socket drops
   useEffect(() => {
-    const token = localStorage.getItem('aegis-token') || localStorage.getItem('token')
+    const token = getToken()
     if (token && !connected) {
       // // console.log('[AdminMessaging] Connecting socket with admin token...')
       connect(token)
@@ -132,7 +127,7 @@ export default function AdminMessaging(): JSX.Element {
     return () => {
       // Don't disconnect — shared across admin page
     }
-  }, [])
+  }, [connected, connect])
 
   // Fetch admin threads when connected
   useEffect(() => {
@@ -140,12 +135,12 @@ export default function AdminMessaging(): JSX.Element {
       setLoadingThreads(true)
       fetchAdminThreads()
       // Once threads arrive, loading will clear
-      const t = setTimeout(() => setLoadingThreads(false), 1500)
+      const loadingTimer = setTimeout(() => setLoadingThreads(false), 1500)
       // Refresh every 30 seconds
       const interval = setInterval(() => fetchAdminThreads(), 30000)
-      return () => { clearInterval(interval); clearTimeout(t) }
+      return () => { clearInterval(interval); clearTimeout(loadingTimer) }
     }
-  }, [connected])
+  }, [connected, fetchAdminThreads])
 
   // Clear loadingThreads when threads actually arrive
   useEffect(() => {
@@ -155,8 +150,8 @@ export default function AdminMessaging(): JSX.Element {
   // Auto-dismiss error toast
   useEffect(() => {
     if (error) {
-      const t = setTimeout(() => setError(null), 5000)
-      return () => clearTimeout(t)
+      const errorTimer = setTimeout(() => setError(null), 5000)
+      return () => clearTimeout(errorTimer)
     }
   }, [error])
 
@@ -289,11 +284,15 @@ export default function AdminMessaging(): JSX.Element {
     loadThreadMessages(thread.id)
     
     // Mark thread as read to clear unread badge - use admin endpoint
-    const token = localStorage.getItem('aegis-token') || localStorage.getItem('token')
+    const token = getToken()
     if (token) {
+      const csrfToken = document.cookie.split('; ').find(c => c.startsWith('aegis_csrf='))?.split('=')[1]
       fetch(`${API_BASE}/api/admin/messages/${thread.id}/read`, {
         method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
+        }
       }).catch(err => console.error('[AdminMessaging] Mark read error:', err))
     }
   }
@@ -318,11 +317,15 @@ export default function AdminMessaging(): JSX.Element {
         setUploadingImage(true)
         const formData = new FormData()
         formData.append('file', selectedImage)
-        const token = localStorage.getItem('aegis-token') || localStorage.getItem('token')
+        const token = getToken()
+        const csrfUpload = document.cookie.split('; ').find(c => c.startsWith('aegis_csrf='))?.split('=')[1]
         const uploadRes = await fetch(`${API_BASE}/api/upload`, {
           method: 'POST',
           body: formData,
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            ...(csrfUpload ? { 'X-CSRF-Token': csrfUpload } : {}),
+          },
         })
         if (!uploadRes.ok) throw new Error('Failed to upload image')
         const data = await uploadRes.json()
@@ -424,7 +427,7 @@ export default function AdminMessaging(): JSX.Element {
           <div className="flex gap-1.5 flex-wrap">
             {emergencyCount > 0 && (
               <span className="bg-red-500/30 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 border border-red-400/30">
-                <AlertTriangle className="w-3 h-3 animate-pulse" /> {emergencyCount} Emergency
+                <AlertTriangle className="w-3 h-3 animate-pulse" /> {emergencyCount} {t('common.emergency', lang)}
               </span>
             )}
             <span className="bg-white/10 backdrop-blur-sm text-white/90 text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
@@ -598,7 +601,7 @@ export default function AdminMessaging(): JSX.Element {
                 <div className="flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400">
                   <span className="font-medium">{activeThread.citizen_name}</span>
                   {activeThread.is_vulnerable && (
-                    <span className="flex items-center gap-0.5 text-amber-600 dark:text-amber-400"><Heart className="w-3 h-3" /> Vulnerable</span>
+                    <span className="flex items-center gap-0.5 text-amber-600 dark:text-amber-400"><Heart className="w-3 h-3" /> {t('common.vulnerable', lang)}</span>
                   )}
                   <span className="text-gray-300 dark:text-gray-400">|</span>
                   <span className="capitalize">{activeThread.category || 'general'}</span>
@@ -880,12 +883,12 @@ export default function AdminMessaging(): JSX.Element {
     )}
     {showKeyboard && (
       <div className="mt-3 bg-gray-900 text-white rounded-xl p-3 flex items-center gap-4 flex-wrap text-[10px] font-mono ring-1 ring-gray-700">
-        <span className="font-bold text-gray-400 uppercase tracking-wider mr-1">Shortcuts</span>
-        <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">R</kbd> Refresh</span>
-        <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">Q</kbd> Quick Replies</span>
-        <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">T</kbd> Auto-Translate</span>
-        <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">?</kbd> Toggle Shortcuts</span>
-        <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">Esc</kbd> Close</span>
+        <span className="font-bold text-gray-400 uppercase tracking-wider mr-1">{t('common.shortcuts', lang)}</span>
+        <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">R</kbd> {t('common.refresh', lang)}</span>
+        <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">Q</kbd> {t('common.quickReplies', lang)}</span>
+        <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">T</kbd> {t('common.autoTranslate', lang)}</span>
+        <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">?</kbd> {t('common.toggleShortcuts', lang)}</span>
+        <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">{t('common.esc', lang)}</kbd> {t('common.close', lang)}</span>
       </div>
     )}
     </>

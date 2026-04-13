@@ -1,8 +1,10 @@
 """
-Re-run the pipelines that failed or need improvement:
-1. Severity Predictor (re-trained with correlated labels)
-2. Production ML Pipeline (fixed DataFrame column names)
-3. Hazard Models (fixed FeatureEngineer constructor)
+Module: retrain_fixed.py
+
+Retrain_fixed utility script.
+
+Simple explanation:
+Standalone script for retrain_fixed.
 """
 import os
 import sys
@@ -10,7 +12,7 @@ import asyncio
 import time
 
 # Set DATABASE_URL for all submodules
-os.environ['DATABASE_URL'] = 'postgresql://postgres:Happylove%40%21@localhost:5432/aegis'
+os.environ['DATABASE_URL'] = os.environ.get('DATABASE_URL', 'postgresql://localhost:5432/aegis')
 
 # Add ai-engine to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'ai-engine'))
@@ -144,7 +146,7 @@ async def main():
     elapsed = time.time() - overall_start
     
     print("\n" + "=" * 60)
-    print(f"RE-TRAINING COMPLETE — {elapsed:.1f}s total")
+    print(f"RE-TRAINING COMPLETE Ã¢â‚¬â€ {elapsed:.1f}s total")
     print("=" * 60)
     for name, res in results.items():
         status = res.get('status', 'unknown')

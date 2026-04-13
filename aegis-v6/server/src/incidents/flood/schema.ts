@@ -1,5 +1,13 @@
 /**
- * incidents/flood/schema.ts — Flood report validation schema
+ * Module: schema.ts
+ *
+ * River and surface water flooding incident module (handles flood specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for flood events.
  */
 
 export interface FloodCustomFields {
@@ -42,4 +50,4 @@ export function sanitizeFloodCustomFields(fields: Record<string, unknown>): Floo
     riverName: typeof fields.riverName === 'string' ? fields.riverName : undefined
   }
 }
-
+

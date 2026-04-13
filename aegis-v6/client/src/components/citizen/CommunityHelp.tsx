@@ -1,14 +1,23 @@
+/**
+ * Module: CommunityHelp.tsx
+ *
+ * Community help citizen component (public-facing UI element).
+ *
+ * How it connects:
+ * - Rendered inside CitizenPage.tsx or CitizenDashboard.tsx */
+
 /* CommunityHelp.tsx — Community mutual aid board for citizens to offer/request help. */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { X, Heart, HelpCircle, MapPin, Clock, Phone, ExternalLink, Navigation, Shield, AlertTriangle, Flag, Home, Droplets, Car, HeartPulse, Shirt, Crosshair, Star, Lock, UserCheck, Info, CheckCircle, Search, Globe, Loader2 } from 'lucide-react'
 import { COMMUNITY_HELP_TYPES } from '../../data/disasterTypes'
 import { useAlerts } from '../../contexts/AlertsContext'
 import { useLocation } from '../../contexts/LocationContext'
-import { useCitizenAuth } from '../../contexts/CitizenAuthContext'
+import { useCitizenAuth, getCitizenToken } from '../../contexts/CitizenAuthContext'
 import { getLanguage, t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 import { buildTranslationMap } from '../../utils/translateService'
+import { getEmergencyInfo } from '../../data/allCountries'
 
 interface Props { onClose: () => void }
 interface Resource { name: string; type: string; address: string; phone: string; hours: string; dist: string; url: string }
@@ -209,27 +218,28 @@ const INITIAL_POSTS: Post[] = [
   { id: 5, type: 'medical', name: 'Volunteer First Aider', description: 'Qualified first aider with kit. Can attend nearby locations during daytime.', location: 'South District', time: '2 hours ago', verified: true, rating: 5, safe_meeting: 'Local Health Centre' },
 ]
 
-/* Reverse geocode to get city name, then match against known RESOURCES keys */
-async function detectCityFromCoords(lat: number, lng: number): Promise<string> {
+/* Reverse geocode to get city name + country code, then match against known RESOURCES keys */
+async function detectCityFromCoords(lat: number, lng: number): Promise<{key: string, countryCode: string}> {
   try {
     const res = await fetch(
       `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1&zoom=10`,
       { headers: { 'Accept-Language': 'en' } }
     )
-    if (!res.ok) return 'generic'
+    if (!res.ok) return { key: 'generic', countryCode: '' }
     const data = await res.json()
     const addr = data.address || {}
+    const countryCode = (addr.country_code || '').toUpperCase()
     // Try city, town, or county in that order
     const cityName = (addr.city || addr.town || addr.county || addr.state || '').toLowerCase().trim()
     // Check if we have specific resources for this city
-    if (cityName && RESOURCES[cityName]) return cityName
-    // Partial match (e.g. "City of Edinburgh" ? "edinburgh")
+    if (cityName && RESOURCES[cityName]) return { key: cityName, countryCode }
+    // Partial match (e.g. "City of Edinburgh" → "edinburgh")
     for (const key of Object.keys(RESOURCES)) {
-      if (key !== 'generic' && cityName.includes(key)) return key
+      if (key !== 'generic' && cityName.includes(key)) return { key, countryCode }
     }
-    return 'generic'
+    return { key: 'generic', countryCode }
   } catch {
-    return 'generic'
+    return { key: 'generic', countryCode: '' }
   }
 }
 
@@ -249,17 +259,27 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
   const [locationMode, setLocationMode] = useState<'auto' | 'manual' | null>(null)
   const [userCoords, setUserCoords] = useState<{lat: number; lng: number} | null>(null)
   const [detectedCity, setDetectedCity] = useState<string>('generic')
+  const [detectedCountryCode, setDetectedCountryCode] = useState<string>('')
   const [nearbyRadius, setNearbyRadius] = useState(5)
   const [submitting, setSubmitting] = useState(false)
   const [loadingPosts, setLoadingPosts] = useState(false)
   const [postTranslations, setPostTranslations] = useState<Record<string, string>>({})
 
+  const [manualLocation, setManualLocation] = useState('')
+  const [locationSearching, setLocationSearching] = useState(false)
+  const [displayLocation, setDisplayLocation] = useState('')
+
   // Helper to fetch with auth token
   const authFetch = useCallback(async (path: string, options: RequestInit = {}) => {
-    const token = localStorage.getItem('aegis-citizen-token')
+    const token = getCitizenToken()
     const headers: Record<string, string> = { ...(options.headers as Record<string,string> || {}) }
     if (token) headers['Authorization'] = `Bearer ${token}`
     if (!(options.body instanceof FormData)) headers['Content-Type'] = 'application/json'
+    const method = (options.method || 'GET').toUpperCase()
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+      const csrfToken = document.cookie.split('; ').find(c => c.startsWith('aegis_csrf='))?.split('=')[1]
+      if (csrfToken) headers['X-CSRF-Token'] = csrfToken
+    }
     const res = await fetch(path, { ...options, headers })
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: 'Request failed' }))
@@ -357,8 +377,19 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
   const [contactMsg, setContactMsg] = useState('')
   const [contactSent, setContactSent] = useState(false)
 
-  const locationKey = detectedCity || 'generic'
-  const resources = RESOURCES[locationKey] || RESOURCES.generic
+  const locationKey = (detectedCity && detectedCity !== 'generic') ? detectedCity : null
+  const countryResources = useMemo<Resource[]>(() => {
+    const emer = getEmergencyInfo(detectedCountryCode || 'XX')
+    return [
+      { name: 'Emergency Services', type: 'medical', address: `Dial ${emer.universal}`, phone: emer.universal, hours: '24/7', dist: 'Nearest', url: '' },
+      { name: 'Police', type: 'shelter', address: 'Nearest police station', phone: emer.police, hours: '24/7', dist: 'Nearest', url: '' },
+      { name: 'Ambulance / EMS', type: 'medical', address: 'Emergency dispatch', phone: emer.ambulance, hours: '24/7', dist: 'Nearest', url: '' },
+      { name: 'Fire & Rescue', type: 'shelter', address: 'Nearest station', phone: emer.fire, hours: '24/7', dist: 'Nearest', url: '' },
+      ...(emer.extras || []).map(e => ({ name: e.name, type: 'medical', address: e.desc, phone: e.number, hours: '24/7', dist: 'National', url: '' } as Resource)),
+      ...RESOURCES.generic,
+    ]
+  }, [detectedCountryCode])
+  const resources = (locationKey && RESOURCES[locationKey]) ? RESOURCES[locationKey] : countryResources
   const filtered = (filter === 'all' ? resources : resources.filter(r => r.type === filter))
     .filter(r => !searchTerm || r.name.toLowerCase().includes(searchTerm.toLowerCase()) || r.address.toLowerCase().includes(searchTerm.toLowerCase()))
 
@@ -373,7 +404,10 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
         p => {
           set(`${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`)
           setUserCoords({ lat: p.coords.latitude, lng: p.coords.longitude })
-          detectCityFromCoords(p.coords.latitude, p.coords.longitude).then(setDetectedCity)
+          detectCityFromCoords(p.coords.latitude, p.coords.longitude).then(({key, countryCode}) => {
+            setDetectedCity(key)
+            setDetectedCountryCode(countryCode)
+          })
           pushNotification('Location detected — showing approximate area only', 'success')
         },
         (err) => {
@@ -391,17 +425,20 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
     }
   }
 
+  const mountAutoDetected = useRef(false)
+
   const autoDetect = () => {
     if ('geolocation' in navigator) {
-      pushNotification('Detecting your location—', 'info')
       navigator.geolocation.getCurrentPosition(
         async (p) => {
           setUserCoords({ lat: p.coords.latitude, lng: p.coords.longitude })
           setLocationMode('auto')
-          const city = await detectCityFromCoords(p.coords.latitude, p.coords.longitude)
+          const {key: city, countryCode: detectedCC} = await detectCityFromCoords(p.coords.latitude, p.coords.longitude)
           setDetectedCity(city)
-          const cityName = city === 'generic' ? 'your location' : city.charAt(0).toUpperCase() + city.slice(1)
-          pushNotification(`Location detected — showing resources near ${cityName}`, 'success')
+          setDetectedCountryCode(detectedCC)
+          const cityName = city === 'generic' ? '' : city.charAt(0).toUpperCase() + city.slice(1)
+          setDisplayLocation(cityName || detectedCC)
+          pushNotification(`Location detected — showing resources near ${cityName || detectedCC}`, 'success')
         },
         (err) => {
           setLocationMode('manual')
@@ -417,6 +454,45 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
     } else {
       setLocationMode('manual')
       pushNotification('Geolocation not supported in this browser', 'warning')
+    }
+  }
+
+  // Auto-detect location on mount — guard prevents StrictMode double-fire
+  useEffect(() => {
+    if (mountAutoDetected.current) return
+    mountAutoDetected.current = true
+    autoDetect()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Search by city name, country, or postcode using Nominatim geocoding
+  const searchLocation = async (query: string) => {
+    if (!query.trim() || query.trim().length < 2) return
+    setLocationSearching(true)
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query.trim())}&format=json&addressdetails=1&limit=1`,
+        { headers: { 'Accept-Language': 'en' } }
+      )
+      if (!res.ok) throw new Error('Geocoding failed')
+      const results = await res.json()
+      if (results.length > 0) {
+        const { lat, lon, display_name, address } = results[0]
+        setUserCoords({ lat: parseFloat(lat), lng: parseFloat(lon) })
+        setLocationMode('manual')
+        const {key: city, countryCode: detectedCC} = await detectCityFromCoords(parseFloat(lat), parseFloat(lon))
+        setDetectedCity(city)
+        setDetectedCountryCode(detectedCC)
+        const label = address?.city || address?.town || address?.county || address?.state || address?.country || display_name?.split(',')[0] || query
+        setDisplayLocation(label)
+        pushNotification(`Showing resources near ${label}`, 'success')
+      } else {
+        pushNotification(`No results found for "${query}". Try a city name or postcode.`, 'warning')
+      }
+    } catch {
+      pushNotification('Location search failed. Please try again.', 'warning')
+    } finally {
+      setLocationSearching(false)
     }
   }
 
@@ -543,7 +619,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
           <div>
             <h2 className="text-base font-bold flex items-center gap-2"><Heart className="w-4 h-4" /> {t('communityHelp.title', lang)}</h2>
             <p className="text-[10px] text-green-100 mt-0.5 flex items-center gap-1">
-              <MapPin className="w-2.5 h-2.5" /> {loc.name}
+              <MapPin className="w-2.5 h-2.5" /> {displayLocation || loc.name}
               {userCoords && <span className="bg-green-500/50 px-1.5 py-0.5 rounded-full ml-1 flex items-center gap-0.5"><MapPin className="w-2.5 h-2.5" /> {t('communityHelp.gpsActive', lang)}</span>}
             </p>
           </div>
@@ -665,14 +741,39 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
           {/* RESOURCES TAB*/}
           {tab === 'resources' && (
             <div className="space-y-2">
-              <div className="flex items-center justify-between flex-wrap gap-1">
-                <p className="text-[10px] text-gray-500 dark:text-gray-300">{filtered.length} {t('communityHelp.resourcesNear', lang)} <strong>{detectedCity !== 'generic' ? detectedCity.charAt(0).toUpperCase() + detectedCity.slice(1) : loc.name}</strong></p>
-                <button onClick={autoDetect} className="text-[10px] text-blue-500 flex items-center gap-1 hover:underline">
-                  <Crosshair className="w-3 h-3" /> {t('communityHelp.useMyGPS', lang)}
+              {/* Location search bar */}
+              <div className="flex gap-1.5">
+                <div className="flex-1 flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded-xl text-sm">
+                  <MapPin className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                  <input
+                    className="flex-1 bg-transparent text-xs outline-none placeholder-gray-400 min-w-0"
+                    placeholder="Search by city, country, or postcode..."
+                    value={manualLocation}
+                    onChange={e => setManualLocation(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') searchLocation(manualLocation) }}
+                  />
+                  {locationSearching && <Loader2 className="w-3.5 h-3.5 text-blue-500 animate-spin flex-shrink-0" />}
+                </div>
+                <button onClick={() => searchLocation(manualLocation)} disabled={locationSearching || !manualLocation.trim()} className="px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-[10px] font-semibold transition-colors flex-shrink-0">
+                  <Search className="w-3.5 h-3.5" />
+                </button>
+                <button onClick={autoDetect} className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl text-[10px] font-semibold transition-colors flex-shrink-0" title="Use GPS">
+                  <Crosshair className="w-3.5 h-3.5" />
                 </button>
               </div>
+              <div className="flex items-center justify-between flex-wrap gap-1">
+                <p className="text-[10px] text-gray-500 dark:text-gray-300">{filtered.length} {t('communityHelp.resourcesNear', lang)} <strong>{displayLocation || loc.name}</strong></p>
+              </div>
               <div className="max-h-[58vh] overflow-y-auto space-y-2 pr-1">
-                {filtered.length === 0 && <p className="text-xs text-gray-400 dark:text-gray-300 text-center py-6">{t('communityHelp.noResourcesMatch', lang)} "{searchTerm || filter}"</p>}
+                {filtered.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-10 text-center animate-enter">
+                    <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-3">
+                      <Search className="w-6 h-6 text-gray-400 dark:text-gray-500" />
+                    </div>
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">{t('communityHelp.noResourcesMatch', lang)}</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">Try a different search term or clear your filter</p>
+                  </div>
+                )}
                 {filtered.map((r, i) => (
                   <div key={i} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 hover:shadow-md transition-all group">
                     <div className="flex items-start justify-between gap-2">
@@ -728,23 +829,36 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
 
                   {/* Type selector */}
                   <div>
-                    <label className="text-xs font-semibold">{t('communityHelp.whatCanYouOffer', lang)}</label>
-                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5 mt-1.5">
+                    <label className="text-xs font-semibold">{t('communityHelp.whatCanYouOffer', lang)} <span className="text-red-500">*</span></label>
+                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5 mt-1.5" role="radiogroup" aria-required="true">
                       {COMMUNITY_HELP_TYPES.map(t => (
-                        <button key={t.key} onClick={() => setOType(t.key)}
+                        <button key={t.key} onClick={() => setOType(t.key)} role="radio" aria-checked={oType === t.key}
                           className={`p-2 border-2 rounded-xl text-center transition-all ${oType === t.key ? 'border-green-500 bg-green-50 dark:bg-green-950/20 scale-105' : 'border-gray-200 dark:border-gray-700 hover:border-green-300'}`}>
                           <TypeIcon type={t.key} className={`w-5 h-5 mx-auto ${oType === t.key ? 'text-green-600' : 'text-gray-400 dark:text-gray-300'}`} />
                           <p className="text-[9px] font-medium mt-0.5 truncate">{t.label}</p>
                         </button>
                       ))}
                     </div>
+                    {!oType && <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1">{t('communityHelp.selectTypeRequired', lang) || 'Please select a type'}</p>}
                   </div>
 
                   {/* Description */}
                   <div>
-                    <label className="text-xs font-semibold">{t('common.description', lang)} <span className="text-gray-400 dark:text-gray-300 font-normal">{t('communityHelp.descriptionSublabel', lang)}</span></label>
-                    <textarea className="w-full mt-1 px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 min-h-[80px] resize-none" placeholder={t('communityHelp.descriptionPlaceholder', lang)} value={oDesc} onChange={e => setODesc(e.target.value)} />
-                    <p className="text-[9px] text-gray-400 dark:text-gray-300 mt-0.5">{oDesc.length}/200 {t('communityHelp.charsCount', lang)}</p>
+                    <label className="text-xs font-semibold">{t('common.description', lang)} <span className="text-red-500">*</span> <span className="text-gray-400 dark:text-gray-300 font-normal">{t('communityHelp.descriptionSublabel', lang)}</span></label>
+                    <textarea 
+                      className={`w-full mt-1 px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border min-h-[80px] resize-none transition-colors ${oDesc.length > 0 && oDesc.length < 10 ? 'border-amber-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30' : 'border-gray-200 dark:border-gray-700'}`}
+                      placeholder={t('communityHelp.descriptionPlaceholder', lang)} 
+                      value={oDesc} 
+                      onChange={e => setODesc(e.target.value)}
+                      aria-required="true"
+                      aria-invalid={oDesc.length > 0 && oDesc.length < 10}
+                    />
+                    <div className="flex justify-between mt-0.5">
+                      <p className={`text-[9px] ${oDesc.length > 0 && oDesc.length < 10 ? 'text-amber-600 dark:text-amber-400 font-medium' : 'text-gray-400 dark:text-gray-300'}`}>
+                        {oDesc.length > 0 && oDesc.length < 10 ? `${10 - oDesc.length} more chars needed` : `${oDesc.length}/200 ${t('communityHelp.charsCount', lang)}`}
+                      </p>
+                      {oDesc.length >= 10 && <p className="text-[9px] text-green-600 dark:text-green-400 font-medium">✓ Valid</p>}
+                    </div>
                   </div>
 
                   {/* Approximate area */}
@@ -760,12 +874,18 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
 
                   {/* Safe meeting place */}
                   <div>
-                    <label className="text-xs font-semibold flex items-center gap-1.5"><Lock className="w-3 h-3 text-green-600" /> {t('communityHelp.safeMeetingPlace', lang)}</label>
-                    <select className="w-full mt-1 px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700" value={oSafeMeeting} onChange={e => setOSafeMeeting(e.target.value)}>
+                    <label className="text-xs font-semibold flex items-center gap-1.5"><Lock className="w-3 h-3 text-green-600" /> {t('communityHelp.safeMeetingPlace', lang)} <span className="text-red-500">*</span></label>
+                    <select 
+                      className={`w-full mt-1 px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border transition-colors ${!oSafeMeeting ? 'border-gray-200 dark:border-gray-700' : 'border-green-400'}`}
+                      value={oSafeMeeting} 
+                      onChange={e => setOSafeMeeting(e.target.value)}
+                      aria-required="true"
+                    >
                       <option value="">{t('communityHelp.selectMeetingPlace', lang)}</option>
                       {SAFE_MEETING_PLACES.map(p => <option key={p} value={p}>{p}</option>)}
                       <option value="other">{t('communityHelp.otherTypeBelow', lang)}</option>
                     </select>
+                    {!oSafeMeeting && <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1">{t('communityHelp.safeMeetingRequired', lang) || 'Required for safety'}</p>}
                     {oSafeMeeting === 'other' && (
                       <input className="w-full mt-1.5 px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700" placeholder={t('communityHelp.specifyLocation', lang)} onChange={e => setOSafeMeeting(e.target.value === 'other' ? '' : e.target.value)} />
                     )}
@@ -780,7 +900,12 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
                     </div>
                   </label>
 
-                  <button onClick={doOffer} disabled={submitting} className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-colors shadow-md">
+                  <button 
+                    onClick={doOffer} 
+                    disabled={submitting || !oType || !oDesc || oDesc.length < 10 || !oSafeMeeting} 
+                    className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-colors shadow-md"
+                    title={!oType || !oDesc || oDesc.length < 10 || !oSafeMeeting ? 'Complete all required fields' : ''}
+                  >
                     {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Heart className="w-4 h-4" />} {submitting ? t('communityHelp.posting', lang) : t('communityHelp.postOfferBtn', lang)}
                   </button>
                 </>
@@ -818,16 +943,17 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold">{t('communityHelp.whatDoYouNeed', lang)}</label>
-                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5 mt-1.5">
+                    <label className="text-xs font-semibold">{t('communityHelp.whatDoYouNeed', lang)} <span className="text-red-500">*</span></label>
+                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5 mt-1.5" role="radiogroup" aria-required="true">
                       {COMMUNITY_HELP_TYPES.map(t => (
-                        <button key={t.key} onClick={() => setRType(t.key)}
+                        <button key={t.key} onClick={() => setRType(t.key)} role="radio" aria-checked={rType === t.key}
                           className={`p-2 border-2 rounded-xl text-center transition-all ${rType === t.key ? 'border-red-500 bg-red-50 dark:bg-red-950/20 scale-105' : 'border-gray-200 dark:border-gray-700 hover:border-red-300'}`}>
                           <TypeIcon type={t.key} className={`w-5 h-5 mx-auto ${rType === t.key ? 'text-red-600' : 'text-gray-400 dark:text-gray-300'}`} />
                           <p className="text-[9px] font-medium mt-0.5 truncate">{t.label}</p>
                         </button>
                       ))}
                     </div>
+                    {!rType && <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1">{t('communityHelp.selectTypeRequired', lang) || 'Please select what you need'}</p>}
                   </div>
 
                   <div>
@@ -861,7 +987,12 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
                     </div>
                   </label>
 
-                  <button onClick={doRequest} disabled={submitting} className={`w-full ${rUrgent ? 'bg-red-700 hover:bg-red-800' : 'bg-red-600 hover:bg-red-700'} disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-colors shadow-md`}>
+                  <button 
+                    onClick={doRequest} 
+                    disabled={submitting || !rType} 
+                    className={`w-full ${rUrgent ? 'bg-red-700 hover:bg-red-800' : 'bg-red-600 hover:bg-red-700'} disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-colors shadow-md`}
+                    title={!rType ? 'Select what you need first' : ''}
+                  >
                     {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : rUrgent ? <AlertTriangle className="w-4 h-4" /> : <HelpCircle className="w-4 h-4" />} {submitting ? t('common.submitting', lang) : rUrgent ? t('communityHelp.sendUrgent', lang) : t('communityHelp.submitRequest', lang)}
                   </button>
                 </>
@@ -1086,7 +1217,15 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
 
 function PostList({ posts, postTranslations, reported, setReported, pushNotification, TypeIcon, Stars }: any) {
   const lang = getLanguage()
-  if (posts.length === 0) return <p className="text-xs text-gray-400 dark:text-gray-300 text-center py-4">{t('communityHelp.noPostsMatchFilter', lang)}</p>
+  if (posts.length === 0) return (
+    <div className="flex flex-col items-center justify-center py-8 text-center animate-enter">
+      <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-2">
+        <Heart className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+      </div>
+      <p className="text-xs font-medium text-gray-500 dark:text-gray-400">{t('communityHelp.noPostsMatchFilter', lang)}</p>
+      <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">Try changing the category filter above</p>
+    </div>
+  )
   return (
     <div className="space-y-2 max-h-[32vh] overflow-y-auto">
       {posts.map((p: any) => (

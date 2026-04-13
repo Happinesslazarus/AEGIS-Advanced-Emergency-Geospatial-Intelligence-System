@@ -1,12 +1,20 @@
 /**
- * incidents/flood/aiClient.ts — AI client for flood predictions
- * AI Tier: tier3 (ML) - Uses trained machine learning models
+ * Module: aiClient.ts
+ *
+ * River and surface water flooding incident module (handles flood specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for flood events.
  */
 
 import type { IncidentPrediction } from '../types.js'
 import { logger } from '../../services/logger.js'
 
 const AI_ENGINE_URL = process.env.AI_ENGINE_URL || 'http://localhost:8000'
+const AI_API_KEY = process.env.AI_ENGINE_API_KEY || process.env.API_SECRET_KEY || ''
 
 export class FloodAIClient {
    /**
@@ -14,17 +22,24 @@ export class FloodAIClient {
    */
   static async getPredictions(region: string, features: Record<string, unknown>): Promise<IncidentPrediction[]> {
     try {
-      const response = await fetch(`${AI_ENGINE_URL}/api/ai/predict/flood`, {
+      // Uses the central /api/predict endpoint with hazard_type=flood
+      const response = await fetch(`${AI_ENGINE_URL}/api/predict`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(AI_API_KEY ? { 'X-API-Key': AI_API_KEY, 'Authorization': `Bearer ${AI_API_KEY}` } : {}),
+        },
         body: JSON.stringify({
-          region,
-          features: {
-            rainfall: features.rainfall || 0,
-            riverLevel: features.riverLevel || 0,
-            soilMoisture: features.soilMoisture || 0,
-            historicalRisk: features.historicalRisk || 0
-          }
+          hazard_type: 'flood',
+          region_id: region,
+          latitude: Number(features.latitude) || 56.5,
+          longitude: Number(features.longitude) || -3.5,
+          feature_overrides: {
+            rainfall: Number(features.rainfall) || 0,
+            river_level: Number(features.riverLevel) || 0,
+            soil_moisture: Number(features.soilMoisture) || 0,
+            historical_risk: Number(features.historicalRisk) || 0,
+          },
         })
       })
 

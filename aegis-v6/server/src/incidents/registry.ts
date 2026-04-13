@@ -1,9 +1,14 @@
-﻿ /*
- * incidents/registry.ts — Central incident module registry
- * Dynamically loads all incident modules and provides a unified API
- * for the platform core to interact with any incident type.
- * Adding a new incident = create module + add to MODULES array below.
-  */
+/**
+ * Module: registry.ts
+ *
+ * Incident module registry (central lookup for all 11 incident types).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Maps incident type names to their handler modules.
+ */
 
 import type { IncidentModule, IncidentRegistryEntry, IncidentOperationalStatus } from './types.js'
 
@@ -150,4 +155,4 @@ export async function getDashboardSummary(region: string): Promise<{
 
 export { MODULES }
 export type { IncidentModule } from './types.js'
-
+

@@ -1,3 +1,11 @@
+/**
+ * Module: useFloodData.ts
+ *
+ * useFloodData custom React hook (flood data logic).
+ *
+ * How it connects:
+ * - Used by React components that need this functionality */
+
 import { useState, useEffect, useCallback } from 'react'
 import { apiGetFloodRiskOverlay, apiGetEnabledRegions } from '../utils/api'
 import type { FloodRiskOverlayResponse, RegionInfo } from '../utils/api'
@@ -76,4 +84,4 @@ export function useFloodData(initialRegion = 'scotland'): UseFloodDataResult {
     refresh,
   }
 }
-
+

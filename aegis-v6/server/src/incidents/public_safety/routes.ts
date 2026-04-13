@@ -1,5 +1,13 @@
 /**
- * incidents/public_safety/routes.ts — Custom routes for public safety incidents
+ * Module: routes.ts
+ *
+ * Public safety incidents incident module (handles public safety specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for public safety events.
  */
 
 import { Router, Request, Response } from 'express'
@@ -19,8 +27,7 @@ export function setupPublicSafetyRoutes(router: Router): void {
         message: 'Incident log tracking'
       })
     } catch (err: unknown) {
-      const error = err as Error
-      res.status(500).json({ error: 'Failed to fetch incident log', details: error.message })
+      res.status(500).json({ error: 'Could not load the public safety incident log. Please try again.' })
     }
   })
 
@@ -35,8 +42,7 @@ export function setupPublicSafetyRoutes(router: Router): void {
         message: 'Hotspot identification based on report clustering'
       })
     } catch (err: unknown) {
-      const error = err as Error
-      res.status(500).json({ error: 'Failed to identify hotspots', details: error.message })
+      res.status(500).json({ error: 'Could not identify incident hotspots. Please try again.' })
     }
   })
 
@@ -51,9 +57,8 @@ export function setupPublicSafetyRoutes(router: Router): void {
         message: 'Emergency resource tracking'
       })
     } catch (err: unknown) {
-      const error = err as Error
-      res.status(500).json({ error: 'Failed to fetch emergency resources', details: error.message })
+      res.status(500).json({ error: 'Could not load emergency resource locations. Please try again.' })
     }
   })
 }
-
+

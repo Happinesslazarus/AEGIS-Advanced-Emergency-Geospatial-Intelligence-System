@@ -1,3 +1,11 @@
+/**
+ * Module: GlobalLanguageBar.tsx
+ *
+ * Global language bar shared component (reusable UI element used across pages).
+ *
+ * How it connects:
+ * - Used across both admin and citizen interfaces */
+
 import { Globe } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -5,6 +13,7 @@ import { LANGUAGES } from '../../data/disasterTypes'
 import { setLanguage, t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 import { clearTranslationCache } from '../../utils/translateService'
+import { loadLanguage } from '../../i18n/config'
 
 export default function GlobalLanguageBar(): JSX.Element | null {
   const lang = useLanguage()
@@ -24,7 +33,7 @@ export default function GlobalLanguageBar(): JSX.Element | null {
           onChange={(e) => {
             const next = e.target.value
             setLanguage(next)
-            try { i18n.changeLanguage(next) } catch {}
+            loadLanguage(next).then(() => i18n.changeLanguage(next)).catch(() => {})
             localStorage.setItem('aegis_lang_chosen', next)
             localStorage.setItem('aegis-language', next)
             clearTranslationCache()

@@ -1,19 +1,38 @@
-﻿ /*
- * reportRoutes.ts - Emergency report management API
- * Handles all report-related endpoints:
- *   GET    /api/reports          - List all reports (with filters)
- *   GET    /api/reports/:id      - Get a single report by ID
- *   POST   /api/reports          - Submit a new report (citizen, public)
- *   PUT    /api/reports/:id/status - Update report status (admin only)
- *   PUT    /api/reports/:id/notes  - Add operator notes (admin only)
- *   GET    /api/reports/nearby    - Spatial query for nearby reports
- *   GET    /api/reports/stats     - Aggregate statistics for analytics
- *   GET    /api/reports/export    - Export all reports as JSON (admin only)
- * PostGIS spatial functions are used for:
- * ST_MakePoint: creating geographic points from lat/lng
- * ST_DWithin: finding reports within a radius
- * ST_X/ST_Y: extracting coordinates from stored points
-  */
+/**
+ * File: reportRoutes.ts
+ *
+ * What this file does:
+ * CRUD endpoints for emergency incident reports. Citizens submit disaster
+ * reports (with optional photo/video evidence), and operators review,
+ * triage, and update them. New reports are automatically sent through the
+ * AI analysis pipeline for severity classification and image analysis.
+ *
+ * How it connects:
+ * - Mounted at /api/reports in server/src/index.ts
+ * - Evidence files processed by server/src/middleware/upload.ts (Multer + magic-byte check)
+ * - Each new report triggers server/src/services/aiAnalysisPipeline.ts for severity scoring
+ * - Image evidence processed by server/src/services/imageAnalysisService.ts
+ * - Admin dashboard (client/src/pages/AdminPage.tsx) reads from GET /api/reports
+ * - Citizens submit from client/src/pages/CitizenDashboard.tsx or ReportPage
+ *
+ * Key endpoints:
+ * POST /api/reports              — Submit a new report (citizen or public)
+ * GET  /api/reports              — List reports (operator-filtered view)
+ * GET  /api/reports/:id          — Fetch a single report
+ * PUT  /api/reports/:id          — Update report status/severity (operator)
+ * DELETE /api/reports/:id        — Archive a report (operator)
+ * POST /api/reports/:id/reanalyse — Trigger AI re-analysis (operator)
+ *
+ * Learn more:
+ * - server/src/services/aiAnalysisPipeline.ts  — automated severity scoring
+ * - server/src/services/imageAnalysisService.ts — vision model for evidence images
+ * - server/src/middleware/upload.ts             — file upload & magic byte validation
+ * - server/src/services/socket.ts              — real-time notifications to operators
+ *
+ * Simple explanation:
+ * Where disaster reports come in, get scored by AI, and get managed by operators.
+ * Think of it as the triage desk for the whole system.
+ */
 
 import { Router, Request, Response, NextFunction } from 'express'
 import rateLimit from 'express-rate-limit'
@@ -22,7 +41,7 @@ import { authMiddleware, operatorOnly, AuthRequest } from '../middleware/auth.js
 import jwt from 'jsonwebtoken'
 import { devLog } from '../utils/logger.js'
 import { uploadEvidence, validateMagicBytes } from '../middleware/upload.js'
-import { analyseReport } from '../services/aiAnalysisPipeline.js'
+import { analyseReport, reanalyseReport } from '../services/aiAnalysisPipeline.js'
 import { analyseImage } from '../services/imageAnalysisService.js'
 import { classify } from '../services/classifierRouter.js'
 import { aiClient } from '../services/aiClient.js'
@@ -62,6 +81,16 @@ const reportSubmitLimiter = rateLimit({
   },
 })
 
+// Limit bulk operations: max 5 bulk status updates per operator per 10 minutes
+const bulkStatusLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 5,
+  keyGenerator: (req) => (req as AuthRequest).user?.id || req.ip || 'unknown',
+  message: { error: 'Too many bulk status updates. Please wait before submitting again.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+})
+
 const router = Router()
 
 // Region config resolved once at startup (re-read from config, not env snapshot)
@@ -70,6 +99,8 @@ const activeRegion = getActiveCityRegion()
 const regionLat = activeRegion.centre.lat
 const regionLng = activeRegion.centre.lng
 const intelligenceCore = new IncidentIntelligenceCore(activeRegion)
+// Half-width of the region bounding box in degrees, used as a fast proximity guard.
+// Does not replace PostGIS spatial queries — just skips obviously out-of-range reports early.
 const regionRadiusDeg = Math.max(
   0.1,
   Math.max(
@@ -93,6 +124,8 @@ type SignalFetchResult = {
 }
 
 async function fetchRecentSignals(minutes: number): Promise<SignalFetchResult> {
+  // Modern schema includes deleted_at and fine-grained status values.
+  // Legacy deployments (pre-migration) only have the basic reports columns.
   const modernQuery = `SELECT id,
                               COALESCE(NULLIF(incident_subtype, ''), incident_category) AS signal_type,
                               severity,
@@ -123,6 +156,8 @@ async function fetchRecentSignals(minutes: number): Promise<SignalFetchResult> {
     const result = await pool.query(modernQuery, [String(minutes)])
     return { rows: result.rows, warnings: [] }
   } catch (err: any) {
+    // Error 42703 = "column does not exist" — fall back to legacy schema gracefully.
+    // This keeps the intelligence endpoints working on older deployments during migration.
     if (err?.code === '42703' || /deleted_at|false_report|archived|status/i.test(String(err?.message || ''))) {
       const fallback = await pool.query(legacyQuery, [String(minutes)])
       return {
@@ -291,7 +326,7 @@ router.get('/clusters', authMiddleware, operatorOnly, async (req: AuthRequest, r
     })
   } catch (err: any) {
     logger.error({ err }, '[Reports] Clusters error')
-    res.json({ ok: true, data: [], clusters: [], warnings: ['clusters unavailable: ' + String(err.message || 'unknown error')] })
+    res.json({ ok: true, data: [], clusters: [], warnings: ['clusters unavailable — check server logs'] })
   }
 })
 
@@ -320,7 +355,7 @@ router.get('/cascading-insights', authMiddleware, operatorOnly, async (req: Auth
     })
   } catch (err: any) {
     logger.error({ err }, '[Reports] Cascading insights error')
-    res.json({ ok: true, data: [], inferred_cascades: [], warnings: ['cascading insights unavailable: ' + String(err.message || 'unknown error')] })
+    res.json({ ok: true, data: [], inferred_cascades: [], warnings: ['cascading insights unavailable — check server logs'] })
   }
 })
 
@@ -379,7 +414,7 @@ router.get('/incident-objects', authMiddleware, operatorOnly, async (req: AuthRe
     })
   } catch (err: any) {
     logger.error({ err }, '[Reports] Incident objects error')
-    res.json({ ok: true, data: [], incidents: [], warnings: ['incident objects unavailable: ' + String(err.message || 'unknown error')] })
+    res.json({ ok: true, data: [], incidents: [], warnings: ['incident objects unavailable — check server logs'] })
   }
 })
 
@@ -417,7 +452,7 @@ router.get('/incident-objects/:id/explanation', authMiddleware, operatorOnly, as
     })
   } catch (err: any) {
     logger.error({ err }, '[Reports] Incident explanation error')
-    res.json({ ok: true, data: null, warnings: ['incident explanation unavailable: ' + String(err.message || 'unknown error')] })
+    res.json({ ok: true, data: null, warnings: ['incident explanation unavailable — check server logs'] })
   }
 })
 
@@ -500,6 +535,7 @@ router.get('/incident-objects/changes', authMiddleware, operatorOnly, async (req
     )
 
     const stateRank: Record<string, number> = {
+      // Lower rank = less confident. Escalation is movement from a lower to a higher rank.
       weak: 1,
       possible: 2,
       probable: 3,
@@ -507,6 +543,8 @@ router.get('/incident-objects/changes', authMiddleware, operatorOnly, async (req
       confirmed: 5,
     }
 
+    // Geospatial key: round to 3dp (≈111m resolution) so incidents at the same location
+    // are recognised as the same incident across time windows.
     const keyFor = (i: any): string => `${i.incident_type}:${i.center.lat.toFixed(3)}:${i.center.lng.toFixed(3)}`
     const currentMap = new Map(currentIncidents.map((i) => [keyFor(i), i]))
     const previousMap = new Map(previousIncidents.map((i) => [keyFor(i), i]))
@@ -567,7 +605,7 @@ router.get('/incident-objects/changes', authMiddleware, operatorOnly, async (req
     })
   } catch (err: any) {
     logger.error({ err }, '[Reports] Incident object changes error')
-    res.json({ ok: true, data: { new_incidents: [], escalated: [], downgraded: [], resolved: [] }, warnings: ['incident object changes unavailable: ' + String(err.message || 'unknown error')] })
+    res.json({ ok: true, data: { new_incidents: [], escalated: [], downgraded: [], resolved: [] }, warnings: ['incident object changes unavailable — check server logs'] })
   }
 })
 
@@ -869,6 +907,8 @@ router.get('/analytics', authMiddleware, operatorOnly, async (req: AuthRequest, 
       : 0
     const seriesStdDev = Math.sqrt(seriesVariance)
     const spikeThreshold = Math.max(1, Math.round(seriesMean + (seriesStdDev * 1.5)))
+    // A period is a spike when its count is >1.5 standard deviations above the mean —
+    // a common statistical threshold for anomaly detection.
     const incidentSpikes = series.filter(point => point.count >= spikeThreshold).length
 
     const aiScored = Number(totals.ai_scored || 0)
@@ -884,7 +924,10 @@ router.get('/analytics', authMiddleware, operatorOnly, async (req: AuthRequest, 
     const geoCoverage = geoCoverageRes.rows[0] || {}
     const geoCoverageKm = Number(geoCoverage.max_distance_km || 0)
 
-    // Threat Level Index (0-100): weighted by severity, urgent count, and recent trend
+    // Threat Level Index (0-100): weighted composite of severity, urgency, and weekly trend.
+    // severity:   ≤30pts (high=3x, medium=2x weighted count ratio)
+    // urgency:    ≤40pts (urgent-flagged ratio)
+    // trend:      ≤30pts (week-over-week growth, capped at 100% change = 30pts)
     const highSev = Number(bySeverity.High || 0)
     const medSev = Number(bySeverity.Medium || 0)
     const urgentCount = Number(byStatus.Urgent || 0)
@@ -1297,6 +1340,29 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction): Prom
   }
 })
 
+/*
+ * POST /api/reports/:id/reanalyse
+ * Re-runs the full AI analysis pipeline on an existing report.
+ * Admin/operator only. Returns updated aiAnalysis object.
+ */
+router.post('/:id/reanalyse', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const reportId = String(req.params.id)
+    const exists = await pool.query('SELECT id FROM reports WHERE id = $1', [reportId])
+    if (exists.rows.length === 0) {
+      throw AppError.notFound('Report not found.')
+    }
+    const result = await reanalyseReport(reportId)
+    if (!result) {
+      res.status(500).json({ ok: false, error: 'Re-analysis failed — check server logs.' })
+      return
+    }
+    res.json({ ok: true, aiAnalysis: result })
+  } catch (err) {
+    next(err)
+  }
+})
+
  /*
  * POST /api/reports
  * Submit a new emergency report (public endpoint, no auth required).
@@ -1315,6 +1381,7 @@ router.post('/', reportSubmitLimiter, uploadEvidence, validateMagicBytes, async 
     } = req.body
 
     // Safely parse customFields — sent as JSON string from FormData
+    // whitelistfilter prevents nested objects/arrays from being stored unintentionally.
     let customFields: Record<string, unknown> = {}
     if (rawCustomFields) {
       try {
@@ -1608,12 +1675,16 @@ router.post('/', reportSubmitLimiter, uploadEvidence, validateMagicBytes, async 
  * PUT /api/reports/bulk/status
  * Bulk update status for multiple reports (admin only).
   */
-router.put('/bulk/status', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+router.put('/bulk/status', authMiddleware, operatorOnly, bulkStatusLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { reportIds, status, reason } = req.body
 
     if (!Array.isArray(reportIds) || reportIds.length === 0) {
       throw AppError.badRequest('reportIds must be a non-empty array')
+    }
+
+    if (reportIds.length > 200) {
+      throw AppError.badRequest('Maximum 200 report IDs per bulk operation')
     }
 
     const valid = ['Verified', 'Urgent', 'Flagged', 'Resolved', 'Archived', 'False_Report']
@@ -1706,8 +1777,11 @@ router.put('/bulk/status', authMiddleware, operatorOnly, async (req: AuthRequest
  * PUT /api/reports/:id/status
  * Update report status (admin only). Logs the action in the activity trail.
  * Valid statuses: Verified, Urgent, Flagged, Resolved
+ * Uses transaction + SELECT FOR UPDATE to prevent race conditions.
   */
 router.put('/:id/status', authMiddleware, operatorOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  const client = await pool.connect()
+  let released = false
   try {
     const { status, reason } = req.body
     const valid = ['Verified', 'Urgent', 'Flagged', 'Resolved', 'Archived', 'False_Report']
@@ -1717,8 +1791,15 @@ router.put('/:id/status', authMiddleware, operatorOnly, async (req: AuthRequest,
 
     const dbStatus = toDbStatus(status)
 
-    const beforeResult = await pool.query('SELECT status::text AS status, verified_by FROM reports WHERE id = $1', [req.params.id])
+    await client.query('BEGIN')
+
+    // SELECT FOR UPDATE locks the row to prevent concurrent modifications
+    const beforeResult = await client.query(
+      'SELECT status::text AS status, verified_by FROM reports WHERE id = $1 FOR UPDATE',
+      [req.params.id]
+    )
     if (beforeResult.rows.length === 0) {
+      await client.query('ROLLBACK')
       throw AppError.notFound('Report not found.')
     }
     const oldStatus = beforeResult.rows[0].status
@@ -1727,9 +1808,11 @@ router.put('/:id/status', authMiddleware, operatorOnly, async (req: AuthRequest,
 
     // Status locking: once a decision is made, only super-admins can override with justification
     if (alreadyDecided && !isSuperAdmin) {
+      await client.query('ROLLBACK')
       throw AppError.forbidden('This report has already been actioned. Only a super-admin can override the status.')
     }
     if (alreadyDecided && isSuperAdmin && !reason?.trim()) {
+      await client.query('ROLLBACK')
       throw AppError.badRequest('A justification is required to override an already-actioned report.')
     }
 
@@ -1750,12 +1833,12 @@ router.put('/:id/status', authMiddleware, operatorOnly, async (req: AuthRequest,
     }
 
     params.push(req.params.id)
-    await pool.query(
+    await client.query(
       `UPDATE reports SET ${updates.join(', ')} WHERE id = $${idx}`,
       params
     )
 
-    await pool.query(
+    await client.query(
       `INSERT INTO report_status_history (report_id, old_status, new_status, changed_by, reason)
        VALUES ($1, $2, $3, $4, $5)`,
       [req.params.id, oldStatus, dbStatus, req.user!.id, reason || null]
@@ -1766,7 +1849,7 @@ router.put('/:id/status', authMiddleware, operatorOnly, async (req: AuthRequest,
       Verified: 'verify', Urgent: 'urgent', Flagged: 'flag', Resolved: 'resolve',
       Archived: 'archive', False_Report: 'false_report',
     }
-    await pool.query(
+    await client.query(
       `INSERT INTO activity_log (action, action_type, report_id, operator_id, operator_name)
        VALUES ($1, $2, $3, $4, $5)`,
       [
@@ -1776,20 +1859,31 @@ router.put('/:id/status', authMiddleware, operatorOnly, async (req: AuthRequest,
       ]
     )
 
+    await client.query('COMMIT')
+
+    // Store oldStatus for WebSocket broadcast (must happen after commit succeeds)
+    const broadcastOldStatus = oldStatus
+
+    released = true
+    client.release()
+
     res.json({ success: true, status })
 
     // Broadcast status update via WebSocket
     try {
       const io = req.app.get('io')
       if (io) {
-        io.emit('report:updated', { id: req.params.id, status, oldStatus: toUiStatus(oldStatus), updatedBy: req.user!.displayName })
+        io.emit('report:updated', { id: req.params.id, status, oldStatus: toUiStatus(broadcastOldStatus), updatedBy: req.user!.displayName })
         devLog(`[Reports] Broadcast report:updated ${req.params.id} → ${status}`)
       }
     } catch (wsErr: any) {
       logger.warn({ err: wsErr }, '[Reports] WebSocket broadcast failed')
     }
   } catch (err) {
+    await client.query('ROLLBACK').catch(() => {})
     next(err)
+  } finally {
+    if (!released) client.release()
   }
 })
 
@@ -1831,7 +1925,7 @@ router.get('/export/json', authMiddleware, operatorOnly, async (req: AuthRequest
     await pool.query(
       `INSERT INTO activity_log (action, action_type, operator_id, operator_name)
        VALUES ($1, $2, $3, $4)`,
-      ['Exported reports as JSON', 'export', req.user!.id, req.user!.displayName]
+      [`Exported ${result.rows.length} reports as JSON`, 'export', req.user!.id, req.user!.displayName]
     )
 
     res.json(result.rows.map(formatReport))
@@ -2010,7 +2104,14 @@ async function computeAIScore(
     if (fake) modelsUsed.push('fake-detector')
     if (severityPred) modelsUsed.push('severity-bart-mnli')
 
-    // Compute composite confidence from ML outputs
+    // Composite confidence formula — components add/subtract from base 50:
+    //   fake probability < 0.3 → +20, < 0.5 → +10, else → -10
+    //   severity match with ML prediction → +10 + (ML confidence × 15)
+    //   photo/video evidence attached → +12
+    //   trapped persons reported → +5
+    //   location within active region → +5
+    //   description ≥30 words → +8, ≥15 words → +4
+    //   hard floor 15, hard cap 95 (never guarantee or discard a report)
     let confidence = 50 // Base
 
     // Fake probability inversely affects confidence
@@ -2123,7 +2224,7 @@ function computeAIScoreFallback(
  * Transforms a database row into the standardised API response format.
  * Converts PostGIS coordinate columns into a simple coordinates array.
   */
- /**
+/**
  * Redact sensitive fields from a report for public/unauthenticated access.
  * Strips: reporter name, operator notes, raw AI analysis, exact coordinates, media URLs.
  */

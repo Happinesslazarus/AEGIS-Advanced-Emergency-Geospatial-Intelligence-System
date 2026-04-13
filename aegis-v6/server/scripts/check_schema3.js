@@ -1,5 +1,5 @@
 const { Pool } = require('pg');
-const p = new Pool({ connectionString: 'postgresql://postgres:Happylove%40%21@localhost:5432/aegis' });
+const p = new Pool({ connectionString: process.env.DATABASE_URL });
 
 (async () => {
   const r = await p.query(`

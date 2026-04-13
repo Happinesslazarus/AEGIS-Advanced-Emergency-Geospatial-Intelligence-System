@@ -1,3 +1,17 @@
+/**
+ * File: community.real-routes.integration.test.ts
+ *
+ * What it tests:
+ * Real-route integration tests for the community endpoints.
+  * Runs HTTP requests against a real Express+PostgreSQL stack
+  * to test authentication guards, rate limits, and DB persistence.
+  *
+  * How it connects:
+  * - Tests server/src/routes/communityRoutes.ts end-to-end
+  * - Requires running PostgreSQL (DATABASE_URL from .env.test)
+  * - Run via: npm test -- community.real
+ */
+
 process.env.NODE_ENV = 'test'
 process.env.JWT_SECRET ??= 'test-jwt-secret-at-least-32-characters-long'
 process.env.REFRESH_TOKEN_SECRET ??= 'test-refresh-secret-at-least-32-chars'

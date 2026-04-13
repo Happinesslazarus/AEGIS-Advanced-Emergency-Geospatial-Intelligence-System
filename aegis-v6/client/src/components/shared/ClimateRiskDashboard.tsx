@@ -1,20 +1,10 @@
-﻿ /*
- * ClimateRiskDashboard.tsx — Climate risk analytics component that
- * aggregates data from multiple real APIs to present a unified climate
- * risk assessment for the active region.
- * Data sources (all real — zero hardcoded data):
- * /api/predictions — AI flood predictions from AEGIS ML models
- * /api/alerts — Active emergency alerts from the database
- * /api/weather/current — Real-time weather from OpenWeather API
- * /api/reports — Community reports with severity distribution
- * /api/analytics/risk-summary — Aggregated risk statistics
- * Displays:
- * Overall risk score (computed from live data)
- * Prediction summary with severity breakdown
- * Weather-to-risk correlation
- * Historical trend (from reports table)
- * Contributing factors breakdown
-  */
+/**
+ * Module: ClimateRiskDashboard.tsx
+ *
+ * Climate risk dashboard shared component (reusable UI element used across pages).
+ *
+ * How it connects:
+ * - Used across both admin and citizen interfaces */
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import {

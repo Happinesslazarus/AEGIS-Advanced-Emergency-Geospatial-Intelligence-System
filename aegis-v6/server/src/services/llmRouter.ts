@@ -1,24 +1,38 @@
-﻿ /*
- * services/llmRouter.ts — LOCAL-FIRST LLM routing engine
- * Architecture: Local Ollama models handle 80-90% of queries at zero cost.
- * Paid/free cloud APIs are fallbacks, called only when local confidence is
- * insufficient or local models are unavailable.
+/**
+ * File: llmRouter.ts
  *
- * 4-Tier Local Model Architecture (RTX 2060 SUPER, 8GB VRAM):
- *   1. Ollama PRIMARY    (aegis-ai — gemma3:12b custom, all-hazard emergency intelligence)
- *   2. Ollama SPECIALIST (deepseek-r1:8b — chain-of-thought reasoning, complex analysis)
- *   3. Ollama FAST       (qwen3:8b — balanced all-rounder, conversational)
- *   4. Ollama ULTRA-FAST (phi4-mini — 2.5GB, instant simple answers, lightning loads)
+ * What this file does:
+ * Routes every AI completion request to the best available LLM provider.
+ * Prefers local Ollama models (free, fast, runs on-device), falling back to
+ * cloud APIs (Gemini, Groq, OpenRouter, HuggingFace) when local is unavailable
+ * or the query needs a stronger model. Tracks provider health, rate limits,
+ * token usage, and latency history so it can make smart routing decisions.
  *
- * Cloud Fallbacks (free tiers):
- *   5. Google Gemini 2.0 Flash (15 RPM / 1M tokens/day)
- *   6. Groq (Llama 3.3 70B Versatile — 30 RPM)
- *   7. OpenRouter (free models)
- *   8. HuggingFace Inference API
+ * How it connects:
+ * - Called by server/src/services/chatService.ts for all chat completions
+ * - Called by server/src/services/aiAnalysisPipeline.ts for report severity scoring
+ * - Calls Ollama at http://localhost:11434 (or AI_ENGINE_URL) for local models
+ * - Calls cloud APIs using keys from env: GEMINI_API_KEY, GROQ_API_KEY, etc.
+ * - startModelWarmup() is triggered at server startup (index.ts)
  *
- * Only one model fits in VRAM at once — intelligent routing + preloading
- * minimises cold-start swaps. Set OLLAMA_BASE_URL in .env (default: http://localhost:11434)
-  */
+ * Key exports:
+ * - chatCompletion()        — single-call LLM request, returns JSON response
+ * - chatCompletionStream()  — same but streams tokens via callback
+ * - classifyQuery()         — lightweight classification of query intent
+ * - getProviderStatus()     — health of all registered providers (used by GET /api/chat/status)
+ * - startModelWarmup()      — pre-loads the primary model at startup
+ *
+ * Learn more:
+ * - server/src/services/chatService.ts       — main caller of chatCompletion()
+ * - server/src/services/aiAnalysisPipeline.ts — uses classifyQuery() for report scoring
+ * - server/src/services/embeddingRouter.ts   — similar router but for embeddings
+ * - ai-engine/main.py                        — the FastAPI AI engine (separate process)
+ *
+ * Simple explanation:
+ * The traffic controller for AI requests. It knows which model is healthy,
+ * which is cheapest, which is fastest for a given question, and sends the
+ * request to the right place. Local models keep costs near zero.
+ */
 
 import type { LLMRequest, LLMResponse, LLMProvider } from '../types/index.js'
 import { devLog } from '../utils/logger.js'
@@ -1029,7 +1043,7 @@ const ABOUT_AEGIS_PATTERNS = [
   /\b(features?|capabilities|what can you do)\b/i,
 ]
 
- /**
+/**
  * Multi-signal query classification with confidence scoring.
  * Returns the classification with the highest weighted score.
  * Detects intent automatically — no manual logic required.
@@ -1101,7 +1115,7 @@ export function classifyQuery(message: string): QueryClassification {
   return best as QueryClassification
 }
 
- /**
+/**
  * Intelligent 4-tier model routing — matches query intent to optimal model:
  *   PRIMARY    (aegis-ai)             ? emergencies, trauma, identity — warm empathetic expert
  *   SPECIALIST (deepseek-r1:8b)      ? reasoning, analysis, complex comparisons — chain-of-thought
@@ -1140,7 +1154,7 @@ function getRecommendedProviders(classification: QueryClassification): string[] 
   }
 }
 
- /**
+/**
  * Get provider states ordered by recommendation for a classification.
  * Falls back to default priority order for any providers not in the recommendation list.
  */
@@ -1337,7 +1351,7 @@ function trackLatency(providerName: string, latencyMs: number): void {
 
 // —5.1  STRUCTURED JSON OUTPUT MODE
 
- /**
+/**
  * Send a chat completion that expects a JSON response.
  * Automatically instructs the LLM to respond with valid JSON,
  * parses the result, and retries once on parse failure.
@@ -1478,7 +1492,7 @@ Emergency Numbers (${rMeta.name}): ${rMeta.emergencyNumber} (emergency), ${crisi
 ${regionInfo}${preservedSections.join('')}`.trim()
 }
 
- /**
+/**
  * Prepare LLM messages for a specific provider by:
  * 1. Condensing the system prompt for low-token providers
  * 2. Trimming conversation history to fit the token budget
@@ -1523,7 +1537,7 @@ function prepareMessagesForProvider(
 
 // —5.2  TOKEN ESTIMATION & CONTEXT TRIMMING
 
- /**
+/**
  * Estimate token count using improved heuristic.
  * Based on analysis of BPE tokenizer behavior across multiple models:
  * English text: ~1.3 tokens per word on average
@@ -1558,7 +1572,7 @@ export function estimateTokens(text: string): number {
   return Math.ceil(tokens)
 }
 
- /**
+/**
  * Trim a message array to fit within a token budget.
  * Always keeps the first (system) message and the last 4 messages.
  * Middle messages that exceed the budget are replaced with a summary.
@@ -1603,7 +1617,7 @@ export function trimMessagesToFit(
 
 // —5.3  INTELLIGENT PROVIDER SELECTION
 
- /**
+/**
  * Score and select the best provider for a given request based on
  * latency, reliability, and query complexity.
  * Returns the provider name, or null if none available.
@@ -1680,7 +1694,7 @@ export function selectBestProvider(req: LLMRequest): string | null {
 
 // —5.4  RESPONSE QUALITY SCORING
 
- /**
+/**
  * Score the quality of an LLM response on a 0-100 scale.
  * Checks for empty responses, truncation, refusals, and relevance.
  */
@@ -1735,7 +1749,7 @@ export function scoreResponseQuality(
 
 // —5.5  PROVIDER HEALTH ENHANCED
 
- /**
+/**
  * Get detailed health information for all configured providers,
  * including average latency, success rate, and health status.
  */

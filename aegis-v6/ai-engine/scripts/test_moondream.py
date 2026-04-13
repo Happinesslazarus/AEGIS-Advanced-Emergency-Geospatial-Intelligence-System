@@ -1,3 +1,9 @@
+"""
+Module: test_moondream.py
+
+Test_moondream AI engine module.
+"""
+
 import base64, requests, json
 
 img = open('../server/uploads/chat/benchmark/wf-001.jpg', 'rb').read()

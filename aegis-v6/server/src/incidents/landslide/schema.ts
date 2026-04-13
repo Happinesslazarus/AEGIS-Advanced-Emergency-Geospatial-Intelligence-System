@@ -1,5 +1,13 @@
 /**
- * incidents/landslide/schema.ts — Landslide report validation schema
+ * Module: schema.ts
+ *
+ * Ground movement and landslides incident module (handles landslide specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for landslide events.
  */
 
 export interface LandslideCustomFields {
@@ -40,4 +48,4 @@ export function sanitizeLandslideCustomFields(fields: Record<string, unknown>): 
     structuresDamaged: typeof fields.structuresDamaged === 'boolean' ? fields.structuresDamaged : undefined
   }
 }
-
+

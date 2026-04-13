@@ -1,3 +1,11 @@
+/**
+ * Module: ThemeContext.tsx
+ *
+ * Theme context React context provider (shares state across components).
+ *
+ * How it connects:
+ * - Wraps components in App.tsx via AppProviders */
+
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 
 // AEGIS 6-Theme System
@@ -36,9 +44,14 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | null>(null)
 
 function resolveTheme(name: string | null): ThemeName {
+  // Accept stored theme only if it still exists in the THEMES array.
+  // This guards against renamed or removed themes after an app update.
   if (name && THEMES.some(t => t.name === name)) return name as ThemeName
-  // migrate old 'dark' localStorage value → 'default'
+  // Backward-compat: old builds stored 'dark' as a boolean string.
+  // Map it to 'default' (our dark blue theme) instead of showing a blank UI.
   if (name === 'dark') return 'default'
+  // No saved preference: fall back to the OS-level dark/light setting.
+  // window.matchMedia('(prefers-color-scheme: dark)') reads the system theme.
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'default' : 'light'
 }
 
@@ -50,12 +63,16 @@ export function ThemeProvider({ children }: { children: ReactNode }): JSX.Elemen
   const config = THEMES.find(t => t.name === theme) || THEMES[0]
 
   useEffect(() => {
+    // documentElement is the <html> tag — we apply theme classes here so
+    // Tailwind's `dark:` variants and our custom CSS variables work globally.
     const el = document.documentElement
-    // set dark/light base
+    // classList.toggle(class, force): adds 'dark' when isDark=true, removes it otherwise.
+    // Tailwind uses the 'dark' class on <html> to activate dark-mode styles.
     el.classList.toggle('dark', config.isDark)
-    // set data-theme for CSS variable selection
+    // data-theme drives CSS custom-property overrides (--color-accent, --color-bg, etc.)
+    // defined in index.css, allowing per-theme color variation independent of dark/light.
     el.setAttribute('data-theme', theme)
-    // persist
+    // Persist so the correct theme is loaded on the next page visit.
     localStorage.setItem('aegis-theme', theme)
   }, [theme, config.isDark])
 

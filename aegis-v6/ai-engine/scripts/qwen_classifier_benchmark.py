@@ -1,7 +1,7 @@
 """
-Qwen2.5-VL 7B Direct Classifier Benchmark
-Tests qwen2.5vl as a direct disaster classifier on all 42 benchmark images.
-Uses a focused classification prompt instead of open-ended description.
+Module: qwen_classifier_benchmark.py
+
+Qwen_classifier_benchmark AI engine module.
 """
 import json, base64, requests, time, sys
 from pathlib import Path

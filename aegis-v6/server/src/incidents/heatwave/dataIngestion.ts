@@ -1,6 +1,13 @@
 /**
- * incidents/heatwave/dataIngestion.ts — Data ingestion for heatwave monitoring
- * Data Source: Open-Meteo Weather API
+ * Module: dataIngestion.ts
+ *
+ * Extreme heat events incident module (handles heatwave specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for heatwave events.
  */
 
 import { logger } from '../../services/logger.js'

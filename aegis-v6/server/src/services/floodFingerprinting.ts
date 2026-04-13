@@ -1,16 +1,18 @@
-﻿ /*
- * services/floodFingerprinting.ts — Flood Fingerprinting Algorithm
- * Feature #26: Flood Fingerprinting — compares current multi-source state
- *   vector against historical flood event fingerprints using cosine similarity.
- * Feature #27: Pre-Alert System — triggers notification delivery when operator
- *   sends pre-alert for a prediction.
- * Outputs:
- * Probability of flooding
- * Best historical match with similarity %
- * Predicted downstream propagation areas
- * Estimated time to flood impact
- * This is pure ML — no LLM involvement.
-  */
+/**
+ * File: floodFingerprinting.ts
+ *
+ * Flood event fingerprinting — builds multi-dimensional feature vectors for
+ * current conditions and matches them against historical flood patterns using
+ * cosine similarity to predict probability, risk level, and propagation areas.
+ *
+ * How it connects:
+ * - Consumes multi-source fusion data from fusionEngine
+ * - Reads/writes fingerprint vectors in the database
+ * - Used by flood prediction and alert pipelines
+ *
+ * Simple explanation:
+ * Compares what's happening now to past floods to predict what comes next.
+ */
 
 import pool from '../models/db.js'
 import { runFusion, gatherFusionData, type FusionResult } from './fusionEngine.js'
@@ -18,7 +20,7 @@ import { devLog } from '../utils/logger.js'
 import { regionRegistry } from '../adapters/regions/RegionRegistry.js'
 import { logger } from './logger.js'
 
-// §1  TYPES
+// -1  TYPES
 
 export interface FloodFingerprint {
   eventId: string
@@ -62,7 +64,7 @@ export interface FloodPrediction {
   createdAt?: Date
 }
 
-// §2  COSINE SIMILARITY
+// -2  COSINE SIMILARITY
 
 function cosineSimilarity(a: Record<string, number>, b: Record<string, number>): number {
   // Get union of all keys
@@ -87,7 +89,7 @@ function cosineSimilarity(a: Record<string, number>, b: Record<string, number>):
   return dotProduct / denominator
 }
 
-// §3  BUILD CURRENT STATE VECTOR
+// -3  BUILD CURRENT STATE VECTOR
 
 function buildCurrentVector(features: Array<{name: string; rawValue: number; normalised: number; unit: string}>): Record<string, number> {
   const vector: Record<string, number> = {}
@@ -122,7 +124,7 @@ function buildCurrentVector(features: Array<{name: string; rawValue: number; nor
   return vector
 }
 
-// §4  LOAD HISTORICAL FINGERPRINTS
+// -4  LOAD HISTORICAL FINGERPRINTS
 
 async function loadFingerprints(): Promise<FloodFingerprint[]> {
   try {
@@ -149,7 +151,7 @@ async function loadFingerprints(): Promise<FloodFingerprint[]> {
   }
 }
 
-// §5  DOWNSTREAM PROPAGATION PREDICTION
+// -5  DOWNSTREAM PROPAGATION PREDICTION
 
 /* Predict which areas will be affected next based on the best matching historical event */
 function predictNextAreas(bestMatch: FingerprintMatch, currentArea: string): string[] {
@@ -157,7 +159,7 @@ function predictNextAreas(bestMatch: FingerprintMatch, currentArea: string): str
   // bestMatch.affectedZones already contains real zones from flood_history DB table.
   // We use those as the primary propagation prediction.
 
-  // Known propagation patterns by region (expandable — loaded from region config)
+  // Known propagation patterns by region (expandable - loaded from region config)
   // This serves as a fallback when no historical zones are available.
   const propagationFallbacks: Record<string, string[]> = regionRegistry.getActiveRegion().getPropagationMap()
 
@@ -173,7 +175,7 @@ function predictNextAreas(bestMatch: FingerprintMatch, currentArea: string): str
   return Array.from(predicted).slice(0, 8)
 }
 
-// §6  MAIN FINGERPRINTING FUNCTION
+// -6  MAIN FINGERPRINTING FUNCTION
 
  /*
  * Run the flood fingerprinting algorithm.
@@ -312,7 +314,7 @@ export async function runFingerprinting(
         [
           area,
           draftPriority,
-          `AI-flagged risk area — ${(prediction.probability * 100).toFixed(0)}% flood probability`,
+          `AI-flagged risk area - ${(prediction.probability * 100).toFixed(0)}% flood probability`,
           draftAiRec,
           draftPriority === 'Critical' ? 4 : 2,
           draftPriority === 'Critical' ? 3 : 1,
@@ -332,7 +334,7 @@ export async function runFingerprinting(
   return prediction
 }
 
-// §7  PRE-ALERT SYSTEM (Feature #27)
+// -7  PRE-ALERT SYSTEM (Feature #27)
 
  /*
  * Send pre-alert notifications for a flood prediction.
@@ -362,7 +364,7 @@ export async function sendPreAlert(
   }
 
   const pred = predResult.rows[0]
-  const alertTitle = `Pre-Alert: ${pred.area} — ${(pred.probability * 100).toFixed(0)}% flood probability`
+  const alertTitle = `Pre-Alert: ${pred.area} - ${(pred.probability * 100).toFixed(0)}% flood probability`
   const alertMessage = `Flood predicted in ${pred.time_to_flood}. Areas at risk: ${(pred.next_areas || []).join(', ')}. Severity: ${pred.severity}. Take precautionary action now.`
 
   // Find subscribers in the affected area (within 20km)
@@ -415,7 +417,7 @@ export async function sendPreAlert(
   return { sent, channels: Array.from(channelsUsed) }
 }
 
-// §8  GET ACTIVE PREDICTIONS
+// -8  GET ACTIVE PREDICTIONS
 
  /*
  * Get all active (non-expired) flood predictions.

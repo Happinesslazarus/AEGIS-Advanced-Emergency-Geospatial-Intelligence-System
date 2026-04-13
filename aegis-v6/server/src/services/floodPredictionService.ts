@@ -1,12 +1,18 @@
- /*
- * services/floodPredictionService.ts — Predictive flood model
- * Takes current river levels from riverLevelService, fetches rainfall
- * forecast from OpenWeatherMap (or Open-Meteo fallback), and calculates
- * predicted river levels at 1h, 2h, 4h, 6h using linear extrapolation
- * weighted by rainfall rate.
- * Selects the appropriate GeoJSON polygon for each predicted level and
- * returns confidence percentage based on data source agreement.
-  */
+/**
+ * File: floodPredictionService.ts
+ *
+ * Flood prediction engine — combines current river levels, rainfall forecasts
+ * (OpenWeatherMap with Open-Meteo fallback), GeoJSON flood extents, and
+ * catchment response profiles to predict flood risk for each river.
+ *
+ * How it connects:
+ * - Pulls live levels from riverLevelService, forecasts from weather APIs
+ * - Optionally boosts predictions via the Python AI Engine (aiClient)
+ * - Loads GeoJSON flood polygons from disk for extent mapping
+ *
+ * Simple explanation:
+ * Predicts how likely each river is to flood based on water levels and weather.
+ */
 
 import { getCurrentLevels } from './riverLevelService.js'
 import { getActiveCityRegion } from '../config/regions/index.js'
@@ -420,7 +426,7 @@ async function storePrediction(prediction: FloodPrediction, aiProbability: numbe
 
 // —2  NON-LINEAR PREDICTION MODEL
 
- /**
+/**
  * Predict river level using non-linear models:
  * Rising: logistic curve approaching a saturation max
  * Falling: exponential decay (slower recession)
@@ -462,7 +468,7 @@ function predictNonLinear(
 
 // —3  HISTORICAL ANALOG MATCHING
 
- /**
+/**
  * Find historical flood events most similar to current conditions.
  */
 export async function findHistoricalAnalogs(
@@ -521,7 +527,7 @@ export async function findHistoricalAnalogs(
 
 // —4  ENSEMBLE PREDICTION
 
- /**
+/**
  * Combine standard linear, non-linear, and historical analog predictions into
  * an ensemble with uncertainty bands.
  */
@@ -597,7 +603,7 @@ export async function getEnsemblePredictions(): Promise<
 
 // —5  PREDICTION ACCURACY TRACKING
 
- /**
+/**
  * Compare past predictions (6-24h ago) with actual observed river levels
  * to compute RMSE, MAE, and bias per station.
  */
@@ -700,7 +706,7 @@ export async function trackPredictionAccuracy(): Promise<Array<{
 
 // —6  MULTI-RIVER INTERACTION ANALYSIS
 
- /**
+/**
  * Analyze whether multiple rivers rising simultaneously creates amplified flood risk.
  */
 export async function analyzeMultiRiverDynamics(): Promise<{

@@ -1,19 +1,28 @@
-﻿/*
- * auth.ts - JWT authentication middleware
+/**
+ * File: auth.ts
  *
- * Protects admin-only API routes by verifying JSON Web Tokens.
- * When an operator logs in, the server issues a signed JWT containing
- * their user ID and role. This middleware extracts the token from the
- * Authorization header, verifies its signature, and attaches the
- * decoded payload to the request object for downstream handlers.
+ * What this file does:
+ * JWT authentication and session management for the AEGIS API.
+ * Verifies access tokens, enforces role-based permissions, and manages
+ * refresh token sessions with rotation and revocation.
  *
- * Routes that require authentication use this as middleware:
- *   router.get('/protected', authMiddleware, handler)
+ * How it connects:
+ * - Every protected route uses authMiddleware to verify the caller's identity
+ * - requireRole() gates admin, operator, and citizen-specific endpoints
+ * - Session functions (createSession, validateSession, rotateRefreshToken)
+ *   are called by authRoutes.ts and citizenAuthRoutes.ts during login/refresh
+ * - Tokens are generated here and returned to clients via auth route handlers
  *
- * Enterprise features (2025 hardening):
- * 15-minute access tokens (short-lived)
- * requireVerifiedEmail middleware
- * Session-backed refresh tokens with rotation
+ * Key exports:
+ * - authMiddleware — verifies Bearer token on each request
+ * - requireRole() / adminOnly / operatorOnly / citizenOnly — role gates
+ * - generateToken() / generateRefreshToken() — issue JWTs
+ * - createSession() / validateSession() / rotateRefreshToken() — session lifecycle
+ *
+ * Simple explanation:
+ * This is the lock on every API door. It checks your key (JWT token),
+ * makes sure you're allowed in (role check), and keeps track of your
+ * login sessions so they can be revoked if needed.
  */
 
 import { Request, Response, NextFunction } from 'express'
@@ -27,7 +36,7 @@ export interface AuthRequest extends Request {
   user?: { id: string; email: string; role: string; displayName: string; department?: string | null }
 }
 
-// #1 — Never use a hardcoded fallback secret. Generate random for dev, crash in production.
+// Never use a hardcoded fallback secret. Generate random for dev, crash in production.
 const JWT_SECRET: string = (() => {
   if (process.env.JWT_SECRET) return process.env.JWT_SECRET
   if (process.env.NODE_ENV === 'production') {
@@ -118,7 +127,7 @@ export function generateRefreshToken(user: { id: string; role: string }): string
   return jwt.sign({ id: user.id, role: user.role, type: 'refresh' }, REFRESH_SECRET, { expiresIn: ttl })
 }
 
- /**
+/**
  * Verify any JWT (access or refresh) and return the decoded payload.
  * Use this instead of importing jsonwebtoken + JWT_SECRET elsewhere.
  */
@@ -133,9 +142,7 @@ export function verifyRefreshToken(token: string): { id: string; role: string; t
   return decoded
 }
 
-// Email Verification Middleware
-
- /**
+/**
  * Middleware that requires the authenticated user to have a verified email.
  * Must be used AFTER authMiddleware.
  * Checks the appropriate table (citizens or operators) based on the user's role.
@@ -164,19 +171,18 @@ export function requireVerifiedEmail(req: AuthRequest, res: Response, next: Next
       return
     }
     next()
-  }).catch(() => {
+  }).catch((err) => {
+    logger.error({ err, userId: req.user?.id }, '[Auth] Failed to check email verification status')
     res.status(500).json({ error: 'Failed to check email verification status.' })
   })
 }
 
-// Session Management Helpers
-
-/* Hash a refresh token for storage in user_sessions */
+// Hash a refresh token for storage in user_sessions
 export function hashRefreshToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex')
 }
 
- /**
+/**
  * Create a session record for a refresh token.
  * Returns the session ID.
  */
@@ -200,7 +206,7 @@ export async function createSession(options: {
   return result.rows[0].id
 }
 
- /**
+/**
  * Validate a refresh token against the sessions table.
  * Returns the session if found and not revoked/expired, null otherwise.
  */
@@ -227,7 +233,7 @@ export async function validateSession(refreshToken: string): Promise<{
   }
 }
 
- /**
+/**
  * Rotate a refresh token: revoke the old session and create a new one.
  * This prevents token replay attacks.
  */
@@ -260,7 +266,7 @@ export async function rotateRefreshToken(options: {
   })
 }
 
- /**
+/**
  * Revoke all sessions for a user (e.g. password change, security event).
  */
 export async function revokeAllSessions(

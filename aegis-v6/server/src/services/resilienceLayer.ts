@@ -1,17 +1,23 @@
-﻿ /*
- * services/resilienceLayer.ts — API Caching, Rate Limiting, Retry Logic
- * Provides:
- *   1. In-memory LRU cache with TTL for API responses
- *   2. Per-provider rate limit tracking
- *   3. Exponential backoff retry with circuit breaker
- *   4. Provider health monitoring
- *   5. Automatic fallback switching
- * This is the infrastructure layer that ALL external API calls route through.
-  */
+/**
+ * File: resilienceLayer.ts
+ *
+ * Three-in-one resilience module — LRU caches with TTL (for API, embedding,
+ * and LLM responses), token-bucket rate limiters for 8 external providers,
+ * and a circuit breaker. Exports resilientFetch which wraps HTTP calls with
+ * all three protections.
+ *
+ * How it connects:
+ * - Used by llmRouter, embeddingRouter, and external API wrappers
+ * - Rate limits pre-configured for Gemini, Groq, HuggingFace, etc.
+ * - selfHealing reads circuit breaker state for health scoring
+ *
+ * Simple explanation:
+ * Prevents cascading failures when external services go down.
+ */
 
 import { logger } from './logger.js'
 
-// §1  LRU CACHE WITH TTL
+// -1  LRU CACHE WITH TTL
 
 interface CacheEntry<T> {
   value: T
@@ -90,7 +96,7 @@ export const apiCache = new LRUCache(500)       // API response cache
 export const embeddingCache = new LRUCache(200)  // Embedding vector cache
 export const llmCache = new LRUCache(100)        // LLM response cache
 
-// §2  RATE LIMITER
+// -2  RATE LIMITER
 
 interface RateLimitConfig {
   maxRequests: number
@@ -160,7 +166,7 @@ rateLimiter.configure('newsapi', { maxRequests: 5, windowMs: 60000 })
 rateLimiter.configure('wikipedia', { maxRequests: 10, windowMs: 60000 })
 rateLimiter.configure('nominatim', { maxRequests: 1, windowMs: 1000 }) // Strict 1/sec
 
-// §3  CIRCUIT BREAKER
+// -3  CIRCUIT BREAKER
 
 interface CircuitState {
   failures: number
@@ -233,7 +239,7 @@ class CircuitBreaker {
 
 export const circuitBreaker = new CircuitBreaker()
 
-// §4  RESILIENT FETCH — Combines all layers
+// -4  RESILIENT FETCH - Combines all layers
 
 interface ResilientFetchOptions {
   provider: string
@@ -244,7 +250,7 @@ interface ResilientFetchOptions {
 }
 
  /*
- * Fetch with full resilience: cache check → rate limit → circuit breaker → retry → cache store
+ * Fetch with full resilience: cache check ? rate limit ? circuit breaker ? retry ? cache store
   */
 export async function resilientFetch<T = any>(
   url: string,
@@ -267,7 +273,7 @@ export async function resilientFetch<T = any>(
 
   // 2. Circuit breaker
   if (circuitBreaker.isOpen(provider)) {
-    throw new Error(`[Resilience] ${provider} circuit is open — service temporarily unavailable`)
+    throw new Error(`[Resilience] ${provider} circuit is open - service temporarily unavailable`)
   }
 
   // 3. Rate limit
@@ -317,7 +323,7 @@ export async function resilientFetch<T = any>(
   throw lastError || new Error(`[Resilience] ${provider}: all retries exhausted`)
 }
 
-// §5  HEALTH MONITORING
+// -5  HEALTH MONITORING
 
 export function getResilienceStatus() {
   return {
@@ -330,4 +336,4 @@ export function getResilienceStatus() {
     circuitBreakers: circuitBreaker.status(),
   }
 }
-
+

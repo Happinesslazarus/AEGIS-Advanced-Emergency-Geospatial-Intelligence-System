@@ -1,3 +1,16 @@
+/**
+ * File: distress.real-routes.integration.test.ts
+ *
+ * What it tests:
+ * Real-route integration tests for the SOS distress endpoints.
+  * Runs full HTTP + auth + DB stack to verify rate limiting, CSRF
+  * protection, and edge cases (duplicate SOS, GPS missing).
+  *
+  * How it connects:
+  * - Tests server/src/routes/distressRoutes.ts end-to-end
+  * - Run via: npm test -- distress.real
+ */
+
 process.env.NODE_ENV = 'test'
 process.env.JWT_SECRET ??= 'test-jwt-secret-at-least-32-characters-long'
 process.env.REFRESH_TOKEN_SECRET ??= 'test-refresh-secret-at-least-32-chars'

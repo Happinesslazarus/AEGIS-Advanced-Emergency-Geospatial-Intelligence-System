@@ -1,19 +1,26 @@
-﻿/*
- * citizenAuthRoutes.ts - Citizen Authentication API
+/**
+ * File: citizenAuthRoutes.ts
  *
- * Handles all citizen-facing auth endpoints:
- *   POST /api/citizen-auth/register      - Create citizen account
- *   POST /api/citizen-auth/login         - Authenticate citizen
- *   GET  /api/citizen-auth/me            - Get current citizen profile
- *   PUT  /api/citizen-auth/profile       - Update citizen profile
- *   PUT  /api/citizen-auth/preferences   - Update notification/audio/caption prefs
- *   GET  /api/citizen-auth/preferences   - Get preferences
- *   POST /api/citizen-auth/emergency-contacts    - Add emergency contact
- *   GET  /api/citizen-auth/emergency-contacts     - List emergency contacts
- *   DELETE /api/citizen-auth/emergency-contacts/:id - Remove emergency contact
+ * What this file does:
+ * Public citizen authentication: self-service registration, login with
+ * lockout protection, email verification, password reset, profile and
+ * notification preference management, emergency contacts.
  *
- * Separate from operator auth — citizens have their own table and JWT tokens
- * with role='citizen' to distinguish from operator tokens.
+ * How it connects:
+ * - Mounted at /api/citizen-auth in index.ts
+ * - Uses the same JWT system as operator auth (role='citizen' in token)
+ * - Includes honeypot fields to catch bot registrations
+ * - Checks passwords against the Have I Been Pwned database
+ *
+ * Key endpoints:
+ * POST /api/citizen-auth/register     — Create citizen account
+ * POST /api/citizen-auth/login        — Authenticate citizen
+ * GET  /api/citizen-auth/me           — Get current profile
+ * PUT  /api/citizen-auth/profile      — Update profile
+ * PUT  /api/citizen-auth/preferences  — Notification preferences
+ *
+ * Simple explanation:
+ * How citizens sign up, log in, and manage their accounts.
  */
 
 import { Router, Response, NextFunction } from 'express'
@@ -33,16 +40,18 @@ import { logSecurityEvent, checkSuspiciousActivity } from '../services/securityL
 import { generateTempToken, hashTempToken } from '../utils/twoFactorCrypto.js'
 import { AppError } from '../utils/AppError.js'
 import { logger } from '../services/logger.js'
+import { validatePasswordNotBreached } from '../services/hibpService.js'
 
 const router = Router()
 
 // Rate limiter for login attempts (brute-force protection)
 const loginLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 50, // 50 login attempts per hour
-  message: { error: 'Too many login attempts. Please try again in 1 hour.' },
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 login attempts per 15 minutes per IP
+  message: { error: 'Too many login attempts. Please try again in 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
+  skipSuccessfulRequests: true, // Only count failed attempts toward the limit
 })
 
 // Rate limiter for registration (anti-bot)
@@ -79,14 +88,14 @@ const MAX_ADDRESS = 200
 const MAX_PHONE = 30
 const MAX_CITY = 100
 
-// POST /register — Create a new citizen account
+// POST /register - Create a new citizen account
 router.post('/register', registerLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { email, password, displayName, phone, preferredRegion,
             isVulnerable, vulnerabilityDetails, country, city, dateOfBirth,
             bio, addressLine } = req.body
 
-    // Honeypot — invisible field filled by bots, real users leave it empty
+    // Honeypot - invisible field filled by bots, real users leave it empty
     if (req.body.website || req.body.url || req.body.fax) {
       // Silently reject without revealing why (looks like success to bots)
       res.status(201).json({ message: 'Registration successful! Please check your email to verify your account.' })
@@ -104,8 +113,34 @@ router.post('/register', registerLimiter, async (req: AuthRequest, res: Response
     }
 
     // Input length validation
+    if (typeof displayName === 'string' && displayName.trim().length < 2) {
+      throw AppError.badRequest('Display name must be at least 2 characters.')
+    }
     if (typeof displayName === 'string' && displayName.length > MAX_DISPLAY_NAME) {
       throw AppError.badRequest(`Display name must be ${MAX_DISPLAY_NAME} characters or less.`)
+    }
+
+    // Date of birth validation — must be a real past date and user must be at least 13 years old
+    if (dateOfBirth) {
+      const dob = new Date(dateOfBirth)
+      if (isNaN(dob.getTime())) {
+        throw AppError.badRequest('Invalid date of birth.')
+      }
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      if (dob >= today) {
+        throw AppError.badRequest('Date of birth cannot be today or in the future.')
+      }
+      const minAgeDate = new Date(today)
+      minAgeDate.setFullYear(minAgeDate.getFullYear() - 13)
+      if (dob > minAgeDate) {
+        throw AppError.badRequest('You must be at least 13 years old to create an account.')
+      }
+      const maxAgeDate = new Date(today)
+      maxAgeDate.setFullYear(maxAgeDate.getFullYear() - 120)
+      if (dob < maxAgeDate) {
+        throw AppError.badRequest('Please enter a valid date of birth.')
+      }
     }
     if (typeof bio === 'string' && bio.length > MAX_BIO) {
       throw AppError.badRequest(`Bio must be ${MAX_BIO} characters or less.`)
@@ -121,6 +156,17 @@ router.post('/register', registerLimiter, async (req: AuthRequest, res: Response
     const pwResult = validatePasswordStrength(password, email)
     if (!pwResult.valid) {
       res.status(400).json({ error: pwResult.errors[0] })
+      return
+    }
+
+    // Check password against Have I Been Pwned database (k-Anonymity safe)
+    const hibpResult = await validatePasswordNotBreached(password, { blockThreshold: 0 })
+    if (!hibpResult.valid) {
+      res.status(400).json({
+        error: hibpResult.message,
+        breach_count: hibpResult.breachCount,
+        code: 'PASSWORD_BREACHED',
+      })
       return
     }
 
@@ -215,7 +261,7 @@ router.post('/register', registerLimiter, async (req: AuthRequest, res: Response
     res.cookie('aegis_refresh', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: 'strict',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       path: '/api/citizen-auth',
     })
@@ -242,7 +288,7 @@ router.post('/register', registerLimiter, async (req: AuthRequest, res: Response
   }
 })
 
-// POST /check-availability — Check if email or phone is already registered
+// POST /check-availability - Check if email or phone is already registered
 router.post('/check-availability', registerLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { email, phone } = req.body
@@ -277,7 +323,7 @@ router.post('/check-availability', registerLimiter, async (req: AuthRequest, res
   }
 })
 
-// POST /login — Authenticate citizen
+// POST /login - Authenticate citizen
 router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { email, password } = req.body
@@ -298,7 +344,7 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next
     )
 
     if (result.rows.length === 0) {
-      // Log failed attempt (no user found — don't reveal this)
+      // Log failed attempt (no user found - don't reveal this)
       await logSecurityEvent({ eventType: 'login_failed', ipAddress: clientIp, userAgent, metadata: { reason: 'unknown_email' } })
       throw AppError.unauthorized('Invalid email or password.')
     }
@@ -355,10 +401,10 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next
       throw AppError.unauthorized('Invalid email or password.')
     }
 
-    // Successful login — reset failed attempts
+    // Successful login - reset failed attempts
     await resetFailedLogins('citizens', citizen.id)
 
-    // 2FA Gate — if citizen has 2FA enabled, issue temp token instead of full JWT
+    // 2FA Gate - if citizen has 2FA enabled, issue temp token instead of full JWT
     if (citizen.two_factor_enabled) {
       const tempTokenRaw = generateTempToken()
       const tempTokenHash = hashTempToken(tempTokenRaw)
@@ -429,7 +475,7 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next
     res.cookie('aegis_refresh', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: 'strict',
       maxAge: 7 * 24 * 60 * 60 * 1000,
       path: '/api/citizen-auth',
     })
@@ -471,7 +517,7 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response, next
   }
 })
 
-// GET /me — Get current citizen profile (protected)
+// GET /me - Get current citizen profile (protected)
 router.get('/me', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const result = await pool.query(
@@ -546,7 +592,7 @@ router.get('/me', authMiddleware, async (req: AuthRequest, res: Response, next: 
   }
 })
 
-// PUT /profile — Update citizen profile (protected)
+// PUT /profile - Update citizen profile (protected)
 router.put('/profile', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { displayName, phone, preferredRegion, locationLat, locationLng,
@@ -622,7 +668,7 @@ router.put('/profile', authMiddleware, async (req: AuthRequest, res: Response, n
   }
 })
 
-// POST /avatar — Upload profile photo (protected)
+// POST /avatar - Upload profile photo (protected)
 router.post('/avatar', authMiddleware, uploadAvatar, validateMagicBytes, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     if (!req.file) {
@@ -642,7 +688,7 @@ router.post('/avatar', authMiddleware, uploadAvatar, validateMagicBytes, async (
   }
 })
 
-// GET /preferences — Get citizen preferences (protected)
+// GET /preferences - Get citizen preferences (protected)
 router.get('/preferences', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const result = await pool.query(
@@ -655,7 +701,7 @@ router.get('/preferences', authMiddleware, async (req: AuthRequest, res: Respons
   }
 })
 
-// PUT /preferences — Update citizen preferences (protected)
+// PUT /preferences - Update citizen preferences (protected)
 router.put('/preferences', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const {
@@ -811,6 +857,17 @@ router.post('/change-password', authMiddleware, changePasswordLimiter, async (re
       return
     }
 
+    // Check password against Have I Been Pwned (OWASP ASVS requirement)
+    const hibpResult = await validatePasswordNotBreached(newPassword, { blockThreshold: 0 })
+    if (!hibpResult.valid) {
+      res.status(400).json({
+        error: hibpResult.message,
+        breach_count: hibpResult.breachCount,
+        code: 'PASSWORD_BREACHED',
+      })
+      return
+    }
+
     const userResult = await pool.query(
       'SELECT password_hash FROM citizens WHERE id = $1 AND deleted_at IS NULL',
       [req.user!.id]
@@ -856,7 +913,7 @@ router.post('/change-password', authMiddleware, changePasswordLimiter, async (re
   }
 })
 
-// POST /forgot-password — Request a password reset token
+// POST /forgot-password - Request a password reset token
 router.post('/forgot-password', resetLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { email } = req.body
@@ -871,7 +928,7 @@ router.post('/forgot-password', resetLimiter, async (req: AuthRequest, res: Resp
     )
 
     if (result.rows.length === 0) {
-      // Don't reveal whether the email exists — always return success
+      // Don't reveal whether the email exists - always return success
       res.json({ success: true, message: 'If an account with that email exists, a password reset link has been generated.' })
       return
     }
@@ -883,7 +940,7 @@ router.post('/forgot-password', resetLimiter, async (req: AuthRequest, res: Resp
     const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex')
     const resetExpires = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
 
-    // Store the HASH — never store the raw token
+    // Store the HASH - never store the raw token
     await pool.query(
       'UPDATE citizens SET reset_token = $1, reset_token_expires = $2 WHERE id = $3',
       [tokenHash, resetExpires, citizen.id]
@@ -911,7 +968,7 @@ router.post('/forgot-password', resetLimiter, async (req: AuthRequest, res: Resp
   }
 })
 
-// POST /reset-password — Reset password using a token
+// POST /reset-password - Reset password using a token
 router.post('/reset-password', resetLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { token, newPassword } = req.body
@@ -926,6 +983,17 @@ router.post('/reset-password', resetLimiter, async (req: AuthRequest, res: Respo
     const pwResult = validatePasswordStrength(newPassword)
     if (!pwResult.valid) {
       res.status(400).json({ error: pwResult.errors[0] })
+      return
+    }
+
+    // Check password against Have I Been Pwned (OWASP ASVS requirement)
+    const hibpResult = await validatePasswordNotBreached(newPassword, { blockThreshold: 0 })
+    if (!hibpResult.valid) {
+      res.status(400).json({
+        error: hibpResult.message,
+        breach_count: hibpResult.breachCount,
+        code: 'PASSWORD_BREACHED',
+      })
       return
     }
 
@@ -975,7 +1043,7 @@ router.post('/reset-password', resetLimiter, async (req: AuthRequest, res: Respo
   }
 })
 
-// POST /refresh — Get new access token using refresh token cookie (#24)
+// POST /refresh - Get new access token using refresh token cookie (#24)
 router.post('/refresh', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const refreshCookie = req.cookies?.aegis_refresh
@@ -1027,7 +1095,7 @@ router.post('/refresh', async (req: AuthRequest, res: Response, next: NextFuncti
     res.cookie('aegis_refresh', newRefreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: 'strict',
       maxAge: 7 * 24 * 60 * 60 * 1000,
       path: '/api/citizen-auth',
     })
@@ -1039,7 +1107,7 @@ router.post('/refresh', async (req: AuthRequest, res: Response, next: NextFuncti
   }
 })
 
-// POST /logout — Server-side logout: clear refresh cookie (#25)
+// POST /logout - Server-side logout: clear refresh cookie (#25)
 router.post('/logout', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   const refreshCookie = req.cookies?.aegis_refresh
   if (refreshCookie) {
@@ -1056,7 +1124,7 @@ router.post('/logout', async (req: AuthRequest, res: Response, next: NextFunctio
   res.json({ success: true, message: 'Logged out.' })
 })
 
-// GET /verify-email?token=xxx — Verify citizen email address (#23)
+// GET /verify-email?token=xxx - Verify citizen email address (#23)
 router.get('/verify-email', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { token } = req.query
@@ -1100,7 +1168,7 @@ router.get('/verify-email', async (req: AuthRequest, res: Response, next: NextFu
   }
 })
 
-// POST /resend-verification — Resend email verification token (#23)
+// POST /resend-verification - Resend email verification token (#23)
 const resendLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 3,

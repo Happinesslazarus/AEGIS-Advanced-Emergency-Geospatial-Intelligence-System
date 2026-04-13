@@ -1,91 +1,111 @@
-#  AEGIS AI ENGINE — Python Dependencies
-#  Production-ready multi-hazard environmental intelligence platform
-#  Updated 2026-03-24 — security audit: pinned to latest stable versions
+﻿#  AEGIS AI ENGINE — Python Dependencies (Python 3.13 compatible)
 
 # Core Framework
-fastapi==0.115.5
-uvicorn[standard]==0.32.1
-pydantic==2.10.2
-pydantic-settings==2.6.1
+fastapi>=0.115.5
+uvicorn[standard]>=0.32.1
+pydantic>=2.10.2
+pydantic-settings>=2.6.1
 
 # Rate limiting
-slowapi==0.1.9
+slowapi>=0.1.9
 
 # Machine Learning & Deep Learning
-scikit-learn==1.6.1
-xgboost==2.1.4
-lightgbm==4.5.0
-catboost==1.2.7
-tensorflow==2.18.0
-torch==2.5.1
-transformers==4.47.1
+scikit-learn>=1.6.1
+xgboost>=2.1.4
+lightgbm>=4.5.0
+catboost>=1.2.10
+tensorflow>=2.18.0
+torch>=2.5.1
+transformers>=4.47.1
 
 # Time Series & Statistics
-statsmodels==0.14.4
-pmdarima==2.0.4
-prophet==1.1.6
-scipy==1.15.1
-numpy==2.2.1
-pandas==2.2.3
+statsmodels>=0.14.4
+pmdarima>=2.0.4
+prophet>=1.1.6
+scipy>=1.15.1
+numpy>=1.26.4
+pandas>=2.2.3
 
 # Geospatial & GIS
-rasterio==1.4.3
-geopandas==1.0.1
-shapely==2.0.6
-pyproj==3.7.1
-fiona==1.10.1
+rasterio>=1.4.3
+geopandas>=1.0.1
+shapely>=2.0.6
+pyproj>=3.7.1
+fiona>=1.10.1
 
 # Database
-psycopg2-binary==2.9.10
-sqlalchemy==2.0.36
-asyncpg==0.30.0
+psycopg2-binary>=2.9.10
+sqlalchemy>=2.0.36
+asyncpg>=0.30.0
 
 # Model Management & Versioning
-mlflow==2.19.0
-joblib==1.4.2
+mlflow>=2.19.0
+joblib>=1.4.2
 
 # Explainability & Monitoring
-shap==0.46.0
-lime==0.2.0.1
-alibi==0.9.6
-evidently==0.5.0
+shap>=0.47.0
+lime>=0.2.0.1
+# alibi removed — incompatible with great-expectations on Python 3.13 (numpy<2 vs numpy>=2.1 conflict)
+evidently>=0.5.0
 
 # Data Validation
-great-expectations==1.3.1
-cerberus==1.3.5
+great-expectations>=1.7.0
+cerberus>=1.3.5
 
 # Calibration & Metrics
-scikit-optimize==0.10.2
-imbalanced-learn==0.12.4
-optuna==4.1.0
+scikit-optimize>=0.10.2
+imbalanced-learn>=0.12.4
+optuna>=4.1.0
+optuna-integration>=0.4.0
 
 # API & Communication
-httpx==0.28.1
-requests==2.32.3
+httpx>=0.28.1
+requests>=2.32.3
 aiohttp>=3.11.11
-python-multipart==0.0.20
-aiofiles==24.1.0
+python-multipart>=0.0.20
+aiofiles>=24.1.0
 pyarrow>=18.1.0
 
 # Logging & Monitoring
-loguru==0.7.3
-python-json-logger==3.2.1
-prometheus-client==0.21.1
-sentry-sdk==2.19.2
+loguru>=0.7.3
+python-json-logger>=3.2.1
+prometheus-client>=0.21.1
+sentry-sdk>=2.19.2
 
 # Utilities
-python-dotenv==1.0.1
-pyyaml==6.0.2
-toml==0.10.2
-pytz==2024.2
-python-dateutil==2.9.0
-tqdm==4.67.1
+python-dotenv>=1.0.1
+pyyaml>=6.0.2
+toml>=0.10.2
+pytz>=2024.2
 
-# Satellite & Remote Sensing (Optional - for Phase 5)
-# sentinelsat==1.2.1
-# rioxarray==0.15.0
+# Google Earth Engine feature extraction
+earthengine-api>=1.3.0
+geemap>=0.34.1
+
+# Climate reanalysis datasets (ERA5, SPEI)
+cdsapi>=0.7.4
+xarray>=2024.11.0
+netCDF4>=1.7.2
+rioxarray>=0.18.1
+
+# Experiment tracking
+wandb>=0.19.1
+
+# CLIP fine-tuning
+open-clip-torch>=2.29.0
+
+# Voice transcription
+faster-whisper>=1.1.1
+
+# Sentinel-1 SAR download
+sentinelsat>=1.2.1
+
+# Visualisation
+seaborn>=0.13.2
+python-dateutil>=2.9.0
+tqdm>=4.67.1
 
 # Testing
-pytest==8.3.4
-pytest-asyncio==0.24.0
-pytest-cov==6.0.0
+pytest>=8.3.4
+pytest-asyncio>=0.24.0
+pytest-cov>=6.0.0

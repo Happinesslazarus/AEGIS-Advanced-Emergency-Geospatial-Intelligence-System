@@ -6,7 +6,7 @@
 
 BEGIN;
 
--- §1  ENUM TYPES
+-- ENUM TYPES
 
 DO $$ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'citizen_role') THEN
@@ -30,7 +30,7 @@ DO $$ BEGIN
     END IF;
 END $$;
 
--- §2  CITIZENS TABLE
+-- CITIZENS TABLE
 
 CREATE TABLE IF NOT EXISTS citizens (
     id                  UUID            PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -81,7 +81,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_citizens_email_active
 CREATE INDEX IF NOT EXISTS idx_citizens_preferred_region
     ON citizens (preferred_region) WHERE deleted_at IS NULL;
 
--- §3  CITIZEN PREFERENCES TABLE
+-- CITIZEN PREFERENCES TABLE
 
 CREATE TABLE IF NOT EXISTS citizen_preferences (
     citizen_id                  UUID        PRIMARY KEY REFERENCES citizens(id) ON DELETE CASCADE,
@@ -112,7 +112,7 @@ CREATE TABLE IF NOT EXISTS citizen_preferences (
     updated_at                  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- §4  EMERGENCY CONTACTS TABLE
+-- EMERGENCY CONTACTS TABLE
 
 CREATE TABLE IF NOT EXISTS emergency_contacts (
     id              UUID            PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -128,7 +128,7 @@ CREATE TABLE IF NOT EXISTS emergency_contacts (
 CREATE INDEX IF NOT EXISTS idx_emergency_contacts_citizen
     ON emergency_contacts (citizen_id);
 
--- §5  SAFETY STATUS TABLE
+-- SAFETY STATUS TABLE
 
 CREATE TABLE IF NOT EXISTS safety_check_ins (
     id                  UUID                    PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -159,7 +159,7 @@ CREATE INDEX IF NOT EXISTS idx_safety_check_ins_escalation
 CREATE INDEX IF NOT EXISTS idx_safety_check_ins_created
     ON safety_check_ins (created_at DESC);
 
--- §6  MESSAGE THREADS TABLE
+-- MESSAGE THREADS TABLE
 
 CREATE TABLE IF NOT EXISTS message_threads (
     id              UUID                PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -188,7 +188,7 @@ CREATE INDEX IF NOT EXISTS idx_message_threads_assigned
     ON message_threads (assigned_to)
     WHERE assigned_to IS NOT NULL;
 
--- §7  MESSAGES TABLE
+-- MESSAGES TABLE
 
 CREATE TABLE IF NOT EXISTS messages (
     id              UUID                    PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -207,7 +207,7 @@ CREATE INDEX IF NOT EXISTS idx_messages_unread
     ON messages (thread_id, read_at)
     WHERE read_at IS NULL;
 
--- §8  CITIZEN ALERT HISTORY (tracks which alerts a citizen has seen/acted on)
+-- CITIZEN ALERT HISTORY (tracks which alerts a citizen has seen/acted on)
 
 CREATE TABLE IF NOT EXISTS citizen_alert_history (
     id              UUID            PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -223,7 +223,7 @@ CREATE TABLE IF NOT EXISTS citizen_alert_history (
 CREATE INDEX IF NOT EXISTS idx_citizen_alert_history_citizen
     ON citizen_alert_history (citizen_id, seen_at DESC);
 
--- §9  TRIGGERS
+-- TRIGGERS
 
 -- Auto-update updated_at on citizens
 DROP TRIGGER IF EXISTS trg_citizens_updated_at ON citizens;

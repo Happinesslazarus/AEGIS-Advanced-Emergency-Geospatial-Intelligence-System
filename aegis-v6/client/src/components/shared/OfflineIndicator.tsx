@@ -1,10 +1,10 @@
 /**
- * components/shared/OfflineIndicator.tsx
+ * Module: OfflineIndicator.tsx
  *
- * A persistent banner that appears when the user loses connectivity.
- * Shows queued request count and a manual sync button.
- * Auto-dismisses 3 s after reconnection.
- */
+ * Offline indicator shared component (reusable UI element used across pages).
+ *
+ * How it connects:
+ * - Used across both admin and citizen interfaces */
 
 import React, { useEffect, useState } from 'react'
 import { WifiOff, RefreshCw, Check } from 'lucide-react'
@@ -73,4 +73,4 @@ export default function OfflineIndicator(): JSX.Element | null {
     </div>
   )
 }
-
+

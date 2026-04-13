@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """
-AEGIS World-Class Model Training Script
-Trains all ML models from the seeded database data.
-Runs: report_classifier, severity_predictor, fake_detector, and the production ML pipeline.
+Module: train_all_models.py
+
+Train_all_models utility script.
+
+Simple explanation:
+Standalone script for train_all_models.
 """
 
 import asyncio
@@ -16,7 +19,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "ai-engine"))
 os.chdir(str(Path(__file__).parent.parent.parent / "ai-engine"))
 
-DB_URL = "postgresql://postgres:Happylove%40%21@localhost:5432/aegis"
+DB_URL = os.environ.get('DATABASE_URL', 'postgresql://localhost:5432/aegis')
 
 async def train_report_classifier():
     """Train the hazard type classifier."""
@@ -176,7 +179,7 @@ async def main():
     
     # Summary
     print("\n" + "=" * 60)
-    print(f"TRAINING COMPLETE — {elapsed:.1f}s total")
+    print(f"TRAINING COMPLETE Ã¢â‚¬â€ {elapsed:.1f}s total")
     print("=" * 60)
     
     for name, result in all_results.items():

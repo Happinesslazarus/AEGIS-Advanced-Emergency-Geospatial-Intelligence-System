@@ -1,17 +1,16 @@
 """
-train_environmental_hazard.py — Environmental Hazard Training Pipeline
+File: train_environmental_hazard.py
 
-Features: aqi_proxy, wind_speed, temperature, temperature_inversion_risk,
-          humidity, dispersion_factor, season
-Data:     Open-Meteo historical for meteorological factors
-          OpenAQ for AQI when accessible (optional enhancer)
-Labels:   AQI-proxy thresholds → supervised-equivalent (threshold on AQI levels)
-          When real AQI unavailable, uses weather-based air quality proxy
-Model:    XGBoost classifier
+What this file does:
+Trains the environmental hazard risk-prediction model on synthetic/augmented data.
+Uses BaseHazardPipeline for the training loop. Useful as a quick
+bootstrap when real-world labelled data is unavailable.
 
-Usage:
-    python -m app.training.train_environmental_hazard --region=global
-    python -m app.training.train_environmental_hazard --region=india
+How it connects:
+- Extends ai-engine/app/training/base_hazard_pipeline.py
+- Synthetic feature generation via data_loaders.py and data_ingestion.py
+- Saves to model_registry/environmental_hazard/ via ModelRegistry
+- Loaded at inference time by ai-engine/app/hazards/environmental_hazard.py
 """
 
 from __future__ import annotations

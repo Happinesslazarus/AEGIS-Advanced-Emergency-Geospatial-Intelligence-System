@@ -1,7 +1,16 @@
-"""Backward-compatible re-export for regional registry.
+"""
+File: region_registry.py  (app/registry re-export shim)
 
-Canonical source of truth is `registry.region_registry`.
-This shim keeps existing imports working without duplication.
+What this file does:
+Re-exports REGION_REGISTRY, RegionConfig, and helper functions from the
+top-level registry/ package so that app/ modules can import region data
+without going outside the app/ tree. Also exposes is_region_enabled() as
+a convenience check.
+
+How it connects:
+- Source data in ai-engine/registry/region_registry.py
+- Used by hazard predictors to validate region_id before predicting
+- Region list drives the multi-location weather fetcher in training/
 """
 
 from registry.region_registry import (

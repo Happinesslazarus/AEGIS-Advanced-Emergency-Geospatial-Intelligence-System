@@ -1,17 +1,25 @@
 /**
- * routes/adminAiRoutes.ts — Admin AI system management endpoints
+ * File: adminAiRoutes.ts
  *
- * Provides admin endpoints for AI system monitoring and management:
- *   GET  /api/admin/ai/token-usage     — Token usage stats (local vs API)
- *   GET  /api/admin/ai/provider-health — All LLM provider statuses
- *   GET  /api/admin/ai/analytics       — Session analytics summary
- *   GET  /api/admin/ai/canned-replies  — List canned reply templates
- *   POST /api/admin/ai/canned-replies  — Create canned reply
- *   PUT  /api/admin/ai/canned-replies/:id — Update canned reply
- *   DELETE /api/admin/ai/canned-replies/:id — Delete canned reply
- *   POST /api/admin/ai/draft-reply     — AI-drafted reply for admin messaging
+ * What this file does:
+ * Admin AI management: token usage analytics, LLM provider health
+ * monitoring, chat session analytics, and canned reply templates
+ * for admin messaging.
  *
- * All routes require admin/operator authentication.
+ * How it connects:
+ * - Mounted at /api/admin/ai in index.ts
+ * - Reads AI analytics from the database and LLM provider APIs
+ * - Requires admin authentication
+ *
+ * Key endpoints:
+ * GET  /api/admin/ai/token-usage     — Token usage stats
+ * GET  /api/admin/ai/provider-health — LLM provider statuses
+ * GET  /api/admin/ai/analytics       — Session analytics
+ * CRUD /api/admin/ai/canned-replies  — Canned reply management
+ * POST /api/admin/ai/draft-reply     — AI-drafted reply
+ *
+ * Simple explanation:
+ * Admin dashboard for monitoring AI usage and managing response templates.
  */
 
 import { Router, Response, NextFunction } from 'express'
@@ -27,7 +35,7 @@ const router = Router()
 router.use(authMiddleware)
 router.use(requireRole('admin', 'operator', 'super_admin', 'superadmin'))
 
- /**
+/**
  * GET /api/admin/ai/token-usage — Token usage statistics
  * Returns today/week breakdown of local vs API usage, per-provider totals.
  */
@@ -40,7 +48,7 @@ router.get('/token-usage', async (_req: AuthRequest, res: Response, next: NextFu
   }
 })
 
- /**
+/**
  * GET /api/admin/ai/provider-health — All LLM provider health statuses
  */
 router.get('/provider-health', async (_req: AuthRequest, res: Response, next: NextFunction) => {
@@ -68,7 +76,7 @@ router.get('/provider-health', async (_req: AuthRequest, res: Response, next: Ne
   }
 })
 
- /**
+/**
  * GET /api/admin/ai/analytics — Aggregated chat analytics
  * Returns conversation metrics: total sessions, avg quality, agent distribution, etc.
  */
@@ -117,7 +125,7 @@ router.get('/analytics', async (_req: AuthRequest, res: Response, next: NextFunc
   }
 })
 
- /**
+/**
  * GET /api/admin/ai/canned-replies — List all canned reply templates
  */
 router.get('/canned-replies', async (_req: AuthRequest, res: Response, next: NextFunction) => {
@@ -138,7 +146,7 @@ router.get('/canned-replies', async (_req: AuthRequest, res: Response, next: Nex
   }
 })
 
- /**
+/**
  * POST /api/admin/ai/canned-replies — Create a new canned reply
  * Body: { title: string, content: string, category?: string, shortcut?: string }
  */
@@ -146,7 +154,7 @@ router.post('/canned-replies', async (req: AuthRequest, res: Response, next: Nex
   try {
     const { title, content, category, shortcut } = req.body
     if (!title || !content) {
-      return res.status(400).json({ error: 'title and content are required' })
+      return res.status(400).json({ error: 'Both a title and content are required to save a canned reply.' })
     }
 
     const { rows } = await pool.query(
@@ -160,13 +168,13 @@ router.post('/canned-replies', async (req: AuthRequest, res: Response, next: Nex
     res.status(201).json(rows[0])
   } catch (err: any) {
     if (err.code === '42P01') {
-      return res.status(503).json({ error: 'canned_replies table not yet created. Run migration.' })
+      return res.status(503).json({ error: 'The canned replies feature is not yet set up. A database migration needs to be run — please contact your system administrator.' })
     }
     next(err)
   }
 })
 
- /**
+/**
  * PUT /api/admin/ai/canned-replies/:id — Update a canned reply
  */
 router.put('/canned-replies/:id', async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -192,7 +200,7 @@ router.put('/canned-replies/:id', async (req: AuthRequest, res: Response, next: 
   }
 })
 
- /**
+/**
  * DELETE /api/admin/ai/canned-replies/:id — Soft-delete a canned reply
  */
 router.delete('/canned-replies/:id', async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -208,7 +216,7 @@ router.delete('/canned-replies/:id', async (req: AuthRequest, res: Response, nex
   }
 })
 
- /**
+/**
  * POST /api/admin/ai/draft-reply — Generate AI draft reply for admin messaging
  * Body: { threadId: string, citizenMessage: string, context?: string }
  * Returns: { draft: string, model: string, tokensUsed: number }
@@ -217,7 +225,7 @@ router.post('/draft-reply', async (req: AuthRequest, res: Response, next: NextFu
   try {
     const { threadId, citizenMessage, context } = req.body
     if (!citizenMessage) {
-      return res.status(400).json({ error: 'citizenMessage is required' })
+      return res.status(400).json({ error: 'A citizen message is required to generate a suggested reply.' })
     }
 
     // Load thread context if threadId provided

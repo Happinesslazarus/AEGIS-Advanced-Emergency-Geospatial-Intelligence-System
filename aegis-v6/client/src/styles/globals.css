@@ -2,6 +2,58 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Global interactive micro-feedback — buttons/links get press scale + hover lift */
+@layer base {
+  button:not([disabled]),
+  [role="button"]:not([disabled]),
+  a[href] {
+    transition: transform 0.15s cubic-bezier(.4,0,.2,1), box-shadow 0.15s ease;
+  }
+  button:not([disabled]):hover,
+  [role="button"]:not([disabled]):hover {
+    transform: translateY(-1px);
+  }
+  button:not([disabled]):active,
+  [role="button"]:not([disabled]):active {
+    transform: scale(0.97) translateY(0);
+  }
+  /* Ripple micro-interaction for primary/accent buttons */
+  .btn-ripple { position: relative; overflow: hidden; }
+  .btn-ripple::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at var(--ripple-x, 50%) var(--ripple-y, 50%), rgba(255,255,255,.35) 0%, transparent 60%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+  }
+  .btn-ripple:active::after { opacity: 1; transition: opacity 0s; }
+
+  /* Focus-visible ring for keyboard navigation (WCAG) */
+  button:focus-visible,
+  [role="button"]:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid rgb(var(--aegis-500));
+    outline-offset: 2px;
+  }
+
+  /* Smooth entrance for dynamically inserted elements */
+  .animate-enter { animation: aegis-enter 0.3s cubic-bezier(.4,0,.2,1) both; }
+  @keyframes aegis-enter { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+  /* Reduced-motion global guard */
+  @media (prefers-reduced-motion: reduce) {
+    button:not([disabled]):hover,
+    [role="button"]:not([disabled]):hover { transform: none; }
+    .btn-ripple::after { display: none; }
+    .animate-enter { animation: none; }
+  }
+}
+
    AEGIS 8-THEME SYSTEM — CSS Variables
    Each theme sets the aegis-* accent palette + surface colors
    that guarantee readability in both light and dark modes.
@@ -551,7 +603,8 @@
 
   /* Inputs */
   .input { @apply w-full px-4 py-3 rounded-lg border-2 border-gray-200 bg-white text-primary placeholder-gray-400 transition-colors duration-200 focus:border-aegis-500 focus:outline-none focus:ring-2 focus:ring-aegis-500/20 dark:bg-gray-900 dark:border-gray-700; }
-  .input-error { @apply border-red-500 focus:border-red-500; }
+  .input-error { @apply border-red-500 focus:border-red-500 focus:ring-red-500/20; }
+  .input-valid { @apply border-green-500 focus:border-green-500 focus:ring-green-500/20; }
 
   /*  Theme-adaptive utility classes
      Use these on container/wrapper elements to get automatic
@@ -710,9 +763,30 @@
 
 /* Print styles */
 @media print {
-  .no-print { display: none !important; }
-  body { @apply bg-white text-black; }
-  .card { @apply border border-gray-300 shadow-none; }
+  .no-print,
+  nav,
+  footer,
+  .floating-widget,
+  [role="button"],
+  button:not(.print-keep),
+  .cookie-consent,
+  .accessibility-panel { display: none !important; }
+
+  body { background: white !important; color: black !important; font-size: 12pt; }
+  * { box-shadow: none !important; text-shadow: none !important; }
+
+  .card, .glass-card { border: 1px solid #d1d5db !important; box-shadow: none !important; background: white !important; }
+
+  h1, h2, h3, h4 { color: black !important; page-break-after: avoid; }
+  p, li { orphans: 3; widows: 3; }
+
+  .report-card, .alert-card, .glass-card { page-break-inside: avoid; break-inside: avoid; margin-bottom: 0.5rem; }
+
+  a[href]::after { content: " (" attr(href) ")"; font-size: 0.8em; color: #666; }
+  a[href^="#"]::after, a[href^="javascript"]::after { content: ""; }
+
+  img { max-width: 100% !important; page-break-inside: avoid; }
+  .leaflet-container { display: none !important; } /* Maps don't print well */
 }
 
 /* Gallery animations */
@@ -765,6 +839,18 @@
 @keyframes slide-in-left {
   0% { opacity: 0; transform: translateX(-20px); }
   100% { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes success-flash {
+  0% { background-color: transparent; }
+  30% { background-color: rgba(34, 197, 94, 0.15); }
+  100% { background-color: transparent; }
+}
+
+@keyframes field-valid {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.015); }
+  100% { transform: scale(1); }
 }
 
 @keyframes bounce-subtle {
@@ -872,6 +958,8 @@
 .animate-slide-in-right { animation: slide-in-right 0.4s ease-out forwards; }
 .animate-slide-in-left { animation: slide-in-left 0.4s ease-out forwards; }
 .animate-bounce-subtle { animation: bounce-subtle 2s ease-in-out infinite; }
+.animate-success-flash { animation: success-flash 0.6s ease-out forwards; }
+.animate-field-valid { animation: field-valid 0.25s ease-out forwards; }
 .animate-glow-pulse { animation: glow-pulse 2s ease-in-out infinite; }
 .animate-gold-glow { animation: gold-glow 2.5s ease-in-out infinite; }
 .animate-accent-glow { animation: accent-glow 2s ease-in-out infinite; }
@@ -931,6 +1019,9 @@
 .leaflet-top.leaflet-right .leaflet-control { margin-bottom: 6px !important; }
 .map-wrapper .spatial-toolbar { z-index: 6 !important; }
 .map-wrapper .flood-layer-control { z-index: 6 !important; max-height: 50vh; overflow-y: auto; }
+
+/* Custom pin icon — suppress Leaflet's default white-box div icon styles */
+.leaflet-map-pin-icon { background: transparent !important; border: none !important; }
 
 /* Card hover lift effect */
 .hover-lift {
@@ -1191,3 +1282,34 @@ html[data-caption-size="xlarge"] { --caption-font-size: 1.5rem; }
 .caption-overlay { font-size: var(--caption-font-size) !important; line-height: 1.4; }
 /* Settings preview: shows current caption size */
 .caption-size-preview { font-size: var(--caption-font-size); transition: font-size 0.2s ease; }
+
+/* Skeleton shimmer animation — gradient sweep */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton-shimmer {
+  background: linear-gradient(90deg,
+    rgba(0,0,0,0.06) 25%,
+    rgba(0,0,0,0.12) 37%,
+    rgba(0,0,0,0.06) 63%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+html.dark .skeleton-shimmer {
+  background: linear-gradient(90deg,
+    rgba(255,255,255,0.06) 25%,
+    rgba(255,255,255,0.12) 37%,
+    rgba(255,255,255,0.06) 63%
+  );
+  background-size: 200% 100%;
+}
+
+/* Global button micro-feedback */
+.btn-press {
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+.btn-press:active {
+  transform: scale(0.97);
+}

@@ -1,7 +1,13 @@
 /**
- * incidents/severe_storm/index.ts — Severe Storm module (Tier 2: Statistical)
+ * Module: index.ts
  *
- * Uses weather API data + report density to generate storm predictions.
+ * Severe weather and storm systems incident module (handles severe storm specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for severe storm events.
  */
 
 import { BaseIncidentModule } from '../baseModule.js'
@@ -75,4 +81,4 @@ class SevereStormModule extends BaseIncidentModule {
 }
 
 export default new SevereStormModule()
-
+

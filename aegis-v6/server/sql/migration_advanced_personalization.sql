@@ -3,7 +3,7 @@
 -- and behavioral profiling for signed-in citizens and admin operators.
 -- Part of the "15 Features" chatbot power upgrade.
 
--- §1  CITIZEN CHAT MEMORY — Cross-session persistent memory
+-- CITIZEN CHAT MEMORY — Cross-session persistent memory
 -- Stores important facts the AI learns about a citizen across sessions.
 -- Only for authenticated (signed-in) citizens.
 
@@ -35,7 +35,7 @@ CREATE INDEX IF NOT EXISTS idx_citizen_chat_memory_citizen ON citizen_chat_memor
 CREATE INDEX IF NOT EXISTS idx_citizen_chat_memory_type ON citizen_chat_memory(citizen_id, memory_type) WHERE is_active = true;
 CREATE INDEX IF NOT EXISTS idx_citizen_chat_memory_importance ON citizen_chat_memory(citizen_id, importance DESC) WHERE is_active = true;
 
--- §2  CONVERSATION SUMMARIES — Auto-generated session summaries
+-- CONVERSATION SUMMARIES — Auto-generated session summaries
 -- When a conversation ends or gets long, the AI generates a summary
 -- that is loaded into the next session for continuity.
 
@@ -59,7 +59,7 @@ CREATE TABLE IF NOT EXISTS conversation_summaries (
 CREATE INDEX IF NOT EXISTS idx_conversation_summaries_citizen ON conversation_summaries(citizen_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_conversation_summaries_session ON conversation_summaries(session_id);
 
--- §3  CITIZEN BEHAVIOR PROFILE — Adaptive intelligence
+-- CITIZEN BEHAVIOR PROFILE — Adaptive intelligence
 -- Tracks behavioral patterns for deep personalization.
 -- Updated incrementally after each conversation.
 
@@ -109,7 +109,7 @@ CREATE TABLE IF NOT EXISTS citizen_behavior_profile (
     updated_at              TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- §4  ADMIN/OPERATOR BEHAVIOR PROFILE — Operational intelligence
+-- ADMIN/OPERATOR BEHAVIOR PROFILE — Operational intelligence
 -- Tracks operator-specific patterns for admin chatbot enhancement.
 
 CREATE TABLE IF NOT EXISTS operator_behavior_profile (
@@ -143,7 +143,7 @@ CREATE TABLE IF NOT EXISTS operator_behavior_profile (
     updated_at              TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- §5  SMART SUGGESTIONS LOG — Track which suggestions users click
+-- SMART SUGGESTIONS LOG — Track which suggestions users click
 
 CREATE TABLE IF NOT EXISTS chat_suggestion_clicks (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -157,7 +157,7 @@ CREATE TABLE IF NOT EXISTS chat_suggestion_clicks (
 
 CREATE INDEX IF NOT EXISTS idx_suggestion_clicks_citizen ON chat_suggestion_clicks(citizen_id, clicked_at DESC);
 
--- §6  ADD COLUMNS TO EXISTING TABLES
+-- ADD COLUMNS TO EXISTING TABLES
 
 -- chat_sessions: add summary and personalization context
 DO $$

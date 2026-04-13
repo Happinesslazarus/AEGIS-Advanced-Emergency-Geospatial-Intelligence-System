@@ -1,10 +1,13 @@
 /**
- * incidents/drought/dataIngestion.ts — External data ingestion for drought monitoring
+ * Module: dataIngestion.ts
  *
- * Sources:
- *   1. Open-Meteo API — 30-day precipitation history and temperature
- *   2. SEPA / EA river levels — low flow detection
- *   3. Derived SPI (Standardised Precipitation Index) proxy
+ * Extended drought conditions incident module (handles drought specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for drought events.
  */
 
 export interface DroughtIngestionResult {
@@ -21,7 +24,7 @@ const UK_LAT = 57.15
 const UK_LNG = -2.09
 const UK_RAINFALL_30D_NORMAL = 100 // mm/month baseline
 
- /**
+/**
  * Fetch 30-day precipitation and temperature from Open-Meteo.
  * Returns a normalised drought index score.
  */
@@ -64,7 +67,7 @@ export async function ingestDroughtData(
   }
 }
 
- /**
+/**
  * Classify drought severity from ingestion result.
  */
 export function classifyDroughtSeverity(result: DroughtIngestionResult): 'Low' | 'Medium' | 'High' | 'Critical' {

@@ -1,16 +1,16 @@
 """
-train_power_outage.py — Power Outage Training Pipeline
+File: train_power_outage.py
 
-Features: wind_speed, temperature (ice risk), wind_gust, rainfall_intensity,
-          infrastructure_age_proxy, season
-Data:     Open-Meteo historical (global, free)
-Labels:   Synthetic + rule hybrid → heuristic_model
-          Extreme wind (>25 m/s) OR ice (<-2°C + precipitation) → outage proxy
-Model:    XGBoost classifier
+What this file does:
+Trains the power outage risk-prediction model on synthetic/augmented data.
+Uses BaseHazardPipeline for the training loop. Useful as a quick
+bootstrap when real-world labelled data is unavailable.
 
-Usage:
-    python -m app.training.train_power_outage --region=global
-    python -m app.training.train_power_outage --region=uk
+How it connects:
+- Extends ai-engine/app/training/base_hazard_pipeline.py
+- Synthetic feature generation via data_loaders.py and data_ingestion.py
+- Saves to model_registry/power_outage/ via ModelRegistry
+- Loaded at inference time by ai-engine/app/hazards/power_outage.py
 """
 
 from __future__ import annotations

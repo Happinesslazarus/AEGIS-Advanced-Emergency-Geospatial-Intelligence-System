@@ -1,3 +1,32 @@
+/**
+ * File: AITransparencyDashboard.tsx
+ *
+ * What this file does:
+ * Admin-facing AI governance and observability dashboard. Shows model metrics
+ * (accuracy, F1, precision, recall), data drift detection, prediction audit
+ * trails, LLM provider status, and model comparison tables.
+ *
+ * Tabs:
+ * - Overview: KPI summary cards, governance decision feed, avg accuracy
+ * - Models: per-model cards with confusion matrix, feature importance, retrain
+ * - Drift: per-model drift detection results and magnitude visualization
+ * - Audit: timestamped AI decision log with input/output pairs
+ * - LLM Providers: chat model availability and health indicators
+ *
+ * Data flow:
+ * - Polls six API endpoints every 30s via Promise.allSettled
+ * - Partial failures are surfaced as amber warnings (not catastrophic errors)
+ * - Retrain triggers POST /api/ai/governance/retrain/:hazardType
+ *
+ * How it connects:
+ * - Rendered inside AdminPage.tsx when the AI view is active
+ * - Uses apiGetGovernanceModels, apiGetAIDrift, apiGetAIAuditLog, etc. from utils/api.ts
+ *
+ * Simple explanation:
+ * Gives operators full visibility into what the AI models are doing, how
+ * well they're performing, and which ones need to be retrained.
+ */
+
 import { useState, useEffect, useRef, Component, type ReactNode, type ErrorInfo, useCallback } from 'react'
 import {
   Brain, Target, BarChart3, Activity, Calendar, Database, AlertTriangle, CheckCircle,
@@ -15,6 +44,8 @@ import {
 import { t, getLanguage } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 
+// Exports all loaded dashboard data as CSV or JSON file download.
+// CSV flattens nested objects into a section + field table.
 function exportData(payload: object, format: 'csv' | 'json', filename: string): void {
   let content: string
   let mime: string
@@ -58,6 +89,9 @@ class AIErrorBoundary extends Component<{ children: ReactNode }, { hasError: boo
 }
 
 /*  Helpers  */
+// Fix double-encoded UTF-8 sequences that appear in some AI model output strings.
+// These patterns arise from incorrect Latin-1 to UTF-8 double-encoding, commonly
+// seen in model notes and API responses from misconfigured Python services.
 function fixEncoding(text: string): string {
   if (!text || typeof text !== 'string') return text || ''
   return text
@@ -75,11 +109,14 @@ const REGION_DISPLAY: Record<string, string> = {
   northamerica: 'North America', europe: 'Europe', asia: 'Asia', africa: 'Africa',
   southamerica: 'South America', oceania: 'Oceania', global: 'Global',
 }
+// KNOWN_ACRONYMS: words that should stay UPPERCASE rather than getting title-cased.
 const KNOWN_ACRONYMS = new Set([
   'ai', 'ml', 'dem', 'sepa', 'api', 'id', 'url', 'gps', 'nlp', 'aws', 'ui', 'ux',
   'qgis', 'lidar', 'ndvi', 'dhm', 'uk', 'eu', 'un', 'ngo', 'sar', 'eo', 'csv',
   'pdf', 'iot', 'gpu', 'cpu', 'ram', 'sql', '3d',
 ])
+// Convert snake_case/kebab-case model names into readable title-case display names,
+// preserving known acronyms (API, ML, etc.) in uppercase.
 function humanizeName(name: string): string {
   if (!name) return name
   const normalized = name.toLowerCase().replace(/[_\-\/]/g, ' ').trim()
@@ -113,6 +150,8 @@ function trendArrow(current: number, _index: number, _models: ModelData[]): stri
   if (current < 0.75) return '\u2193'
   return '\u2192'
 }
+// Color-coded drift indicator for a named model.
+// Green = no drift, yellow = minor drift (magnitude ≤0.1), red = significant drift (>0.1).
 function driftCircle(modelName: string, driftData: any[], lang?: string): { color: string; label: string } {
   const l = lang || 'en'
   const entry = driftData.find((d: any) => (d.modelName || d.model_name || '') === modelName)
@@ -132,6 +171,8 @@ function governanceEntryColor(entry: any): string {
     return 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800'
   return 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800'
 }
+// Fleet health roll-up: red if any model is >30 days stale or <70% accuracy.
+// This drives the badge on the AI section's nav item.
 function dataHealthScore(models: ModelData[], lang?: string): { label: string; color: string } {
   const l = lang || 'en'
   if (models.length === 0) return { label: t('ai.noData', l), color: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400' }
@@ -183,6 +224,8 @@ function AITransparencyDashboardInner(): JSX.Element {
   const loadData = useCallback(async () => {
     setRefreshing(true)
     try {
+      // Use Promise.allSettled so partial failures don't block the whole dashboard.
+      // Each rejected result is surfaced as an amber warning banner, not a crash.
       const [modelsData, distData, statusData, driftRes, auditRes, statsRes, llmRes] = await Promise.allSettled([
         apiGetGovernanceModels(),
         apiGetConfidenceDistribution(),
@@ -283,7 +326,8 @@ function AITransparencyDashboardInner(): JSX.Element {
     setRetrainStatus(prev => ({ ...prev, [modelName]: 'running' }))
     setRetrainMsg(prev => ({ ...prev, [modelName]: t('ai.submittingRetrain', lang) }))
     try {
-      // Extract hazard type from model name (e.g. "flood_predictor" → "flood")
+      // Strip model type suffix to get the bare hazard type used by the AI engine
+      // e.g. "flood_predictor" → "flood", "earthquake_classifier" → "earthquake"
       const hazardType = modelName.replace(/_predictor|_classifier|_model|_detector/gi, '').trim() || modelName
       await apiRetrainModel(hazardType)
       setRetrainStatus(prev => ({ ...prev, [modelName]: 'done' }))
@@ -574,7 +618,7 @@ function AITransparencyDashboardInner(): JSX.Element {
                       const pctWidth = (model.trainingSamples / maxSamples) * 100
                       return (
                         <div className="mt-2">
-                          <div className="flex items-center justify-between text-[9px] text-gray-400 dark:text-gray-500 mb-0.5">
+                          <div className="flex items-center justify-between text-[9px] text-gray-400 dark:text-gray-400 mb-0.5">
                             <span>{t('ai.trainingVolume', lang)}</span>
                             <span>{Math.round(pctWidth)}%</span>
                           </div>
@@ -630,7 +674,7 @@ function AITransparencyDashboardInner(): JSX.Element {
 
           {models.length === 0 && (
             <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-12 text-center">
-              <Brain className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+              <Brain className="w-12 h-12 text-gray-300 dark:text-gray-400 mx-auto mb-3" />
               <p className="text-gray-600 dark:text-gray-300 font-semibold">{t('ai.noActiveModels', lang)}</p>
               <p className="text-sm text-gray-500 dark:text-gray-300 mt-1">{t('ai.modelsAppear', lang)}</p>
             </div>
@@ -683,7 +727,7 @@ function AITransparencyDashboardInner(): JSX.Element {
                     <s.icon className={`w-3.5 h-3.5 ml-auto ${s.color}`} />
                   </div>
                   <p className={`text-base font-bold ${s.color}`}>{s.value}</p>
-                  <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5 truncate">{s.sub}</p>
+                  <p className="text-[10px] text-gray-400 dark:text-gray-400 mt-0.5 truncate">{s.sub}</p>
                 </div>
               ))}
             </div>
@@ -831,7 +875,7 @@ function AITransparencyDashboardInner(): JSX.Element {
             </div>
             {governanceDecisions.length === 0 ? (
               <div className="text-center py-6 bg-gray-50 dark:bg-gray-800/30 rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
-                <Shield className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                <Shield className="w-8 h-8 text-gray-300 dark:text-gray-400 mx-auto mb-2" />
                 <p className="text-sm text-gray-500 dark:text-gray-400">{governanceLoading ? t('ai.loadingGovernance', lang) : t('ai.noGovernance', lang)}</p>
               </div>
             ) : (
@@ -867,7 +911,7 @@ function AITransparencyDashboardInner(): JSX.Element {
                           : (entry.status || '').toLowerCase() === 'error' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
                           : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
                         }`}>{humanizeName(entry.status || 'processed')}</span>
-                        <span className="text-[10px] text-gray-400 dark:text-gray-500 whitespace-nowrap">{fmt(entry.createdAt || entry.created_at || '')}</span>
+                        <span className="text-[10px] text-gray-400 dark:text-gray-400 whitespace-nowrap">{fmt(entry.createdAt || entry.created_at || '')}</span>
                       </div>
                     </div>
                   </div>
@@ -896,7 +940,7 @@ function AITransparencyDashboardInner(): JSX.Element {
 
           {models.length === 0 && (
             <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-12 text-center">
-              <Brain className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+              <Brain className="w-12 h-12 text-gray-300 dark:text-gray-400 mx-auto mb-3" />
               <p className="text-gray-600 dark:text-gray-300 font-semibold">{t('ai.noActiveModels', lang)}</p>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('ai.modelsAppear', lang)}</p>
               <button onClick={loadData} className="mt-4 px-5 py-2 bg-purple-600 text-white rounded-xl text-sm font-semibold hover:bg-purple-700 transition-all flex items-center gap-2 mx-auto"><RefreshCw className="w-4 h-4" /> {t('common.retry', lang)}</button>
@@ -1077,9 +1121,9 @@ function AITransparencyDashboardInner(): JSX.Element {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {models.length === 0 && (
                 <div className="col-span-full text-center py-8 bg-gray-50 dark:bg-gray-800/30 rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
-                  <Brain className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                  <Brain className="w-8 h-8 text-gray-300 dark:text-gray-400 mx-auto mb-2" />
                   <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">{t('ai.noActiveModels', lang)}</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Train models through the AI engine to see their training status and enable retraining here.</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-400 mt-1">Train models through the AI engine to see their training status and enable retraining here.</p>
                   <button onClick={loadData} className="mt-3 px-4 py-1.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg text-xs font-semibold hover:bg-purple-200 transition-colors flex items-center gap-1.5 mx-auto"><RefreshCw className="w-3 h-3" /> {t('common.retry', lang)}</button>
                 </div>
               )}
@@ -1134,11 +1178,11 @@ function AITransparencyDashboardInner(): JSX.Element {
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {auditEntries.length === 0 ? (
                   <tr><td colSpan={6} className="px-4 py-12 text-center">
-                    <FileSearch className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2 opacity-70" />
+                    <FileSearch className="w-8 h-8 text-gray-300 dark:text-gray-400 mx-auto mb-2 opacity-70" />
                     <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">
                       {partialFailures.includes('Audit trail') ? 'Audit trail service unavailable' : 'No audit entries yet'}
                     </p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                    <p className="text-xs text-gray-400 dark:text-gray-400 mt-1">
                       {partialFailures.includes('Audit trail')
                         ? 'The AI audit log service is offline. Check that the AI engine is running.'
                         : 'Entries appear here after AI predictions, governance decisions, and model actions are made.'}
@@ -1223,11 +1267,11 @@ function AITransparencyDashboardInner(): JSX.Element {
                   </div>
                 )}
                 <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-6 text-center">
-                  <Sparkles className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                  <Sparkles className="w-8 h-8 text-gray-300 dark:text-gray-400 mx-auto mb-2" />
                   <p className="text-gray-600 dark:text-gray-300 font-semibold">
                     {partialFailures.includes('LLM status') ? t('ai.llmUnavailable', lang) : t('ai.noProviders', lang)}
                   </p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Provider telemetry data appears once active AI chat sessions exist</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-400 mt-1">Provider telemetry data appears once active AI chat sessions exist</p>
                 </div>
               </div>
             )}

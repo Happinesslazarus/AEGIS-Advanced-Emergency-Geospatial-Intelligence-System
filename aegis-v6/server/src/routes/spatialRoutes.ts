@@ -1,16 +1,18 @@
 /**
- * routes/spatialRoutes.ts — PostGIS-powered spatial analysis API
+ * File: spatialRoutes.ts
  *
- * Provides server-side spatial analysis using PostGIS extensions:
- * Distance calculations (geodesic via ST_Distance on geography)
- * Buffer zone population queries
- * Nearest feature lookup
- * Flood risk zone intersection
- * Point density / KDE (kernel density estimation)
- * Isochrone-style catchment area estimation
+ * What this file does:
+ * PostGIS spatial analysis endpoints: heatmaps, clustering, buffer zones,
+ * proximity searches, and spatial statistics for the disaster map.
  *
- * These endpoints are called by SpatialToolbar.tsx for advanced analysis
- * that benefits from PostGIS precision over client-side Haversine.
+ * How it connects:
+ * - Mounted at /api/spatial in index.ts
+ * - Runs PostGIS queries against the main database (db.ts)
+ * - Results are GeoJSON consumed by the Leaflet map frontend
+ * - Responses cached via cacheService
+ *
+ * Simple explanation:
+ * Geographic analysis tools that power the disaster map overlays.
  */
 
 import { Router, Request, Response, NextFunction } from 'express'
@@ -20,15 +22,34 @@ import { remember, buildCacheKey, CACHE_TTL } from '../services/cacheService.js'
 
 const router = Router()
 
- /**
+function stringifySpatialError(err: unknown): string {
+  if (!err) return 'unknown error'
+  if (err instanceof Error) return err.message
+  return String(err)
+}
+
+function addSpatialWarning(warnings: string[], scope: string, err: unknown): void {
+  warnings.push(`${scope}: ${stringifySpatialError(err)}`)
+}
+
+/**
  * POST /api/spatial/distance
  * Calculate geodesic distance between two points using PostGIS.
  */
 router.post('/distance', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { lat1, lng1, lat2, lng2 } = req.body
-    if (!lat1 || !lng1 || !lat2 || !lng2) {
-      throw AppError.badRequest('lat1, lng1, lat2, lng2 required')
+    const lat1 = parseFloat(req.body.lat1)
+    const lng1 = parseFloat(req.body.lng1)
+    const lat2 = parseFloat(req.body.lat2)
+    const lng2 = parseFloat(req.body.lng2)
+    if ([lat1, lng1, lat2, lng2].some(v => !Number.isFinite(v))) {
+      throw AppError.badRequest('lat1, lng1, lat2, lng2 must be valid numbers')
+    }
+    if (lat1 < -90 || lat1 > 90 || lat2 < -90 || lat2 > 90) {
+      throw AppError.badRequest('Latitude must be between -90 and 90')
+    }
+    if (lng1 < -180 || lng1 > 180 || lng2 < -180 || lng2 > 180) {
+      throw AppError.badRequest('Longitude must be between -180 and 180')
     }
 
     const { rows } = await pool.query(
@@ -49,7 +70,7 @@ router.post('/distance', async (req: Request, res: Response, next: NextFunction)
   }
 })
 
- /**
+/**
  * POST /api/spatial/buffer-analysis
  * Find all features (reports, shelters, alerts) within a given radius of a point.
  * Uses PostGIS ST_DWithin for accurate geodesic radius queries.
@@ -59,6 +80,7 @@ router.post('/buffer-analysis', async (req: Request, res: Response, next: NextFu
     const { lat, lng, radius_km } = req.body
     if (!lat || !lng) throw AppError.badRequest('lat, lng required')
     const radiusM = (radius_km || 5) * 1000
+    const warnings: string[] = []
 
     // Reports within radius
     let reportCount = 0
@@ -77,7 +99,7 @@ router.post('/buffer-analysis', async (req: Request, res: Response, next: NextFu
       )
       reportCount = rows.length
       reports = rows
-    } catch { /* reports table may lack geometry */ }
+    } catch (err) { addSpatialWarning(warnings, 'reports query failed', err) }
 
     // Shelters within radius
     let shelters: any[] = []
@@ -94,7 +116,7 @@ router.post('/buffer-analysis', async (req: Request, res: Response, next: NextFu
         [lng, lat, radiusM],
       )
       shelters = rows
-    } catch { /* shelters table may not have PostGIS column */ }
+    } catch (err) { addSpatialWarning(warnings, 'shelters query failed', err) }
 
     // Active alerts in radius
     let alerts: any[] = []
@@ -106,7 +128,7 @@ router.post('/buffer-analysis', async (req: Request, res: Response, next: NextFu
          LIMIT 10`,
       )
       alerts = rows
-    } catch { /* alerts table may not exist */ }
+    } catch (err) { addSpatialWarning(warnings, 'alerts query failed', err) }
 
     // Flood zones intersecting buffer
     let floodZones: any[] = []
@@ -123,7 +145,7 @@ router.post('/buffer-analysis', async (req: Request, res: Response, next: NextFu
         [lng, lat, radiusM],
       )
       floodZones = rows
-    } catch { /* flood_zones table may not exist */ }
+    } catch (err) { addSpatialWarning(warnings, 'flood zones query failed', err) }
 
     const responseData = {
       center: { lat, lng },
@@ -132,6 +154,8 @@ router.post('/buffer-analysis', async (req: Request, res: Response, next: NextFu
       shelters: { count: shelters.length, items: shelters },
       alerts: { count: alerts.length, items: alerts },
       flood_zones: { count: floodZones.length, items: floodZones },
+      degraded: warnings.length > 0,
+      warnings,
     }
 
     // Cache the result for spatial queries (1 hour TTL)
@@ -146,7 +170,7 @@ router.post('/buffer-analysis', async (req: Request, res: Response, next: NextFu
   }
 })
 
- /**
+/**
  * POST /api/spatial/nearest
  * Find the nearest feature of a given type (shelter, report, gauge station).
  */
@@ -155,6 +179,7 @@ router.post('/nearest', async (req: Request, res: Response, next: NextFunction) 
     const { lat, lng, type } = req.body
     if (!lat || !lng) throw AppError.badRequest('lat, lng required')
     const featureType = type || 'shelter'
+    const warnings: string[] = []
 
     let result: any = null
 
@@ -171,7 +196,7 @@ router.post('/nearest', async (req: Request, res: Response, next: NextFunction) 
           [lng, lat],
         )
         if (rows.length > 0) result = rows[0]
-      } catch { /* fallback */ }
+      } catch (err) { addSpatialWarning(warnings, 'nearest shelter query failed', err) }
     } else if (featureType === 'report') {
       try {
         const { rows } = await pool.query(
@@ -185,19 +210,21 @@ router.post('/nearest', async (req: Request, res: Response, next: NextFunction) 
           [lng, lat],
         )
         if (rows.length > 0) result = rows[0]
-      } catch { /* no PostGIS column */ }
+      } catch (err) { addSpatialWarning(warnings, 'nearest report query failed', err) }
     }
 
     res.json({
       query: { lat, lng, type: featureType },
       result: result || null,
+      degraded: warnings.length > 0,
+      warnings,
     })
   } catch (err) {
     next(err)
   }
 })
 
- /**
+/**
  * POST /api/spatial/flood-risk
  * Check flood risk at a point using PostGIS ST_Contains / ST_DWithin against flood zone polygons.
  */
@@ -205,6 +232,7 @@ router.post('/flood-risk', async (req: Request, res: Response, next: NextFunctio
   try {
     const { lat, lng } = req.body
     if (!lat || !lng) throw AppError.badRequest('lat, lng required')
+    const warnings: string[] = []
 
     const key = buildCacheKey('spatial', ['flood-risk'], { lat, lng })
     const { data: result, meta } = await remember(key, CACHE_TTL.SPATIAL, async () => {
@@ -219,7 +247,7 @@ router.post('/flood-risk', async (req: Request, res: Response, next: NextFunctio
         [lng, lat],
       )
       zones = rows
-    } catch { /* flood_zones table may not exist */ }
+    } catch (err) { addSpatialWarning(warnings, 'flood zone containment query failed', err) }
 
     // Also check nearby zones (within 2km)
     let nearbyZones: any[] = []
@@ -235,7 +263,7 @@ router.post('/flood-risk', async (req: Request, res: Response, next: NextFunctio
           [lng, lat],
         )
         nearbyZones = rows
-      } catch { /* no PostGIS */ }
+      } catch (err) { addSpatialWarning(warnings, 'nearby flood zones query failed', err) }
     }
 
     // Check recent predictions for this area
@@ -249,7 +277,7 @@ router.post('/flood-risk', async (req: Request, res: Response, next: NextFunctio
          LIMIT 5`,
       )
       predictions = rows
-    } catch { /* predictions table may not exist */ }
+    } catch (err) { addSpatialWarning(warnings, 'predictions lookup failed', err) }
 
     const inFloodZone = zones.length > 0
     const maxProbability = zones.length > 0
@@ -265,6 +293,8 @@ router.post('/flood-risk', async (req: Request, res: Response, next: NextFunctio
       zones,
       nearby_zones: nearbyZones,
       predictions,
+      degraded: warnings.length > 0,
+      warnings,
     }
     })
 
@@ -275,7 +305,7 @@ router.post('/flood-risk', async (req: Request, res: Response, next: NextFunctio
   }
 })
 
- /**
+/**
  * POST /api/spatial/density
  * Generate a point density / heatmap intensity grid using PostGIS.
  * Returns a grid of cells with report/incident counts.
@@ -284,6 +314,7 @@ router.post('/density', async (req: Request, res: Response, next: NextFunction) 
   try {
     const { bounds, cell_size_km } = req.body
     const cellSize = cell_size_km || 1
+    const warnings: string[] = []
 
     // If bounds provided, use them; otherwise use all reports
     let points: any[] = []
@@ -310,19 +341,21 @@ router.post('/density', async (req: Request, res: Response, next: NextFunction) 
         lng: parseFloat(r.lng),
         intensity: r.severity === 'High' ? 1.0 : r.severity === 'Medium' ? 0.6 : 0.3,
       }))
-    } catch { /* no PostGIS coordinates */ }
+    } catch (err) { addSpatialWarning(warnings, 'density query failed', err) }
 
     res.json({
       cell_size_km: cellSize,
       point_count: points.length,
       points,
+      degraded: warnings.length > 0,
+      warnings,
     })
   } catch (err) {
     next(err)
   }
 })
 
- /**
+/**
  * POST /api/spatial/area
  * Calculate the area of a polygon using PostGIS ST_Area on geography type.
  */

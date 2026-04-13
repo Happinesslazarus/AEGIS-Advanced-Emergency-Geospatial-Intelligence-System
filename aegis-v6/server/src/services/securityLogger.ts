@@ -1,18 +1,21 @@
-/*
- * securityLogger.ts - Security Event Logging Service
+/**
+ * File: securityLogger.ts
  *
- * Records all authentication and security events in the security_events table
- * for audit trail, suspicious activity detection, and compliance.
+ * Security audit logger — writes security events to the security_events table
+ * and detects suspicious patterns like credential stuffing or brute-force attempts.
  *
- * Event types:
- *   login_success, login_failed, account_locked, account_unlocked,
- *   register, email_verified, password_changed, password_reset_requested,
- *   password_reset_completed, session_created, session_revoked,
- *   token_refreshed, suspicious_activity
+ * How it connects:
+ * - Imported by auth, device trust, IP security, and other security services
+ * - Writes to the security_events DB table (non-blocking, never throws)
+ * - Increments the Prometheus securityEventsTotal counter
+ *
+ * Simple explanation:
+ * Records every security-relevant action and spots patterns that look like attacks.
  */
 
 import pool from '../models/db.js'
 import { logger } from './logger.js'
+import { securityEventsTotal } from './metrics.js'
 
 export type SecurityEventType =
   | 'login_success'
@@ -45,6 +48,12 @@ export type SecurityEventType =
   | 'all_devices_revoked'
   | 'security_alert_sent'
   | 'risk_elevated'
+  | 'privilege_escalation'
+  | 'role_changed'
+  | 'admin_action'
+  | 'mass_enumeration'
+  | 'account_takeover_attempt'
+  | 'credential_stuffing_detected'
 
 interface SecurityEventOptions {
   userId?: string
@@ -55,7 +64,7 @@ interface SecurityEventOptions {
   metadata?: Record<string, unknown>
 }
 
- /**
+/**
  * Log a security event to the database.
  * Non-blocking — errors are caught and logged, never thrown.
  */
@@ -73,13 +82,14 @@ export async function logSecurityEvent(options: SecurityEventOptions): Promise<v
         JSON.stringify(options.metadata || {}),
       ]
     )
+    securityEventsTotal.inc({ event_type: options.eventType })
   } catch (err: any) {
     // Security logging must never crash the main flow
     logger.error({ err, eventType: options.eventType }, '[SecurityLogger] Failed to log event')
   }
 }
 
- /**
+/**
  * Check for suspicious login patterns:
  * Multiple failed logins from different IPs for the same user
  * Rapid logins from the same IP for different accounts
@@ -124,15 +134,34 @@ export async function checkSuspiciousActivity(
       await logSecurityEvent({
         userId,
         userType,
-        eventType: 'suspicious_activity',
+        eventType: 'credential_stuffing_detected',
         ipAddress,
-        metadata: { reason: 'IP has 20+ failed logins in 1 hour (possible credential stuffing)' },
+        metadata: { reason: 'IP has 20+ failed logins in 1 hour (credential stuffing)' },
+      })
+      return true
+    }
+
+    const stuffingResult = await pool.query(
+      `SELECT COUNT(DISTINCT user_id) as account_count
+       FROM security_events
+       WHERE ip_address = $1::inet AND event_type = 'login_failed'
+       AND created_at > NOW() - INTERVAL '5 minutes'`,
+      [ipAddress]
+    )
+
+    if (parseInt(stuffingResult.rows[0]?.account_count || '0') >= 10) {
+      await logSecurityEvent({
+        userId,
+        userType,
+        eventType: 'credential_stuffing_detected',
+        ipAddress,
+        metadata: { reason: 'IP targeted 10+ distinct accounts in 5 minutes' },
       })
       return true
     }
 
     return false
   } catch {
-    return false // Don't block login on logging errors
+    return false
   }
 }

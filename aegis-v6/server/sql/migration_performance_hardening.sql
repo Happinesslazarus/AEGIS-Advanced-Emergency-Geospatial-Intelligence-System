@@ -18,7 +18,7 @@ BEGIN;
 -- preventing accidental double-runs and enabling CI/CD checks.
 
 CREATE TABLE IF NOT EXISTS schema_migrations (
-    migration_name   VARCHAR(200)  PRIMARY KEY,
+    name             VARCHAR(200)  PRIMARY KEY,
     applied_at       TIMESTAMPTZ   NOT NULL DEFAULT now(),
     checksum         CHAR(64),           -- SHA-256 of the file content (optional)
     applied_by       VARCHAR(100)  DEFAULT current_user
@@ -28,9 +28,9 @@ COMMENT ON TABLE schema_migrations IS
     'Tracks every migration that has been applied to this database instance.';
 
 -- Self-register this migration
-INSERT INTO schema_migrations (migration_name)
+INSERT INTO schema_migrations (name)
 VALUES ('migration_performance_hardening')
-ON CONFLICT (migration_name) DO NOTHING;
+ON CONFLICT (name) DO NOTHING;
 
 --  2. ai_confidence type upgrade
 -- The original INTEGER type forces confidence values (0–100) to be stored as

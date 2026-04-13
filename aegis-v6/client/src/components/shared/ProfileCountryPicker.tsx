@@ -1,9 +1,11 @@
 /**
- * ProfileCountryPicker.tsx — Advanced country & region selector for user profiles.
- * Same stunning design as LocationDropdown (flags via flagcdn.com, continent groups,
- * searchable, counts) but tailored for choosing a user's home country + region.
- * No Global/Continents entries — only real countries.
- */
+ * Module: ProfileCountryPicker.tsx
+ *
+ * Profile country picker shared component (reusable UI element used across pages).
+ *
+ * How it connects:
+ * - Used across both admin and citizen interfaces */
+
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import {

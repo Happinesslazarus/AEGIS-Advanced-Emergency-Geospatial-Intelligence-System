@@ -1,11 +1,7 @@
 """
- AEGIS AI ENGINE — Data Augmentation for Phase 5 Model Training
- 
- Uses REAL data only — NO synthetic/random profiles.
- 1. Derives reporter_scores from actual report history in the database
- 2. Validates existing reporter_ip assignments (no random fabrication)
- 3. Re-labels a subset of existing reports based on NLP keyword analysis
-    (NO synthetic descriptions injected)
+Module: augment_data.py
+
+Augment_data AI engine module.
 """
 
 import asyncio

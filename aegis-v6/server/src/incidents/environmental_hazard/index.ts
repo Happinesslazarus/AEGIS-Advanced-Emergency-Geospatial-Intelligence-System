@@ -1,7 +1,13 @@
 /**
- * incidents/environmental_hazard/index.ts — Environmental Hazard module (Tier 3: ML)
+ * Module: index.ts
  *
- * Handles chemical spills, air pollution, water contamination events.
+ * Environmental contamination events incident module (handles environmental hazard specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for environmental hazard events.
  */
 
 import { BaseIncidentModule } from '../baseModule.js'

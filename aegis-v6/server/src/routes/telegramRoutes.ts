@@ -1,21 +1,20 @@
-﻿/**
- * telegramRoutes.ts - Telegram bot webhook & chat-id capture
+/**
+ * File: telegramRoutes.ts
  *
- * When a user subscribes with a Telegram username (@Zemphra), the bot cannot
- * message them until they send /start first.  This module:
+ * What this file does:
+ * Telegram bot integration: receives webhook updates from the Telegram
+ * Bot API, handles /start commands to capture chat IDs, and links
+ * Telegram accounts to citizen profiles for alert delivery.
  *
- *  POST /api/telegram/webhook  — Telegram calls this for every update
- *    — When a user sends /start (or any message), capture their numeric chat_id
- *    — Update alert_subscriptions rows whose telegram_id matches @username
- *    — Reply to the user confirming they're subscribed
+ * How it connects:
+ * - Mounted at /api/telegram in index.ts
+ * - Receives POST webhooks from Telegram's Bot API
+ * - Links Telegram chat IDs to citizen accounts in the database
+ * - The notification service uses these chat IDs to send alerts
  *
- *  GET  /api/telegram/updates  — Poll for recent /start messages (dev fallback)
- *    — Calls getUpdates, applies the same chat_id capture logic
- *
- *  POST /api/telegram/set-webhook — Register the webhook URL with Telegram
- *    — Requires admin authentication (authMiddleware + requireRole('admin'))
- *    — Validates URL: HTTPS-only, no private IPs, domain allowlist
- *    — Audit-logged and rate-limited (5/hour)
+ * Simple explanation:
+ * Connects AEGIS to Telegram so citizens can receive disaster alerts
+ * through the Telegram app.
  */
 
 import { Router, Request, Response, NextFunction } from 'express'
@@ -58,7 +57,7 @@ async function tgPost(method: string, body: object) {
   return r.json()
 }
 
- /**
+/**
  * Process a single Telegram update object.
  * Captures the numeric chat_id for any user that messages the bot and
  * updates their subscription row (matched by @username or existing chat_id).
@@ -157,7 +156,7 @@ router.get('/updates', async (_req: Request, res: Response, next: NextFunction):
 
 // Register webhook with Telegram (admin-only, validated, audited)
 
- /**
+/**
  * Validate that a webhook URL is safe to register.
  * Rejects non-HTTPS, localhost, private/reserved IPs, and non-allowlisted domains.
  */

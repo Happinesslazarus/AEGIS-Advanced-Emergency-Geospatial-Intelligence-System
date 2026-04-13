@@ -1,17 +1,16 @@
 """
- AEGIS AI ENGINE — Production ML Training Pipeline
- Real ML models trained on historical database reports
+File: ml_pipeline.py
 
-Architecture:
-1. Load real report data from PostgreSQL
-2. Feature engineering (text, spatial, temporal, metadata)
-3. Train sklearn/xgboost models
-4. Evaluate with proper metrics (precision, recall, AUC, F1)
-5. Version and store trained models
-6. Implement drift detection
-7. Load models in API for inference
+What this file does:
+Scikit-learn pipeline builder: assembles a preprocessing stage
+(StandardScaler + OneHotEncoder via ColumnTransformer) followed by a
+classifier step. Returns a ready-to-fit Pipeline object with consistent
+column handling regardless of which estimator is chosen.
 
-STRICT RULE: NO synthetic data, NO heuristics, ONLY real ML
+How it connects:
+- Called by model_trainer.py to construct the sklearn Pipeline
+- Feature column lists passed down from feature_engineering.py
+- Pipeline object passed to ModelRegistry.save() after fitting
 """
 
 import os
@@ -95,7 +94,9 @@ class ProductionMLPipeline:
         logger.info("Preparing report classification data...")
         
         # Create target from incident_category (real labeled data)
-        # Map to broad hazard types
+        # Combine incident_category (broad bucket) and display_type (specific label)
+        # so the matcher catches both "natural_disaster" + "Flood" and stand-alone
+        # display strings like "Severe Storm".
         hazard_mapping = {
             'flood': ['flood', 'inundation', 'water', 'overflow'],
             'drought': ['drought', 'water shortage', 'dry', 'arid'],
@@ -123,7 +124,8 @@ class ProductionMLPipeline:
         hazard_counts = df['hazard_type'].value_counts()
         logger.info(f"Hazard distribution:\n{hazard_counts}")
         
-        # Filter to types with sufficient data (>50 samples)
+        # Require at least 50 samples per hazard class: below this threshold the
+        # 80:20 train/test split and cross-validation produce unreliable metrics.
         valid_hazards = hazard_counts[hazard_counts >= 50].index.tolist()
         df_filtered = df[df['hazard_type'].isin(valid_hazards)].copy()
         
@@ -242,7 +244,7 @@ class ProductionMLPipeline:
             max_depth=8,
             learning_rate=0.1,
             random_state=42,
-            n_jobs=-1,
+            n_jobs=2,
             eval_metric='mlogloss'
         )
         
@@ -261,7 +263,9 @@ class ProductionMLPipeline:
             'train_samples': len(y_train)
         }
         
-        # Try to compute AUC if binary classification
+        # ROC-AUC is only well-defined for binary classification; for multi-class
+        # it requires `multi_class='ovr'` or `'ovo'` which is not set here.
+        # We silently skip AUC rather than crash or produce misleading scores.
         try:
             if len(np.unique(y)) == 2:
                 metrics['roc_auc'] = float(roc_auc_score(y_test, y_pred_proba[:, 1]))
@@ -274,6 +278,8 @@ class ProductionMLPipeline:
         model_dir = self.model_registry_path / 'report_classifier'
         model_dir.mkdir(exist_ok=True)
         
+        # Timestamp-based filename: each training run creates a new artifact so
+        # older versions are preserved for rollback (see governance.py).
         timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
         model_path = model_dir / f'model_{timestamp}.pkl'
         

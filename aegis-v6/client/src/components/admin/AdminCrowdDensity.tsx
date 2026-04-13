@@ -1,11 +1,17 @@
 /**
- * AdminCrowdDensity.tsx — World-class admin crowd density analysis console.
+ * Module: AdminCrowdDensity.tsx
  *
- * Real data: Fetches from /api/spatial/density + /api/reports for incident-correlated density.
- * Features: real-time reporting data, zone heatmap grid, capacity forecasting, risk distribution,
- * historical trend analysis, zone management, threshold alerts, export capability,
- * 3 view modes (list/grid/chart), full i18n, dark mode, animations.
- */
+ * Crowd density monitoring panel (shows real-time crowd levels).
+ *
+ * How it connects:
+ * - Pulls spatial density data from the backend API
+ * - Falls back to report-derived zones when density data is missing
+ * - Renders the admin view used by operations staff
+ * Endpoints:
+ * GET /api/spatial/density
+ * GET /api/reports
+ * Simple explanation:
+ * This is the admin screen for seeing where crowd pressure is building up. */
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import {
   Users, Activity, TrendingUp, TrendingDown, MapPin, RefreshCw, Loader2,
@@ -17,8 +23,7 @@ import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 import { apiGetSpatialDensity, apiFetch } from '../../utils/api'
 
-/* ─── Types ─── */
-
+// Type definitions.
 interface DensityZone {
   id: string
   name: string
@@ -40,8 +45,7 @@ type ViewMode = 'list' | 'grid' | 'chart'
 type SortKey = 'density' | 'name' | 'trend' | 'risk' | 'reports'
 type FilterLevel = 'all' | 'low' | 'moderate' | 'high' | 'critical'
 
-/* ─── Config ─── */
-
+// Display settings and risk styling.
 const RISK_CONFIG = {
   low:      { labelKey: 'common.low', bg: 'bg-emerald-50 dark:bg-emerald-950/30', border: 'border-emerald-200/60 dark:border-emerald-800/40', text: 'text-emerald-700 dark:text-emerald-300', dot: 'bg-emerald-500', hex: '#10b981', ring: 'ring-emerald-400/50' },
   moderate: { labelKey: 'common.moderate', bg: 'bg-amber-50 dark:bg-amber-950/30', border: 'border-amber-200/60 dark:border-amber-800/40', text: 'text-amber-700 dark:text-amber-300', dot: 'bg-amber-500', hex: '#f59e0b', ring: 'ring-amber-400/50' },
@@ -57,8 +61,7 @@ const PEAK_HOURS: Record<number, string> = {
   21: 'settling', 22: 'quiet', 23: 'quiet',
 }
 
-/* ─── Helpers ─── */
-
+// Small helpers that keep the main component readable.
 function getRiskLevel(d: number): DensityZone['riskLevel'] {
   if (d < 30) return 'low'
   if (d < 55) return 'moderate'
@@ -86,7 +89,7 @@ function formatRefreshAgo(lastRefresh: Date, lang: string): string {
   return `${Math.floor(seconds / 60)}${t('common.minutesShort', lang)} ${t('common.ago', lang)}`
 }
 
-function clusterPoints(points: { lat: number; lng: number; intensity: number }[], gridSize: number = 8): DensityZone[] {
+function clusterPoints(points: { lat: number; lng: number; intensity: number }[], lang: string, gridSize: number = 8): DensityZone[] {
   if (!points.length) return []
 
   const lats = points.map(p => p.lat)
@@ -138,7 +141,7 @@ function clusterPoints(points: { lat: number; lng: number; intensity: number }[]
 
       return {
         id: `zone-${key}`,
-        name: `${t('crowd.zone', 'en')} ${String.fromCharCode(65 + i)}`,
+        name: `${t('crowd.zone', lang)} ${String.fromCharCode(65 + i)}`,
         lat: avgLat,
         lng: avgLng,
         density,
@@ -155,8 +158,7 @@ function clusterPoints(points: { lat: number; lng: number; intensity: number }[]
     })
 }
 
-/* ─── SVG Components ─── */
-
+// Small chart components used inside the cards.
 function Sparkline({ data, color, width = 64, height = 22 }: { data: number[]; color: string; width?: number; height?: number }) {
   if (data.length < 2) return null
   const max = Math.max(...data, 1)
@@ -235,8 +237,7 @@ function DistributionBar({ zones, lang }: { zones: DensityZone[]; lang: string }
   )
 }
 
-/* ─── Grid View ─── */
-
+// Grid view.
 function HeatmapGrid({ zones, selectedZone, onSelect, lang }: { zones: DensityZone[]; selectedZone: string | null; onSelect: (id: string | null) => void; lang: string }) {
   return (
     <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 p-4">
@@ -254,7 +255,7 @@ function HeatmapGrid({ zones, selectedZone, onSelect, lang }: { zones: DensityZo
             </div>
             <div className="text-[9px] text-gray-600 dark:text-gray-300 font-medium mt-1.5 truncate">{zone.name}</div>
             {zone.reportCount > 0 && (
-              <div className="text-[8px] text-gray-400 dark:text-gray-500 font-medium mt-0.5">
+              <div className="text-[8px] text-gray-400 dark:text-gray-400 font-medium mt-0.5">
                 {zone.reportCount} {t('nav.reports', lang).toLowerCase()}
               </div>
             )}
@@ -270,8 +271,7 @@ function HeatmapGrid({ zones, selectedZone, onSelect, lang }: { zones: DensityZo
   )
 }
 
-/* ─── Chart View ─── */
-
+// Chart view.
 function ChartView({ zones, lang }: { zones: DensityZone[]; lang: string }) {
   return (
     <div className="p-4 space-y-2">
@@ -293,7 +293,7 @@ function ChartView({ zones, lang }: { zones: DensityZone[]; lang: string }) {
               <span className={`text-[9px] font-bold ${zone.delta > 0 ? 'text-red-500' : zone.delta < 0 ? 'text-emerald-500' : 'text-gray-400 dark:text-gray-300'}`}>
                 {zone.delta > 0 ? `+${zone.delta}` : zone.delta < 0 ? `${zone.delta}` : '\u2014'}
               </span>
-              <span className="text-[8px] text-gray-400 dark:text-gray-500 font-mono">{zone.reportCount}{t('crowd.rptShort', lang)}</span>
+              <span className="text-[8px] text-gray-400 dark:text-gray-400 font-mono">{zone.reportCount}{t('crowd.rptShort', lang)}</span>
             </div>
           </div>
         )
@@ -309,14 +309,12 @@ function ChartView({ zones, lang }: { zones: DensityZone[]; lang: string }) {
   )
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   MAIN COMPONENT
-   ═══════════════════════════════════════════════════════════════ */
+// MAIN COMPONENT
 
 export default function AdminCrowdDensity(): JSX.Element {
   const lang = useLanguage()
 
-  // ─── State ───
+  // State
   const [zones, setZones] = useState<DensityZone[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -332,7 +330,7 @@ export default function AdminCrowdDensity(): JSX.Element {
   const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const autoRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // ─── Data Fetching ───
+  // Data Fetching
   const loadData = useCallback(async () => {
     setLoading(true)
     setError('')
@@ -340,12 +338,12 @@ export default function AdminCrowdDensity(): JSX.Element {
       // Try real API first
       const result = await apiGetSpatialDensity()
       if (result.points && result.points.length > 0) {
-        const clustered = clusterPoints(result.points)
+        const clustered = clusterPoints(result.points, lang)
         setZones(clustered)
         setDataSource('api')
         setPointCount(result.point_count)
       } else {
-        // Fallback: generate synthetic zones from report locations
+        // Build fallback zones from report locations if the density endpoint is empty.
         const reports: any[] = await apiFetch('/api/reports?status=verified,urgent,flagged&limit=100')
         const reportArray = Array.isArray(reports) ? reports : (reports as any)?.reports || []
         if (reportArray.length > 0) {
@@ -357,7 +355,7 @@ export default function AdminCrowdDensity(): JSX.Element {
               intensity: r.severity === 'High' ? 1.0 : r.severity === 'Medium' ? 0.6 : 0.3,
             }))
           if (pts.length > 0) {
-            const clustered = clusterPoints(pts)
+            const clustered = clusterPoints(pts, lang)
             setZones(clustered)
             setDataSource('api')
             setPointCount(pts.length)
@@ -370,7 +368,7 @@ export default function AdminCrowdDensity(): JSX.Element {
       }
       setLastRefresh(new Date())
     } catch {
-      // API unavailable — use synthetic data
+      // Keep the screen usable when the live endpoint is unavailable.
       generateSyntheticData()
       setLastRefresh(new Date())
     }
@@ -420,14 +418,14 @@ export default function AdminCrowdDensity(): JSX.Element {
     setPointCount(0)
   }, [])
 
-  // ─── Initial load + auto refresh ───
+  // Initial load + auto refresh
   useEffect(() => {
     loadData()
     autoRefreshRef.current = setInterval(loadData, 120000)
     return () => { if (autoRefreshRef.current) clearInterval(autoRefreshRef.current) }
   }, [loadData])
 
-  // ─── Refresh timer display ───
+  // Refresh timer display
   useEffect(() => {
     if (!lastRefresh) return
     const tick = () => setRefreshAgo(formatRefreshAgo(lastRefresh, lang))
@@ -436,7 +434,7 @@ export default function AdminCrowdDensity(): JSX.Element {
     return () => { if (refreshTimerRef.current) clearInterval(refreshTimerRef.current) }
   }, [lang, lastRefresh])
 
-  // ─── Computed ───
+  // Computed
   const summary = useMemo(() => {
     const critical = zones.filter(z => z.riskLevel === 'critical').length
     const high = zones.filter(z => z.riskLevel === 'high').length
@@ -484,11 +482,9 @@ export default function AdminCrowdDensity(): JSX.Element {
     URL.revokeObjectURL(url)
   }, [zones])
 
-  // ─── Render ───
+  // Render
   return (
     <div className="space-y-5 animate-fade-in">
-
-      {/* ═══ HEADER STATS ═══ */}
       <div className="bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-700 rounded-2xl shadow-2xl overflow-hidden relative">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjAzKSIvPjwvc3ZnPg==')] opacity-50" />
         <div className="relative z-10 p-5">
@@ -532,8 +528,6 @@ export default function AdminCrowdDensity(): JSX.Element {
               </button>
             </div>
           </div>
-
-          {/* Stat Cards */}
           <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
             {[
               { label: t('resource.zones', lang), value: zones.length, icon: LayoutGrid, color: 'text-blue-300' },
@@ -552,10 +546,7 @@ export default function AdminCrowdDensity(): JSX.Element {
           </div>
         </div>
       </div>
-
-      {/* ═══ CAPACITY + DISTRIBUTION + PEAK ═══ */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Capacity */}
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm p-4">
           <div className="flex justify-between items-baseline mb-2">
             <span className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
@@ -574,19 +565,15 @@ export default function AdminCrowdDensity(): JSX.Element {
           </div>
           <div className="flex justify-between mt-1.5">
             <span className="text-[9px] text-gray-500 dark:text-gray-400">{summary.totalPeople.toLocaleString()} {t('crowd.people', lang).toLowerCase()}</span>
-            <span className="text-[9px] text-gray-400 dark:text-gray-500">{t('crowd.of', lang)} {summary.totalCapacity.toLocaleString()}</span>
+            <span className="text-[9px] text-gray-400 dark:text-gray-400">{t('crowd.of', lang)} {summary.totalCapacity.toLocaleString()}</span>
           </div>
         </div>
-
-        {/* Risk Distribution */}
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm p-4">
           <span className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5 mb-3">
             <Target className="w-3.5 h-3.5 text-gray-400" /> {t('crowd.riskDistribution', lang)}
           </span>
           <DistributionBar zones={zones} lang={lang} />
         </div>
-
-        {/* Peak Hour */}
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm p-4">
           <span className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5 mb-2">
             <Zap className="w-3.5 h-3.5 text-amber-500" /> {t('crowd.peakForecast', lang)}
@@ -596,20 +583,17 @@ export default function AdminCrowdDensity(): JSX.Element {
               <span className={`text-sm font-black ${peakLabelKey === 'peak' || peakLabelKey === 'peakLunch' || peakLabelKey === 'rushHour' ? 'text-red-500' : peakLabelKey === 'high' ? 'text-orange-500' : 'text-emerald-600 dark:text-emerald-400'}`}>
                 {peakLabel}
               </span>
-              <p className="text-[9px] text-gray-400 dark:text-gray-500 mt-0.5">{t('crowd.current', lang)}</p>
+              <p className="text-[9px] text-gray-400 dark:text-gray-400 mt-0.5">{t('crowd.current', lang)}</p>
             </div>
             <div className="text-right">
               <span className="text-sm font-black text-gray-700 dark:text-gray-300">~{nextPeakIn}{t('common.hoursShort', lang)}</span>
-              <p className="text-[9px] text-gray-400 dark:text-gray-500 mt-0.5">{t('crowd.nextPeakIn', lang)}</p>
+              <p className="text-[9px] text-gray-400 dark:text-gray-400 mt-0.5">{t('crowd.nextPeakIn', lang)}</p>
             </div>
           </div>
         </div>
       </div>
-
-      {/* ═══ TOOLBAR ═══ */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
         <div className="px-4 py-3 flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-800">
-          {/* View Toggle */}
           <div className="flex items-center bg-gray-100 dark:bg-gray-800/60 rounded-xl p-0.5">
             {([
               { mode: 'list' as ViewMode, icon: List, label: t('crowd.list', lang) },
@@ -624,8 +608,6 @@ export default function AdminCrowdDensity(): JSX.Element {
               </button>
             ))}
           </div>
-
-          {/* Search + Filters */}
           <div className="flex items-center gap-2">
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
@@ -641,7 +623,7 @@ export default function AdminCrowdDensity(): JSX.Element {
                 <option value="moderate">{t('common.moderate', lang)}</option>
                 <option value="low">{t('common.low', lang)}</option>
               </select>
-              <Filter className="w-3 h-3 text-gray-400 dark:text-gray-500 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <Filter className="w-3 h-3 text-gray-400 dark:text-gray-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
             <div className="relative">
               <select value={sortKey} onChange={e => setSortKey(e.target.value as SortKey)}
@@ -652,12 +634,10 @@ export default function AdminCrowdDensity(): JSX.Element {
                 <option value="risk">{t('crowd.risk', lang)}</option>
                 <option value="reports">{t('nav.reports', lang)}</option>
               </select>
-              <ArrowUpDown className="w-3 h-3 text-gray-400 dark:text-gray-500 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <ArrowUpDown className="w-3 h-3 text-gray-400 dark:text-gray-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           </div>
         </div>
-
-        {/* ═══ CONTENT AREA ═══ */}
         {error && (
           <div className="mx-4 mt-3 flex items-center gap-2 px-3 py-2 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg text-xs text-red-600 dark:text-red-400">
             <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" /> {error}
@@ -671,7 +651,7 @@ export default function AdminCrowdDensity(): JSX.Element {
           </div>
         ) : zones.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3">
-            <Crosshair className="w-10 h-10 text-gray-300 dark:text-gray-600" />
+            <Crosshair className="w-10 h-10 text-gray-300 dark:text-gray-400" />
             <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">{t('crowd.noZoneData', lang)}</p>
             <button onClick={loadData} className="text-xs font-bold text-violet-600 dark:text-violet-400 hover:underline flex items-center gap-1">
               <RefreshCw className="w-3 h-3" /> {t('common.refresh', lang)}
@@ -685,7 +665,7 @@ export default function AdminCrowdDensity(): JSX.Element {
           <div className="p-4 space-y-2 max-h-[600px] overflow-y-auto custom-scrollbar">
             {processedZones.length === 0 ? (
               <div className="py-8 text-center">
-                <Filter className="w-6 h-6 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                <Filter className="w-6 h-6 text-gray-300 dark:text-gray-400 mx-auto mb-2" />
                 <p className="text-xs text-gray-400 dark:text-gray-300">{t('crowd.noZonesMatch', lang)}</p>
               </div>
             ) : (
@@ -726,7 +706,7 @@ export default function AdminCrowdDensity(): JSX.Element {
                         <div className="flex items-center justify-between text-[10px] text-gray-500 dark:text-gray-300">
                           <span className="flex items-center gap-1">
                             <Users className="w-3 h-3" /> ~{zone.crowdEstimate.toLocaleString()}
-                            <span className="text-[8px] text-gray-400 dark:text-gray-500">/ {zone.capacity.toLocaleString()}</span>
+                            <span className="text-[8px] text-gray-400 dark:text-gray-400">/ {zone.capacity.toLocaleString()}</span>
                           </span>
                           <span className={`flex items-center gap-1 font-semibold ${zone.trend === 'rising' ? 'text-red-500' : zone.trend === 'falling' ? 'text-emerald-500' : 'text-amber-500'}`}>
                             {zone.trend === 'rising' && <><TrendingUp className="w-3 h-3" /> {t('crowd.rising', lang)}</>}
@@ -735,16 +715,13 @@ export default function AdminCrowdDensity(): JSX.Element {
                           </span>
                           <span className={`text-[9px] font-bold ${zone.delta > 0 ? 'text-red-500' : zone.delta < 0 ? 'text-emerald-500' : 'text-gray-400 dark:text-gray-300'}`}>
                             {zone.delta > 0 ? `+${zone.delta}` : zone.delta < 0 ? `${zone.delta}` : '\u2014'}
-                            <span className="text-micro font-normal text-gray-400 dark:text-gray-500 ml-0.5">{t('common.hoursShort', lang)}</span>
+                            <span className="text-micro font-normal text-gray-400 dark:text-gray-400 ml-0.5">{t('common.hoursShort', lang)}</span>
                           </span>
                         </div>
                       </div>
                     </div>
-
-                    {/* Expanded Detail */}
                     {isSelected && (
                       <div className="mt-3 pt-3 border-t border-gray-200/60 dark:border-gray-600/30 space-y-2.5 animate-fade-in">
-                        {/* Capacity bar */}
                         <div>
                           <div className="flex justify-between items-baseline mb-1">
                             <span className="text-[9px] font-semibold text-gray-600 dark:text-gray-300 flex items-center gap-1">
@@ -758,47 +735,39 @@ export default function AdminCrowdDensity(): JSX.Element {
                             <div className={`h-full rounded-full transition-all duration-700 ${capacityPct > 80 ? 'bg-red-500' : capacityPct > 60 ? 'bg-orange-500' : 'bg-emerald-500'}`} style={{ width: `${capacityPct}%` }} />
                           </div>
                         </div>
-
-                        {/* Info Grid */}
                         <div className="grid grid-cols-4 gap-2 text-center">
                           <div className="bg-white/60 dark:bg-gray-900/40 rounded-lg p-2">
-                            <MapPin className="w-3 h-3 mx-auto text-gray-400 dark:text-gray-500 mb-0.5" />
+                            <MapPin className="w-3 h-3 mx-auto text-gray-400 dark:text-gray-400 mb-0.5" />
                             <div className="text-[8px] font-mono text-gray-600 dark:text-gray-300">{zone.lat.toFixed(4)}, {zone.lng.toFixed(4)}</div>
                             <div className="text-micro text-gray-400">{t('crowd.coordinates', lang)}</div>
                           </div>
                           <div className="bg-white/60 dark:bg-gray-900/40 rounded-lg p-2">
-                            <Clock className="w-3 h-3 mx-auto text-gray-400 dark:text-gray-500 mb-0.5" />
+                            <Clock className="w-3 h-3 mx-auto text-gray-400 dark:text-gray-400 mb-0.5" />
                             <div className="text-[8px] font-medium text-gray-600 dark:text-gray-300">{zone.lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                             <div className="text-micro text-gray-400">{t('crowd.updated', lang)}</div>
                           </div>
                           <div className="bg-white/60 dark:bg-gray-900/40 rounded-lg p-2">
-                            <Radio className="w-3 h-3 mx-auto text-gray-400 dark:text-gray-500 mb-0.5" />
+                            <Radio className="w-3 h-3 mx-auto text-gray-400 dark:text-gray-400 mb-0.5" />
                             <div className="text-[8px] font-medium text-gray-600 dark:text-gray-300">{zone.density >= 80 ? t('common.disperse', lang) : zone.density >= 55 ? t('common.monitor', lang) : t('crowd.actionNormal', lang)}</div>
                             <div className="text-micro text-gray-400">{t('crowd.action', lang)}</div>
                           </div>
                           <div className="bg-white/60 dark:bg-gray-900/40 rounded-lg p-2">
-                            <Activity className="w-3 h-3 mx-auto text-gray-400 dark:text-gray-500 mb-0.5" />
+                            <Activity className="w-3 h-3 mx-auto text-gray-400 dark:text-gray-400 mb-0.5" />
                             <div className="text-[8px] font-medium text-gray-600 dark:text-gray-300">{zone.reportCount} {t('nav.reports', lang).toLowerCase()}</div>
                             <div className="text-micro text-gray-400">{t('crowd.incidents', lang)}</div>
                           </div>
                         </div>
-
-                        {/* Trend Sparkline */}
                         <div className="bg-white/50 dark:bg-gray-900/30 rounded-lg p-2.5">
                           <div className="text-[8px] font-bold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">{t('crowd.densityTrendLast8', lang)}</div>
                           <Sparkline data={zone.history} color={cfg.hex} width={280} height={36} />
                         </div>
-
-                        {/* Critical Warning */}
                         {zone.riskLevel === 'critical' && (
                           <div className="flex items-center gap-1.5 bg-red-100/80 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 rounded-lg p-2">
                             <AlertTriangle className="w-3.5 h-3.5 text-red-500 flex-shrink-0 animate-pulse" />
                             <span className="text-[9px] font-bold text-red-700 dark:text-red-300">{t('crowd.criticalDensityAdvice', lang)}</span>
                           </div>
                         )}
-
-                        {/* Data Source Badge */}
-                        <div className="flex items-center gap-1 text-[8px] text-gray-400 dark:text-gray-500">
+                        <div className="flex items-center gap-1 text-[8px] text-gray-400 dark:text-gray-400">
                           <Cpu className="w-2.5 h-2.5" />
                           {zone.source === 'api' ? t('crowd.realData', lang) : t('crowd.syntheticData', lang)}
                         </div>

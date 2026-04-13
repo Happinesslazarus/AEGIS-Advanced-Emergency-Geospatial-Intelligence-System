@@ -1,3 +1,11 @@
+/**
+ * Module: NotificationToast.tsx
+ *
+ * Notification toast shared component (reusable UI element used across pages).
+ *
+ * How it connects:
+ * - Used across both admin and citizen interfaces */
+
 import { X, CheckCircle, AlertTriangle, Info, LucideIcon } from 'lucide-react'
 import { useAlerts } from '../../contexts/AlertsContext'
 import type { Notification } from '../../types'

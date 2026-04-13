@@ -1,17 +1,10 @@
-﻿ /*
- * AllReportsManager.tsx — Professional Incident Report Management Console
- * Modeled after FEMA WebEOC, Zetron ICS, UK Resilience Direct, and Palantir Gotham
- * incident management interfaces. Features:
- * Status pipeline ribbon with animated progress
- * AI triage scoring / confidence indicators
- * Table + Card dual view modes
- * Column-sortable table with inline status badges
- * Report timeline sparkline
- * Keyboard shortcuts reference
- * Smart NLP filter bar
- * Incident type filter panel
- * Bulk operations toolbar
-  */
+/**
+ * Module: AllReportsManager.tsx
+ *
+ * Report management console (view, filter, triage all reports).
+ *
+ * How it connects:
+ * - Rendered inside AdminPage.tsx based on active view */
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import {
@@ -120,27 +113,8 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
   const [page, setPage] = useState(0)
   const PAGE_SIZE = 25
   const searchRef = useRef<HTMLInputElement>(null)
-
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return
-      if (e.key === 'k' && (e.ctrlKey || e.metaKey)) {
-        e.preventDefault()
-        searchRef.current?.focus()
-      } else if (e.key === 'a' && (e.ctrlKey || e.metaKey)) {
-        e.preventDefault()
-        toggleSelectAll()
-      } else if (e.key === 'Escape') {
-        clearFilters()
-        setSelectedReportIds(new Set())
-      } else if (e.key === 't' || e.key === 'T') {
-        setViewMode(v => v === 'card' ? 'table' : 'card')
-      }
-    }
-    document.addEventListener('keydown', handler)
-    return () => document.removeEventListener('keydown', handler)
-  }, [filtered])
+  const filteredRef = useRef(filtered)
+  useEffect(() => { filteredRef.current = filtered }, [filtered])
 
   // Reset page when filters change
   useEffect(() => { setPage(0) }, [filtered])
@@ -185,14 +159,36 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
     if (next.has(id)) next.delete(id); else next.add(id)
     setSelectedReportIds(next)
   }
-  const toggleSelectAll = () => {
-    if (selectedReportIds.size === filtered.length) setSelectedReportIds(new Set())
-    else setSelectedReportIds(new Set(filtered.map(r => r.id)))
-  }
-  const clearFilters = () => {
+  const toggleSelectAll = useCallback(() => {
+    const f = filteredRef.current
+    if (selectedReportIds.size === f.length) setSelectedReportIds(new Set())
+    else setSelectedReportIds(new Set(f.map(r => r.id)))
+  }, [selectedReportIds, setSelectedReportIds])
+  const clearFilters = useCallback(() => {
     setFilterSeverity('all'); setFilterStatus('all'); setFilterType('all')
     setSearchTerm(''); setSmartFilter('')
-  }
+  }, [])
+
+  // Keyboard shortcuts — placed after toggleSelectAll/clearFilters to avoid TDZ errors
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return
+      if (e.key === 'k' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault()
+        searchRef.current?.focus()
+      } else if (e.key === 'a' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault()
+        toggleSelectAll()
+      } else if (e.key === 'Escape') {
+        clearFilters()
+        setSelectedReportIds(new Set())
+      } else if (e.key === 't' || e.key === 'T') {
+        setViewMode(v => v === 'card' ? 'table' : 'card')
+      }
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [toggleSelectAll, clearFilters, setSelectedReportIds])
 
   const hasFilters = filterSeverity !== 'all' || filterStatus !== 'all' || filterType !== 'all' || searchTerm || smartFilter
 
@@ -271,7 +267,7 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
           <span className="text-gray-400 dark:text-gray-300 font-bold uppercase tracking-wider text-[9px]">{t('common.shortcuts', lang)}:</span>
           <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">Ctrl+K</kbd> {t('common.search', lang)}</span>
           <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">Ctrl+A</kbd> {t('common.selectAll', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">Esc</kbd> {t('common.clear', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">{t('common.esc', lang)}</kbd> {t('common.clear', lang)}</span>
           <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">T</kbd> {t('allReports.tableView', lang)} / {t('allReports.cardView', lang)}</span>
           <button onClick={() => setShowKeyboard(false)} className="ml-auto text-gray-400 dark:text-gray-300 hover:text-white"><X className="w-3 h-3" /></button>
         </div>
@@ -477,7 +473,7 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
       {filtered.length === 0 ? (
         <div className="bg-white dark:bg-gray-900/80 backdrop-blur rounded-2xl ring-1 ring-gray-200 dark:ring-gray-800 p-12 text-center">
           <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-4">
-            <Search className="w-8 h-8 text-gray-300 dark:text-gray-600" />
+            <Search className="w-8 h-8 text-gray-300 dark:text-gray-400" />
           </div>
           <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">{t('common.noReportsFound', lang)}</h3>
           <button onClick={clearFilters} className="text-xs font-semibold text-aegis-600 hover:text-aegis-700 bg-aegis-50 dark:bg-aegis-950/30 px-4 py-2 rounded-lg ring-1 ring-aegis-200 dark:ring-aegis-800 transition-all hover:shadow-md">
@@ -687,7 +683,7 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
           SECTION 8 — FLOATING BULK ACTIONS BAR
            */}
       {selectedReportIds.size > 0 && (
-        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-900/95 backdrop-blur-xl text-white rounded-2xl shadow-2xl px-3 sm:px-5 py-3 flex items-center gap-2 sm:gap-3 ring-2 ring-aegis-500/50 z-50 animate-fade-in max-w-[calc(100vw-1.5rem)] overflow-x-auto">
+        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-900/95 backdrop-blur-xl text-white rounded-2xl shadow-2xl px-3 sm:px-5 py-3 flex items-center gap-2 sm:gap-3 ring-2 ring-aegis-500/50 z-50 animate-slide-up max-w-[calc(100vw-1.5rem)] overflow-x-auto">
           <div className="flex items-center gap-2 flex-shrink-0">
             <div className="w-8 h-8 rounded-lg bg-aegis-600 flex items-center justify-center"><FileText className="w-4 h-4" /></div>
             <div>

@@ -1,0 +1,4 @@
+model,top1,n,flood_f1,wildfire_f1,earthquake_damage_f1,hurricane_f1,tornado_f1,drought_f1,not_disaster_f1,macro avg_f1,weighted avg_f1
+zero-shot,0.4375,16,0.6,0.667,0.0,0.0,0.0,0.333,0.0,0.229,0.558
+zero-shot-crisis,0.4375,16,0.6,0.667,0.0,0.0,0.0,0.333,0.0,0.229,0.558
+fine-tuned,0.4375,16,0.6,0.667,0.0,0.0,0.0,0.333,0.0,0.229,0.558

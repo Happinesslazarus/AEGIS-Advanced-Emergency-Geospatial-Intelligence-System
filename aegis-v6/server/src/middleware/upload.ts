@@ -1,18 +1,25 @@
-/*
- * upload.ts - File upload middleware using Multer
+/**
+ * File: upload.ts
  *
- * Configures Multer for handling multipart form data uploads.
- * Supports two upload types:
- *   1. Report evidence (photos/videos from citizens)
- *   2. Profile avatars (admin operator photos)
+ * What this file does:
+ * Handles file uploads (evidence images, avatars) using Multer. After the file
+ * is saved to disk, validateMagicBytes checks that the file's actual content
+ * matches its declared extension — preventing attackers from uploading
+ * disguised executables as .jpg files.
  *
- * Files are stored in the server/uploads/ directory with unique
- * filenames generated using UUID to prevent collisions.
- * 
- * Security measures:
- * File size limit: 10MB for evidence, 2MB for avatars
- * Allowed types: JPEG, PNG, WebP, GIF, MP4 for evidence
- * Allowed types: JPEG, PNG, WebP for avatars
+ * How it connects:
+ * - Used by reportRoutes.ts (evidence uploads) and uploadRoutes.ts (general uploads)
+ * - Files are stored in server/uploads/ with UUID filenames to prevent collisions
+ * - The static file server in index.ts serves uploaded files to the frontend
+ *
+ * Key exports:
+ * - uploadEvidence — Multer middleware for up to 3 evidence images/videos (10 MB each)
+ * - uploadAvatar — Multer middleware for a single avatar image (2 MB)
+ * - validateMagicBytes — post-upload middleware that verifies file content
+ *
+ * Simple explanation:
+ * Securely handles file uploads. Checks both the file extension and the
+ * actual file content to make sure nobody uploads something dangerous.
  */
 
 import multer from 'multer'
@@ -20,23 +27,34 @@ import path from 'path'
 import fs from 'fs'
 import { v4 as uuid } from 'uuid'
 import { Request, Response, NextFunction } from 'express'
+import { logger } from '../services/logger.js'
 
-// Magic byte signatures for allowed file types (#79)
-const MAGIC_BYTES: Record<string, Buffer[]> = {
-  '.jpg':  [Buffer.from([0xFF, 0xD8, 0xFF])],
-  '.jpeg': [Buffer.from([0xFF, 0xD8, 0xFF])],
-  '.jfif': [Buffer.from([0xFF, 0xD8, 0xFF])],
-  '.png':  [Buffer.from([0x89, 0x50, 0x4E, 0x47])],
-  '.gif':  [Buffer.from([0x47, 0x49, 0x46, 0x38])],
-  '.webp': [Buffer.from([0x52, 0x49, 0x46, 0x46])], // RIFF header
-  '.mp4':  [Buffer.from([0x00, 0x00, 0x00]), Buffer.from([0x66, 0x74, 0x79, 0x70])], // ftyp
-  '.mov':  [Buffer.from([0x00, 0x00, 0x00])],
+// Magic byte signatures per file extension.
+// Reading the first 12 bytes of the saved file and comparing against these
+// prevents attackers from uploading malware.exe renamed to photo.jpg.
+// MP4/MOV signatures start at byte offset 4 (after the 4-byte length field).
+type MagicSig = { bytes: Buffer; offset: number }
+
+const MAGIC_BYTES: Record<string, MagicSig[]> = {
+  '.jpg':  [{ bytes: Buffer.from([0xFF, 0xD8, 0xFF]), offset: 0 }],
+  '.jpeg': [{ bytes: Buffer.from([0xFF, 0xD8, 0xFF]), offset: 0 }],
+  '.jfif': [{ bytes: Buffer.from([0xFF, 0xD8, 0xFF]), offset: 0 }],
+  '.png':  [{ bytes: Buffer.from([0x89, 0x50, 0x4E, 0x47]), offset: 0 }],
+  '.gif':  [{ bytes: Buffer.from([0x47, 0x49, 0x46, 0x38]), offset: 0 }],
+  '.webp': [{ bytes: Buffer.from([0x52, 0x49, 0x46, 0x46]), offset: 0 }],
+  '.mp4':  [{ bytes: Buffer.from([0x66, 0x74, 0x79, 0x70]), offset: 4 }],
+  '.mov':  [{ bytes: Buffer.from([0x66, 0x74, 0x79, 0x70]), offset: 4 }],
 }
 
- /**
- * Post-upload middleware that validates magic bytes of uploaded files.
- * Deletes files that don't match expected signatures.
- */
+const UPLOAD_DIR_EVIDENCE = path.join(process.cwd(), 'uploads', 'evidence')
+const UPLOAD_DIR_AVATARS  = path.join(process.cwd(), 'uploads', 'avatars')
+
+// Create upload directories on startup if they don't already exist.
+// Using { recursive: true } avoids errors if parents also need creating.
+for (const dir of [UPLOAD_DIR_EVIDENCE, UPLOAD_DIR_AVATARS]) {
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+}
+
 export function validateMagicBytes(req: Request, res: Response, next: NextFunction): void {
   const files: Express.Multer.File[] = []
   if ((req as any).file) files.push((req as any).file)
@@ -47,24 +65,28 @@ export function validateMagicBytes(req: Request, res: Response, next: NextFuncti
       const ext = path.extname(file.originalname).toLowerCase()
       const signatures = MAGIC_BYTES[ext]
       if (!signatures) {
-        // Unknown extension — already filtered by multer, but be safe
         fs.unlinkSync(file.path)
         res.status(400).json({ error: `Unsupported file type: ${ext}` })
         return
       }
-      const buf = Buffer.alloc(8) 
+      const buf = Buffer.alloc(12)
       const fd = fs.openSync(file.path, 'r')
-      fs.readSync(fd, buf, 0, 8, 0)
-      fs.closeSync(fd)
+      try {
+        fs.readSync(fd, buf, 0, 12, 0)
+      } finally {
+        fs.closeSync(fd)
+      }
 
-      const valid = signatures.some(sig => buf.subarray(0, sig.length).equals(sig))
+      const valid = signatures.some(sig =>
+        buf.subarray(sig.offset, sig.offset + sig.bytes.length).equals(sig.bytes)
+      )
       if (!valid) {
         fs.unlinkSync(file.path)
         res.status(400).json({ error: `File appears to have incorrect format. Expected ${ext} but magic bytes don't match.` })
         return
       }
-    } catch (err: any) {
-      // If validation fails, reject the file
+    } catch (err) {
+      logger.error({ err, file: file.originalname }, '[Upload] File validation failed')
       try { fs.unlinkSync(file.path) } catch {}
       res.status(400).json({ error: 'File validation failed.' })
       return
@@ -73,20 +95,26 @@ export function validateMagicBytes(req: Request, res: Response, next: NextFuncti
   next()
 }
 
-// Configure storage location and filename generation
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    cb(null, path.join(process.cwd(), 'uploads'))
-  },
+// UUID filenames prevent path traversal and filename collision attacks.
+// Extension is taken from the original name only for the MIME extension;
+// the actual file content is verified by validateMagicBytes later.
+const storageEvidence = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, UPLOAD_DIR_EVIDENCE),
   filename: (_req, file, cb) => {
-    // Generate unique filename preserving the original extension
     const ext = path.extname(file.originalname).toLowerCase()
     cb(null, `${uuid()}${ext}`)
   },
 })
 
-// Validate that uploaded files are acceptable image or video types
-function fileFilter(_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback): void {
+const storageAvatars = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, UPLOAD_DIR_AVATARS),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase()
+    cb(null, `${uuid()}${ext}`)
+  },
+})
+
+function fileFilterEvidence(_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback): void {
   const allowed = ['.jpg', '.jpeg', '.jfif', '.png', '.webp', '.gif', '.mp4', '.mov']
   const ext = path.extname(file.originalname).toLowerCase()
   if (allowed.includes(ext)) {
@@ -96,16 +124,17 @@ function fileFilter(_req: any, file: Express.Multer.File, cb: multer.FileFilterC
   }
 }
 
-// Evidence upload: up to 10MB per file, max 3 files per report
+// uploadEvidence accepts up to 3 files per request, max 10 MB each.
+// The 'evidence' field name must match what the frontend FormData uses.
 export const uploadEvidence = multer({
-  storage,
-  fileFilter,
+  storage: storageEvidence,
+  fileFilter: fileFilterEvidence,
   limits: { fileSize: 10 * 1024 * 1024 },
 }).array('evidence', 3)
 
-// Avatar upload: up to 2MB, for operator profile photos
+// uploadAvatar: single image only, 2 MB max, no video.
 export const uploadAvatar = multer({
-  storage,
+  storage: storageAvatars,
   fileFilter: (_req, file, cb) => {
     const allowed = ['.jpg', '.jpeg', '.png', '.webp']
     const ext = path.extname(file.originalname).toLowerCase()

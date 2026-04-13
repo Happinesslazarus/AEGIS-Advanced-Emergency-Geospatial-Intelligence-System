@@ -1,15 +1,10 @@
-﻿/*
- * regionConfig.ts - Centralized region/country configuration
+/**
+ * Module: regionConfig.ts
  *
- * ALL country-specific data lives here. No hardcoded UK numbers, orgs,
- * or government references should exist outside this file.
+ * Region config frontend module.
  *
- * To deploy AEGIS in a new country:
- *   1. Add a new RegionConfig entry below
- *   2. Set ACTIVE_REGION to the new region key
- *   3. Everything else (chatbot responses, quick actions, system prompts)
- *      automatically adapts
- */
+ * How it connects:
+ * - Imported by services and components that need this configuration */
 
 import { codeToFlag } from '../data/countryCodes'
 
@@ -410,7 +405,7 @@ const CODE_TO_REGION: Record<string, string> = {
   GB: 'uk', US: 'us', IN: 'india', AE: 'uae',
 }
 
- /**
+/**
  * Build a basic RegionConfig from the global emergency DB when no
  * detailed region profile exists. Provides correct emergency numbers,
  * mental health lines, and basic metadata for 60+ countries.
@@ -465,7 +460,7 @@ function buildFromGlobalDB(entry: GlobalEmergencyEntry): RegionConfig {
   }
 }
 
- /**
+/**
  * Detect user's country from browser locale.
  * Returns a REGIONS key if a detailed profile exists,
  * otherwise returns the ISO country code for global DB lookup.
@@ -482,7 +477,7 @@ function detectRegionFromLocale(): string {
   return code.toLowerCase()
 }
 
- /**
+/**
  * Override region. Set to '' or 'auto' for auto-detection.
  * Set to a specific key ('uk', 'us', 'india', 'uae') for manual override.
  */

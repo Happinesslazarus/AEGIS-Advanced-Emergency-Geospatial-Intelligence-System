@@ -1,5 +1,13 @@
 /**
- * incidents/power_outage/service.ts — Power Outage incident business logic
+ * Module: service.ts
+ *
+ * Electrical grid failures incident module (handles power outage specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for power outage events.
  */
 
 import pool from '../../models/db.js'

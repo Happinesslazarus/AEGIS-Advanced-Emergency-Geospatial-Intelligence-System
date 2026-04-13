@@ -1,19 +1,21 @@
-﻿/**
- * routes/incidentRoutes.ts — Unified v1 incident API
+/**
+ * File: incidentRoutes.ts
  *
- * Dynamically mounts routes for all registered incident modules.
+ * What this file does:
+ * Unified API for the multi-incident module system. Dynamically mounts
+ * routes for all 11 hazard types (flood, wildfire, earthquake, etc.)
+ * and provides cross-incident queries, dashboard summaries, and
+ * module health status.
  *
- * Standard contract for every incident:
- *   GET  /api/v1/incidents/{type}/active
- *   GET  /api/v1/incidents/{type}/predictions
- *   POST /api/v1/incidents/{type}/report
- *   GET  /api/v1/incidents/{type}/history
- *   GET  /api/v1/incidents/{type}/alerts
- *   GET  /api/v1/incidents/{type}/map-data
+ * How it connects:
+ * - Mounted at /api/v1/incidents in index.ts
+ * - Loads incident modules from the incidents/ directory at startup
+ * - Each module registers its own sub-routes under /api/v1/incidents/:type
+ * - The dashboard endpoint aggregates data across all active modules
  *
- * Cross-incident:
- *   GET  /api/v1/incidents/all/dashboard
- *   GET  /api/v1/incidents/registry
+ * Simple explanation:
+ * A single API that works across all disaster types — flood, fire,
+ * earthquake, etc. — instead of separate endpoints for each.
  */
 
 import { Router, Request, Response, NextFunction } from 'express'
@@ -38,7 +40,7 @@ function getRequestRegion(req: Request): string {
 
 // Cross-incident endpoints
 
- /**
+/**
  * GET /api/v1/incidents/registry — List all registered incident types with metadata
  */
 router.get('/registry', (_req: Request, res: Response) => {
@@ -50,7 +52,7 @@ router.get('/registry', (_req: Request, res: Response) => {
   })
 })
 
- /**
+/**
  * GET /api/v1/incidents/all/dashboard — Cross-incident dashboard summary
  */
 router.get('/all/dashboard', authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
@@ -63,7 +65,7 @@ router.get('/all/dashboard', authMiddleware, async (req: Request, res: Response,
   }
 })
 
- /**
+/**
  * GET /api/v1/incidents/all/predictions — All predictions across incident types
  */
 router.get('/all/predictions', authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
@@ -87,7 +89,7 @@ router.get('/all/predictions', authMiddleware, async (req: Request, res: Respons
   }
 })
 
- /**
+/**
  * GET /api/v1/incidents/all/alerts — All alerts across incident types
  */
 router.get('/all/alerts', async (req: Request, res: Response, next: NextFunction) => {
@@ -110,7 +112,7 @@ router.get('/all/alerts', async (req: Request, res: Response, next: NextFunction
   }
 })
 
- /**
+/**
  * GET /api/v1/incidents/all/map-data — Combined map data for all incidents
  */
 router.get('/all/map-data', async (req: Request, res: Response, next: NextFunction) => {

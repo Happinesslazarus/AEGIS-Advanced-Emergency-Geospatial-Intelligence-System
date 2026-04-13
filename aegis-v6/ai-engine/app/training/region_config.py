@@ -1,10 +1,15 @@
 """
-Region configuration for globally-deployable hazard training pipelines.
+File: region_config.py
 
-Defines coordinate bounds, time windows, and API endpoints for each region.
-Training scripts accept --region=<key> to select the appropriate config.
-All configs use free, global APIs (Open-Meteo, OpenAQ, SRTM) as primary
-data sources, with optional regional enhancers (SEPA, EA, Met Office).
+What this file does:
+Defines per-region training configuration: which lat/lon bounding box to
+use, which hazards are relevant (e.g. no drought training for coastal
+regions), and the minimum positive-label count needed before training.
+
+How it connects:
+- Used by train_all.py and base_real_pipeline.py to scope training runs
+- Region list must match ai-engine/registry/region_registry.py entries
+- Server regions: server/src/routes/spatialRoutes.ts reads the same IDs
 """
 
 from __future__ import annotations

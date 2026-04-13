@@ -1,16 +1,16 @@
 """
-train_water_supply.py — Water Supply Disruption Training Pipeline
+File: train_water_supply.py
 
-Features: rainfall_deficit, temperature, soil_moisture, demand_proxy,
-          freeze_risk, season
-Data:     Open-Meteo historical (global, free)
-Labels:   Weak proxy → experimental
-          rainfall_deficit > 50 mm AND temperature > 25°C → supply stress
-Model:    XGBoost classifier
+What this file does:
+Trains the water supply disruption risk-prediction model on synthetic/augmented data.
+Uses BaseHazardPipeline for the training loop. Useful as a quick
+bootstrap when real-world labelled data is unavailable.
 
-Usage:
-    python -m app.training.train_water_supply --region=global
-    python -m app.training.train_water_supply --region=india
+How it connects:
+- Extends ai-engine/app/training/base_hazard_pipeline.py
+- Synthetic feature generation via data_loaders.py and data_ingestion.py
+- Saves to model_registry/water_supply_disruption/ via ModelRegistry
+- Loaded at inference time by ai-engine/app/hazards/water_supply_disruption.py
 """
 
 from __future__ import annotations

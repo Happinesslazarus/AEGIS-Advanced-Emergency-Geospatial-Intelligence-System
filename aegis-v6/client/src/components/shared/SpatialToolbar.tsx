@@ -1,21 +1,10 @@
-﻿ /*
- * SpatialToolbar.tsx — 12 interactive spatial analysis tools for the
- * DisasterMap. Uses PostGIS server endpoints (/api/spatial/*) with
- * client-side Haversine as fallback for offline resilience.
- * Tools:
- *  1. Distance Measure — PostGIS ST_Distance with Haversine fallback
- *  2. Area Measure — PostGIS ST_Area with spherical excess fallback
- *  3. Buffer Zone — click point + set radius, visualise circle
- *  4. Radius Search — PostGIS ST_DWithin proximity search
- *  5. Flood Risk Query — PostGIS ST_Contains zone intersection
- *  6. Nearest Shelter — PostGIS KNN nearest-neighbour lookup
- *  7. Elevation Profile — click points → query open-elevation API
- *  8. Coordinate Lookup — click → lat/lng + reverse geocode
- *  9. Bearing & Heading — click two points → compass bearing
- * 10. Export View — capture current map bounds + data summary
- * 11. Buffer Analysis — PostGIS full spatial analysis (reports + shelters + zones)
- * 12. Density Map — PostGIS incident density / KDE heatmap data
-  */
+/**
+ * Module: SpatialToolbar.tsx
+ *
+ * Spatial toolbar shared component (reusable UI element used across pages).
+ *
+ * How it connects:
+ * - Used across both admin and citizen interfaces */
 
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useMap, useMapEvents, Marker, Circle, Polyline, Polygon, Popup } from 'react-leaflet'

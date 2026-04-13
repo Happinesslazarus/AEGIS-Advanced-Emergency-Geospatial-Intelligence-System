@@ -1,11 +1,21 @@
-﻿/*
- * twoFactorCrypto.ts — Encryption & cryptographic utilities for TOTP 2FA
+/**
+ * File: twoFactorCrypto.ts
  *
- * TOTP secrets are encrypted at rest using AES-256-GCM with a server-side key.
- * Backup codes are hashed with SHA-256 for one-time verification (never need
- * to be decrypted — only compared).
+ * What this file does:
+ * Cryptographic functions for TOTP 2FA: encrypts/decrypts TOTP secrets
+ * at rest using AES-256-GCM, generates human-readable backup recovery
+ * codes, and provides temp token and TOTP code hashing for replay
+ * prevention.
  *
- * Encryption key: TWO_FACTOR_ENCRYPTION_KEY env variable (64-char hex = 32 bytes).
+ * How it connects:
+ * - Used by twoFactorRoutes.ts and citizenTwoFactorRoutes.ts
+ * - Encryption key comes from TWO_FACTOR_ENCRYPTION_KEY env variable
+ * - In dev, falls back to a key derived from JWT_SECRET
+ * - TOTP secrets are stored encrypted in the database
+ *
+ * Simple explanation:
+ * Keeps 2FA secrets safe in the database by encrypting them, and
+ * generates the recovery codes users can print as a backup.
  */
 
 import crypto from 'crypto'
@@ -38,7 +48,7 @@ function getEncryptionKey(): Buffer {
 
 // AES-256-GCM Encrypt / Decrypt
 
- /**
+/**
  * Encrypt a plaintext string using AES-256-GCM.
  * Returns a compact string: iv:authTag:ciphertext (all hex-encoded).
  */
@@ -52,7 +62,7 @@ export function encrypt2FASecret(plaintext: string): string {
   return `${iv.toString('hex')}:${authTag.toString('hex')}:${encrypted}`
 }
 
- /**
+/**
  * Decrypt an AES-256-GCM encrypted string.
  * Input format: iv:authTag:ciphertext (all hex-encoded).
  */
@@ -74,7 +84,7 @@ export function decrypt2FASecret(encryptedStr: string): string {
 
 // Backup Code Generation & Hashing
 
- /**
+/**
  * Generate a single human-readable backup code: XXXX-XXXX (uppercase alphanumeric).
  * Uses a character set that avoids ambiguous characters (0/O, 1/I/L).
  */
@@ -92,7 +102,7 @@ function generateSingleBackupCode(): string {
   return segments.join('-')
 }
 
- /**
+/**
  * Generate a set of backup codes.
  * Returns { plainCodes, hashedCodes } — plainCodes shown once to user,
  * hashedCodes stored in the database.
@@ -108,7 +118,7 @@ export function generateBackupCodes(): { plainCodes: string[]; hashedCodes: stri
   return { plainCodes, hashedCodes }
 }
 
- /**
+/**
  * Hash a backup code for secure storage (SHA-256).
  * Normalises to uppercase and strips dashes before hashing.
  */
@@ -117,7 +127,7 @@ export function hashBackupCode(code: string): string {
   return crypto.createHash('sha256').update(normalised).digest('hex')
 }
 
- /**
+/**
  * Verify a user-submitted backup code against the stored hashed codes.
  * Returns the index of the matching code, or -1 if none match.
  * Uses timing-safe comparison to prevent timing attacks.
@@ -136,7 +146,7 @@ export function verifyBackupCode(submittedCode: string, hashedCodes: string[]): 
 
 // Temp Token for 2FA Login Flow
 
- /**
+/**
  * Generate a cryptographically secure one-time temp token for the 2FA login step.
  * Returns a 48-byte hex string (384 bits of entropy).
  */
@@ -144,7 +154,7 @@ export function generateTempToken(): string {
   return crypto.randomBytes(48).toString('hex')
 }
 
- /**
+/**
  * Hash a temp token for storage (SHA-256).
  */
 export function hashTempToken(token: string): string {
@@ -153,7 +163,7 @@ export function hashTempToken(token: string): string {
 
 // TOTP Replay Protection
 
- /**
+/**
  * Hash a TOTP code for replay detection (SHA-256).
  * We hash the code so we never store raw TOTP values in the DB.
  */
@@ -161,7 +171,7 @@ export function hashTOTPCode(code: string): string {
   return crypto.createHash('sha256').update(code).digest('hex')
 }
 
- /**
+/**
  * Check if a TOTP code is a replay (same code used within the TOTP window).
  * Returns true if the code should be REJECTED (is a replay).
  */
@@ -186,7 +196,7 @@ export function isTOTPReplay(
 const TWO_FA_MAX_ATTEMPTS = 5
 const TWO_FA_LOCKOUT_MINUTES = 10
 
- /**
+/**
  * Check if the operator's 2FA is currently locked out due to too many failed attempts.
  * Returns { locked, remainingMinutes }.
  */
@@ -204,7 +214,7 @@ export function check2FALockout(
   return { locked: false, remainingMinutes: 0 }
 }
 
- /**
+/**
  * Determine if the operator should be locked out after a failed 2FA attempt.
  * Returns the new attempt count and whether a lockout should be applied.
  */

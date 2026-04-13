@@ -1,3 +1,12 @@
+/**
+ * Module: incident-api.spec.ts
+ *
+ * Incident-api test suite (automated tests for this feature).
+ *
+ * Simple explanation:
+ * Verifies that incident-api works correctly.
+ */
+
 import { test, expect } from '@playwright/test'
 
 const API = process.env.E2E_API_URL || 'http://localhost:3001'

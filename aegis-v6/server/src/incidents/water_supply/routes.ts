@@ -1,5 +1,13 @@
 /**
- * incidents/water_supply/routes.ts — Custom routes for water supply disruption incidents
+ * Module: routes.ts
+ *
+ * Water supply disruptions incident module (handles water supply specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for water supply events.
  */
 
 import { Router, Request, Response } from 'express'
@@ -17,8 +25,7 @@ export function setupWaterSupplyRoutes(router: Router): void {
         message: 'Disruption mapping based on report clustering'
       })
     } catch (err: unknown) {
-      const error = err as Error
-      res.status(500).json({ error: 'Failed to generate disruption map', details: error.message })
+      res.status(500).json({ error: 'Could not load the water supply disruption map. Please try again.' })
     }
   })
 
@@ -33,8 +40,7 @@ export function setupWaterSupplyRoutes(router: Router): void {
         message: 'Count based on citizen reports'
       })
     } catch (err: unknown) {
-      const error = err as Error
-      res.status(500).json({ error: 'Failed to count affected households', details: error.message })
+      res.status(500).json({ error: 'Could not estimate affected households. Please try again.' })
     }
   })
 
@@ -49,9 +55,8 @@ export function setupWaterSupplyRoutes(router: Router): void {
         message: 'Water quality monitoring'
       })
     } catch (err: unknown) {
-      const error = err as Error
-      res.status(500).json({ error: 'Failed to fetch water quality', details: error.message })
+      res.status(500).json({ error: 'Could not load water quality data. Please try again shortly.' })
     }
   })
 }
-
+

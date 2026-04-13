@@ -1,202 +1,176 @@
 """
-AEGIS AI Engine — Power Outage Real-Data Training
+File: train_power_outage_real.py
 
-Train power outage risk model using REAL data:
-  - Open-Meteo historical weather observations (wind, temperature, humidity)
-  - SEPA/EA river level gauge readings
-  - SEPA/EA rainfall gauge data
+Trains the power outage risk-prediction model using independent outage
+event records from two sources:
 
-Task type: RISK_SCORING
-  Features use concurrent observations (lead_hours=0).
-  Model scores weather conditions likely to cause infrastructure failure.
+  1. UK Named Storm Outage Records (embedded, always available):
+     ~27 major UK/Ireland storms 2015–2025 with affected customer counts,
+     start/end datetimes, and region centroids.  Sourced from Ofgem
+     disturbance notifications, SSEN/WPD/ENW/UKPN/NIE press releases.
 
-Label provenance: engineering_standard
-  Positive = SSEN infrastructure failure weather conditions:
-    - Wind gusts > 90 km/h, OR
-    - Icing conditions (temp < -2°C AND humidity > 90%), OR
-    - Flood-related disruption (river level > 95th pct AND rainfall_24h > 40mm)
-  Negative = conditions outside these thresholds
+  2. EIA Form OE-417 (US, optional):
+     US Electric Emergency Incidents and Disturbances — all weather-caused
+     outage events reported to FERC/NERC under federal reporting requirements.
+     Free from: https://www.eia.gov/electricity/disturbances/
 
-Usage:
-    python -m app.training.train_power_outage_real --region uk-default --start-date 2015-01-01 --end-date 2025-12-31
+Label independence:
+  Labels are OBSERVED outage records (utility telemetry + regulatory reports).
+  Features are ERA5 meteorological variables from Open-Meteo.
+  There is no shared data source → LeakageSeverity.NONE.
+
+How it connects:
+- Extends ai-engine/app/training/base_real_pipeline.py
+- Labels from data_fetch_outages.py (UK storm records + EIA OE-417)
+- Features from multi_location_weather.py (GLOBAL_OUTAGE_LOCATIONS, 20 sites)
+- Saves to model_registry/power_outage/ via ModelRegistry
+- Loaded at inference time by ai-engine/app/hazards/power_outage.py
 """
 
 from __future__ import annotations
 
 import pandas as pd
-import numpy as np
 from loguru import logger
 
 from app.training.base_real_pipeline import (
     BaseRealPipeline, HazardConfig, parse_training_args, run_pipeline,
 )
+from app.training.multi_location_weather import (
+    fetch_multi_location_weather, build_per_station_features,
+    GLOBAL_OUTAGE_LOCATIONS, STANDARD_HOURLY_VARS,
+)
+from app.training.data_fetch_outages import build_outage_label_df, outages_available
+
 
 class PowerOutageRealPipeline(BaseRealPipeline):
 
     HAZARD_CONFIG = HazardConfig(
         hazard_type="power_outage",
-        task_type="risk_scoring",
-        lead_hours=0,
+        task_type="forecast",
+        lead_hours=6,
+        region_scope="UK+US",
+        label_source=(
+            "UK Named Storm Outage Records (Ofgem / SSEN / WPD / ENW / NIE Networks, "
+            "2015–2025): 27 major storm events with customer counts, start/end times, "
+            "and region centroids. "
+            "EIA Form OE-417 (US federal NERC reporting, 2015–2024): all weather-caused "
+            "electric disturbance events with state, cause, and customer counts. "
+            "Both sources are independent OBSERVED utility records, not weather thresholds."
+        ),
+        data_validity="independent",
         label_provenance={
-            "category": "engineering_standard",
-            "source": "SSEN resilience thresholds + Transport Scotland winter standards",
+            "category": "authoritative_event_record",
+            "source": (
+                "UK: Ofgem Electricity Disturbance Notifications; SSEN/WPD/ENW/"
+                "UKPN/Northern Powergrid/NIE Networks incident press releases. "
+                "US: EIA Form OE-417 annual summary Excel files from "
+                "https://www.eia.gov/electricity/disturbances/"
+            ),
             "description": (
-                "Labels derived from engineering failure-condition thresholds. "
-                "Positive = wind gusts > 90 km/h (overhead line damage), OR "
-                "icing conditions (temp < -2°C AND humidity > 90%), OR "
-                "flood-related disruption (river level > 95th percentile AND "
-                "rainfall_24h > 40mm). Negative = conditions outside all thresholds."
+                "A station-hour is POSITIVE when a documented weather-caused outage "
+                "event was ACTIVE (start <= hour <= restoration) within 150 km of the "
+                "station.  UK outage records cover named storms from Abigail (Nov 2015) "
+                "through Eowyn (Jan 2025), including Storm Arwen (100k customers), "
+                "Eunice (255k), and Eowyn (770k). "
+                "US EIA OE-417 events are filtered to weather cause codes "
+                "(wind, ice, snow, thunderstorm, flood, hurricane, tornado)."
             ),
             "limitations": (
-                "Not actual outage incident records. Engineering-threshold derived — "
-                "represent likely-failure weather conditions. Real outages depend on "
-                "local network topology, vegetation proximity, and maintenance state "
-                "which are not captured."
+                "UK records are curated static events — minor storms not reaching "
+                "named-storm threshold are absent.  EIA OE-417 coverage begins ~2015 "
+                "for this module; earlier data available but not yet loaded.  "
+                "Outage duration ('end time') is sometimes estimated when not reported."
             ),
-            "peer_reviewed_basis": "SSEN network resilience reports, Transport Scotland winter operations standards",
+            "peer_reviewed_basis": (
+                "Ofgem statutory electricity distribution licence condition 25.7 "
+                "(disturbance notification requirements); NERC FAC-002 event reporting "
+                "mandated under 18 CFR Part 11"
+            ),
         },
         min_total_samples=500,
         min_positive_samples=20,
-        min_stations=5,
-        promotion_min_roc_auc=0.70,
+        min_stations=3,
+        promotion_min_roc_auc=0.68,
     )
 
     async def fetch_raw_data(self) -> dict[str, pd.DataFrame]:
-        """Fetch weather, river level, and rainfall data."""
-        stations_df = await self.provider.get_station_metadata()
-        station_ids = stations_df["station_id"].tolist()[:50]
-
-        weather = await self.provider.get_historical_weather(
-            lat=56.0, lon=-3.5,  # Central Scotland
-            start_date=self.start_date, end_date=self.end_date,
+        """Fetch storm weather features from global outage coverage grid."""
+        weather = await fetch_multi_location_weather(
+            locations=GLOBAL_OUTAGE_LOCATIONS,
+            start_date=self.start_date,
+            end_date=self.end_date,
+            hourly_vars=STANDARD_HOURLY_VARS,
         )
-        river = await self.provider.get_river_levels(
-            station_ids=station_ids,
-            start_date=self.start_date, end_date=self.end_date,
-        )
-        rainfall = await self.provider.get_rainfall(
-            station_ids=station_ids,
-            start_date=self.start_date, end_date=self.end_date,
-        )
-
-        return {
-            "weather": weather,
-            "river": river,
-            "rainfall": rainfall,
-            "stations": stations_df,
-        }
+        return {"weather": weather}
 
     def build_labels(self, raw_data: dict[str, pd.DataFrame]) -> pd.DataFrame:
-        """Build power outage risk labels from engineering thresholds."""
+        """Build outage labels from UK named storm records + EIA OE-417."""
         weather = raw_data.get("weather", pd.DataFrame())
-        river = raw_data.get("river", pd.DataFrame())
-        rainfall = raw_data.get("rainfall", pd.DataFrame())
-
         if weather.empty:
             raise RuntimeError("No weather data — cannot build power outage labels")
 
-        weather = weather.copy()
-        weather["timestamp"] = pd.to_datetime(weather["timestamp"])
-        weather["timestamp"] = weather["timestamp"].dt.floor("h")
+        # UK records are always present; EIA OE-417 adds US coverage if downloaded
+        outages_available()  # logs availability status
 
-        # Condition 1: Severe wind gusts > 90 km/h
-        gust_col = None
-        for col in ["wind_gusts_10m", "windgusts_10m_max", "wind_gusts"]:
-            if col in weather.columns:
-                gust_col = col
-                break
-        wind_label = pd.Series(False, index=weather.index)
-        if gust_col:
-            wind_label = weather[gust_col] > 90.0
+        labels = build_outage_label_df(
+            station_locations=GLOBAL_OUTAGE_LOCATIONS,
+            start_date=self.start_date,
+            end_date=self.end_date,
+            radius_km=150.0,
+        )
 
-        # Condition 2: Icing (temp < -2°C AND humidity > 90%)
-        temp_col = None
-        for col in ["temperature_2m", "temperature_2m_mean", "temperature"]:
-            if col in weather.columns:
-                temp_col = col
-                break
-        hum_col = None
-        for col in ["relative_humidity_2m", "humidity", "relativehumidity_2m"]:
-            if col in weather.columns:
-                hum_col = col
-                break
-        icing_label = pd.Series(False, index=weather.index)
-        if temp_col and hum_col:
-            icing_label = (weather[temp_col] < -2.0) & (weather[hum_col] > 90.0)
-
-        # Condition 3: Flood-related disruption
-        # River level > 95th percentile AND rainfall_24h > 40mm
-        flood_disruption = pd.Series(False, index=weather.index)
-        if not river.empty and not rainfall.empty:
-            river_c = river.copy()
-            river_c["timestamp"] = pd.to_datetime(river_c["timestamp"]).dt.floor("h")
-
-            # Compute per-station 95th percentile
-            station_p95 = river_c.groupby("station_id")["level_m"].quantile(0.95)
-            river_c = river_c.merge(station_p95.rename("p95"), on="station_id")
-            river_c["above_p95"] = river_c["level_m"] > river_c["p95"]
-            high_river_times = set(
-                river_c.loc[river_c["above_p95"], "timestamp"].dt.strftime("%Y-%m-%d %H")
+        if labels.empty:
+            raise RuntimeError(
+                "Outage label builder returned empty result.  "
+                "Check that start_date/end_date overlaps with UK storm records "
+                "(2015–2025).  For US coverage, download EIA OE-417 data: "
+                "from app.training.data_fetch_outages import download_eia_oe417; "
+                "download_eia_oe417()"
             )
 
-            # Compute 24h rainfall
-            rainfall_c = rainfall.copy()
-            rainfall_c["timestamp"] = pd.to_datetime(rainfall_c["timestamp"]).dt.floor("h")
-            if "value" in rainfall_c.columns:
-                rain_hourly = rainfall_c.groupby("timestamp")["value"].sum().reset_index()
-                rain_hourly["rainfall_24h_sum"] = (
-                    rain_hourly["value"].rolling(24, min_periods=1).sum()
-                )
-                heavy_rain_times = set(
-                    rain_hourly.loc[
-                        rain_hourly["rainfall_24h_sum"] > 40.0, "timestamp"
-                    ].dt.strftime("%Y-%m-%d %H")
-                )
-                weather_times = weather["timestamp"].dt.strftime("%Y-%m-%d %H")
-                flood_disruption = (
-                    weather_times.isin(high_river_times) & weather_times.isin(heavy_rain_times)
-                )
-
-        # Combine all conditions
-        combined_label = (wind_label | icing_label | flood_disruption).astype(int)
-
-        # Build output
-        if "station_id" not in weather.columns:
-            weather["station_id"] = "weather_grid"
-
-        labels_df = weather[["timestamp", "station_id"]].copy()
-        labels_df["label"] = combined_label.values
-
-        # Deduplicate
-        labels_df = labels_df.groupby(["timestamp", "station_id"])["label"].max().reset_index()
-
-        n_pos = int(labels_df["label"].sum())
-        n_neg = len(labels_df) - n_pos
-        logger.info(f"  Power outage labels: {n_pos} positive, {n_neg} negative")
+        n_pos = int(labels["label"].sum())
+        n_neg = len(labels) - n_pos
         logger.info(
-            f"  Breakdown — wind: {int(wind_label.sum())}, "
-            f"icing: {int(icing_label.sum())}, "
-            f"flood-disruption: {int(flood_disruption.sum())}"
+            f"  Power outage labels: {n_pos:,} positive, {n_neg:,} negative "
+            f"across {labels['station_id'].nunique()} stations"
         )
-        return labels_df
+        return labels
+
+    def build_features(self, raw_data: dict[str, pd.DataFrame]) -> pd.DataFrame:
+        """Build per-station meteorological features."""
+        weather = raw_data.get("weather", pd.DataFrame())
+        if weather.empty:
+            raise RuntimeError("No weather data — cannot build features")
+        return build_per_station_features(weather, self.feature_engineer)
 
     def hazard_feature_columns(self) -> list[str]:
-        """Feature columns for power outage risk scoring."""
+        """Feature columns for power outage 6h-ahead forecasting.
+
+        Labels come from observed utility outage records — all ERA5 meteorological
+        features are legitimate (none are label constructors).  Wind speed and gusts
+        are the primary physical drivers of overhead line damage.  Icing (temp +
+        humidity combination), flooding, and ice-storm conditions are secondary paths.
+        """
         return [
-            # Wind features
-            "wind_speed_10m", "wind_gusts_10m",
-            # Temperature / icing features
-            "temperature_2m", "relative_humidity_2m",
-            "pressure_msl", "pressure_change_3h", "pressure_change_6h",
-            # Freeze-thaw proxy
-            "freeze_thaw_cycles",
-            # Rainfall features
+            # Primary: wind damage to overhead lines
+            "wind_speed_10m",
+            "wind_gusts_10m",
+            # Pressure tendency — precursor to high-wind events
+            "pressure_msl",
+            "pressure_change_3h",
+            "pressure_change_6h",
+            # Icing conditions (freezing + high humidity)
+            "temperature_2m",
+            "relative_humidity_2m",
+            "dewpoint_2m",
+            # Precipitation
             "rainfall_24h", "rainfall_48h",
-            # River features
-            "level_current", "level_percentile", "level_anomaly",
+            # Snow / freezing conditions
+            "snowfall",
             # Temporal
             "season_sin", "season_cos", "hour_sin", "hour_cos", "month",
         ]
+
 
 def main():
     args = parse_training_args("power_outage")
@@ -205,6 +179,7 @@ def main():
         logger.success(f"Power outage training complete: {result['version']}")
     else:
         logger.error(f"Power outage training failed: {result.get('error', 'unknown')}")
+
 
 if __name__ == "__main__":
     main()

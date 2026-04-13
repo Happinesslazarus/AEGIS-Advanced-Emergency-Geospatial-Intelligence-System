@@ -1,7 +1,13 @@
 /**
- * incidents/wildfire/index.ts — Wildfire module (Tier 3: ML)
+ * Module: index.ts
  *
- * Uses satellite/weather data + report patterns for fire risk assessment.
+ * Wildfire and bushfire events incident module (handles wildfire specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for wildfire events.
  */
 
 import { BaseIncidentModule } from '../baseModule.js'
@@ -74,4 +80,4 @@ class WildfireModule extends BaseIncidentModule {
 }
 
 export default new WildfireModule()
-
+

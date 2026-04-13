@@ -1,7 +1,17 @@
+"""
+Module: check_weather.py
+
+Check_weather utility script.
+
+Simple explanation:
+Standalone script for check_weather.
+"""
+
+import os
 import asyncio, asyncpg
 
 async def main():
-    c = await asyncpg.connect('postgresql://postgres:Happylove%40%21@localhost:5432/aegis')
+    c = await asyncpg.connect(os.environ.get('DATABASE_URL', 'postgresql://localhost:5432/aegis'))
     cols = await c.fetch("SELECT column_name FROM information_schema.columns WHERE table_name='weather_observations' ORDER BY ordinal_position")
     print("WEATHER COLUMNS:")
     for r in cols:

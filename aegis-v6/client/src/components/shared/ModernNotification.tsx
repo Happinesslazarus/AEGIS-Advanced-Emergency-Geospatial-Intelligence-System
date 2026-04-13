@@ -1,7 +1,10 @@
-/*
- * ModernNotification.tsx - Beautiful, modern notification toast component
- * Replaces plain text notifications with attractive visual alerts
- */
+/**
+ * Module: ModernNotification.tsx
+ *
+ * Modern notification shared component (reusable UI element used across pages).
+ *
+ * How it connects:
+ * - Used across both admin and citizen interfaces */
 
 import { useState, useEffect } from 'react'
 import { AlertCircle, CheckCircle, Info, AlertTriangle, Bell, X } from 'lucide-react'

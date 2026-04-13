@@ -1,8 +1,15 @@
-﻿/**
- * tests__/gdpr.integration.test.ts — GDPR Data Export & Erasure
+/**
+ * File: gdpr.integration.test.ts
  *
- * Tests Article 20 data portability (export), Article 17 right to erasure,
- * and the 30-day account deletion grace period against a real test DB.
+ * What it tests:
+ * Integration tests for GDPR data-subject rights endpoints.
+  * Verifies data export (Article 20), erasure request (Article 17),
+  * and consent logging against a real PostgreSQL database.
+  *
+  * How it connects:
+  * - Tests server/src/routes/gdprRoutes.ts
+  * - Touches gdpr_requests and consent_log tables
+  * - Run via: npm test -- gdpr
  */
 
 import { describe, it, expect, beforeAll, beforeEach, afterAll, afterEach } from '@jest/globals'
@@ -321,4 +328,4 @@ describe('GDPR Integration Tests', () => {
     })
   })
 })
-
+

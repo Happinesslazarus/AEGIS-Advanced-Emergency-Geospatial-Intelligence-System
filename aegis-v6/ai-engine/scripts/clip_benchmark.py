@@ -1,13 +1,7 @@
 """
-AEGIS Vision — CLIP Zero-Shot Disaster Image Classifier & Benchmark
-Uses OpenAI CLIP (via open_clip) to classify disaster images zero-shot.
-No training needed — CLIP understands disaster concepts from pre-training
-on 400M+ image-text pairs.
+Module: clip_benchmark.py
 
-Usage:
-    python scripts/clip_benchmark.py                    # Run benchmark
-    python scripts/clip_benchmark.py --model ViT-B-16   # Use larger model
-    python scripts/clip_benchmark.py --single path.jpg  # Classify one image
+Clip_benchmark AI engine module.
 """
 
 import json

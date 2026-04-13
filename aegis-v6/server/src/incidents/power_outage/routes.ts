@@ -1,5 +1,13 @@
 /**
- * incidents/power_outage/routes.ts — Custom routes for power outage incidents
+ * Module: routes.ts
+ *
+ * Electrical grid failures incident module (handles power outage specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for power outage events.
  */
 
 import { Router, Request, Response } from 'express'
@@ -17,8 +25,7 @@ export function setupPowerOutageRoutes(router: Router): void {
         message: 'Outage mapping based on report clustering'
       })
     } catch (err: unknown) {
-      const error = err as Error
-      res.status(500).json({ error: 'Failed to generate outage map', details: error.message })
+      res.status(500).json({ error: 'Could not load the power outage map. Please try again.' })
     }
   })
 
@@ -33,8 +40,7 @@ export function setupPowerOutageRoutes(router: Router): void {
         message: 'Count based on citizen reports'
       })
     } catch (err: unknown) {
-      const error = err as Error
-      res.status(500).json({ error: 'Failed to count affected households', details: error.message })
+      res.status(500).json({ error: 'Could not estimate affected households. Please try again.' })
     }
   })
 
@@ -49,9 +55,8 @@ export function setupPowerOutageRoutes(router: Router): void {
         message: 'Critical facility monitoring'
       })
     } catch (err: unknown) {
-      const error = err as Error
-      res.status(500).json({ error: 'Failed to fetch critical facilities', details: error.message })
+      res.status(500).json({ error: 'Could not load critical facility data. Please try again.' })
     }
   })
 }
-
+

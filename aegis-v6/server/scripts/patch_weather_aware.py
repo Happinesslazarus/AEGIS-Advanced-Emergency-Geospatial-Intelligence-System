@@ -1,4 +1,13 @@
-﻿"""
+"""
+Module: patch_weather_aware.py
+
+Patch_weather_aware utility script.
+
+Simple explanation:
+Standalone script for patch_weather_aware.
+"""
+
+"""
 Patch data_loaders.py: Make weather-feature generation label-aware.
 
 In reality, flood reports are filed during heavy rain, drought reports during
@@ -184,4 +193,4 @@ with open(FILE, 'w', encoding='utf-8') as f:
 print("\nAll patches applied successfully!")
 print("Positive samples will now get hazard-consistent weather (high rain for floods, etc.)")
 print("Negative samples will get benign weather (low rain for non-floods, etc.)")
-
+

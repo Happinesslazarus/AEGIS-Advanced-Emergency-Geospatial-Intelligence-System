@@ -1,15 +1,12 @@
 """
- AEGIS AI ENGINE — Real ML Report Classifier
- XGBoost + TF-IDF trained on real disaster reports from PostgreSQL
+Module: report_classifier_ml.py
 
-Replaces the keyword-based heuristic with a real trained ML model.
-Training pipeline:
-  1. Fetch labeled reports from PostgreSQL
-  2. TF-IDF vectorize text (500 features, bigrams)
-  3. Add numeric metadata features
-  4. Train XGBoost multi-class classifier
-  5. Evaluate on 80/20 stratified split
-  6. Save model + vectorizer + metrics to model_registry/
+ML report classifier (trained model for report categorisation).
+
+How it connects:
+- Called by endpoints.py for report classification (primary classifier)
+- Falls back to report_classifier.py if no trained model exists
+- Trained via the training pipeline
 """
 
 import os
@@ -53,10 +50,36 @@ def _lazy_imports():
 
 # Constants
 MODEL_DIR = Path(__file__).parent.parent.parent / "model_registry" / "report_classifier"
-MIN_TRAINING_SAMPLES = 100
-MIN_SAMPLES_PER_CLASS = 10
-HAZARD_TYPES = ['flood', 'drought', 'heatwave', 'wildfire', 'storm', 'other']
+MIN_TRAINING_SAMPLES = 50
+MIN_SAMPLES_PER_CLASS = 5
+HAZARD_TYPES = ['flood', 'storm', 'wildfire', 'heatwave', 'drought', 'landslide',
+                'infrastructure', 'public_safety', 'environmental', 'other']
 HAZARD_MAP = {h: i for i, h in enumerate(HAZARD_TYPES)}
+
+# Keyword banks per hazard (used for feature engineering)
+HAZARD_KEYWORDS = {
+    'flood': ['flood', 'flooding', 'flooded', 'water level', 'river', 'inundation', 'submerged',
+              'waterlogged', 'burst banks', 'overflow', 'rising water', 'deluge', 'drainage',
+              'surface water', 'tidal', 'pluvial', 'fluvial', 'dam', 'spillway'],
+    'storm': ['storm', 'hurricane', 'tornado', 'gale', 'wind', 'lightning', 'thunder',
+              'blizzard', 'hail', 'cyclone', 'gusts', 'tempest', 'snow', 'ice storm'],
+    'wildfire': ['wildfire', 'fire', 'blaze', 'smoke', 'burning', 'flames', 'inferno',
+                 'grass fire', 'forest fire', 'bushfire', 'gorse', 'heather fire', 'peat fire',
+                 'moorland fire', 'conflagration', 'firebreak'],
+    'heatwave': ['heatwave', 'heat wave', 'extreme heat', 'scorching', 'heat exhaustion',
+                 'heat stroke', 'temperature', 'sweltering', 'hot', 'cooling centre'],
+    'drought': ['drought', 'dry', 'arid', 'water shortage', 'crop failure', 'reservoir',
+                'hosepipe ban', 'water restriction', 'low rainfall', 'water supply'],
+    'landslide': ['landslide', 'mudslide', 'rockfall', 'slope failure', 'debris flow',
+                  'landslip', 'cliff collapse', 'erosion', 'retaining wall'],
+    'infrastructure': ['power', 'electricity', 'gas leak', 'water main', 'bridge', 'road',
+                       'railway', 'signal failure', 'cable', 'outage', 'burst pipe',
+                       'crane', 'construction', 'pothole', 'broadband'],
+    'public_safety': ['chemical', 'hazmat', 'explosion', 'collapse', 'ordnance', 'bomb',
+                      'ammonia', 'asbestos', 'carbon monoxide', 'suspicious', 'evacuation'],
+    'environmental': ['oil spill', 'pollution', 'contamination', 'algal bloom', 'sewage',
+                      'toxic', 'mercury', 'slurry', 'invasive species', 'air quality'],
+}
 
 DB_URL = os.getenv('DATABASE_URL', 'postgresql://localhost:5432/aegis')
 
@@ -69,6 +92,8 @@ class ReportClassifierTrainable:
     def __init__(self):
         self.model = None
         self.vectorizer = None
+        self.char_vectorizer = None
+        self.scaler = None
         self.feature_names: List[str] = []
         self.model_version = 'untrained'
         self.training_metrics: Dict[str, Any] = {}
@@ -88,6 +113,8 @@ class ReportClassifierTrainable:
     def _load_model(self):
         mp = self._model_path()
         vp = self._vectorizer_path()
+        char_vp = MODEL_DIR / "classifier_char_tfidf.pkl"
+        scaler_p = MODEL_DIR / "classifier_scaler.pkl"
         metp = self._metrics_path()
         if mp.exists() and vp.exists():
             try:
@@ -95,6 +122,12 @@ class ReportClassifierTrainable:
                     self.model = pickle.load(f)
                 with open(vp, 'rb') as f:
                     self.vectorizer = pickle.load(f)
+                if char_vp.exists():
+                    with open(char_vp, 'rb') as f:
+                        self.char_vectorizer = pickle.load(f)
+                if scaler_p.exists():
+                    with open(scaler_p, 'rb') as f:
+                        self.scaler = pickle.load(f)
                 if metp.exists():
                     with open(metp, 'r') as f:
                         self.training_metrics = json.load(f)
@@ -115,30 +148,97 @@ class ReportClassifierTrainable:
             logger.warning("No trained model — using keyword fallback")
             return self._keyword_classify(full_text)
 
+    @staticmethod
+    def _engineer_features(text: str) -> np.ndarray:
+        """Engineer 30+ numeric features from report text."""
+        import re
+        text_lower = text.lower()
+        words = text_lower.split()
+        word_count = len(words)
+        text_len = len(text_lower)
+
+        # Per-hazard keyword density: count / word_count * 10 normalises to
+        # "hits per 100 words" so short and long texts get comparable scores.
+        hazard_scores = []
+        for hazard in ['flood', 'storm', 'wildfire', 'heatwave', 'drought',
+                       'landslide', 'infrastructure', 'public_safety', 'environmental']:
+            kws = HAZARD_KEYWORDS.get(hazard, [])
+            count = sum(1 for kw in kws if kw in text_lower)
+            hazard_scores.append(count / max(1, word_count) * 10)  # density
+
+        # Text complexity
+        avg_word_len = np.mean([len(w) for w in words]) if words else 0
+        unique_ratio = len(set(words)) / max(1, word_count)
+        sentence_count = max(1, len(re.split(r'[.!?]+', text_lower)))
+        avg_sentence_len = word_count / sentence_count
+
+        # Urgency signals
+        urgency_words = ['emergency', 'urgent', 'critical', 'immediate', 'evacuate',
+                         'rescue', 'danger', 'life-threatening', 'catastrophic']
+        urgency_count = sum(1 for w in urgency_words if w in text_lower)
+
+        # Impact signals
+        casualty_words = ['death', 'injury', 'casualty', 'victim', 'trapped', 'missing']
+        infra_words = ['road', 'bridge', 'power', 'railway', 'hospital', 'school', 'dam']
+        casualty_count = sum(1 for w in casualty_words if w in text_lower)
+        infra_count = sum(1 for w in infra_words if w in text_lower)
+
+        # Text quality
+        exclamation = text.count('!')
+        caps_ratio = sum(1 for c in text if c.isupper()) / max(1, text_len)
+        number_count = len(re.findall(r'\d+', text))
+        has_location = 1.0 if re.search(r'[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*', text) else 0.0
+
+        return np.array([
+            text_len, word_count, avg_word_len, unique_ratio,
+            sentence_count, avg_sentence_len,
+            *hazard_scores,  # 9 features
+            urgency_count, casualty_count, infra_count,
+            exclamation, caps_ratio, number_count, has_location,
+        ], dtype=np.float32)
+
     def _ml_classify(self, text: str) -> Dict[str, Any]:
         """ML-based classification using trained XGBoost."""
+        if self.model is None or self.vectorizer is None:
+            logger.warning("Model or vectorizer is None — falling back to keyword classifier")
+            return self._keyword_classify(text)
         try:
             X_text = self.vectorizer.transform([text]).toarray()
-            X_numeric = np.array([[
-                len(text),
-                len(text.split()),
-                1 if any(w in text for w in ['flood', 'water', 'river', 'rain']) else 0,
-                1 if any(w in text for w in ['fire', 'burn', 'smoke', 'blaze']) else 0,
-                1 if any(w in text for w in ['heat', 'hot', 'temperature']) else 0,
-            ]])
-            X = np.hstack([X_text, X_numeric])
+
+            # Char n-gram features: if no char vectorizer was saved (older models),
+            # pad with zeros to preserve feature vector width.
+            if self.char_vectorizer:
+                X_char = self.char_vectorizer.transform([text]).toarray()
+            else:
+                X_char = np.zeros((1, 200))
+
+            X_numeric = self._engineer_features(text).reshape(1, -1)
+
+            # Scale numeric features
+            if self.scaler:
+                X_numeric = self.scaler.transform(X_numeric)
+
+            X = np.hstack([X_text, X_char, X_numeric])
 
             y_pred = self.model.predict(X)[0]
             y_proba = self.model.predict_proba(X)[0]
 
-            primary = HAZARD_TYPES[int(y_pred)] if int(y_pred) < len(HAZARD_TYPES) else 'other'
+            # Map prediction to hazard class names (handle label remapping)
+            classes = self.training_metrics.get('classes', HAZARD_TYPES)
+            pred_idx = int(y_pred)
+            primary = classes[pred_idx] if pred_idx < len(classes) else 'other'
             probability = float(np.max(y_proba))
 
-            # All detected hazards above threshold
+            # All detected hazards above threshold: include secondary hazards
+            # that exceed 10% probability for multi-hazard incident reports
+            # (e.g. a storm causing flooding would show both 'storm' and 'flood').
             detected = []
+            hazard_scores = {}
             for i, p in enumerate(y_proba):
-                if p > 0.15 and i < len(HAZARD_TYPES):
-                    detected.append(HAZARD_TYPES[i])
+                if i < len(classes):
+                    hazard_scores[classes[i]] = round(float(p), 4)
+                    if p > 0.10:
+                        detected.append(classes[i])
 
             return {
                 'model_version': self.model_version,
@@ -146,7 +246,7 @@ class ReportClassifierTrainable:
                 'probability': round(probability, 4),
                 'confidence': round(probability, 4),
                 'all_hazards_detected': detected or [primary],
-                'hazard_scores': {HAZARD_TYPES[i]: round(float(p), 4) for i, p in enumerate(y_proba) if i < len(HAZARD_TYPES)},
+                'hazard_scores': hazard_scores,
                 'trained': True,
                 'classified_at': datetime.utcnow().isoformat()
             }
@@ -207,10 +307,14 @@ class ReportClassifierTrainable:
     async def _train_async(self, db_url: str) -> Dict[str, Any]:
         _lazy_imports()
         import asyncpg
-        from sklearn.model_selection import train_test_split
-        from sklearn.metrics import accuracy_score, f1_score, classification_report
+        from sklearn.model_selection import train_test_split, StratifiedKFold, cross_val_score
+        from sklearn.metrics import (
+            accuracy_score, f1_score, classification_report,
+            precision_score, recall_score
+        )
+        from sklearn.preprocessing import StandardScaler
 
-        logger.info("Starting report classifier training...")
+        logger.info("Starting report classifier training (v3.0 — multi-hazard)...")
         conn = await asyncpg.connect(db_url)
 
         try:
@@ -229,95 +333,153 @@ class ReportClassifierTrainable:
             import pandas as pd
             df = pd.DataFrame([dict(r) for r in rows])
 
-            # Map categories to hazard types
-            cat_map = {
-                'flood': 'flood', 'flooding': 'flood', 'river': 'flood',
-                'natural_disaster': 'flood',
-                'drought': 'drought', 'water_shortage': 'drought',
-                'heatwave': 'heatwave', 'heat': 'heatwave', 'extreme_heat': 'heatwave',
-                'wildfire': 'wildfire', 'fire': 'wildfire',
-                'storm': 'storm', 'wind': 'storm', 'hurricane': 'storm',
-                'infrastructure': 'other', 'pollution': 'other', 'other': 'other',
-                'environmental': 'other', 'medical': 'other', 'community_safety': 'other',
-                'public_safety': 'other',
+            # Hazard resolution: prefer display_type (e.g. "Flood", "Severe Storm")
+            # because it is explicitly chosen from a controlled vocabulary, whereas
+            # incident_category is a broader bucket (e.g. "natural_disaster" covers
+            # flood/storm/heatwave/wildfire — not specific enough for classification).
+            display_map = {
+                'flood': 'flood', 'severe storm': 'storm', 'storm': 'storm',
+                'wildfire': 'wildfire', 'heatwave': 'heatwave', 'heat wave': 'heatwave',
+                'drought': 'drought', 'landslide': 'landslide',
+                'infrastructure damage': 'infrastructure', 'infrastructure': 'infrastructure',
+                'public safety': 'public_safety', 'environmental hazard': 'environmental',
+                'environmental': 'environmental', 'unknown': 'other',
             }
-            df['hazard'] = df['incident_category'].str.lower().map(lambda c: cat_map.get(c, 'flood'))
-            df['label'] = df['hazard'].map(lambda h: HAZARD_MAP.get(h, HAZARD_MAP['other']))
+            category_map = {
+                'natural_disaster': None,  # resolve from display_type or text
+                'infrastructure': 'infrastructure',
+                'public_safety': 'public_safety',
+                'environmental': 'environmental',
+                'community_safety': 'public_safety',
+                'medical': 'other',
+            }
 
+            def resolve_hazard(row):
+                """Resolve hazard type from display_type, then category, then text keywords."""
+                dt = str(row.get('display_type', '')).lower().strip()
+                if dt in display_map:
+                    return display_map[dt]
+
+                cat = str(row.get('incident_category', '')).lower().strip()
+                cat_resolved = category_map.get(cat)
+                if cat_resolved:
+                    return cat_resolved
+
+                # Text-based fallback for natural_disaster without clear display_type
+                text = f"{row.get('display_type', '')} {row.get('description', '')}".lower()
+                best_hazard, best_score = 'other', 0
+                for hazard, keywords in HAZARD_KEYWORDS.items():
+                    score = sum(1 for kw in keywords if kw in text)
+                    if score > best_score:
+                        best_score = score
+                        best_hazard = hazard
+                return best_hazard
+
+            df['hazard'] = df.apply(resolve_hazard, axis=1)
+            df['label'] = df['hazard'].map(lambda h: HAZARD_MAP.get(h, HAZARD_MAP['other']))
             df['full_text'] = df['display_type'].fillna('') + ' ' + df['description'].fillna('')
 
-            # Remap labels to contiguous integers and use only present classes
+            # Remap labels to contiguous integers
             present_labels = sorted(df['label'].unique())
             present_names = [HAZARD_TYPES[i] for i in present_labels if i < len(HAZARD_TYPES)]
             label_remap = {old: new for new, old in enumerate(present_labels)}
             df['label'] = df['label'].map(label_remap)
 
             class_counts = df['label'].value_counts()
-            logger.info(f"Class distribution:\n{class_counts}")
+            logger.info(f"Hazard distribution ({len(present_names)} classes):\n{class_counts}")
+            for idx, name in enumerate(present_names):
+                logger.info(f"  {idx} → {name}: {class_counts.get(idx, 0)} samples")
 
-            # Drop classes with < 5 samples (can't stratify)
-            min_class_size = 5
-            valid_classes = class_counts[class_counts >= min_class_size].index.tolist()
+            # Drop classes with < 3 samples
+            valid_classes = class_counts[class_counts >= 3].index.tolist()
             if len(valid_classes) < len(present_labels):
                 df = df[df['label'].isin(valid_classes)].copy()
                 present_names = [present_names[i] for i in valid_classes]
                 label_remap2 = {old: new for new, old in enumerate(valid_classes)}
                 df['label'] = df['label'].map(label_remap2)
                 class_counts = df['label'].value_counts()
-                logger.info(f"After filtering small classes:\n{class_counts}")
+                logger.info(f"After filtering small classes: {len(present_names)} classes remain")
 
-            # TF-IDF vectorization
+            # TF-IDF: word n-grams (1-3)
             vectorizer = _tfidf(
-                max_features=500,
-                ngram_range=(1, 2),
+                max_features=800,
+                ngram_range=(1, 3),
                 min_df=2,
-                max_df=0.95,
-                stop_words='english'
+                max_df=0.92,
+                stop_words='english',
+                sublinear_tf=True,
             )
             X_text = vectorizer.fit_transform(df['full_text']).toarray()
 
-            # Numeric features
-            X_numeric = np.column_stack([
-                df['full_text'].str.len().values,
-                df['full_text'].str.split().str.len().values,
-                df['full_text'].apply(lambda t: sum(1 for w in ['flood', 'water', 'river', 'rain'] if w in t.lower())).values,
-                df['full_text'].apply(lambda t: sum(1 for w in ['fire', 'burn', 'smoke', 'blaze'] if w in t.lower())).values,
-                df['full_text'].apply(lambda t: sum(1 for w in ['heat', 'hot', 'temperature'] if w in t.lower())).values,
+            # TF-IDF: character n-grams
+            char_vectorizer = _tfidf(
+                max_features=200,
+                analyzer='char_wb',
+                ngram_range=(3, 5),
+                min_df=2,
+                max_df=0.95,
+                sublinear_tf=True,
+            )
+            X_char = char_vectorizer.fit_transform(df['full_text']).toarray()
+
+            # Engineered numeric features
+            X_numeric = np.array([
+                self._engineer_features(row['full_text']) for _, row in df.iterrows()
             ])
 
-            X = np.hstack([X_text, X_numeric])
+            # Scale numeric features
+            scaler = StandardScaler()
+            X_numeric_scaled = scaler.fit_transform(X_numeric)
+
+            X = np.hstack([X_text, X_char, X_numeric_scaled])
             y = df['label'].values
 
             X_train, X_test, y_train, y_test = train_test_split(
-                X, y, test_size=0.2, random_state=42, stratify=y
+                X, y, test_size=0.2, random_state=42,
+                stratify=y if min(np.bincount(y)) >= 2 else None
             )
 
-            # Compute sample weights for class imbalance (softened to avoid over-correction)
-            from sklearn.utils.class_weight import compute_sample_weight
-            balanced_weights = compute_sample_weight('balanced', y_train)
-            # Blend: 40% balanced + 60% uniform to avoid suppressing majority class
-            sample_weights = 0.4 * balanced_weights + 0.6 * np.ones_like(balanced_weights)
+            # SMOTE oversampling
+            try:
+                from imblearn.over_sampling import SMOTE
+                min_class_count = min(np.bincount(y_train))
+                k = min(5, min_class_count - 1) if min_class_count > 1 else 1
+                if k >= 1:
+                    smote = SMOTE(random_state=42, k_neighbors=k)
+                    X_train, y_train = smote.fit_resample(X_train, y_train)
+                    logger.info(f"SMOTE: {dict(zip(*np.unique(y_train, return_counts=True)))}")
+            except ImportError:
+                logger.warning("imbalanced-learn not installed")
+            except Exception as e:
+                logger.warning(f"SMOTE failed: {e}")
 
-            # Train XGBoost or GradientBoosting
+            from sklearn.utils.class_weight import compute_sample_weight
+            sample_weights = compute_sample_weight('balanced', y_train)
+
+            # Train XGBoost
             n_classes = len(df['label'].unique())
             if _xgb:
                 model = _xgb.XGBClassifier(
-                    n_estimators=300,
-                    max_depth=6,
-                    learning_rate=0.08,
+                    n_estimators=500,
+                    max_depth=5,
+                    learning_rate=0.05,
                     objective='multi:softprob' if n_classes > 2 else 'binary:logistic',
                     num_class=n_classes if n_classes > 2 else None,
                     eval_metric='mlogloss' if n_classes > 2 else 'logloss',
                     random_state=42,
                     use_label_encoder=False,
-                    min_child_weight=3,
+                    min_child_weight=2,
                     subsample=0.8,
-                    colsample_bytree=0.8,
+                    colsample_bytree=0.7,
+                    reg_alpha=0.1,
+                    reg_lambda=1.5,
+                    gamma=0.1,
                 )
             else:
                 from sklearn.ensemble import GradientBoostingClassifier
                 model = GradientBoostingClassifier(
-                    n_estimators=300, max_depth=6, learning_rate=0.08, random_state=42,
+                    n_estimators=500, max_depth=5, learning_rate=0.05,
+                    random_state=42, subsample=0.8,
                 )
 
             model.fit(X_train, y_train, sample_weight=sample_weights)
@@ -325,14 +487,25 @@ class ReportClassifierTrainable:
             y_pred = model.predict(X_test)
             accuracy = accuracy_score(y_test, y_pred)
             f1 = f1_score(y_test, y_pred, average='weighted')
-            report = classification_report(y_test, y_pred, target_names=present_names, output_dict=True, zero_division=0)
+            report = classification_report(y_test, y_pred, target_names=present_names,
+                                           output_dict=True, zero_division=0)
+
+            # Cross-validation
+            cv_folds = min(5, min(np.bincount(y)) if min(np.bincount(y)) >= 2 else 2)
+            if cv_folds >= 2:
+                cv_scores = cross_val_score(model, X, y,
+                                            cv=StratifiedKFold(cv_folds, shuffle=True, random_state=42),
+                                            scoring='accuracy')
+                logger.info(f"CV accuracy: {cv_scores.mean():.4f} (+/- {cv_scores.std():.4f})")
+            else:
+                cv_scores = np.array([accuracy])
 
             logger.info(f"Classifier trained: accuracy={accuracy:.4f}, F1={f1:.4f}")
             logger.info(f"Report:\n{classification_report(y_test, y_pred, target_names=present_names, zero_division=0)}")
 
-            # Save versioned artifacts (always save to version dir for audit)
+            # Save versioned artifacts
             timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
-            version = f'ml-classifier-v2.0.0-{timestamp}'
+            version = f'ml-classifier-v3.0.0-{timestamp}'
 
             version_dir = MODEL_DIR / version
             version_dir.mkdir(parents=True, exist_ok=True)
@@ -341,8 +514,11 @@ class ReportClassifierTrainable:
                 pickle.dump(model, f)
             with open(version_dir / "classifier_tfidf.pkl", 'wb') as f:
                 pickle.dump(vectorizer, f)
+            with open(version_dir / "classifier_char_tfidf.pkl", 'wb') as f:
+                pickle.dump(char_vectorizer, f)
+            with open(version_dir / "classifier_scaler.pkl", 'wb') as f:
+                pickle.dump(scaler, f)
 
-            from sklearn.metrics import precision_score, recall_score
             precision = precision_score(y_test, y_pred, average='weighted', zero_division=0)
             recall_val = recall_score(y_test, y_pred, average='weighted', zero_division=0)
 
@@ -357,11 +533,16 @@ class ReportClassifierTrainable:
                 'precision': round(precision, 4),
                 'recall': round(recall_val, 4),
                 'f1_weighted': round(f1, 4),
+                'cv_accuracy_mean': round(float(cv_scores.mean()), 4),
+                'cv_accuracy_std': round(float(cv_scores.std()), 4),
                 'classification_report': report,
                 'training_samples': len(X_train),
                 'test_samples': len(X_test),
                 'total_samples': len(df),
                 'feature_count': X.shape[1],
+                'text_features': X_text.shape[1],
+                'char_features': X_char.shape[1],
+                'numeric_features': X_numeric.shape[1],
                 'class_distribution': {str(k): int(v) for k, v in class_counts.to_dict().items()},
                 'hazard_types': HAZARD_TYPES,
                 'classes': present_names,
@@ -405,10 +586,16 @@ class ReportClassifierTrainable:
                     pickle.dump(model, f)
                 with open(self._vectorizer_path(), 'wb') as f:
                     pickle.dump(vectorizer, f)
+                with open(MODEL_DIR / "classifier_char_tfidf.pkl", 'wb') as f:
+                    pickle.dump(char_vectorizer, f)
+                with open(MODEL_DIR / "classifier_scaler.pkl", 'wb') as f:
+                    pickle.dump(scaler, f)
                 with open(self._metrics_path(), 'w') as f:
                     json.dump(metrics, f, indent=2, default=str)
                 self.model = model
                 self.vectorizer = vectorizer
+                self.char_vectorizer = char_vectorizer
+                self.scaler = scaler
                 self.model_version = version
                 self.training_metrics = metrics
                 logger.info(f"Active model updated to {version}")

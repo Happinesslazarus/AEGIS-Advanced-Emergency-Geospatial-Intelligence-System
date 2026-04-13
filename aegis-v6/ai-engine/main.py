@@ -1,16 +1,30 @@
 """
- AEGIS AI ENGINE — Main FastAPI Application
- Sovereign-grade multi-hazard environmental intelligence platform
+File: main.py
 
-This is the core FastAPI application that serves AI prediction requests.
+What this file does:
+FastAPI application entry point for the Aegis AI engine. Initialises the
+model registry and feature store, mounts all prediction routes, adds CORS
+and rate-limit middleware, and starts two background loops: a drift-check
+loop (checks every model for distribution shift) and a governance loop
+(logs model performance metrics to PostgreSQL).
 
-Architecture:
-- Modular hazard prediction modules
-- Region-agnostic feature engineering
-- Model versioning and registry
-- Strict API contracts
-- Production-ready error handling
-- Monitoring and logging
+How it connects:
+- Started by uvicorn on port 8000 (see docker-compose.yml ai-engine service)
+- Prediction routes defined in ai-engine/app/api/endpoints.py
+- Model files loaded from ai-engine/model_registry/ via ModelRegistry
+- Live feature data via ai-engine/app/core/feature_store.py
+- Metrics exposed at /metrics (scraped by Prometheus)
+
+Key actions:
+- POST /predict            -- hazard risk prediction (main endpoint)
+- GET  /health             -- readiness probe
+- GET  /models             -- list loaded models and their status
+- POST /retrain/{hazard}   -- trigger manual model retraining
+
+Learn more:
+- ai-engine/app/api/endpoints.py     -- all route handlers
+- ai-engine/app/core/config.py       -- env variable settings
+- server/src/services/aiAnalysisPipeline.ts -- how the server calls this API
 """
 
 from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, Request
@@ -24,6 +38,20 @@ import shutil
 import asyncio
 from typing import Dict, List, Any
 from datetime import datetime
+
+# GPU memory management: allow GPU but cap usage to prevent DWM crashes on Windows
+# RTX 2060 Super has 8GB — reserve ~2GB for Windows DWM/desktop rendering
+os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
+try:
+    import tensorflow as tf
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    for gpu in gpus:
+        tf.config.experimental.set_memory_growth(gpu, True)
+        tf.config.set_logical_device_configuration(gpu, [
+            tf.config.LogicalDeviceConfiguration(memory_limit=5120)  # 5GB cap, leaves 3GB for OS
+        ])
+except Exception:
+    pass  # TensorFlow may not be installed or no GPUs available
 
 # Rate limiting (slowapi — backed by in-process memory limiter)
 from slowapi import _rate_limit_exceeded_handler
@@ -55,6 +83,7 @@ async def _drift_check_loop():
     """
     from app.core.governance import drift_detector, governance
     await asyncio.sleep(60)  # initial delay to let app fully start
+    consecutive_failures = 0
 
     while True:
         try:
@@ -74,7 +103,7 @@ async def _drift_check_loop():
                     # Log drift event to model_governance audit trail
                     try:
                         import asyncpg
-                        conn = await asyncpg.connect(drift_detector.db_url)
+                        conn = await asyncio.wait_for(asyncpg.connect(drift_detector.db_url), timeout=10.0)
                         try:
                             await conn.execute("""
                                 INSERT INTO model_governance_audit
@@ -85,12 +114,15 @@ async def _drift_check_loop():
                                 "critical_signals": len(critical),
                                 "signals": signals[:3],  # max 3 for log size
                             }))
-                        except Exception:
-                            pass  # table may not exist yet
+                        except Exception as audit_err:
+                            logger.debug(f"[DRIFT-SCHEDULER] Audit insert skipped (table may not exist): {audit_err}")
                         finally:
-                            await conn.close()
-                    except Exception:
-                        pass
+                            try:
+                                await conn.close()
+                            except Exception as close_err:
+                                logger.debug(f"[DRIFT-SCHEDULER] Error closing audit DB connection: {close_err}")
+                    except (asyncpg.PostgresError, OSError, asyncio.TimeoutError) as db_err:
+                        logger.warning(f"[DRIFT-SCHEDULER] Could not log drift audit for '{model_name}': {db_err}")
 
                     # Trigger retraining for critically drifted models
                     if critical:
@@ -117,11 +149,13 @@ async def _drift_check_loop():
             else:
                 logger.info(f"[DRIFT-SCHEDULER] No drift detected across {len(results)} model(s)")
 
+            consecutive_failures = 0
         except asyncio.CancelledError:
             logger.info("[DRIFT-SCHEDULER] Shutting down drift scheduler")
             raise
         except Exception as e:
-            logger.error(f"[DRIFT-SCHEDULER] Error in drift check loop: {e}")
+            consecutive_failures += 1
+            logger.error(f"[DRIFT-SCHEDULER] Error in drift check loop (failure #{consecutive_failures}): {e}")
 
         await asyncio.sleep(settings.DRIFT_CHECK_INTERVAL)
 
@@ -194,8 +228,8 @@ app = FastAPI(
     title="AEGIS AI Engine",
     description="Sovereign-grade multi-hazard environmental intelligence platform",
     version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
+    docs_url="/docs" if settings.DEBUG else None,
+    redoc_url="/redoc" if settings.DEBUG else None,
     lifespan=lifespan
 )
 

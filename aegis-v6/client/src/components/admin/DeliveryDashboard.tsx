@@ -1,8 +1,11 @@
-/*
- * DeliveryDashboard.tsx — Advanced Alert Delivery Control Center
- * Multi-channel delivery tracking: Email — SMS — WhatsApp — Telegram — Web Push
- * Features: live stats, SVG charts, grouped/flat views, per-row retry, bulk retry, CSV export
- */
+/**
+ * Module: DeliveryDashboard.tsx
+ *
+ * Resource delivery tracking dashboard (monitors supply distribution).
+ *
+ * How it connects:
+ * - Rendered inside AdminPage.tsx based on active view */
+
 import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import {
   Mail, Smartphone, MessageCircle, Send, Bell, RefreshCw, Download, Search,
@@ -401,9 +404,14 @@ function FlatTable({ rows, onRetry, retrying, onSort, sortCol, sortDir }: {
 
 const getToken = () => _getToken() || ''
 async function apiFetch(path: string, opts: RequestInit = {}) {
+  const safeMethods = ['GET', 'HEAD', 'OPTIONS']
+  const method = (opts.method || 'GET').toUpperCase()
+  const csrfToken = !safeMethods.includes(method)
+    ? document.cookie.split('; ').find(c => c.startsWith('aegis_csrf='))?.split('=')[1]
+    : undefined
   const res = await fetch(path, {
     ...opts,
-    headers: { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json', ...(opts.headers as Record<string, string> || {}) },
+    headers: { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json', ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}), ...(opts.headers as Record<string, string> || {}) },
   })
   if (res.status === 401) {
     // Token expired — clear and redirect to login
@@ -875,7 +883,7 @@ export default function DeliveryDashboard() {
           <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">V</kbd> {t('delivery.toggleView', lang)}</span>
           <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">X</kbd> {t('delivery.clearFilters', lang)}</span>
           <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">?</kbd> {t('delivery.toggleShortcuts', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">Esc</kbd> {t('common.close', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">{t('common.esc', lang)}</kbd> {t('common.close', lang)}</span>
         </div>
       )}
     </div>

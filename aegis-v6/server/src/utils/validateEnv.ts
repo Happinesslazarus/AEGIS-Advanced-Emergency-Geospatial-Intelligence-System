@@ -1,9 +1,17 @@
 /**
- * utils/validateEnv.ts — Production Environment Validation
+ * File: validateEnv.ts
  *
- * Validates that all required environment variables are set before
- * the server starts. In production mode, missing variables cause
- * immediate failure to prevent insecure deployments.
+ * What this file does:
+ * Validates and logs environment variable configuration at startup.
+ * Checks for required variables, warns about missing optional ones,
+ * and provides a summary of the server's configuration state.
+ *
+ * How it connects:
+ * - Called early in server startup (index.ts)
+ * - Uses logger.ts for structured output
+ *
+ * Simple explanation:
+ * Checks that all required settings are configured before the server starts.
  */
 
 import { devLog, auditLog } from './logger.js'
@@ -102,7 +110,7 @@ export interface ValidationResult {
   aiProviderConfigured: boolean
 }
 
- /**
+/**
  * Validate environment configuration for production readiness
  */
 export function validateEnvironment(): ValidationResult {
@@ -166,7 +174,7 @@ export function validateEnvironment(): ValidationResult {
   }
 }
 
- /**
+/**
  * Run validation and log results. Exit on fatal errors in production.
  */
 export function validateAndLog(logger: LoggerLike): void {
@@ -203,7 +211,7 @@ export function validateAndLog(logger: LoggerLike): void {
   }
 }
 
- /**
+/**
  * Get a safe environment report (for debugging, with sensitive values masked)
  */
 export function getEnvReport(): Record<string, string> {

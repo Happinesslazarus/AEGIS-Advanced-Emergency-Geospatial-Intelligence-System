@@ -1,19 +1,31 @@
+/**
+ * Module: SocketContext.tsx
+ *
+ * Socket context React context provider (shares state across components).
+ *
+ * How it connects:
+ * - Wraps components in App.tsx via AppProviders */
+
 import { createContext, useContext, useEffect, useCallback, type ReactNode } from 'react'
 import { useSocket, type SocketState } from '../hooks/useSocket'
 import { getToken } from '../utils/api'
+import { getCitizenToken } from './CitizenAuthContext'
 
 const SocketContext = createContext<SocketState | null>(null)
 
 function getPersistedToken(): string | null {
   const path = window.location.pathname
-  // On citizen pages, prefer the citizen token; on admin pages, prefer the admin token
+  // Route-based token selection: citizen and admin sessions use different
+  // JWT tokens (different scopes).  We pick the right one based on the active
+  // URL so a citizen and an admin can share the same browser without one
+  // token overwriting the other.
   if (path.startsWith('/citizen')) {
-    return localStorage.getItem('aegis-citizen-token') || getToken()
+    return getCitizenToken() || getToken()
   }
   if (path.startsWith('/admin')) {
-    return getToken()
+    return getToken()   // operator/admin token from api.ts
   }
-  return localStorage.getItem('aegis-citizen-token')
+  return getCitizenToken()
     || getToken()
 }
 
@@ -28,7 +40,9 @@ export function SocketProvider({ children }: { children: ReactNode }): JSX.Eleme
     }
   }, [socketState.connected, socketState.connect])
 
-  // Listen for citizen auth changes (login/logout) and reconnect the socket
+  // Cross-tab login sync: `storage` event fires in OTHER tabs when
+  // localStorage changes.  This lets a citizen who logs in on Tab A get a
+  // real-time Socket.IO connection on Tab B without a page refresh.
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'aegis-citizen-token') {
@@ -51,12 +65,16 @@ export function SocketProvider({ children }: { children: ReactNode }): JSX.Eleme
   return <SocketContext.Provider value={socketState}>{children}</SocketContext.Provider>
 }
 
-/** Trigger socket reconnection after citizen login/logout (same-tab) */
+/** Trigger socket reconnection after citizen login/logout (same-tab).
+ *  The `storage` event only fires in OTHER tabs by default.  This function
+ *  manually dispatches a StorageEvent on THIS tab so same-tab login/logout
+ *  triggers the listener above and reconnects the socket immediately.
+ */
 export function notifySocketAuthChange(): void {
   // Dispatch a storage event manually for same-tab listeners
   window.dispatchEvent(new StorageEvent('storage', {
     key: 'aegis-citizen-token',
-    newValue: localStorage.getItem('aegis-citizen-token'),
+    newValue: getCitizenToken(),
   }))
 }
 

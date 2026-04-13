@@ -1,3 +1,9 @@
+"""
+Module: test_schemas.py
+
+Test_schemas AI engine module.
+"""
+
 import pytest
 from app.schemas.predictions import HazardType, RiskLevel
 

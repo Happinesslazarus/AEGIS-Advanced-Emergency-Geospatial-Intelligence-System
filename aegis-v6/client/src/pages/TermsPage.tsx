@@ -1,3 +1,15 @@
+/**
+ * File: TermsPage.tsx
+ *
+ * What this file does:
+ * Terms of Service page. Static legal content explaining usage rules,
+ * liability limitations, and the platform's intended purpose.
+ *
+ * How it connects:
+ * - Routed by client/src/App.tsx at /terms
+ * - Linked from the registration form and footer
+ */
+
 import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Shield, ChevronDown, ChevronUp, Scale, FileText, AlertCircle, Users, Globe2, Gavel, ClipboardCheck, Ban, ArrowLeft, BookOpen, Info } from 'lucide-react'
@@ -110,6 +122,8 @@ export default function TermsPage(): JSX.Element {
               <div className={`bg-white dark:bg-gray-900 rounded-xl border transition-all duration-300 ${isOpen ? 'border-amber-200 dark:border-amber-800/50 shadow-sm' : 'border-gray-100 dark:border-gray-800'}`}>
                 <button
                   onClick={() => toggle(i)}
+                  aria-expanded={isOpen}
+                  aria-controls={`terms-section-${i}`}
                   className="w-full flex items-center gap-3 px-5 py-4 text-left group"
                 >
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${isOpen ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500'}`}>
@@ -120,7 +134,7 @@ export default function TermsPage(): JSX.Element {
                   {isOpen ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
                 </button>
 
-                <div className={`overflow-hidden transition-all duration-300 ${isOpen ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                <div id={`terms-section-${i}`} className={`overflow-hidden transition-all duration-300 ${isOpen ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}>
                   <div className="px-5 pb-5 pt-0 space-y-2 text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
                     {paragraphs.map((p, pi) => (
                       <SafeHtml key={pi} html={p} className="text-sm leading-relaxed" />
@@ -153,4 +167,4 @@ export default function TermsPage(): JSX.Element {
     </div>
   )
 }
-
+

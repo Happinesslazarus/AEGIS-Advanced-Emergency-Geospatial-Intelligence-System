@@ -1,8 +1,11 @@
-﻿/**
- * tests__/helpers/testAuth.ts — JWT Token Generators for Tests
+/**
+ * Module: testAuth.ts
  *
- * Provides pre-configured token factories for every role in the system.
- * Uses the same JWT_SECRET that the test environment sets.
+ * Test auth server module.
+ *
+ * How it connects:
+ * - Run by the test runner (Vitest or Jest)
+ *
  */
 
 import jwt, { type SignOptions } from 'jsonwebtoken'
@@ -54,7 +57,7 @@ export const TEST_MANAGER: TestUser = {
 
 // Token generators
 
- /**
+/**
  * Generate a valid JWT access token for a given user.
  * Default expiry: 1 hour (plenty for tests).
  */

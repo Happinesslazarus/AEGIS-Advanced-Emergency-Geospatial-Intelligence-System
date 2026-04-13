@@ -1,20 +1,7 @@
 """
-AEGIS Vision - CLIP Few-Shot Disaster Classifier
-Uses CLIP image embeddings as visual prototypes for classification.
-Instead of text prompts (zero-shot), this uses ACTUAL disaster images
-to build category prototypes - much more accurate for domain-specific tasks.
+Module: clip_fewshot.py
 
-Evaluation uses leave-one-out cross-validation for fair metrics on 42 images.
-
-Approach:
-  1. Extract CLIP embeddings for all 42 benchmark images
-  2. For each test image: build prototypes from remaining images, classify
-  3. Also trains a lightweight SVM/MLP on CLIP features with augmentation
-
-Usage:
-    python scripts/clip_fewshot.py                    # LOO evaluation
-    python scripts/clip_fewshot.py --augment          # With augmentation
-    python scripts/clip_fewshot.py --single path.jpg  # Classify one image
+Clip_fewshot AI engine module.
 """
 
 import json

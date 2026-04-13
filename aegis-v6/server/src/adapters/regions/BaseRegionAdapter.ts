@@ -1,9 +1,11 @@
 /**
- * adapters/regions/BaseRegionAdapter.ts — Shared logic for region adapters
+ * Module: BaseRegionAdapter.ts
  *
- * Loads static config from a JSON file and provides default implementations
- * of all RegionAdapter methods. Concrete adapters (Scotland, England, Generic)
- * extend this and override provider-specific fetch methods.
+ * Base region adapter server module.
+ *
+ * How it connects:
+ * - Used by services for external data fetching
+ *
  */
 
 import { readFileSync } from 'fs'
@@ -155,4 +157,4 @@ export abstract class BaseRegionAdapter implements RegionAdapter {
   abstract getWeatherForecast(lat?: number, lng?: number): Promise<WeatherForecast | null>
   abstract getRainfallData(lat?: number, lng?: number): Promise<RainfallData | null>
 }
-
+

@@ -1,4 +1,24 @@
-﻿/* ResourceDeploymentConsole.tsx — Clean, polished resource deployment console. */
+/**
+ * File: ResourceDeploymentConsole.tsx
+ *
+ * What this file does:
+ * Operator field-resource management console. Manages deployment zones with
+ * a 5-stage pipeline (Requested → Staging → Transit → On-Site → De-Mob),
+ * AI-generated resource recommendations per hazard type, mutual-aid partner
+ * tracking, and ops log entries. Includes an inline DisasterMap for
+ * geographic context.
+ *
+ * State is owned by AdminPage.tsx and passed as props + API helpers.
+ *
+ * How it connects:
+ * - Rendered inside AdminPage.tsx when the Resources view is active
+ * - Uses apiGetDeployments, apiDeployResources, apiRecallResources, etc.
+ * - DisasterMap lazy-loaded to avoid blocking the initial admin page render
+ *
+ * Simple explanation:
+ * The command console for moving ambulances, fire engines, and rescue boats
+ * to the right place at the right time during an emergency.
+ */
 
 import React, { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react'
 import {
@@ -31,6 +51,8 @@ interface Props {
   askConfirm: (title: string, message: string, type: string, action: () => void) => void
 }
 
+// 5-stage deployment pipeline. Zones move through these states as resources are mobilised.
+// Returned as a function so labels can be translated per the active locale.
 function getPipeline(lang: string) {
   return [
     { key: 'requested', label: t('resource.request', lang), icon: Radio },
@@ -41,6 +63,7 @@ function getPipeline(lang: string) {
   ] as const
 }
 
+// Sort order helpers for priority columns in the deployment table.
 const P_ORDER: Record<string, number> = { Critical: 4, High: 3, Medium: 2, Low: 1 }
 const P_DOT: Record<string, string> = { Critical: 'bg-red-500', High: 'bg-amber-500', Medium: 'bg-blue-500', Low: 'bg-slate-400' }
 const P_PILL: Record<string, string> = {
@@ -50,7 +73,9 @@ const P_PILL: Record<string, string> = {
   Low: 'bg-slate-500/10 text-slate-600 dark:text-slate-400 ring-slate-500/20',
 }
 
-/* ─── Client-side Resource Recommendation Engine ─────────────────────────── */
+// Per-hazard display metadata for the AI recommendation UI.
+// Icon + gradient shown on the recommendation card, color used for the hazard label.
+/* Client-side Resource Recommendation Engine*/
 const HAZARD_CATEGORIES: Record<string, { label: string; icon: LucideIcon; color: string; gradient: string }> = {
   flood: { label: 'Flood', icon: Droplets, color: 'text-blue-600', gradient: 'from-blue-500/20 to-cyan-500/20' },
   severe_storm: { label: 'Severe Storm', icon: Wind, color: 'text-indigo-600', gradient: 'from-indigo-500/20 to-purple-500/20' },
@@ -93,6 +118,10 @@ const HAZARD_GROUPS = [
   { group: 'Other', keys: ['general'] },
 ]
 
+// Client-side AI resource recommendation engine.
+// Returns suggested ambulance/fire engine/boat counts + threat level for a
+// given hazard type and priority. Counts scale by mult: Critical=2x, High=1.5x, other=1x.
+// This mirrors the server-side logic in reportRoutes.ts POST handler (kept in sync).
 function getSmartResourceSuggestion(hazardType: string, priority: string): { ambulances: number; fire_engines: number; rescue_boats: number; reasoning: string; threatLevel: number } {
   const isCrit = priority === 'Critical'
   const isHigh = priority === 'High'
@@ -129,6 +158,8 @@ function getSmartResourceSuggestion(hazardType: string, priority: string): { amb
   }
 }
 
+// UK threat level scale (1-5): used to show coloured threat pill on zone cards.
+// Maps to standard UK JTAC threat levels: Low/Moderate/Substantial/Severe/Critical.
 function getThreatLevelInfo(level: number): { label: string; color: string; bgColor: string; ringColor: string } {
   switch (level) {
     case 5: return { label: 'EXTREME', color: 'text-red-600 dark:text-red-400', bgColor: 'bg-red-500/15', ringColor: 'ring-red-500/30' }
@@ -139,7 +170,9 @@ function getThreatLevelInfo(level: number): { label: string; color: string; bgCo
   }
 }
 
-/* Extract leading number from strings like "23 people needing help" */
+/* Extract leading number from strings like "23 people needing help".
+ * Zone records can store estimated_affected as either a pure number or
+ * a free-text field — this normalises both into a safe integer. */
 function parseAffected(val: any): number {
   if (typeof val === 'number') return val
   if (typeof val === 'string') {
@@ -199,7 +232,7 @@ export default function ResourceDeploymentConsole({
   const [showAddAsset, setShowAddAsset] = useState<string | null>(null)
   const [assetForm, setAssetForm] = useState({ asset_type: 'ambulance', call_sign: '', status: 'staging', crew_count: '1', notes: '' })
 
-  // World-class ops state
+  // Operational state
   const [opsNoteByZone, setOpsNoteByZone] = useState<Record<string, string>>({})
   const [savingOpsNote, setSavingOpsNote] = useState<string | null>(null)
   const [togglingMutualAid, setTogglingMutualAid] = useState<string | null>(null)
@@ -216,7 +249,8 @@ export default function ResourceDeploymentConsole({
   const hazardInfo = HAZARD_CATEGORIES[createForm.hazard_type] || HAZARD_CATEGORIES.general
   const threatInfo = getThreatLevelInfo(smartSuggestion.threatLevel)
 
-  // Auto-apply AI resource suggestion whenever hazard type or priority changes
+  // Watches hazard_type and priority changes to auto-fill resource fields
+  // with the AI suggestion, unless the operator has manually overridden them.
   const prevHazardRef = useRef(createForm.hazard_type)
   const prevPriorityRef = useRef(createForm.priority)
   useEffect(() => {
@@ -363,7 +397,7 @@ export default function ResourceDeploymentConsole({
   }, [askConfirm, deployReasonRef, lang, pushNotification, setAuditLog, setDeployReason, setDeployments, user])
 
   const handleCreate = useCallback(async () => {
-    // ── Comprehensive validation ──
+    // Comprehensive validation
     const errors: Record<string, string> = {}
     const zoneName = createForm.zone.trim()
     if (!zoneName) errors.zone = 'Zone name is required'
@@ -471,7 +505,7 @@ export default function ResourceDeploymentConsole({
     } catch { pushNotification('Failed to remove asset', 'error') }
   }, [pushNotification])
 
-  // ── World-class ops handlers ──────────────────────────────────────────────
+  // Operations handlers
   const handleAcknowledge = useCallback(async (zoneId: string) => {
     setAcknowledging(zoneId)
     try {
@@ -545,8 +579,6 @@ export default function ResourceDeploymentConsole({
     }))
   }, [smartSuggestion])
 
-  // ──────────────────────────────────────────────────────────────────────────
-
   const handleDelete = useCallback((zone: any) => {
     askConfirm('Delete Zone', `Permanently delete zone "${zone.zone}"? This cannot be undone.`, 'error', () => {
       apiDeleteDeployment(zone.id)
@@ -577,9 +609,9 @@ export default function ResourceDeploymentConsole({
           </div>
           <div className="flex items-center gap-3 font-mono text-gray-500 dark:text-gray-300">
             <span className="font-semibold text-gray-700 dark:text-gray-300 tabular-nums">{time.zulu}</span>
-            <span className="text-gray-300 dark:text-gray-600">|</span>
+            <span className="text-gray-300 dark:text-gray-400">|</span>
             <span className="tabular-nums">{t('common.local', lang)} {time.local}</span>
-            <span className="text-gray-300 dark:text-gray-600">|</span>
+            <span className="text-gray-300 dark:text-gray-400">|</span>
             <span className="tabular-nums text-emerald-600 dark:text-emerald-400">{t('common.sync', lang)} {countdown}s</span>
           </div>
         </div>
@@ -607,7 +639,7 @@ export default function ResourceDeploymentConsole({
               <RefreshCw className="w-3.5 h-3.5" /> {t('common.refresh', lang)}
             </button>
             <button onClick={() => { const init = getSmartResourceSuggestion('general', 'Medium'); setCreateForm({ zone: '', priority: 'Medium', active_reports: '0', estimated_affected: '', ai_recommendation: init.reasoning, commander_notes: '', ambulances: String(init.ambulances), fire_engines: String(init.fire_engines), rescue_boats: String(init.rescue_boats), lat: '', lng: '', report_id: '', hazard_type: 'general', incident_commander: '', radio_channel: '', weather_conditions: 'clear', evacuation_status: 'none', access_routes: '' }); setCreateStep(0); setShowCreateModal(true) }} className="h-8 px-3 rounded-lg bg-violet-50 dark:bg-violet-900/30 hover:bg-violet-100 dark:hover:bg-violet-900/50 text-violet-700 dark:text-violet-300 text-xs font-semibold flex items-center gap-1.5 transition-colors">
-              <Plus className="w-3.5 h-3.5" /> Add Zone
+              <Plus className="w-3.5 h-3.5" /> {t('admin.resource.addZone', lang)}
             </button>
           </div>
         </div>
@@ -714,7 +746,7 @@ export default function ResourceDeploymentConsole({
                       <Icon className={`w-4 h-4 ${active ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400 dark:text-gray-300'}`} />
                     </div>
                     <p className={`text-[10px] font-bold uppercase tracking-wider mb-1 ${active ? 'text-emerald-700 dark:text-emerald-300' : 'text-gray-400 dark:text-gray-300'}`}>{stage.label}</p>
-                    <p className={`text-2xl font-extrabold tabular-nums ${active ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-300 dark:text-gray-600'}`}>{count}</p>
+                    <p className={`text-2xl font-extrabold tabular-nums ${active ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-300 dark:text-gray-400'}`}>{count}</p>
                   </div>
                 </React.Fragment>
               )
@@ -729,7 +761,7 @@ export default function ResourceDeploymentConsole({
           <div className="px-5 py-3 border-b border-violet-200 dark:border-violet-800 flex items-center justify-between">
             <h3 className="text-sm font-bold text-violet-900 dark:text-violet-200 flex items-center gap-2">
               <Brain className={`w-4 h-4 text-violet-500 ${unacknowledgedDrafts.some((d: any) => d.priority?.toLowerCase() === 'critical') ? 'animate-pulse' : ''}`} />
-              AI Drafts Awaiting Review
+              {t('admin.resource.aiDraftsAwaitingReview', lang)}
               <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-violet-600 text-white">{unacknowledgedDrafts.length}</span>
             </h3>
             <p className="text-[11px] text-violet-500 dark:text-violet-400">{t('resource.operatorConfirmRequired', lang)}</p>
@@ -743,7 +775,7 @@ export default function ResourceDeploymentConsole({
                   <div className="flex items-start justify-between mb-2">
                     <div>
                       <p className="text-sm font-bold text-gray-900 dark:text-white">{zone.zone}</p>
-                      <p className="text-[10px] text-gray-400 dark:text-gray-300 mt-0.5">{zone.hazard_type || 'General'} • {zone.estimated_affected || 'unknown'} affected</p>
+                      <p className="text-[10px] text-gray-400 dark:text-gray-300 mt-0.5">{zone.hazard_type || 'General'} • {zone.estimated_affected || 'unknown'} {t('admin.resource.affected', lang)}</p>
                     </div>
                     <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md font-bold ring-1 ${P_PILL[priority] || P_PILL.Low}`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${P_DOT[priority] || P_DOT.Low}`} />{priority}
@@ -761,13 +793,13 @@ export default function ResourceDeploymentConsole({
                       className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-[10px] font-bold rounded-lg bg-violet-600 text-white hover:bg-violet-700 transition-colors disabled:opacity-50"
                     >
                       {acknowledging === zone.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />}
-                      Confirm Draft
+                      {t('admin.resource.confirmDraft', lang)}
                     </button>
                     <button
                       onClick={() => handleDeploy(zone)}
                       className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-[10px] font-bold rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 ring-1 ring-emerald-500/20 transition-colors"
                     >
-                      <Zap className="w-3 h-3" /> Deploy Now
+                      <Zap className="w-3 h-3" /> {t('admin.resource.deployNow', lang)}
                     </button>
                   </div>
                 </div>
@@ -875,7 +907,7 @@ export default function ResourceDeploymentConsole({
                         </button>
                         {zone.is_ai_draft && (
                           <span className="mt-0.5 inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded font-bold bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-300 ring-1 ring-violet-500/20">
-                            <Cpu className="w-2.5 h-2.5" /> AI DRAFT
+                            <Cpu className="w-2.5 h-2.5" /> {t('admin.resource.aiDraft', lang)}
                           </span>
                         )}
                         {zone.report_id && (
@@ -885,7 +917,7 @@ export default function ResourceDeploymentConsole({
                         )}
                         {zone.needs_mutual_aid && (
                           <span className="mt-0.5 ml-1 inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded font-bold bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-300 ring-1 ring-orange-500/20">
-                            <Users className="w-2.5 h-2.5" /> MUTUAL AID
+                            <Users className="w-2.5 h-2.5" /> {t('admin.resource.mutualAid', lang)}
                           </span>
                         )}
                         {zone.hazard_type && zone.hazard_type !== 'general' && (
@@ -956,7 +988,7 @@ export default function ResourceDeploymentConsole({
                           {/* Header with Edit toggle */}
                           <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-extrabold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Zone Details</span>
+                              <span className="text-[10px] font-extrabold text-gray-400 dark:text-gray-400 uppercase tracking-wider">{t('admin.resource.zoneDetails', lang)}</span>
                               {zone.hazard_type && zone.hazard_type !== 'general' && (
                                 <span className="text-[10px] px-2 py-0.5 rounded-md font-bold bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-violet-900/20 dark:to-indigo-900/20 text-violet-700 dark:text-violet-300 ring-1 ring-violet-500/20 flex items-center gap-1">
                                   {(() => { const HIcon = HAZARD_CATEGORIES[zone.hazard_type]?.icon || FileText; return <HIcon className="w-3 h-3" /> })()} {HAZARD_CATEGORIES[zone.hazard_type]?.label || zone.hazard_type}
@@ -965,14 +997,14 @@ export default function ResourceDeploymentConsole({
                             </div>
                             {editingZone !== zone.id ? (
                               <button onClick={() => startEdit(zone)} className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-                                <Edit3 className="w-3 h-3" /> Edit Zone
+                                <Edit3 className="w-3 h-3" /> {t('admin.resource.editZone', lang)}
                               </button>
                             ) : (
                               <div className="flex items-center gap-1.5">
                                 <button onClick={() => saveEdit(zone.id)} disabled={savingEdit} className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors disabled:opacity-50">
                                   {savingEdit ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />} Save
                                 </button>
-                                <button onClick={cancelEdit} className="px-2.5 py-1 text-[10px] font-semibold rounded-lg text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">Cancel</button>
+                                <button onClick={cancelEdit} className="px-2.5 py-1 text-[10px] font-semibold rounded-lg text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">{t('admin.resource.cancel', lang)}</button>
                               </div>
                             )}
                           </div>
@@ -982,42 +1014,42 @@ export default function ResourceDeploymentConsole({
                             <div className="mb-4 p-3 rounded-xl border border-violet-200 dark:border-violet-800 bg-violet-50/30 dark:bg-violet-900/5 space-y-3">
                               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                                 <div>
-                                  <label className="text-[10px] font-bold text-gray-500 uppercase">Priority</label>
+                                  <label className="text-[10px] font-bold text-gray-500 uppercase">{t('admin.resource.priority', lang)}</label>
                                   <select value={editForm.priority} onChange={e => setEditForm(f => ({ ...f, priority: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white">
                                     {['Critical', 'High', 'Medium', 'Low'].map(p => <option key={p} value={p}>{p}</option>)}
                                   </select>
                                 </div>
                                 <div>
-                                  <label className="text-[10px] font-bold text-gray-500 uppercase">Hazard Type</label>
+                                  <label className="text-[10px] font-bold text-gray-500 uppercase">{t('admin.resource.hazardType', lang)}</label>
                                   <select value={editForm.hazard_type} onChange={e => setEditForm(f => ({ ...f, hazard_type: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white">
                                     {Object.entries(HAZARD_CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                                   </select>
                                 </div>
                                 <div>
-                                  <label className="text-[10px] font-bold text-gray-500 uppercase">Reports</label>
+                                  <label className="text-[10px] font-bold text-gray-500 uppercase">{t('admin.resource.reports', lang)}</label>
                                   <input type="number" min={0} value={editForm.active_reports} onChange={e => setEditForm(f => ({ ...f, active_reports: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white" />
                                 </div>
                                 <div>
-                                  <label className="text-[10px] font-bold text-gray-500 uppercase">Affected</label>
-                                  <input type="text" value={editForm.estimated_affected} onChange={e => setEditForm(f => ({ ...f, estimated_affected: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white" placeholder="e.g. 200" />
+                                  <label className="text-[10px] font-bold text-gray-500 uppercase">{t('admin.resource.affected', lang)}</label>
+                                  <input type="text" value={editForm.estimated_affected} onChange={e => setEditForm(f => ({ ...f, estimated_affected: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white" placeholder={t('admin.resource.affectedPlaceholder', lang)} />
                                 </div>
                               </div>
                               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                                 <div>
-                                  <label className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1"><Truck className="w-3 h-3 text-red-500" /> Amb.</label>
+                                  <label className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1"><Truck className="w-3 h-3 text-red-500" /> {t('admin.resource.ambulances', lang)}</label>
                                   <input type="number" min={0} value={editForm.ambulances} onChange={e => setEditForm(f => ({ ...f, ambulances: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white font-bold" />
                                 </div>
                                 <div>
-                                  <label className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1"><Flame className="w-3 h-3 text-orange-500" /> Fire</label>
+                                  <label className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1"><Flame className="w-3 h-3 text-orange-500" /> {t('admin.resource.fire', lang)}</label>
                                   <input type="number" min={0} value={editForm.fire_engines} onChange={e => setEditForm(f => ({ ...f, fire_engines: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white font-bold" />
                                 </div>
                                 <div>
-                                  <label className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1"><Anchor className="w-3 h-3 text-blue-500" /> Boats</label>
+                                  <label className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1"><Anchor className="w-3 h-3 text-blue-500" /> {t('admin.resource.boats', lang)}</label>
                                   <input type="number" min={0} value={editForm.rescue_boats} onChange={e => setEditForm(f => ({ ...f, rescue_boats: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white font-bold" />
                                 </div>
                                 <div>
-                                  <label className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1"><Shield className="w-3 h-3 text-indigo-500" /> IC</label>
-                                  <input type="text" value={editForm.incident_commander} onChange={e => setEditForm(f => ({ ...f, incident_commander: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white" placeholder="Name" />
+                                  <label className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1"><Shield className="w-3 h-3 text-indigo-500" /> {t('admin.resource.incidentCommander', lang)}</label>
+                                  <input type="text" value={editForm.incident_commander} onChange={e => setEditForm(f => ({ ...f, incident_commander: e.target.value }))} className="w-full mt-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white" placeholder={t('admin.resource.namePlaceholder', lang)} />
                                 </div>
                               </div>
                             </div>
@@ -1060,23 +1092,23 @@ export default function ResourceDeploymentConsole({
                           <div className="mb-3">
                             <div className="flex items-center justify-between mb-2">
                               <p className="text-[10px] font-bold text-gray-400 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
-                                <MapPin className="w-3 h-3" /> Asset Tracking
+                                <MapPin className="w-3 h-3" /> {t('admin.resource.assetTracking', lang)}
                                 {zone.id && assetsByZone[zone.id] && (
                                   <span className="ml-1 px-1.5 py-0.5 rounded-md bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-bold">
-                                    {assetsByZone[zone.id].filter((a: any) => a.status === 'on_site').length}/{assetsByZone[zone.id].length} on-site
+                                    {assetsByZone[zone.id].filter((a: any) => a.status === 'on_site').length}/{assetsByZone[zone.id].length} {t('admin.resource.onSite', lang)}
                                   </span>
                                 )}
                               </p>
                               {zone.id && (
                                 <button onClick={() => { setShowAddAsset(showAddAsset === zone.id ? null : zone.id); setAssetForm({ asset_type: 'ambulance', call_sign: '', status: 'staging', crew_count: '1', notes: '' }) }} className="h-6 px-2 text-[10px] font-bold rounded-md bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 flex items-center gap-1 transition-colors">
-                                  <Plus className="w-2.5 h-2.5" /> Add Asset
+                                  <Plus className="w-2.5 h-2.5" /> {t('admin.resource.addAsset', lang)}
                                 </button>
                               )}
                             </div>
-                            {loadingAssetsFor === zone.id && <p className="text-[11px] text-gray-400 dark:text-gray-300">Loading assets…</p>}
+                            {loadingAssetsFor === zone.id && <p className="text-[11px] text-gray-400 dark:text-gray-300">{t('admin.resource.loadingAssets', lang)}</p>}
                             {zone.id && assetsByZone[zone.id] && (
                               <div className="space-y-1">
-                                {assetsByZone[zone.id].length === 0 && <p className="text-[11px] text-gray-400 dark:text-gray-300">No assets tracked yet.</p>}
+                                {assetsByZone[zone.id].length === 0 && <p className="text-[11px] text-gray-400 dark:text-gray-300">{t('admin.resource.noAssetsTracked', lang)}</p>}
                                 {assetsByZone[zone.id].map((asset: any) => {
                                   const statusColor: Record<string, string> = {
                                     staging: 'bg-slate-500', en_route: 'bg-amber-500', on_site: 'bg-emerald-500',
@@ -1091,7 +1123,7 @@ export default function ResourceDeploymentConsole({
                                         {['staging', 'en_route', 'on_site', 'returning', 'available', 'off_duty'].map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
                                       </select>
                                       {asset.last_lat && <span className="text-[9px] text-gray-400 dark:text-gray-300 font-mono flex items-center gap-0.5"><MapPin className="w-2.5 h-2.5" />{Number(asset.last_lat).toFixed(3)},{Number(asset.last_lng).toFixed(3)}</span>}
-                                      {asset.crew_count > 0 && <span className="text-[10px] text-gray-500 dark:text-gray-400">{asset.crew_count} crew</span>}
+                                      {asset.crew_count > 0 && <span className="text-[10px] text-gray-500 dark:text-gray-400">{asset.crew_count} {t('admin.resource.crew', lang)}</span>}
                                       <button onClick={() => handleDeleteAsset(asset.id, zone.id)} className="ml-auto p-0.5 rounded text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"><Trash2 className="w-3 h-3" /></button>
                                     </div>
                                   )
@@ -1101,20 +1133,20 @@ export default function ResourceDeploymentConsole({
                             {/* Add asset inline form */}
                             {showAddAsset === zone.id && (
                               <div className="mt-2 p-3 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50/30 dark:bg-emerald-900/10">
-                                <p className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider mb-2">Add Asset</p>
+                                <p className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider mb-2">{t('admin.resource.addAsset', lang)}</p>
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
                                   <select value={assetForm.asset_type} onChange={e => setAssetForm(f => ({ ...f, asset_type: e.target.value }))} className="px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white">
                                     {['ambulance','fire_engine','rescue_boat','helicopter','hazmat_unit','police','medical_unit','urban_search_rescue','other'].map(t => <option key={t} value={t}>{t.replace(/_/g,' ')}</option>)}
                                   </select>
-                                  <input type="text" placeholder="Call sign e.g. AMB-01" value={assetForm.call_sign} onChange={e => setAssetForm(f => ({ ...f, call_sign: e.target.value }))} className="px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg placeholder:text-gray-400 dark:text-white" />
+                                  <input type="text" placeholder={t('admin.resource.callSignPlaceholder', lang)} value={assetForm.call_sign} onChange={e => setAssetForm(f => ({ ...f, call_sign: e.target.value }))} className="px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg placeholder:text-gray-400 dark:text-white" />
                                   <select value={assetForm.status} onChange={e => setAssetForm(f => ({ ...f, status: e.target.value }))} className="px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white">
                                     {['staging','en_route','on_site','returning','available','off_duty'].map(s => <option key={s} value={s}>{s.replace('_',' ')}</option>)}
                                   </select>
-                                  <input type="number" min={0} placeholder="Crew" value={assetForm.crew_count} onChange={e => setAssetForm(f => ({ ...f, crew_count: e.target.value }))} className="px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white" />
+                                  <input type="number" min={0} placeholder={t('admin.resource.crewPlaceholder', lang)} value={assetForm.crew_count} onChange={e => setAssetForm(f => ({ ...f, crew_count: e.target.value }))} className="px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white" />
                                 </div>
                                 <div className="flex gap-2">
-                                  <button onClick={() => handleAddAsset(zone.id)} className="px-3 py-1.5 text-[10px] font-bold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">Add</button>
-                                  <button onClick={() => setShowAddAsset(null)} className="px-3 py-1.5 text-[10px] font-semibold rounded-lg text-gray-500 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">Cancel</button>
+                                  <button onClick={() => handleAddAsset(zone.id)} className="px-3 py-1.5 text-[10px] font-bold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">{t('admin.resource.add', lang)}</button>
+                                  <button onClick={() => setShowAddAsset(null)} className="px-3 py-1.5 text-[10px] font-semibold rounded-lg text-gray-500 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">{t('admin.resource.cancel', lang)}</button>
                                 </div>
                               </div>
                             )}
@@ -1138,8 +1170,8 @@ export default function ResourceDeploymentConsole({
                           <div className="flex items-center justify-between mb-3 p-2.5 rounded-lg border border-orange-100 dark:border-orange-800 bg-orange-50/30 dark:bg-orange-900/5">
                             <div className="flex items-center gap-2">
                               <Users className="w-4 h-4 text-orange-500" />
-                              <span className="text-xs font-bold text-gray-900 dark:text-white">Mutual Aid</span>
-                              {zone.needs_mutual_aid && <span className="text-[9px] px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-300 font-bold rounded">ACTIVE REQUEST</span>}
+                              <span className="text-xs font-bold text-gray-900 dark:text-white">{t('admin.resource.mutualAid', lang)}</span>
+                              {zone.needs_mutual_aid && <span className="text-[9px] px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-300 font-bold rounded">{t('admin.resource.activeRequest', lang)}</span>}
                             </div>
                             <button
                               onClick={() => handleToggleMutualAid(zone)}
@@ -1163,11 +1195,11 @@ export default function ResourceDeploymentConsole({
                           {/* ICS Operations Log */}
                           <div>
                             <p className="text-[10px] font-bold text-gray-400 dark:text-gray-300 uppercase tracking-wider mb-2 flex items-center gap-1">
-                              <Radio className="w-3 h-3" /> ICS Operations Log
+                              <Radio className="w-3 h-3" /> {t('admin.resource.icsOperationsLog', lang)}
                             </p>
                             <div className="space-y-1 mb-2 max-h-32 overflow-y-auto">
                               {(zone.ops_log || []).length === 0 && (
-                                <p className="text-[10px] text-gray-400 dark:text-gray-300">No log entries yet.</p>
+                                <p className="text-[10px] text-gray-400 dark:text-gray-300">{t('admin.resource.noLogEntries', lang)}</p>
                               )}
                               {(zone.ops_log || []).map((entry: any, li: number) => (
                                 <div key={li} className="flex gap-2 text-[10px] p-1.5 rounded bg-gray-50 dark:bg-gray-800/40">
@@ -1180,7 +1212,7 @@ export default function ResourceDeploymentConsole({
                             <div className="flex gap-2">
                               <input
                                 type="text"
-                                placeholder="Add log entry… (Enter to submit)"
+                                placeholder={t('admin.resource.addLogEntryPlaceholder', lang)}
                                 value={opsNoteByZone[zone.id] || ''}
                                 onChange={e => setOpsNoteByZone(prev => ({ ...prev, [zone.id]: e.target.value }))}
                                 onKeyDown={e => e.key === 'Enter' && handleAddOpsLog(zone.id)}
@@ -1191,7 +1223,7 @@ export default function ResourceDeploymentConsole({
                                 disabled={savingOpsNote === zone.id}
                                 className="px-3 py-1.5 text-[10px] font-bold rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors flex items-center gap-1"
                               >
-                                {savingOpsNote === zone.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <><FileText className="w-3 h-3" /> Log</>}
+                                {savingOpsNote === zone.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <><FileText className="w-3 h-3" /> {t('admin.resource.log', lang)}</>}
                               </button>
                             </div>
                           </div>
@@ -1205,7 +1237,7 @@ export default function ResourceDeploymentConsole({
           </table>
           {zones.length === 0 && (
             <div className="text-center py-12">
-              <Layers className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+              <Layers className="w-8 h-8 text-gray-300 dark:text-gray-400 mx-auto mb-2" />
               <p className="text-sm text-gray-400 dark:text-gray-300">{deployments.length === 0 ? 'No deployment zones yet — create one to get started.' : t('resource.noZonesMatch', lang)}</p>
               {deployments.length === 0 && (
                 <button onClick={() => { const init = getSmartResourceSuggestion('general', 'Medium'); setCreateForm({ zone: '', priority: 'Medium', active_reports: '0', estimated_affected: '', ai_recommendation: init.reasoning, commander_notes: '', ambulances: String(init.ambulances), fire_engines: String(init.fire_engines), rescue_boats: String(init.rescue_boats), lat: '', lng: '', report_id: '', hazard_type: 'general', incident_commander: '', radio_channel: '', weather_conditions: 'clear', evacuation_status: 'none', access_routes: '' }); setCreateStep(0); setShowCreateModal(true) }} className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 hover:bg-violet-100 dark:hover:bg-violet-900/30 ring-1 ring-violet-500/20 transition-colors"><Plus className="w-3.5 h-3.5" /> Create First Zone</button>
@@ -1312,7 +1344,7 @@ export default function ResourceDeploymentConsole({
                         <div className="px-4 pb-4 pt-1 border-t border-gray-100 dark:border-gray-800">
                           {/* Edit toggle */}
                           <div className="flex items-center justify-between mb-2">
-                            <span className="text-[10px] font-extrabold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Details</span>
+                            <span className="text-[10px] font-extrabold text-gray-400 dark:text-gray-400 uppercase tracking-wider">Details</span>
                             {editingZone !== zone.id ? (
                               <button onClick={() => startEdit(zone)} className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
                                 <Edit3 className="w-3 h-3" /> Edit
@@ -1479,7 +1511,7 @@ export default function ResourceDeploymentConsole({
               </div>
             ) : (
               <div className="text-center py-12">
-                <Layers className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                <Layers className="w-8 h-8 text-gray-300 dark:text-gray-400 mx-auto mb-2" />
                 <p className="text-sm text-gray-400 dark:text-gray-300">{deployments.length === 0 ? 'No deployment zones yet — create one to get started.' : t('resource.noZonesMatch', lang)}</p>
                 {deployments.length === 0 && (
                   <button onClick={() => { const init = getSmartResourceSuggestion('general', 'Medium'); setCreateForm({ zone: '', priority: 'Medium', active_reports: '0', estimated_affected: '', ai_recommendation: init.reasoning, commander_notes: '', ambulances: String(init.ambulances), fire_engines: String(init.fire_engines), rescue_boats: String(init.rescue_boats), lat: '', lng: '', report_id: '', hazard_type: 'general', incident_commander: '', radio_channel: '', weather_conditions: 'clear', evacuation_status: 'none', access_routes: '' }); setCreateStep(0); setShowCreateModal(true) }} className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 hover:bg-violet-100 dark:hover:bg-violet-900/30 ring-1 ring-violet-500/20 transition-colors"><Plus className="w-3.5 h-3.5" /> Create First Zone</button>
@@ -1527,7 +1559,7 @@ export default function ResourceDeploymentConsole({
             </div>
           ) : (
             <div className="text-center py-8">
-              <Activity className="w-6 h-6 text-gray-300 dark:text-gray-600 mx-auto mb-1.5" />
+              <Activity className="w-6 h-6 text-gray-300 dark:text-gray-400 mx-auto mb-1.5" />
               <p className="text-xs text-gray-400 dark:text-gray-300">{t('resource.noActivity', lang)}</p>
             </div>
           )}
@@ -1535,7 +1567,7 @@ export default function ResourceDeploymentConsole({
       </div>
     </div>
 
-    {/* CREATE ZONE MODAL — World-class multi-step with AI resource engine */}
+    {/* CREATE ZONE MODAL — multi-step with AI resource engine */}
     {showCreateModal && (
       <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => { setShowCreateModal(false); setCreateStep(0); setFormErrors({}) }}>
         <div className="w-full max-w-2xl bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden" onClick={e => e.stopPropagation()}>
@@ -1562,7 +1594,7 @@ export default function ResourceDeploymentConsole({
             {/* Step indicator */}
             <div className="relative px-6 pb-3 flex items-center gap-2">
               {['Zone Identity', 'Resource Staging', 'Review & Deploy'].map((label, si) => (
-                <button key={si} onClick={() => si <= createStep && setCreateStep(si)} className={`flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all ${createStep === si ? 'bg-white/90 dark:bg-gray-800/90 text-gray-900 dark:text-white shadow-sm' : createStep > si ? 'bg-white/40 dark:bg-gray-800/40 text-emerald-700 dark:text-emerald-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                <button key={si} onClick={() => si <= createStep && setCreateStep(si)} className={`flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all ${createStep === si ? 'bg-white/90 dark:bg-gray-800/90 text-gray-900 dark:text-white shadow-sm' : createStep > si ? 'bg-white/40 dark:bg-gray-800/40 text-emerald-700 dark:text-emerald-400' : 'text-gray-400 dark:text-gray-400'}`}>
                   <span className={`w-4 h-4 rounded-full text-[9px] flex items-center justify-center font-extrabold ${createStep > si ? 'bg-emerald-500 text-white' : createStep === si ? 'bg-violet-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-500'}`}>
                     {createStep > si ? <CheckCircle className="w-3 h-3" /> : si + 1}
                   </span>
@@ -1631,7 +1663,7 @@ export default function ResourceDeploymentConsole({
                 <div className="flex-1 min-w-0">
                   <p className="text-[11px] font-bold text-gray-700 dark:text-gray-200">
                     {createForm.priority} — {HAZARD_CATEGORIES[createForm.hazard_type]?.label || 'General'}
-                    <span className="mx-1.5 text-gray-300 dark:text-gray-600">|</span>
+                    <span className="mx-1.5 text-gray-300 dark:text-gray-400">|</span>
                     <span className={`font-extrabold ${threatInfo.color}`}>Threat: {threatInfo.label}</span>
                   </p>
                   <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-snug mt-0.5">
@@ -1961,7 +1993,7 @@ export default function ResourceDeploymentConsole({
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
                       {checks.map(c => (
-                        <div key={c.label} className={`flex items-center gap-1.5 text-[10px] px-2 py-1 rounded-lg ${c.ok ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20' : 'text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-800/40'}`}>
+                        <div key={c.label} className={`flex items-center gap-1.5 text-[10px] px-2 py-1 rounded-lg ${c.ok ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20' : 'text-gray-400 dark:text-gray-400 bg-gray-100 dark:bg-gray-800/40'}`}>
                           {c.ok ? <CheckCircle className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
                           <span className="font-medium">{c.label}</span>
                         </div>

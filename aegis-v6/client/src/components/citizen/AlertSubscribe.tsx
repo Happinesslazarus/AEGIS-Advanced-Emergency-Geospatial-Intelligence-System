@@ -1,5 +1,13 @@
+/**
+ * Module: AlertSubscribe.tsx
+ *
+ * Alert subscribe citizen component (public-facing UI element).
+ *
+ * How it connects:
+ * - Rendered inside CitizenPage.tsx or CitizenDashboard.tsx */
+
 import { useState } from 'react'
-import { X, Bell, MessageCircle, Mail, Phone, Globe, CheckCircle, User } from 'lucide-react'
+import { X, Bell, MessageCircle, Mail, Phone, Globe, CheckCircle, User, AlertCircle, Loader2 } from 'lucide-react'
 import { useAlerts } from '../../contexts/AlertsContext'
 import { useLocation } from '../../contexts/LocationContext'
 import { useWebPush } from '../../hooks/useWebPush'
@@ -12,14 +20,15 @@ interface Props { onClose: () => void; lang?: string }
 interface ChannelState { enabled: boolean; value: string }
 
 export default function AlertSubscribe({ onClose, lang }: Props): JSX.Element {
-  const activeLang = lang || useLanguage()
+  const hookLang = useLanguage()
+  const activeLang = lang || hookLang
   const { pushNotification } = useAlerts()
   const { location } = useLocation()
-  const { subscribe: subscribeToWebPush } = useWebPush()
+  const { subscribe: subscribeToWebPush, status: webPushStatus } = useWebPush()
   const [subscriberName, setSubscriberName] = useState('')
   const [channels, setChannels] = useState<Record<string, ChannelState>>({
     telegram: { enabled: false, value: '' }, email: { enabled: false, value: '' },
-    sms: { enabled: false, value: '' }, whatsapp: { enabled: false, value: '' }, web: { enabled: true, value: 'enabled' },
+    sms: { enabled: false, value: '' }, whatsapp: { enabled: false, value: '' }, web: { enabled: false, value: 'enabled' },
   })
   const [selectedAreas, setSelectedAreas] = useState<Set<string>>(new Set())
   const [subscribed, setSubscribed] = useState(false)
@@ -35,10 +44,31 @@ export default function AlertSubscribe({ onClose, lang }: Props): JSX.Element {
   }
 
   const isValidE164 = (value: string): boolean => /^\+[1-9]\d{8,14}$/.test(value)
+  const isValidEmail = (value: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+  const isTelegramId = (value: string): boolean => value.startsWith('@') ? value.length >= 2 : /^\d{5,}$/.test(value)
+
+  const getFieldState = (key: string): 'idle' | 'valid' | 'invalid' => {
+    const val = channels[key]?.value.trim()
+    if (!channels[key]?.enabled || !val) return 'idle'
+    if (key === 'email') return isValidEmail(val) ? 'valid' : 'invalid'
+    if (key === 'sms' || key === 'whatsapp') return isValidE164(val) ? 'valid' : 'invalid'
+    if (key === 'telegram') return isTelegramId(val) ? 'valid' : 'invalid'
+    return 'idle'
+  }
+
+  const fieldHint: Record<string, string> = {
+    email: 'e.g. you@example.com',
+    sms: '+44 7700 900000 (E.164 format, include country code)',
+    whatsapp: '+44 7700 900000 (E.164 format, include country code)',
+    telegram: '@username or numeric chat ID',
+  }
+
+  const [submitting, setSubmitting] = useState(false)
 
   const handleSubscribe = async (): Promise<void> => {
     const active = Object.entries(channels).filter(([, v]) => v.enabled)
     if (active.length === 0) { pushNotification(t('alertSub.selectChannel', activeLang), 'warning'); return }
+    if (submitting) return
 
     if (channels.sms.enabled && !isValidE164(channels.sms.value)) {
       pushNotification(t('alertSub.smsValidation', activeLang), 'error')
@@ -48,15 +78,24 @@ export default function AlertSubscribe({ onClose, lang }: Props): JSX.Element {
       pushNotification(t('alertSub.whatsappValidation', activeLang), 'error')
       return
     }
+    if (channels.email.enabled && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(channels.email.value)) {
+      pushNotification(t('alertSub.emailValidation', activeLang) || 'Please enter a valid email address', 'error')
+      return
+    }
 
+    setSubmitting(true)
     try {
-      // If Web Push is enabled, register the browser push subscription first
-      if (channels.web.enabled) {
+      // If Web Push is enabled AND VAPID is configured on the server, register the browser push subscription
+      if (channels.web.enabled && webPushStatus.enabled) {
         try {
           await subscribeToWebPush(channels.email.enabled ? channels.email.value : undefined)
           pushNotification(t('alertSub.webPushEnabled', activeLang), 'success')
         } catch (err: any) {
-          pushNotification(`${t('alertSub.webPushFailed', activeLang)}: ${err.message}`, 'warning')
+          // Only show error for non-config issues (permission denied, etc.) — missing VAPID key is silently skipped
+          const msg: string = err?.message || ''
+          if (!msg.includes('not configured') && !msg.includes('public key')) {
+            pushNotification(`${t('alertSub.webPushFailed', activeLang)}: ${msg}`, 'warning')
+          }
         }
       }
 
@@ -67,6 +106,7 @@ export default function AlertSubscribe({ onClose, lang }: Props): JSX.Element {
         telegram_id: channels.telegram.enabled ? channels.telegram.value : null,
         whatsapp: channels.whatsapp.enabled ? channels.whatsapp.value : null,
         channels: active.map(([name]) => name),
+        areas: Array.from(selectedAreas),
         location_lat: location.center?.[0] || null,
         location_lng: location.center?.[1] || null,
         radius_km: 25,
@@ -78,6 +118,8 @@ export default function AlertSubscribe({ onClose, lang }: Props): JSX.Element {
       pushNotification(t('subscribe.success', activeLang), 'success')
     } catch (error: any) {
       pushNotification(error?.message || t('alertSub.subscriptionFailed', activeLang), 'error')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -122,20 +164,35 @@ export default function AlertSubscribe({ onClose, lang }: Props): JSX.Element {
                 <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
                   <User className="w-4 h-4" /> {t('alertSub.yourName', activeLang) || 'Your Name'} <span className="text-xs text-gray-400 font-normal">({t('alertSub.optional', activeLang) || 'optional'})</span>
                 </h3>
-                <input
-                  className="input text-sm w-full"
-                  placeholder={t('alertSub.namePlaceholder', activeLang) || 'e.g. John Smith — alerts will be personalised'}
-                  value={subscriberName}
-                  onChange={e => setSubscriberName(e.target.value)}
-                  maxLength={100}
-                />
+                <div className="relative">
+                  <input
+                    className="input text-sm w-full pr-16"
+                    placeholder={t('alertSub.namePlaceholder', activeLang) || 'e.g. John Smith'}
+                    value={subscriberName}
+                    onChange={e => setSubscriberName(e.target.value.slice(0, 80))}
+                    maxLength={80}
+                  />
+                  {subscriberName.length > 0 && (
+                    <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-medium transition-colors ${subscriberName.length > 70 ? 'text-amber-500' : 'text-gray-400'}`}>
+                      {subscriberName.length}/80
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div>
                 <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">{t('alertSub.channels', activeLang)}</h3>
                 <div className="space-y-3">
-                  {channelConfig.map(ch => (
-                    <div key={ch.key} className={`p-3 rounded-xl border-2 transition-all ${channels[ch.key].enabled ? 'border-aegis-500 bg-aegis-50 dark:bg-aegis-950/20' : 'border-gray-200 dark:border-gray-700'}`}>
+                  {channelConfig.map(ch => {
+                    const fieldState = getFieldState(ch.key)
+                    return (
+                    <div key={ch.key} className={`p-3 rounded-xl border-2 transition-all duration-200 ${
+                      channels[ch.key].enabled
+                        ? fieldState === 'invalid' ? 'border-red-400 bg-red-50 dark:bg-red-950/10'
+                          : fieldState === 'valid' ? 'border-green-500 bg-green-50 dark:bg-green-950/10'
+                          : 'border-aegis-500 bg-aegis-50 dark:bg-aegis-950/20'
+                        : 'border-gray-200 dark:border-gray-700'
+                    }`}>
                       <label className="flex items-center gap-3 cursor-pointer">
                         <input type="checkbox" checked={channels[ch.key].enabled} onChange={() => toggleChannel(ch.key)}
                           className="w-5 h-5 rounded border-gray-300 text-aegis-600" />
@@ -143,13 +200,36 @@ export default function AlertSubscribe({ onClose, lang }: Props): JSX.Element {
                           <ch.icon className="w-4 h-4 text-white" />
                         </div>
                         <span className="font-medium text-sm">{ch.label}</span>
+                        {fieldState === 'valid' && <CheckCircle className="w-3.5 h-3.5 text-green-500 ml-auto" />}
+                        {fieldState === 'invalid' && <AlertCircle className="w-3.5 h-3.5 text-red-500 ml-auto" />}
                       </label>
                       {channels[ch.key].enabled && ch.placeholder && (
-                        <input className="input mt-2 text-sm" placeholder={ch.placeholder}
-                          value={channels[ch.key].value} onChange={e => updateValue(ch.key, e.target.value)} />
+                        <div className="mt-2">
+                          <div className="relative">
+                            <input
+                              className={`input text-sm w-full pr-8 transition-all ${
+                                fieldState === 'invalid' ? 'border-red-400 focus:border-red-500 focus:ring-red-500/20' :
+                                fieldState === 'valid' ? 'border-green-500 focus:border-green-500 focus:ring-green-500/20' : ''
+                              }`}
+                              placeholder={ch.placeholder}
+                              value={channels[ch.key].value}
+                              onChange={e => updateValue(ch.key, e.target.value)}
+                            />
+                            {fieldState === 'valid' && <CheckCircle className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />}
+                            {fieldState === 'invalid' && <AlertCircle className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-red-500" />}
+                          </div>
+                          {fieldHint[ch.key] && channels[ch.key].value && (
+                            <p className={`text-[10px] mt-1 transition-colors ${
+                              fieldState === 'invalid' ? 'text-red-500' :
+                              fieldState === 'valid' ? 'text-green-600 dark:text-green-400' : 'text-gray-400'
+                            }`}>
+                              {fieldState === 'invalid' ? `Format: ${fieldHint[ch.key]}` : fieldState === 'valid' ? '✓ Valid format' : fieldHint[ch.key]}
+                            </p>
+                          )}
+                        </div>
                       )}
                     </div>
-                  ))}
+                  )})}
                 </div>
               </div>
               <div>
@@ -166,7 +246,7 @@ export default function AlertSubscribe({ onClose, lang }: Props): JSX.Element {
               <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                 <p className="text-xs text-blue-700 dark:text-blue-300">{t('alertSub.info', activeLang)}</p>
               </div>
-              <button onClick={handleSubscribe} className="btn-primary w-full py-3"><Bell className="w-4 h-4" /> {t('alertSub.subscribeToAlerts', activeLang)}</button>
+              <button onClick={handleSubscribe} disabled={submitting} className="btn-primary w-full py-3 disabled:opacity-60 disabled:cursor-not-allowed">{submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />} {submitting ? t('alertSub.subscribing', activeLang) : t('alertSub.subscribeToAlerts', activeLang)}</button>
             </>
           )}
         </div>

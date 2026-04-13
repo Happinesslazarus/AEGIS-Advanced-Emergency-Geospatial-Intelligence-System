@@ -1,8 +1,13 @@
-﻿/**
- * incidents/types.ts — Core types for the AEGIS incident plugin system
+/**
+ * Module: types.ts
  *
- * Every incident module must implement the IncidentModule interface.
- * The platform core dynamically loads these modules from the registry.
+ * Types incident component.
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Part of the incident management system.
  */
 
 import type { Router } from 'express'
@@ -154,4 +159,4 @@ export interface IncidentModule {
   /* Get incident history */
   getHistory(region: string, days?: number): Promise<any[]>
 }
-
+

@@ -1,11 +1,7 @@
 """
-Bootstrap the AEGIS vision dataset workspace from the curated source registry.
+Module: bootstrap_vision_sources.py
 
-This does not assume every dataset can be downloaded automatically.
-Instead it creates a disciplined acquisition workspace:
-- direct-download sources can be downloaded on demand
-- manual/gated sources get a local instruction file
-- all sources get a metadata file in the staging tree
+Bootstrap_vision_sources AI engine module.
 """
 
 from __future__ import annotations

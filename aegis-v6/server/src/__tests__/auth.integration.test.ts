@@ -1,12 +1,15 @@
 /**
- * tests__/auth.integration.test.ts — Authentication & Authorization Integration Tests
+ * File: auth.integration.test.ts
  *
- * Tests the complete authentication flow including:
- * JWT token generation and validation
- * Role-based access control
- * Password reset flow (email only)
- * Chat session ownership
- * Internal API authentication
+ * What it tests:
+ * Integration tests for the authentication middleware.
+  * Verifies JWT verification, role enforcement, refresh token rotation,
+  * session invalidation, and anonymous-access guards.
+  *
+  * How it connects:
+  * - Tests server/src/middleware/auth.ts
+  * - Uses real JWTs signed with test secrets
+  * - Run via: npm test -- auth.integration
  */
 
 import { describe, it, expect, beforeAll, afterAll, jest } from '@jest/globals'
@@ -298,4 +301,4 @@ describe('Webhook Signature Validation', () => {
     expect(validateSignature(payload2, sig1, secret)).toBe(false)
   })
 })
-
+

@@ -1,13 +1,16 @@
-﻿/**
- * tests__/chat.stream.test.ts — SSE Streaming Endpoint & Budget Route Tests
+/**
+ * File: chat.stream.test.ts
  *
- * Tests the HTTP surface of the chat streaming feature using a fully mocked
- * chatService layer to verify:
- *   — POST /api/chat/stream: correct SSE event format (start, token, replace, done, error)
- *   — Body validation fires BEFORE SSE headers ? JSON 400 errors
- *   — GET  /api/chat/:id/budget: auth enforcement and correct payload shape
- *
- * No real database or LLM providers are involved.
+ * What it tests:
+ * Integration tests for the SSE streaming chat endpoint.
+  * Verifies that POST /api/chat/stream emits incremental text chunks,
+  * flushes the [DONE] sentinel, handles LLM errors gracefully, and
+  * closes the connection cleanly.
+  *
+  * How it connects:
+  * - Tests server/src/routes/chatRoutes.ts /stream endpoint
+  * - Relies on server/src/services/chatService.ts + llmRouter.ts
+  * - Run via: npm test -- chat.stream
  */
 
 // Environment setup (before any module imports)
@@ -369,4 +372,4 @@ describe('GET /api/chat/:id/budget — token budget endpoint', () => {
     )
   })
 })
-
+

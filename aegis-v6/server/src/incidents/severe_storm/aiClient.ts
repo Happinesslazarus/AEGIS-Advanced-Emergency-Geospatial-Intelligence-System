@@ -1,6 +1,13 @@
 /**
- * incidents/severe_storm/aiClient.ts — AI client for severe storm predictions
- * AI Tier: tier2 (statistical) - Uses statistical models
+ * Module: aiClient.ts
+ *
+ * Severe weather and storm systems incident module (handles severe storm specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for severe storm events.
  */
 
 import type { IncidentPrediction } from '../types.js'

@@ -1,4 +1,25 @@
-﻿import { useState, useEffect, useMemo, useRef } from 'react'
+/**
+ * File: AlertsPage.tsx
+ *
+ * What this file does:
+ * Dedicated page for viewing all active and recent emergency alerts. Supports
+ * filtering by hazard type, severity, and region. Alert subscriptions (email,
+ * SMS, push) can be managed from here too.
+ *
+ * How it connects:
+ * - Routed by client/src/App.tsx at /alerts
+ * - Alert data from client/src/contexts/AlertsContext.tsx
+ * - Also calls GET /api/alerts directly for extended history
+ * - AlertSubscribe component handles push/email notification opt-in
+ *
+ * Learn more:
+ * - client/src/contexts/AlertsContext.tsx       — real-time alert state
+ * - client/src/components/shared/AlertCard.tsx  — individual alert display card
+ * - server/src/routes/dataRoutes.ts             — alerts API endpoints
+ */
+
+import { useState, useEffect, useMemo, useRef } from 'react'
+import { usePageTitle } from '../hooks/usePageTitle'
 import { Link } from 'react-router-dom'
 import {
   Bell, AlertTriangle, Info, ShieldAlert, ArrowLeft, RefreshCw,
@@ -14,7 +35,9 @@ import { t } from '../utils/i18n'
 import { useLanguage } from '../hooks/useLanguage'
 import type { Alert } from '../types'
 
-/* Severity config */
+/* Severity config maps severity strings to Tailwind classes and icon components.
+ * Used by every alert card to consistently colour-code and icon-code severity levels.
+ * critical alerts get `animate-pulse` to draw immediate attention. */
 const SEVERITY_CONFIG: Record<string, {
   gradient: string; border: string; bg: string; text: string;
   icon: React.ElementType; pulse: string; badge: string; labelKey: string
@@ -99,6 +122,8 @@ function getDisasterIcon(type: string): React.ElementType {
   return DISASTER_ICONS[type?.toLowerCase()] || DISASTER_ICONS.default
 }
 
+// Human-readable "X mins ago" relative timestamps.
+// Returns localised strings via the i18n t() helper.
 function formatTimeAgo(timestamp: string, lang: string): string {
   const now = new Date()
   const then = new Date(timestamp)
@@ -114,6 +139,7 @@ function formatTimeAgo(timestamp: string, lang: string): string {
 }
 
 export default function AlertsPage(): JSX.Element {
+  usePageTitle('Alerts')
   const lang = useLanguage()
   const { alerts, loading, refreshAlerts } = useAlerts()
   const { activeLocation } = useLocation()
@@ -131,11 +157,15 @@ export default function AlertsPage(): JSX.Element {
     setRefreshing(false)
   }
 
-  useEffect(() => { refreshAlerts() }, [activeLocation])
+  // Re-fetch alerts whenever the user's active location changes (new area may have different active alerts).
+  useEffect(() => { refreshAlerts() }, [activeLocation, refreshAlerts])
 
-  // Severity priority for sorting
+  // Severity sort order: lower number = higher priority.
+  // Used to sort alerts by danger level rather than just recency.
   const severityOrder: Record<string, number> = { critical: 0, high: 1, warning: 2, medium: 3, info: 4, low: 5 }
 
+  // Apply severity filter, text search, and sort in a single memoised pass.
+  // Only active alerts are shown; resolved/expired ones are excluded.
   const filteredAlerts = useMemo(() => {
     let result = alerts.filter(a => a.active)
 
@@ -160,6 +190,7 @@ export default function AlertsPage(): JSX.Element {
     return result
   }, [alerts, filterSeverity, searchQuery, sortBy])
 
+  // Count alerts per severity level for the filter tab badges.
   const severityCounts = useMemo(() => {
     const counts: Record<string, number> = { all: 0, critical: 0, high: 0, warning: 0, medium: 0, info: 0, low: 0 }
     alerts.filter(a => a.active).forEach(a => {
@@ -169,6 +200,7 @@ export default function AlertsPage(): JSX.Element {
     return counts
   }, [alerts])
 
+  // Header gradient shifts to red when there are critical/high alerts to convey urgency.
   const criticalCount = (severityCounts.critical || 0) + (severityCounts.high || 0)
 
   return (

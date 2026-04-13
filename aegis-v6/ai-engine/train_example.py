@@ -1,12 +1,7 @@
 """
- AEGIS AI ENGINE — Training Script Example
- 
- Demonstrates how to use the training pipeline to train models.
- 
- Usage:
-     python train_example.py --hazard flood --model xgboost
-     python train_example.py --hazard drought --model lightgbm --tune
-     python train_example.py --train-all
+Module: train_example.py
+
+Train_example AI engine module.
 """
 
 import asyncio

@@ -1,15 +1,16 @@
 """
-train_wildfire.py — Wildfire Training Pipeline
+File: train_wildfire.py
 
-Features: temperature, humidity, wind_speed, days_since_rain, fwi (Fire Weather Index)
-Data:     Open-Meteo historical (global, free), optional NASA FIRMS
-Labels:   FWI threshold (FWI > 25) as proxy → weakly_supervised (default)
-          If real fire events loaded → supervised
-Model:    XGBoost classifier
+What this file does:
+Trains the wildfire risk-prediction model on synthetic/augmented data.
+Uses BaseHazardPipeline for the training loop. Useful as a quick
+bootstrap when real-world labelled data is unavailable.
 
-Usage:
-    python -m app.training.train_wildfire --region=global
-    python -m app.training.train_wildfire --region=australia
+How it connects:
+- Extends ai-engine/app/training/base_hazard_pipeline.py
+- Synthetic feature generation via data_loaders.py and data_ingestion.py
+- Saves to model_registry/wildfire/ via ModelRegistry
+- Loaded at inference time by ai-engine/app/hazards/wildfire.py
 """
 
 from __future__ import annotations

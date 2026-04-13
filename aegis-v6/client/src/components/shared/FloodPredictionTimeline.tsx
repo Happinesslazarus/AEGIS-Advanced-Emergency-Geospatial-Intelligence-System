@@ -1,10 +1,10 @@
 /**
- * FloodPredictionTimeline.tsx — Interactive timeline slider for flood predictions
+ * Module: FloodPredictionTimeline.tsx
  *
- * Shows predicted flood extents at 1h, 2h, 4h, 6h horizons.
- * Animates predictions forward/backward with auto-play.
- * Displays confidence levels and affected property counts.
- */
+ * Flood prediction timeline shared component (reusable UI element used across pages).
+ *
+ * How it connects:
+ * - Used across both admin and citizen interfaces */
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import {

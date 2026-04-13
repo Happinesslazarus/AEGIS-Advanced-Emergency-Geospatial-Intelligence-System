@@ -1,9 +1,7 @@
 """
+Module: test_report_classifier.py
 
-test_report_classifier.py — Report Classification Model Tests
-
-Tests keyword-based classification for all hazard types, confidence scoring,
-severity extraction, batch classification, and edge cases.
+Test_report_classifier AI engine module.
 """
 
 import pytest

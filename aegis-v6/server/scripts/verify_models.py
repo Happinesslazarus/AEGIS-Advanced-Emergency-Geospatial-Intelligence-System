@@ -1,7 +1,16 @@
+"""
+Module: verify_models.py
+
+Verify_models utility script.
+
+Simple explanation:
+Standalone script for verify_models.
+"""
+
 import asyncio, asyncpg
 
 async def main():
-    c = await asyncpg.connect('postgresql://postgres:Happylove%40%21@localhost:5432/aegis')
+    c = await asyncpg.connect(os.environ.get('DATABASE_URL', 'postgresql://localhost:5432/aegis'))
     
     # Check ai_model_metrics
     rows = await c.fetch('SELECT model_name, model_version, metric_name, metric_value, dataset_size FROM ai_model_metrics ORDER BY created_at DESC')

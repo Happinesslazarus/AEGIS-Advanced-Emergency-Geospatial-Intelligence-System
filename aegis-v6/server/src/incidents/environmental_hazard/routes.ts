@@ -1,5 +1,13 @@
 /**
- * incidents/environmental_hazard/routes.ts — Custom routes for environmental hazard incidents
+ * Module: routes.ts
+ *
+ * Environmental contamination events incident module (handles environmental hazard specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for environmental hazard events.
  */
 
 import { Router, Request, Response } from 'express'
@@ -23,8 +31,7 @@ export function setupEnvironmentalHazardRoutes(router: Router): void {
         message: 'OpenAQ air quality integration pending'
       })
     } catch (err: unknown) {
-      const error = err as Error
-      res.status(500).json({ error: 'Failed to fetch air quality', details: error.message })
+      res.status(500).json({ error: 'Could not load air quality data. The monitoring service may be unavailable.' })
     }
   })
 
@@ -41,8 +48,7 @@ export function setupEnvironmentalHazardRoutes(router: Router): void {
         message: 'Pollutant monitoring integration pending'
       })
     } catch (err: unknown) {
-      const error = err as Error
-      res.status(500).json({ error: 'Failed to fetch pollutant levels', details: error.message })
+      res.status(500).json({ error: 'Could not load pollutant level data. Please try again shortly.' })
     }
   })
 
@@ -61,9 +67,8 @@ export function setupEnvironmentalHazardRoutes(router: Router): void {
         message: 'Health advisory generation pending'
       })
     } catch (err: unknown) {
-      const error = err as Error
-      res.status(500).json({ error: 'Failed to generate health advisory', details: error.message })
+      res.status(500).json({ error: 'Could not generate health advisory. Please try again.' })
     }
   })
 }
-
+

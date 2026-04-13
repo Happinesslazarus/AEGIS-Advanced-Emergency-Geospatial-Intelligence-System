@@ -1,5 +1,13 @@
 /**
- * incidents/infrastructure_damage/schema.ts — Infrastructure Damage report validation schema
+ * Module: schema.ts
+ *
+ * Infrastructure damage assessment incident module (handles infrastructure damage specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for infrastructure damage events.
  */
 
 export interface InfrastructureDamageCustomFields {
@@ -46,4 +54,4 @@ export function sanitizeInfrastructureDamageCustomFields(fields: Record<string, 
     emergencyAccess: typeof fields.emergencyAccess === 'boolean' ? fields.emergencyAccess : undefined
   }
 }
-
+

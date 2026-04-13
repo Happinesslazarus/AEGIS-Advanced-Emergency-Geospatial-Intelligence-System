@@ -1,5 +1,13 @@
 /**
- * incidents/severe_storm/routes.ts — Custom routes for severe storm incidents
+ * Module: routes.ts
+ *
+ * Severe weather and storm systems incident module (handles severe storm specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for severe storm events.
  */
 
 import { Router, Request, Response } from 'express'
@@ -17,8 +25,7 @@ export function setupSevereStormRoutes(router: Router): void {
         message: 'Weather forecast integration pending'
       })
     } catch (err: unknown) {
-      const error = err as Error
-      res.status(500).json({ error: 'Failed to fetch weather forecast', details: error.message })
+      res.status(500).json({ error: 'Could not load the weather forecast. The weather service may be temporarily unavailable.' })
     }
   })
 
@@ -33,8 +40,7 @@ export function setupSevereStormRoutes(router: Router): void {
         message: 'Weather radar integration pending'
       })
     } catch (err: unknown) {
-      const error = err as Error
-      res.status(500).json({ error: 'Failed to fetch radar data', details: error.message })
+      res.status(500).json({ error: 'Could not load radar data. Please try again shortly.' })
     }
   })
 
@@ -49,9 +55,8 @@ export function setupSevereStormRoutes(router: Router): void {
         message: 'Wind alerts integration pending'
       })
     } catch (err: unknown) {
-      const error = err as Error
-      res.status(500).json({ error: 'Failed to fetch wind alerts', details: error.message })
+      res.status(500).json({ error: 'Could not load wind alerts. Please try again.' })
     }
   })
 }
-
+

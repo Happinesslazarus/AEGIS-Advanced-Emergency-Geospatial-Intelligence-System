@@ -1,24 +1,25 @@
-﻿/*
- * securityRoutes.ts — Security Dashboard & Device Trust Management
+/**
+ * File: securityRoutes.ts
  *
- * Endpoints:
- *   GET    /api/security/devices              — List trusted devices (operator)
- *   DELETE /api/security/devices/:id          — Revoke a trusted device
- *   DELETE /api/security/devices              — Revoke all trusted devices
- *   GET    /api/security/summary              — Operator security summary
- *   GET    /api/security/preferences          — Get alert preferences
- *   PUT    /api/security/preferences          — Update alert preferences
+ * What this file does:
+ * Security management endpoints: trusted devices, passkey registration,
+ * IP allow/deny lists, security event logs, and per-operator security
+ * dashboards.
  *
- * Admin-only endpoints:
- *   GET    /api/security/dashboard/alerts     — Recent security alerts
- *   GET    /api/security/dashboard/stats      — Security event stats
- *   GET    /api/security/dashboard/failures   — Operators with most failures
+ * How it connects:
+ * - Mounted at /api/security in index.ts
+ * - Uses deviceTrustService, riskAuthService, and securityAlertService
+ * - Requires authentication (operator/admin)
+ *
+ * Simple explanation:
+ * Lets operators manage their security settings — trusted devices,
+ * passkeys, and view security alerts.
  */
 
-import { Router, Response, NextFunction } from 'express'
+import { Router, Request, Response, NextFunction } from 'express'
 import rateLimit from 'express-rate-limit'
 import pool from '../models/db.js'
-import { authMiddleware, AuthRequest } from '../middleware/auth.js'
+import { authMiddleware, AuthRequest, generateToken } from '../middleware/auth.js'
 import { listTrustedDevices, revokeDevice, revokeAllDevices } from '../services/deviceTrustService.js'
 import { getOperatorSecuritySummary } from '../services/riskAuthService.js'
 import {
@@ -26,9 +27,15 @@ import {
 } from '../services/securityAlertService.js'
 import { getClientIp } from '../utils/securityUtils.js'
 import { AppError } from '../utils/AppError.js'
+import { checkPasswordBreached, getHIBPStats } from '../services/hibpService.js'
+import passkeysService from '../services/passkeysService.js'
+import ipSecurity from '../services/ipSecurityService.js'
+import deviceManagement from '../services/deviceManagementService.js'
 
 const router = Router()
 
+// 30 requests/15 min: generous enough for dashboard refreshes and device
+// management without blocking legitimate operators during an active incident.
 const securityLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 30,
@@ -101,7 +108,9 @@ router.get('/preferences', authMiddleware, securityLimiter, async (req: AuthRequ
     )
 
     if (result.rows.length === 0) {
-      // Return defaults
+      // No preferences row yet: return safe defaults rather than 404.
+      // Row is only created on first PUT, keeping the table sparse until
+      // the operator explicitly changes their settings.
       res.json({
         alert_on_2fa_disabled: true,
         alert_on_backup_code_used: true,
@@ -137,6 +146,8 @@ router.put('/preferences', authMiddleware, securityLimiter, async (req: AuthRequ
     } = req.body
 
     await pool.query(
+      // UPSERT: COALESCE keeps the existing column value when the request body
+      // omits a field (null), enabling partial updates without a full replace.
       `INSERT INTO operator_security_preferences
          (operator_id, alert_on_2fa_disabled, alert_on_backup_code_used,
           alert_on_new_device_login, alert_on_suspicious_access, alert_on_lockout, updated_at)
@@ -167,6 +178,8 @@ router.put('/preferences', authMiddleware, securityLimiter, async (req: AuthRequ
 
 // Admin Security Dashboard
 
+// Inline guard middleware instead of a separate service or extending authMiddleware.
+// Keeps admin-only logic local to this router without polluting shared middleware.
 function requireAdmin(req: AuthRequest, _res: Response, next: NextFunction): void {
   if (req.user?.role !== 'admin') {
     next(AppError.forbidden('Admin access required.'))
@@ -200,6 +213,269 @@ router.get('/dashboard/failures', authMiddleware, requireAdmin, securityLimiter,
     const limit = Math.min(parseInt(req.query.limit as string) || 10, 50)
     const operators = await getMostFailedOperators(limit)
     res.json({ operators })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// Password Breach Checking (HIBP Integration)
+
+// No authMiddleware on password breach check: users should be able to verify
+// a proposed password before account creation or from a password reset flow.
+// The securityLimiter still guards against enumeration abuse.
+router.post('/check-password', securityLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { password } = req.body
+    
+    if (!password || typeof password !== 'string') {
+      throw AppError.badRequest('Password is required.')
+    }
+    
+    const result = await checkPasswordBreached(password)
+    
+    res.json({
+      breached: result.isPwned,
+      count: result.count,
+      message: result.isPwned
+        ? `This password has appeared in ${result.count > 1000 ? result.count.toLocaleString() : 'multiple'} data breaches. Choose a different password.`
+        : 'This password has not been found in known data breaches.',
+    })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// Passkeys/WebAuthn Endpoints
+
+router.get('/passkeys', authMiddleware, securityLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const credentials = await passkeysService.getUserCredentials(req.user!.id)
+    
+    // Strip raw public key material before sending to the client:
+    // only the ID and display metadata are needed for the management UI.
+    const safeCredentials = credentials.map(c => ({
+      id: c.id,
+      deviceName: c.deviceName,
+      createdAt: c.createdAt,
+      lastUsedAt: c.lastUsedAt,
+    }))
+    
+    res.json({ passkeys: safeCredentials })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// Two-step WebAuthn registration ceremony:
+// 1. GET /passkeys/register — generates a challenge + allowed credentials
+//    and stores the pending challenge server-side.
+// 2. POST /passkeys/verify — verifies the signed response and saves the
+//    new credential to the database.
+router.post('/passkeys/register', authMiddleware, securityLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const options = await passkeysService.generateRegistrationOptions(
+      req.user!.id,
+      req.user!.email,
+      req.user!.displayName || req.user!.email
+    )
+    
+    res.json({ options })
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/passkeys/verify', authMiddleware, securityLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { credential, deviceName } = req.body
+    
+    if (!credential) {
+      throw AppError.badRequest('Credential response required.')
+    }
+    
+    const result = await passkeysService.verifyRegistration(req.user!.id, credential, deviceName)
+    
+    if (!result.success) {
+      throw AppError.badRequest(result.error || 'Registration failed.')
+    }
+    
+    res.json({ success: true, credentialId: result.credentialId })
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.delete('/passkeys/:id', authMiddleware, securityLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const deleted = await passkeysService.deleteCredential(req.params.id, req.user!.id)
+    
+    if (!deleted) {
+      throw AppError.notFound('Passkey not found.')
+    }
+    
+    res.json({ success: true, message: 'Passkey removed.' })
+  } catch (err) {
+    next(err)
+  }
+})
+
+/**
+ * Passkey Authentication (no auth required — user is logging in)
+ * POST /passkeys/auth-options  — Generate challenge for passkey login
+ * POST /passkeys/auth-verify   — Verify signed challenge and return JWT
+ */
+router.post('/passkeys/auth-options', securityLimiter, async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const options = await passkeysService.generateAuthenticationOptions()
+    res.json({ success: true, data: options })
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/passkeys/auth-verify', securityLimiter, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const result = await passkeysService.verifyAuthentication(req.body)
+    if (!result.success || !result.userId) {
+      res.status(401).json({ success: false, error: result.error || 'Authentication failed' })
+      return
+    }
+    // Look up user to generate token
+    const userResult = await pool.query(
+      `SELECT id, email, display_name, role, department FROM users WHERE id = $1`,
+      [result.userId]
+    )
+    if (userResult.rows.length === 0) {
+      res.status(401).json({ success: false, error: 'User not found' })
+      return
+    }
+    const user = userResult.rows[0]
+    const token = generateToken({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      displayName: user.display_name,
+      department: user.department,
+    })
+    res.json({
+      success: true,
+      token,
+      user: { id: user.id, email: user.email, role: user.role, displayName: user.display_name, department: user.department },
+    })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// Login History
+
+router.get('/login-history', authMiddleware, securityLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit as string) || 20, 100)
+    const history = await deviceManagement.getLoginHistory(req.user!.id, limit)
+    res.json({ history })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// Admin IP Security Endpoints
+
+router.get('/admin/ip-blocklist', authMiddleware, requireAdmin, securityLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const blocklist = ipSecurity.getBlocklist()
+    res.json({ blocklist })
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/admin/ip-block', authMiddleware, requireAdmin, securityLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { ip, reason, durationMs } = req.body
+    
+    if (!ip || typeof ip !== 'string') {
+      throw AppError.badRequest('IP address is required.')
+    }
+    
+    if (!reason || typeof reason !== 'string') {
+      throw AppError.badRequest('Block reason is required.')
+    }
+    
+    // autoBlocked: false marks this as a human-initiated block (vs automatic
+    // blocks triggered by the rate-limit / anomaly detection system), so the
+    // audit log and UI can distinguish manual operator actions.
+    await ipSecurity.blockIP(ip, reason, {
+      durationMs: durationMs || undefined,
+      blockedBy: req.user!.id,
+      autoBlocked: false,
+    })
+    
+    res.json({ success: true, message: `IP ${ip} blocked.` })
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.delete('/admin/ip-block/:ip', authMiddleware, requireAdmin, securityLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    await ipSecurity.unblockIP(req.params.ip)
+    res.json({ success: true, message: `IP ${req.params.ip} unblocked.` })
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.get('/admin/ip-allowlist', authMiddleware, requireAdmin, securityLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const allowlist = ipSecurity.getAllowlist()
+    res.json({ allowlist })
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/admin/ip-allowlist', authMiddleware, requireAdmin, securityLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { ip, description, scope } = req.body
+    
+    if (!ip || typeof ip !== 'string') {
+      throw AppError.badRequest('IP address is required.')
+    }
+    
+    await ipSecurity.addToAllowlist(ip, description || 'Admin added', {
+      scope: scope || 'all',
+      addedBy: req.user!.id,
+    })
+    
+    res.json({ success: true, message: `IP ${ip} added to allowlist.` })
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.delete('/admin/ip-allowlist/:ip', authMiddleware, requireAdmin, securityLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    await ipSecurity.removeFromAllowlist(req.params.ip)
+    res.json({ success: true, message: `IP ${req.params.ip} removed from allowlist.` })
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.get('/admin/security-stats', authMiddleware, requireAdmin, securityLimiter, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const ipStats = ipSecurity.getIPSecurityStats()
+    const deviceStats = await deviceManagement.getDeviceStats()
+    const passkeyStats = await passkeysService.getPasskeyStats()
+    const hibpStats = getHIBPStats()
+    
+    res.json({
+      ip: ipStats,
+      devices: deviceStats,
+      passkeys: passkeyStats,
+      hibp: hibpStats,
+    })
   } catch (err) {
     next(err)
   }

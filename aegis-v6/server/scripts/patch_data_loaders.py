@@ -1,4 +1,11 @@
-"""Patch data_loaders.py to load both positive and negative examples for hazard training."""
+"""
+Module: patch_data_loaders.py
+
+Patch_data_loaders utility script.
+
+Simple explanation:
+Standalone script for patch_data_loaders.
+"""
 import re
 
 filepath = r"E:\aegis-v6-fullstack\aegis-v6\ai-engine\app\training\data_loaders.py"

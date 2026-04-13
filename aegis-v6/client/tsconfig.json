@@ -16,6 +16,8 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
     "forceConsistentCasingInFileNames": true,
+    "noImplicitReturns": false,
+    "exactOptionalPropertyTypes": false,
     "resolveJsonModule": true,
     "paths": { "@/*": ["./src/*"] },
     "baseUrl": "."

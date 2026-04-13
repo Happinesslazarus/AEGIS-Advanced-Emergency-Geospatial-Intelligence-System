@@ -1,20 +1,15 @@
-﻿/**
- * tests__/aiRegistry.integration.test.ts — Model Governance Registry Endpoints
+/**
+ * File: aiRegistry.integration.test.ts
  *
- * Tests all five model-governance endpoints:
- *   GET  /api/ai/registry/health
- *   GET  /api/ai/registry/health/:hazard/:region
- *   GET  /api/ai/registry/drift/:hazard/:region/:version
- *   GET  /api/ai/registry/recommend-rollback/:hazard/:region
- *   POST /api/ai/registry/mark-degraded/:hazard/:region/:version
- *
- * Coverage targets:
- * Auth protection (401 / 403 on every route)
- * HTTP happy-path shapes
- * activity_log DB write after mark-degraded
- * Prometheus gauge calls after health / drift
- * Rollback recommendation determinism
- * Edge cases (empty registry, aiClient errors, default drift_score)
+ * What it tests:
+ * Integration tests for the AI Model Governance service.
+  * Verifies model registration, approval workflow, drift detection,
+  * and rollback operations against a real PostgreSQL database.
+  *
+  * How it connects:
+  * - Tests server/src/services/modelMonitoringService.ts
+  * - Uses the model_governance table in PostgreSQL
+  * - Run via: npm test -- aiRegistry
  */
 
 // Environment bootstrap (must be before any imports that read env)
@@ -933,4 +928,4 @@ describe('AI Model Governance — Registry Integration Tests', () => {
     })
   })
 })
-
+

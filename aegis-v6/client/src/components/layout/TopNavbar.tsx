@@ -1,4 +1,15 @@
-/* TopNavbar.tsx — Global top navigation bar for AEGIS platform */
+/**
+ * Module: TopNavbar.tsx
+ *
+ * Top navbar React component.
+ *
+ * How it connects:
+ * - Rendered by AppLayout
+ * - Reads auth state from CitizenAuthContext
+ * - Reads alerts from AlertsContext to derive risk level
+ * - Uses LocationContext for the active region
+ * Simple explanation:
+ * The top navbar citizens see with login, region picker, and status. */
 
 import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
@@ -31,8 +42,10 @@ export default function TopNavbar({ onMenuToggle, alertCount = 0, communityUnrea
   const lang = useLanguage()
   const [loginDropdownOpen, setLoginDropdownOpen] = useState(false)
   const [userDropdownOpen, setUserDropdownOpen] = useState(false)
+  const [bellOpen, setBellOpen] = useState(false)
   const loginRef = useRef<HTMLDivElement>(null)
   const userRef = useRef<HTMLDivElement>(null)
+  const bellRef = useRef<HTMLDivElement>(null)
 
   // Derive risk level from alerts
   const riskLevel = (() => {
@@ -48,6 +61,7 @@ export default function TopNavbar({ onMenuToggle, alertCount = 0, communityUnrea
     const handler = (e: MouseEvent) => {
       if (loginRef.current && !loginRef.current.contains(e.target as Node)) setLoginDropdownOpen(false)
       if (userRef.current && !userRef.current.contains(e.target as Node)) setUserDropdownOpen(false)
+      if (bellRef.current && !bellRef.current.contains(e.target as Node)) setBellOpen(false)
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
@@ -105,17 +119,69 @@ export default function TopNavbar({ onMenuToggle, alertCount = 0, communityUnrea
           <LanguageSelector darkNav={dark} />
           <ThemeSelector darkNav={dark} />
 
-          {/* Notifications bell */}
+          {/* Notifications bell — dropdown */}
           {(() => {
             const totalBell = alertCount + communityUnread + unreadMessages
-            return totalBell > 0 ? (
-              <div className="relative p-2 rounded-xl text-gray-500 dark:text-gray-300">
-                <Bell className="w-4 h-4" />
-                <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center">
-                  {totalBell > 9 ? '9+' : totalBell}
-                </span>
+            const recentAlerts = alerts.filter(a => a.active).slice(0, 5)
+            return (
+              <div ref={bellRef} className="relative">
+                <button
+                  onClick={() => setBellOpen(o => !o)}
+                  className="relative p-2 rounded-xl text-gray-500 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-700 dark:hover:text-white transition-colors"
+                  aria-label={totalBell > 0 ? `${totalBell} alert${totalBell !== 1 ? 's' : ''}` : 'Alerts'}
+                  aria-expanded={bellOpen}
+                >
+                  <Bell className="w-4 h-4" aria-hidden="true" />
+                  {totalBell > 0 && (
+                    <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center animate-pulse">
+                      {totalBell > 9 ? '9+' : totalBell}
+                    </span>
+                  )}
+                </button>
+
+                {bellOpen && (
+                  <div className="absolute right-0 top-12 w-80 max-w-[calc(100vw-1.5rem)] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700/60 overflow-hidden z-50 animate-fade-in">
+                    <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                      <span className="text-xs font-bold text-gray-900 dark:text-white">Active Alerts</span>
+                      <span className="text-[10px] text-gray-500 dark:text-gray-400">{recentAlerts.length} active</span>
+                    </div>
+                    <div className="max-h-72 overflow-y-auto">
+                      {recentAlerts.length === 0 ? (
+                        <div className="px-4 py-6 text-center text-xs text-gray-500 dark:text-gray-400">No active alerts</div>
+                      ) : (
+                        recentAlerts.map(alert => (
+                          <div
+                            key={alert.id}
+                            className="px-4 py-3 border-b border-gray-50 dark:border-gray-800/50 last:border-0"
+                          >
+                            <div className="flex items-start gap-2.5">
+                              <span className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
+                                alert.severity === 'critical' ? 'bg-red-500 animate-pulse' :
+                                alert.severity === 'high' ? 'bg-orange-500' :
+                                alert.severity === 'medium' ? 'bg-yellow-500' : 'bg-blue-500'
+                              }`} />
+                              <div className="min-w-0">
+                                <p className="text-[11px] font-semibold text-gray-900 dark:text-white truncate">{alert.title}</p>
+                                <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">{alert.displayTime}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                    <div className="px-4 py-2 border-t border-gray-100 dark:border-gray-800">
+                      <Link
+                        to="/alerts"
+                        onClick={() => setBellOpen(false)}
+                        className="w-full block text-[10px] font-semibold text-aegis-600 dark:text-aegis-400 hover:underline text-center py-1"
+                      >
+                        View all alerts
+                      </Link>
+                    </div>
+                  </div>
+                )}
               </div>
-            ) : null
+            )
           })()}
 
           {/* Not authenticated: Login dropdown */}
@@ -232,4 +298,4 @@ export default function TopNavbar({ onMenuToggle, alertCount = 0, communityUnrea
     </nav>
   )
 }
-
+

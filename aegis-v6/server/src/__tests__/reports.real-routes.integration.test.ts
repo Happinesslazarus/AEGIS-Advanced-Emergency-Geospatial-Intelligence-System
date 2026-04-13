@@ -1,3 +1,16 @@
+/**
+ * File: reports.real-routes.integration.test.ts
+ *
+ * What it tests:
+ * Real-route integration tests for the reports API with DB and auth.
+  * Covers citizen vs admin permission boundaries, pagination,
+  * geographic bounding-box filter, and idempotency on submission.
+  *
+  * How it connects:
+  * - Tests server/src/routes/reportRoutes.ts end-to-end
+  * - Run via: npm test -- reports.real
+ */
+
 process.env.NODE_ENV = 'test'
 process.env.JWT_SECRET ??= 'test-jwt-secret-at-least-32-characters-long'
 process.env.REFRESH_TOKEN_SECRET ??= 'test-refresh-secret-at-least-32-chars'

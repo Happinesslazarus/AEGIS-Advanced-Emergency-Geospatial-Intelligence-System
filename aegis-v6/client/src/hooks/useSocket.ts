@@ -1,30 +1,23 @@
-﻿/*
- * useSocket.ts - Advanced Real-time Socket.IO hook for AEGIS Messaging
+/**
+ * Module: useSocket.ts
  *
- * Features:
- * JWT authentication with automatic token validation
- * Exponential backoff reconnection strategy
- * Message queuing for offline scenarios with automatic retry
- * Connection quality monitoring (latency tracking)
- * Heartbeat monitoring with stale connection detection
- * Message deduplication
- * Optimistic updates with rollback on failure
- * Automatic reconnection with queued message processing
- * Full TypeScript support with comprehensive types
+ * useSocket custom React hook (socket logic).
  *
- * Connects to the AEGIS Socket.IO server with JWT authentication.
- * Manages: connection state, message events, typing indicators,
- * thread management, presence, and message status tracking.
- */
+ * How it connects:
+ * - Used by React components that need this functionality */
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { io, Socket } from 'socket.io-client'
 import { getToken, getAnyToken, clearToken } from '../utils/api'
+import { getCitizenToken } from '../contexts/CitizenAuthContext'
 
-// Resolve Socket.IO server URL from env or fall back to backend default
-// Prefer explicit backend URL to avoid connecting to Vite dev server (5173)
+// Resolve Socket.IO server URL from env or fall back to backend default.
+// VITE_SOCKET_URL must point to the Express server (port 3001), NOT the Vite
+// dev server (port 5173) which doesn't run a Socket.IO endpoint.
 export const SOCKET_URL = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_SOCKET_URL)
   || 'http://localhost:3001'
+// Maximum times Socket.IO will auto-reconnect before giving up and showing
+// an offline error to the user.
 const MAX_RECONNECT_ATTEMPTS = 10
 
 // Types
@@ -132,6 +125,9 @@ export function useSocket(): SocketState {
   const connectionQualityRef = useRef<'excellent' | 'good' | 'fair' | 'poor'>('good')
   const seenMessageIdsRef = useRef<Set<string>>(new Set())
 
+  // Track all registered socket event names for proper cleanup
+  const registeredEventsRef = useRef<string[]>([])
+
   // Active thread ref - updated synchronously to avoid race conditions
   const activeThreadRef = useRef<ChatThread | null>(null)
   useEffect(() => { activeThreadRef.current = activeThread }, [activeThread])
@@ -194,8 +190,14 @@ export function useSocket(): SocketState {
         console.log('[Socket] Already connected with same token, skipping')
         return
       }
-      // Different token — reconnect with the new identity
+      // Different token — clean up old listeners and reconnect
       console.log('[Socket] Reconnecting with different token...')
+      registeredEventsRef.current.forEach(evt => socketRef.current?.off(evt))
+      registeredEventsRef.current = []
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current)
+        heartbeatIntervalRef.current = null
+      }
       socketRef.current.disconnect()
       socketRef.current = null
       setConnected(false)
@@ -234,12 +236,27 @@ export function useSocket(): SocketState {
     })
 
     socket.on('connect', () => {
-      console.log('[Socket] [OK] Connected:', socket.id)
+      const isReconnect = reconnectAttemptsRef.current > 0
+      console.log('[Socket] [OK] Connected:', socket.id, isReconnect ? '(reconnect)' : '')
       setConnected(true)
       reconnectAttemptsRef.current = 0
-      
+
       // Process any queued messages
       processMessageQueue()
+
+      // On reconnect, re-fetch thread history to avoid stale data from missed events
+      if (isReconnect) {
+        const isAdmin = !!getToken()
+        if (isAdmin) {
+          socket.emit('admin:get_threads')
+        } else {
+          socket.emit('citizen:get_threads')
+        }
+        // Also re-fetch messages for any active thread
+        if (activeThreadRef.current?.id) {
+          socket.emit('chat:get_messages', { threadId: activeThreadRef.current.id })
+        }
+      }
     })
 
     socket.on('disconnect', (reason) => {
@@ -304,7 +321,11 @@ export function useSocket(): SocketState {
       console.error('[Socket] [WARN] Reconnection error:', err.message)
     })
     
-    // Heartbeat monitoring with custom intervals
+    // Heartbeat monitoring with custom intervals — clear any previous interval first
+    if (heartbeatIntervalRef.current) {
+      clearInterval(heartbeatIntervalRef.current)
+      heartbeatIntervalRef.current = null
+    }
     heartbeatIntervalRef.current = setInterval(() => {
       if (socket.connected) {
         const now = Date.now()
@@ -607,19 +628,36 @@ export function useSocket(): SocketState {
       setUnreadCount(total)
     })
 
+    // Track all event names for proper cleanup
+    registeredEventsRef.current = [
+      'connect', 'disconnect', 'connect_error',
+      'reconnect_attempt', 'reconnect', 'reconnect_failed', 'reconnect_error',
+      'ping', 'pong',
+      'message:new', 'message:status',
+      'thread:created', 'thread:updated', 'thread:resolved', 'thread:messages',
+      'admin:new_thread', 'admin:new_message', 'admin:threads',
+      'admin:thread_assigned', 'admin:thread_resolved',
+      'typing:start', 'typing:stop',
+      'citizen:threads', 'citizen:new_reply', 'citizen:unread_count',
+    ]
+
     socketRef.current = socket
   }, [processMessageQueue])
 
   // Disconnect with cleanup
   const disconnect = useCallback(() => {
     console.log('[Socket] Disconnecting...')
-    
+
     // Clear heartbeat interval
     if (heartbeatIntervalRef.current) {
       clearInterval(heartbeatIntervalRef.current)
       heartbeatIntervalRef.current = null
     }
-    
+
+    // Remove all event listeners
+    registeredEventsRef.current.forEach(evt => socketRef.current?.off(evt))
+    registeredEventsRef.current = []
+
     socketRef.current?.disconnect()
     socketRef.current = null
     setConnected(false)
@@ -638,7 +676,7 @@ export function useSocket(): SocketState {
 
     const optimisticId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2)}`
     const adminToken = getToken()
-    const citizenToken = localStorage.getItem('aegis-citizen-token')
+    const citizenToken = getCitizenToken()
     const isAdminUser = !!adminToken && !citizenToken
 
     // Get real user ID for proper message alignment
@@ -648,9 +686,9 @@ export function useSocket(): SocketState {
         const stored = localStorage.getItem('aegis-user')
         if (stored) realUserId = JSON.parse(stored).id || 'me'
       } else {
-        // Decode citizen token to get user ID
-        const tk = localStorage.getItem('aegis-citizen-token')
-        if (tk) {
+        // Decode citizen token to get user ID (validate JWT format first)
+        const tk = getCitizenToken()
+        if (tk && tk.split('.').length === 3) {
           const payload = JSON.parse(atob(tk.split('.')[1]))
           realUserId = payload.id || 'me'
         }
@@ -738,7 +776,7 @@ export function useSocket(): SocketState {
     // Use REST API only — socket 'thread:join' already triggers 'thread:messages' event
     // This eliminates the race condition of dual REST + socket fetch (#21)
     try {
-      const citizenToken = localStorage.getItem('aegis-citizen-token')
+      const citizenToken = getCitizenToken()
       const operatorToken = getToken()
       const token = citizenToken || operatorToken
       if (!token) return
@@ -789,7 +827,7 @@ export function useSocket(): SocketState {
     const timer = setTimeout(async () => {
       console.log('[Socket] REST fallback triggered after 2s')
       try {
-        const token = localStorage.getItem('aegis-citizen-token') || getToken()
+        const token = getCitizenToken() || getToken()
         if (!token) {
           console.error('[Socket] No token for REST fallback')
           return
@@ -834,20 +872,68 @@ export function useSocket(): SocketState {
     socketRef.current?.emit('admin:resolve_thread', { threadId })
   }, [])
 
+  // bfcache (back/forward cache) handling for mobile browsers
+  // Properly close socket on pagehide and reconnect on pageshow
+  useEffect(() => {
+    const handlePageHide = (e: PageTransitionEvent) => {
+      // If page might be restored from bfcache, close socket cleanly
+      if (e.persisted || (typeof (e as any).persisted === 'undefined')) {
+        console.log('[Socket] pagehide - closing for potential bfcache')
+        
+        // Clear heartbeat to prevent stale checks
+        if (heartbeatIntervalRef.current) {
+          clearInterval(heartbeatIntervalRef.current)
+          heartbeatIntervalRef.current = null
+        }
+        
+        // Disconnect socket (but don't clear state - we'll restore)
+        socketRef.current?.disconnect()
+      }
+    }
+    
+    const handlePageShow = (e: PageTransitionEvent) => {
+      // If restored from bfcache, reconnect with stored token
+      if (e.persisted) {
+        console.log('[Socket] pageshow - restored from bfcache, reconnecting...')
+        
+        // Get stored token and reconnect
+        const token = getAnyToken()
+        if (token && currentTokenRef.current) {
+          // Short delay to let browser settle
+          setTimeout(() => {
+            connect(currentTokenRef.current!)
+          }, 100)
+        }
+      }
+    }
+    
+    window.addEventListener('pagehide', handlePageHide)
+    window.addEventListener('pageshow', handlePageShow)
+    
+    return () => {
+      window.removeEventListener('pagehide', handlePageHide)
+      window.removeEventListener('pageshow', handlePageShow)
+    }
+  }, [connect])
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       console.log('[Socket] Cleanup on unmount')
-      
+
       // Clear heartbeat interval
       if (heartbeatIntervalRef.current) {
         clearInterval(heartbeatIntervalRef.current)
         heartbeatIntervalRef.current = null
       }
-      
+
+      // Remove all registered event listeners before disconnecting
+      registeredEventsRef.current.forEach(evt => socketRef.current?.off(evt))
+      registeredEventsRef.current = []
+
       // Disconnect socket
       socketRef.current?.disconnect()
-      
+
       // Clear message queue if user is logging out
       if (messageQueueRef.current.length > 0) {
         console.warn('[Socket] [WARN] Discarding', messageQueueRef.current.length, 'queued messages on unmount')

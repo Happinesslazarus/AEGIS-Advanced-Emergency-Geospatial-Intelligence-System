@@ -1,12 +1,10 @@
-﻿ /*
- * AdminCommunityHub.tsx — Professional Admin Community Management Hub
- * Features:
- * Stats dashboard with real-time metrics
- * Full moderation queue for reported posts
- * Banned & muted users management
- * Sub-tabs: Overview | Live Chat | Posts Feed | Moderation
- * Real-time activity monitoring
-  */
+/**
+ * Module: AdminCommunityHub.tsx
+ *
+ * Community hub management panel (moderate forums and resources).
+ *
+ * How it connects:
+ * - Rendered inside AdminPage.tsx based on active view */
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { getToken } from '../../utils/api'
@@ -45,8 +43,10 @@ interface ReportedPost {
 }
 
 function getAuthHeaders() {
+  const csrfToken = document.cookie.split('; ').find(c => c.startsWith('aegis_csrf='))?.split('=')[1]
   return {
-    Authorization: `Bearer ${getToken() || ''}`
+    Authorization: `Bearer ${getToken() || ''}`,
+    ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
   }
 }
 
@@ -62,6 +62,7 @@ function timeAgo(dateStr: string, lang = 'en'): string {
 function StatCard({ icon: Icon, label, value, trend, color, pulse }: {
   icon: any; label: string; value: string | number; trend?: string; color: string; pulse?: boolean
 }) {
+  const lang = useLanguage()
   return (
     <div className="bg-white dark:bg-gray-900/80 rounded-xl border border-gray-100 dark:border-gray-800/60 p-4 hover:shadow-md transition-all duration-300">
       <div className="flex items-start justify-between mb-3">
@@ -70,7 +71,7 @@ function StatCard({ icon: Icon, label, value, trend, color, pulse }: {
         </div>
         {pulse && (
           <span className="flex items-center gap-1 text-[10px] font-medium text-green-600 bg-green-50 dark:bg-green-950/30 dark:text-green-400 px-2 py-0.5 rounded-full">
-            <Radio className="w-2.5 h-2.5 animate-pulse" /> Live
+            <Radio className="w-2.5 h-2.5 animate-pulse" /> {t('common.live', lang)}
           </span>
         )}
         {trend && !pulse && (
@@ -171,7 +172,7 @@ function ModerationPanel({ reportedPosts, onRefresh, loading }: {
         <div role="alert" className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/40 rounded-xl text-xs text-red-700 dark:text-red-400">
           <AlertTriangle className="w-4 h-4 flex-shrink-0" />
           <span className="flex-1">{deleteError}</span>
-          <button onClick={() => setDeleteError(null)} className="text-red-400 hover:text-red-600" aria-label="Dismiss error">
+          <button onClick={() => setDeleteError(null)} className="text-red-400 hover:text-red-600" aria-label={t('common.dismiss', lang)}>
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -280,7 +281,7 @@ function OverviewPanel({ stats, reportedPosts, onTabChange }: { stats: Community
         <div className="bg-white dark:bg-gray-900/80 rounded-xl border border-gray-100 dark:border-gray-800/60 p-5">
           <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <Shield className="w-4 h-4 text-aegis-500" />
-            Community Health
+            {t('common.communityHealth', lang)}
           </h3>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -314,7 +315,7 @@ function OverviewPanel({ stats, reportedPosts, onTabChange }: { stats: Community
         <div className="bg-white dark:bg-gray-900/80 rounded-xl border border-gray-100 dark:border-gray-800/60 p-5">
           <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <Flag className="w-4 h-4 text-red-500" />
-            Recent Reports
+            {t('common.recentReports', lang)}
           </h3>
           {reportedPosts.length === 0 ? (
             <div className="text-center py-6">
@@ -340,7 +341,7 @@ function OverviewPanel({ stats, reportedPosts, onTabChange }: { stats: Community
                 </div>
               ))}
               {reportedPosts.length > 4 && (
-                <p className="text-[10px] text-center text-gray-400 dark:text-gray-300 font-medium">+{reportedPosts.length - 4} more in Moderation tab</p>
+                <p className="text-[10px] text-center text-gray-400 dark:text-gray-300 font-medium">+{reportedPosts.length - 4} {t('common.moreInModerationTab', lang)}</p>
               )}
             </div>
           )}
@@ -351,7 +352,7 @@ function OverviewPanel({ stats, reportedPosts, onTabChange }: { stats: Community
       <div className="bg-white dark:bg-gray-900/80 rounded-xl border border-gray-100 dark:border-gray-800/60 p-5">
         <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
           <Activity className="w-4 h-4 text-aegis-500" />
-          Quick Actions
+          {t('common.quickActions', lang)}
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           <button onClick={() => onTabChange('chat')} className="flex items-center gap-2.5 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-950/40 transition text-left w-full">
@@ -576,11 +577,11 @@ export default function AdminCommunityHub(): JSX.Element {
 
       {showKeyboard && (
         <div className="mt-3 bg-gray-900 text-white rounded-xl p-3 flex items-center gap-4 flex-wrap text-[10px] font-mono ring-1 ring-gray-700">
-          <span className="font-bold text-gray-400 uppercase tracking-wider mr-1">Shortcuts</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">R</kbd> Refresh</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">1-5</kbd> Switch Tabs</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">?</kbd> Toggle Shortcuts</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">Esc</kbd> Close</span>
+          <span className="font-bold text-gray-400 uppercase tracking-wider mr-1">{t('common.shortcuts', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">R</kbd> {t('common.refresh', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">1-5</kbd> {t('common.switchTabs', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">?</kbd> {t('common.toggleShortcuts', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">{t('common.esc', lang)}</kbd> {t('common.close', lang)}</span>
         </div>
       )}
     </div>

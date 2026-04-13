@@ -1,12 +1,17 @@
-﻿/*
- * deviceTrustService.ts — Device Trust / "Remember This Device" for 2FA bypass
+/**
+ * File: deviceTrustService.ts
  *
- * When an operator successfully completes 2FA, they can choose to trust the
- * current device for 30 days. On subsequent logins from the same device,
- * 2FA is skipped. Operators can revoke trust from their settings.
+ * Device fingerprinting and trust management — generates SHA-256 fingerprints
+ * from User-Agent + IP subnet + operator ID and tracks trusted devices with
+ * 30-day expiry (max 10 per user).
  *
- * Device fingerprint = SHA-256( userAgent + ip_subnet + operator_id )
- * The IP subnet (/24 for IPv4) allows minor IP changes within the same network.
+ * How it connects:
+ * - Called by auth routes during login to check/register devices
+ * - Reads/writes the trusted_devices table
+ * - Logs trust events through securityLogger
+ *
+ * Simple explanation:
+ * Remembers which devices a user has logged in from and flags unfamiliar ones.
  */
 
 import crypto from 'crypto'
@@ -18,7 +23,7 @@ const MAX_TRUSTED_DEVICES = 10
 
 // Device Fingerprinting
 
- /**
+/**
  * Generate a deterministic device fingerprint hash.
  * Components: user-agent + IP /24 subnet + operator ID
  */
@@ -32,7 +37,7 @@ export function generateDeviceFingerprint(
   return crypto.createHash('sha256').update(raw).digest('hex')
 }
 
- /**
+/**
  * Extract the /24 subnet from an IP address for loose matching.
  * "192.168.1.123" ? "192.168.1"
  * IPv6 or missing ? full string (no subnet extraction)
@@ -52,7 +57,7 @@ function extractSubnet(ip: string): string {
   return ip
 }
 
- /**
+/**
  * Derive a human-readable device name from the User-Agent string.
  */
 export function deriveDeviceName(userAgent: string): string {
@@ -77,7 +82,7 @@ export function deriveDeviceName(userAgent: string): string {
 
 // Trust Management
 
- /**
+/**
  * Check if a device is currently trusted for a given operator.
  * Returns the trusted device record if valid, null otherwise.
  */
@@ -110,7 +115,7 @@ export async function isDeviceTrusted(
   return { id: result.rows[0].id, deviceName: result.rows[0].device_name }
 }
 
- /**
+/**
  * Trust the current device for the operator. Limits to MAX_TRUSTED_DEVICES.
  */
 export async function trustDevice(
@@ -154,7 +159,7 @@ export async function trustDevice(
       [operatorId, deviceHash, deviceName, ipAddress, expiresAt]
     )
 
-    // Enforce max devices limit — remove oldest
+    // Enforce max devices limit - remove oldest
     await enforceDeviceLimit(operatorId)
 
     return { deviceId: insertResult.rows[0].id, expiresAt }
@@ -172,7 +177,7 @@ export async function trustDevice(
   return { deviceId: result.rows[0].id, expiresAt }
 }
 
- /**
+/**
  * Enforce the maximum number of trusted devices per operator.
  * Removes the oldest (by last_used_at) devices beyond the limit.
  */
@@ -189,7 +194,7 @@ async function enforceDeviceLimit(operatorId: string): Promise<void> {
   )
 }
 
- /**
+/**
  * Revoke a specific trusted device.
  */
 export async function revokeDevice(
@@ -218,7 +223,7 @@ export async function revokeDevice(
   return false
 }
 
- /**
+/**
  * Revoke ALL trusted devices for an operator (e.g., on password change or 2FA disable).
  */
 export async function revokeAllDevices(
@@ -246,7 +251,7 @@ export async function revokeAllDevices(
   return result.rowCount || 0
 }
 
- /**
+/**
  * List all trusted devices for an operator (for the settings UI).
  */
 export async function listTrustedDevices(operatorId: string): Promise<Array<{
@@ -277,7 +282,7 @@ export async function listTrustedDevices(operatorId: string): Promise<Array<{
   }))
 }
 
- /**
+/**
  * Cleanup expired and revoked devices older than 90 days.
  * Call from a cron job.
  */

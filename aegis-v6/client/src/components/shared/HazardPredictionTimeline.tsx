@@ -1,10 +1,10 @@
-﻿/**
- * HazardPredictionTimeline.tsx — Universal multi-hazard prediction timeline
+/**
+ * Module: HazardPredictionTimeline.tsx
  *
- * Works for ALL 11 hazard types. Shows AI predictions per region with
- * interactive timeline scrubber, auto-play, severity breakdown,
- * contributing factors, and confidence gauges.
- */
+ * Hazard prediction timeline shared component (reusable UI element used across pages).
+ *
+ * How it connects:
+ * - Used across both admin and citizen interfaces */
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
@@ -17,6 +17,8 @@ import {
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 import { STATUS_HEX } from '../../utils/colorTokens'
+import { getCitizenToken } from '../../contexts/CitizenAuthContext'
+import { getToken } from '../../utils/api'
 
 const API = ''
 
@@ -149,7 +151,7 @@ export default function HazardPredictionTimeline({ hazardType, onTimeChange, cla
 
     setLoading(true)
     try {
-      const token = localStorage.getItem('aegis-token') || localStorage.getItem('aegis-citizen-token')
+      const token = getToken() || getCitizenToken()
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {}
 
       const res = await fetch(`${API}/api/ai/predictions?hazard_type=${encodeURIComponent(hazardType)}&limit=100`, {
@@ -522,4 +524,4 @@ export function MultiHazardPredictionPanel({ hazardTypes, onTimeChange, classNam
     </div>
   )
 }
-
+

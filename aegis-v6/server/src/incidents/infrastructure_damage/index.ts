@@ -1,5 +1,13 @@
 /**
- * incidents/infrastructure_damage/index.ts — Infrastructure Damage module (Tier 1: Rule-based)
+ * Module: index.ts
+ *
+ * Infrastructure damage assessment incident module (handles infrastructure damage specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for infrastructure damage events.
  */
 
 import { BaseIncidentModule } from '../baseModule.js'
@@ -50,4 +58,4 @@ class InfrastructureDamageModule extends BaseIncidentModule {
 }
 
 export default new InfrastructureDamageModule()
-
+

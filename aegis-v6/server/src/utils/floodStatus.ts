@@ -1,13 +1,19 @@
 /**
- * utils/floodStatus.ts — Dynamic flood status calibration
+ * File: floodStatus.ts
  *
- * Instead of hardcoded thresholds, calculates flood status as a percentage
- * of the historical flood level for each specific station. This makes the
- * system self-calibrating for any river anywhere on Earth.
+ * What this file does:
+ * Calculates flood status for a river station by comparing current
+ * water level against configured thresholds (normal, alert, warning,
+ * severe, extreme).
  *
- * The percentage-based approach ensures a 1.5m reading on a small stream
- * (historical flood: 2.0m) triggers HIGH, while the same 1.5m on a large
- * river (historical flood: 8.0m) stays NORMAL.
+ * How it connects:
+ * - Used by riverLevelService and floodPredictionService
+ * - Station thresholds defined in region config (config/regions/)
+ * - Returns a FloodStatus enum value used by the frontend map
+ *
+ * Simple explanation:
+ * Looks at how high the river is and decides if it's normal,
+ * at alert level, or in flood.
  */
 
 import type { FloodStatus } from '../config/regions/types.js'
@@ -20,7 +26,7 @@ export interface FloodStatusResult {
   thresholdUsed: string
 }
 
- /**
+/**
  * Calculate flood status using dynamic threshold calibration.
  *
  * If the station has a historicalFloodLevel, use percentage-based calculation.
@@ -71,7 +77,7 @@ export function calculateFloodStatus(
   }
 }
 
- /**
+/**
  * Calculate trend by comparing current level to previous reading.
  */
 export function calculateTrend(
@@ -85,7 +91,7 @@ export function calculateTrend(
   return 'stable'
 }
 
- /**
+/**
  * Get status colour for UI rendering.
  */
 export function getStatusColour(status: FloodStatus): string {

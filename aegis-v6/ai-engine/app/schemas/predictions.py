@@ -1,6 +1,17 @@
 """
- AEGIS AI ENGINE — Strict API Schemas
- Enforces the API contract that MUST NOT change after implementation
+File: predictions.py
+
+What this file does:
+All Pydantic models (request/response schemas) for the AI prediction API.
+Defines PredictionRequest (location, optional context), PredictionResponse
+(risk_level, confidence, explanation, SHAP features), HazardType enum,
+RiskLevel enum, ModelStatus, and RetrainRequest/Response.
+
+How it connects:
+- Imported by ai-engine/app/api/endpoints.py for all route I/O
+- Imported by all hazard predictors for typed return values
+- Response shapes documented in ai-engine/README.md API reference
+- TypeScript types generated from these schemas in client/src/types/
 """
 
 from pydantic import BaseModel, Field, model_validator, validator
@@ -79,7 +90,8 @@ class GeoPolygon(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def _coerce_numpy_floats(cls, data):
-        """Convert numpy scalar types (e.g. np.float64) to plain Python floats."""
+        """Convert numpy scalar types (e.g. np.float64) to plain Python floats
+        and validate basic GeoJSON polygon structure."""
         if isinstance(data, dict) and "coordinates" in data:
             def _to_float(v):
                 if isinstance(v, list):
@@ -90,6 +102,23 @@ class GeoPolygon(BaseModel):
                     return v
             data = dict(data)
             data["coordinates"] = _to_float(data["coordinates"])
+
+            # Basic GeoJSON polygon validation
+            coords = data["coordinates"]
+            if isinstance(coords, list):
+                for ring_idx, ring in enumerate(coords):
+                    if not isinstance(ring, list):
+                        continue
+                    if len(ring) < 4:
+                        raise ValueError(
+                            f"Polygon ring {ring_idx} must have at least 4 points "
+                            f"(got {len(ring)})"
+                        )
+                    if ring[0] != ring[-1]:
+                        raise ValueError(
+                            f"Polygon ring {ring_idx} is not closed "
+                            f"(first point {ring[0]} != last point {ring[-1]})"
+                        )
         return data
 
 class PredictionResponse(BaseModel):
@@ -141,7 +170,7 @@ class PredictionResponse(BaseModel):
     # Model transparency (added for governance / explainability)
     model_type_label: Optional[str] = Field(
         default=None,
-        description="supervised | weakly_supervised | heuristic_model | experimental"
+        description="supervised | weakly_supervised | rule_based | heuristic_model | experimental"
     )
     shap_explanation: Optional[Dict[str, Any]] = Field(
         default=None,

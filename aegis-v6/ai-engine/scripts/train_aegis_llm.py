@@ -1,28 +1,7 @@
 """
-AEGIS LLM Fine-Tuning Pipeline
-QLoRA fine-tuning of Llama 3.2 3B Instruct (or 3.1 8B with --model flag)
-specifically optimised for the RTX 2060 / 8GB VRAM constraint.
+Module: train_aegis_llm.py
 
-For larger models (8B, 70B) use --cloud to generate a RunPod training script instead.
-
-Usage (local — RTX 2060, 8GB VRAM):
-    python scripts/train_aegis_llm.py \\
-        --dataset ./data/aegis_training_data.jsonl \\
-        --output D:/aegis-models/aegis-llm-v1 \\
-        --model 3b
-
-Usage (8B — tight on 8GB, may OOM):
-    python scripts/train_aegis_llm.py \\
-        --dataset ./data/aegis_training_data.jsonl \\
-        --output D:/aegis-models/aegis-llm-v1 \\
-        --model 8b
-
-Usage (generate RunPod cloud training script for 70B):
-    python scripts/train_aegis_llm.py --model 70b --cloud \\
-        --dataset ./data/aegis_training_data.jsonl
-
-Requirements:
-    pip install -r requirements-llm.txt
+Train_aegis_llm AI engine module.
 """
 
 import argparse
@@ -614,4 +593,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
+

@@ -1,17 +1,17 @@
 /**
- * DisasterMap.tsx ? Production map with WMS layers, clustering,
- * tile switching, heatmap, shelters, and scale bar.
+ * Module: DisasterMap.tsx
  *
- * All map features are configurable via props. The component fetches
- * region config from the API on mount and renders SEPA WMS flood
- * layers, marker clusters, gauge station pins, and shelter markers.
- */
+ * Disaster map shared component (reusable UI element used across pages).
+ *
+ * How it connects:
+ * - Used across both admin and citizen interfaces */
 
 import { useMemo, useEffect, useState, useCallback, useRef } from 'react'
 import {
   MapContainer, TileLayer, Marker, Popup, Circle,
   GeoJSON, useMap, WMSTileLayer, ScaleControl, LayersControl, Polyline,
 } from 'react-leaflet'
+import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import MarkerClusterGroup from 'react-leaflet-cluster'
 import { useLocation } from '../../contexts/LocationContext'
@@ -24,6 +24,7 @@ import IncidentMapLayers from './IncidentMapLayers'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 import { getAnyToken } from '../../utils/api'
+import { TILE_LAYERS } from '../../utils/mapTileProviders'
 
 // Types & Config
 
@@ -138,34 +139,26 @@ interface Props {
   zoom?: number
 }
 
-// Tile layer presets for the tile switcher
-const TILE_LAYERS = {
-  osm: {
-    name: 'OpenStreetMap',
-    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
-  },
-  satellite: {
-    name: 'Satellite',
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    attribution: '&copy; Esri',
-  },
-  topo: {
-    name: 'Topographic',
-    url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-    attribution: '&copy; OpenTopoMap',
-  },
-}
+// Tile layer presets — imported from shared mapTileProviders.ts
 
 // Sub-components
 
 function MapUpdater({ center, zoom }: { center: [number, number]; zoom: number }) {
   const map = useMap()
-  useEffect(() => { map.flyTo(center, zoom, { duration: 1.5 }) }, [center, zoom, map])
+  const prevCenterRef = useRef<[number, number]>(center)
+  useEffect(() => {
+    // Use primitive comparisons to avoid triggering flyTo when parent re-renders
+    // pass a new array reference with the same values
+    if (center[0] !== prevCenterRef.current[0] || center[1] !== prevCenterRef.current[1]) {
+      prevCenterRef.current = center
+      map.flyTo(center, zoom, { duration: 1.5 })
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [center[0], center[1], zoom, map])
   return null
 }
 
- /**
+/**
  * Heatmap layer using leaflet.heat. We use a useEffect approach
  * because leaflet.heat is an imperative plugin without a React wrapper.
  */
@@ -358,23 +351,26 @@ export default function DisasterMap({
     if (!showDistress || !canReadDistress || !sharedSocket.socket) return
     const socket = sharedSocket.socket
 
-    socket.on('distress:new', (beacon: any) => {
+    const onDistressNew = (beacon: any) => {
       if (!beacon) return
       setDistressBeacons(prev => {
         const exists = prev.some(b => b.id === beacon.id)
         if (exists) return prev
         return [beacon, ...prev]
       })
-    })
+    }
 
-    socket.on('distress:updated', (beacon: any) => {
+    const onDistressUpdated = (beacon: any) => {
       if (!beacon) return
       setDistressBeacons(prev => prev.map(b => b.id === beacon.id ? { ...b, ...beacon } : b))
-    })
+    }
+
+    socket.on('distress:new', onDistressNew)
+    socket.on('distress:updated', onDistressUpdated)
 
     return () => {
-      socket.off('distress:new')
-      socket.off('distress:updated')
+      socket.off('distress:new', onDistressNew)
+      socket.off('distress:updated', onDistressUpdated)
     }
   }, [canReadDistress, sharedSocket.socket, showDistress])
 
@@ -435,7 +431,10 @@ export default function DisasterMap({
     load()
     const interval = setInterval(load, 5 * 60 * 1000)
     return () => clearInterval(interval)
-  }, [showShelters, mapCenter])
+  // Use primitive lat/lng values instead of the array reference to prevent
+  // re-firing every time `location` context re-renders with a new array object
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showShelters, mapCenter[0], mapCenter[1]])
 
   // Inject pulse keyframes for distress markers
   useEffect(() => {
@@ -467,7 +466,10 @@ export default function DisasterMap({
   // Fetch evacuation routes
   useEffect(() => {
     if (!showEvacuation) return
-    fetch('/api/incidents/flood/evacuation/routes')
+    const token = getAnyToken()
+    fetch('/api/incidents/flood/evacuation/routes', {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data?.routes) setEvacuationRoutes(data.routes as EvacuationRouteMapItem[]) })
       .catch(() => {})
@@ -476,7 +478,8 @@ export default function DisasterMap({
   // Fetch AI flood predictions
   useEffect(() => {
     if (!showPredictions) return
-    fetch('/api/predictions')
+    const token = getAnyToken()
+    fetch('/api/predictions', { headers: token ? { Authorization: `Bearer ${token}` } : {} })
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (Array.isArray(data)) setPredictions(data) })
       .catch(() => {})
@@ -485,7 +488,8 @@ export default function DisasterMap({
   // Fetch PostGIS risk layer (flood polygons)
   useEffect(() => {
     if (!showRiskLayer) return
-    fetch('/api/map/risk-layer')
+    const token = getAnyToken()
+    fetch('/api/map/risk-layer', { headers: token ? { Authorization: `Bearer ${token}` } : {} })
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data) setRiskLayerData(data) })
       .catch(() => {})
@@ -494,7 +498,8 @@ export default function DisasterMap({
   // Fetch real heatmap data from API
   useEffect(() => {
     if (!showHeatmap) return
-    fetch('/api/map/heatmap-data')
+    const token = getAnyToken()
+    fetch('/api/map/heatmap-data', { headers: token ? { Authorization: `Bearer ${token}` } : {} })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (data?.points) {
@@ -506,7 +511,10 @@ export default function DisasterMap({
 
   // Fetch spatiotemporal incident clusters
   useEffect(() => {
-    const load = () => fetch('/api/reports/clusters?minutes=180&radiusMeters=1000&minReports=3')
+    const token = getAnyToken()
+    const load = () => fetch('/api/reports/clusters?minutes=180&radiusMeters=1000&minReports=3', {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (Array.isArray(data?.clusters)) setIncidentClusters(data.clusters)
@@ -519,7 +527,10 @@ export default function DisasterMap({
 
   // Fetch cascading disaster insights
   useEffect(() => {
-    const load = () => fetch('/api/reports/cascading-insights?windowMinutes=180')
+    const token = getAnyToken()
+    const load = () => fetch('/api/reports/cascading-insights?windowMinutes=180', {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (Array.isArray(data?.inferred_cascades)) {
@@ -534,7 +545,10 @@ export default function DisasterMap({
 
   // Fetch promoted incident objects from unified Incident Intelligence Core
   useEffect(() => {
-    const load = () => fetch('/api/reports/incident-objects?minutes=180&radiusMeters=1000&minReports=3')
+    const token = getAnyToken()
+    const load = () => fetch('/api/reports/incident-objects?minutes=180&radiusMeters=1000&minReports=3', {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (Array.isArray(data?.incidents)) {
@@ -693,7 +707,7 @@ export default function DisasterMap({
   // Flood zones
   const zones = useMemo(() => {
     if (!showFloodZones || !layerToggles.floodZones) return null
-    return location.floodZones.map((z, i) => (
+    return (location.floodZones || []).map((z, i) => (
       <Circle key={i} center={z.coords} radius={500} pathOptions={ZS[z.risk] || ZS.low}>
         <Popup>
           <p className="font-semibold text-sm">{z.name}</p>
@@ -961,13 +975,13 @@ export default function DisasterMap({
                 }}>{t('dmap.deployed', lang)}</span>}
               </div>
               <p style={{ fontSize: 11, margin: '2px 0' }}>{t('dmap.activeReports', lang)}: <strong>{d.active_reports}</strong></p>
-              {d.estimated_affected && <p style={{ fontSize: 11, margin: '2px 0', color: '#dc2626' }}>{t('dmap.affected', lang)}: {d.estimated_affected}</p>}
+              {d.estimated_affected && <p style={{ fontSize: 11, margin: '2px 0' }} className="text-red-600 dark:text-red-400">{t('dmap.affected', lang)}: {d.estimated_affected}</p>}
               <div style={{ display: 'flex', gap: 8, fontSize: 11, marginTop: 4 }}>
                 {(d.ambulances ?? 0) > 0 && <span>🚑 {d.ambulances}</span>}
                 {(d.fire_engines ?? 0) > 0 && <span>🚒 {d.fire_engines}</span>}
                 {(d.rescue_boats ?? 0) > 0 && <span>⚓ {d.rescue_boats}</span>}
               </div>
-              {d.ai_recommendation && <p style={{ fontSize: 10, color: '#6b7280', marginTop: 4, fontStyle: 'italic' }}>{t('dmap.ai', lang)}: {d.ai_recommendation}</p>}
+              {d.ai_recommendation && <p style={{ fontSize: 10, marginTop: 4, fontStyle: 'italic' }} className="text-gray-500 dark:text-gray-300">{t('dmap.ai', lang)}: {d.ai_recommendation}</p>}
             </div>
           </Popup>
         </Circle>

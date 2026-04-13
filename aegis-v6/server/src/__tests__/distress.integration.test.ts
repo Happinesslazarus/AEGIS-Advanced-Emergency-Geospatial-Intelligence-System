@@ -1,9 +1,15 @@
 /**
- * tests__/distress.integration.test.ts — Personal Distress Beacon / SOS
+ * File: distress.integration.test.ts
  *
- * Integration tests against a real PostgreSQL test database.
- * Covers the full lifecycle:  activate ? GPS update ? acknowledge ? resolve
- * Plus failure/edge cases.
+ * What it tests:
+ * Integration tests for the SOS distress beacon endpoints.
+  * Verifies one-active-per-citizen enforcement, real-time Socket.IO
+  * broadcasting, responder acknowledgement, and distress resolution flow.
+  *
+  * How it connects:
+  * - Tests server/src/routes/distressRoutes.ts
+  * - Relies on PostgreSQL distress_signals table
+  * - Run via: npm test -- distress.integration
  */
 
 import { describe, it, expect, beforeAll, beforeEach, afterAll, afterEach } from '@jest/globals'
@@ -578,4 +584,4 @@ describe('Distress / SOS Integration Tests', () => {
     })
   })
 })
-
+

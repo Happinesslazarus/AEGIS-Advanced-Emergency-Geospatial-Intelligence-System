@@ -1,14 +1,39 @@
 /**
- * routes/chatRoutes.ts — LLM chatbot API endpoints (with image upload)
+ * File: chatRoutes.ts
  *
- * Provides the REST API for the citizen-facing AI chatbot:
- *   POST /api/chat          — Send a message and get an AI response
- *   GET  /api/chat/sessions — List user's chat sessions
- *   GET  /api/chat/:id      — Get chat history for a session
- *   GET  /api/chat/status   — LLM provider health status
+ * What this file does:
+ * Wires up the citizen-facing AI chatbot API. Authentication is optional:
+ * anonymous users can ask questions, and signed-in users get persistent
+ * chat sessions stored in the database. Supports both standard (JSON) and
+ * streaming (SSE) responses. Rate-limited per user/IP without auth middleware
+ * so it doesn't reject anonymous callers.
  *
- * Authentication is optional for chat (anonymous users can ask
- * questions) but authenticated users get persisted sessions.
+ * How it connects:
+ * - Mounted at /api/chat in server/src/index.ts
+ * - Delegates message processing to server/src/services/chatService.ts
+ * - chatService calls server/src/services/llmRouter.ts to pick the LLM provider
+ * - Session data is persisted to the chat_sessions & chat_messages tables in PostgreSQL
+ * - SSE streaming responses write directly to the response stream (no queue)
+ * - Client UI: client/src/components/Chatbot.tsx (or FloatingChatWidget) sends POST /api/chat
+ *
+ * Key endpoints:
+ * POST /api/chat          — Send a message, receive an AI reply (JSON)
+ * POST /api/chat/stream   — Same, but streamed character-by-character (SSE)
+ * GET  /api/chat/sessions — List authenticated user's past chat sessions
+ * GET  /api/chat/:id      — Fetch message history for a specific session
+ * GET  /api/chat/status   — LLM provider health and availability
+ * POST /api/chat/:id/end  — Close and summarise a session
+ *
+ * Learn more:
+ * - server/src/services/chatService.ts   — where messages are stored and AI response built
+ * - server/src/services/llmRouter.ts     — picks Gemini/Groq/OpenRouter/Ollama at runtime
+ * - server/src/services/chatPromptBuilder.ts — shapes the prompt sent to the LLM
+ * - server/src/middleware/validate.ts    — chatMessageSchema validates message length/content
+ *
+ * Simple explanation:
+ * This file doesn't do the AI work directly. It receives chat requests, checks
+ * rate limits, resolves who the user is (or treats them as anonymous), then
+ * passes everything to chatService.ts where the real work happens.
  */
 
 import { Router, Request, Response, NextFunction } from 'express'
@@ -51,7 +76,7 @@ setInterval(() => {
   }
 }, 300_000)
 
- /**
+/**
  * Extract user from token if present (optional auth).
  * Doesn't reject unauthenticated requests — just returns null.
  */
@@ -72,7 +97,7 @@ function optionalAuth(req: Request): { id: string; type: 'citizen' | 'operator' 
   return null
 }
 
- /**
+/**
  * POST /api/chat — Send a message to the AI chatbot
  *
  * Body: { message: string, sessionId?: string }
@@ -102,7 +127,7 @@ router.post('/', validate(chatMessageSchema), async (req: Request, res: Response
   }
 })
 
- /**
+/**
  * POST /api/chat/upload-image — Upload an image for AI analysis in chat
  * Returns the image URL so the client can include it in a chat message.
  * Accepts: JPEG, PNG, GIF, WebP (max 10MB)
@@ -116,7 +141,7 @@ const chatImageStorage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, chatUploadDir),
   filename: (_req, file, cb) => {
     const ts = Date.now()
-    const rand = Math.random().toString(36).substring(2, 8)
+    const rand = crypto.randomUUID().replace(/-/g, '').substring(0, 8)
     const ext = path.extname(file.originalname).toLowerCase()
     cb(null, `${ts}-${rand}${ext}`)
   },
@@ -152,7 +177,7 @@ router.post('/upload-image', chatImageUpload.single('image'), (req: Request, res
   }
 })
 
- /**
+/**
  * POST /api/chat/stream — Stream chat tokens with SSE
  * Body: { message: string, sessionId?: string }
  */
@@ -253,7 +278,7 @@ router.post('/stream', validate(chatMessageSchema), async (req: Request, res: Re
   }
 })
 
- /**
+/**
  * GET /api/chat/sessions — List authenticated user's chat sessions
  */
 router.get('/sessions', async (req: Request, res: Response, next: NextFunction) => {
@@ -270,7 +295,7 @@ router.get('/sessions', async (req: Request, res: Response, next: NextFunction) 
   }
 })
 
- /**
+/**
  * GET /api/chat/status — LLM provider health information
  * (Public endpoint for transparency dashboard)
  */
@@ -286,7 +311,7 @@ router.get('/status', async (_req: Request, res: Response, next: NextFunction) =
   }
 })
 
- /**
+/**
  * GET /api/chat/:id/budget — Session token budget state
  */
 router.get('/:id/budget', async (req: Request, res: Response, next: NextFunction) => {
@@ -313,7 +338,7 @@ router.get('/:id/budget', async (req: Request, res: Response, next: NextFunction
   }
 })
 
- /**
+/**
  * GET /api/chat/:id — Get message history for a session
  * SECURITY: Requires authentication and ownership verification
  */
@@ -339,7 +364,7 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   }
 })
 
- /**
+/**
  * POST /api/chat/sessions/:id/end — End and summarize a chat session
  * Called when user closes the chatbot to trigger auto-summarization
  */
@@ -362,7 +387,7 @@ router.post('/sessions/:id/end', async (req: Request, res: Response, next: NextF
   }
 })
 
- /**
+/**
  * POST /api/chat/suggestion-click — Log when a user clicks a smart suggestion
  * Body: { sessionId: string, suggestionText: string, category: string }
  */
@@ -381,7 +406,7 @@ router.post('/suggestion-click', async (req: Request, res: Response, next: NextF
   }
 })
 
- /**
+/**
  * POST /api/chat/feedback — Submit feedback on a chat message
  * Body: { messageId: string, rating: 'up' | 'down', sessionId?: string }
  */

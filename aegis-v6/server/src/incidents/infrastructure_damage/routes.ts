@@ -1,5 +1,13 @@
 /**
- * incidents/infrastructure_damage/routes.ts — Custom routes for infrastructure damage incidents
+ * Module: routes.ts
+ *
+ * Infrastructure damage assessment incident module (handles infrastructure damage specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for infrastructure damage events.
  */
 
 import { Router, Request, Response } from 'express'
@@ -22,8 +30,7 @@ export function setupInfrastructureDamageRoutes(router: Router): void {
         message: 'Assessment based on citizen reports'
       })
     } catch (err: unknown) {
-      const error = err as Error
-      res.status(500).json({ error: 'Failed to generate damage assessment', details: error.message })
+      res.status(500).json({ error: 'Could not generate damage assessment. Please try again.' })
     }
   })
 
@@ -38,8 +45,7 @@ export function setupInfrastructureDamageRoutes(router: Router): void {
         message: 'Closure tracking'
       })
     } catch (err: unknown) {
-      const error = err as Error
-      res.status(500).json({ error: 'Failed to fetch closures', details: error.message })
+      res.status(500).json({ error: 'Could not load road and area closures. Please try again.' })
     }
   })
 
@@ -54,9 +60,8 @@ export function setupInfrastructureDamageRoutes(router: Router): void {
         message: 'Critical infrastructure monitoring'
       })
     } catch (err: unknown) {
-      const error = err as Error
-      res.status(500).json({ error: 'Failed to fetch critical infrastructure', details: error.message })
+      res.status(500).json({ error: 'Could not load critical infrastructure data. Please try again.' })
     }
   })
 }
-
+

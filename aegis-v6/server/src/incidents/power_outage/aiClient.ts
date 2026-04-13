@@ -1,6 +1,13 @@
 /**
- * incidents/power_outage/aiClient.ts — AI client for power outage predictions
- * AI Tier: tier1 (rule-based) - Uses simple rule-based logic
+ * Module: aiClient.ts
+ *
+ * Electrical grid failures incident module (handles power outage specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for power outage events.
  */
 
 import type { IncidentPrediction } from '../types.js'

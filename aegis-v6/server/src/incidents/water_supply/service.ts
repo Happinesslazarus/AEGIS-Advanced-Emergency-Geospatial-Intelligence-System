@@ -1,5 +1,13 @@
 /**
- * incidents/water_supply/service.ts — Water Supply Disruption incident business logic
+ * Module: service.ts
+ *
+ * Water supply disruptions incident module (handles water supply specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for water supply events.
  */
 
 import pool from '../../models/db.js'

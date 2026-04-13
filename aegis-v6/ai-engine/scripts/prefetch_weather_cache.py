@@ -1,11 +1,8 @@
 #!/usr/bin/env python
-"""Pre-fetch and cache multi-location weather data for all hazard model training.
+"""
+Module: prefetch_weather_cache.py
 
-Run this ONCE before training models to avoid repeated API calls and rate limits.
-All training scripts will then use the cached CSV automatically.
-
-Usage:
-    python -m scripts.prefetch_weather_cache
+Prefetch_weather_cache AI engine module.
 """
 import asyncio
 import sys

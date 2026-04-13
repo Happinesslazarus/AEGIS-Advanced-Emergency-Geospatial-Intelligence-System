@@ -1,6 +1,16 @@
 """
- AEGIS AI ENGINE — Report Classification Module
- NLP-based disaster report categorization
+File: report_classifier.py
+
+What this file does:
+Rule-based report category classifier used as a bootstrap fallback before
+the ML classifier is trained. Applies keyword matching and regex patterns
+to the free-text report description to assign one of 10 incident categories
+(flood, fire, road, etc.) and a confidence score.
+
+How it connects:
+- Used by ai-engine/app/api/endpoints.py POST /classify endpoint
+- Replaced by report_classifier_ml.py once training data is available
+- Category labels match server/src/services/incidentTypeService.ts values
 """
 
 from typing import Dict, List, Optional
@@ -10,14 +20,12 @@ from datetime import datetime
 
 class ReportClassifier:
     """
-    Classify disaster reports into hazard types using NLP.
-    
-    In production, this would use:
-    - BERT/DistilBERT fine-tuned on disaster text
-    - Multi-label classification (reports can involve multiple hazards)
-    - Entity extraction for location/severity/impact
-    
-    Current implementation: Keyword-based classification with confidence scoring
+    Classify disaster reports into hazard types using keyword matching.
+
+    This is the fallback implementation. The production ML version lives in
+    report_classifier_ml.py (ReportClassifierTrainable) which uses TF-IDF +
+    scikit-learn trained on real report data from the database. This class is
+    used when no trained model artifact exists.
     """
     
     def __init__(self):
@@ -106,8 +114,11 @@ class ReportClassifier:
                 max_score = scores[primary_hazard]
                 total_matches = sum(scores.values())
                 
-                # Confidence based on keyword density and dominance
+                # Confidence: dominance ratio.  If one hazard captures all keyword
+                # hits (max_score == total_matches), confidence trends toward 0.95.
+                # If hits are split evenly across hazards, it stays near 0.50.
                 confidence = min(0.95, 0.50 + (max_score / (total_matches + 1)) * 0.45)
+                # Probability: each additional keyword hit adds 0.10 (capped at 0.90).
                 probability = min(0.90, 0.55 + max_score * 0.10)
             
             # Extract severity indicators
@@ -157,6 +168,9 @@ class ReportClassifier:
         severity = max(severity_scores, key=severity_scores.get)
         confidence = severity_scores[severity] / total if total > 0 else 0.4
         
+        # Severity signals are weaker than hazard signals: a threshold cap of
+        # 0.85 prevents the rule engine from claiming high certainty about
+        # severity when it hasn't been trained on labelled examples.
         return {'severity': severity, 'confidence': min(0.85, 0.40 + confidence * 0.45)}
     
     def _extract_impact(self, text: str) -> Dict[str, bool]:

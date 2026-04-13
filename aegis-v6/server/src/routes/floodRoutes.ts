@@ -1,20 +1,25 @@
- /*
- * routes/floodRoutes.ts — Flood prediction, evacuation, and threat API
- *   GET  /api/flood/prediction             — Current flood predictions
- *   POST /api/flood/prediction/refresh     — Force refresh predictions
- *   GET  /api/flood/threat                 — Current threat level assessment
- *   POST /api/flood/evacuation/route       — Calculate evacuation routes
- *   GET  /api/flood/evacuation/routes      — Pre-calculated evacuation routes
- *   POST /api/evacuation/route             — (legacy alias)
- *   GET  /api/evacuation/routes            — (legacy alias)
- *   GET  /api/flood/extents/:river         — Flood extent GeoJSON for a river
- *   GET  /api/incidents/:incidentType/prediction        — Per-incident predictions
- *   POST /api/incidents/:incidentType/prediction/refresh
- *   GET  /api/incidents/:incidentType/threat
- *   GET  /api/incidents/:incidentType/extents/:river
- *   POST /api/incidents/:incidentType/evacuation/route
- *   GET  /api/incidents/:incidentType/evacuation/routes
-  */
+/**
+ * File: floodRoutes.ts
+ *
+ * What this file does:
+ * Flood prediction, threat assessment, and evacuation route endpoints.
+ * Combines river level data, weather forecasts, and ML predictions to
+ * assess flood risk and calculate safe evacuation paths.
+ *
+ * How it connects:
+ * - Mounted at /api in index.ts (e.g. GET /api/flood/prediction)
+ * - Uses floodPredictionService and evacuationService
+ * - Threat levels broadcast in real-time via Socket.IO
+ *
+ * Key endpoints:
+ * GET  /api/flood/prediction        — Current flood predictions
+ * GET  /api/flood/threat            — Threat level assessment
+ * POST /api/flood/evacuation/route  — Calculate evacuation route
+ * GET  /api/flood/extents/:river    — Flood extent GeoJSON
+ *
+ * Simple explanation:
+ * Flood forecasting and evacuation planning endpoints.
+ */
 
 import { Router, Request, Response, NextFunction } from 'express'
 import { getFloodPredictions } from '../services/floodPredictionService.js'

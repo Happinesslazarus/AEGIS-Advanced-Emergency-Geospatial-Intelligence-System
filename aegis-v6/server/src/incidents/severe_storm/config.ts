@@ -1,7 +1,13 @@
 /**
- * incidents/severe_storm/config.ts — Severe Storm incident configuration
- * AI Tier: tier2 (statistical) — Uses statistical models
- * Data Sources: Open-Meteo Weather API
+ * Module: config.ts
+ *
+ * Severe weather and storm systems incident module (handles severe storm specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for severe storm events.
  */
 
 import type { IncidentRegistryEntry } from '../types.js'
@@ -52,4 +58,4 @@ export const OPEN_METEO_PARAMS = [
   'cloudcover',
   'pressure_msl'
 ]
-
+

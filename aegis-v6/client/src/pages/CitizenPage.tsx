@@ -1,6 +1,30 @@
+/**
+ * File: CitizenPage.tsx
+ *
+ * What this file does:
+ * The public citizen portal. Accessible without logging in, it shows the
+ * live disaster map, active alerts, a report submission form, and links to
+ * community help resources. It's the starting page citizens land on before
+ * deciding to create an account or just browse.
+ *
+ * How it connects:
+ * - Routed by client/src/App.tsx at /citizen
+ * - Links to /citizen/auth for sign-in and /citizen/dashboard for signed-in users
+ * - Alert data from client/src/contexts/AlertsContext.tsx (real-time)
+ * - Map rendered via client/src/components/shared/DisasterMap.tsx
+ * - Public report submission calls POST /api/reports (no auth required)
+ *
+ * Learn more:
+ * - client/src/pages/CitizenDashboard.tsx        — the authenticated follow-up page
+ * - client/src/components/shared/DisasterMap.tsx — the live map component
+ * - server/src/routes/reportRoutes.ts            — public report endpoints
+ */
+
 /* CitizenPage.tsx — Public citizen portal with alerts, reports, map, and community help. */
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { usePageTitle } from '../hooks/usePageTitle'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import {
   Shield, AlertTriangle, Users, MapPin, BookOpen, Bell, Sun, Moon,
@@ -19,26 +43,48 @@ import { useTheme } from '../contexts/ThemeContext'
 import { t, getLanguage, isRtl } from '../utils/i18n'
 import { useLanguage } from '../hooks/useLanguage'
 import { useWebPush } from '../hooks/useWebPush'
-import { apiSubscribe, apiGetNews, type NewsItem } from '../utils/api'
+import { apiSubscribe, apiGetNews, apiGetAlerts, type NewsItem } from '../utils/api'
 import { COUNTRY_CODES, type CountryCode, formatPhoneWithCountry } from '../data/countryCodes'
 import ALL_COUNTRY_CODES from '../data/allCountryCodes'
-import DisasterMap from '../components/shared/DisasterMap'
-import WeatherPanel from '../components/shared/WeatherPanel'
+import { getEmergencyInfo as getGlobalEmergencyFallback } from '../data/allCountries'
 import ReportCard from '../components/shared/ReportCard'
-import LiveIncidentMapPanel from '../components/citizen/LiveIncidentMapPanel'
-import ReportForm from '../components/citizen/ReportForm'
-import Chatbot from '../components/citizen/Chatbot'
-import CommunityHelp from '../components/citizen/CommunityHelp'
-import RiverGaugePanel from '../components/shared/RiverGaugePanel'
-import IntelligenceDashboard from '../components/shared/IntelligenceDashboard'
-import ShelterFinder from '../components/citizen/ShelterFinder'
 import CountrySearch from '../components/shared/CountrySearch'
-import LanguageSelector from '../components/shared/LanguageSelector'
 import ThemeSelector from '../components/ui/ThemeSelector'
 import AppLayout from '../components/layout/AppLayout'
+import ErrorBoundary from '../components/shared/ErrorBoundary'
+import AlertsPanel from '../components/shared/AlertsPanel'
+import { SkeletonCard, Skeleton } from '../components/ui/Skeleton'
 import type { SidebarItem } from '../components/layout/Sidebar'
+import { GLOBAL_EMERGENCY_DB, type GlobalEmergencyEntry } from '../config/globalEmergencyDB'
+
+// Lazy load heavy components for bundle optimization
+const DisasterMap = lazy(() => import('../components/shared/DisasterMap'))
+const WeatherPanel = lazy(() => import('../components/shared/WeatherPanel'))
+const LiveIncidentMapPanel = lazy(() => import('../components/citizen/LiveIncidentMapPanel'))
+const ReportForm = lazy(() => import('../components/citizen/ReportForm'))
+const Chatbot = lazy(() => import('../components/citizen/Chatbot'))
+const CommunityHelp = lazy(() => import('../components/citizen/CommunityHelp'))
+const RiverGaugePanel = lazy(() => import('../components/shared/RiverGaugePanel'))
+const IntelligenceDashboard = lazy(() => import('../components/shared/IntelligenceDashboard'))
+const OnboardingTutorial = lazy(() => import('../components/citizen/OnboardingTutorial'))
+const ShelterFinder = lazy(() => import('../components/citizen/ShelterFinder'))
+
+// Map region-picker city keys to ISO country codes for emergency number lookup
+// Country-level keys (e.g. 'at', 'de') are ISO codes already and handled dynamically
+const CITY_TO_COUNTRY: Record<string, string> = {
+  world: 'GB', generic: 'GB',
+  uk: 'GB', scotland: 'GB', aberdeen: 'GB', edinburgh: 'GB', glasgow: 'GB', dundee: 'GB',
+  mumbai: 'IN', dhaka: 'BD', shanghai: 'CN', tokyo: 'JP', jakarta: 'ID', manila: 'PH', bangkok: 'TH',
+  amsterdam: 'NL', venice: 'IT', cologne: 'DE', paris: 'FR', budapest: 'HU',
+  houston: 'US', neworleans: 'US', miami: 'US',
+  portoalegre: 'BR',
+  lagos: 'NG', khartoum: 'SD',
+  brisbane: 'AU',
+  asia: 'IN', europe: 'GB', northamerica: 'US', southamerica: 'BR', africa: 'NG', oceania: 'AU',
+}
 
 export default function CitizenPage(): JSX.Element {
+  usePageTitle('Dashboard')
   const lang = useLanguage()
   const navigate = useNavigate()
   const { reports, loading, refreshReports } = useReports()
@@ -61,15 +107,58 @@ export default function CitizenPage(): JSX.Element {
   const [subTelegramId, setSubTelegramId] = useState('')
   const [selectedCountry, setSelectedCountry] = useState<CountryCode>(ALL_COUNTRY_CODES.find(c => c.code === 'GB') || ALL_COUNTRY_CODES[0])
   const [userPosition, setUserPosition] = useState<[number,number]|null>(null)
+  const [locationDenied, setLocationDenied] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [newsItems, setNewsItems] = useState<NewsItem[]>([])
   const [newsRefreshing, setNewsRefreshing] = useState(false)
+  const newsLoadingRef = useRef(false)
   const [searchParams, setSearchParams] = useSearchParams()
   const [selectedAlert, setSelectedAlert] = useState<any>(null)
   const [selectedReport, setSelectedReport] = useState<any>(null)
   const [sosCountdown, setSosCountdown] = useState<number | null>(null)
   const [sosActive, setSosActive] = useState(false)
   const [sosSending, setSosSending] = useState(false)
+  const sosTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [sosAddress, setSosAddress] = useState('')
+  const [sosLat, setSosLat] = useState<number | null>(null)
+  const [sosLng, setSosLng] = useState<number | null>(null)
+  const [sosTimestamp, setSosTimestamp] = useState<Date | null>(null)
+  const [currentTime, setCurrentTime] = useState(new Date())
+
+  // Derive emergency info from region picker (activeLocation) or subscribe modal country
+  const emergencyInfo = useMemo<GlobalEmergencyEntry | null>(() => {
+    // 1. Check explicit city-name mapping
+    const cityCode = CITY_TO_COUNTRY[activeLocation]
+    if (cityCode) {
+      const entry = GLOBAL_EMERGENCY_DB.find(e => e.code === cityCode)
+      if (entry) return entry
+    }
+    // 2. Try activeLocation as ISO code directly (COUNTRY_DATA uses lowercase ISO codes)
+    const directMatch = GLOBAL_EMERGENCY_DB.find(e => e.code === activeLocation.toUpperCase())
+    if (directMatch) return directMatch
+    // 3. Fallback to subscribe modal's selected country
+    return GLOBAL_EMERGENCY_DB.find(e => e.code === selectedCountry.code) || GLOBAL_EMERGENCY_DB.find(e => e.code === 'GB') || null
+  }, [activeLocation, selectedCountry.code])
+
+  const activeCountryCode = useMemo(() => {
+    const cityCode = CITY_TO_COUNTRY[activeLocation]
+    if (cityCode) return cityCode
+    if (/^[a-z]{2}$/i.test(activeLocation)) return activeLocation.toUpperCase()
+    return selectedCountry.code
+  }, [activeLocation, selectedCountry.code])
+
+  const emergencyFallback = useMemo(() => getGlobalEmergencyFallback(activeCountryCode), [activeCountryCode])
+
+  // Cleanup SOS countdown timer on unmount to prevent memory leaks
+  useEffect(() => () => {
+    if (sosTimerRef.current) clearInterval(sosTimerRef.current)
+  }, [])
+
+  // Live clock for hero banner
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 60000)
+    return () => clearInterval(timer)
+  }, [])
 
   // Handle URL params for deep-linking (e.g. from web push notifications)
   useEffect(() => {
@@ -81,11 +170,9 @@ export default function CitizenPage(): JSX.Element {
     }
     if (alertParam) {
       // Fetch the specific alert and show detail modal
-      fetch(`/api/alerts`)
-        .then(r => r.json())
-        .then(data => {
-          const list = Array.isArray(data) ? data : (data.alerts || data.data || [])
-          const found = list.find((a: any) => String(a.id) === alertParam)
+      apiGetAlerts()
+        .then(list => {
+          const found = (list as any[]).find((a: any) => String(a.id) === alertParam)
           if (found) {
             setSelectedAlert({
               ...found,
@@ -100,35 +187,43 @@ export default function CitizenPage(): JSX.Element {
       searchParams.delete('tab')
       setSearchParams(searchParams, { replace: true })
     }
-  }, [])
+  }, [searchParams, setSearchParams])
 
-  const loadNews = async (notify = false): Promise<void> => {
+  const loadNews = useCallback(async (forceRefresh = false): Promise<void> => {
+    if (newsLoadingRef.current) return // prevent concurrent calls
+    newsLoadingRef.current = true
     setNewsRefreshing(true)
     try {
-      const payload = await apiGetNews()
+      const payload = await apiGetNews(forceRefresh)
       if (Array.isArray(payload?.items) && payload.items.length > 0) {
         setNewsItems(payload.items)
-        if (notify) pushNotification(t('citizenPage.newsRefreshed', lang), 'success')
-      } else if (notify) {
-        pushNotification(t('citizenPage.noFreshNews', lang), 'warning')
+        if (forceRefresh) pushNotification(t('citizenPage.newsRefreshed', lang) || 'News refreshed', 'success')
+      } else if (forceRefresh) {
+        pushNotification(t('citizenPage.noFreshNews', lang) || 'No new articles found', 'info')
       }
     } catch {
-      if (notify) pushNotification(t('citizenPage.cachedNews', lang), 'warning')
+      if (forceRefresh) pushNotification('Could not refresh news. Please try again.', 'warning')
     } finally {
       setNewsRefreshing(false)
+      newsLoadingRef.current = false
     }
-  }
+  }, [lang, pushNotification])
 
   useEffect(() => {
-    loadNews(false)
-  }, [])
+    loadNews(false) // initial load — use cache
+  }, [loadNews])
 
   const detectLocation = () => {
     if (navigator.geolocation) {
+      setLocationDenied(false)
       navigator.geolocation.getCurrentPosition(p => {
         setUserPosition([p.coords.latitude, p.coords.longitude])
+        setLocationDenied(false)
         pushNotification(t('citizenPage.locationDetected', lang), 'success')
-      }, () => pushNotification(t('citizenPage.locationDenied', lang), 'warning'))
+      }, () => {
+        setLocationDenied(true)
+        pushNotification(t('citizenPage.locationDenied', lang), 'warning')
+      })
     }
   }
 
@@ -136,16 +231,25 @@ export default function CitizenPage(): JSX.Element {
   const handleGuestSOS = () => {
     if (sosCountdown !== null) {
       // Cancel countdown
+      if (sosTimerRef.current) {
+        clearInterval(sosTimerRef.current)
+        sosTimerRef.current = null
+      }
       setSosCountdown(null)
+      if (navigator.vibrate) navigator.vibrate(30)
       return
     }
+    // Haptic feedback on tap
+    if (navigator.vibrate) navigator.vibrate([50, 30, 50])
     // Start 5-second countdown
     let count = 5
     setSosCountdown(count)
-    const timer = setInterval(() => {
+    sosTimerRef.current = setInterval(() => {
       count--
+      if (navigator.vibrate) navigator.vibrate(40)
       if (count <= 0) {
-        clearInterval(timer)
+        clearInterval(sosTimerRef.current!)
+        sosTimerRef.current = null
         setSosCountdown(null)
         sendGuestSOS()
       } else {
@@ -156,6 +260,7 @@ export default function CitizenPage(): JSX.Element {
 
   const sendGuestSOS = async () => {
     setSosSending(true)
+    setSosAddress('')
     try {
       // Get GPS location
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
@@ -163,34 +268,68 @@ export default function CitizenPage(): JSX.Element {
         navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000, enableHighAccuracy: true })
       }).catch(() => null)
 
-      const lat = position?.coords.latitude ?? userPosition?.[0] ?? loc.center?.[0] ?? 57.15
-      const lng = position?.coords.longitude ?? userPosition?.[1] ?? loc.center?.[1] ?? -2.11
+      const lat = position?.coords.latitude ?? userPosition?.[0] ?? loc.center?.[0] ?? 0
+      const lng = position?.coords.longitude ?? userPosition?.[1] ?? loc.center?.[1] ?? 0
 
-      // Submit emergency report via public reports API
+      // Reverse geocode for human-readable address
+      let addressText = `GPS: ${lat.toFixed(5)}, ${lng.toFixed(5)}`
+      try {
+        const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`, { headers: { 'Accept-Language': 'en' } })
+        if (geoRes.ok) {
+          const geoData = await geoRes.json()
+          if (geoData.display_name) addressText = geoData.display_name
+        }
+      } catch { /* keep GPS fallback */ }
+      setSosAddress(addressText)
+      setSosLat(lat)
+      setSosLng(lng)
+      setSosTimestamp(new Date())
+
+      const now = new Date()
+      const countryName = selectedCountry?.name || emergencyInfo?.name || 'Unknown'
+      const emergNum = emergencyInfo?.emergencyNumber || '112'
+      const fullDesc = `GUEST SOS EMERGENCY — Citizen requires immediate assistance.\n` +
+        `Location: ${addressText}\n` +
+        `Country: ${countryName}\n` +
+        `Time: ${now.toLocaleString()} (${Intl.DateTimeFormat().resolvedOptions().timeZone})\n` +
+        `Coordinates: ${lat.toFixed(6)}, ${lng.toFixed(6)}\n` +
+        `Emergency Number: ${emergNum}\n` +
+        `Activated from AEGIS public safety page.`
+
+      // Submit emergency report via public reports API (field names match server validation)
+      const csrfSos = document.cookie.split('; ').find(c => c.startsWith('aegis_csrf='))?.split('=')[1]
       const response = await fetch('/api/reports', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(csrfSos ? { 'X-CSRF-Token': csrfSos } : {}) },
         body: JSON.stringify({
-          type: 'SOS Emergency',
+          incidentCategory: 'SOS_EMERGENCY',
+          displayType: 'SOS Emergency',
           severity: 'High',
-          description: 'GUEST SOS EMERGENCY — Citizen requires immediate assistance. Activated from public safety page.',
-          location: `GPS: ${lat.toFixed(5)}, ${lng.toFixed(5)}`,
-          latitude: lat,
-          longitude: lng,
-          timestamp: new Date().toISOString(),
-          category: 'SOS_EMERGENCY',
-          reporterName: 'Anonymous Guest',
+          description: fullDesc,
+          locationText: addressText,
+          lat,
+          lng,
         })
       })
 
-      if (!response.ok) throw new Error('Failed to send SOS')
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({}))
+        throw new Error(errBody.error || `SOS failed: ${response.status}`)
+      }
 
+      if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 100])
       setSosActive(true)
       pushNotification(t('citizenPage.sosSent', lang), 'error')
-      // Auto-clear after 30 seconds
-      setTimeout(() => setSosActive(false), 30000)
+      // Auto-clear after 60 seconds
+      setTimeout(() => setSosActive(false), 60000)
     } catch (err: any) {
-      pushNotification(t('citizenPage.sosFailed', lang), 'error')
+      console.error('SOS send error:', err)
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200])
+      const emergNum = emergencyInfo?.emergencyNumber || '112'
+      pushNotification(`${t('citizenPage.sosFailed', lang)} — Please call ${emergNum} directly`, 'error')
+      // Still show the SOS active panel so user can call emergency number
+      setSosActive(true)
+      setTimeout(() => setSosActive(false), 60000)
     } finally {
       setSosSending(false)
     }
@@ -218,14 +357,16 @@ export default function CitizenPage(): JSX.Element {
       const normalizedChannels = subChannels.map(ch => ch === 'webpush' ? 'web' : ch)
       const formattedPhone = subPhone ? formatPhoneWithCountry(selectedCountry, subPhone) : ''
       
-      // Subscribe to Web Push first if selected
-      if (subChannels.includes('webpush')) {
+      // Subscribe to Web Push first if selected AND VAPID is configured on the server
+      if (subChannels.includes('webpush') && webPushStatus.enabled) {
         try {
           await subscribeToWebPush(subEmail)
           pushNotification(t('citizenPage.webPushEnabled', lang), 'success')
         } catch (err: any) {
-          console.error('Web Push subscription failed:', err)
-          pushNotification(t('citizenPage.webPushFailed', lang), 'warning')
+          const msg: string = err?.message || ''
+          if (!msg.includes('not configured') && !msg.includes('public key')) {
+            pushNotification(t('citizenPage.webPushFailed', lang), 'warning')
+          }
         }
       }
       
@@ -354,6 +495,7 @@ export default function CitizenPage(): JSX.Element {
 
   const TABS = [
     { id: 'map', label: t('citizenPage.tab.disasterMap', lang), icon: MapPin },
+    { id: 'alerts', label: t('alerts.pageTitle', lang) || 'Alerts', icon: Bell },
     { id: 'reports', label: t('citizenPage.tab.recentReports', lang), icon: FileText },
     { id: 'shelters', label: t('citizenPage.tab.safeZones', lang), icon: Home },
     { id: 'news', label: t('citizen.tab.news', lang), icon: Newspaper },
@@ -363,8 +505,8 @@ export default function CitizenPage(): JSX.Element {
     if (item.key === 'report_emergency') { setShowReport(true); return }
     if (item.key === 'community') { setShowCommunity(true); return }
     if (item.key === 'home') { navigate('/citizen/dashboard'); return }
-    if (item.key === 'alerts') { navigate('/alerts'); return }
-    const validTabs = ['map', 'reports', 'shelters', 'news']
+    if (item.key === 'alerts') { setActiveTab('alerts'); return }
+    const validTabs = ['map', 'alerts', 'reports', 'shelters', 'news']
     if (validTabs.includes(item.key)) { setActiveTab(item.key); return }
     // Citizen-only tabs — navigate to dashboard with tab param
     const dashboardTabs = ['risk', 'emergency', 'prepare', 'messages', 'safety', 'profile', 'settings']
@@ -387,15 +529,42 @@ export default function CitizenPage(): JSX.Element {
                 <Shield className="w-4.5 h-4.5"/>
               </div>
               <span className="text-xs font-bold bg-white/15 backdrop-blur-sm px-3 py-1 rounded-full">{t('citizen.hero.publicPortal', lang) || 'Public Safety Portal'}</span>
+              <span className="text-xs font-bold bg-emerald-500/20 border border-emerald-300/30 text-emerald-100 px-3 py-1 rounded-full">Anonymous Mode Active</span>
             </div>
-            <h1 className="text-xl sm:text-2xl font-extrabold mb-1 text-primary">{t('citizen.hero.title', lang) || 'Real-Time Emergency Awareness'}</h1>
+            <h1 className="text-xl sm:text-2xl font-extrabold mb-0.5 text-primary">Welcome to AEGIS</h1>
+            <p className="text-xs text-white/60 mb-2 flex items-center gap-2">
+              <Clock className="w-3 h-3" />
+              {currentTime.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} &bull; {currentTime.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+            </p>
             <p className="text-sm max-w-lg text-primary">{t('citizen.hero.subtitle', lang) || 'Monitor live incidents, report emergencies, check safety status, and stay informed with AI-powered alerts.'}</p>
+            <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2 max-w-3xl">
+              <div className="rounded-xl border border-white/15 bg-white/10 backdrop-blur-sm px-3 py-2">
+                <p className="text-[10px] uppercase tracking-wider text-white/70">Response State</p>
+                <p className="text-sm font-extrabold text-white">Live Monitoring</p>
+              </div>
+              <div className="rounded-xl border border-white/15 bg-white/10 backdrop-blur-sm px-3 py-2">
+                <p className="text-[10px] uppercase tracking-wider text-white/70">Coverage</p>
+                <p className="text-sm font-extrabold text-white">Global Multi-Hazard</p>
+              </div>
+              <div className="rounded-xl border border-white/15 bg-white/10 backdrop-blur-sm px-3 py-2">
+                <p className="text-[10px] uppercase tracking-wider text-white/70">Privacy</p>
+                <p className="text-sm font-extrabold text-white">No Sign-in Required</p>
+              </div>
+            </div>
             <div className="flex flex-wrap gap-2 mt-4">
               <button onClick={()=>setShowReport(true)} className="bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/20 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all hover:scale-[1.02]">
                 <AlertTriangle className="w-3.5 h-3.5"/> {t('report.title', lang)}
               </button>
               <button onClick={()=>setActiveTab('map')} className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/10 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all hover:scale-[1.02]">
                 <MapPin className="w-3.5 h-3.5"/> {t('map.title', lang) || 'Live Map'}
+              </button>
+              <button
+                onClick={toggle}
+                aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+                className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/10 p-2 rounded-xl transition-all hover:scale-[1.02] flex items-center justify-center"
+                title={dark ? 'Light mode' : 'Dark mode'}
+              >
+                {dark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
               </button>
               <Link to="/citizen/login" className="bg-gradient-to-r from-aegis-500 to-aegis-700 hover:from-aegis-400 hover:to-aegis-600 border border-aegis-400/30 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all hover:scale-[1.02] shadow-lg shadow-aegis-600/20 sm:hidden">
                 <User className="w-3.5 h-3.5"/> {t('citizen.auth.signIn', lang)}
@@ -499,21 +668,63 @@ export default function CitizenPage(): JSX.Element {
         {/* MAP TAB */}
         {activeTab==='map'&&(
           <div className="space-y-4 animate-fade-in">
+            {/* GPS denied retry banner */}
+            {locationDenied && !userPosition && (
+              <div className="flex items-center justify-between gap-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-2xl px-4 py-3 animate-fade-in">
+                <div className="flex items-center gap-2 text-sm text-amber-800 dark:text-amber-300">
+                  <Crosshair className="w-4 h-4 flex-shrink-0" />
+                  <span>Location access was denied. Enable it in your browser settings or retry.</span>
+                </div>
+                <button
+                  onClick={detectLocation}
+                  className="flex items-center gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/40 hover:bg-amber-200 dark:hover:bg-amber-800/60 px-3 py-1.5 rounded-xl transition-all whitespace-nowrap"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" /> Retry
+                </button>
+              </div>
+            )}
             {/* Professional Live Incident Map Panel */}
-            <LiveIncidentMapPanel reports={reports} userPosition={userPosition} center={loc.center} zoom={loc.zoom} />
+            <ErrorBoundary name="LiveIncidentMapPanel" fallback={<div className="p-6 text-center text-sm text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700">Failed to load map</div>}>
+              <Suspense fallback={<div className="h-64 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 space-y-3"><Skeleton className="h-5 w-40" /><Skeleton className="h-48 w-full rounded-xl" /></div>}>
+                <LiveIncidentMapPanel reports={reports} userPosition={userPosition} center={loc.center} zoom={loc.zoom} />
+              </Suspense>
+            </ErrorBoundary>
             {/* Panels below map — full-width responsive grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <IntelligenceDashboard collapsed={true} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg" />
-              <WeatherPanel/>
-              <RiverGaugePanel/>
+              <ErrorBoundary name="IntelligenceDashboard" fallback={<div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700">Failed to load intelligence</div>}>
+                <Suspense fallback={<div className="h-40 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-3 w-full" /><Skeleton className="h-3 w-3/4" /><Skeleton className="h-8 w-20 mt-2 rounded-lg" /></div>}>
+                  <IntelligenceDashboard collapsed={true} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg" />
+                </Suspense>
+              </ErrorBoundary>
+              <ErrorBoundary name="WeatherPanel" fallback={<div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700">Failed to load weather</div>}>
+                <Suspense fallback={<div className="h-40 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 space-y-2"><Skeleton className="h-4 w-20" /><Skeleton className="h-8 w-16" /><Skeleton className="h-3 w-full" /><Skeleton className="h-3 w-2/3" /></div>}>
+                  <WeatherPanel/>
+                </Suspense>
+              </ErrorBoundary>
+              <ErrorBoundary name="RiverGaugePanel" fallback={<div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700">Failed to load river data</div>}>
+                <Suspense fallback={<div className="h-40 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-8 w-16" /><Skeleton className="h-3 w-full" /><Skeleton className="h-3 w-1/2" /></div>}>
+                  <RiverGaugePanel/>
+                </Suspense>
+              </ErrorBoundary>
             </div>
+          </div>
+        )}
+
+        {/* ALERTS TAB */}
+        {activeTab==='alerts'&&(
+          <div className="animate-fade-in">
+            <AlertsPanel />
           </div>
         )}
 
         {/* SAFE ZONES TAB */}
         {activeTab==='shelters'&&(
           <div className="animate-fade-in space-y-4">
-            <ShelterFinder/>
+            <ErrorBoundary name="ShelterFinder" fallback={<div className="p-6 text-center text-sm text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700">Failed to load shelters</div>}>
+              <Suspense fallback={<div className="h-64 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 space-y-3"><Skeleton className="h-5 w-32" /><SkeletonCard /><SkeletonCard /></div>}>
+                <ShelterFinder/>
+              </Suspense>
+            </ErrorBoundary>
           </div>
         )}
 
@@ -533,7 +744,7 @@ export default function CitizenPage(): JSX.Element {
                 {t('citizen.tab.news', lang) || 'News'}
               </h2>
               <button
-                onClick={async()=>{await loadNews(true);await refreshReports?.()}}
+                onClick={() => loadNews(true)}
                 disabled={newsRefreshing}
                 className="flex items-center gap-1.5 text-xs text-aegis-600 hover:text-aegis-700 bg-aegis-50/80 dark:bg-aegis-950/30 border border-aegis-200/60 dark:border-aegis-800/60 px-4 py-2 rounded-xl transition-all disabled:opacity-60 hover:scale-[1.02] font-bold backdrop-blur-sm"
               >
@@ -628,20 +839,31 @@ export default function CitizenPage(): JSX.Element {
         </div>
         </div>
 
-      {/* FOOTER */}
+      {/* FOOTER — dynamic emergency numbers based on selected country */}
       <footer className="bg-gradient-to-b from-gray-100 to-gray-200 dark:from-gray-900 dark:to-gray-950 border-t border-gray-200/50 dark:border-gray-800/50 mt-10">
         <div className="max-w-7xl mx-auto px-4 py-10">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 text-xs text-gray-600 dark:text-gray-400">
             <div>
               <h4 className="font-extrabold mb-3 flex items-center gap-2 text-primary">
                 <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-red-400 to-rose-600 flex items-center justify-center"><Phone className="w-3 h-3 text-white"/></div>
-                {t('citizenPage.footer.emergency', lang)}
+                {emergencyInfo?.flag || '🌍'} {t('citizenPage.footer.emergency', lang)}
               </h4>
               <div className="space-y-1.5">
-                <p>{t('citizenPage.footer.emergencyServices', lang)}: <strong className="text-primary">999</strong></p>
-                <p>NHS: <strong className="text-primary">111</strong></p>
-                <p>{t('citizenPage.footer.samaritans', lang)}: <strong className="text-primary">116 123</strong></p>
-                <p>{t('citizenPage.footer.floodline', lang)}: <strong className="text-primary">0345 988 1188</strong></p>
+                <>
+                  <p>{t('citizenPage.footer.emergencyServices', lang)}: <strong className="text-primary">{emergencyInfo?.emergencyNumber || emergencyFallback.universal}</strong></p>
+                  <p>Police: <strong className="text-primary">{emergencyInfo?.police || emergencyFallback.police}</strong></p>
+                  <p>Ambulance: <strong className="text-primary">{emergencyInfo?.ambulance || emergencyFallback.ambulance}</strong></p>
+                  <p>Fire: <strong className="text-primary">{emergencyInfo?.fire || emergencyFallback.fire}</strong></p>
+                  {emergencyInfo?.mentalHealth && (
+                    <p>{emergencyInfo.mentalHealth.name}: <strong className="text-primary">{emergencyInfo.mentalHealth.number}</strong></p>
+                  )}
+                  {emergencyInfo?.childLine && (
+                    <p>{emergencyInfo.childLine.name}: <strong className="text-primary">{emergencyInfo.childLine.number}</strong></p>
+                  )}
+                  {emergencyInfo?.poisonControl && (
+                    <p>Poison Control: <strong className="text-primary">{emergencyInfo.poisonControl}</strong></p>
+                  )}
+                </>
               </div>
             </div>
             <div>
@@ -650,10 +872,19 @@ export default function CitizenPage(): JSX.Element {
                 {t('admin.resources', lang)}
               </h4>
               <div className="space-y-1.5">
-                <a href="https://www.gov.scot" target="_blank" rel="noopener noreferrer" className="block text-primary hover:text-aegis-600 dark:hover:text-aegis-300 transition-colors">{t('citizenPage.footer.scottishGov', lang)}</a>
-                <a href="https://www.metoffice.gov.uk" target="_blank" rel="noopener noreferrer" className="block text-primary hover:text-aegis-600 dark:hover:text-aegis-300 transition-colors">{t('citizenPage.footer.metOffice', lang)}</a>
-                <a href="https://www.redcross.org.uk" target="_blank" rel="noopener noreferrer" className="block text-primary hover:text-aegis-600 dark:hover:text-aegis-300 transition-colors">{t('citizenPage.footer.britishRedCross', lang)}</a>
-                <a href="https://www.gov.uk/browse/justice/emergencies" target="_blank" rel="noopener noreferrer" className="block text-primary hover:text-aegis-600 dark:hover:text-aegis-300 transition-colors">{t('citizenPage.footer.ukEmergencies', lang)}</a>
+                <>
+                  <p className="text-primary font-semibold">{emergencyInfo?.disasterAgency || `${selectedCountry.name || 'National'} Disaster Management`}</p>
+                  <p className="text-primary">{emergencyInfo?.weatherService || `${selectedCountry.name || 'National'} Weather Service`}</p>
+                  {emergencyInfo?.abuseHotline ? (
+                    <p className="text-primary">{emergencyInfo.abuseHotline.name}: {emergencyInfo.abuseHotline.number}</p>
+                  ) : emergencyFallback.extras && emergencyFallback.extras.length > 0 ? (
+                    emergencyFallback.extras.slice(0, 2).map(e => (
+                      <p key={e.name} className="text-primary text-[11px]">{e.name}: <strong className="text-primary">{e.number}</strong></p>
+                    ))
+                  ) : (
+                    <p className="text-primary text-[11px]">IFRC &amp; ReliefWeb emergency resources</p>
+                  )}
+                </>
               </div>
             </div>
             <div>
@@ -687,46 +918,152 @@ export default function CitizenPage(): JSX.Element {
         </div>
       </footer>
 
-      {/* FLOATING SOS BUTTON */}
+      {/* FLOATING SOS BUTTON — hidden while chatbot is open (unless SOS is active) */}
+      {(!showChatbot || sosActive || sosCountdown !== null) && (
       <button
         onClick={handleGuestSOS}
         disabled={sosSending}
-        className={`fixed bottom-24 left-6 z-[90] w-16 h-16 rounded-2xl shadow-2xl flex items-center justify-center transition-all duration-300 ${
+        className={`fixed z-[91] w-16 h-16 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 ${
           sosActive ? 'bg-gradient-to-br from-red-500 to-rose-700 shadow-red-600/50 animate-pulse' :
           sosCountdown !== null ? 'bg-gradient-to-br from-orange-400 to-orange-600 shadow-orange-500/50 scale-110' :
           sosSending ? 'bg-gray-500' :
-          'bg-gradient-to-br from-red-500 to-red-700 hover:from-red-400 hover:to-red-600 hover:scale-110 shadow-red-600/40 active:scale-95'
+          'bg-gradient-to-br from-red-500 to-red-700 hover:from-red-400 hover:to-red-600 hover:scale-110 shadow-red-600/40 active:scale-90'
         }`}
+        style={{ bottom: 'max(6rem, calc(env(safe-area-inset-bottom, 0px) + 6rem))', right: '1.5rem' }}
         aria-label={t('citizen.sos.aria', lang)}
-        title={sosActive ? t('citizen.sos.active', lang) : sosCountdown !== null ? `${t('citizen.sos.sendingIn', lang)} ${sosCountdown}s — ${t('citizen.sos.tapCancel', lang)}` : t('citizen.sos.holdSend', lang)}
       >
         {sosCountdown !== null ? (
           <span className="text-2xl font-black text-white">{sosCountdown}</span>
         ) : sosSending ? (
           <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
         ) : (
-          <Radio className="w-6 h-6 text-white" />
+          <>
+            <Radio className="w-7 h-7 text-white" />
+            <span className="absolute -top-1 -right-1 flex h-4 w-4">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-300 opacity-75" />
+              <span className="relative inline-flex rounded-full h-4 w-4 bg-red-400 text-[8px] font-black text-white items-center justify-center">!</span>
+            </span>
+          </>
         )}
       </button>
+      )}
+
+      {/* SOS pulse rings */}
+      {(sosCountdown !== null || sosActive) && (
+        <>
+          <div className="fixed z-[89] w-16 h-16 rounded-full bg-red-600/30 animate-ping pointer-events-none" style={{ bottom: 'max(6rem, calc(env(safe-area-inset-bottom, 0px) + 6rem))', right: '1.5rem' }} />
+          <div className="fixed z-[88] w-20 h-20 rounded-full border-2 border-red-500/20 animate-pulse pointer-events-none" style={{ bottom: 'max(5.5rem, calc(env(safe-area-inset-bottom, 0px) + 5.5rem))', right: '1.25rem' }} />
+        </>
+      )}
+
+      {/* SOS Countdown Overlay — full-screen feedback */}
+      {sosCountdown !== null && (
+        <div className="fixed inset-0 z-[95] bg-red-950/90 backdrop-blur-sm flex flex-col items-center justify-center animate-fade-in">
+          <div className="text-center space-y-6">
+            <div className="w-28 h-28 mx-auto rounded-full bg-red-600/30 flex items-center justify-center animate-pulse">
+              <span className="text-7xl font-black text-white">{sosCountdown}</span>
+            </div>
+            <div>
+              <p className="text-2xl font-black text-white">Sending Emergency SOS</p>
+              <p className="text-sm text-red-200 mt-2">Your location will be shared with emergency responders</p>
+            </div>
+            <button
+              onClick={handleGuestSOS}
+              className="px-8 py-3 bg-white/10 hover:bg-white/20 border border-white/30 text-white font-bold rounded-2xl transition-all active:scale-95"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* SOS Active Panel — prominent, dynamic emergency numbers */}
       {sosActive && (
-        <div className="fixed bottom-44 left-6 z-[90] glass-card bg-red-900/95 text-white text-xs rounded-2xl px-5 py-3.5 shadow-2xl max-w-[220px] animate-scale-in">
-          <p className="font-bold text-sm">{t('citizen.sos.sent', lang)}</p>
-          <p className="text-red-200 mt-1">{t('citizen.sos.call999', lang)} <strong className="text-white">999</strong></p>
-          <button onClick={() => setSosActive(false)} className="text-red-300 hover:text-white text-[10px] underline mt-1.5 font-medium">{t('general.close', lang)}</button>
+        <div className="fixed inset-x-4 bottom-28 z-[91] bg-gradient-to-br from-red-900 to-red-950 text-white rounded-2xl px-5 py-4 shadow-2xl shadow-red-900/50 max-w-sm mx-auto animate-scale-in border border-red-700/50">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center flex-shrink-0 animate-pulse">
+              <Radio className="w-5 h-5 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-base">{t('citizen.sos.sent', lang)}</p>
+              <p className="text-red-200 text-xs mt-1">Emergency report submitted. Responders notified with your location.</p>
+              {sosAddress && <p className="text-red-300 text-[10px] mt-1 leading-relaxed">{sosAddress}</p>}
+              {sosLat !== null && sosLng !== null && (
+                <p className="text-red-400/80 text-[9px] mt-1 font-mono">GPS: {sosLat.toFixed(5)}, {sosLng.toFixed(5)}</p>
+              )}
+              {sosTimestamp && (
+                <p className="text-red-400/80 text-[9px] mt-0.5">
+                  {sosTimestamp.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })} &mdash; {sosTimestamp.toLocaleTimeString()}
+                </p>
+              )}
+              <div className="mt-2.5 flex flex-wrap gap-1.5">
+                {emergencyInfo && (
+                  <a href={`tel:${emergencyInfo.emergencyNumber.replace(/\s/g, '')}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/15 hover:bg-white/25 rounded-xl text-xs font-bold transition-colors">
+                    <Phone className="w-3.5 h-3.5" /> {emergencyInfo.flag} Call {emergencyInfo.emergencyNumber}
+                  </a>
+                )}
+                {emergencyInfo?.police && emergencyInfo.police !== emergencyInfo.emergencyNumber && (
+                  <a href={`tel:${emergencyInfo.police.replace(/\s/g, '')}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/15 hover:bg-white/25 rounded-xl text-xs font-bold transition-colors">
+                    <Phone className="w-3.5 h-3.5" /> Police {emergencyInfo.police}
+                  </a>
+                )}
+                {emergencyInfo?.mentalHealth && (
+                  <a href={`tel:${emergencyInfo.mentalHealth.number.replace(/\s/g, '')}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-xl text-[10px] font-semibold transition-colors">
+                    <Phone className="w-3 h-3" /> {emergencyInfo.mentalHealth.name}
+                  </a>
+                )}
+                <a href="tel:112" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-xl text-[10px] font-semibold transition-colors">
+                  <Phone className="w-3 h-3" /> EU 112
+                </a>
+              </div>
+            </div>
+            <button onClick={() => setSosActive(false)} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors flex-shrink-0">
+              <X className="w-4 h-4 text-red-300" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* SOS Label — small text above the button */}
+      {!sosActive && sosCountdown === null && (
+        <div className="fixed z-[90] pointer-events-none text-center" style={{ bottom: 'max(10.5rem, calc(env(safe-area-inset-bottom, 0px) + 10.5rem))', right: '0.75rem', width: '4.5rem' }}>
+          <span className="text-[9px] font-bold text-red-600 dark:text-red-400 bg-white/90 dark:bg-gray-900/90 px-1.5 py-0.5 rounded-md shadow-sm">SOS</span>
         </div>
       )}
 
       {/* FLOATING CHATBOT BUTTON — only opens on click, never auto */}
       {!showChatbot && (
-        <button onClick={()=>setShowChatbot(true)} className="fixed bottom-6 right-6 z-[90] w-16 h-16 bg-gradient-to-br from-aegis-500 to-aegis-700 hover:from-aegis-400 hover:to-aegis-600 text-white rounded-2xl shadow-2xl shadow-aegis-600/40 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95" aria-label={t('nav.aiAssistant', lang)}>
+        <button onClick={()=>setShowChatbot(true)} className="fixed z-[90] w-16 h-16 bg-gradient-to-br from-aegis-500 to-aegis-700 hover:from-aegis-400 hover:to-aegis-600 text-white rounded-full shadow-2xl shadow-aegis-600/40 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-90" style={{ bottom: 'max(1.5rem, calc(env(safe-area-inset-bottom, 0px) + 1.5rem))', right: '1.5rem' }} aria-label={t('nav.aiAssistant', lang)}>
           <MessageCircle className="w-6 h-6"/>
         </button>
       )}
 
       {/* MODALS */}
-      {showChatbot && <Chatbot onClose={()=>setShowChatbot(false)} lang={lang}/>}
-      {showReport && <ReportForm onClose={()=>setShowReport(false)}/>}
-      {showCommunity && <CommunityHelp onClose={()=>setShowCommunity(false)}/>}
+      <AnimatePresence>
+      {showChatbot && (
+        <motion.div key="chatbot" className="fixed inset-0 z-[90] pointer-events-none" initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 40 }} transition={{ type: 'spring', damping: 25, stiffness: 300 }}>
+        <div className="pointer-events-auto">
+        <ErrorBoundary name="Chatbot" fallback={<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"><div className="bg-white dark:bg-gray-900 rounded-2xl p-6 text-sm text-gray-500 dark:text-gray-400">AI assistant unavailable</div></div>}>
+          <Suspense fallback={null}><Chatbot onClose={()=>setShowChatbot(false)} lang={lang}/></Suspense>
+        </ErrorBoundary>
+        </div>
+        </motion.div>
+      )}
+      {showReport && (
+        <motion.div key="report" className="fixed inset-0 z-50" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ type: 'spring', damping: 25, stiffness: 300 }}>
+        <ErrorBoundary name="ReportForm" fallback={<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"><div className="bg-white dark:bg-gray-900 rounded-2xl p-6 text-sm text-gray-500 dark:text-gray-400">Report form unavailable</div></div>}>
+          <Suspense fallback={null}><ReportForm onClose={()=>setShowReport(false)}/></Suspense>
+        </ErrorBoundary>
+        </motion.div>
+      )}
+      {showCommunity && (
+        <motion.div key="community" className="fixed inset-0 z-50" initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 40 }} transition={{ type: 'spring', damping: 25, stiffness: 300 }}>
+        <ErrorBoundary name="CommunityHelp" fallback={<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"><div className="bg-white dark:bg-gray-900 rounded-2xl p-6 text-sm text-gray-500 dark:text-gray-400">Community help unavailable</div></div>}>
+          <Suspense fallback={null}><CommunityHelp onClose={()=>setShowCommunity(false)}/></Suspense>
+        </ErrorBoundary>
+        </motion.div>
+      )}
+      </AnimatePresence>
 
       {/* Alert Detail Modal */}
       {selectedAlert && (
@@ -880,10 +1217,44 @@ export default function CitizenPage(): JSX.Element {
                   )}
                 </div>
               )}
-              {selectedReport.trappedPersons && selectedReport.trappedPersons !== 'None' && (
+              {selectedReport.trappedPersons && selectedReport.trappedPersons !== 'no' && selectedReport.trappedPersons !== 'None' && (
                 <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
                   <h5 className="font-semibold text-sm text-red-800 dark:text-red-200">{t('citizenPage.trappedPersons', lang)}</h5>
-                  <p className="text-xs text-red-700 dark:text-red-300 mt-1">{selectedReport.trappedPersons}</p>
+                  <p className="text-xs text-red-700 dark:text-red-300 mt-1">
+                    {selectedReport.trappedPersons === 'yes' ? 'Yes — People are trapped or in immediate danger'
+                      : selectedReport.trappedPersons === 'property' ? 'No — But property or infrastructure at risk'
+                      : selectedReport.trappedPersons}
+                  </p>
+                </div>
+              )}
+              {/* Media Attachments */}
+              {(selectedReport.media?.length > 0 || selectedReport.mediaUrl) && (
+                <div className="space-y-2">
+                  <h5 className="font-semibold text-sm text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                    <Eye className="w-4 h-4" /> Media Attachments
+                  </h5>
+                  <div className="grid grid-cols-2 gap-2">
+                    {selectedReport.media?.map((file: any, i: number) => (
+                      <a key={file.id || i} href={file.url || file.file_url} target="_blank" rel="noopener noreferrer" className="group relative rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 hover:border-aegis-500 transition-colors">
+                        {file.type === 'video' ? (
+                          <video src={file.url || file.file_url} className="w-full h-32 object-cover" />
+                        ) : (
+                          <img src={file.url || file.file_url} alt={file.filename || `Attachment ${i + 1}`} className="w-full h-32 object-cover" loading="lazy" />
+                        )}
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                          <Eye className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                      </a>
+                    ))}
+                    {!selectedReport.media?.length && selectedReport.mediaUrl && (
+                      <a href={selectedReport.mediaUrl} target="_blank" rel="noopener noreferrer" className="group relative rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 hover:border-aegis-500 transition-colors">
+                        <img src={selectedReport.mediaUrl} alt="Report attachment" className="w-full h-32 object-cover" loading="lazy" />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                          <Eye className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                      </a>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -993,6 +1364,9 @@ export default function CitizenPage(): JSX.Element {
           }`}>{n.message}</div>
         ))}
       </div>
+
+      {/* First-run onboarding tutorial */}
+      <Suspense fallback={null}><OnboardingTutorial /></Suspense>
     </AppLayout>
   )
 }

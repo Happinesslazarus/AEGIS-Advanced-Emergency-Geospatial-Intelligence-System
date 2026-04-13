@@ -1,22 +1,16 @@
 """
-DEPRECATED — Use train_public_safety_incident_real.py instead.
+File: train_public_safety.py
 
-This script used weak heuristic labels (crowd proxies, heat stress formulas)
-from a single location.  The _real.py version uses 13 UK grid locations
-with operational safety thresholds (ice, fog, wind, snow, flood).
+What this file does:
+Trains the public safety risk-prediction model on synthetic/augmented data.
+Uses BaseHazardPipeline for the training loop. Useful as a quick
+bootstrap when real-world labelled data is unavailable.
 
-train_public_safety.py — Public Safety Incident Training Pipeline (DEPRECATED)
-
-Features: temperature, wind_speed, precipitation, time_of_day,
-          is_weekend, crowd_proxy, heat_stress, weather_discomfort
-Data:     Open-Meteo historical (global, free)
-Labels:   Weak heuristic → experimental
-          Heat stress + adverse weather + weekend/evening peaks
-Model:    XGBoost classifier
-
-Usage:
-    python -m app.training.train_public_safety --region=global
-    python -m app.training.train_public_safety --region=uk
+How it connects:
+- Extends ai-engine/app/training/base_hazard_pipeline.py
+- Synthetic feature generation via data_loaders.py and data_ingestion.py
+- Saves to model_registry/public_safety_incident/ via ModelRegistry
+- Loaded at inference time by ai-engine/app/hazards/public_safety_incident.py
 """
 
 from __future__ import annotations

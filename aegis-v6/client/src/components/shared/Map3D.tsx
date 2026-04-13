@@ -1,20 +1,10 @@
-﻿/**
- * Map3D.tsx — Full 3D Disaster Map with Mapbox GL JS
+/**
+ * Module: Map3D.tsx
  *
- * Features:
- * 3D terrain (Mapbox DEM) with building extrusions
- * All report markers with severity-coloured pins
- * River gauge station markers
- * Flood prediction polygon overlays with animated opacity
- * Evacuation route polylines
- * Distress beacon markers (pulsing red)
- * Shelter markers
- * 2D/3D toggle with smooth pitch animation
- * Satellite/street basemap switcher
- * Mini compass + zoom controls
+ * Map3 d shared component (reusable UI element used across pages).
  *
- * Falls back to Leaflet DisasterMap if Mapbox token is not configured.
- */
+ * How it connects:
+ * - Used across both admin and citizen interfaces */
 
 import { useRef, useEffect, useState, useCallback } from 'react'
 import mapboxgl from 'mapbox-gl'

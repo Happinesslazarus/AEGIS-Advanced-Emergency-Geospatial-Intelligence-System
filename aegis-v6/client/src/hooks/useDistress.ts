@@ -1,14 +1,10 @@
 /**
- * useDistress.ts — React hook for Personal Distress Beacon / SOS
+ * Module: useDistress.ts
  *
- * Manages:
- * SOS activation with 5-second countdown
- * Live GPS tracking via watchPosition
- * Socket.IO real-time location broadcasting
- * Dead-man switch heartbeat (every 30s)
- * Acknowledgement listening
- * Cancellation
- */
+ * useDistress custom React hook (distress logic).
+ *
+ * How it connects:
+ * - Used by React components that need this functionality */
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 
@@ -54,11 +50,16 @@ export function useDistress({ socket, citizenId, citizenName, onActivated, onAck
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const watchIdRef = useRef<number | null>(null)
 
-  // Keep latest GPS in refs so activateSOS always reads fresh values (avoids stale closure)
+  // Refs that hold the latest GPS coordinates.  Using refs (not state) here
+  // prevents a stale closure problem: `activateSOS` is memoised with useCallback
+  // but it reads GPS values that change over time.  Refs always give the latest
+  // value without needing to be listed as dependencies.
   const latRef = useRef<number | null>(null)
   const lngRef = useRef<number | null>(null)
 
-  // Start 5-second countdown
+  // startCountdown: gives the user 5 seconds to change their mind before
+  // sending the SOS signal.  This prevents accidental activations and mirrors
+  // the confirmation delay used by smartphone emergency SOS features.
   const startCountdown = useCallback(() => {
     setState(prev => ({ ...prev, status: 'countdown', countdownSeconds: 5, error: null }))
 
@@ -144,7 +145,10 @@ export function useDistress({ socket, citizenId, citizenName, onActivated, onAck
     })
   }, [socket, onActivated])
 
-  // GPS tracking
+  // startGPSTracking: uses `watchPosition` (continuous updates) rather than
+  // `getCurrentPosition` (one-shot) so the operator dashboard sees the citizen
+  // moving in real time.  maximumAge:5000 allows a cached position up to 5s
+  // old to reduce battery drain; enableHighAccuracy tries to use GPS chips.
   const startGPSTracking = useCallback((distressId: string) => {
     if (!navigator.geolocation || !socket) return
 
@@ -169,7 +173,9 @@ export function useDistress({ socket, citizenId, citizenName, onActivated, onAck
     )
   }, [socket])
 
-  // Dead-man switch heartbeat
+  // startHeartbeat: a "dead-man switch" that emits a ping every 30 seconds.
+  // The server can detect when the pings stop (e.g. app closed, phone off)
+  // and escalate the distress incident to operators automatically.
   const startHeartbeat = useCallback((distressId: string) => {
     heartbeatRef.current = setInterval(() => {
       if (socket) {
@@ -216,6 +222,8 @@ export function useDistress({ socket, citizenId, citizenName, onActivated, onAck
     if (!socket) return
 
     const onAck = (data: any) => {
+      // Only process if this event is for OUR distress call (multiple tabs may
+      // be open, so we filter by distressId).
       if (data.distressId === state.distressId) {
         setState(prev => ({
           ...prev,
@@ -270,4 +278,4 @@ export function useDistress({ socket, citizenId, citizenName, onActivated, onAck
     retryActivation,
   }
 }
-
+

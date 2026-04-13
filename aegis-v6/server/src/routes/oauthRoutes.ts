@@ -1,26 +1,64 @@
- /*
- * routes/oauthRoutes.ts — Social login via Passport.js
- * Endpoints:
- *   GET  /api/auth/google          — Redirect to Google consent screen
- *   GET  /api/auth/google/callback — Google callback → JWT + redirect
- * Environment variables required:
- *   GOOGLE_CLIENT_ID       — Google Cloud OAuth client ID
- *   GOOGLE_CLIENT_SECRET   — Google Cloud OAuth client secret
- *   OAUTH_CALLBACK_URL     — e.g. https://yoursite.com/api/auth/google/callback
- *   CLIENT_URL             — e.g. https://yoursite.com (for redirect after login)
- * If GOOGLE_CLIENT_ID is not set, the routes are still mounted but return a
- * 501 "OAuth not configured" response, so the server always starts cleanly.
-  */
+/**
+ * File: oauthRoutes.ts
+ *
+ * What this file does:
+ * OAuth 2.0 social login (Google). Redirects users to Google's consent
+ * screen, handles the callback, and exchanges the auth code for AEGIS
+ * JWT tokens using a secure code-exchange pattern.
+ *
+ * How it connects:
+ * - Mounted at /api/auth in index.ts (adds Google OAuth sub-routes)
+ * - Uses Passport.js with the Google OAuth2 strategy
+ * - Creates or links citizen accounts in the database
+ * - Returns JWT + refresh token like the regular login flow
+ *
+ * Key endpoints:
+ * GET  /api/auth/google          — Redirect to Google consent
+ * GET  /api/auth/google/callback — Google callback handler
+ * POST /api/auth/oauth/exchange  — Exchange code for JWT
+ *
+ * Simple explanation:
+ * "Sign in with Google" — lets citizens log in using their Google account.
+ */
 
 import { Router, Request, Response, NextFunction } from 'express'
 import passport from 'passport'
 import { Strategy as GoogleStrategy, Profile } from 'passport-google-oauth20'
+import crypto from 'crypto'
 import pool from '../models/db.js'
 import { generateToken, generateRefreshToken } from '../middleware/auth.js'
 import { AppError } from '../utils/AppError.js'
 import { logger } from '../services/logger.js'
 
 const router = Router()
+
+// Secure token exchange storage (short-lived, one-time codes)
+// In production with multiple instances, use Redis instead
+interface PendingOAuthExchange {
+  userId: string
+  email: string
+  role: string
+  displayName: string
+  expiresAt: number
+}
+const pendingExchanges = new Map<string, PendingOAuthExchange>()
+
+// Clean expired codes every 30 seconds
+setInterval(() => {
+  const now = Date.now()
+  for (const [code, data] of pendingExchanges) {
+    if (data.expiresAt < now) {
+      pendingExchanges.delete(code)
+    }
+  }
+}, 30 * 1000)
+
+/**
+ * Generate a secure one-time exchange code
+ */
+function generateOAuthCode(): string {
+  return crypto.randomBytes(32).toString('base64url')
+}
 
 // Configure Passport Google Strategy (only when env vars present)
 
@@ -158,23 +196,97 @@ router.get(
         role: user.role || 'citizen',
         displayName: user.display_name,
       })
-      const refreshToken = generateRefreshToken({ id: user.id, role: user.role || 'citizen' })
-
-      // Set refresh cookie
-      res.cookie('aegis_refresh', refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-        path: '/api/citizen-auth',
+      // Generate secure one-time exchange code (NEVER put tokens in URLs)
+      // Code expires in 60 seconds and can only be used once
+      const exchangeCode = generateOAuthCode()
+      pendingExchanges.set(exchangeCode, {
+        userId: user.id,
+        email: user.email,
+        role: user.role || 'citizen',
+        displayName: user.display_name,
+        expiresAt: Date.now() + 60 * 1000, // 60 second expiry
       })
 
-      // Redirect to client with token in URL hash (short-lived, read once by client JS)
-      // The client reads the token from the hash fragment, stores it, and clears the hash.
-      res.redirect(`${CLIENT_URL}/citizen/dashboard#oauth_token=${token}`)
+      // Redirect to client with code (client exchanges for token via POST)
+      // This is secure because:
+      // 1. Code is one-time use (deleted after exchange)
+      // 2. Code expires in 60 seconds
+      // 3. Token is returned via POST response body, not URL
+      res.redirect(`${CLIENT_URL}/citizen/oauth/callback?code=${exchangeCode}`)
     })(req, res, next)
   },
 )
+
+// POST /api/auth/oauth/exchange — Exchange one-time code for JWT tokens
+// This is the secure token exchange endpoint
+
+router.post('/oauth/exchange', (req: Request, res: Response) => {
+  const { code } = req.body
+  
+  if (!code || typeof code !== 'string') {
+    res.status(400).json({
+      success: false,
+      error: { code: 'MISSING_CODE', message: 'Exchange code is required' },
+    })
+    return
+  }
+  
+  const pending = pendingExchanges.get(code)
+  
+  if (!pending) {
+    res.status(400).json({
+      success: false,
+      error: { code: 'INVALID_CODE', message: 'Invalid or expired exchange code' },
+    })
+    return
+  }
+  
+  // Delete code immediately (one-time use)
+  pendingExchanges.delete(code)
+  
+  // Check expiry
+  if (Date.now() > pending.expiresAt) {
+    res.status(400).json({
+      success: false,
+      error: { code: 'CODE_EXPIRED', message: 'Exchange code has expired' },
+    })
+    return
+  }
+  
+  // Generate tokens (same as regular login)
+  const token = generateToken({
+    id: pending.userId,
+    email: pending.email,
+    role: pending.role,
+    displayName: pending.displayName,
+  })
+  const refreshToken = generateRefreshToken({ id: pending.userId, role: pending.role })
+  
+  // Set refresh cookie
+  res.cookie('aegis_refresh', refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict', // Changed from 'lax' for better security
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    path: '/api/citizen-auth',
+  })
+  
+  // Return access token in response body (secure - not in URL)
+  res.json({
+    success: true,
+    data: {
+      token,
+      user: {
+        id: pending.userId,
+        email: pending.email,
+        role: pending.role,
+        displayName: pending.displayName,
+      },
+    },
+  })
+  
+  logger.info({ userId: pending.userId }, '[OAuth] Token exchange successful')
+})
 
 // GET /api/auth/status — Check which OAuth providers are enabled
 

@@ -1,13 +1,16 @@
 """
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
- AEGIS AI ENGINE â€” Data Loaders
- 
- Responsible for:
- - Loading training data from PostgreSQL
- - Loading external data sources (weather APIs, river gauges, SEPA data)
- - Creating time series datasets
- - Data validation and quality checks
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+File: data_loaders.py
+
+What this file does:
+Dataset loader utilities: reads CSV/Parquet training files, handles
+class imbalance with SMOTE or random oversampling, returns train/test
+splits as numpy arrays. Also provides the synthetic data generator
+(generate_synthetic_samples) used by base_hazard_pipeline.py.
+
+How it connects:
+- Called by base_hazard_pipeline.py and training_pipeline.py
+- SMOTE from imbalanced-learn (see ai-engine/requirements.txt)
+- Input files loaded from ai-engine/data/ directory
 """
 
 import pandas as pd
@@ -835,4 +838,4 @@ class FeatureExtractor:
         features['timestamp'] = timestamp
         
         return features
-
+

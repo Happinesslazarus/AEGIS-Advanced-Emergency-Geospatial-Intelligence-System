@@ -1,7 +1,17 @@
+"""
+Module: check_tables_schema.py
+
+Check_tables_schema utility script.
+
+Simple explanation:
+Standalone script for check_tables_schema.
+"""
+
+import os
 import asyncio, asyncpg
 
 async def main():
-    c = await asyncpg.connect('postgresql://postgres:Happylove%40%21@localhost:5432/aegis')
+    c = await asyncpg.connect(os.environ.get('DATABASE_URL', 'postgresql://localhost:5432/aegis'))
     
     # Check ai_model_metrics columns
     rows = await c.fetch("""

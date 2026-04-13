@@ -1,3 +1,11 @@
+/**
+ * Module: ActivityLog.tsx
+ *
+ * Operator activity log viewer (shows who did what and when).
+ *
+ * How it connects:
+ * - Rendered inside AdminPage.tsx based on active view */
+
 /// AEGIS Admin - Activity Log Component
 import { useState, useEffect } from 'react'
 import { Clock, CheckCircle, AlertTriangle, Flag, Bell, Shield, Download, Printer } from 'lucide-react'
@@ -30,7 +38,9 @@ export function addActivity(entry: Omit<ActivityEntry, 'id' | 'timestamp'>): voi
 export function useActivityLog(): [ActivityEntry[], (entries: ActivityEntry[]) => void] {
   const [log, setLog] = useState<ActivityEntry[]>(_log)
   useEffect(() => {
-    if (!_listeners.includes(setLog)) _listeners.push(setLog)
+    // Ensure no duplicate listeners (e.g. from StrictMode double-mount)
+    _listeners = _listeners.filter(fn => fn !== setLog)
+    _listeners.push(setLog)
     return () => { _listeners = _listeners.filter(fn => fn !== setLog) }
   }, [])
   return [log, setLog]

@@ -1,0 +1,12 @@
+hazard_name,region_scope,label_source,data_validity,status,label_integrity,leakage_severity,n_total,n_positive,positive_rate,n_test_positive,roc_auc,f1_positive,recall_positive,precision_positive,promotion_status,primary_reason,recommended_fix,required_dataset,dissertation_suitability
+flood,UNKNOWN,UNKNOWN,UNKNOWN,SKIPPED,unknown,unknown,0,0,0.0000,0,,,,,skipped,,,,
+drought,UNKNOWN,UNKNOWN,UNKNOWN,SKIPPED,unknown,unknown,0,0,0.0000,0,,,,,skipped,,,,
+heatwave,UNKNOWN,UNKNOWN,UNKNOWN,SKIPPED,unknown,unknown,0,0,0.0000,0,,,,,skipped,,,,
+severe_storm,UNKNOWN,UNKNOWN,UNKNOWN,SKIPPED,unknown,unknown,0,0,0.0000,0,,,,,skipped,,,,
+wildfire,UNKNOWN,UNKNOWN,UNKNOWN,SKIPPED,unknown,unknown,0,0,0.0000,0,,,,,skipped,,,,
+landslide,UNKNOWN,UNKNOWN,UNKNOWN,SKIPPED,unknown,unknown,0,0,0.0000,0,,,,,skipped,,,,
+power_outage,UNKNOWN,UNKNOWN,UNKNOWN,SKIPPED,unknown,unknown,0,0,0.0000,0,,,,,skipped,,,,
+water_supply_disruption,UNKNOWN,UNKNOWN,UNKNOWN,SKIPPED,unknown,unknown,0,0,0.0000,0,,,,,skipped,,,,
+infrastructure_damage,UNKNOWN,UNKNOWN,UNKNOWN,SKIPPED,unknown,unknown,0,0,0.0000,0,,,,,skipped,,,,
+public_safety_incident,UNKNOWN,UNKNOWN,UNKNOWN,SKIPPED,unknown,unknown,0,0,0.0000,0,,,,,skipped,,,,
+environmental_hazard,UNKNOWN,UNKNOWN,UNKNOWN,SKIPPED,unknown,unknown,0,0,0.0000,0,,,,,skipped,,,,

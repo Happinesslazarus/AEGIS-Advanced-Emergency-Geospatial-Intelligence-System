@@ -1,8 +1,18 @@
+"""
+Module: check_data_quality.py
+
+Check_data_quality utility script.
+
+Simple explanation:
+Standalone script for check_data_quality.
+"""
+
+import os
 import asyncio, asyncpg, numpy as np
 from collections import Counter
 
 async def main():
-    c = await asyncpg.connect('postgresql://postgres:Happylove%40%21@localhost:5432/aegis')
+    c = await asyncpg.connect(os.environ.get('DATABASE_URL', 'postgresql://localhost:5432/aegis'))
     
     # Check weather data quality
     wo = await c.fetch("""
@@ -16,7 +26,7 @@ async def main():
     """)
     print("=== WEATHER OBSERVATIONS ===")
     for r in wo:
-        print(f"  {r['location_name']:20s} rows={r['cnt']:5d}  temp={r['avg_temp']:.1f}±{r['std_temp']:.1f}  rain={r['avg_rain']:.1f}±{r['std_rain']:.1f}  hum={r['avg_hum']:.1f}±{r['std_hum']:.1f}")
+        print(f"  {r['location_name']:20s} rows={r['cnt']:5d}  temp={r['avg_temp']:.1f}Ã‚Â±{r['std_temp']:.1f}  rain={r['avg_rain']:.1f}Ã‚Â±{r['std_rain']:.1f}  hum={r['avg_hum']:.1f}Ã‚Â±{r['std_hum']:.1f}")
     
     # Check reports category distribution 
     rp = await c.fetch("SELECT incident_category, severity, COUNT(*) FROM reports GROUP BY incident_category, severity ORDER BY incident_category, severity")
@@ -28,7 +38,7 @@ async def main():
     fa = await c.fetch("SELECT severity_level, COUNT(*), AVG(damage_gbp) as avg_damage FROM flood_archives GROUP BY severity_level")
     print("\n=== FLOOD ARCHIVES ===")
     for r in fa:
-        print(f"  {r['severity_level']:10s} count={r['count']}  avg_damage=£{r['avg_damage']:,.0f}")
+        print(f"  {r['severity_level']:10s} count={r['count']}  avg_damage=Ã‚Â£{r['avg_damage']:,.0f}")
     
     # Check weather columns
     cols = await c.fetch("SELECT column_name FROM information_schema.columns WHERE table_name='weather_observations' ORDER BY ordinal_position")

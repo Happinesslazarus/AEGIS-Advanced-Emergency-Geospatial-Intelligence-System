@@ -1,17 +1,21 @@
 /**
- * SystemHealthPanel.tsx — Architecture Status Board
+ * File: SystemHealthPanel.tsx
  *
- * World-class system health dashboard showing:
- * - Overall health score with animated gauge
- * - Server uptime and memory utilization
- * - Service health cards with latency quality bars
- * - Circuit breaker states
- * - Architecture data flow with live status indicators
- * - Cron job history
- * - Workflow definitions
- * - Technology stack overview
+ * What this file does:
+ * Real-time dashboard card showing the operational health of all AEGIS backend services.
+ * Displays a computed health score (0-100), server uptime, memory usage, and per-service
+ * status cards for database, AI engine, scheduler (n8n), and circuit breakers.
+ * Auto-refreshes every 30 seconds; also supports keyboard shortcut R to refresh.
  *
- * Data is fetched from GET /api/internal/health/system (100% real)
+ * How it connects:
+ * - Fetches from GET /api/internal/health/system (server/src/routes/internalRoutes.ts)
+ * - Rendered inside AdminDashboard.tsx as the "System Health" section
+ * - Uses apiFetch() from client/src/utils/api.ts (attaches auth token automatically)
+ *
+ * Simple explanation:
+ * The ops dashboard for the admin. Shows whether the database, AI engine, and
+ * automation workflows are running, how fast they are, and if any circuit breakers
+ * have tripped. Refreshes automatically every 30 seconds.
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
@@ -54,8 +58,9 @@ interface SystemHealth {
   workflow_definitions?: Array<{ name: string; nodeCount: number; active: boolean }>
 }
 
-/* ── Helpers ── */
+// Helpers -------------------------------------------------------------------
 
+// Convert seconds into a human-readable uptime string, e.g. "3d 2h 45m"
 function formatUptime(seconds: number): string {
   const d = Math.floor(seconds / 86400)
   const h = Math.floor((seconds % 86400) / 3600)
@@ -65,6 +70,8 @@ function formatUptime(seconds: number): string {
   return `${m}m`
 }
 
+// Map a latency value to a visual quality label + colour + bar percentage.
+// Thresholds are tuned for a local/LAN backend (≤50ms is great, >500ms is critical).
 function latencyQuality(ms: number): { label: string; color: string; barColor: string; pct: number } {
   if (ms <= 5)   return { label: 'Excellent', color: 'text-emerald-600 dark:text-emerald-400', barColor: 'bg-emerald-500', pct: 100 }
   if (ms <= 20)  return { label: 'Excellent', color: 'text-emerald-600 dark:text-emerald-400', barColor: 'bg-emerald-500', pct: 95 }
@@ -74,14 +81,21 @@ function latencyQuality(ms: number): { label: string; color: string; barColor: s
   return                { label: 'Critical',  color: 'text-red-600 dark:text-red-400',         barColor: 'bg-red-500',      pct: 15 }
 }
 
+// Health score formula (0-100):
+// - Database down: -40 points (most critical single-point failure)
+// - AI engine down: -25 points
+// - Scheduler unavailable: -15 points
+// - High recent error count: -8 to -15 points
+// - Open circuit breakers: -5 points each
 function computeHealthScore(h: SystemHealth): number {
   let score = 100
   if (!h.database.ok) score -= 40
-  else if (h.database.latency_ms > 100) score -= 10
+  else if (h.database.latency_ms > 100) score -= 10 // sluggish but alive
   else if (h.database.latency_ms > 50) score -= 5
   if (!h.ai_engine.ok) score -= 25
   else if (h.ai_engine.latency_ms > 500) score -= 10
   else if (h.ai_engine.latency_ms > 200) score -= 5
+  // Scheduler is OK if n8n is healthy, OR if cron fallback is handling it, OR if n8n was never configured
   const schedulerOk = h.n8n.healthy || h.n8n.fallback_active || h.n8n.status === 'not_configured'
   if (!schedulerOk) score -= 15
   const totalErrors = h.recent_errors.frontend + h.recent_errors.system + h.recent_errors.external
@@ -89,7 +103,7 @@ function computeHealthScore(h: SystemHealth): number {
   else if (totalErrors > 5) score -= 8
   else if (totalErrors > 0) score -= 3
   const openBreakers = Object.values(h.circuit_breakers || {}).filter(cb => cb.open).length
-  score -= openBreakers * 5
+  score -= openBreakers * 5 // each open circuit breaker further degrades score
   return Math.max(0, Math.min(100, score))
 }
 
@@ -112,8 +126,9 @@ function scoreLabel(score: number, lang: string): string {
   return t('admin.health.scorePoor', lang)
 }
 
-/* ── Sub-components ── */
+// Sub-components -------------------------------------------------------------
 
+// Small pill badge showing a green tick or red X with healthy/down label.
 function StatusBadge({ ok, label }: { ok: boolean; label?: string }) {
   const lang = useLanguage()
   return (
@@ -138,14 +153,13 @@ function LatencyBar({ ms, ok }: { ms: number; ok: boolean }) {
       </div>
       <div className="flex items-center justify-between mt-1">
         <span className={`text-[9px] font-bold ${q.color}`}>{q.label}</span>
-        <span className="text-[9px] text-gray-400 dark:text-gray-500">{ms}ms</span>
+        <span className="text-[9px] text-gray-400 dark:text-gray-400">{ms}ms</span>
       </div>
     </div>
   )
 }
 
-/* ── Main component ── */
-
+// Main component -------------------------------------------------------------
 export default function SystemHealthPanel() {
   const [health, setHealth] = useState<SystemHealth | null>(null)
   const [loading, setLoading] = useState(true)
@@ -164,13 +178,15 @@ export default function SystemHealthPanel() {
     }
   }, [])
 
+  // Initial fetch + 30-second auto-refresh. Cleans up the interval on unmount.
   useEffect(() => {
     fetchHealth()
     const interval = setInterval(fetchHealth, 30000)
     return () => clearInterval(interval)
   }, [fetchHealth])
 
-  // Keyboard shortcuts
+  // Keyboard shortcuts: R = refresh, ? = toggle shortcut help, Esc = close help
+  // Guard against firing while typing in form fields.
   const [showKeyboard, setShowKeyboard] = useState(false)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -185,6 +201,7 @@ export default function SystemHealthPanel() {
     return () => document.removeEventListener('keydown', handler)
   }, [fetchHealth])
 
+  // Memoised so the expensive score computation only re-runs when health data changes
   const healthScore = useMemo(() => health ? computeHealthScore(health) : 0, [health])
 
   if (loading && !health) {
@@ -220,7 +237,7 @@ export default function SystemHealthPanel() {
 
   return (
     <div className="space-y-6">
-      {/* ── Hero Header ── */}
+      {/* Hero Header */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800 text-white p-6">
         {/* Animated background */}
         <div className="absolute inset-0 overflow-hidden">
@@ -333,7 +350,7 @@ export default function SystemHealthPanel() {
         </div>
       </div>
 
-      {/* ── Core Services ── */}
+      {/* Core Services */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Database */}
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:shadow-lg transition-shadow">
@@ -391,7 +408,7 @@ export default function SystemHealthPanel() {
                     : t('admin.health.starting', lang)
             return <StatusBadge ok={schedulerUp} label={label} />
           })()}
-          <div className="text-xs text-gray-400 dark:text-gray-500 mt-2 space-y-0.5">
+          <div className="text-xs text-gray-400 dark:text-gray-400 mt-2 space-y-0.5">
             {health.n8n.status === 'connected' && (
               <>
                 {health.n8n.version && <p>n8n v{health.n8n.version}</p>}
@@ -419,7 +436,7 @@ export default function SystemHealthPanel() {
             {totalErrors === 0 && <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />}
           </div>
           <StatusBadge ok={totalErrors === 0} label={totalErrors === 0 ? t('admin.health.clean', lang) : `${totalErrors} ${t('admin.health.errors', lang)}`} />
-          <div className="text-xs text-gray-400 dark:text-gray-500 mt-3 space-y-1">
+          <div className="text-xs text-gray-400 dark:text-gray-400 mt-3 space-y-1">
             {[
               { label: t('admin.health.frontend', lang), val: health.recent_errors.frontend },
               { label: t('admin.health.backend', lang), val: health.recent_errors.system },
@@ -427,14 +444,14 @@ export default function SystemHealthPanel() {
             ].map(({ label, val }) => (
               <div key={label} className="flex items-center justify-between">
                 <span>{label}</span>
-                <span className={`font-bold ${val > 0 ? 'text-red-500' : 'text-gray-300 dark:text-gray-600'}`}>{val}</span>
+                <span className={`font-bold ${val > 0 ? 'text-red-500' : 'text-gray-300 dark:text-gray-400'}`}>{val}</span>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* ── Circuit Breakers ── */}
+      {/* Circuit Breakers */}
       {circuitBreakerEntries.length > 0 && (
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-3">
@@ -455,7 +472,7 @@ export default function SystemHealthPanel() {
                   <span className="text-sm font-mono font-bold text-gray-700 dark:text-gray-300">{name}</span>
                   <StatusBadge ok={!state.open} label={state.open ? t('admin.health.open', lang) : t('admin.health.closed', lang)} />
                 </div>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                <p className="text-xs text-gray-400 dark:text-gray-400 mt-1">
                   {t('admin.health.failures', lang)}: {state.failures}
                   {state.lastFailure && ` — ${t('admin.health.lastFailure', lang)}: ${new Date(state.lastFailure).toLocaleTimeString()}`}
                 </p>
@@ -465,7 +482,7 @@ export default function SystemHealthPanel() {
         </div>
       )}
 
-      {/* ── Architecture Data Flow ── */}
+      {/* Architecture Data Flow */}
       <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
         <div className="flex items-center gap-2 mb-5">
           <Server className="w-5 h-5 text-gray-500 dark:text-gray-400" />
@@ -480,7 +497,7 @@ export default function SystemHealthPanel() {
             <span className="text-blue-500/70 text-[10px]">{t('admin.health.dataSources', lang)}</span>
           </div>
 
-          <div className="flex items-center"><ArrowRight className="w-4 h-4 text-gray-300 dark:text-gray-600" /><div className="w-4 h-px bg-gradient-to-r from-gray-300 to-transparent dark:from-gray-600" /></div>
+          <div className="flex items-center"><ArrowRight className="w-4 h-4 text-gray-300 dark:text-gray-400" /><div className="w-4 h-px bg-gradient-to-r from-gray-300 to-transparent dark:from-gray-600" /></div>
 
           {/* Orchestrator */}
           <div className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border min-w-[90px] relative ${
@@ -498,7 +515,7 @@ export default function SystemHealthPanel() {
             </span>
           </div>
 
-          <div className="flex items-center"><ArrowRight className="w-4 h-4 text-gray-300 dark:text-gray-600" /><div className="w-4 h-px bg-gradient-to-r from-gray-300 to-transparent dark:from-gray-600" /></div>
+          <div className="flex items-center"><ArrowRight className="w-4 h-4 text-gray-300 dark:text-gray-400" /><div className="w-4 h-px bg-gradient-to-r from-gray-300 to-transparent dark:from-gray-600" /></div>
 
           {/* AEGIS Backend */}
           <div className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 min-w-[90px] relative">
@@ -508,7 +525,7 @@ export default function SystemHealthPanel() {
             <span className="text-green-500/70 text-[10px]">Express + Socket.IO</span>
           </div>
 
-          <div className="flex items-center"><ArrowRight className="w-4 h-4 text-gray-300 dark:text-gray-600" /><div className="w-4 h-px bg-gradient-to-r from-gray-300 to-transparent dark:from-gray-600" /></div>
+          <div className="flex items-center"><ArrowRight className="w-4 h-4 text-gray-300 dark:text-gray-400" /><div className="w-4 h-px bg-gradient-to-r from-gray-300 to-transparent dark:from-gray-600" /></div>
 
           {/* PostgreSQL */}
           <div className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border min-w-[90px] relative ${
@@ -532,7 +549,7 @@ export default function SystemHealthPanel() {
             <span className="text-purple-500/70 text-[10px]">FastAPI {aiUp ? `${health.ai_engine.latency_ms}ms` : t('admin.health.down', lang)}</span>
           </div>
 
-          <div className="flex items-center"><ArrowRight className="w-4 h-4 text-gray-300 dark:text-gray-600" /><div className="w-4 h-px bg-gradient-to-r from-gray-300 to-transparent dark:from-gray-600" /></div>
+          <div className="flex items-center"><ArrowRight className="w-4 h-4 text-gray-300 dark:text-gray-400" /><div className="w-4 h-px bg-gradient-to-r from-gray-300 to-transparent dark:from-gray-600" /></div>
 
           {/* Frontend */}
           <div className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-cyan-50 dark:bg-cyan-950/20 border border-cyan-200 dark:border-cyan-800 min-w-[90px] relative">
@@ -544,14 +561,14 @@ export default function SystemHealthPanel() {
         </div>
       </div>
 
-      {/* ── Recent Cron Jobs ── */}
+      {/* Recent Cron Jobs */}
       <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
         <div className="flex items-center gap-2 mb-3">
           <Clock className="w-5 h-5 text-indigo-500" />
           <h3 className="font-bold text-gray-700 dark:text-gray-300">{t('admin.health.recentJobs', lang)}</h3>
         </div>
         {health.recent_jobs.length === 0 ? (
-          <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-4">{t('admin.health.noJobs', lang)}</p>
+          <p className="text-sm text-gray-400 dark:text-gray-400 text-center py-4">{t('admin.health.noJobs', lang)}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -578,7 +595,7 @@ export default function SystemHealthPanel() {
                     </td>
                     <td className="py-2 pr-4 text-right text-xs text-gray-500 dark:text-gray-400">{job.duration_ms}ms</td>
                     <td className="py-2 pr-4 text-right text-xs text-gray-500 dark:text-gray-400">{job.records_affected ?? '-'}</td>
-                    <td className="py-2 text-right text-xs text-gray-400 dark:text-gray-500">{job.completed_at ? new Date(job.completed_at).toLocaleTimeString() : '-'}</td>
+                    <td className="py-2 text-right text-xs text-gray-400 dark:text-gray-400">{job.completed_at ? new Date(job.completed_at).toLocaleTimeString() : '-'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -587,7 +604,7 @@ export default function SystemHealthPanel() {
         )}
       </div>
 
-      {/* ── Workflow Definitions ── */}
+      {/* Workflow Definitions */}
       {health.workflow_definitions && health.workflow_definitions.length > 0 && (
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-3">
@@ -601,14 +618,14 @@ export default function SystemHealthPanel() {
                   <span className="text-sm font-bold text-gray-700 dark:text-gray-300">{wf.name}</span>
                   <StatusBadge ok={wf.active} label={wf.active ? t('admin.health.active', lang) : t('common.inactive', lang)} />
                 </div>
-                <p className="text-xs text-gray-400 dark:text-gray-500">{wf.nodeCount} {t('admin.health.nodes', lang)}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-400">{wf.nodeCount} {t('admin.health.nodes', lang)}</p>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* ── Technology Stack ── */}
+      {/* Technology Stack */}
       <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
         <div className="flex items-center gap-2 mb-3">
           <MonitorCheck className="w-5 h-5 text-violet-500" />
@@ -618,28 +635,28 @@ export default function SystemHealthPanel() {
           <div className="p-3 rounded-lg bg-cyan-50/50 dark:bg-cyan-950/10 border border-cyan-200/60 dark:border-cyan-800/40">
             <p className="text-[9px] uppercase font-bold tracking-wider text-cyan-600 dark:text-cyan-400 mb-1">{t('admin.health.frontend', lang)}</p>
             <p className="text-xs font-bold text-gray-700 dark:text-gray-300">React 18 + TypeScript</p>
-            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">Tailwind CSS + Leaflet + Vite</p>
+            <p className="text-[10px] text-gray-400 dark:text-gray-400 mt-0.5">Tailwind CSS + Leaflet + Vite</p>
           </div>
           <div className="p-3 rounded-lg bg-green-50/50 dark:bg-green-950/10 border border-green-200/60 dark:border-green-800/40">
             <p className="text-[9px] uppercase font-bold tracking-wider text-green-600 dark:text-green-400 mb-1">{t('admin.health.backend', lang)}</p>
             <p className="text-xs font-bold text-gray-700 dark:text-gray-300">Express.js + Socket.IO</p>
-            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">PostgreSQL + PostGIS</p>
+            <p className="text-[10px] text-gray-400 dark:text-gray-400 mt-0.5">PostgreSQL + PostGIS</p>
           </div>
           <div className="p-3 rounded-lg bg-purple-50/50 dark:bg-purple-950/10 border border-purple-200/60 dark:border-purple-800/40">
             <p className="text-[9px] uppercase font-bold tracking-wider text-purple-600 dark:text-purple-400 mb-1">{t('admin.health.aiEngine', lang)}</p>
             <p className="text-xs font-bold text-gray-700 dark:text-gray-300">Python FastAPI</p>
-            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">XGBoost + LSTM + CatBoost</p>
+            <p className="text-[10px] text-gray-400 dark:text-gray-400 mt-0.5">XGBoost + LSTM + CatBoost</p>
           </div>
         </div>
       </div>
 
-      {/* ── Keyboard Shortcuts ── */}
+      {/* Keyboard Shortcuts */}
       {showKeyboard && (
         <div className="bg-gray-900 text-white rounded-xl p-3 flex items-center gap-4 flex-wrap text-[10px] font-mono ring-1 ring-gray-700">
           <span className="font-bold text-gray-400 uppercase tracking-wider mr-1">{t('admin.health.shortcutsLabel', lang)}</span>
           <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">R</kbd> {t('admin.health.shortcutRefresh', lang)}</span>
           <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">?</kbd> {t('admin.health.shortcutToggle', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">Esc</kbd> {t('admin.health.shortcutClose', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">{t('common.esc', lang)}</kbd> {t('admin.health.shortcutClose', lang)}</span>
         </div>
       )}
     </div>

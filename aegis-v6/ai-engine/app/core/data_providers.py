@@ -1,14 +1,29 @@
 """
-AEGIS AI ENGINE — Real-Time Data Providers
-Live data from free public APIs: SEPA, EA Flood, Open-Meteo, NOAA ENSO, NASA FIRMS
+File: data_providers.py
 
-All providers are FREE (no API key required except where noted).
+What this file does:
+Async HTTP client wrappers for all external data feeds: Open-Meteo for
+weather (temperature, precipitation, wind, humidity), Open-Meteo flood API
+for river discharge, and UK Environment Agency for gauge readings. Results
+are cached in the FeatureStore to avoid re-fetching within the same
+prediction cycle.
+
+How it connects:
+- Called by ai-engine/app/core/feature_store.py to populate live features
+- Hazard predictors call FeatureStore which calls these providers internally
+- Open-Meteo API: https://api.open-meteo.com (free, no key required)
+- EA Flood API:   https://environment.data.gov.uk/flood-monitoring (free)
+
+Learn more:
+- ai-engine/app/core/feature_store.py  -- feature caching and engineering
+- ai-engine/app/training/data_fetch_open_meteo.py -- historical data fetcher
 """
 
 from __future__ import annotations
 
 import asyncio
 import math
+import os
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -397,13 +412,16 @@ async def nasa_get_active_fires(
     lat: float,
     lng: float,
     radius_km: float = 50.0,
-    api_key: str = "DEMO_KEY",
+    api_key: str | None = None,
 ) -> List[Dict[str, Any]]:
     """Get active fire hotspots from NASA FIRMS."""
+    key = api_key or os.environ.get("NASA_FIRMS_API_KEY")
+    if not key:
+        return []
     # FIRMS uses bounding box: west,south,east,north
     delta = radius_km / 111.0  # rough degree offset
     bbox = f"{lng - delta},{lat - delta},{lng + delta},{lat + delta}"
-    url = f"{FIRMS_BASE}/{api_key}/VIIRS_SNPP_NRT/{bbox}/1"
+    url = f"{FIRMS_BASE}/{key}/VIIRS_SNPP_NRT/{bbox}/1"
 
     try:
         async with session.get(url, timeout=aiohttp.ClientTimeout(total=30)) as resp:
@@ -459,7 +477,7 @@ async def fetch_live_features(
     lat: float,
     lng: float,
     region_id: str = "scotland",
-    nasa_firms_key: str = "DEMO_KEY",
+    nasa_firms_key: str | None = None,
 ) -> Dict[str, Any]:
     """
     Fetch real data from ALL free providers in parallel.
@@ -559,4 +577,4 @@ def _haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     dlon = lo2 - lo1
     a = math.sin(dlat / 2) ** 2 + math.cos(la1) * math.cos(la2) * math.sin(dlon / 2) ** 2
     return R * 2 * math.asin(math.sqrt(a))
-
+

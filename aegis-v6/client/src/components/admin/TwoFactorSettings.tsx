@@ -1,12 +1,10 @@
-/*
- * TwoFactorSettings.tsx — 2FA management panel for operator settings
+/**
+ * Module: TwoFactorSettings.tsx
  *
- * Displays 2FA status and provides flows for:
- * Setting up 2FA (QR code + manual key + verification)
- * Viewing backup codes after setup
- * Disabling 2FA (requires password + TOTP/backup code)
- * Regenerating backup codes (requires password + TOTP)
- */
+ * Two factor settings admin component (operator dashboard panel).
+ *
+ * How it connects:
+ * - Rendered inside AdminPage.tsx based on active view */
 
 import { useState, useEffect, useRef } from 'react'
 import {
@@ -496,7 +494,7 @@ export default function TwoFactorSettings(): JSX.Element {
 
       {/* Status details */}
       {status?.enabled && status.lastVerifiedAt && !showDisable && !showRegen && !backupCodes && (
-        <div className="text-[10px] text-gray-400 dark:text-gray-500 space-y-0.5 pt-2 border-t border-gray-100 dark:border-gray-800">
+        <div className="text-[10px] text-gray-400 dark:text-gray-400 space-y-0.5 pt-2 border-t border-gray-100 dark:border-gray-800">
           <p>Last verified: {new Date(status.lastVerifiedAt).toLocaleString()}</p>
           {status.recoveryCodesGeneratedAt && (
             <p>Recovery codes generated: {new Date(status.recoveryCodesGeneratedAt).toLocaleString()}</p>

@@ -1,14 +1,10 @@
-﻿ /*
- * PublicSafetyMode.tsx — Full-screen emergency display for public
- * information boards, kiosks, and citizen emergency view.
- * Displays critical safety information in a large, high-contrast
- * format designed for quick reading under stress. All data comes
- * from real APIs (alerts, shelters, weather, predictions).
- * Activated via:
- * URL parameter: ?safety=1
- * Toggle button in citizen dashboard
- * Emergency alert auto-activation
-  */
+/**
+ * Module: PublicSafetyMode.tsx
+ *
+ * Public safety mode shared component (reusable UI element used across pages).
+ *
+ * How it connects:
+ * - Used across both admin and citizen interfaces */
 
 import { useState, useEffect, useCallback } from 'react'
 import {
@@ -390,4 +386,4 @@ export default function PublicSafetyMode({ onClose }: Props): JSX.Element {
     </div>
   )
 }
-
+

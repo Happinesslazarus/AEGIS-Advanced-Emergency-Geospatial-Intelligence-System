@@ -1,9 +1,10 @@
-/*
- * TwoFactorChallenge.tsx — 2FA verification screen shown during login
+/**
+ * Module: TwoFactorChallenge.tsx
  *
- * Displayed after password auth succeeds when the operator has 2FA enabled.
- * Accepts either a 6-digit TOTP code or a backup recovery code.
- */
+ * Two factor challenge admin component (operator dashboard panel).
+ *
+ * How it connects:
+ * - Rendered inside AdminPage.tsx based on active view */
 
 import { useState, useRef, useEffect } from 'react'
 import { Shield, Key, ArrowLeft, Loader2, AlertCircle, CheckCircle, Monitor } from 'lucide-react'
@@ -27,6 +28,7 @@ export default function TwoFactorChallenge({ tempToken, onSuccess, onCancel }: P
   const [backupWarning, setBackupWarning] = useState('')
   const [rememberDevice, setRememberDevice] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const formRef = useRef<HTMLFormElement>(null)
 
   useEffect(() => {
     inputRef.current?.focus()
@@ -74,6 +76,12 @@ export default function TwoFactorChallenge({ tempToken, onSuccess, onCancel }: P
     const cleaned = value.replace(/\D/g, '').slice(0, 6)
     setCode(cleaned)
     setError('')
+    // Auto-submit when all 6 digits entered
+    if (cleaned.length === 6) {
+      setTimeout(() => {
+        formRef.current?.requestSubmit()
+      }, 120)
+    }
   }
 
   const handleBackupInput = (value: string) => {
@@ -140,7 +148,7 @@ export default function TwoFactorChallenge({ tempToken, onSuccess, onCancel }: P
         </div>
 
         {/* Code input form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
           {mode === 'totp' ? (
             <div>
               <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">
@@ -155,9 +163,31 @@ export default function TwoFactorChallenge({ tempToken, onSuccess, onCancel }: P
                 value={code}
                 onChange={e => handleTOTPInput(e.target.value)}
                 maxLength={6}
-                className="w-full text-center text-2xl font-mono tracking-[0.5em] py-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:border-aegis-500 focus:ring-2 focus:ring-aegis-500/20 outline-none"
-                aria-label="6-digit authentication code"
+                className={`w-full text-center text-2xl font-mono tracking-[0.5em] py-3 bg-gray-50 dark:bg-gray-800 rounded-xl border outline-none transition-all duration-200 ${
+                  code.length === 6
+                    ? 'border-green-500 ring-2 ring-green-500/20'
+                    : 'border-gray-200 dark:border-gray-700 focus:border-aegis-500 focus:ring-2 focus:ring-aegis-500/20'
+                }`}
+                aria-label={t('twofa.aria.totpCode', lang)}
               />
+              {/* Digit progress dots */}
+              <div className="flex justify-center gap-2 mt-2.5" aria-hidden="true">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={`rounded-full transition-all duration-150 ${
+                      i < code.length
+                        ? code.length === 6
+                          ? 'w-2.5 h-2.5 bg-green-500 scale-110'
+                          : 'w-2.5 h-2.5 bg-aegis-500 scale-110'
+                        : 'w-2 h-2 bg-gray-200 dark:bg-gray-700'
+                    }`}
+                  />
+                ))}
+              </div>
+              {code.length === 6 && !loading && (
+                <p className="text-center text-xs text-green-600 dark:text-green-400 mt-1.5 animate-pulse">Verifying…</p>
+              )}
             </div>
           ) : (
             <div>
@@ -173,10 +203,10 @@ export default function TwoFactorChallenge({ tempToken, onSuccess, onCancel }: P
                 onChange={e => handleBackupInput(e.target.value)}
                 maxLength={9}
                 className="w-full text-center text-xl font-mono tracking-widest py-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:border-aegis-500 focus:ring-2 focus:ring-aegis-500/20 outline-none"
-                aria-label="Backup recovery code"
+                aria-label={t('twofa.aria.backupCode', lang)}
               />
-              <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 text-center">
-                Each backup code can only be used once
+              <p className="text-[10px] text-gray-400 dark:text-gray-400 mt-1 text-center">
+                {t('twofa.backupOnlyOnce', lang)}
               </p>
             </div>
           )}

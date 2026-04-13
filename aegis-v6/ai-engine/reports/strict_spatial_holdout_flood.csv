@@ -1,0 +1,2 @@
+hazard,train_regions,test_region,train_end,test_start,lag_dynamic,n_features,n_train,n_test,train_positive_rate,test_positive_rate,location_overlap,roc_auc,pr_auc,accuracy,precision,recall,f1
+flood,"['English Lowlands', 'Northern England']",Scotland,2023-01-01,2023-01-01,True,25,1658520,407772,0.01756927863396281,0.057250129974593646,0,0.8765976639311672,0.49210242233443663,0.8229966746122833,0.20373965588370907,0.7192546583850932,0.3175332595807449

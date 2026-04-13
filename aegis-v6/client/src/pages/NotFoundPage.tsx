@@ -1,15 +1,14 @@
-﻿/**
- * NotFoundPage.tsx — Production-grade 404 experience for AEGIS V6.
+/**
+ * File: NotFoundPage.tsx
  *
- * Features:
- * i18n via useLanguage + t()
- * Sentry breadcrumb for 404 analytics
- * Focus management (auto-focus heading on mount)
- * Inline search bar with keyboard-navigable suggestions
- * Emergency contacts always visible
- * Reduced-motion aware
- * Semantic HTML & ARIA landmarks
+ * What this file does:
+ * 404 page shown when a user navigates to a URL that doesn't match any route.
+ * Shows a friendly message with a link back to the home page.
+ *
+ * How it connects:
+ * - Routed as the catch-all in client/src/App.tsx (path="*")
  */
+
 import { useEffect, useRef, useState, useCallback, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import * as Sentry from '@sentry/react'
@@ -164,4 +163,4 @@ export default function NotFoundPage() {
     </div>
   )
 }
-
+

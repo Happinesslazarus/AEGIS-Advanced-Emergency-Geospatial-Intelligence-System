@@ -1,13 +1,11 @@
-﻿/**
- * config/regions/types.ts — Region configuration type definitions
+/**
+ * Module: types.ts
  *
- * Defines the structure of a city-level region configuration.
- * Each region specifies everything AEGIS needs to operate in that city:
- * map centre, rivers, flood thresholds, data providers, emergency contacts,
- * and enabled incident types with their configuration.
+ * Types server module.
  *
- * This architecture allows AEGIS to be deployed for any city on Earth
- * by creating a single configuration file per region.
+ * How it connects:
+ * - Imported by services and components that need this configuration
+ *
  */
 
 export interface RiverStation {
@@ -102,13 +100,13 @@ export interface CityRegionConfig {
   alertAuthorities?: Partial<Record<IncidentTypeId, string>>
 }
 
- /**
+/**
  * River flood status derived from dynamic threshold calibration.
  * Uses percentage of historical flood level for self-calibrating behaviour.
  */
 export type FloodStatus = 'NORMAL' | 'ELEVATED' | 'HIGH' | 'CRITICAL'
 
- /**
+/**
  * Threat level for the intelligence dashboard.
  */
 export type ThreatLevel = 'GREEN' | 'AMBER' | 'RED' | 'CRITICAL'

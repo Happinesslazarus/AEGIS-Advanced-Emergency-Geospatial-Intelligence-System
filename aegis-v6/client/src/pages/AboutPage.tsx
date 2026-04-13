@@ -1,9 +1,30 @@
+/**
+ * File: AboutPage.tsx
+ *
+ * What this file does:
+ * Static informational page describing the AEGIS project, its mission,
+ * technology stack, and team. No API calls — purely presentational.
+ *
+ * How it connects:
+ * - Routed by client/src/App.tsx at /about
+ * - Linked from LandingPage.tsx footer
+ */
+
 import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Shield, Globe, Users, BookOpen, Heart, Award, ArrowLeft, Zap, Bell, Map, Sparkles, ArrowRight, ChevronDown, Server, Brain, Code2 } from 'lucide-react'
 import { t } from '../utils/i18n'
 import { useLanguage } from '../hooks/useLanguage'
 
+/**
+ * FadeIn — lazy reveal animation driven by IntersectionObserver.
+ *
+ * Sets `visible` to true once the element's top edge enters the viewport
+ * (threshold 0.1 = 10% visible).  The CSS class transition then slides the
+ * element from translate-y-6 (slightly below) to translate-y-0 and fades it
+ * from opacity 0 to 1.  An optional delay prop staggers multiple FadeIn
+ * wrappers when they are rendered together in a grid.
+ */
 function FadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
   const ref = useRef<HTMLDivElement>(null)
   const [visible, setVisible] = useState(false)
@@ -19,6 +40,14 @@ function FadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
   )
 }
 
+/**
+ * useCounter — animates a number from 0 to `end` using an easeOut cubic curve.
+ *
+ * The counter only starts once the attached ref element scrolls into view
+ * (threshold 0.3).  `hasRun` prevents restarting if the user scrolls away and
+ * back.  The easing formula `1 - (1-p)^3` decelerates near the end so the
+ * number appears to settle naturally rather than stopping abruptly.
+ */
 function useCounter(end: number, duration = 2000) {
   const [count, setCount] = useState(0)
   const ref = useRef<HTMLDivElement>(null)
@@ -240,4 +269,4 @@ export default function AboutPage(): JSX.Element {
     </div>
   )
 }
-
+

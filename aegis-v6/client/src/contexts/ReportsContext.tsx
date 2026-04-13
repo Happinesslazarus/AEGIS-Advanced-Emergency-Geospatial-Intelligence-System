@@ -1,9 +1,18 @@
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react'
+/**
+ * Module: ReportsContext.tsx
+ *
+ * Reports context React context provider (shares state across components).
+ *
+ * How it connects:
+ * - Wraps components in App.tsx via AppProviders */
+
+import { createContext, useContext, useState, useCallback, useEffect, useMemo, type ReactNode } from 'react'
 import { apiGetReports, apiUpdateReportStatus, apiSubmitReport } from '../utils/api'
 import { translateTexts } from '../utils/translateService'
 import { useLanguage } from '../hooks/useLanguage'
 import { useSharedSocket } from './SocketContext'
-import type { Report, NewReportInput } from '../types'
+import { getCitizenToken } from './CitizenAuthContext'
+import type { Report, NewReportInput, ServerReport, NewReportResponse } from '../types'
 
 interface ReportStats {
   total: number
@@ -53,30 +62,31 @@ function formatTimeAgo(dateStr?: string): string {
   return `${days}d ago`
 }
 
-function normalizeServerReport(report: any): Report {
+function normalizeServerReport(report: ServerReport | Record<string, unknown>): Report {
+  const r = report as Record<string, unknown>
   return {
-    id: report.id || report.reportNumber,
-    reportNumber: report.reportNumber,
-    incidentCategory: report.incidentCategory || 'Flood',
-    incidentSubtype: report.incidentSubtype || '',
-    type: report.type || report.incidentCategory || 'Flood',
-    description: report.description || '',
-    severity: report.severity || 'Medium',
-    status: report.status || 'Unverified',
-    trappedPersons: report.trappedPersons || 'no',
-    location: report.location || report.locationText || 'Unknown',
-    coordinates: report.coordinates || [57.15, -2.09],
-    hasMedia: report.hasMedia || false,
-    mediaType: report.mediaType || null,
-    mediaUrl: report.mediaUrl || null,
-    media: report.media || [],
-    reporter: report.reporter || 'Anonymous Citizen',
-    confidence: (() => { const v = report.confidence ?? report.aiConfidence; if (v == null) return null; const n = parseFloat(String(v)); return isNaN(n) ? null : n; })(),
-    aiAnalysis: report.aiAnalysis || null,
-    locationMetadata: report.locationMetadata || null,
-    timestamp: report.timestamp || report.createdAt || new Date().toISOString(),
-    displayTime: formatTimeAgo(report.timestamp || report.createdAt),
-    operatorNotes: report.operatorNotes || null,
+    id: String(r.id || r.report_number || r.reportNumber || ''),
+    reportNumber: String(r.report_number || r.reportNumber || ''),
+    incidentCategory: (r.incident_category || r.incidentCategory || 'Flood') as Report['incidentCategory'],
+    incidentSubtype: String(r.incident_subtype || r.incidentSubtype || ''),
+    type: String(r.type || r.incident_category || r.incidentCategory || 'Flood'),
+    description: String(r.description || ''),
+    severity: (r.severity || 'Medium') as Report['severity'],
+    status: (r.status || 'Unverified') as Report['status'],
+    trappedPersons: (r.trapped_persons || r.trappedPersons || 'no') as Report['trappedPersons'],
+    location: String(r.location || r.location_text || r.locationText || 'Unknown'),
+    coordinates: (r.coordinates as [number, number]) || [57.15, -2.09],
+    hasMedia: Boolean(r.has_media || r.hasMedia),
+    mediaType: (r.media_type || r.mediaType || null) as Report['mediaType'],
+    mediaUrl: (r.media_url || r.mediaUrl || null) as string | undefined,
+    media: (r.media as Report['media']) || [],
+    reporter: String(r.reporter || r.reporter_name || 'Anonymous Citizen'),
+    confidence: (() => { const v = r.confidence ?? r.aiConfidence; if (v == null) return null; const n = typeof v === 'number' ? v : parseFloat(String(v)); return (Number.isFinite(n) && n >= 0 && n <= 1) ? n : null; })(),
+    aiAnalysis: (r.ai_analysis || r.aiAnalysis || null) as Report['aiAnalysis'],
+    locationMetadata: (r.location_metadata || r.locationMetadata || null) as Report['locationMetadata'],
+    timestamp: String(r.timestamp || r.created_at || r.createdAt || new Date().toISOString()),
+    displayTime: formatTimeAgo(String(r.timestamp || r.created_at || r.createdAt || '')),
+    operatorNotes: (r.operator_notes || r.operatorNotes || null) as string | null,
   }
 }
 
@@ -143,11 +153,17 @@ export function ReportsProvider({ children }: { children: ReactNode }): JSX.Elem
       .then((data: any) => {
         const arr = Array.isArray(data) ? data : (data?.data ?? [])
         const serverReports = arr.map((report: any) => normalizeServerReport(report))
-        setRawReports(serverReports)
+        // Merge: preserve any optimistically-added reports not yet returned by server
+        // (e.g. submitted just before this fetch completed, or server cache not yet invalidated)
+        setRawReports(prev => {
+          const serverIds = new Set(serverReports.map((r: Report) => r.id))
+          const pending = prev.filter(r => !serverIds.has(r.id))
+          return [...pending, ...serverReports]
+        })
       })
       .catch((error: any) => {
         console.warn('[ReportsContext] Failed to fetch from server, starting with empty list:', error.message)
-        setRawReports([])
+        // On error, keep existing state rather than wiping to empty
       })
       .finally(() => setLoading(false))
   }, [])
@@ -175,11 +191,11 @@ export function ReportsProvider({ children }: { children: ReactNode }): JSX.Elem
     const socket = sharedSocket.socket
     if (!socket) return
 
-    socket.on('report:new', (report: any) => {
+    socket.on('report:new', (report: Record<string, unknown>) => {
       const newReport = normalizeServerReport({
         ...report,
         timestamp: report.timestamp || report.createdAt || new Date().toISOString(),
-      })
+      } as Record<string, unknown>)
 
       setRawReports((prev) => {
         if (prev.some((existing) => existing.id === newReport.id)) return prev
@@ -187,18 +203,18 @@ export function ReportsProvider({ children }: { children: ReactNode }): JSX.Elem
       })
     })
 
-    socket.on('report:updated', (update: any) => {
+    socket.on('report:updated', (update: { id?: string; status?: string }) => {
       if (!update?.id || !update?.status) return
       setRawReports((prev) =>
-        prev.map((report) => (report.id === update.id ? { ...report, status: update.status } : report)),
+        prev.map((report) => (report.id === update.id ? { ...report, status: update.status as Report['status'] } : report)),
       )
     })
 
-    socket.on('report:bulk-updated', (update: any) => {
+    socket.on('report:bulk-updated', (update: { reportIds?: string[]; status?: string }) => {
       if (!Array.isArray(update?.reportIds) || !update?.status) return
       setRawReports((prev) =>
         prev.map((report) =>
-          update.reportIds.includes(report.id) ? { ...report, status: update.status } : report,
+          update.reportIds!.includes(report.id) ? { ...report, status: update.status as Report['status'] } : report,
         ),
       )
     })
@@ -236,20 +252,19 @@ export function ReportsProvider({ children }: { children: ReactNode }): JSX.Elem
       }
     }
 
-    const created: any = await apiSubmitReport(formData)
-    await fetchReports()
+    const created = (await apiSubmitReport(formData)) as NewReportResponse | null
 
     // Resolve the reporter name from the citizen JWT stored in localStorage
     let reporterName = 'Anonymous Citizen'
     try {
-      const raw = localStorage.getItem('aegis-citizen-token')
-      if (raw) {
+      const raw = getCitizenToken()
+      if (raw && raw.split('.').length === 3) {
         const payload = JSON.parse(atob(raw.split('.')[1]))
         if (payload?.displayName) reporterName = payload.displayName
       }
     } catch { /* ignore — malformed token */ }
 
-    return {
+    const newReport: Report = {
       ...input,
       id: created?.id || `RPT-${Date.now()}`,
       reportNumber: created?.reportNumber,
@@ -257,47 +272,48 @@ export function ReportsProvider({ children }: { children: ReactNode }): JSX.Elem
       displayTime: 'Just now',
       status: 'Unverified',
       reporter: reporterName,
-      confidence: created?.aiConfidence ?? null,
-      aiAnalysis: null,
+      confidence: created?.confidence ?? null,
+      aiAnalysis: created?.aiAnalysis ?? null,
       locationMetadata: input.locationMetadata || null,
     } as Report
+
+    // Optimistically prepend the new report so stats update immediately in the UI,
+    // then do a background refresh to get the authoritative server-side record.
+    setRawReports(prev => prev.some(r => r.id === newReport.id) ? prev : [newReport, ...prev])
+    fetchReports()
+
+    return newReport
   }, [fetchReports])
 
-  const verifyReport = useCallback((id: string) => {
-    apiUpdateReportStatus(id, 'Verified').catch(() => {})
-    setRawReports((prev) => prev.map((report) => (report.id === id ? { ...report, status: 'Verified' as const } : report)))
+  // Optimistic update helper: applies status locally, rolls back on API failure
+  const optimisticStatusUpdate = useCallback((id: string, newStatus: string) => {
+    setRawReports((prev) => {
+      const original = prev.find(r => r.id === id)
+      if (!original) return prev
+      const oldStatus = original.status
+      // Apply optimistic update
+      const updated = prev.map((report) => (report.id === id ? { ...report, status: newStatus as Report['status'] } : report))
+      // Fire API call, rollback on failure
+      apiUpdateReportStatus(id, newStatus).catch((err) => {
+        console.error(`[Reports] Failed to update report ${id} to ${newStatus}:`, err.message)
+        setRawReports((cur) => cur.map((report) => (report.id === id ? { ...report, status: oldStatus } : report)))
+      })
+      return updated
+    })
   }, [])
 
-  const flagReport = useCallback((id: string) => {
-    apiUpdateReportStatus(id, 'Flagged').catch(() => {})
-    setRawReports((prev) => prev.map((report) => (report.id === id ? { ...report, status: 'Flagged' as const } : report)))
-  }, [])
-
-  const markUrgent = useCallback((id: string) => {
-    apiUpdateReportStatus(id, 'Urgent').catch(() => {})
-    setRawReports((prev) => prev.map((report) => (report.id === id ? { ...report, status: 'Urgent' as const } : report)))
-  }, [])
-
-  const resolveReport = useCallback((id: string) => {
-    apiUpdateReportStatus(id, 'Resolved').catch(() => {})
-    setRawReports((prev) => prev.map((report) => (report.id === id ? { ...report, status: 'Resolved' as const } : report)))
-  }, [])
-
-  const archiveReport = useCallback((id: string) => {
-    apiUpdateReportStatus(id, 'Archived').catch(() => {})
-    setRawReports((prev) => prev.map((report) => (report.id === id ? { ...report, status: 'Archived' as const } : report)))
-  }, [])
-
-  const markFalseReport = useCallback((id: string) => {
-    apiUpdateReportStatus(id, 'False_Report').catch(() => {})
-    setRawReports((prev) => prev.map((report) => (report.id === id ? { ...report, status: 'False_Report' as const } : report)))
-  }, [])
+  const verifyReport = useCallback((id: string) => optimisticStatusUpdate(id, 'Verified'), [optimisticStatusUpdate])
+  const flagReport = useCallback((id: string) => optimisticStatusUpdate(id, 'Flagged'), [optimisticStatusUpdate])
+  const markUrgent = useCallback((id: string) => optimisticStatusUpdate(id, 'Urgent'), [optimisticStatusUpdate])
+  const resolveReport = useCallback((id: string) => optimisticStatusUpdate(id, 'Resolved'), [optimisticStatusUpdate])
+  const archiveReport = useCallback((id: string) => optimisticStatusUpdate(id, 'Archived'), [optimisticStatusUpdate])
+  const markFalseReport = useCallback((id: string) => optimisticStatusUpdate(id, 'False_Report'), [optimisticStatusUpdate])
 
   const refreshReports = useCallback(() => {
     fetchReports()
   }, [fetchReports])
 
-  const filteredReports = reports.filter((report) => {
+  const filteredReports = useMemo(() => reports.filter((report) => {
     if (filterSeverity !== 'all' && report.severity !== filterSeverity) return false
     if (filterStatus !== 'all' && report.status !== filterStatus) return false
     if (filterType !== 'all' && report.incidentCategory !== filterType) return false
@@ -310,9 +326,9 @@ export function ReportsProvider({ children }: { children: ReactNode }): JSX.Elem
       )
     }
     return true
-  })
+  }), [reports, filterSeverity, filterStatus, filterType, searchQuery])
 
-  const stats: ReportStats = {
+  const stats: ReportStats = useMemo(() => ({
     total: reports.length,
     unverified: reports.filter((report) => report.status === 'Unverified').length,
     verified: reports.filter((report) => report.status === 'Verified').length,
@@ -321,33 +337,18 @@ export function ReportsProvider({ children }: { children: ReactNode }): JSX.Elem
     high: reports.filter((report) => report.severity === 'High').length,
     medium: reports.filter((report) => report.severity === 'Medium').length,
     low: reports.filter((report) => report.severity === 'Low').length,
-  }
+  }), [reports])
+
+  const value = useMemo(() => ({
+    reports, filteredReports, stats,
+    addReport, verifyReport, flagReport, markUrgent, resolveReport, archiveReport, markFalseReport,
+    loading, refreshReports,
+    filterSeverity, setFilterSeverity, filterStatus, setFilterStatus, filterType, setFilterType,
+    searchQuery, setSearchQuery,
+  }), [reports, filteredReports, stats, addReport, verifyReport, flagReport, markUrgent, resolveReport, archiveReport, markFalseReport, loading, refreshReports, filterSeverity, filterStatus, filterType, searchQuery])
 
   return (
-    <ReportsContext.Provider
-      value={{
-        reports,
-        filteredReports,
-        stats,
-        addReport,
-        verifyReport,
-        flagReport,
-        markUrgent,
-        resolveReport,
-        archiveReport,
-        markFalseReport,
-        loading,
-        refreshReports,
-        filterSeverity,
-        setFilterSeverity,
-        filterStatus,
-        setFilterStatus,
-        filterType,
-        setFilterType,
-        searchQuery,
-        setSearchQuery,
-      }}
-    >
+    <ReportsContext.Provider value={value}>
       {children}
     </ReportsContext.Provider>
   )

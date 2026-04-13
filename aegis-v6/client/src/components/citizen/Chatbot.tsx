@@ -1,3 +1,25 @@
+/**
+ * File: Chatbot.tsx
+ *
+ * What this file does:
+ * Floating chat widget that lets citizens ask emergency-related questions
+ * and receive AI-generated answers in real time. Has three layers of resilience:
+ * 1. Live mode: sends messages to /api/chat and streams a response
+ * 2. Translation: auto-translates bot replies into the user's active language
+ * 3. Offline fallback: if the API is unreachable, generateChatResponse() provides
+ *    a rule-based local answer so the chatbot always responds
+ *
+ * How it connects:
+ * - Calls /api/chat (chatRoutes.ts) with the message and optional sessionId
+ * - Uses translateText() (translateService.ts) to localise bot replies
+ * - Falls back to chatbotEngine.generateChatResponse() when offline
+ * - Rendered by CitizenPage.tsx; controlled via onClose prop
+ *
+ * Simple explanation:
+ * The chat bubble in the corner of the citizen dashboard. Users type a question,
+ * the AI answers in their language. Works even when the server is down.
+ */
+
 import { useState, useRef, useEffect, useCallback, KeyboardEvent } from 'react'
 import { Send, X, Bot, Sparkles, Wifi, WifiOff } from 'lucide-react'
 import { generateChatResponse, getSuggestions } from '../../utils/chatbotEngine'
@@ -19,24 +41,27 @@ interface ChatbotMessage extends ChatMessage {
   id: string
 }
 
+// Unique ID for each message so React can key them without index collisions.
 function createMessageId(): string {
   return `chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
 
 export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right' }: Props): JSX.Element {
   const detectedLanguage = useLanguage()
+  // explicitLang from props (e.g. admin panel) overrides the auto-detected language.
   const activeLanguage = explicitLang || detectedLanguage || 'en'
   const [messages, setMessages] = useState<ChatbotMessage[]>(() => [
     { id: createMessageId(), sender: 'bot', text: t('chat.welcomeMessage', activeLanguage), timestamp: new Date() },
   ])
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
-  const [sessionId, setSessionId] = useState<string | null>(null)
+  const [sessionId, setSessionId] = useState<string | null>(null) // stored after first API response; threaded into subsequent requests
   const [isOnline, setIsOnline] = useState(true)
   const endRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  const abortRef = useRef<AbortController | null>(null)
+  const abortRef = useRef<AbortController | null>(null) // cancel in-flight request if user closes chat
 
+  // Auto-scroll to the newest message whenever messages array changes.
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
@@ -54,6 +79,7 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right' 
     })
   }, [activeLanguage])
 
+  // Abort any in-flight fetch when the component unmounts (e.g. user closes chat mid-response).
   useEffect(() => () => {
     abortRef.current?.abort()
   }, [])
@@ -95,11 +121,14 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right' 
     [sessionId, activeLanguage],
   )
 
+  // Translate the bot reply to the active language before showing it.
+  // Falls back to the original English text if translation is unavailable.
   const appendBotMessage = useCallback(
     async (text: string, confidence?: number): Promise<void> => {
       let displayText = text
 
-      if (activeLanguage !== 'en') {
+      // Guard: don't translate empty/whitespace replies (saves API calls + avoids offline UX bugs)
+      if (activeLanguage !== 'en' && text?.trim()) {
         try {
           const result = await translateText(text, 'auto', activeLanguage)
           if (result.available && result.translatedText && result.translatedText !== text) {
@@ -139,6 +168,8 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right' 
         })
         .catch(async (err: { name?: string }) => {
           if (err.name !== 'AbortError') {
+            // Network failure: mark offline and serve a local rule-based response
+            // so the user isn't left with a spinner and no reply.
             setIsOnline(false)
             const local = generateChatResponse(msg)
             await appendBotMessage(local.text, local.confidence)
@@ -226,6 +257,8 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right' 
           <div ref={endRef} />
         </div>
 
+        {/* Suggestion chips: shown only for the first two turns to help new users
+             discover what the chatbot can do. Disappear after conversation starts. */}
         {messages.length <= 2 && (
           <div className="px-3 py-2 flex gap-1.5 flex-wrap border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
             {getSuggestions(activeLanguage).slice(0, 3).map((suggestion, index) => (
@@ -267,7 +300,4 @@ export default function Chatbot({ onClose, lang: explicitLang, anchor = 'right' 
     </div>
   )
 }
-
-
-
 

@@ -34,13 +34,13 @@
 --      • All timestamps are TIMESTAMPTZ (UTC-aware); all JSON is JSONB.
 --      • updated_at columns are maintained by a shared trigger function.
 
--- §0  EXTENSIONS
+-- EXTENSIONS
 
 CREATE EXTENSION IF NOT EXISTS postgis;          -- spatial queries (ST_*)
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";      -- uuid_generate_v4()
 CREATE EXTENSION IF NOT EXISTS pgcrypto;         -- gen_random_uuid()
 
--- §1  ENUM TYPES
+-- ENUM TYPES
 --     Centralised domain values.  Safer than CHECK constraints because the
 --     allowed set is defined once in the catalog and shared across every
 --     column that references the type.  Adding a new value is a single
@@ -156,7 +156,7 @@ DO $$ BEGIN
 
 END $$;
 
--- §2  TABLES
+-- TABLES
 
 --   departments
 --   Organisational units for operator assignment.
@@ -564,7 +564,7 @@ CREATE INDEX IF NOT EXISTS idx_alert_subscriptions_verified
     ON alert_subscriptions (verified)
     WHERE verified = true;
 
--- §3  FUNCTIONS & TRIGGERS
+-- FUNCTIONS & TRIGGERS
 
 --   3a. Auto-generate report numbers: RPT-001, RPT-002, …
 --   Fires BEFORE INSERT.  Only when report_number is NULL or empty.
@@ -664,7 +664,7 @@ CREATE TRIGGER trg_reports_search_vector
     FOR EACH ROW
     EXECUTE FUNCTION reports_search_vector_update();
 
--- §4  SEED DATA — Departments
+-- SEED DATA — Departments
 --     Ten UK-standard emergency management departments.
 --     ON CONFLICT ensures idempotent re-runs.
 
@@ -960,4 +960,4 @@ CREATE INDEX IF NOT EXISTS idx_system_events_actor
 
 CREATE INDEX IF NOT EXISTS idx_system_events_created
     ON system_events (created_at DESC);
-
+

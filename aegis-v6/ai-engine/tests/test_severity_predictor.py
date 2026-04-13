@@ -1,8 +1,7 @@
 """
-test_severity_predictor.py — Severity Prediction Model Tests
+Module: test_severity_predictor.py
 
-Tests the heuristic fallback path (no trained model in test env),
-severity output range, contributing factors, batch prediction, and edge cases.
+Test_severity_predictor AI engine module.
 """
 
 import pytest

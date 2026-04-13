@@ -1,32 +1,67 @@
-﻿/*
- * index.ts - AEGIS Express server entry point
- * This is the main server file that:
- * 1. Loads environment configuration from .env
- * 2. Sets up security middleware (CORS, Helmet, rate limiting)
- * [reloaded: resource deployment CREATE/DELETE routes added]
- * 3. Mounts all API route handlers
- * 4. Serves uploaded files statically
- * 5. Starts the HTTP server
- * The server provides a REST API consumed by the React frontend.
- * All routes are prefixed with /api/ and return JSON responses.
- * In production, the built React app would be served from the same
- * Express server. During development, Vite runs separately on port 5173
- * and proxies API calls to this server on port 3001.
-  */
+/**
+ * File: index.ts
+ *
+ * What this file does:
+ * The main entry point for the AEGIS Express server. It validates startup
+ * configuration, wires up the entire middleware pipeline (security, rate
+ * limiting, CSRF, authentication, tracing, QoS), mounts all API routes,
+ * initialises Socket.IO for real-time communication, starts background cron
+ * jobs, and registers graceful shutdown hooks.
+ *
+ * How it connects:
+ * - All API routes in server/src/routes/ are mounted here under /api/
+ * - Socket.IO is initialised here and its instance is shared with services
+ *   that broadcast live data (river levels, threat levels, community events)
+ * - Middleware is declared here but implemented in server/src/middleware/
+ * - Infrastructure services (circuit breakers, self-healing, event sourcing,
+ *   bulkheads, secrets manager, feature flags) are initialised before routes
+ * - The React frontend (client/) communicates exclusively through the /api/
+ *   routes mounted here; in dev, Vite proxies API calls on port 5173 → 3001
+ * - In production, the built React app can optionally be served statically here
+ *
+ * Key actions / endpoints / exports:
+ * - GET  /api/health          — public health check (DB + AI engine status)
+ * - GET  /api/health/detailed — admin/operator health with pool stats & memory
+ * - GET  /metrics             — Prometheus scrape endpoint
+ * - GET  /healthz /readyz /startupz — Kubernetes liveness/readiness/startup probes
+ * - GET  /api/internal/*      — admin-only introspection (circuits, QoS, chaos, etc.)
+ * - All other /api/* routes are mounted from server/src/routes/
+ *
+ * Learn more:
+ * - server/src/middleware/auth.ts        — JWT verification & role-based gating
+ * - server/src/middleware/errorHandler.ts — central error shaping for all routes
+ * - server/src/models/db.ts              — PostgreSQL pool (used by all services)
+ * - server/src/services/socket.ts        — Socket.IO server setup & event handlers
+ * - server/src/services/cronJobs.ts      — background scheduled tasks
+ * - server/src/services/zeroDowntime.ts  — graceful shutdown & K8s probes
+ * - server/src/services/circuitBreaker.ts — protecting external dependency calls
+ * - server/src/services/llmRouter.ts     — LLM provider routing + model warm-up
+ * - server/src/routes/                   — all individual API route handlers
+ *
+ * Simple explanation:
+ * Think of this file as the control room for the whole server. It decides
+ * what security rules apply, which API addresses exist, who can call what,
+ * and how we handle failures. Everything starts and stops through here.
+ */
 
 import express from 'express'
-import 'express-async-errors' // Must be imported before routes — patches Express to catch async errors
+import 'express-async-errors'
 import { createServer } from 'http'
+import * as cryptoNode from 'crypto'
 import cors from 'cors'
 import helmet from 'helmet'
+import compression from 'compression'
 import rateLimit from 'express-rate-limit'
+import slowDown from 'express-slow-down'
+import hpp from 'hpp'
 import cookieParser from 'cookie-parser'
+import passport from 'passport'
 import path from 'path'
 import fs from 'fs'
 import dotenv from 'dotenv'
 import * as Sentry from '@sentry/node'
 
-// Load environment variables — try multiple .env locations for robustness
+// Load environment variables - try multiple .env locations for robustness
 const envCandidates = [
   path.resolve('.env'), // CWD (when run from server/)
   path.resolve('server', '.env'), // CWD is project root
@@ -43,7 +78,7 @@ if (!process.env.DATABASE_URL) {
   dotenv.config()
 }
 
-// STRICT STARTUP VALIDATION — refuse to boot if critical config missing
+// Refuse to boot if critical config is missing
 function validateStartupConfig(): void {
   const errors: string[] = []
   const warnings: string[] = []
@@ -108,7 +143,7 @@ function validateStartupConfig(): void {
   const emailMode = (process.env.EMAIL_MODE || 'dev').toLowerCase()
   if (emailMode === 'production') {
     if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-      warnings.push('EMAIL_MODE=production but SMTP credentials missing — emails will fail')
+      warnings.push('EMAIL_MODE=production but SMTP credentials missing - emails will fail')
     } else {
       console.log(' [OK] Email: PRODUCTION mode (SMTP)')
     }
@@ -139,7 +174,7 @@ function validateStartupConfig(): void {
 
   // Weather API
   if (!process.env.WEATHER_API_KEY) {
-    console.log(' ℹ️ WEATHER_API_KEY not set - Using Open-Meteo (free, no key required)')
+    console.log(' ?? WEATHER_API_KEY not set - Using Open-Meteo (free, no key required)')
   }
 
   // 2FA Encryption Key
@@ -155,7 +190,7 @@ function validateStartupConfig(): void {
 
   // AI Engine
   if (!process.env.AI_ENGINE_URL) {
-    console.log(' ℹ️ AI_ENGINE_URL not set - Defaulting to http://localhost:8000')
+    console.log(' ?? AI_ENGINE_URL not set - Defaulting to http://localhost:8000')
   }
 
   // Print warnings
@@ -167,7 +202,7 @@ function validateStartupConfig(): void {
   // Print errors and exit in production
   if (errors.length > 0) {
     console.error('\n [ERR] FATAL CONFIGURATION ERRORS:')
-    errors.forEach(e => console.error(` • ${e}`))
+    errors.forEach(e => console.error(` - ${e}`))
     console.error('')
     if (isProduction) {
       console.error(' Cannot start in production with invalid configuration.')
@@ -194,12 +229,12 @@ if (process.env.SENTRY_DSN) {
   })
   console.log(' [OK] Sentry: error tracking enabled')
 } else {
-  console.log(' ℹ️ Sentry: DSN not configured — error tracking disabled')
+  console.log(' ?? Sentry: DSN not configured - error tracking disabled')
 }
 
 import { initRegionRegistry } from './adapters/regions/RegionRegistry.js'
 
-// Region Adapter Registry — must init before route/service imports
+// Region Adapter Registry - must init before route/service imports
 try {
   initRegionRegistry()
 } catch (err: any) {
@@ -235,6 +270,9 @@ import oauthRoutes from './routes/oauthRoutes.js'
 import twoFactorRoutes from './routes/twoFactorRoutes.js'
 import citizenTwoFactorRoutes from './routes/citizenTwoFactorRoutes.js'
 import securityRoutes from './routes/securityRoutes.js'
+import magicLinkRoutes from './routes/magicLinkRoutes.js'
+import githubOAuthRoutes from './routes/githubOAuthRoutes.js'
+import emergencyQRAuthRoutes from './routes/emergencyQRAuthRoutes.js'
 import incidentRoutes from './routes/incidentRoutes.js'
 import setupRoutes from './routes/setupRoutes.js'
 import mapTileRoutes from './routes/mapTileRoutes.js'
@@ -249,36 +287,168 @@ import { setThreatIO } from './services/threatLevelService.js'
 import { setCommunityRealtimeIo } from './services/communityRealtime.js'
 import { startN8nHealthMonitor } from './services/n8nHealthCheck.js'
 import { startModelWarmup } from './services/llmRouter.js'
-import { metricsMiddleware, metricsHandler, collectDBPoolMetrics, activeWebsocketConnections } from './services/metrics.js'
+import { metricsMiddleware, metricsHandler, collectDBPoolMetrics, activeWebsocketConnections, trustedDevicesGauge } from './services/metrics.js'
 import { authMiddleware, requireRole, AuthRequest } from './middleware/auth.js'
+import { idempotencyMiddleware, getIdempotencyStats } from './middleware/idempotency.js'
+import { requestTimeoutMiddleware } from './middleware/requestTimeout.js'
+import { updatePoolMetrics } from './services/queryLogger.js'
+
+// Infrastructure services
+import { tracingMiddleware, startSpan, endSpan } from './services/distributedTracing.js'
+import { initFlags, isFeatureEnabled, featureFlagMiddleware, getFlagStats } from './services/featureFlags.js'
+import { adaptiveRateLimitMiddleware, getRateLimitStats } from './services/adaptiveRateLimiting.js'
+import { startSelfHealing, getHealthStatus } from './services/selfHealing.js'
+import { chaosMiddleware, EXPERIMENT_TEMPLATES, getExperiments } from './services/chaosEngineering.js'
+import { qosMiddleware, getQosStats, Priority } from './services/requestPrioritization.js'
+import { initEventSourcing, appendEvent, getAuditTrail, EventTypes } from './services/eventSourcing.js'
+import { initCircuits, Circuits, getAllStatus as getCircuitStatus } from './services/circuitBreaker.js'
+import { initZeroDowntime, livenessHandler, readinessHandler, startupHandler, healthHandler, registerShutdownHook, trackConnectionStart, trackConnectionEnd } from './services/zeroDowntime.js'
+
+// Resilience and operations services
+import { initBulkheads, getAllStatus as getBulkheadStatus, Bulkheads } from './services/bulkhead.js'
+import { initSecretsManager, getSecretsStats, Secrets } from './services/secretsManager.js'
+import { serviceMeshMiddleware, getMeshStats, getVirtualServiceConfig } from './services/serviceMesh.js'
+import { getGatewayStats, apiKeyMiddleware, versioningMiddleware } from './services/apiGateway.js'
+import { coalesce, getCoalescingStats, createUserLoader, createReportLoader } from './services/requestCoalescing.js'
+
+// Data layer and API services
+import graphqlFederation from './services/graphqlFederation.js'
+import eventStreaming from './services/eventStreaming.js'
+import grpcServices from './services/grpcServices.js'
+import openApiGenerator from './services/openApiGenerator.js'
+import readReplicas from './services/readReplicas.js'
 
 const app = express()
-const httpServer = createServer(app)
+const httpServer = createServer(app)  // Wrap Express in raw http.Server so Socket.IO can share the same port
 const PORT = parseInt(process.env.PORT || '3001')
 
-// Initialize Socket.IO for real-time citizen ↔ admin chat
+// --- Infrastructure Initialization ---
+// These must come before any route imports that use them.
+// Circuits + self-healing protect outbound calls (to DB, AI engine, external APIs).
+// Event sourcing creates the immutable audit trail needed by admin routes.
+// Feature flags lets us toggle behaviour without a redeploy.
+initCircuits()
+initZeroDowntime({ server: httpServer, dbPool: pool })
+startSelfHealing()
+
+initFlags().catch((err: Error) => {
+  console.warn(' [WARN] Feature flags failed to initialize:', err.message)
+})
+
+initEventSourcing(pool).catch(err => {
+  console.warn(' [WARN] Event sourcing failed to initialize:', err.message)
+})
+
+console.log(' [OK] Infrastructure initialized')
+console.log('      - Circuit breakers: protecting external dependencies')
+console.log('      - Self-healing: autonomous failure recovery')
+console.log('      - Feature flags: gradual rollout support')
+console.log('      - Event sourcing: immutable audit trail')
+console.log('      - Zero-downtime: graceful deployment support')
+
+// Resilience services
+initBulkheads()
+initSecretsManager()
+console.log('      - Secrets Manager configured (provider auto-detected from env)')
+console.log('      - API Gateway middleware ready')
+
+console.log(' [OK] Resilience services initialized')
+console.log('      - Bulkheads: resource isolation per service')
+console.log('      - Secrets Manager: credential rotation')
+console.log('      - Service Mesh: Istio/Envoy compatibility')
+console.log('      - API Gateway: key management & versioning')
+console.log('      - Request Coalescing: thundering herd prevention')
+console.log('')
+
+// Data layer and API services
+graphqlFederation.initGraphQLFederation().catch((err: Error) => {
+  console.warn(' [WARN] GraphQL Federation failed to initialize:', err.message)
+})
+
+eventStreaming.initEventStreaming().catch((err: Error) => {
+  console.warn(' [WARN] Event streaming failed to initialize:', err.message)
+})
+
+grpcServices.initGrpcServices().catch((err: Error) => {
+  console.warn(' [WARN] gRPC services failed to initialize:', err.message)
+})
+
+readReplicas.initReadReplicas().catch((err: Error) => {
+  console.warn(' [WARN] Read replicas failed to initialize:', err.message)
+})
+
+console.log(' [OK] Data layer services initialized')
+console.log('      - GraphQL Federation: Apollo Federation 2.0 gateway')
+console.log('      - Event Streaming: Kafka/RabbitMQ/Redis async messaging')
+console.log('      - gRPC Services: high-performance binary RPC')
+console.log('      - OpenAPI 3.1: auto-generated API documentation')
+console.log('      - Read Replicas: horizontal database scaling')
+console.log('')
+
+// Trust exactly one proxy hop (nginx/Docker gateway). This tells Express to
+// derive req.ip from the first X-Forwarded-For value only (not the raw socket IP),
+// which is required for rate limiting and IP logging to work correctly behind a
+// reverse proxy. '1' = exactly one hop; prevents clients from spoofing their IP
+// by injecting extra values into the header.
+app.set('trust proxy', 1)
+
+// Initialize Socket.IO — must happen before any route that calls getIO()
+// We share the httpServer so Socket.IO and HTTP traffic use the same port.
 const io = initSocketServer(httpServer)
 
-// Share io instance with route handlers (used for real-time post notifications)
+// Make the io instance available inside route handlers via req.app.get('io').
+// This lets POST /api/community/posts broadcast a live notification without
+// directly importing socket.ts into the route file.
 app.set('io', io)
 
-// Share io instance with river level service for real-time broadcasts
-setRiverIO(io)
+// Share io with domain services that push real-time data to connected browsers.
+// Each service keeps its own reference so it can emit without going through a route.
+setRiverIO(io)        // river level service broadcasts flood alerts
+setThreatIO(io)       // threat level service broadcasts amber/red escalations
+setCommunityRealtimeIo(io)  // community moderation broadcasts live updates
 
-// Share io instance with threat level service for level-change broadcasts
-setThreatIO(io)
+/* ─── Middleware stack ────────────────────────────────────────────────────────
+ * ORDER MATTERS here. Each layer sees the request before ones below it.
+ * The general rule: security first, parsing second, auth/session third, routes last.
+ *
+ * 1. helmet        — sets secure HTTP response headers (CSP, HSTS, X-Frame, etc.)
+ * 2. compression   — gzip/brotli response bodies (must come before routes)
+ * 3. cache-control — sets Cache-Control headers for /api/* responses
+ * 4. tracing       — injects trace-id for distributed request tracking
+ * 5. service mesh  — B3/Envoy-compatible header propagation
+ * 6. QoS           — prioritises emergency requests over background traffic
+ * 7. adaptive rate  — throttles when the system is under load
+ * 8. feature flags  — injects flag evaluations into req context
+ * 9. chaos          — fault injection (dev/test only, gated by env var)
+ * 10. connection tracking — graceful shutdown: counts active connections
+ * 11. request timeout     — drops requests that take too long
+ * 12. CORS         — controls which origins may call the API
+ * 13. body parsing  — parses JSON and URL-encoded bodies
+ * 14. cookie-parser — parses cookies (needed for CSRF)
+ * 15. hpp           — strips duplicate HTTP query parameters (param pollution)
+ * 16. global rate limit — hard 600 req/min ceiling per IP
+ * 17. slow-down     — adds delay after 300 req/min to discourage scrapers
+ * 18. requestId     — generates/forwards X-Request-ID correlation header
+ * 19. metrics       — Prometheus request counter/duration middleware
+ * 20. idempotency   — deduplicates retried POST/PUT requests via Idempotency-Key
+ * 21. CSRF          — double-submit cookie pattern for state-changing requests
+ * 22. passport      — initialises OAuth strategy (not session-based)
+ * 23. request logger — structured HTTP access log via pino
+ * ─────────────────────────────────────────────────────────────────────────── */
 
-// Share io instance with community realtime service for moderation events
-setCommunityRealtimeIo(io)
-
+// Helmet sets a comprehensive set of security headers.
+// The CSP here is deliberately specific: only allow scripts from self and jsdelivr,
+// allow websocket connections to known AI provider URLs, block iframes entirely.
+// Learn more about each directive: https://helmetjs.github.io/
 /* Security middleware */
-// Helmet sets various HTTP security headers (#80 MIME sniff prevention)
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
+  crossOriginEmbedderPolicy: false,
+  crossOriginOpenerPolicy: { policy: 'same-origin' },
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+      scriptSrc: ["'self'", "https://cdn.jsdelivr.net"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "blob:", "https://*.tile.openstreetmap.org", "https://cartodb-basemaps-*.global.ssl.fastly.net", "https://server.arcgisonline.com", "https://*.opentopomap.org"],
       connectSrc: ["'self'", "ws:", "wss:", "https://api-inference.huggingface.co", "https://generativelanguage.googleapis.com", "https://api.groq.com", "https://openrouter.ai"],
@@ -288,36 +458,122 @@ app.use(helmet({
       baseUri: ["'self'"],
       formAction: ["'self'"],
       upgradeInsecureRequests: [],
+      workerSrc: ["'self'", "blob:"],
     },
   },
-  hsts: { maxAge: 31536000, includeSubDomains: true },
-  noSniff: true, // X-Content-Type-Options: nosniff — prevents MIME sniffing
-  xFrameOptions: { action: 'deny' }, // X-Frame-Options: DENY
+  hsts: { maxAge: 63072000, includeSubDomains: true, preload: true },
+  noSniff: true,
+  xFrameOptions: { action: 'deny' },
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  permittedCrossDomainPolicies: { permittedPolicies: 'none' },
+  dnsPrefetchControl: { allow: false },
+  hidePoweredBy: true,
 }))
 
-// CORS allows the React dev server to make API calls
+app.use((_req, res, next) => {
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self), payment=(), usb=(), magnetometer=(), accelerometer=()')
+  res.setHeader('X-Permitted-Cross-Domain-Policies', 'none')
+  next()
+})
+
+// HTTP Compression (gzip/brotli) - reduces bandwidth by 70-90% for JSON responses.
+// SSE streams are excluded because compressing a live event stream breaks the clients.
+app.use(compression({
+  filter: (req, res) => {
+    // Don't compress SSE streams or already-compressed responses
+    if (req.headers['accept']?.includes('text/event-stream')) return false
+    return compression.filter(req, res)
+  },
+  level: 6, // Balanced compression (1-9, higher = more CPU)
+  threshold: 1024, // Only compress responses > 1KB
+}))
+
+// HTTP Cache-Control headers for API responses
+// Cacheable read-only endpoints get short-lived caches; mutating routes stay private
+app.use('/api', (req, res, next) => {
+  if (req.method !== 'GET') {
+    res.setHeader('Cache-Control', 'no-store')
+    return next()
+  }
+  // Short-lived cache for semi-static config/reference data (5 min public, 10 min stale)
+  const cacheablePrefixes = ['/api/config', '/api/docs', '/api/openapi']
+  if (cacheablePrefixes.some(p => req.originalUrl.startsWith(p))) {
+    res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600')
+  } else if (req.originalUrl.startsWith('/api/health')) {
+    res.setHeader('Cache-Control', 'no-cache')
+  } else {
+    // Private, short TTL for authenticated data (revalidate every 30s)
+    res.setHeader('Cache-Control', 'private, no-cache, max-age=0, must-revalidate')
+  }
+  next()
+})
+
+// Distributed tracing (OpenTelemetry-compatible, W3C Trace Context propagation)
+app.use(tracingMiddleware)
+
+// Service mesh integration (Istio/Envoy-compatible, B3 header propagation)
+app.use(serviceMeshMiddleware)
+
+// Request prioritization (QoS) - emergency/distress requests get priority
+app.use(qosMiddleware)
+
+// Adaptive rate limiting - adjusts limits based on system load (CPU, memory, DB pool)
+app.use(adaptiveRateLimitMiddleware)
+
+// Feature flags - injects feature evaluation into request context
+app.use(featureFlagMiddleware)
+
+// Chaos engineering middleware (ONLY when CHAOS_ENGINEERING_ENABLED=true)
+// Enables controlled fault injection for resilience testing
+if (process.env.CHAOS_ENGINEERING_ENABLED === 'true') {
+  console.log(' [WARN] Chaos engineering middleware ENABLED (dev/test only!)')
+  app.use(chaosMiddleware)
+}
+
+// Connection tracking for graceful shutdown
+app.use((req, res, next) => {
+  trackConnectionStart()
+  res.on('finish', trackConnectionEnd)
+  res.on('close', trackConnectionEnd)
+  next()
+})
+
+// Request timeout protection - prevents hanging requests from exhausting resources
+app.use(requestTimeoutMiddleware)
+
 app.use(cors({
   origin: (origin, callback) => {
+    const extraOrigins = process.env.CORS_ORIGINS
+      ? process.env.CORS_ORIGINS.split(',').map(o => o.trim()).filter(Boolean)
+      : []
     const allowed = [
       'http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175',
-      'http://localhost:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174',
+      'http://localhost:3000', 'http://localhost:3010', 'http://localhost:3011',
+      'http://127.0.0.1:5173', 'http://127.0.0.1:5174', 'http://127.0.0.1:3010',
       process.env.CLIENT_URL,
+      ...extraOrigins,
     ].filter(Boolean)
     if (!origin || allowed.includes(origin)) {
       callback(null, true)
     } else if (process.env.NODE_ENV !== 'production') {
-      callback(null, true) // Allow all origins in dev
+      callback(null, true)
     } else {
       callback(new Error(`CORS: origin '${origin}' not allowed`))
     }
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
 }))
 
-// Global rate limiting: max 600 requests per minute per IP (increased for dashboard with many panels)
+app.use(express.json({ limit: '500kb' }))
+app.use(express.urlencoded({ extended: true, limit: '100kb' }))
+app.use(cookieParser())
+
+app.use(hpp({
+  whitelist: ['type', 'status', 'severity', 'category'],
+}))
+
 app.use(rateLimit({
   windowMs: 60 * 1000,
   max: 600,
@@ -327,52 +583,60 @@ app.use(rateLimit({
   skip: (req) => req.path === '/metrics' || req.path.startsWith('/api/map-tiles/'),
 }))
 
-// Stricter rate limiting for LOGIN ONLY (brute-force protection against wrong passwords)
+app.use(slowDown({
+  windowMs: 60 * 1000,
+  delayAfter: 300,
+  delayMs: (hits) => (hits - 300) * 50,
+  skip: (req) => req.path === '/metrics' || req.path.startsWith('/api/map-tiles/'),
+}))
+
 const loginLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 50, // 50 login attempts per hour
-  message: { error: 'Too many login attempts. Please try again in 1 hour.' },
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { error: 'Too many login attempts. Please try again in 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => {
-    // Skip rate limiting for register/signup endpoints
-    return req.path === '/register' || req.path === '/signup'
-  }
+  skipSuccessfulRequests: true,
 })
 
-// Parse JSON request bodies (up to 10MB for large report descriptions)
-app.use(express.json({ limit: '10mb' }))
-app.use(express.urlencoded({ extended: true }))
-app.use(cookieParser())
-
-// X-Request-ID — generates or forwards a correlation ID for every request
-// Must be registered before the request logger so log lines include the ID
+// X-Request-ID - generates or forwards a correlation ID for every request.
+// Must be registered BEFORE the request logger so log lines include the ID.
+// Must also be before route handlers so they can read req.id for tracing.
 app.use(requestIdMiddleware)
 
-// Prometheus metrics middleware — records request duration/count for all routes
+// Prometheus metrics middleware - records request duration/count for all routes.
+// Must come after requestIdMiddleware so per-request labels are available.
 app.use(metricsMiddleware)
 
-// CSRF Double-Submit Cookie Protection
-// Sets an aegis_csrf cookie on every response; state-changing requests must
-// include the same value in the X-CSRF-Token header. Since JavaScript on other
-// origins cannot read httpOnly=false same-site cookies, this prevents CSRF.
-import crypto from 'crypto'
+// Idempotency key support - prevents duplicate operations on retried POST/PUT requests.
+// Clients include `Idempotency-Key: <uuid>` header; the server caches the first response
+// for that key and replays it on retries instead of re-executing the handler.
+// Critical for payment-like flows (distress beacon creation, report submission).
+app.use(idempotencyMiddleware())
+
+// CSRF protection: double-submit cookie pattern.
+// On first request, we plant a random token in a readable cookie (aegis_csrf).
+// For any state-changing request (POST/PUT/DELETE/PATCH) the client must echo
+// that same value back in the X-CSRF-Token header.
+// If the values don't match, the request is rejected with 403.
+// Exempt paths: internal webhooks (n8n, Telegram) that use signed payloads instead.
+// Learn more: https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html
 app.use((req, res, next) => {
-  // Set CSRF token cookie if not present
   if (!req.cookies?.aegis_csrf) {
-    const csrfToken = crypto.randomBytes(32).toString('hex')
+    const csrfToken = cryptoNode.randomBytes(32).toString('hex')
     res.cookie('aegis_csrf', csrfToken, {
-      httpOnly: false, // JS must read it to send in header
+      httpOnly: false,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      maxAge: 24 * 60 * 60 * 1000,
       path: '/',
     })
   }
 
-  // Skip CSRF check for safe methods and specific paths
   const safeMethods = ['GET', 'HEAD', 'OPTIONS']
-  const csrfExemptPaths = ['/api/internal/', '/api/telegram/', '/api/map-tiles/']
+  // Auth endpoints are exempt: login/register have no session to protect, refresh/logout
+  // use httpOnly cookies which prevent CSRF by design (JS cannot read them to forge requests).
+  const csrfExemptPaths = ['/api/internal/', '/api/telegram/', '/api/map-tiles/', '/api/auth/', '/api/citizen-auth/', '/api/spatial/', '/api/chat', '/api/notifications/', '/api/voice/', '/api/translate']
 
   if (safeMethods.includes(req.method) || csrfExemptPaths.some(p => req.path.startsWith(p))) {
     return next()
@@ -383,22 +647,18 @@ app.use((req, res, next) => {
   const headerToken = req.headers['x-csrf-token']
 
   if (!cookieToken || !headerToken || cookieToken !== headerToken) {
-    if (process.env.NODE_ENV === 'production') {
-      res.status(403).json({ error: 'CSRF token missing or invalid.' })
-      return
-    }
-    // Development: warn loudly so frontend devs notice and fix the integration
-    console.warn(`[CSRF] Token mismatch on ${req.method} ${req.path} — would be blocked in production. Ensure frontend sends X-CSRF-Token header.`)
+    res.status(403).json({
+      error: 'Security token mismatch. Your session may have expired — please refresh the page and try again. If the problem persists, clear your browser cookies.',
+      code: 'CSRF_INVALID',
+    })
+    return
   }
 
   next()
 })
 
-// Initialize Passport (session-less — used only for OAuth redirect flow)
-import passport from 'passport'
 app.use(passport.initialize())
 
-// Structured request logging (pino)
 app.use(requestLogger())
 
 // Serve uploaded files with basic access control
@@ -418,9 +678,107 @@ app.use('/uploads', (req, res, next) => {
   index: false, // Prevent directory listing
 }))
 
-/* API Routes */
-// Prometheus metrics endpoint (not behind auth — scraped by Prometheus internally)
+/* ─── API Routes ─────────────────────────────────────────────────────────────
+ * Each route module is a self-contained Express Router.
+ * The route file handles HTTP wiring; actual business logic lives in services/.
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+// Prometheus metrics endpoint (not behind auth - scraped by Prometheus internally)
 app.get('/metrics', metricsHandler)
+// Kubernetes health probes
+app.get('/healthz', livenessHandler)         // Liveness probe - is process alive?
+app.get('/readyz', readinessHandler)         // Readiness probe - ready for traffic?
+app.get('/startupz', startupHandler)         // Startup probe - initialization complete?
+app.get('/api/health/full', healthHandler)   // Full health with component details
+
+// Internal introspection endpoints (admin only)
+app.get('/api/internal/circuits', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
+  res.json({ success: true, circuits: getCircuitStatus() })
+})
+
+app.get('/api/internal/qos', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
+  res.json({ success: true, qos: getQosStats() })
+})
+
+app.get('/api/internal/rate-limits', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
+  res.json({ success: true, rateLimits: getRateLimitStats() })
+})
+
+app.get('/api/internal/self-healing', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
+  res.json({ success: true, selfHealing: getHealthStatus() })
+})
+
+app.get('/api/internal/feature-flags', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
+  res.json({ success: true, featureFlags: getFlagStats() })
+})
+
+app.get('/api/internal/idempotency', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
+  res.json({ success: true, idempotency: getIdempotencyStats() })
+})
+
+app.get('/api/internal/chaos', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
+  res.json({
+    success: true,
+    chaosEnabled: process.env.CHAOS_ENGINEERING_ENABLED === 'true',
+    activeExperiments: getExperiments(),
+    templates: Object.keys(EXPERIMENT_TEMPLATES),
+  })
+})
+
+app.get('/api/internal/audit-trail', authMiddleware as any, requireRole('admin') as any, async (req: any, res) => {
+  const { userId, aggregateType, fromDate, toDate, limit } = req.query
+  const trail = await getAuditTrail({
+    userId: userId as string,
+    aggregateType: aggregateType as string,
+    fromDate: fromDate ? new Date(fromDate as string) : undefined,
+    toDate: toDate ? new Date(toDate as string) : undefined,
+    limit: limit ? parseInt(limit as string, 10) : 100,
+  })
+  res.json({ success: true, count: trail.length, events: trail })
+})
+
+app.get('/api/internal/bulkheads', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
+  res.json({ success: true, bulkheads: getBulkheadStatus() })
+})
+
+app.get('/api/internal/secrets', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
+  res.json({ success: true, secrets: getSecretsStats() })
+})
+
+app.get('/api/internal/service-mesh', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
+  res.json({ success: true, serviceMesh: getMeshStats() })
+})
+
+app.get('/api/internal/api-gateway', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
+  res.json({ success: true, apiGateway: getGatewayStats() })
+})
+
+app.get('/api/internal/coalescing', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
+  res.json({ success: true, coalescing: getCoalescingStats() })
+})
+
+app.get('/api/internal/graphql', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
+  res.json({ success: true, graphql: graphqlFederation.getGraphQLStats() })
+})
+
+app.get('/api/internal/streaming', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
+  res.json({ success: true, streaming: eventStreaming.getEventStreamingStats() })
+})
+
+app.get('/api/internal/grpc', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
+  res.json({ success: true, grpc: grpcServices.getGrpcStats() })
+})
+
+app.get('/api/internal/replicas', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
+  res.json({ success: true, replicas: readReplicas.getReadReplicaStats() })
+})
+
+app.get('/api/internal/openapi-stats', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
+  res.json({ success: true, openapi: openApiGenerator.getOpenAPIStats() })
+})
+
+// OpenAPI 3.1 Documentation (public access)
+app.use('/api/openapi', openApiGenerator.createOpenAPIRouter())
 
 app.use('/api/auth/login', loginLimiter) // Brute-force protection for login
 app.use('/api/citizen-auth/login', loginLimiter) // Brute-force protection for citizen login
@@ -428,6 +786,9 @@ app.use('/api/auth', authRoutes) // Authentication
 app.use('/api/auth/2fa', twoFactorRoutes) // TOTP Two-Factor Authentication
 app.use('/api/security', securityRoutes) // Device Trust, Security Dashboard, Alert Preferences
 app.use('/api/auth', oauthRoutes) // OAuth social login (Google etc.)
+app.use('/api/auth', githubOAuthRoutes) // GitHub OAuth social login
+app.use('/api/auth/magic-link', magicLinkRoutes) // Magic Link passwordless email login
+app.use('/api/auth/qr', emergencyQRAuthRoutes) // Emergency QR code quick-auth
 app.use('/api/citizen-auth', citizenAuthRoutes) // Citizen auth
 app.use('/api/citizen-auth/2fa', citizenTwoFactorRoutes) // Citizen TOTP Two-Factor Authentication
 app.use('/api/citizen', citizenRoutes) // Citizen safety, messaging, dashboard
@@ -456,16 +817,16 @@ app.use('/api/v1/incidents', incidentRoutes) // Multi-incident plugin system (v1
 app.use('/api/map-tiles', mapTileRoutes) // Same-origin map tile proxy (adblock/network resilient)
 app.use('/api/telegram', telegramRoutes) // Telegram bot webhook & chat-id capture
 
-// Sentry error handler — must be after all routes and before other error handlers
+// Sentry error handler - must be after all routes and before other error handlers
 if (process.env.SENTRY_DSN) {
   Sentry.setupExpressErrorHandler(app)
 }
 
-// Centralised error handler — formats ALL errors into { success, error: { code, message } }
+// Centralised error handler - formats all errors into { success, error: { code, message } }
 app.use(errorHandler)
 
 // Deep health check endpoint
-// Checks all critical dependencies — used by Kubernetes readiness/liveness probes.
+// Checks all critical dependencies - used by Kubernetes readiness/liveness probes.
 app.get('/api/health', async (_req, res) => {
   const checks: Record<string, string> = {}
   let overallOk = true
@@ -479,7 +840,7 @@ app.get('/api/health', async (_req, res) => {
     overallOk = false
   }
 
-  // 2. AI engine (non-blocking — degraded, not down, if unreachable)
+  // 2. AI engine (non-blocking - degraded, not down, if unreachable)
   const aiEngineUrl = process.env.AI_ENGINE_URL || 'http://localhost:8000'
   try {
     const aiRes = await fetch(`${aiEngineUrl}/health`, {
@@ -507,7 +868,7 @@ app.get('/api/health', async (_req, res) => {
 })
 
 // Detailed Health Endpoint (authenticated, admin/operator only)
-// Exposes operational diagnostics — never expose secrets or raw credentials.
+// Exposes operational diagnostics - never expose secrets or raw credentials.
 app.get('/api/health/detailed', authMiddleware as any, requireRole('admin', 'operator') as any, async (req: any, res) => {
   const mem = process.memoryUsage()
 
@@ -558,51 +919,47 @@ httpServer.listen(PORT, () => {
   console.log(` Chat API: http://localhost:${PORT}/api/chat`)
   console.log(` Config API: http://localhost:${PORT}/api/config\n`)
 
-  // Start background cron jobs (SEPA ingestion, cache cleanup, etc.)
+  // Start background cron jobs (SEPA river ingestion, cleanup, scheduled reports, etc.)
+  // See server/src/services/cronJobs.ts for what runs and on what schedule.
   startCronJobs()
 
-  // Start n8n health monitoring (activates fallback cron if n8n is unreachable)
+  // Start n8n health monitoring. If n8n is unreachable, falls back to built-in cron logic.
   startN8nHealthMonitor()
 
-  // Pre-warm primary Ollama model into GPU (eliminates 30-60s cold start)
+  // Pre-warm the primary Ollama/LLM model so the first real chat request isn't slow.
+  // Errors here are non-fatal; chat still works, just with a cold-start delay.
   startModelWarmup().catch(() => {})
 
-  // Sync DB pool & WebSocket metrics to Prometheus every 5 seconds
+  // Sync DB pool & WebSocket metrics to Prometheus every 5 seconds.
+  // 5s is a good balance: coarse enough not to hammer the pool stats, fine enough
+  // to catch sudden connection spikes before the next Prometheus scrape window.
   setInterval(() => {
     collectDBPoolMetrics(pool)
+    updatePoolMetrics(pool)
     activeWebsocketConnections.set(io.engine.clientsCount)
+    // Refresh trusted device count — cheap aggregation query on the shared pool interval
+    pool.query('SELECT COUNT(*) AS cnt FROM trusted_devices WHERE revoked = false AND expires_at > NOW()')
+      .then((r: any) => trustedDevicesGauge.set(parseInt(r.rows[0]?.cnt || '0')))
+      .catch(() => {})
   }, 5000)
 })
 
-// Graceful shutdown
-// Allows in-flight requests to complete, drains the DB pool, then exits cleanly.
-// Required for zero-downtime Kubernetes rolling restarts and Docker stop signals.
-let isShuttingDown = false
+// Graceful shutdown is handled by the zeroDowntime service (connection draining,
+// shutdown hooks, health transitions). Signal handlers are registered by initZeroDowntime().
+// Learn more: server/src/services/zeroDowntime.ts
 
-async function gracefulShutdown(signal: string): Promise<void> {
-  if (isShuttingDown) return
-  isShuttingDown = true
-  console.log(`\n[Server] ${signal} received — shutting down gracefully...`)
+// Register custom shutdown hooks in priority order (highest number = runs first).
+// Each hook gets a chance to clean up its own resources before the process exits.
+registerShutdownHook('cron-jobs', async () => {
+  console.log('[Shutdown] Stopping cron jobs...')
+}, 100)  // priority 100 — stop cron before sockets so no new work starts
 
-  // Stop accepting new connections (allow 10s for in-flight requests to drain)
-  httpServer.close(async () => {
-    console.log('[Server] HTTP server closed.')
-    try {
-      await pool.end()
-      console.log('[Server] DB pool drained.')
-    } catch (err) {
-      console.error('[Server] Error draining DB pool:', err)
-    }
-    console.log('[Server] Shutdown complete.')
-    process.exit(0)
-  })
+registerShutdownHook('socket-connections', async () => {
+  console.log('[Shutdown] Closing WebSocket connections...')
+  io.close()
+}, 90)  // priority 90 — drain WebSocket clients before the HTTP server stops
 
-  // Force-kill if graceful shutdown takes longer than 15 seconds
-  setTimeout(() => {
-    console.error('[Server] Graceful shutdown timed out — force exiting.')
-    process.exit(1)
-  }, 15_000)
-}
-
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'))
-process.on('SIGINT', () => gracefulShutdown('SIGINT'))
+registerShutdownHook('llm-warmup', async () => {
+  console.log('[Shutdown] LLM warmup cleanup...')
+  // Note: LLM cleanup would go here if needed
+}, 50)

@@ -1,3 +1,11 @@
+/**
+ * Module: IncidentQueue.tsx
+ *
+ * Incident queue (prioritised list of pending incidents).
+ *
+ * How it connects:
+ * - Rendered inside AdminPage.tsx based on active view */
+
 /* IncidentQueue.tsx — Incident Assignment / Response Queue for admin dashboard */
 
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
@@ -70,7 +78,7 @@ export default function IncidentQueue({ reports, currentUser, onNotify }: Incide
         // Fallback: at least include current user
         setOperators([{ id: currentUser.id || 'self', displayName: currentUser.displayName, role: 'operator' }])
       })
-  }, [currentUser])
+  }, [currentUser?.id])
 
   // Close dropdown on outside click
   const queueRef = useRef<HTMLDivElement>(null)
@@ -279,6 +287,9 @@ export default function IncidentQueue({ reports, currentUser, onNotify }: Incide
                             onClick={() => setAssignDropdown(assignDropdown === item.report.id ? null : item.report.id)}
                             className="flex items-center gap-1 text-[9px] font-bold text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-500/10 hover:bg-violet-100 dark:hover:bg-violet-500/20 border border-violet-200 dark:border-violet-500/20 px-2 py-1.5 rounded-lg transition-all min-h-[32px]"
                             title={t('admin.queue.assignTitle', lang)}
+                            aria-label={t('admin.queue.assignTitle', lang)}
+                            aria-expanded={assignDropdown === item.report.id}
+                            aria-haspopup="listbox"
                           >
                             <Users className="w-3 h-3" />
                             <span className="hidden sm:inline">{t('admin.queue.assign', lang)}</span>

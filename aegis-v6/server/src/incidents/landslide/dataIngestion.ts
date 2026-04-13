@@ -1,6 +1,13 @@
 /**
- * incidents/landslide/dataIngestion.ts — Data ingestion for landslide monitoring
- * Data Source: Open-Meteo Weather API (rainfall data)
+ * Module: dataIngestion.ts
+ *
+ * Ground movement and landslides incident module (handles landslide specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for landslide events.
  */
 
 import { logger } from '../../services/logger.js'

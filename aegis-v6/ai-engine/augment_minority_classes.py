@@ -1,6 +1,7 @@
 """
-Audit and report on minority class balance for the report classifier.
-Does NOT generate or insert synthetic reports — only uses REAL data.
+Module: augment_minority_classes.py
+
+Augment_minority_classes AI engine module.
 """
 import asyncio
 import asyncpg

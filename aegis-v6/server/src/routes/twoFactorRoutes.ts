@@ -1,20 +1,19 @@
-﻿/*
- * twoFactorRoutes.ts — TOTP-based Two-Factor Authentication for Operators
+/**
+ * File: twoFactorRoutes.ts
  *
- * Zero-trust, production-grade 2FA with protections against:
- * Credential compromise (AES-256-GCM encrypted secrets)
- * Replay attacks (TOTP code hash + timestamp tracking)
- * Brute-force attempts (5 failures ? 10 min lockout)
- * Database leakage (SHA-256 hashed backup codes, encrypted secrets)
- * Session hijacking (IP + User-Agent binding on temp tokens)
+ * What this file does:
+ * TOTP two-factor authentication for operator accounts. Handles setup
+ * (generates secret + QR code), verification, login completion with
+ * 2FA codes, and backup code management.
  *
- * Endpoints:
- *   POST /api/auth/2fa/setup              — Generate TOTP secret + QR code
- *   POST /api/auth/2fa/verify             — Confirm first TOTP code, enable 2FA
- *   POST /api/auth/2fa/authenticate       — Complete login with TOTP/backup code
- *   POST /api/auth/2fa/disable            — Disable 2FA (requires password + code)
- *   POST /api/auth/2fa/regenerate-backup-codes — Regenerate recovery codes
- *   GET  /api/auth/2fa/status             — Check 2FA status for current operator
+ * How it connects:
+ * - Mounted at /api/auth/2fa in index.ts
+ * - Works with auth.ts for the two-step login flow
+ * - Uses twoFactorCrypto for secret encryption at rest
+ * - Requires authentication (operators only)
+ *
+ * Simple explanation:
+ * Lets operators add an authenticator app as a second login step.
  */
 
 import { Router, Response, NextFunction } from 'express'
@@ -34,6 +33,7 @@ import { logSecurityEvent } from '../services/securityLogger.js'
 import { isDeviceTrusted, trustDevice } from '../services/deviceTrustService.js'
 import { alert2FADisabled, alertBackupCodeUsed, alertNewDeviceLogin } from '../services/securityAlertService.js'
 import { AppError } from '../utils/AppError.js'
+import { twoFactorAuthTotal } from '../services/metrics.js'
 
 const router = Router()
 
@@ -99,7 +99,7 @@ const twoFactorRegenLimiter = rateLimit({
 
 // Helpers
 
- /**
+/**
  * Record a failed 2FA attempt and apply lockout if threshold reached.
  * Returns { locked, lockoutMinutes }.
  */
@@ -147,7 +147,7 @@ async function reset2FAFailures(operatorId: string): Promise<void> {
   )
 }
 
- /**
+/**
  * Check if operator is currently locked out from 2FA.
  * Throws AppError if locked.
  */
@@ -293,6 +293,7 @@ router.post('/verify', authMiddleware, twoFactorVerifyLimiter, async (req: AuthR
         userId: operatorId, userType: 'operator', eventType: '2fa_verify_failed',
         ipAddress: clientIp, userAgent, metadata: { stage: 'setup_verification' },
       })
+      twoFactorAuthTotal.inc({ outcome: 'failure', method: 'totp_setup' })
       throw AppError.unauthorized('Invalid verification code. Please try again with a fresh code from your authenticator app.')
     }
 
@@ -320,6 +321,7 @@ router.post('/verify', authMiddleware, twoFactorVerifyLimiter, async (req: AuthR
       userId: operatorId, userType: 'operator', eventType: '2fa_enabled',
       ipAddress: clientIp, userAgent,
     })
+    twoFactorAuthTotal.inc({ outcome: 'success', method: 'totp' })
 
     await pool.query(
       `INSERT INTO activity_log (action, action_type, operator_id, operator_name)
@@ -438,6 +440,7 @@ router.post('/authenticate', twoFactorAuthLimiter, async (req: AuthRequest, res:
       if (matchIndex === -1) {
         // Record failure + possible lockout
         const failure = await record2FAFailure(tempRecord.user_id, clientIp, userAgent, { method: 'backup_code' })
+        twoFactorAuthTotal.inc({ outcome: 'failure', method: 'backup_code' })
         // Don't consume the temp token on failure — let them retry until lockout
         if (failure.locked) {
           await pool.query('UPDATE two_factor_temp_tokens SET consumed = true WHERE id = $1', [tempRecord.id])
@@ -472,6 +475,7 @@ router.post('/authenticate', twoFactorAuthLimiter, async (req: AuthRequest, res:
 
       if (!isValid) {
         const failure = await record2FAFailure(tempRecord.user_id, clientIp, userAgent, { method: 'totp' })
+        twoFactorAuthTotal.inc({ outcome: 'failure', method: 'totp' })
         if (failure.locked) {
           await pool.query('UPDATE two_factor_temp_tokens SET consumed = true WHERE id = $1', [tempRecord.id])
           throw AppError.tooMany(`Account locked for ${failure.lockoutMinutes} minutes due to too many failed attempts.`)
@@ -508,6 +512,7 @@ router.post('/authenticate', twoFactorAuthLimiter, async (req: AuthRequest, res:
 
     // Reset failed attempts on success
     await reset2FAFailures(user.id)
+    twoFactorAuthTotal.inc({ outcome: 'success', method: isBackupCode ? 'backup_code' : 'totp' })
 
     // Update last verified timestamp
     await pool.query(

@@ -1,18 +1,27 @@
-﻿/**
- * utils/AppError.ts — Typed operational error for Express routes
+/**
+ * File: AppError.ts
  *
- * Every thrown / next()'d error that is an instance of AppError will be
- * serialised by errorHandler.ts into the standard envelope:
- *   { success: false, error: { code, message, details? } }
+ * What this file does:
+ * Custom error class for HTTP errors with status codes, error codes,
+ * and optional detail payloads. Factory methods provide clean shortcuts
+ * for common errors (400, 401, 403, 404, 409, 429, 500, etc.)
  *
- * Factory methods cover the most common HTTP error scenarios so route
- * code stays concise:
- *   throw AppError.badRequest('Email is required.')
+ * How it connects:
+ * - Thrown by route handlers and services when something goes wrong
+ * - Caught by errorHandler.ts middleware which sends the structured response
+ * - The errorCode field maps to frontend error handling logic
+ *
+ * Simple explanation:
+ * A structured way to throw errors with proper HTTP status codes.
+ * Instead of throwing random Error objects, routes throw AppError.badRequest()
+ * or AppError.notFound() and the error handler formats them consistently.
  */
 
 export class AppError extends Error {
   public readonly statusCode: number
   public readonly errorCode: string
+  // isOperational: true = expected user-facing error; false = programmer error.
+  // errorHandler only reveals details to the client for operational errors.
   public readonly isOperational: boolean
   public readonly details?: unknown
 
@@ -28,6 +37,7 @@ export class AppError extends Error {
     this.errorCode = errorCode
     this.isOperational = isOperational
     this.details = details
+    // Required because TypeScript extends of built-in classes break prototype chain in ES5 targets.
     Object.setPrototypeOf(this, AppError.prototype)
   }
 
@@ -81,4 +91,4 @@ export class AppError extends Error {
     return new AppError(message, 503, 'SERVICE_UNAVAILABLE')
   }
 }
-
+

@@ -1,16 +1,16 @@
 """
-train_landslide.py — Landslide Training Pipeline
+File: train_landslide.py
 
-Features: rainfall_7d, rainfall_30d, slope_proxy, soil_proxy, land_cover_proxy,
-          soil_moisture
-Data:     Open-Meteo historical (global, free), slope from elevation diff proxy
-Labels:   EXPERIMENTAL — rainfall + slope threshold combination. No reliable
-          global landslide occurrence database used.
-Model:    XGBoost classifier
+What this file does:
+Trains the landslide risk-prediction model on synthetic/augmented data.
+Uses BaseHazardPipeline for the training loop. Useful as a quick
+bootstrap when real-world labelled data is unavailable.
 
-Usage:
-    python -m app.training.train_landslide --region=global
-    python -m app.training.train_landslide --region=india
+How it connects:
+- Extends ai-engine/app/training/base_hazard_pipeline.py
+- Synthetic feature generation via data_loaders.py and data_ingestion.py
+- Saves to model_registry/landslide/ via ModelRegistry
+- Loaded at inference time by ai-engine/app/hazards/landslide.py
 """
 
 from __future__ import annotations

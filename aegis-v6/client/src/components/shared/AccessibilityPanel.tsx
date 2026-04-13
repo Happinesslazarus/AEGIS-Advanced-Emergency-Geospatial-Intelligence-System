@@ -1,4 +1,12 @@
-﻿import { useState, useEffect, useCallback, useRef } from 'react'
+/**
+ * Module: AccessibilityPanel.tsx
+ *
+ * Accessibility panel shared component (reusable UI element used across pages).
+ *
+ * How it connects:
+ * - Used across both admin and citizen interfaces */
+
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Accessibility, X, Eye, Type, Contrast, Monitor, MousePointer, Volume2 } from 'lucide-react'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
@@ -134,4 +142,4 @@ export default function AccessibilityPanel(): JSX.Element {
     </>
   )
 }
-
+

@@ -1,4 +1,20 @@
-/* CitizenPage.tsx — Public citizen portal with alerts, reports, map, and community help. */
+/**
+ * File: RiskAssessment.tsx
+ *
+ * What this file does:
+ * Large composite component that renders the full public citizen portal
+ * view: live threat level, active alerts, incident map, community help
+ * requests, flood data, and preparedness guides. Pulls from multiple
+ * contexts and API endpoints and updates in real time via sockets.
+ *
+ * How it connects:
+ * - Rendered by client/src/pages/CitizenPage.tsx
+ * - Report data from client/src/contexts/ReportsContext.tsx
+ * - Alert data from client/src/contexts/AlertsContext.tsx
+ * - Weather/flood data from client/src/utils/weatherApi.ts
+ * - Server: /api/reports, /api/alerts (read-only, no auth required)
+ */
+
 
 import { useState, useMemo, useEffect } from 'react'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
@@ -167,9 +183,10 @@ export default function CitizenPage(): JSX.Element {
       const lng = position?.coords.longitude ?? userPosition?.[1] ?? loc.center?.[1] ?? -2.11
 
       // Submit emergency report via public reports API
+      const csrfSos = document.cookie.split('; ').find(c => c.startsWith('aegis_csrf='))?.split('=')[1]
       const response = await fetch('/api/reports', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(csrfSos ? { 'X-CSRF-Token': csrfSos } : {}) },
         body: JSON.stringify({
           type: 'SOS Emergency',
           severity: 'High',
@@ -218,14 +235,16 @@ export default function CitizenPage(): JSX.Element {
       const normalizedChannels = subChannels.map(ch => ch === 'webpush' ? 'web' : ch)
       const formattedPhone = subPhone ? formatPhoneWithCountry(selectedCountry, subPhone) : ''
       
-      // Subscribe to Web Push first if selected
-      if (subChannels.includes('webpush')) {
+      // Subscribe to Web Push first if selected AND VAPID is configured on the server
+      if (subChannels.includes('webpush') && webPushStatus.enabled) {
         try {
           await subscribeToWebPush(subEmail)
           pushNotification(t('citizenPage.webPushEnabled', lang), 'success')
         } catch (err: any) {
-          console.error('Web Push subscription failed:', err)
-          pushNotification(t('citizenPage.webPushFailed', lang), 'warning')
+          const msg: string = err?.message || ''
+          if (!msg.includes('not configured') && !msg.includes('public key')) {
+            pushNotification(t('citizenPage.webPushFailed', lang), 'warning')
+          }
         }
       }
       

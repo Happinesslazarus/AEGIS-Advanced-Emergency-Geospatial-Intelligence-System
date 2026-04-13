@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Download all benchmark images locally to avoid Wikimedia rate-limiting.
-Saves to server/uploads/chat/benchmark/ so the AEGIS server can serve them.
-Updates vision_benchmark.json with local paths.
+Module: download_benchmark_images.py
+
+Download_benchmark_images AI engine module.
 """
 
 import json

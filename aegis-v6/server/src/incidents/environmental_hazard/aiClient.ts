@@ -1,12 +1,20 @@
 /**
- * incidents/environmental_hazard/aiClient.ts — AI client for environmental hazard predictions
- * AI Tier: tier3 (ML) - Uses trained machine learning models
+ * Module: aiClient.ts
+ *
+ * Environmental contamination events incident module (handles environmental hazard specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for environmental hazard events.
  */
 
 import type { IncidentPrediction } from '../types.js'
 import { logger } from '../../services/logger.js'
 
 const AI_ENGINE_URL = process.env.AI_ENGINE_URL || 'http://localhost:8000'
+const AI_API_KEY = process.env.AI_ENGINE_API_KEY || process.env.API_SECRET_KEY || ''
 
 export class EnvironmentalHazardAIClient {
    /**
@@ -14,18 +22,24 @@ export class EnvironmentalHazardAIClient {
    */
   static async getPredictions(region: string, features: Record<string, unknown>): Promise<IncidentPrediction[]> {
     try {
-      const response = await fetch(`${AI_ENGINE_URL}/api/ai/predict/environmental`, {
+      const response = await fetch(`${AI_ENGINE_URL}/api/predict`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(AI_API_KEY ? { 'X-API-Key': AI_API_KEY, 'Authorization': `Bearer ${AI_API_KEY}` } : {}),
+        },
         body: JSON.stringify({
-          region,
-          features: {
-            pm25: features.pm25 || 0,
-            pm10: features.pm10 || 0,
-            o3: features.o3 || 0,
-            no2: features.no2 || 0,
-            aqi: features.aqi || 0
-          }
+          hazard_type: 'environmental_hazard',
+          region_id: region,
+          latitude: Number(features.latitude) || 56.5,
+          longitude: Number(features.longitude) || -3.5,
+          feature_overrides: {
+            pm25: Number(features.pm25) || 0,
+            pm10: Number(features.pm10) || 0,
+            o3: Number(features.o3) || 0,
+            no2: Number(features.no2) || 0,
+            aqi: Number(features.aqi) || 0,
+          },
         })
       })
 

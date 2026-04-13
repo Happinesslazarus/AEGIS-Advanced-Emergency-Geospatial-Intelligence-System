@@ -1,16 +1,8 @@
 """
-Autonomous AI Engine Module
+Module: autonomous/__init__.py
 
-Fully autonomous system that:
-- Discovers datasets from PostgreSQL
-- Ingests real historical data
-- Trains models automatically
-- Evaluates performance
-- Updates model registry
-- Detects drift and retrains
-- Enforces safety constraints
+Package initialiser for the autonomous module (makes Python treat this directory as an importable package).
 """
-
 from .discovery_agent import AutonomousDataDiscoveryAgent
 from .ingestion_engine import DatasetIngestionEngine
 from .feature_processor import FeatureEngineeringProcessor

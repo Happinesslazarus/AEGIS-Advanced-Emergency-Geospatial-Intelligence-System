@@ -1,3 +1,11 @@
+/**
+ * Module: LocationContext.tsx
+ *
+ * Location context React context provider (shares state across components).
+ *
+ * How it connects:
+ * - Wraps components in App.tsx via AppProviders */
+
 import { createContext, useContext, useState, useMemo, ReactNode } from 'react'
 import type { LocationConfig, LocationOption } from '../types'
 import { COUNTRY_DATA } from '../data/worldRegions'
@@ -394,26 +402,36 @@ export function LocationProvider({ children }: { children: ReactNode }): JSX.Ele
   const [activeLocation, setActiveLocation] = useState<string>('world')
   const [userPosition, setUserPosition] = useState<[number, number] | null>(null)
 
+  // detectUserLocation: dual-strategy GPS fix.
+  // We call both getCurrentPosition (fast, low-accuracy) and watchPosition
+  // (continuous updates) simultaneously so we can show a rough location
+  // immediately and upgrade to a precise fix when one arrives.
   const detectUserLocation = (): void => {
     if (!('geolocation' in navigator)) return
 
+    // 'best' holds the most accurate fix seen so far.
     let best: GeolocationPosition | null = null
     let watchId: number | null = null
 
     const finish = (): void => {
+      // clearWatch stops the continuous GPS updates, which saves battery.
       if (watchId !== null) navigator.geolocation.clearWatch(watchId)
       if (best) {
         setUserPosition([best.coords.latitude, best.coords.longitude])
       }
     }
 
+    // Hard deadline: after 12 seconds we accept whatever fix we have.
+    // This prevents the UI from spinning indefinitely in poor GPS conditions.
     const timer = setTimeout(() => {
       finish()
     }, 12000)
 
+    // First call: single shot — usually fast but accuracy can be 50-1000m.
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         best = pos
+        // If accuracy is already within 30 metres, stop early — good enough.
         if (pos.coords.accuracy <= 30) {
           clearTimeout(timer)
           finish()
@@ -423,11 +441,14 @@ export function LocationProvider({ children }: { children: ReactNode }): JSX.Ele
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     )
 
+    // Second call: continuous watch — updates as the GPS chip gets a better lock.
+    // Each new position is compared against 'best' and stored if more accurate.
     watchId = navigator.geolocation.watchPosition(
       (pos) => {
         if (!best || pos.coords.accuracy < best.coords.accuracy) {
           best = pos
         }
+        // 20 metres is considered precise enough for incident map targeting.
         if (best.coords.accuracy <= 20) {
           clearTimeout(timer)
           finish()

@@ -1,7 +1,10 @@
-/*
- * IncomingAlertsWidget.tsx - Display active emergency alerts on login page
- * Shows recent hazards/emergencies before citizen authentication
- */
+/**
+ * Module: IncomingAlertsWidget.tsx
+ *
+ * Incoming alerts widget shared component (reusable UI element used across pages).
+ *
+ * How it connects:
+ * - Used across both admin and citizen interfaces */
 
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
@@ -157,4 +160,4 @@ export function IncomingAlertsWidget() {
 }
 
 export default IncomingAlertsWidget
-
+

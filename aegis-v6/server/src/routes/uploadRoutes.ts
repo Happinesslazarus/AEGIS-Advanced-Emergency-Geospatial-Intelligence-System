@@ -1,22 +1,40 @@
-/*
- * uploadRoutes.ts — File Upload Handler
+/**
+ * File: uploadRoutes.ts
  *
- * Handles uploads for:
- * User avatars
- * Community post images
- * Message attachments
- * Status update photos
+ * What this file does:
+ * General-purpose file upload endpoints for community post images,
+ * chat attachments, and other user media. Validates file types via
+ * both extension and magic bytes.
+ *
+ * How it connects:
+ * - Mounted at /api in index.ts (POST /api/upload/...)
+ * - Uses Multer for multipart handling + validateMagicBytes for security
+ * - Uploaded files served by the static handler in index.ts
+ *
+ * Simple explanation:
+ * Handles image and file uploads for community posts and chat messages.
  */
 
 import express, { Request, Response, NextFunction } from 'express'
 import multer from 'multer'
 import path from 'path'
 import fs from 'fs'
+import rateLimit from 'express-rate-limit'
 import { authMiddleware, AuthRequest } from '../middleware/auth.js'
 import { validateMagicBytes } from '../middleware/upload.js'
 import { AppError } from '../utils/AppError.js'
 
 const router = express.Router()
+
+// 20 uploads per user per 15 minutes
+const uploadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  keyGenerator: (req) => (req as AuthRequest).user?.id || req.ip || 'unknown',
+  message: { error: 'Too many uploads. Please wait before uploading again.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+})
 
 // Upload Directory Setup
 const uploadsDir = path.join(process.cwd(), 'uploads')
@@ -38,7 +56,7 @@ const storage = multer.diskStorage({
   filename: (req, file, cb) => {
     // Create unique filename: timestamp-random.ext
     const timestamp = Date.now()
-    const random = Math.random().toString(36).substring(2, 8)
+    const random = crypto.randomUUID().replace(/-/g, '').substring(0, 8)
     const ext = path.extname(file.originalname)
     cb(null, `${timestamp}-${random}${ext}`)
   },
@@ -74,8 +92,9 @@ const upload = multer({
 // POST /upload — Generic upload endpoint
 // Requires auth (citizen or operator)
 // Expects: file in `file` field
-router.post('/upload', 
+router.post('/upload',
   authMiddleware,
+  uploadLimiter,
   (req: any, res: any, next: any) => {
     // Determine upload type
     const auth = req.headers.authorization || ''
@@ -109,6 +128,7 @@ router.post('/upload',
 // POST /upload/avatar — Avatar upload
 router.post('/upload/avatar',
   authMiddleware,
+  uploadLimiter,
   (req: any, res: any, next: any) => {
     req.uploadType = 'avatars'
     next()
@@ -136,6 +156,7 @@ router.post('/upload/avatar',
 // POST /upload/community — Community post images
 router.post('/upload/community',
   authMiddleware,
+  uploadLimiter,
   (req: any, res: any, next: any) => {
     req.uploadType = 'community'
     next()
@@ -161,4 +182,4 @@ router.post('/upload/community',
 )
 
 export default router
-
+

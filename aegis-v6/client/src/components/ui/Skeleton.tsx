@@ -1,19 +1,21 @@
-﻿/**
- * Skeleton.tsx — Shimmer placeholder components for loading states.
+/**
+ * File: Skeleton.tsx
  *
- * Features:
- * Respects prefers-reduced-motion (opacity pulse only, no shimmer)
- * i18n-ready ARIA labels via t()
- * Design-token aligned colours (uses theme surface tokens)
- * Consistent API: all variants accept className override
- * Proper role="status" and aria-busy for assistive tech
+ * What this file does:
+ * Shimmer skeleton placeholders for loading states. Provides Skeleton
+ * (single bar), SkeletonCard, SkeletonList, and SkeletonTable variants.
+ * Uses animate-pulse, and disables animation for users with reduced-motion.
+ *
+ * How it connects:
+ * - Used by page-level components while data loads from the API
+ * - Motion behaviour controlled by motion-reduce Tailwind modifier
  */
+
 import { t, getLanguage } from '../../utils/i18n'
 
-// Shared shimmer class
-// animate-pulse is reduced-motion safe in Tailwind v3.4+ (falls back to
-// opacity-only), but we add an explicit motion-reduce utility as a safety net.
-const SHIMMER = 'animate-pulse motion-reduce:animate-none motion-reduce:opacity-70'
+// Shared shimmer class — gradient sweep for premium feel
+// Uses a custom shimmer keyframe + reduced-motion fallback
+const SHIMMER = 'skeleton-shimmer motion-reduce:animate-none motion-reduce:opacity-70'
 
 interface SkeletonProps {
   className?: string
@@ -188,4 +190,4 @@ export function SkeletonChart({
     </div>
   )
 }
-
+

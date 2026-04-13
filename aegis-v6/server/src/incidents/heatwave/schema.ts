@@ -1,5 +1,13 @@
 /**
- * incidents/heatwave/schema.ts — Heatwave report validation schema
+ * Module: schema.ts
+ *
+ * Extreme heat events incident module (handles heatwave specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for heatwave events.
  */
 
 export interface HeatwaveCustomFields {
@@ -40,4 +48,4 @@ export function sanitizeHeatwaveCustomFields(fields: Record<string, unknown>): H
     coolingCentersOpen: typeof fields.coolingCentersOpen === 'boolean' ? fields.coolingCentersOpen : undefined
   }
 }
-
+

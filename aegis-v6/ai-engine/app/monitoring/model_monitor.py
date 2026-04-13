@@ -1,6 +1,17 @@
 """
-AEGIS AI ENGINE - Model monitor
-Computes rolling monitoring snapshots and drift for deployed hazard models.
+File: model_monitor.py
+
+What this file does:
+Asyncpg-backed model health monitor that queries the aegis_predictions
+table to track prediction accuracy, confidence distributions, and error
+rates over time. Provides ModelHealth dataclass with drift_detected flag
+and retraining recommendations. Writes alerts to PostgreSQL model_alerts.
+
+How it connects:
+- Called from ai-engine/main.py background governance loop (every 5 min)
+- Reads aegis_predictions from the server's PostgreSQL database
+- Drift detection delegated to ai-engine/app/monitoring/drift.py
+- Alerts visible to admins via server/src/routes/adminRoutes.ts /model-health
 """
 
 from __future__ import annotations
@@ -63,6 +74,7 @@ class ModelMonitor:
         conn = await self._connect()
         try:
             try:
+                # Try with `input_features` column (newer schema, post v2.0 migration).
                 rows = await conn.fetch(
                     """
                     SELECT
@@ -88,6 +100,8 @@ class ModelMonitor:
                     limit,
                 )
             except Exception:
+                # `input_features` column missing on older deployments — fall back
+                # to extracting input features from the `prediction_response` JSONB.
                 rows = await conn.fetch(
                     """
                     SELECT
@@ -177,6 +191,10 @@ class ModelMonitor:
 
     @staticmethod
     def _current_shap_top(rows: List[Dict[str, Any]], top_k: int = 5) -> List[str]:
+        # Sum absolute importance across all recent predictions to get the
+        # consensus SHAP ranking for the current window.  This is compared
+        # against the reference ranking stored in model registry metadata to
+        # detect feature-importance drift (a leading indicator of concept drift).
         scores: Dict[str, float] = {}
         for row in rows:
             for item in row.get("contributing_factors") or []:
@@ -241,14 +259,22 @@ class ModelMonitor:
             psi = population_stability_index([b_mean - b_std, b_mean, b_mean + b_std], values)
             ks = ks_statistic([b_mean - b_std, b_mean, b_mean + b_std], values)
             z_shift = z_score_shift(b_mean, b_std, cur_mean)
+            # Per-feature drift: PSI (0.45) dominates because it captures full
+            # distribution shape; KS (0.35) is a non-parametric complement;
+            # z-shift (0.20) catches large mean shifts clipped to 4-sigma = 1.0.
             feature_drift_parts[name] = min(1.0, 0.45 * min(1.0, psi) + 0.35 * ks + 0.20 * min(1.0, z_shift / 4.0))
 
         feature_drift = float(np.mean(list(feature_drift_parts.values()))) if feature_drift_parts else 0.0
 
+        # Confidence collapse: normalised drop from training baseline.
+        # A 20% relative drop (e.g. 0.80 → 0.64) maps to 0.20, which pushes
+        # the final drift score toward WARNING territory.
         baseline_conf = baseline.get("validation_confidence_stats", {})
         base_conf_mean = float(baseline_conf.get("mean", avg_conf))
         conf_collapse = max(0.0, min(1.0, (base_conf_mean - avg_conf) / max(0.1, base_conf_mean)))
 
+        # Positive shift: fraction of the maximum possible rate change (0.5).
+        # Normalising to 0.5 means a shift from 20% → 70% positive rate scores 1.0.
         baseline_pred = baseline.get("baseline_prediction_distribution", {})
         base_pos_rate = float(baseline_pred.get("positive_rate", pos_rate))
         positive_shift = min(1.0, abs(base_pos_rate - pos_rate) / 0.5)
@@ -257,6 +283,11 @@ class ModelMonitor:
         current_shap_rank = self._current_shap_top(rows, top_k=5)
         shap_shift = normalized_rank_shift(base_shap_rank, current_shap_rank, top_k=5)
 
+        # Composite drift score with per-component weights:
+        #   feature_drift   0.45 — input distribution is the strongest signal
+        #   conf_collapse   0.25 — sudden confidence drops indicate covariate shift
+        #   positive_shift  0.20 — label distribution change
+        #   shap_shift      0.10 — feature importance reordering (weaker signal)
         score = weighted_drift_score(
             {
                 "feature_drift": (feature_drift, 0.45),
@@ -292,6 +323,9 @@ class ModelMonitor:
         rows = await self._load_recent_predictions(hazard_type, region_id, version, hours=hours)
         snapshot = self.compute_snapshot(hazard_type, region_id, version, rows)
 
+        # Translate drift_alert_level string into actionable health_status:
+        # INFO → watch (log only), WARNING → degraded (operator alert),
+        # CRITICAL → rollback_recommended (automatic candidate surfaced).
         health = "healthy"
         if snapshot.alert_level == "INFO":
             health = "watch"

@@ -1,7 +1,13 @@
-﻿/**
- * Comprehensive country codes for international phone numbers
- * All 195 UN-recognized countries + territories
- * E.164 format support
+/**
+ * File: allCountryCodes.ts
+  *
+  * What this file does:
+  * Comprehensive phone-dial-code-to-country mapping. Used in the
+  * registration form to provide a +country-code phone number selector.
+  *
+  * How it connects:
+  * - Imported by data/index.ts barrel
+  * - Used by phone number input in auth and citizen profile forms
  */
 
 import { codeToFlag } from './countryCodes'
@@ -296,4 +302,4 @@ export const ALL_COUNTRY_CODES: CountryCode[] = [
 ]
 
 export default ALL_COUNTRY_CODES
-
+

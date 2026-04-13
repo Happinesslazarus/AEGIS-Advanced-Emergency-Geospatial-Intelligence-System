@@ -1,12 +1,10 @@
-﻿/**
- * CookieConsent.tsx — GDPR / CCPA / LGPD / PIPEDA compliant cookie consent banner
+/**
+ * Module: CookieConsent.tsx
  *
- * — Bottom-anchored banner — never overlays emergency alerts, SOS, or map warnings
- * — Granular category control (essential / preferences / analytics)
- * — Persisted in localStorage with versioning — reappears when version bumps
- * — Fully accessible: keyboard navigable, focus trap in prefs panel, ARIA roles
- * — Integrated with AEGIS i18n (react-i18next, common namespace)
- */
+ * Cookie consent shared component (reusable UI element used across pages).
+ *
+ * How it connects:
+ * - Used across both admin and citizen interfaces */
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Shield, Settings, X, ChevronDown, ChevronUp, Cookie } from 'lucide-react'
@@ -251,4 +249,4 @@ function CategoryRow({ id, label, description, checked, disabled, onChange, icon
     </div>
   )
 }
-
+

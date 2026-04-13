@@ -1,16 +1,12 @@
-﻿/**
- * SOSButton.tsx — Personal Distress Beacon / Emergency SOS Button
+/**
+ * Module: SOSButton.tsx
  *
- * Floating red button with:
- * 5-second hold countdown (prevent accidental activation)
- * Pulsing animation when active
- * Live GPS coordinates display
- * Operator acknowledgement notification
- * Cancel / resolve status
- * Accessible with keyboard (Enter/Space to activate)
- */
+ * S o s button citizen component (public-facing UI element).
+ *
+ * How it connects:
+ * - Rendered inside CitizenPage.tsx or CitizenDashboard.tsx */
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { Radio, X, MapPin, Shield, Phone, Loader2, AlertTriangle } from 'lucide-react'
 import { useDistress } from '../../hooks/useDistress'
 import { t } from '../../utils/i18n'
@@ -46,6 +42,12 @@ interface Props {
 export default function SOSButton({ socket, citizenId, citizenName, className = '' }: Props): JSX.Element {
   const lang = useLanguage()
   const [showPanel, setShowPanel] = useState(false)
+  const resolveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Clean up resolve timer on unmount
+  useEffect(() => () => {
+    if (resolveTimerRef.current) clearTimeout(resolveTimerRef.current)
+  }, [])
 
   const {
     isActive,
@@ -82,12 +84,13 @@ export default function SOSButton({ socket, citizenId, citizenName, className = 
       vibrate(100)
       playTone(523, 200)
       setTimeout(() => playTone(659, 200), 250)
-      setTimeout(() => setShowPanel(false), 5000)
+      resolveTimerRef.current = setTimeout(() => setShowPanel(false), 5000)
     },
   })
 
-  // Widen status type to prevent TS narrowing issues in template comparisons
-  const status: string = rawStatus
+  // Use a proper union type for safe template comparisons without losing type safety
+  type SOSStatus = 'idle' | 'countdown' | 'activating' | 'active' | 'acknowledged' | 'resolved' | 'cancelled' | 'error'
+  const status: SOSStatus = rawStatus as SOSStatus
 
   const handleSOSPress = () => {
     if (status === 'idle' || status === 'cancelled' || status === 'resolved') {
@@ -121,7 +124,7 @@ export default function SOSButton({ socket, citizenId, citizenName, className = 
       <button
         onClick={handleSOSPress}
         className={`
-          fixed bottom-6 right-6 z-[9999]
+          fixed z-[9999]
           w-16 h-16 rounded-full
           flex items-center justify-center
           shadow-2xl transition-all duration-300
@@ -132,6 +135,7 @@ export default function SOSButton({ socket, citizenId, citizenName, className = 
               : 'bg-red-600 hover:bg-red-500 hover:scale-110 shadow-red-600/30 active:scale-95'}
           ${className}
         `}
+        style={{ bottom: 'max(1.5rem, calc(env(safe-area-inset-bottom, 0px) + 1.5rem))', right: 'max(1.5rem, calc(env(safe-area-inset-right, 0px) + 1.5rem))' }}
         title={t('sos.emergencySOS', lang)}
         aria-label={t('sos.emergencySOSButton', lang)}
       >
@@ -147,8 +151,8 @@ export default function SOSButton({ socket, citizenId, citizenName, className = 
       {/* Outer pulse rings when active */}
       {isEmergencyActive && (
         <>
-          <div className="fixed bottom-6 right-6 z-[9998] w-16 h-16 rounded-full bg-red-600/30 animate-ping pointer-events-none" />
-          <div className="fixed bottom-4 right-4 z-[9997] w-20 h-20 rounded-full border-2 border-red-500/20 animate-pulse pointer-events-none" />
+          <div className="fixed z-[9998] w-16 h-16 rounded-full bg-red-600/30 animate-ping pointer-events-none" style={{ bottom: 'max(1.5rem, calc(env(safe-area-inset-bottom, 0px) + 1.5rem))', right: 'max(1.5rem, calc(env(safe-area-inset-right, 0px) + 1.5rem))' }} />
+          <div className="fixed z-[9997] w-20 h-20 rounded-full border-2 border-red-500/20 animate-pulse pointer-events-none" style={{ bottom: 'max(1rem, calc(env(safe-area-inset-bottom, 0px) + 1rem))', right: 'max(1rem, calc(env(safe-area-inset-right, 0px) + 1rem))' }} />
         </>
       )}
 
@@ -202,8 +206,8 @@ export default function SOSButton({ socket, citizenId, citizenName, className = 
             {/* Status indicators */}
             <div className="space-y-1.5">
               <StatusDot active label={t('sos.gpsAcquired', lang)} done={latitude != null} />
-              <StatusDot active={isEmergencyActive || status === 'resolved'} label={t('sos.beaconTransmitted', lang)} done={isEmergencyActive || status === 'resolved' || status === 'acknowledged'} />
-              <StatusDot active={status === 'acknowledged' || status === 'resolved'} label={t('sos.operatorAcknowledged', lang)} done={status === 'acknowledged' || status === 'resolved'} />
+              <StatusDot active={isEmergencyActive || status === 'resolved'} label={t('sos.beaconTransmitted', lang)} done={isEmergencyActive || (['resolved', 'acknowledged'] as string[]).includes(status)} />
+              <StatusDot active={(['acknowledged', 'resolved'] as string[]).includes(status)} label={t('sos.operatorAcknowledged', lang)} done={(['acknowledged', 'resolved'] as string[]).includes(status)} />
               <StatusDot active={status === 'resolved'} label={t('sos.situationResolved', lang)} done={status === 'resolved'} />
             </div>
 
@@ -245,4 +249,4 @@ function StatusDot({ active, label, done }: { active: boolean; label: string; do
     </div>
   )
 }
-
+

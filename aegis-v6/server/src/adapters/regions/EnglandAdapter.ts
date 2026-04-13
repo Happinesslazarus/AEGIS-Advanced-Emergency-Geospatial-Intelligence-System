@@ -1,13 +1,31 @@
 /**
- * adapters/regions/EnglandAdapter.ts — England region adapter
+ * Module: EnglandAdapter.ts
  *
- * Integrates Environment Agency for flood data and river gauges,
- * Met Office for weather, and Open-Meteo as fallback.
- */
+ * Region adapter for England and Wales, drawing data from the Environment
+ * Agency (EA) Flood Monitoring API and Open-Meteo / OpenWeatherMap.
+ *
+ * EA Flood Monitoring API (no key required):
+ *   https://environment.data.gov.uk/flood-monitoring/doc/reference
+ *
+ * Data sources per method:
+ *   getFloodWarnings() — EA /id/floods — up to 100 active warnings; severity
+ *     mapped from EA’s 1–4 integer scale to our four-level enum.
+ *   getRiverLevels()   — EA /id/stations + per-station reading endpoint.
+ *     Stations are fetched in one call then readings are fetched in parallel
+ *     (Promise.allSettled) so a slow station doesn’t block the rest.
+ *   getWeatherForecast() — OpenWeatherMap if API key present, falls through
+ *     to Open-Meteo as a key-free fallback.
+ *   getRainfallData()   — Open-Meteo hourly precipitation: past 24 h + next 6 h.
+ *
+ * How it connects:
+ * - Used by services for external data fetching */
 
 import { BaseRegionAdapter } from './BaseRegionAdapter.js'
 import type { FloodWarning, RiverLevel, WeatherForecast, RainfallData } from './RegionAdapter.interface.js'
 
+// EA API constants
+// TIMEOUT_MS: 15 s is generous enough for slow EA responses during peak events.
+// EA_BASE: base URL for the EA Real Time Flood Monitoring API.
 const TIMEOUT_MS = 15_000
 const EA_BASE = 'https://environment.data.gov.uk/flood-monitoring'
 
@@ -32,6 +50,9 @@ export class EnglandAdapter extends BaseRegionAdapter {
 
       return items.map((item: any) => {
         const sevRaw = (item.severity || item.severityLevel || '').toString().toLowerCase()
+        // EA severity mapping: severityLevel 1=Severe, 2=Warning, 3=Alert, 4=No longer in force.
+        // The API also sometimes sends strings ("Severe Flood Warning") so we
+        // check both the integer level and the string description.
         let severity: FloodWarning['severity'] = 'info'
         if (sevRaw.includes('severe') || sevRaw === '1') severity = 'severe'
         else if (sevRaw.includes('warning') || sevRaw === '2') severity = 'warning'
@@ -68,7 +89,9 @@ export class EnglandAdapter extends BaseRegionAdapter {
       const stations: any[] = (json.items || []).slice(0, 30)
       const results: RiverLevel[] = []
 
-      // Fetch latest reading for each station in parallel
+      // Fetch latest reading for each station in parallel so a single slow
+      // station doesn’t block the entire list.  Promise.allSettled means
+      // individual failures silently return null rather than rejecting the batch.
       const readingPromises = stations.map(async (station: any) => {
         try {
           const measureUrl = station.measures?.[0]?.['@id'] || station.measures?.[0]
@@ -117,7 +140,11 @@ export class EnglandAdapter extends BaseRegionAdapter {
     const useLat = lat ?? centre.lat
     const useLng = lng ?? centre.lng
 
-    // Try OpenWeatherMap
+    // Weather provider failover pattern:
+    // 1. Try OpenWeatherMap (richer data, requires env key).
+    // 2. Fall through to Open-Meteo on any error or missing key (free, no key).
+    // "fall through" means we don’t return inside the catch — execution
+    // continues to fetchOpenMeteoWeather().
     const apiKey = process.env.OPENWEATHER_API_KEY
     if (apiKey) {
       try {
@@ -162,6 +189,9 @@ export class EnglandAdapter extends BaseRegionAdapter {
       if (!res.ok) return null
 
       const data = await res.json() as any
+      // past_hours=24 returns the 24 hourly values before now.
+      // forecast_hours=6 returns the 6 hourly values after now.
+      // Slicing at index 24 separates historical from forecast data cleanly.
       const precip: number[] = data.hourly?.precipitation || []
       const past = precip.slice(0, 24)
       const forecast = precip.slice(24)
@@ -219,4 +249,4 @@ export class EnglandAdapter extends BaseRegionAdapter {
     }
   }
 }
-
+

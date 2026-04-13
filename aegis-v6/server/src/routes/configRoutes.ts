@@ -1,14 +1,26 @@
 /**
- * routes/configRoutes.ts — Region, hazard, and system configuration API
+ * File: configRoutes.ts
  *
- * Exposes configuration data to the frontend so it doesn't need to
- * hardcode region-specific details like map centres or flood authorities.
+ * What this file does:
+ * Public configuration endpoints: active region, available regions,
+ * enabled hazard modules, emergency shelters, and system health.
+ * These are fetched by the frontend on initial load.
  *
- *   GET /api/config/region      — Active region config
- *   GET /api/config/regions     — All available regions
- *   GET /api/config/hazards     — All hazard module configs
- *   GET /api/config/shelters    — Emergency shelter locations
- *   GET /api/config/health      — Extended health check
+ * How it connects:
+ * - Mounted at /api/config in index.ts
+ * - Reads from config/regions.ts and config/hazards.ts
+ * - Most endpoints are public (no auth) for pre-login use
+ * - Admin endpoints for updating configuration require auth
+ *
+ * Key endpoints:
+ * GET /api/config/region   — Active region config
+ * GET /api/config/regions  — All available regions
+ * GET /api/config/hazards  — Enabled hazard modules
+ * GET /api/config/shelters — Emergency shelter locations
+ *
+ * Simple explanation:
+ * Tells the frontend which region is active, what hazards are enabled,
+ * and where emergency shelters are located.
  */
 
 import { Router, Request, Response, NextFunction } from 'express'
@@ -139,7 +151,7 @@ router.get('/shelters', async (req: Request, res: Response, next: NextFunction) 
     let query: string
     let params: unknown[]
 
-    if (!isNaN(lat) && !isNaN(lng)) {
+    if (Number.isFinite(lat) && Number.isFinite(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
       query = `
         SELECT id, name, address, capacity, current_occupancy, shelter_type, amenities, phone,
                ST_Y(coordinates::geometry) as lat, ST_X(coordinates::geometry) as lng,
@@ -197,4 +209,4 @@ router.get('/health', async (_req: Request, res: Response, next: NextFunction) =
 })
 
 export default router
-
+

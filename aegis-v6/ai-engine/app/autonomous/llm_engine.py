@@ -1,18 +1,19 @@
 """
-AEGIS LLM Engine — Autonomous Chat Intelligence Layer
-This module implements the conversational AI engine for AEGIS. It bridges
-the existing ML prediction system (hazard models, live data, drift detection)
-with a fine-tuned Llama model served via Ollama.
+File: llm_engine.py
 
-Integration points with existing AEGIS systems:
-  - FeatureStore ? live weather / river gauge data injected as context
-  - ModelRegistry ? active hazard predictions used in responses
-  - Reports DB ? nearby incident history for situational awareness
-  - PredictionLogger ? all chat interactions logged for drift monitoring
+What this file does:
+LLM-powered chat engine that answers citizen questions about live
+situational awareness. Builds a grounded context window from the
+FeatureStore (weather, river levels), ModelRegistry (current risk
+predictions), and recent incident reports before calling the language
+model. Applies safety filters to block off-topic or harmful prompts.
 
-FastAPI usage (add to existing endpoints.py):
-    from app.autonomous.llm_engine import llm_router
-    app.include_router(llm_router, prefix="/api")
+How it connects:
+- Called by ai-engine/app/api/endpoints.py POST /chat endpoint
+- Context data from ai-engine/app/core/feature_store.py
+- Risk predictions from ai-engine/app/core/model_registry.py
+- LLM provider configured in ai-engine/app/core/config.py (Ollama by default)
+- Server routes chat messages here from server/src/services/llmRouter.ts
 """
 
 from __future__ import annotations
@@ -85,7 +86,7 @@ def build_system_prompt(context: dict[str, Any]) -> str:
     user_type = context.get("user_type", "citizen")
 
     return f"""IDENTITY
-You are AEGIS — Advanced Emergency Geospatial Intelligence System — the world's most advanced local-first all-hazards emergency AI. You were created by Happiness Ada Lazarus (born February 2002), a final-year student at Robert Gordon University, Aberdeen, supervised by Shabana Mahmood. AEGIS is Happiness's vision: a full-stack disaster intelligence platform that proves local AI can match cloud giants in saving lives. You are specifically fine-tuned on: emergency management, disaster response, flood hydrology, wildfire behaviour, severe weather survival, structural and fire safety, medical triage in disaster contexts, evacuation planning, crisis communication, post-traumatic support, psychological first aid, and community resilience across the UK and Scotland.
+You are AEGIS — Advanced Emergency Geospatial Intelligence System — the world's most advanced local-first all-hazards emergency AI. You were created by Happiness Ada Lazarus (born February 2002), a final-year student at Robert Gordon University, Aberdeen, supervised by Shabana Mahmood. AEGIS is Happiness's vision: a full-stack disaster intelligence platform that proves local AI can match cloud giants in saving lives. You are prompted with deep expertise in: emergency management, disaster response, flood hydrology, wildfire behaviour, severe weather survival, structural and fire safety, medical triage in disaster contexts, evacuation planning, crisis communication, post-traumatic support, psychological first aid, and community resilience across the UK and Scotland.
 
 COGNITIVE FRAMEWORK
 Before generating any response, execute this internal reasoning sequence:
@@ -154,6 +155,7 @@ After disasters, psychological harm can be as devastating as physical damage. Yo
 - LOOK: Observe signs of acute stress (shaking, dissociation, hyperventilation, silence).
 - LISTEN: Let people tell their story at their own pace. Validate: "What you went through was real."
 - LINK: Samaritans: 116 123 (free, 24/7). MIND: 0300 123 3393. Crisis Text Line: text SHOUT to 85258. NHS urgent mental health: 111 option 2.
+NOTE: The above mental health numbers are UK-specific. Regionalize these for non-UK deployments.
 - Children: regression, nightmares, repetitive play are NORMAL trauma responses.
 - PTSD weeks/months later: flashbacks, avoidance, hypervigilance — treatable, encourage GP referral.
 - Never say "time heals" or "stay strong." Instead: "Recovery is not linear, and asking for help is strength."
@@ -293,6 +295,16 @@ class LiveContextFetcher:
             logger.debug(f"Could not fetch live AEGIS context: {exc}")
 
         self._cache[cache_key] = (context, time.time())
+        # Evict expired entries and enforce hard cap to prevent unbounded growth
+        if len(self._cache) > 500:
+            now = time.time()
+            expired = [k for k, (_, ts) in self._cache.items() if now - ts >= self._cache_ttl]
+            for k in expired:
+                del self._cache[k]
+            if len(self._cache) > 500:
+                oldest = sorted(self._cache, key=lambda k: self._cache[k][1])[:len(self._cache) - 400]
+                for k in oldest:
+                    del self._cache[k]
         return context
 
     def _empty_context(self, location: str | None) -> dict[str, Any]:
@@ -674,4 +686,4 @@ async def llm_health(engine: AEGISLLMEngine = Depends(get_engine)) -> dict:
         }
     except Exception as e:
         return {"status": "degraded", "error": str(e)}
-
+

@@ -1,14 +1,23 @@
-﻿/**
- * adapters/regions/RegionRegistry.ts — Central region adapter registry
+/**
+ * Module: RegionRegistry.ts
  *
- * Manages the lifecycle of region adapters. The ACTIVE_REGION env var
- * determines which adapter is the default. startup should fail clearly
- * if ACTIVE_REGION is set to an invalid value.
+ * Singleton registry that holds all RegionAdapter instances and tracks which
+ * region is currently active. At startup cronJobs and ingestion services call
+ * getActiveRegion() to obtain the correct adapter for fetching flood warnings,
+ * river levels, and weather data from region-specific external APIs (e.g. SEPA
+ * for Scotland, EA for England).
  *
- * Usage:
- *   import { regionRegistry } from './adapters/regions/RegionRegistry.js'
- *   const adapter = regionRegistry.getActiveRegion()
- *   const warnings = await adapter.getFloodWarnings()
+ * Built-in adapters (Scotland, England, Generic) are lazy-registered on first
+ * access so the module is safe to import before the rest of the app starts.
+ * Third-party adapters can be registered dynamically via registerRegion().
+ *
+ * How it connects:
+ * - Consumed by: cronJobs.ts, floodPredictionService.ts, riverLevelService.ts,
+ *   threatLevelService.ts, and every BaseIncidentModule subclass via
+ *   getRequestRegion()
+ * - Depends on: ScotlandAdapter, EnglandAdapter, GenericAdapter
+ * - Configured by: REGION_ID env var (set in .env; read by setActiveRegion at
+ *   startup in index.ts)
  */
 
 import type { RegionAdapter } from './RegionAdapter.interface.js'
@@ -96,7 +105,7 @@ class RegionRegistry {
 
 export const regionRegistry = new RegionRegistry()
 
- /**
+/**
  * Bootstrap the registry with built-in adapters and validate ACTIVE_REGION.
  * Call this once during server startup (index.ts).
  *

@@ -1,21 +1,17 @@
-﻿/*
- * emailService.ts - Transactional Email Service with Dev/Prod Mode
+/**
+ * File: emailService.ts
  *
- * Controls how verification emails, password resets, and security alerts
- * are delivered:
+ * Transactional email service — sends verification, password reset, and alert
+ * emails via SMTP in production. In dev mode, logs emails and stores them in
+ * a dev_emails table for inspection. Enforces HTTPS links in production.
  *
- *   EMAIL_MODE=dev        ? Emails logged to console + stored in dev_emails table
- *   EMAIL_MODE=production  ? Emails sent via SMTP (nodemailer)
+ * How it connects:
+ * - Called by auth routes (verification, password reset) and alert services
+ * - Uses nodemailer for SMTP delivery
+ * - Stores dev emails in the dev_emails DB table for testing
  *
- * In dev mode, you can view all "sent" emails by querying:
- *   SELECT * FROM dev_emails ORDER BY created_at DESC;
- *
- * To switch to production on presentation day, simply set:
- *   EMAIL_MODE=production
- *   SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM
- *
- * This service is SEPARATE from notificationService.ts which handles
- * multi-channel alert delivery (SMS, Telegram, etc.).
+ * Simple explanation:
+ * Handles all outgoing emails: verification, alerts, and password resets.
  */
 
 import nodemailer from 'nodemailer'
@@ -27,7 +23,12 @@ import { logger } from './logger.js'
 const EMAIL_MODE = (process.env.EMAIL_MODE || 'dev').toLowerCase() as 'dev' | 'production'
 const SMTP_FROM = process.env.SMTP_FROM || 'noreply@aegis.gov.uk'
 const SMTP_FROM_NAME = process.env.SMTP_FROM_NAME || 'AEGIS Platform'
-const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173'
+const _rawClientUrl = process.env.CLIENT_URL || 'http://localhost:5173'
+// Enforce HTTPS for password reset/verification links sent via email in production
+if (EMAIL_MODE === 'production' && !_rawClientUrl.startsWith('https://')) {
+  console.error('[SECURITY] CLIENT_URL must use HTTPS in production. Password reset/verification emails will contain insecure links.')
+}
+const CLIENT_URL = _rawClientUrl
 
 let transporter: nodemailer.Transporter | null = null
 
@@ -67,7 +68,7 @@ async function sendEmail(options: EmailOptions): Promise<void> {
       html: options.html,
     })
   } else {
-    // DEV MODE — log to console + store in DB
+    // DEV MODE - log to console + store in DB
     logger.info({ to: options.to, subject: options.subject, body: options.text }, '[DEV EMAIL] (not actually sent)')
 
     // Store in dev_emails table for easy inspection
@@ -78,14 +79,14 @@ async function sendEmail(options: EmailOptions): Promise<void> {
         [options.to, options.subject, options.text, options.html]
       )
     } catch {
-      // Table might not exist yet if migration hasn't run — that's OK
+      // Table might not exist yet if migration hasn't run - that's OK
     }
   }
 }
 
 // Email Templates
 
- /**
+/**
  * Send email verification link to a newly registered user.
  *
  * @param to      - Recipient email
@@ -112,7 +113,7 @@ export async function sendVerificationEmail(
     '',
     'If you did not create an account, please ignore this email.',
     '',
-    '— The AEGIS Team',
+    '- The AEGIS Team',
   ].join('\n')
 
   const html = `
@@ -139,7 +140,7 @@ export async function sendVerificationEmail(
   await sendEmail({ to, subject, text, html })
 }
 
- /**
+/**
  * Send password reset link.
  */
 export async function sendPasswordResetEmail(
@@ -160,7 +161,7 @@ export async function sendPasswordResetEmail(
     '',
     'If you did not request this reset, please ignore this email and your password will remain unchanged.',
     '',
-    '— The AEGIS Team',
+    '- The AEGIS Team',
   ].join('\n')
 
   const html = `
@@ -187,14 +188,14 @@ export async function sendPasswordResetEmail(
   await sendEmail({ to, subject, text, html })
 }
 
- /**
+/**
  * Send account lockout notification.
  */
 export async function sendLockoutNotification(
   to: string,
   minutesLocked: number
 ): Promise<void> {
-  const subject = 'AEGIS Account Locked — Suspicious Login Activity'
+  const subject = 'AEGIS Account Locked - Suspicious Login Activity'
   const text = [
     'Account Security Alert',
     '',
@@ -203,7 +204,7 @@ export async function sendLockoutNotification(
     'If this was you, please wait and try again later.',
     'If this was NOT you, someone may be trying to access your account. We recommend changing your password immediately after the lockout expires.',
     '',
-    '— The AEGIS Security Team',
+    '- The AEGIS Security Team',
   ].join('\n')
 
   const html = `
@@ -258,7 +259,7 @@ export async function sendSecurityAlertEmail(
     '',
     'If you did not perform this action, please contact your administrator immediately.',
     '',
-    '— The AEGIS Security Team',
+    '- The AEGIS Security Team',
   ].join('\n')
 
   const html = `

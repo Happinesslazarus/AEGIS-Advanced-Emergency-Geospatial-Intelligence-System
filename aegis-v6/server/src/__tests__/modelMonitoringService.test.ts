@@ -1,3 +1,17 @@
+/**
+ * File: modelMonitoringService.test.ts
+ *
+ * What it tests:
+ * Unit tests for the ML model monitoring service.
+  * Verifies prediction logging, drift alert generation, and model
+  * health aggregation. DB calls are mocked via jest.spyOn.
+  *
+  * How it connects:
+  * - Tests server/src/services/modelMonitoringService.ts
+  * - No live database required (pg.Pool mocked)
+  * - Run via: npm test -- modelMonitoring
+ */
+
 process.env.NODE_ENV = 'test'
 
 const mockGetAllRegistryHealth: jest.Mock = jest.fn(async () => ({ items: [] as any[] }))

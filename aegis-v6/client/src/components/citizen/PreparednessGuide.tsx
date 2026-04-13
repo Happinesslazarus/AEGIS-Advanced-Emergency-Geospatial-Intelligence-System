@@ -1,3 +1,27 @@
+/**
+ * File: PreparednessGuide.tsx
+ *
+ * What this file does:
+ * Interactive citizen preparedness trainer with five tabs:
+ * - Tips: per-hazard safety advice cards with expand/collapse
+ * - Scenarios: guided step-by-step drills with a live countdown timer
+ * - Kit: emergency supply checklist persisted to localStorage
+ * - Quiz: multi-category safety knowledge quiz with explanation popups
+ * - Badges: gamification awards earned from drills, quizzes, and kit checks
+ *
+ * State persistence: four localStorage keys track progress across sessions
+ * so users don't lose their readiness score on page reload.
+ *
+ * How it connects:
+ * - Rendered by CitizenPage.tsx / CitizenDashboard.tsx
+ * - Reads preparedness data from client/src/data/preparedness.ts
+ * - Uses AlertsContext to push congratulatory notifications on achievements
+ *
+ * Simple explanation:
+ * Teaches citizens what to do before, during, and after emergencies
+ * through checklists, quizzes, and timed drills that track their progress.
+ */
+
 import { useState, useEffect, useRef } from 'react'
 import { X, BookOpen, Shield, ChevronDown, ChevronUp, CheckCircle, AlertTriangle, Play, RotateCcw, Trophy, Users, Clock, Star, Flame, Waves, Wind, Zap, Thermometer, AlertCircle, Filter, Timer, Award, Target, Heart, ArrowRight, Sparkles, ThumbsUp, Droplets, Package, Flashlight, Cross, Pill, BatteryCharging, FileText, Banknote, Radio, Shirt, Volume2, Hand, CloudRain, Glasses, Wrench, Map, Box, Baby, PawPrint, Phone, Globe, Crown, Backpack, Lock, type LucideIcon } from 'lucide-react'
 import { PREPAREDNESS_TIPS, PREPAREDNESS_SCENARIOS, EMERGENCY_KIT_ITEMS, ALL_QUIZ, BADGES } from '../../data/preparedness'
@@ -9,6 +33,12 @@ const ICON_MAP: Record<string, LucideIcon> = {
   BatteryCharging, FileText, Banknote, Radio, Shirt, Volume2, Hand, CloudRain,
   Glasses, Wrench, Map, Box, Sparkles, Baby, PawPrint, Phone, Target, Trophy,
   Star, Award, Crown, Backpack, CheckCircle, Lock,
+}
+
+// Safe icon lookup with fallback to prevent blank spaces when icon name is missing
+function getIcon(name: string | undefined): LucideIcon {
+  if (!name) return Shield
+  return ICON_MAP[name] || Shield
 }
 import { useLanguage } from '../../hooks/useLanguage'
 
@@ -41,6 +71,8 @@ function MiniRing({ pct, size = 28, color = '#6366f1' }: { pct: number; size?: n
 
 interface Props { onClose: () => void; lang?: string; isEmergencyActive?: boolean }
 
+// localStorage keys for cross-session persistence.
+// Storing sets/objects as JSON strings so progress survives page reloads.
 const STORAGE_KEY_SCENARIOS = 'aegis_completed_scenarios'
 const STORAGE_KEY_QUIZ = 'aegis_quiz_best'
 const STORAGE_KEY_KIT = 'aegis_kit_checked'
@@ -77,7 +109,16 @@ export default function PreparednessGuide({ onClose, lang = 'en', isEmergencyAct
   const [drillActive, setDrillActive] = useState(false)
   const [familyPlan, setFamilyPlan] = useState<Record<string, string>>({})
   const drillRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const quizTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Clean up timers on unmount
+  useEffect(() => () => {
+    if (drillRef.current) clearInterval(drillRef.current)
+    if (quizTimerRef.current) clearTimeout(quizTimerRef.current)
+  }, [])
+
+  // Lazy state initialisers: load persisted sets from localStorage on first render.
+  // try/catch guards against corrupted or missing localStorage values.
   const [completedScenarios, setCompletedScenarios] = useState<Set<string>>(() => {
     try { return new Set(JSON.parse(localStorage.getItem(STORAGE_KEY_SCENARIOS) || '[]')) } catch { return new Set() }
   })
@@ -111,12 +152,13 @@ export default function PreparednessGuide({ onClose, lang = 'en', isEmergencyAct
   }
 
   const answerQuiz = (i: number): void => {
-    if (quizAnswer !== null) return
+    if (quizAnswer !== null) return // prevent double-answering
     setQuizAnswer(i)
     const isCorrect = i === filteredQuiz[quizQ].correct
     if (isCorrect) setQuizScore(s => s + 1)
     setShowExplanation(true)
-    setTimeout(() => {
+    // Pause 2 seconds so the user can read the explanation before advancing.
+    quizTimerRef.current = setTimeout(() => {
       if (quizQ < filteredQuiz.length - 1) {
         setQuizQ(q => q + 1); setQuizAnswer(null); setShowExplanation(false)
       } else {
@@ -131,6 +173,8 @@ export default function PreparednessGuide({ onClose, lang = 'en', isEmergencyAct
     }, 2000)
   }
 
+  // Drill timer: counts elapsed seconds using setInterval.
+  // drillRef holds the interval ID so completeScenario can clear it.
   const startDrill = () => {
     setDrillActive(true); setDrillSeconds(0)
     drillRef.current = setInterval(() => setDrillSeconds(s => s + 1), 1000)

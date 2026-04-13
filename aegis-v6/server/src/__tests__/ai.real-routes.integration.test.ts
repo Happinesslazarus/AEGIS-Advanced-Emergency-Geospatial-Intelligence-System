@@ -1,3 +1,17 @@
+/**
+ * File: ai.real-routes.integration.test.ts
+ *
+ * What it tests:
+ * Integration tests for the AI engine proxy routes with real HTTP calls.
+  * Verifies that /api/ai/* endpoints forward correctly to the AI engine
+  * and that authentication, timeout, and error-response handling are correct.
+  *
+  * How it connects:
+  * - Tests server/src/routes/aiRoutes.ts (non-registry endpoints)
+  * - Requires a running PostgreSQL and optionally a mock AI engine
+  * - Run via: npm test -- ai.real
+ */
+
 process.env.NODE_ENV = 'test'
 process.env.JWT_SECRET ??= 'test-jwt-secret-at-least-32-characters-long'
 process.env.REFRESH_TOKEN_SECRET ??= 'test-refresh-secret-at-least-32-chars'

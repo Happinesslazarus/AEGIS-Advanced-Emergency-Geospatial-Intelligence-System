@@ -1,18 +1,7 @@
 """
-AEGIS Vision -- 3-Layer Pipeline v3 (Descriptor Architecture)
-Architecture (revised based on v2 findings):
-  Layer 1: CLIP ViT-B-32 (disaster type classification + confidence)
-  Layer 2: Moondream (image DESCRIPTION, not binary gate)
-  Layer 3: Gemma3:4b (reasoning brain -- receives CLIP result + moondream description)
+Module: pipeline_v3.py
 
-Key insight from v2: Moondream is BAD at binary yes/no (28% disaster recall)
-but GOOD at descriptions ("A forest fire burns through a woodland, with trees
-ablaze and smoke billowing into the sky."). Use its strength.
-
-Flow:
-  IMAGE --> CLIP: type + confidence
-  IMAGE --> Moondream: "Describe what you see" (one sentence)
-  --> Gemma3 receives structured context, outputs final classification
+Pipeline_v3 AI engine module.
 """
 
 import json

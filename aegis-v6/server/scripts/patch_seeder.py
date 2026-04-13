@@ -1,4 +1,11 @@
-"""Patch the seed_training_data.py file to fix schema issues."""
+"""
+Module: patch_seeder.py
+
+Patch_seeder utility script.
+
+Simple explanation:
+Standalone script for patch_seeder.
+"""
 import re
 
 f = r'e:\aegis-v6-fullstack\aegis-v6\server\scripts\seed_training_data.py'

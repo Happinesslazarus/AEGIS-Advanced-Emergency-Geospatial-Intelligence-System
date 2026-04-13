@@ -1,3 +1,18 @@
+/**
+ * File: historical.ts
+  *
+  * What this file does:
+  * Curated list of significant past disaster events for the deployment
+  * region (initially Scotland). Used to populate the Historical Events
+  * timeline panel and to provide context in the AI situational-awareness
+  * chat by showing patterns from similar past incidents.
+  *
+  * How it connects:
+  * - Used by RiskAssessment.tsx historical timeline section
+  * - Referenced by client/src/hooks/useFloodData.ts
+  * - Season trend data used in the admin reporting dashboard
+ */
+
 import type { HistoricalEvent, SeasonalTrend } from '../types'
 
 export const HISTORICAL_EVENTS: HistoricalEvent[] = [

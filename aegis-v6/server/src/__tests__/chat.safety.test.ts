@@ -1,17 +1,16 @@
-﻿/**
- * tests__/chat.safety.test.ts — Chat Safety, Injection & PII Integration Tests
+/**
+ * File: chat.safety.test.ts
  *
- * Exercises the real chatService functions against a live test database.
- * The LLM stack and external helpers are mocked to return controlled responses.
- *
- * Test coverage:
- *   1. Prompt injection ? session blocked + logSecurityEvent called (LLM never called)
- *   2. All three injection regex patterns trigger individually
- *   3. Per-session token budget exceeded ? budget-exceeded reply (LLM never called)
- *   4. PII (email, phone) is stripped from messages forwarded to the LLM
- *   5. Harmful LLM output triggers onReplace with safe fallback
- *   6. getChatSessionBudget returns accurate used/remaining/limit values
- *   7. Clean messages pass through to LLM without modification
+ * What it tests:
+ * Unit tests for prompt-injection detection in the chat pipeline.
+  * Verifies that known injection patterns (role-playing, jailbreak,
+  * system-override attempts) are detected and blocked before being
+  * forwarded to the LLM.
+  *
+  * How it connects:
+  * - Tests server/src/services/chatService.ts safety filters
+  * - No external calls needed — mock LLM responses used
+  * - Run via: npm test -- chat.safety
  */
 
 // Environment
@@ -448,4 +447,4 @@ describe('Content moderation on LLM output', () => {
     }
   })
 })
-
+

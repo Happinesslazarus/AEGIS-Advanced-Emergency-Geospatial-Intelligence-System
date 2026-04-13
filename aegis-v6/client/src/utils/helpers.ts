@@ -1,17 +1,34 @@
-﻿import type { SeverityLevel, ReportStatus } from '../types'
+/**
+ * File: helpers.ts
+ *
+ * What this file does:
+ * Shared UI helper functions used across multiple components. Includes
+ * severity colour mapping, status label formatting, date display helpers,
+ * and text truncation utilities.
+ *
+ * How it connects:
+ * - Imported by components throughout client/src/components/ and pages/
+ * - Pure functions with no side effects and no API calls
+ *
+ * Learn more:
+ * - client/src/types/index.ts -- SeverityLevel and ReportStatus types used here
+ */
+
+import type { SeverityLevel, ReportStatus } from '../types'
 import { t } from './i18n'
 
-// §1 API_BASE — centralised API base URL
+// API_BASE — centralised API base URL
 
 export const API_BASE = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || ''
 
-// §2 TIME UTILITIES
+// TIME UTILITIES
 
 /* Relative time string — e.g. "just now", "5m ago", "3h ago", "2d ago" */
 export function timeAgo(dateStr: string | undefined | null): string {
   if (!dateStr) return 'Unknown'
+  // diff = milliseconds since the event; divides to minutes, hours, days.
   const diff = Date.now() - new Date(dateStr).getTime()
-  const mins = Math.floor(diff / 60000)
+  const mins = Math.floor(diff / 60000)    // 60 000 ms = 1 minute
   if (mins < 1) return 'just now'
   if (mins < 60) return `${mins}m ago`
   const hrs = Math.floor(mins / 60)
@@ -33,15 +50,17 @@ export function timeAgoCompact(dateStr: string | undefined | null): string {
   return `${days}d`
 }
 
-// §3 PASSWORD STRENGTH
-
+// PASSWORD STRENGTH
+// Scoring rubric (1 point each — max 5):
+//   length ≥ 8, length ≥ 12, has uppercase, has digit, has special character.
+// Totals map to colour-coded strength labels used in the password-change form.
 export function getPasswordStrength(pw: string, lang = 'en'): { score: number; label: string; color: string } {
   let score = 0
   if (pw.length >= 8) score++
   if (pw.length >= 12) score++
   if (/[A-Z]/.test(pw)) score++
   if (/[0-9]/.test(pw)) score++
-  if (/[^A-Za-z0-9]/.test(pw)) score++
+  if (/[^A-Za-z0-9]/.test(pw)) score++  // has a special character
   if (score <= 1) return { score, label: t('citizen.auth.password.weak', lang), color: 'bg-red-500' }
   if (score <= 2) return { score, label: t('citizen.auth.password.fair', lang), color: 'bg-amber-500' }
   if (score <= 3) return { score, label: t('citizen.auth.password.good', lang), color: 'bg-yellow-500' }
@@ -49,7 +68,7 @@ export function getPasswordStrength(pw: string, lang = 'en'): { score: number; l
   return { score, label: t('citizen.auth.password.veryStrong', lang), color: 'bg-emerald-500' }
 }
 
-// §4 EXISTING STYLE HELPERS
+// EXISTING STYLE HELPERS
 
 export function getSeverityClass(severity: SeverityLevel | string): string {
   const map: Record<string, string> = {
@@ -107,4 +126,4 @@ export function escapeHtml(s: string): string {
 export function createMarkerSvg(color: string, size = 32): string {
   return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="${color}" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`
 }
-
+

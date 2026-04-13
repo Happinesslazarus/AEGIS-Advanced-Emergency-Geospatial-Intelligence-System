@@ -1,5 +1,13 @@
 /**
- * incidents/environmental_hazard/schema.ts — Environmental Hazard report validation schema
+ * Module: schema.ts
+ *
+ * Environmental contamination events incident module (handles environmental hazard specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for environmental hazard events.
  */
 
 export interface EnvironmentalHazardCustomFields {
@@ -45,4 +53,4 @@ export function sanitizeEnvironmentalHazardCustomFields(fields: Record<string, u
     sourceIdentified: typeof fields.sourceIdentified === 'boolean' ? fields.sourceIdentified : undefined
   }
 }
-
+

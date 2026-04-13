@@ -1,18 +1,26 @@
-﻿ /*
- * services/classifierRouter.ts — Text classification API rotation engine
- * Routes classification tasks (sentiment, fake detection, severity,
- * category, language, urgency) through HuggingFace Inference API models.
- * Each task maps to a specific fine-tuned model.
- * Falls back gracefully: if HF is down or rate-limited, returns a
- * low-confidence "unknown" label so the pipeline never blocks.
-  */
+/**
+ * File: classifierRouter.ts
+ *
+ * HuggingFace text classifier — routes classification requests (sentiment,
+ * severity, fake-detection, language, urgency) to HF Inference API models.
+ * Implements a circuit-breaker pattern: 3 consecutive failures disable a
+ * model for 60 seconds.
+ *
+ * How it connects:
+ * - Calls HuggingFace Inference API via fetchWithTimeout
+ * - Consumed by aiAnalysisPipeline and chatService
+ * - Supports batch, ensemble, and cached classification modes
+ *
+ * Simple explanation:
+ * Sends text to HuggingFace AI models and brings back classifications.
+ */
 
 import crypto from 'node:crypto'
 import type { ClassifierRequest, ClassifierResponse } from '../types/index.js'
 import { fetchWithTimeout } from '../utils/fetchWithTimeout.js'
 import { logger } from './logger.js'
 
-// Task → HuggingFace model mapping
+// Task ? HuggingFace model mapping
 
 const TASK_MODELS: Record<string, string> = {
   sentiment: process.env.HF_SENTIMENT_MODEL || 'cardiffnlp/twitter-roberta-base-sentiment-latest',
@@ -25,6 +33,106 @@ const TASK_MODELS: Record<string, string> = {
 
 const HF_API_KEY = process.env.HF_API_KEY || ''
 const HF_BASE_URL = 'https://router.huggingface.co/hf-inference'
+
+// Model Health Tracking (Circuit Breaker Pattern)
+
+interface ModelHealth {
+  totalCalls: number
+  successCalls: number
+  failureCalls: number
+  lastFailureAt: number | null
+  consecutiveFailures: number
+  circuitOpen: boolean
+  circuitOpenUntil: number
+}
+
+const modelHealthMap = new Map<string, ModelHealth>()
+
+function getModelHealth(model: string): ModelHealth {
+  if (!modelHealthMap.has(model)) {
+    modelHealthMap.set(model, {
+      totalCalls: 0, successCalls: 0, failureCalls: 0,
+      lastFailureAt: null, consecutiveFailures: 0,
+      circuitOpen: false, circuitOpenUntil: 0,
+    })
+  }
+  return modelHealthMap.get(model)!
+}
+
+function recordModelSuccess(model: string): void {
+  const h = getModelHealth(model)
+  h.totalCalls++
+  h.successCalls++
+  h.consecutiveFailures = 0
+  h.circuitOpen = false
+}
+
+function recordModelFailure(model: string): void {
+  const h = getModelHealth(model)
+  h.totalCalls++
+  h.failureCalls++
+  h.lastFailureAt = Date.now()
+  h.consecutiveFailures++
+  if (h.consecutiveFailures >= 3) {
+    h.circuitOpen = true
+    h.circuitOpenUntil = Date.now() + 60_000
+    logger.warn({ model, consecutiveFailures: h.consecutiveFailures }, '[Classifier] Circuit breaker opened - model temporarily disabled')
+  }
+}
+
+function isModelHealthy(model: string): boolean {
+  const h = getModelHealth(model)
+  if (h.circuitOpen && Date.now() < h.circuitOpenUntil) return false
+  if (h.circuitOpen && Date.now() >= h.circuitOpenUntil) {
+    h.circuitOpen = false
+    h.consecutiveFailures = 0
+  }
+  return true
+}
+
+export function getClassifierHealth(): Record<string, { successRate: number; circuitOpen: boolean; totalCalls: number }> {
+  const health: Record<string, { successRate: number; circuitOpen: boolean; totalCalls: number }> = {}
+  for (const [model, h] of modelHealthMap.entries()) {
+    health[model] = {
+      successRate: h.totalCalls > 0 ? Math.round((h.successCalls / h.totalCalls) * 100) : 100,
+      circuitOpen: h.circuitOpen,
+      totalCalls: h.totalCalls,
+    }
+  }
+  return health
+}
+
+// Retry with Exponential Backoff
+
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit & { timeout?: number },
+  maxRetries = 3,
+): Promise<Response> {
+  const delays = [1000, 2000, 4000]
+  let lastError: Error | null = null
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const res = await fetchWithTimeout(url, { ...options, skipSsrfCheck: true })
+      if (res.status === 503 || res.status === 429) {
+        if (attempt < maxRetries - 1) {
+          await new Promise(r => setTimeout(r, delays[attempt]))
+          continue
+        }
+      }
+      return res
+    } catch (err: any) {
+      lastError = err
+      if (attempt < maxRetries - 1 && (err.message?.includes('timeout') || err.message?.includes('ECONNRESET'))) {
+        await new Promise(r => setTimeout(r, delays[attempt]))
+        continue
+      }
+      throw err
+    }
+  }
+  throw lastError || new Error('Max retries exceeded')
+}
 
 // Rate-limit tracking
 let requestCount = 0
@@ -40,78 +148,102 @@ function checkRateLimit(): boolean {
   return requestCount < MAX_REQUESTS_PER_MINUTE
 }
 
-// §1  SENTIMENT ANALYSIS
+// -1  SENTIMENT ANALYSIS
 
 async function classifySentiment(text: string): Promise<ClassifierResponse> {
   const model = TASK_MODELS.sentiment
   const start = Date.now()
 
-  const res = await fetchWithTimeout(`${HF_BASE_URL}/models/${model}`, { timeout: 20_000,
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${HF_API_KEY}`,
-    },
-    body: JSON.stringify({ inputs: text, options: { wait_for_model: true } }),
-  })
+  if (!isModelHealthy(model)) {
+    logger.debug({ model }, '[Classifier] Sentiment model circuit open - skipping')
+    return { label: 'unknown', score: 0, allScores: {}, model, provider: 'circuit-breaker', latencyMs: 0 }
+  }
 
-  if (!res.ok) throw new Error(`HF Sentiment ${res.status}: ${await res.text()}`)
-  const data = await res.json() as any[]
+  try {
+    const res = await fetchWithRetry(`${HF_BASE_URL}/models/${model}`, { timeout: 20_000,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${HF_API_KEY}`,
+      },
+      body: JSON.stringify({ inputs: text, options: { wait_for_model: true } }),
+    })
 
-  // Response format: [[{label, score}, ...]]
-  const scores = (Array.isArray(data[0]) ? data[0] : data) as Array<{ label: string; score: number }>
-  const best = scores.reduce((a, b) => (a.score > b.score ? a : b))
-  const allScores: Record<string, number> = {}
-  for (const s of scores) allScores[s.label] = s.score
+    if (!res.ok) throw new Error(`HF Sentiment ${res.status}: ${await res.text()}`)
+    const data = await res.json() as any[]
 
-  return {
-    label: best.label,
-    score: best.score,
-    allScores,
-    model,
-    provider: 'huggingface',
-    latencyMs: Date.now() - start,
+    // Response format: [[{label, score}, ...]]
+    const scores = (Array.isArray(data[0]) ? data[0] : data) as Array<{ label: string; score: number }>
+    const best = scores.reduce((a, b) => (a.score > b.score ? a : b))
+    const allScores: Record<string, number> = {}
+    for (const s of scores) allScores[s.label] = s.score
+
+    recordModelSuccess(model)
+
+    return {
+      label: best.label,
+      score: best.score,
+      allScores,
+      model,
+      provider: 'huggingface',
+      latencyMs: Date.now() - start,
+    }
+  } catch (err) {
+    recordModelFailure(model)
+    throw err
   }
 }
 
-// §2  FAKE DETECTION
+// -2  FAKE DETECTION
 
 async function classifyFake(text: string): Promise<ClassifierResponse> {
   const model = TASK_MODELS.fake_detection
   const start = Date.now()
 
-  const res = await fetchWithTimeout(`${HF_BASE_URL}/models/${model}`, { timeout: 20_000,
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${HF_API_KEY}`,
-    },
-    body: JSON.stringify({ inputs: text, options: { wait_for_model: true } }),
-  })
+  if (!isModelHealthy(model)) {
+    logger.debug({ model }, '[Classifier] Fake detection model circuit open - skipping')
+    return { label: 'unknown', score: 0, allScores: {}, model, provider: 'circuit-breaker', latencyMs: 0 }
+  }
 
-  if (!res.ok) throw new Error(`HF Fake ${res.status}: ${await res.text()}`)
-  const data = await res.json() as any[]
+  try {
+    const res = await fetchWithRetry(`${HF_BASE_URL}/models/${model}`, { timeout: 20_000,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${HF_API_KEY}`,
+      },
+      body: JSON.stringify({ inputs: text, options: { wait_for_model: true } }),
+    })
 
-  const scores = (Array.isArray(data[0]) ? data[0] : data) as Array<{ label: string; score: number }>
-  const fakeScore = scores.find((s) =>
-    s.label === 'LABEL_1' ||
-    s.label.toLowerCase().includes('fake') ||
-    s.label.toLowerCase() === 'fake'
-  )
-  const allScores: Record<string, number> = {}
-  for (const s of scores) allScores[s.label] = s.score
+    if (!res.ok) throw new Error(`HF Fake ${res.status}: ${await res.text()}`)
+    const data = await res.json() as any[]
 
-  return {
-    label: (fakeScore?.score || 0) > 0.5 ? 'fake' : 'genuine',
-    score: fakeScore?.score || 0,
-    allScores,
-    model,
-    provider: 'huggingface',
-    latencyMs: Date.now() - start,
+    const scores = (Array.isArray(data[0]) ? data[0] : data) as Array<{ label: string; score: number }>
+    const fakeScore = scores.find((s) =>
+      s.label === 'LABEL_1' ||
+      s.label.toLowerCase().includes('fake') ||
+      s.label.toLowerCase() === 'fake'
+    )
+    const allScores: Record<string, number> = {}
+    for (const s of scores) allScores[s.label] = s.score
+
+    recordModelSuccess(model)
+
+    return {
+      label: (fakeScore?.score || 0) > 0.5 ? 'fake' : 'genuine',
+      score: fakeScore?.score || 0,
+      allScores,
+      model,
+      provider: 'huggingface',
+      latencyMs: Date.now() - start,
+    }
+  } catch (err) {
+    recordModelFailure(model)
+    throw err
   }
 }
 
-// §3  ZERO-SHOT CLASSIFICATION (severity, category, urgency)
+// -3  ZERO-SHOT CLASSIFICATION (severity, category, urgency)
 
 async function classifyZeroShot(
   text: string,
@@ -120,71 +252,95 @@ async function classifyZeroShot(
 ): Promise<ClassifierResponse> {
   const start = Date.now()
 
-  const res = await fetchWithTimeout(`${HF_BASE_URL}/models/${model}`, { timeout: 20_000,
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${HF_API_KEY}`,
-    },
-    body: JSON.stringify({
-      inputs: text,
-      parameters: { candidate_labels: candidateLabels },
-      options: { wait_for_model: true },
-    }),
-  })
-
-  if (!res.ok) throw new Error(`HF ZeroShot ${res.status}: ${await res.text()}`)
-  const data = await res.json() as { labels: string[]; scores: number[] }
-
-  const allScores: Record<string, number> = {}
-  for (let i = 0; i < data.labels.length; i++) {
-    allScores[data.labels[i]] = data.scores[i]
+  if (!isModelHealthy(model)) {
+    logger.debug({ model }, '[Classifier] Zero-shot model circuit open - skipping')
+    return { label: 'unknown', score: 0, allScores: {}, model, provider: 'circuit-breaker', latencyMs: 0 }
   }
 
-  return {
-    label: data.labels[0],
-    score: data.scores[0],
-    allScores,
-    model,
-    provider: 'huggingface',
-    latencyMs: Date.now() - start,
+  try {
+    const res = await fetchWithRetry(`${HF_BASE_URL}/models/${model}`, { timeout: 20_000,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${HF_API_KEY}`,
+      },
+      body: JSON.stringify({
+        inputs: text,
+        parameters: { candidate_labels: candidateLabels },
+        options: { wait_for_model: true },
+      }),
+    })
+
+    if (!res.ok) throw new Error(`HF ZeroShot ${res.status}: ${await res.text()}`)
+    const data = await res.json() as { labels: string[]; scores: number[] }
+
+    const allScores: Record<string, number> = {}
+    for (let i = 0; i < data.labels.length; i++) {
+      allScores[data.labels[i]] = data.scores[i]
+    }
+
+    recordModelSuccess(model)
+
+    return {
+      label: data.labels[0],
+      score: data.scores[0],
+      allScores,
+      model,
+      provider: 'huggingface',
+      latencyMs: Date.now() - start,
+    }
+  } catch (err) {
+    recordModelFailure(model)
+    throw err
   }
 }
 
-// §4  LANGUAGE DETECTION
+// -4  LANGUAGE DETECTION
 
 async function classifyLanguage(text: string): Promise<ClassifierResponse> {
   const model = TASK_MODELS.language
   const start = Date.now()
 
-  const res = await fetchWithTimeout(`${HF_BASE_URL}/models/${model}`, { timeout: 20_000,
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${HF_API_KEY}`,
-    },
-    body: JSON.stringify({ inputs: text, options: { wait_for_model: true } }),
-  })
+  if (!isModelHealthy(model)) {
+    logger.debug({ model }, '[Classifier] Language model circuit open - skipping')
+    return { label: 'unknown', score: 0, allScores: {}, model, provider: 'circuit-breaker', latencyMs: 0 }
+  }
 
-  if (!res.ok) throw new Error(`HF Language ${res.status}: ${await res.text()}`)
-  const data = await res.json() as any[]
+  try {
+    const res = await fetchWithRetry(`${HF_BASE_URL}/models/${model}`, { timeout: 20_000,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${HF_API_KEY}`,
+      },
+      body: JSON.stringify({ inputs: text, options: { wait_for_model: true } }),
+    })
 
-  const scores = (Array.isArray(data[0]) ? data[0] : data) as Array<{ label: string; score: number }>
-  const best = scores.reduce((a, b) => (a.score > b.score ? a : b))
-  const allScores: Record<string, number> = {}
-  for (const s of scores) allScores[s.label] = s.score
+    if (!res.ok) throw new Error(`HF Language ${res.status}: ${await res.text()}`)
+    const data = await res.json() as any[]
 
-  return {
-    label: best.label,
-    score: best.score,
-    allScores,
-    model,
-    provider: 'huggingface',
-    latencyMs: Date.now() - start,
+    const scores = (Array.isArray(data[0]) ? data[0] : data) as Array<{ label: string; score: number }>
+    const best = scores.reduce((a, b) => (a.score > b.score ? a : b))
+    const allScores: Record<string, number> = {}
+    for (const s of scores) allScores[s.label] = s.score
+
+    recordModelSuccess(model)
+
+    return {
+      label: best.label,
+      score: best.score,
+      allScores,
+      model,
+      provider: 'huggingface',
+      latencyMs: Date.now() - start,
+    }
+  } catch (err) {
+    recordModelFailure(model)
+    throw err
   }
 }
 
-// §5  PUBLIC API
+// -5  PUBLIC API
 
  /*
  * Classify text for the given task. Routes to the appropriate model
@@ -204,7 +360,7 @@ export async function classify(req: ClassifierRequest): Promise<ClassifierRespon
   }
 
   if (!checkRateLimit()) {
-    logger.warn('[Classifier] Rate limited — returning fallback')
+    logger.warn('[Classifier] Rate limited - returning fallback')
     return {
       label: 'unknown',
       score: 0,
@@ -280,7 +436,7 @@ export async function batchClassify(
   return results
 }
 
-// §6  CLASSIFICATION CACHING
+// -6  CLASSIFICATION CACHING
 
 const CACHE_TTL_MS = 30 * 60 * 1000 // 30 minutes
 
@@ -298,7 +454,7 @@ export async function classifyWithCache(req: ClassifierRequest): Promise<Classif
     return cached.result
   }
 
-  // Cache miss or expired — remove stale entry if any
+  // Cache miss or expired - remove stale entry if any
   if (cached) classificationCache.delete(key)
 
   const result = await classify(req)
@@ -306,7 +462,7 @@ export async function classifyWithCache(req: ClassifierRequest): Promise<Classif
   return result
 }
 
-// §7  ENSEMBLE CLASSIFICATION
+// -7  ENSEMBLE CLASSIFICATION
 
 export async function classifyEnsemble(
   req: ClassifierRequest,
@@ -333,7 +489,7 @@ export async function classifyEnsemble(
   if (req.task === 'fake_detection') {
     const primary = await classify({ text: req.text, task: 'fake_detection' })
 
-    // If borderline (0.4–0.6), run sentiment as secondary signal
+    // If borderline (0.4-0.6), run sentiment as secondary signal
     if (primary.score >= 0.4 && primary.score <= 0.6) {
       const secondary = await classify({ text: req.text, task: 'sentiment' })
       const combinedScore = primary.score * PRIMARY_WEIGHT + secondary.score * SECONDARY_WEIGHT
@@ -353,7 +509,7 @@ export async function classifyEnsemble(
   return { ...result, ensembleSize: 1 }
 }
 
-// §8  CONFIDENCE CALIBRATION
+// -8  CONFIDENCE CALIBRATION
 
 export function calibrateConfidence(rawScore: number, task: ClassifierRequest['task']): number {
   // Calibration curves derived from empirical observation of HuggingFace model outputs:
@@ -380,7 +536,7 @@ export function calibrateConfidence(rawScore: number, task: ClassifierRequest['t
   }
 }
 
-// §9  EXTENDED CLASSIFICATION TASKS
+// -9  EXTENDED CLASSIFICATION TASKS
 
 const EXTENDED_TASK_MODELS: Record<string, string> = {
   emotion: 'SamLowe/roberta-base-go_emotions',
@@ -415,7 +571,7 @@ export async function classifyExtended(
   }
 
   if (!checkRateLimit()) {
-    logger.warn({ task }, '[Classifier] Rate limited on extended task — returning fallback')
+    logger.warn({ task }, '[Classifier] Rate limited on extended task - returning fallback')
     return {
       label: 'unknown',
       score: 0,
@@ -469,7 +625,7 @@ export async function classifyExtended(
   }
 }
 
-// §10  BATCH CLASSIFICATION WITH CONCURRENCY CONTROL
+// -10  BATCH CLASSIFICATION WITH CONCURRENCY CONTROL
 
 export async function batchClassifyConcurrent(
   texts: string[],
@@ -494,4 +650,4 @@ export async function batchClassifyConcurrent(
   await Promise.all(workers)
   return results
 }
-
+

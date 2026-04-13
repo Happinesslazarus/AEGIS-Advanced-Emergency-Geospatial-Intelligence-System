@@ -1,4 +1,33 @@
+/**
+ * File: LandingPage.tsx
+ *
+ * What this file does:
+ * The public-facing homepage for AEGIS. Shows an animated hero section,
+ * feature highlights, stats counters, disaster type overviews, and call-to-action
+ * buttons pointing to citizen login, operator login, and guest access.
+ * No authentication required to view this page.
+ *
+ * How it connects:
+ * - Routed by client/src/App.tsx at /
+ * - Links direct to /citizen/auth (citizen login), /admin (operator login),
+ *   /guest (read-only dashboard), and /about
+ * - ThemeSelector and LanguageSelector in the header allow global preferences
+ * - Uses useReveal() (IntersectionObserver) for scroll-triggered animations
+ *
+ * Learn more:
+ * - client/src/pages/CitizenAuthPage.tsx  — where the citizen login button leads
+ * - client/src/pages/AdminPage.tsx        — where the operator login button leads
+ * - client/src/pages/GuestDashboard.tsx   — read-only public map view
+ * - client/src/utils/i18n.ts              — translations used throughout this page
+ *
+ * Simple explanation:
+ * The front door to AEGIS. Public-facing, no login needed. Explains what the
+ * system does and lets users choose whether they're a citizen, an operator, or
+ * just browsing.
+ */
+
 import { Link } from 'react-router-dom'
+import { usePageTitle } from '../hooks/usePageTitle'
 import { Shield, Users, Settings, ArrowRight, Radio, Droplets, AlertTriangle, MapPin, Globe, Zap, Heart, Activity, Eye, Brain, Bell, BarChart3, Layers, Smartphone, Lock, Wifi, ChevronRight, ExternalLink, Map, Siren } from 'lucide-react'
 import { t } from '../utils/i18n'
 import { useLanguage } from '../hooks/useLanguage'
@@ -20,6 +49,26 @@ function useReveal(threshold = 0.15) {
     return () => obs.disconnect()
   }, [threshold])
   return { ref, visible }
+}
+
+/*  Parallax scroll hook — returns a CSS transform based on scroll position  */
+function useParallax(speed = 0.3) {
+  const ref = useRef<HTMLElement>(null)
+  const [offset, setOffset] = useState(0)
+  useEffect(() => {
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (prefersReduced) return
+    const handler = () => {
+      if (ref.current) {
+        const rect = ref.current.getBoundingClientRect()
+        const scrolled = -rect.top * speed
+        setOffset(scrolled)
+      }
+    }
+    window.addEventListener('scroll', handler, { passive: true })
+    return () => window.removeEventListener('scroll', handler)
+  }, [speed])
+  return { ref, style: { transform: `translateY(${offset}px)`, willChange: 'transform' as const } }
 }
 
 /*  Animated counter  */
@@ -52,9 +101,20 @@ function Reveal({ children, className = '', delay = 0 }: { children: React.React
 }
 
 export default function LandingPage(): JSX.Element {
+  usePageTitle('Welcome')
   const lang = useLanguage()
   const { dark } = useTheme()
   const [mobileNav, setMobileNav] = useState(false)
+  const heroParallax = useParallax(0.15)
+
+  // Mobile menu: scroll lock + escape key close
+  useEffect(() => {
+    if (!mobileNav) return
+    document.body.style.overflow = 'hidden'
+    const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setMobileNav(false) }
+    document.addEventListener('keydown', handleEsc)
+    return () => { document.body.style.overflow = ''; document.removeEventListener('keydown', handleEsc) }
+  }, [mobileNav])
 
   return (
     <div className="min-h-screen overflow-hidden relative bg-gradient-to-b from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-surface-ultra-dark dark:to-gray-950 text-gray-900 dark:text-white">
@@ -67,7 +127,7 @@ export default function LandingPage(): JSX.Element {
         .lp-grid-bg { background-image: radial-gradient(circle, rgba(var(--glow-color), 0.07) 1px, transparent 1px); background-size: 40px 40px; animation: lp-grid-fade 1.5s ease-out; }
         .dark .lp-grid-bg { background-image: radial-gradient(circle, rgba(var(--glow-color), 0.04) 1px, transparent 1px); }
       `}</style>
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0" aria-hidden="true">
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0" aria-hidden="true" ref={heroParallax.ref as React.RefObject<HTMLDivElement>} style={heroParallax.style}>
         <div className="lp-grid-bg absolute inset-0" />
         <div className="absolute -top-40 -left-40 w-[650px] h-[650px] bg-aegis-400/8 dark:bg-aegis-500/5 rounded-full blur-3xl" style={{ animation: 'lp-float 28s ease-in-out infinite' }} />
         <div className="absolute top-1/4 -right-32 w-[500px] h-[500px] bg-blue-400/6 dark:bg-blue-500/4 rounded-full blur-3xl" style={{ animation: 'lp-float-r 32s ease-in-out infinite' }} />
@@ -75,7 +135,7 @@ export default function LandingPage(): JSX.Element {
       </div>
 
       {/*
-          NAVIGATION
+          // NAVIGATION
        */}
       <nav className="sticky top-0 z-50 bg-white/80 dark:bg-gray-950/80 backdrop-blur-2xl border-b border-gray-200/60 dark:border-white/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
@@ -113,7 +173,7 @@ export default function LandingPage(): JSX.Element {
               {t('landing.cta.getStarted', lang)} <ArrowRight className="w-3.5 h-3.5" />
             </Link>
             {/* Mobile hamburger */}
-            <button onClick={() => setMobileNav(!mobileNav)} className="md:hidden w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors" aria-label="Toggle menu">
+            <button onClick={() => setMobileNav(!mobileNav)} className="md:hidden w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors" aria-label="Toggle menu" aria-expanded={mobileNav}>
               <div className="space-y-1.5">
                 <span className={`block w-5 h-0.5 bg-gray-600 dark:bg-gray-300 transition-transform ${mobileNav ? 'rotate-45 translate-y-[4px]' : ''}`} />
                 <span className={`block w-5 h-0.5 bg-gray-600 dark:bg-gray-300 transition-opacity ${mobileNav ? 'opacity-0' : ''}`} />
@@ -139,7 +199,7 @@ export default function LandingPage(): JSX.Element {
       </nav>
 
       {/*
-          HERO SECTION
+          // HERO SECTION
        */}
       <section className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 pt-16 sm:pt-24 pb-20 text-center">
         <Reveal>
@@ -244,7 +304,7 @@ export default function LandingPage(): JSX.Element {
       </section>
 
       {/*
-          FEATURES SHOWCASE
+          // FEATURES SHOWCASE
        */}
       <section id="features" className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-20 sm:py-28">
         <Reveal>
@@ -351,7 +411,7 @@ export default function LandingPage(): JSX.Element {
       </section>
 
       {/*
-          CTA BANNER
+          // CTA BANNER
        */}
       <section className="relative z-10">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-20">
@@ -382,7 +442,7 @@ export default function LandingPage(): JSX.Element {
       </section>
 
       {/*
-          FOOTER
+          // FOOTER
        */}
       <footer className="relative z-10 border-t border-gray-200/60 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.01]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12">
@@ -466,4 +526,4 @@ export default function LandingPage(): JSX.Element {
     </div>
   )
 }
-
+

@@ -2,7 +2,7 @@
 --  Adds tables for all 37 AI features: fusion, fingerprinting, governance,
 --  EXIF/image analysis, reporter scoring, and live data capture.
 
--- §1  AI EXECUTIONS (audit trail for every model call)
+-- AI EXECUTIONS (audit trail for every model call)
 CREATE TABLE IF NOT EXISTS ai_executions (
     id                  UUID            PRIMARY KEY DEFAULT uuid_generate_v4(),
     model_name          VARCHAR(100)    NOT NULL,
@@ -23,7 +23,7 @@ CREATE INDEX IF NOT EXISTS idx_ai_executions_model
 CREATE INDEX IF NOT EXISTS idx_ai_executions_target
     ON ai_executions (target_type, target_id) WHERE target_type IS NOT NULL;
 
--- §2  FLOOD PREDICTIONS (real prediction storage)
+-- FLOOD PREDICTIONS (real prediction storage)
 CREATE TABLE IF NOT EXISTS flood_predictions (
     id                  UUID            PRIMARY KEY DEFAULT uuid_generate_v4(),
     area                VARCHAR(255)    NOT NULL,
@@ -51,7 +51,7 @@ CREATE INDEX IF NOT EXISTS idx_flood_predictions_active
 CREATE INDEX IF NOT EXISTS idx_flood_predictions_geo
     ON flood_predictions USING GIST (coordinates) WHERE coordinates IS NOT NULL;
 
--- §3  AI PREDICTIONS (general hazard predictions storage)
+-- AI PREDICTIONS (general hazard predictions storage)
 CREATE TABLE IF NOT EXISTS ai_predictions (
     id                      UUID            PRIMARY KEY DEFAULT uuid_generate_v4(),
     hazard_type             VARCHAR(50)     NOT NULL,
@@ -75,7 +75,7 @@ CREATE TABLE IF NOT EXISTS ai_predictions (
 CREATE INDEX IF NOT EXISTS idx_ai_predictions_hazard
     ON ai_predictions (hazard_type, created_at DESC);
 
--- §4  HISTORICAL FLOOD EVENTS (for fingerprinting algorithm)
+-- HISTORICAL FLOOD EVENTS (for fingerprinting algorithm)
 CREATE TABLE IF NOT EXISTS historical_flood_events (
     id                  UUID            PRIMARY KEY DEFAULT uuid_generate_v4(),
     event_name          VARCHAR(255)    NOT NULL,
@@ -101,7 +101,7 @@ CREATE INDEX IF NOT EXISTS idx_historical_events_date
 CREATE INDEX IF NOT EXISTS idx_historical_events_area
     ON historical_flood_events (area);
 
--- §5  REPORTER SCORES (account/fingerprint history tracking)
+-- REPORTER SCORES (account/fingerprint history tracking)
 CREATE TABLE IF NOT EXISTS reporter_scores (
     id                  UUID            PRIMARY KEY DEFAULT uuid_generate_v4(),
     fingerprint_hash    VARCHAR(128)    NOT NULL,
@@ -120,7 +120,7 @@ CREATE TABLE IF NOT EXISTS reporter_scores (
 CREATE UNIQUE INDEX IF NOT EXISTS uq_reporter_scores_fingerprint
     ON reporter_scores (fingerprint_hash);
 
--- §6  IMAGE ANALYSIS RESULTS (CNN photo validation)
+-- IMAGE ANALYSIS RESULTS (CNN photo validation)
 CREATE TABLE IF NOT EXISTS image_analyses (
     id                  UUID            PRIMARY KEY DEFAULT uuid_generate_v4(),
     report_id           UUID            REFERENCES reports(id) ON DELETE SET NULL,
@@ -144,7 +144,7 @@ CREATE TABLE IF NOT EXISTS image_analyses (
 CREATE INDEX IF NOT EXISTS idx_image_analyses_report
     ON image_analyses (report_id) WHERE report_id IS NOT NULL;
 
--- §7  FUSION COMPUTATIONS (multi-source fusion audit)
+-- FUSION COMPUTATIONS (multi-source fusion audit)
 CREATE TABLE IF NOT EXISTS fusion_computations (
     id                      UUID            PRIMARY KEY DEFAULT uuid_generate_v4(),
     region_id               VARCHAR(50)     NOT NULL,
@@ -170,7 +170,7 @@ CREATE TABLE IF NOT EXISTS fusion_computations (
 CREATE INDEX IF NOT EXISTS idx_fusion_computations_region
     ON fusion_computations (region_id, created_at DESC);
 
--- §8  LIVE DATA SNAPSHOTS (cached external data for fusion)
+-- LIVE DATA SNAPSHOTS (cached external data for fusion)
 CREATE TABLE IF NOT EXISTS live_data_snapshots (
     id              UUID            PRIMARY KEY DEFAULT uuid_generate_v4(),
     source          VARCHAR(100)    NOT NULL,
@@ -189,7 +189,7 @@ CREATE INDEX IF NOT EXISTS idx_live_data_source
 CREATE INDEX IF NOT EXISTS idx_live_data_region
     ON live_data_snapshots (region_id, data_type) WHERE region_id IS NOT NULL;
 
--- §9  RESOURCE DEPLOYMENTS (AI-recommended resource allocation)
+-- RESOURCE DEPLOYMENTS (AI-recommended resource allocation)
 CREATE TABLE IF NOT EXISTS resource_deployments (
     id                      UUID            PRIMARY KEY DEFAULT uuid_generate_v4(),
     zone                    VARCHAR(200)    NOT NULL,
@@ -210,7 +210,7 @@ CREATE TABLE IF NOT EXISTS resource_deployments (
 CREATE INDEX IF NOT EXISTS idx_resource_deployments_zone
     ON resource_deployments (zone, created_at DESC);
 
--- §10  SEED HISTORICAL FLOOD EVENTS (Scottish flood records for fingerprinting)
+-- SEED HISTORICAL FLOOD EVENTS (Scottish flood records for fingerprinting)
 INSERT INTO historical_flood_events
     (event_name, event_date, area, severity, peak_water_level_m, rainfall_24h_mm,
      gauge_delta_m, soil_saturation, duration_hours, affected_people, damage_gbp,
@@ -273,7 +273,7 @@ VALUES
      'SEPA Historical Records')
 ON CONFLICT DO NOTHING;
 
--- §11  SEED AI MODEL METRICS (real model registry data)
+-- SEED AI MODEL METRICS (real model registry data)
 INSERT INTO ai_model_metrics
     (model_name, model_version, accuracy, precision_score, recall, f1_score,
      confusion_matrix, feature_importance, confidence_distribution,

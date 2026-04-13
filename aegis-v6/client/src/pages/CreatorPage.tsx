@@ -1,3 +1,15 @@
+/**
+ * File: CreatorPage.tsx
+ *
+ * What this file does:
+ * Attribution and credits page listing the project creators, contributors,
+ * and open-source libraries used. Static page with no API dependencies.
+ *
+ * How it connects:
+ * - Routed by client/src/App.tsx (credits/creator route)
+ * - Linked from LandingPage footer
+ */
+
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import {
@@ -7,7 +19,13 @@ import {
   Zap, Server, Lock, Wifi, BarChart3, GitBranch
 } from 'lucide-react'
 
-/* Animated counter hook */
+/**
+ * useCounter — animates a number from `start` to `end` using an easeOut cubic.
+ *
+ * Identical algorithm to AboutPage.tsx but with an optional `start` parameter
+ * so the "Solo Developer: 1" counter begins at 1 rather than 0.
+ * hasRun prevents restarting when the element scrolls in and out.
+ */
 function useCounter(end: number, duration = 2000, start = 0) {
   const [count, setCount] = useState(start)
   const ref = useRef<HTMLDivElement>(null)
@@ -38,7 +56,13 @@ function useCounter(end: number, duration = 2000, start = 0) {
   return { count, ref }
 }
 
-/* Fade-in on scroll */
+/**
+ * FadeInSection — IntersectionObserver scroll-triggered fade + slide-up.
+ *
+ * Uses a 0.15 threshold (slightly more generous than FadeIn in AboutPage) so
+ * taller content sections trigger earlier as they enter the viewport.
+ * Optional delay staggers sibling cards when they are rendered in a loop.
+ */
 function FadeInSection({ children, className = '', delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   const ref = useRef<HTMLDivElement>(null)
   const [visible, setVisible] = useState(false)
@@ -82,7 +106,16 @@ function TimelineItem({ year, title, desc, icon: Icon, color }: { year: string; 
   )
 }
 
-/* Interactive Skill Card with Mastery Tier */
+/**
+ * SkillHex — interactive skill card with a mastery tier badge and dot bar.
+ *
+ * tierConfig maps the three tiers to:
+ *   - badge gradient (gold/blue/green)
+ *   - dot count (5/4/3 filled dots out of 5) for the proficiency bar.
+ * The component has its own IntersectionObserver for the entrance animation
+ * rather than using FadeInSection, because it needs a ref for the observer and
+ * also a separate hover state.
+ */
 function SkillHex({ icon: Icon, label, tier, color, delay = 0 }: {
   icon: React.ElementType; label: string; tier: 'expert' | 'advanced' | 'proficient'; color: string; delay?: number
 }) {
@@ -154,6 +187,8 @@ export default function CreatorPage(): JSX.Element {
     { title: 'Global Perspective', desc: 'With roots in Africa and a European education, the creator brings a uniquely cross-cultural understanding of disaster preparedness to this platform.' },
   ]
 
+  // Auto-rotate through philosophies every 5 seconds to draw attention to each
+  // principle.  Modulo wraps back to 0 after the last item.
   useEffect(() => {
     const timer = setInterval(() => setActivePhilosophy(p => (p + 1) % philosophies.length), 5000)
     return () => clearInterval(timer)
@@ -163,6 +198,9 @@ export default function CreatorPage(): JSX.Element {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* HERO*/}
       <div
+        // Hero mouse-parallax: each floating orb has a different parallax
+        // multiplier (10 + i*5) so they drift at slightly different speeds,
+        // giving a sense of depth without a 3D library.
         className="relative overflow-hidden bg-gradient-to-br from-gray-900 via-aegis-900 to-blue-900 text-white"
         onMouseMove={(e) => {
           const rect = e.currentTarget.getBoundingClientRect()

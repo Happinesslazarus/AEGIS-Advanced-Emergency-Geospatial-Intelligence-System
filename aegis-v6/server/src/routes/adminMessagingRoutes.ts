@@ -1,13 +1,25 @@
 /**
- * adminMessagingRoutes.ts - Admin access to citizen messaging threads
+ * File: adminMessagingRoutes.ts
  *
- * Provides admin/operator endpoints for viewing and responding to citizen messages:
- *   GET  /api/admin/threads           - List all message threads
- *   GET  /api/admin/threads/:id       - Get thread with messages
- *   POST /api/admin/threads/:id/messages - Send message to citizen
- *   PUT  /api/admin/threads/:id/read  - Mark thread as read (for admin)
+ * What this file does:
+ * Admin-side messaging: operators view citizen message threads, send
+ * replies, and mark conversations as read. This is the operator half
+ * of the citizen ↔ admin messaging system.
  *
- * All routes require admin/operator authentication.
+ * How it connects:
+ * - Mounted at /api/admin/messages in index.ts
+ * - Citizens send messages via citizenRoutes.ts; operators reply here
+ * - Real-time notifications pushed via Socket.IO
+ * - Requires operator or admin authentication
+ *
+ * Key endpoints:
+ * GET  /api/admin/threads           — List all threads
+ * GET  /api/admin/threads/:id       — Get thread with messages
+ * POST /api/admin/threads/:id/messages — Send reply
+ * PUT  /api/admin/threads/:id/read  — Mark as read
+ *
+ * Simple explanation:
+ * How operators reply to citizen messages.
  */
 
 import { Router, Response, NextFunction } from 'express'
@@ -21,11 +33,15 @@ const router = Router()
 router.use(authMiddleware)
 router.use(requireRole('admin', 'operator', 'super_admin', 'superadmin'))
 
- /**
- * GET /api/admin/threads - List all message threads
+/**
+ * GET /api/admin/threads - List all message threads (paginated)
  */
 router.get('/', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
+    const page = Math.max(1, parseInt(String(req.query.page || '1'), 10) || 1)
+    const limit = Math.min(100, Math.max(1, parseInt(String(req.query.limit || '50'), 10) || 50))
+    const offset = (page - 1) * limit
+
     const result = await pool.query(`
       SELECT 
         mt.id,
@@ -46,15 +62,19 @@ router.get('/', async (req: AuthRequest, res: Response, next: NextFunction): Pro
       FROM message_threads mt
       JOIN citizens c ON c.id = mt.citizen_id
       ORDER BY mt.updated_at DESC
-    `)
+      LIMIT $1 OFFSET $2
+    `, [limit, offset])
 
-    res.json({ threads: result.rows })
+    const countResult = await pool.query('SELECT COUNT(*) FROM message_threads')
+    const total = parseInt(countResult.rows[0].count, 10)
+
+    res.json({ threads: result.rows, total, page, limit, pages: Math.ceil(total / limit) })
   } catch (err) {
     next(err)
   }
 })
 
- /**
+/**
  * GET /api/admin/threads/:id - Get thread with all messages
  */
 router.get('/:id', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
@@ -111,7 +131,7 @@ router.get('/:id', async (req: AuthRequest, res: Response, next: NextFunction): 
   }
 })
 
- /**
+/**
  * POST /api/admin/threads/:id/messages - Send message from admin to citizen
  */
 router.post('/:id/messages', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
@@ -120,6 +140,10 @@ router.post('/:id/messages', async (req: AuthRequest, res: Response, next: NextF
 
     if (!content?.trim() && !image_url) {
       throw AppError.badRequest('Message content or image required.')
+    }
+
+    if (content && content.length > 10000) {
+      throw AppError.badRequest('Message content exceeds maximum length of 10,000 characters.')
     }
 
     // Verify thread exists
@@ -156,7 +180,7 @@ router.post('/:id/messages', async (req: AuthRequest, res: Response, next: NextF
   }
 })
 
- /**
+/**
  * PUT /api/admin/threads/:id/read - Mark thread as read (for operator)
  */
 router.put('/:id/read', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {

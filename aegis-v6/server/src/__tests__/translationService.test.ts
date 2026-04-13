@@ -1,3 +1,17 @@
+/**
+ * File: translationService.test.ts
+ *
+ * What it tests:
+ * Unit tests for the translation service (LibreTranslate adapter).
+  * Verifies language detection, translation caching, retry on 429,
+  * and graceful degradation when LibreTranslate is unavailable.
+  *
+  * How it connects:
+  * - Tests server/src/services/translationService.ts
+  * - LibreTranslate API mocked with nock
+  * - Run via: npm test -- translation
+ */
+
 const mockQuery = jest.fn()
 const mockPool = {
   query: mockQuery,

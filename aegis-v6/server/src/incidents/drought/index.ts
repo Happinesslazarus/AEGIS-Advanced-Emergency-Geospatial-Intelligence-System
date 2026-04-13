@@ -1,9 +1,13 @@
 /**
- * incidents/drought/index.ts — Drought module (Tier 2: Statistical)
+ * Module: index.ts
  *
- * Uses precipitation data and soil moisture analysis to assess drought risk.
- * Plugin files: config.ts, schema.ts, alertRules.ts, aiClient.ts,
- *               dataIngestion.ts, service.ts, routes.ts
+ * Extended drought conditions incident module (handles drought specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for drought events.
  */
 
 import { BaseIncidentModule } from '../baseModule.js'

@@ -1,15 +1,18 @@
- /*
- * services/threatLevelService.ts — Real-time threat level calculation
- * Calculates an overall threat level for the active region based on:
- * River levels (from riverLevelService)
- * Verified flood reports in flood zones
- * Flood predictions (severity and time horizon)
- * Levels: GREEN ? AMBER ? RED ? CRITICAL
- * GREEN:    All rivers normal, no verified reports in flood zones
- * AMBER:    Any river elevated OR 1-2 verified reports in flood zones
- * RED:      Any river HIGH AND verified reports in flood zones OR 3+ reports
- * CRITICAL: Any river above severe threshold OR predicted severe within 2 hours
-  */
+/**
+ * File: threatLevelService.ts
+ *
+ * Regional flood threat assessor — combines river levels, verified incident
+ * reports, and flood predictions into a GREEN/AMBER/RED/CRITICAL assessment.
+ * Estimates at-risk properties, affected population, and evacuation routes.
+ *
+ * How it connects:
+ * - Pulls current levels from riverLevelService
+ * - Reads reports, flood_predictions, and evacuation_routes from the DB
+ * - Emits Socket.IO events when the threat level changes
+ *
+ * Simple explanation:
+ * Calculates how dangerous the flood situation is for a given region right now.
+ */
 
 import { getCurrentLevels } from './riverLevelService.js'
 import { getActiveCityRegion } from '../config/regions/index.js'
@@ -220,7 +223,7 @@ export async function calculateThreatLevel(): Promise<ThreatAssessment> {
 
 // —2  MULTI-HAZARD THREAT ASSESSMENT
 
- /**
+/**
  * Calculate threat levels across multiple hazard types, not just flooding.
  */
 export async function calculateMultiHazardThreat(): Promise<{
@@ -332,7 +335,7 @@ export async function calculateMultiHazardThreat(): Promise<{
 
 // —3  THREAT TRAJECTORY PREDICTION
 
- /**
+/**
  * Predict how the threat level will evolve over the next 1, 3, and 6 hours.
  */
 export async function predictThreatTrajectory(): Promise<{
@@ -393,7 +396,7 @@ export async function predictThreatTrajectory(): Promise<{
 
 // —4  THREAT EXPLANATION
 
- /**
+/**
  * Provide a human-readable explanation of the current threat level with escalation/de-escalation triggers.
  */
 export async function explainThreatLevel(): Promise<{
@@ -467,7 +470,7 @@ export async function explainThreatLevel(): Promise<{
 
 // —5  ZONE-SPECIFIC THREATS
 
- /**
+/**
  * Compute per-zone threat levels using zone risk scores and local conditions.
  */
 export async function getZoneThreatLevels(): Promise<

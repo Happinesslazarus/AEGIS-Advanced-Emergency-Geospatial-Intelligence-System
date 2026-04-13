@@ -1,3 +1,11 @@
+/**
+ * Module: StatCard.tsx
+ *
+ * Stat card shared component (reusable UI element used across pages).
+ *
+ * How it connects:
+ * - Used across both admin and citizen interfaces */
+
 import type { LucideIcon } from 'lucide-react'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'

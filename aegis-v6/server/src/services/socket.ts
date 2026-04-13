@@ -1,15 +1,40 @@
- /*
- * socket.ts - Real-time Socket.IO server for AEGIS Citizen ? Admin chat
- * Features:
- * JWT authentication on connection (citizen or operator)
- * Private citizen-admin messaging rooms
- * Message status tracking (sent ? delivered ? read)
- * Typing indicators
- * Online/offline presence
- * Emergency chat auto-escalation (keywords: help, trapped, injured, etc.)
- * Admin live notifications for new messages
- * Vulnerable citizen priority flagging
-  */
+/**
+ * File: socket.ts
+ *
+ * What this file does:
+ * Sets up and manages the Socket.IO WebSocket server. Handles real-time
+ * features: community chat rooms, admin broadcast alerts, distress beacon
+ * updates, and operator live notifications. Includes per-connection JWT
+ * authentication, rate limiting (Redis-backed, in-memory fallback), and
+ * automatic escalation detection in chat messages.
+ *
+ * How it connects:
+ * - Initialised by server/src/index.ts (initSocketServer) at startup
+ * - The returned io instance is shared with route handlers via app.set('io', io)
+ * - setRiverIO / setThreatIO / setCommunityRealtimeIo in index.ts share the io
+ *   with domain services that push live data (river levels, threat escalations)
+ * - distressRoutes.ts emits to the 'distress' namespace when a SOS is activated
+ * - reportRoutes.ts emits to the 'admin' room when a new report is submitted
+ * - Client: client/src/contexts/SocketContext.tsx manages the browser WebSocket
+ * - Client: client/src/hooks/useSocket.ts wraps event subscription logic
+ *
+ * Key namespaces / rooms:
+ * - / (default)     — all authenticated users, admin broadcasts
+ * - admin room      — operator-only event stream
+ * - community rooms — per-community-group chat rooms
+ * - distress room   — live SOS updates for operators
+ *
+ * Learn more:
+ * - server/src/services/communityRealtime.ts  — community-specific realtime events
+ * - server/src/services/riverLevelService.ts  — emits river gauge updates through socket
+ * - server/src/services/threatLevelService.ts — emits threat level changes through socket
+ * - client/src/contexts/SocketContext.tsx     — how the browser connects & subscribes
+ *
+ * Simple explanation:
+ * The live connection layer. When something important happens — a new report,
+ * a distress beacon, a flood alert — this service pushes it to the right
+ * connected browsers instantly without them needing to refresh.
+ */
 
 import { Server as HttpServer } from 'http'
 import { Server, Socket } from 'socket.io'
@@ -63,10 +88,37 @@ const communityOnlineUsers = new Map<string, {
   joinedAt: Date
 }>()
 
+const connectionRateLimits = new Map<string, { count: number; resetAt: number }>()
+const MAX_CONNECTIONS_PER_IP = 10
+const CONNECTION_WINDOW_MS = 60_000
+
+// Periodically evict expired entries from rate-limit maps to prevent unbounded growth
+setInterval(() => {
+  const now = Date.now()
+  for (const [key, entry] of connectionRateLimits) {
+    if (now > entry.resetAt) connectionRateLimits.delete(key)
+  }
+  for (const [key, entry] of messageRateLimits) {
+    if (now > entry.resetAt) messageRateLimits.delete(key)
+  }
+}, 5 * 60_000) // Every 5 minutes
+
+function checkConnectionRateLimit(ip: string): boolean {
+  const now = Date.now()
+  const entry = connectionRateLimits.get(ip) ?? { count: 0, resetAt: now + CONNECTION_WINDOW_MS }
+  if (now > entry.resetAt) {
+    entry.count = 0
+    entry.resetAt = now + CONNECTION_WINDOW_MS
+  }
+  entry.count++
+  connectionRateLimits.set(ip, entry)
+  return entry.count <= MAX_CONNECTIONS_PER_IP
+}
+
 // Per-user message rate limiting (in-memory fallback, clears on restart)
 const messageRateLimits = new Map<string, { count: number; resetAt: number }>()
 
- /**
+/**
  * Check socket message rate limit for a user.
  * Uses Redis when available for cross-instance consistency; falls back to
  * the in-memory Map when Redis is down or disabled.
@@ -105,7 +157,7 @@ async function checkSocketRateLimit(
   return limiter.count <= maxPerWindow
 }
 
- /**
+/**
  * Clean up rate-limit state for a disconnecting user.
  * Removes the in-memory entry and (best-effort) the Redis key.
  */
@@ -194,6 +246,10 @@ export function initSocketServer(httpServer: HttpServer): Server {
 
   //  JWT Authentication Middleware
   io.use((socket, next) => {
+    const ip = socket.handshake.address
+    if (!checkConnectionRateLimit(ip)) {
+      return next(new Error('Too many connections from this IP. Please try again later.'))
+    }
     const token = socket.handshake.auth.token || socket.handshake.headers.authorization?.replace('Bearer ', '')
     if (!token) return next(new Error('Authentication required'))
 
@@ -267,7 +323,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
          SET is_online = true, last_seen = NOW(), socket_id = $3`,
         [user.id, isAdmin ? 'operator' : 'citizen', socket.id]
       )
-    } catch {}
+    } catch (err) { logger.warn({ err, userId: user.id }, '[Socket] Failed to upsert user_presence on connect') }
 
     //  Join rooms
     // Citizens join their own room; admins join admin room
@@ -303,7 +359,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
           [user.id]
         )
         threads.rows.forEach(t => socket.join(`thread:${t.id}`))
-      } catch {}
+      } catch (err) { logger.warn({ err, userId: user.id }, '[Socket] Failed to join citizen thread rooms') }
     }
 
     //  Send Message
@@ -610,7 +666,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
             messageId: msg.id, status: 'read',
           })
         })
-      } catch {}
+      } catch (err) { logger.warn({ err, userId: user.id }, '[Socket] Failed to mark messages as read') }
     })
 
     //  Join Thread Room
@@ -711,7 +767,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
         )
         if (ack) ack(threads.rows)
         else socket.emit('admin:threads', threads.rows)
-      } catch {}
+      } catch (err) { logger.warn({ err, userId: user.id }, '[Socket] Failed to fetch admin threads') }
     })
 
     //  Admin: Assign thread to self
@@ -772,7 +828,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
       try {
         const users = getCommunityOnlineUsers()
         io.to('community-chat').emit('community:chat:online_update', { users })
-      } catch {}
+      } catch (err) { logger.warn({ err }, '[Socket] Failed to emit community online users') }
     }
 
     devLog(`[Socket] Registering community chat handlers for ${user.displayName} (${socket.id})`)
@@ -1461,7 +1517,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
             isVulnerable = cInfo.rows[0].is_vulnerable || false
             phone = phone || cInfo.rows[0].phone
           }
-        } catch {}
+        } catch (err) { logger.warn({ err, userId: user.id }, '[Socket] Failed to fetch citizen vulnerability info for distress call') }
 
         const result = await pool.query(
           `INSERT INTO distress_calls (
@@ -1547,7 +1603,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
           distressId: data.distressId,
           timestamp: new Date().toISOString(),
         })
-      } catch {}
+      } catch (err) { logger.warn({ err, userId: user.id }, '[Socket] Failed to process distress heartbeat') }
     })
 
     socket.on('distress:cancel', async (data: { distressId: string }, ack?: Function) => {
@@ -1699,7 +1755,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
           `UPDATE user_presence SET is_online = false, last_seen = NOW(), socket_id = NULL WHERE user_id = $1`,
           [user.id]
         )
-      } catch {}
+      } catch (err) { logger.warn({ err, userId: user.id }, '[Socket] Failed to update presence on disconnect') }
 
       // Clear all typing timers for this user on disconnect
       for (const [key, timer] of typingTimers) {

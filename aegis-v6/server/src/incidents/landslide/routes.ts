@@ -1,5 +1,13 @@
 /**
- * incidents/landslide/routes.ts — Custom routes for landslide incidents
+ * Module: routes.ts
+ *
+ * Ground movement and landslides incident module (handles landslide specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for landslide events.
  */
 
 import { Router, Request, Response } from 'express'
@@ -17,8 +25,7 @@ export function setupLandslideRoutes(router: Router): void {
         message: 'Risk zone data pending'
       })
     } catch (err: unknown) {
-      const error = err as Error
-      res.status(500).json({ error: 'Failed to fetch risk zones', details: error.message })
+      res.status(500).json({ error: 'Could not load landslide risk zones. Please try again.' })
     }
   })
 
@@ -33,8 +40,7 @@ export function setupLandslideRoutes(router: Router): void {
         message: 'Soil moisture data pending'
       })
     } catch (err: unknown) {
-      const error = err as Error
-      res.status(500).json({ error: 'Failed to fetch soil moisture', details: error.message })
+      res.status(500).json({ error: 'Could not load soil moisture data. Please try again shortly.' })
     }
   })
 
@@ -51,9 +57,8 @@ export function setupLandslideRoutes(router: Router): void {
         message: 'Rainfall accumulation calculation pending'
       })
     } catch (err: unknown) {
-      const error = err as Error
-      res.status(500).json({ error: 'Failed to calculate rainfall', details: error.message })
+      res.status(500).json({ error: 'Could not calculate rainfall accumulation. Please try again.' })
     }
   })
 }
-
+

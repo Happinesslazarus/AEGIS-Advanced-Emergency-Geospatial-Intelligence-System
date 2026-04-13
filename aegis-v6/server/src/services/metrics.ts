@@ -1,11 +1,17 @@
-﻿/*
- * metrics.ts — Prometheus metrics instrumentation for AEGIS server
+/**
+ * File: metrics.ts
  *
- * Exports:
- * metricsMiddleware  — Express middleware to record HTTP request duration/count
- * metricsHandler     — GET /metrics endpoint handler
- * aegisMetrics       — Named counters/gauges for business-level instrumentation
- * collectDBPoolMetrics — Call periodically to sync pg pool stats into gauges
+ * Core Prometheus metrics — defines histograms and counters for HTTP requests,
+ * WebSocket connections, distress events, alert delivery, AI predictions, and
+ * report submissions. Also collects default Node.js process metrics.
+ *
+ * How it connects:
+ * - Imported by middleware, routes, and services to record observations
+ * - Exposes a /metrics endpoint handler for Prometheus scraping
+ * - Separate from cacheMetrics.ts which covers cache-specific metrics
+ *
+ * Simple explanation:
+ * Tracks how fast, how often, and how reliably everything in the server is working.
  */
 
 import { Request, Response, NextFunction } from 'express'
@@ -204,13 +210,6 @@ export const dbPoolWaitingCount = new client.Gauge({
   help: 'Number of requests waiting for a DB connection',
 })
 
-export const dbQueryDuration = new client.Histogram({
-  name: 'db_query_duration_seconds',
-  help: 'Database query duration',
-  labelNames: ['operation'] as const,  // select, insert, update, delete
-  buckets: [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5],
-})
-
 // Cron Job Metrics
 
 export const cronJobDuration = new client.Histogram({
@@ -234,7 +233,7 @@ export const cronJobLastSuccess = new client.Gauge({
 
 // Helpers
 
- /**
+/**
  * Normalize an Express request path into a low-cardinality route label.
  * Replaces UUID-like segments and numeric IDs with placeholders.
  */
@@ -252,7 +251,7 @@ function normalizeRoute(req: Request): string {
   return route
 }
 
- /**
+/**
  * Express middleware that records request duration and count.
  * Mount early in the middleware chain (after security, before routes).
  */
@@ -272,15 +271,15 @@ export function metricsMiddleware(req: Request, res: Response, next: NextFunctio
   next()
 }
 
- /**
- * Handler for GET /metrics — returns Prometheus exposition format.
+/**
+ * Handler for GET /metrics - returns Prometheus exposition format.
  */
 export async function metricsHandler(_req: Request, res: Response): Promise<void> {
   res.set('Content-Type', client.register.contentType)
   res.end(await client.register.metrics())
 }
 
- /**
+/**
  * Sync pg pool stats into Prometheus gauges.
  * Call this on an interval (e.g. every 5s) or from the metrics handler.
  */

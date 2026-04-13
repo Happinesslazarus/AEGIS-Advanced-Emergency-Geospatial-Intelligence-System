@@ -1,8 +1,20 @@
-﻿/*
- * communityRoutes.ts — Community Chat and Post Sharing
+/**
+ * File: communityRoutes.ts
  *
- * Endpoints for community posts, comments, likes, and hazard updates
- * Allows citizens to share information, photos, and status updates
+ * What this file does:
+ * Community hub endpoints: posts, comments, likes, and hazard updates.
+ * Citizens can share information, request help, and coordinate during
+ * disasters through a forum-style interface.
+ *
+ * How it connects:
+ * - Mounted at /api/community in index.ts
+ * - Uses communityRealtime service for live updates via Socket.IO
+ * - File uploads for community post images go through Multer
+ * - Moderation handled by adminCommunityRoutes.ts
+ *
+ * Simple explanation:
+ * The social features — lets citizens post updates, comment, and
+ * coordinate with each other during emergencies.
  */
 
 import express, { Request, Response, NextFunction } from 'express'
@@ -41,7 +53,7 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     const timestamp = Date.now()
-    const random = Math.random().toString(36).substring(2, 8)
+    const random = crypto.randomUUID().replace(/-/g, '').substring(0, 8)
     cb(null, `${timestamp}-${random}${path.extname(file.originalname)}`)
   },
 })
@@ -664,7 +676,7 @@ router.post('/join', authMiddleware, async (req: AuthRequest, res: Response, nex
 
     // Check if banned
     const banCheck = await pool.query(
-      `SELECT * FROM community_bans WHERE user_id = $1 AND (is_permanent = true OR expires_at > NOW())`,
+      `SELECT reason, is_permanent, expires_at FROM community_bans WHERE user_id = $1 AND (is_permanent = true OR expires_at > NOW())`,
       [userId]
     )
     if (banCheck.rows.length > 0) {
@@ -708,7 +720,7 @@ router.get('/membership', authMiddleware, async (req: AuthRequest, res: Response
     if (!userId) throw AppError.unauthorized('Authentication required')
 
     const memberCheck = await pool.query(
-      'SELECT * FROM community_members WHERE user_id = $1',
+      'SELECT user_id, joined_at FROM community_members WHERE user_id = $1',
       [userId]
     )
 

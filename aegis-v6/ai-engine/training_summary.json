@@ -1,0 +1,221 @@
+{
+  "generated_at": "2026-04-12T18:57:21.719921",
+  "region": "uk-default",
+  "date_range": {
+    "start": "2015-01-01",
+    "end": "2025-12-31"
+  },
+  "elapsed_seconds": 192835.7,
+  "results": [
+    {
+      "hazard": "flood",
+      "region": "uk-default",
+      "status": "skipped",
+      "version": "2026.04.10.054431",
+      "metrics": {},
+      "promotion_status": "skipped",
+      "error": null,
+      "validation_status": "SKIPPED"
+    },
+    {
+      "hazard": "drought",
+      "region": "uk-default",
+      "status": "skipped",
+      "version": "2026.03.24.220734",
+      "metrics": {},
+      "promotion_status": "skipped",
+      "error": null,
+      "validation_status": "SKIPPED"
+    },
+    {
+      "hazard": "heatwave",
+      "region": "uk-default",
+      "status": "skipped",
+      "version": "2026.04.10.084036",
+      "metrics": {},
+      "promotion_status": "skipped",
+      "error": null,
+      "validation_status": "SKIPPED"
+    },
+    {
+      "hazard": "severe_storm",
+      "region": "uk-default",
+      "status": "success",
+      "version": "v2026.04.11.060710",
+      "metrics": {
+        "accuracy": 0.8591151234191371,
+        "precision_macro": 0.512166309106149,
+        "recall_macro": 0.6862688517138162,
+        "f1_macro": 0.4892747776988823,
+        "precision_positive": 0.028877570632327505,
+        "recall_positive": 0.5106202209005948,
+        "f1_positive_class": 0.05466369548410569,
+        "roc_auc": 0.8040424425614449,
+        "brier_score": 0.10234974179277774,
+        "log_loss": 0.3233474818615235
+      },
+      "promotion_status": "rejected",
+      "error": null,
+      "shap_top5": {
+        "pressure_msl": 0.958661,
+        "month": 0.588345,
+        "season_sin": 0.47612,
+        "wind_gusts_10m": 0.409251,
+        "dewpoint_2m": 0.342552
+      },
+      "samples": 983640,
+      "elapsed_seconds": 60224.1,
+      "validation_status": "TRAINABLE"
+    },
+    {
+      "hazard": "wildfire",
+      "region": "uk-default",
+      "status": "success",
+      "version": "v2026.04.12.004639",
+      "metrics": {
+        "accuracy": 0.9068614947345407,
+        "precision_macro": 0.7660339878549256,
+        "recall_macro": 0.9188416666996274,
+        "f1_macro": 0.815208059152551,
+        "precision_positive": 0.5408560311284046,
+        "recall_positive": 0.9341397849462365,
+        "f1_positive_class": 0.685066535239034,
+        "roc_auc": 0.9807174305659017,
+        "brier_score": 0.0706368470190491,
+        "log_loss": 0.23039703633601272
+      },
+      "promotion_status": "rejected",
+      "error": null,
+      "shap_top5": {},
+      "samples": 365904,
+      "elapsed_seconds": 66867.9,
+      "validation_status": "TRAINABLE"
+    },
+    {
+      "hazard": "landslide",
+      "region": "uk-default",
+      "status": "success",
+      "version": "v2026.04.12.014220",
+      "metrics": {
+        "accuracy": 0.9869249729558848,
+        "precision_macro": 0.5044926993635342,
+        "recall_macro": 0.9934617113667914,
+        "f1_macro": 0.5056147207350965,
+        "precision_positive": 0.008985398727068513,
+        "recall_positive": 1.0,
+        "f1_positive_class": 0.017810760667903526,
+        "roc_auc": 0.9907683003742986,
+        "brier_score": 0.0109954659820339,
+        "log_loss": 0.054785809542548365
+      },
+      "promotion_status": "rejected",
+      "error": null,
+      "shap_top5": {},
+      "samples": 1349642,
+      "elapsed_seconds": 3040.3,
+      "validation_status": "TRAINABLE"
+    },
+    {
+      "hazard": "power_outage",
+      "region": "uk-default",
+      "status": "success",
+      "version": "v2026.04.12.141336",
+      "metrics": {
+        "accuracy": 0.9590878225441376,
+        "precision_macro": 0.5080889406906323,
+        "recall_macro": 0.9632808262033934,
+        "f1_macro": 0.5054858320779181,
+        "precision_positive": 0.01620149761742682,
+        "recall_positive": 0.967479674796748,
+        "f1_positive_class": 0.03186930905195501,
+        "roc_auc": 0.9905643877698481,
+        "brier_score": 0.02783949486911297,
+        "log_loss": 0.08447293829585109
+      },
+      "promotion_status": "promoted",
+      "error": null,
+      "shap_top5": {
+        "temperature_2m": 1.619052,
+        "rainfall_48h": 1.502674,
+        "pressure_msl": 1.21562,
+        "month": 1.188115,
+        "season_sin": 0.985442
+      },
+      "samples": 1049660,
+      "elapsed_seconds": 44773.9,
+      "validation_status": "TRAINABLE"
+    },
+    {
+      "hazard": "water_supply_disruption",
+      "region": "uk-default",
+      "status": "success",
+      "version": "v2026.04.12.185718",
+      "metrics": {
+        "accuracy": 0.8644417475728156,
+        "precision_macro": 0.4818410911814968,
+        "recall_macro": 0.48389649394715906,
+        "f1_macro": 0.48277622174669105,
+        "precision_positive": 0.041141481376575556,
+        "recall_positive": 0.036127347344857605,
+        "f1_positive_class": 0.03847172559925838,
+        "roc_auc": 0.5162092324669114,
+        "brier_score": 0.11203306913375854,
+        "log_loss": 0.5839493910755997
+      },
+      "promotion_status": "rejected",
+      "error": null,
+      "shap_top5": {
+        "soil_moisture_7_to_28cm": 1.932309,
+        "month": 1.416094,
+        "antecedent_rainfall_30d": 1.194882,
+        "temperature_2m": 1.009814,
+        "antecedent_rainfall_14d": 0.850926
+      },
+      "samples": 1428262,
+      "elapsed_seconds": 16719.3,
+      "validation_status": "PARTIAL"
+    },
+    {
+      "hazard": "infrastructure_damage",
+      "region": "uk-default",
+      "status": "skipped",
+      "version": "2026.04.10.234653",
+      "metrics": {},
+      "promotion_status": "skipped",
+      "error": null,
+      "validation_status": "SKIPPED"
+    },
+    {
+      "hazard": "public_safety_incident",
+      "region": "uk-default",
+      "status": "skipped",
+      "version": "2026.04.11.014339",
+      "metrics": {},
+      "promotion_status": "skipped",
+      "error": null,
+      "validation_status": "SKIPPED"
+    },
+    {
+      "hazard": "environmental_hazard",
+      "region": "uk-default",
+      "status": "skipped",
+      "version": "2026.04.11.023009",
+      "metrics": {},
+      "promotion_status": "skipped",
+      "error": null,
+      "validation_status": "SKIPPED"
+    }
+  ],
+  "summary": {
+    "total": 11,
+    "success": 5,
+    "failed": 6,
+    "promoted": 1,
+    "candidate": 0,
+    "rejected": 4
+  },
+  "e2e_verification": {
+    "passed": false,
+    "output": ""
+  }
+}

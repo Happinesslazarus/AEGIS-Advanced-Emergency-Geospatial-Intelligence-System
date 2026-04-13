@@ -1,9 +1,7 @@
 """
-test_flood_predictor.py — Flood Prediction Schema & Contract Tests
+Module: test_flood_predictor.py
 
-Validates the prediction request/response schemas (PredictionRequest,
-PredictionResponse), risk-level classification constants, and the
-API contract that hazard modules must follow.
+Test_flood_predictor AI engine module.
 """
 
 import pytest

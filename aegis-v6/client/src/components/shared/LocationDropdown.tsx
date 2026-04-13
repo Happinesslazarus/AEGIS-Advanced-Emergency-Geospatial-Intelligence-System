@@ -1,8 +1,10 @@
 /**
- * LocationDropdown.tsx — Professional, industry-grade location selector for AEGIS.
- * Renders a searchable, grouped dropdown of every country/region in the world
- * with real flag images via flagcdn.com.  Shared between TopNavbar, Sidebar, etc.
- */
+ * Module: LocationDropdown.tsx
+ *
+ * Location dropdown shared component (reusable UI element used across pages).
+ *
+ * How it connects:
+ * - Used across both admin and citizen interfaces */
 
 import { useState, useRef, useEffect, useMemo } from 'react'
 import {

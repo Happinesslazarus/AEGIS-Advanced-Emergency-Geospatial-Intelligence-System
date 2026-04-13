@@ -1,8 +1,11 @@
-﻿/**
- * tests__/helpers/testFixtures.ts — Shared Test Data Fixtures
+/**
+ * Module: testFixtures.ts
  *
- * Reusable factory functions that insert deterministic test records
- * into the test database. Every factory returns the created row.
+ * Test fixtures server module.
+ *
+ * How it connects:
+ * - Run by the test runner (Vitest or Jest)
+ *
  */
 
 import { getTestPool } from './testDb'
@@ -276,4 +279,4 @@ export async function insertFloodPrediction(overrides: Partial<Record<string, un
   )
   return rows[0]
 }
-
+

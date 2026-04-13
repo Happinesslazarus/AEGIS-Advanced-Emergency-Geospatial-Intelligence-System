@@ -1,7 +1,7 @@
 -- AEGIS Phase 5: Model Governance, Drift Detection, and Automatic Safeguards
 -- Migration script — run against the aegis database
 
--- §1 Model Governance Registry
+-- Model Governance Registry
 -- Every trained model version is tracked with status lifecycle:
 -- candidate → active | failed
 -- active → archived (when replacedby newer)
@@ -33,7 +33,7 @@ CREATE INDEX IF NOT EXISTS idx_model_governance_active
 CREATE INDEX IF NOT EXISTS idx_model_governance_created
     ON model_governance (created_at DESC);
 
--- §2 Prediction Logs
+-- Prediction Logs
 -- Every prediction is logged with input, output, confidence, latency.
 -- Supports feedback for human-in-the-loop learning.
 CREATE TABLE IF NOT EXISTS prediction_logs (

@@ -1,12 +1,19 @@
-﻿ /*
- * types/index.ts — Server-side TypeScript type definitions
- * Central type hub for the entire AEGIS backend. Every database row,
- * API payload, and service interface is defined here so that route
- * handlers, services, and middleware share a single source of truth.
- * Organised by domain: auth → reports → alerts → AI → chat → config.
-  */
+/**
+ * File: index.ts  (server types)
+ *
+ * What this file does:
+ * Master TypeScript type definitions for the Aegis server: OperatorRole,
+ * Report, Alert, DistressSignal, ChatMessage, User, and all associated
+ * request/response payloads. All routes and services import their types
+ * from here to ensure consistent shapes across the codebase.
+ *
+ * How it connects:
+ * - Imported by every route, service, and middleware file in server/src/
+ * - DB column names in these types must match server/sql/schema.sql columns
+ * - Client-side equivalent: client/src/types/index.ts
+ */
 
-// §1  ENUMS (mirror PostgreSQL ENUM types)
+// ENUMS (mirror PostgreSQL ENUM types)
 
 export type OperatorRole = 'admin' | 'operator' | 'viewer'
 export type ReportStatus = 'unverified' | 'verified' | 'urgent' | 'flagged' | 'resolved'
@@ -29,7 +36,7 @@ export type ChatSessionStatus = 'active' | 'archived' | 'expired'
 export type ChatMessageRole = 'user' | 'assistant' | 'system' | 'tool'
 export type ConsentType = 'data_processing' | 'location_tracking' | 'ai_analysis' | 'marketing' | 'research'
 
-// §2  DATABASE ROW TYPES
+// DATABASE ROW TYPES
 
 export interface OperatorRow {
   id: string
@@ -302,7 +309,7 @@ export interface AlertDeliveryLogRow {
   created_at: string
 }
 
-// §3  NEW TABLES (production upgrade: chat sessions, RAG, consent, etc.)
+// NEW TABLES (production upgrade: chat sessions, RAG, consent, etc.)
 
 export interface ChatSessionRow {
   id: string
@@ -440,7 +447,7 @@ export interface TrainingLabelRow {
   created_at: string
 }
 
-// §4  API REQUEST / RESPONSE TYPES
+// API REQUEST / RESPONSE TYPES
 
 export interface PaginationParams {
   page: number
@@ -481,7 +488,7 @@ export interface HealthCheck {
   }
 }
 
-// §5  AI SERVICE TYPES
+// AI SERVICE TYPES
 
 export interface LLMProvider {
   name: string
@@ -565,7 +572,7 @@ export interface ImageAnalysisResult {
   latencyMs: number
 }
 
-// §6  CHAT SYSTEM TYPES
+// CHAT SYSTEM TYPES
 
 export interface ChatCompletionRequest {
   sessionId?: string
@@ -628,7 +635,7 @@ export interface ChatCompletionResponse {
   isPersonalized?: boolean
 }
 
-// §7  REGION / HAZARD CONFIG TYPES
+// REGION / HAZARD CONFIG TYPES
 
 export interface RegionConfig {
   id: string
@@ -666,7 +673,7 @@ export interface HazardConfig {
   models: string[]
 }
 
-// §8  SOCKET.IO EVENT TYPES
+// SOCKET.IO EVENT TYPES
 
 export interface ServerToClientEvents {
   'alert:new': (alert: AlertRow) => void
@@ -699,7 +706,7 @@ export interface ClientToServerEvents {
   'subscribe:reports': (data: { area?: string }) => void
 }
 
-// §9  UTILITY TYPES
+// UTILITY TYPES
 
 /* Omit password_hash and sensitive fields from user responses */
 export type SafeOperator = Omit<OperatorRow, 'password_hash' | 'deleted_at' | 'deleted_by'>
@@ -707,4 +714,4 @@ export type SafeCitizen = Omit<CitizenRow, 'password_hash' | 'verification_token
 
 /* Make all properties optional except the ones listed */
 export type PartialExcept<T, K extends keyof T> = Partial<T> & Pick<T, K>
-
+

@@ -1,11 +1,12 @@
- /*
- * AdminHistoricalIntelligence.tsx — Professional Historical Intelligence Dashboard
- * Comprehensive historical event analysis: header stats, seasonal trends (dual-axis
- * flood + rainfall), flood risk heatmap with live map, and an advanced past events
- * board with expandable details, timeline view, CSV export, and year grouping.
-  */
+/**
+ * Module: AdminHistoricalIntelligence.tsx
+ *
+ * Historical intelligence dashboard (past incident analysis).
+ *
+ * How it connects:
+ * - Rendered inside AdminPage.tsx based on active view */
 
-import { useState, useMemo, useEffect, lazy, Suspense } from 'react'
+import { useState, useMemo, useEffect, useRef, lazy, Suspense } from 'react'
 import {
   History, Map, Clock, FileText, Search, Waves, Droplets,
   Download, ChevronDown, MapPin, Calendar,
@@ -138,7 +139,8 @@ export default function AdminHistoricalIntelligence() {
 
       // Seasonal trends
       if (trendsResult.status === 'fulfilled' && trendsResult.value?.trends?.some((t: any) => t.floodCount > 0)) {
-        setSeasonalTrends(trendsResult.value.trends)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setSeasonalTrends(trendsResult.value.trends as any)
       } else {
         setSeasonalTrends(STATIC_TRENDS)
       }
@@ -247,8 +249,10 @@ export default function AdminHistoricalIntelligence() {
     return Object.entries(map).sort(([, a], [, b]) => b - a)
   }, [HISTORICAL_EVENTS])
 
-  // Keyboard shortcuts
+  // Keyboard shortcuts — use ref to avoid re-attaching listener on every sort change
   const [showKeyboard, setShowKeyboard] = useState(false)
+  const sortedEventsRef = useRef(sortedEvents)
+  sortedEventsRef.current = sortedEvents
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName
@@ -256,13 +260,13 @@ export default function AdminHistoricalIntelligence() {
       const key = e.key.toLowerCase()
       if (key === 'm') { e.preventDefault(); setMapExpanded(p => !p) }
       else if (key === 'v') { e.preventDefault(); setEventsView(p => p === 'list' ? 'timeline' : 'list') }
-      else if (key === 'e') { e.preventDefault(); exportCSV(sortedEvents) }
+      else if (key === 'e') { e.preventDefault(); exportCSV(sortedEventsRef.current) }
       else if (key === '?' || (e.shiftKey && key === '/')) { e.preventDefault(); setShowKeyboard(p => !p) }
       else if (key === 'escape') setShowKeyboard(false)
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
-  }, [sortedEvents])
+  }, [])
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -381,8 +385,14 @@ export default function AdminHistoricalIntelligence() {
         </Suspense>
 
         {/* Zone risk summary cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4">
-          {zoneCards.map((z, i) => (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4" aria-busy={loading} aria-label={loading ? 'Loading zone risk data' : 'Zone risk summary'}>
+          {loading ? Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="bg-gray-200 dark:bg-gray-700 rounded-xl p-3.5 shadow-lg animate-pulse">
+              <div className="h-3 bg-gray-300 dark:bg-gray-600 rounded w-3/4 mb-2" />
+              <div className="h-7 bg-gray-300 dark:bg-gray-600 rounded w-1/2 mb-1" />
+              <div className="h-2.5 bg-gray-300 dark:bg-gray-600 rounded w-2/3" />
+            </div>
+          )) : zoneCards.map((z, i) => (
             <div key={i} className={`bg-gradient-to-r ${z.color} rounded-xl p-3.5 text-white shadow-lg hover:shadow-xl transition-shadow`}>
               <p className="font-bold text-xs truncate mb-0.5">{z.area}</p>
               <div className="flex items-baseline gap-1">
@@ -657,7 +667,7 @@ export default function AdminHistoricalIntelligence() {
                 value={histSearch}
                 onChange={e => setHistSearch(e.target.value)}
                 placeholder={t('historical.searchPlaceholder', lang)}
-                className="w-full pl-9 pr-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full pl-9 pr-3 py-2 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-aegis-500 outline-none"
               />
               {histSearch && (
                 <button onClick={() => setHistSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-300 hover:text-gray-600">
@@ -698,7 +708,7 @@ export default function AdminHistoricalIntelligence() {
           <div>
             {sortedEvents.length === 0 ? (
               <div className="text-center py-14">
-                <Search className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                <Search className="w-10 h-10 text-gray-300 dark:text-gray-400 mx-auto mb-3" />
                 <p className="text-sm text-gray-500 dark:text-gray-300 font-medium">{t('historical.noEventsMatch', lang)}</p>
                 <p className="text-xs text-gray-400 dark:text-gray-300 mt-1">{t('historical.tryAdjustingFilters', lang)}</p>
               </div>
@@ -830,7 +840,7 @@ export default function AdminHistoricalIntelligence() {
           <div className="p-5">
             {sortedEvents.length === 0 ? (
               <div className="text-center py-14">
-                <Calendar className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                <Calendar className="w-10 h-10 text-gray-300 dark:text-gray-400 mx-auto mb-3" />
                 <p className="text-sm text-gray-500 dark:text-gray-300 font-medium">{t('historical.noEvents', lang)}</p>
               </div>
             ) : (
@@ -910,7 +920,7 @@ export default function AdminHistoricalIntelligence() {
           <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">V</kbd> {t('shortcuts.listTimeline', lang)}</span>
           <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">E</kbd> {t('shortcuts.exportCsv', lang)}</span>
           <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">?</kbd> {t('shortcuts.toggleShortcuts', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">Esc</kbd> {t('shortcuts.close', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">{t('common.esc', lang)}</kbd> {t('shortcuts.close', lang)}</span>
         </div>
       )}
     </div>

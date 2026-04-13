@@ -1,3 +1,11 @@
+/**
+ * Module: GroupedCountryPicker.tsx
+ *
+ * Grouped country picker shared component (reusable UI element used across pages).
+ *
+ * How it connects:
+ * - Used across both admin and citizen interfaces */
+
 import React, { useState, useRef, useEffect, useMemo } from 'react'
 import { CONTINENT_GROUPS, ALL_COUNTRIES, REGION_MAP, type CountryEntry } from '../../data/allCountries'
 
@@ -90,7 +98,7 @@ export default function GroupedCountryPicker({
               placeholder="Search countries..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className={`w-full px-3 py-1.5 rounded border text-sm ${bg} focus:outline-none focus:ring-2 focus:ring-blue-400`}
+              className={`w-full px-3 py-1.5 rounded border text-sm ${bg} focus:outline-none focus:ring-2 focus:ring-aegis-400`}
             />
           </div>
           <div className="overflow-y-auto flex-1">

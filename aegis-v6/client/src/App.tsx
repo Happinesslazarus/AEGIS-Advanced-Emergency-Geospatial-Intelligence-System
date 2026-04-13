@@ -1,17 +1,49 @@
-﻿import { Routes, Route, Navigate } from 'react-router-dom'
+/**
+ * File: App.tsx
+ *
+ * What this file does:
+ * The root React component. Defines every client-side URL route, wraps the
+ * whole app in the global Context provider tree (auth, socket, alerts, theme,
+ * etc.), and renders persistent UI layers (chat widget, cookie banner, offline
+ * indicator, accessibility panel) that should be visible on every page.
+ *
+ * How it connects:
+ * - Rendered by client/src/main.tsx (mounted into #root div)
+ * - Wraps children in client/src/contexts/AppProviders.tsx (all Context providers)
+ * - All pages are lazy-loaded (code-split by Vite) for faster initial load
+ * - Route protection comes from client/src/components/shared/RouteGuards.tsx
+ * - RTL language support handled by RtlEnforcer() inside this file
+ *
+ * Key routes:
+ * /                    — LandingPage
+ * /citizen             — CitizenPage (public safety map)
+ * /citizen/auth        — CitizenAuthPage (citizen login/signup)
+ * /citizen/dashboard   — CitizenDashboard (authenticated citizen view)
+ * /admin               — AdminPage (operator / admin dashboard)
+ * /alerts              — AlertsPage (live alert feed)
+ * /guest               — GuestDashboard (read-only view without login)
+ *
+ * Learn more:
+ * - client/src/contexts/AppProviders.tsx      — all Context providers in one place
+ * - client/src/components/shared/RouteGuards.tsx — role-based route protection
+ * - client/src/pages/AdminPage.tsx            — the main operator dashboard
+ * - client/src/pages/CitizenDashboard.tsx     — the citizen safety dashboard
+ * - client/src/components/FloatingChatWidget  — the persistent chat button/panel
+ *
+ * Simple explanation:
+ * The skeleton of the frontend. All pages slot into this file's route table,
+ * and all shared services (auth, socket, theme) are wrapped around everything
+ * from here so any component can access them.
+ */
+
+import { Routes, Route } from 'react-router-dom'
 import { useEffect, lazy, Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ThemeProvider } from './contexts/ThemeContext'
-import { LocationProvider } from './contexts/LocationContext'
-import { RegionProvider } from './contexts/RegionContext'
-import { ReportsProvider } from './contexts/ReportsContext'
-import { AlertsProvider } from './contexts/AlertsContext'
-import { CitizenAuthProvider } from './contexts/CitizenAuthContext'
-import { IncidentProvider } from './contexts/IncidentContext'
-import { SocketProvider } from './contexts/SocketContext'
+import { AppProviders } from './contexts/AppProviders'
 import ErrorBoundary from './components/shared/ErrorBoundary'
 import { useErrorMonitor } from './hooks/useErrorMonitor'
 import { SkeletonCard } from './components/ui/Skeleton'
+import PageTransition from './components/ui/PageTransition'
 const CitizenPage = lazy(() => import('./pages/CitizenPage'))
 const CitizenAuthPage = lazy(() => import('./pages/CitizenAuthPage'))
 const CitizenDashboard = lazy(() => import('./pages/CitizenDashboard'))
@@ -25,6 +57,9 @@ const AlertsPage = lazy(() => import('./pages/AlertsPage'))
 const CreatorPage = lazy(() => import('./pages/CreatorPage'))
 const GuestDashboard = lazy(() => import('./pages/GuestDashboard'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
+const OAuthCallback = lazy(() => import('./pages/OAuthCallback'))
+const QRAuthPage = lazy(() => import('./pages/QRAuthPage'))
+const MagicLinkCallback = lazy(() => import('./pages/MagicLinkCallback'))
 import AccessibilityPanel from './components/shared/AccessibilityPanel'
 import FloatingChatWidget from './components/FloatingChatWidget'
 import LanguagePreferenceDialog from './components/shared/LanguagePreferenceDialog'
@@ -61,61 +96,52 @@ export default function App(): JSX.Element {
 
   return (
     <ErrorBoundary name="App" fullPage>
-      <RtlEnforcer />
-      <ThemeProvider>
-        <SocketProvider>
-          <LocationProvider>
-            <RegionProvider>
-            <CitizenAuthProvider>
-            <ReportsProvider>
-              <AlertsProvider>
-                  <IncidentProvider>
-                    <Suspense fallback={<SuspenseFallback />}>
-                      <Routes>
-                        <Route path="/" element={<LandingPage />} />
-                        <Route path="/citizen/login" element={<CitizenAuthPage />} />
-                        <Route path="/citizen/dashboard" element={
-                          <ErrorBoundary name="CitizenDashboard">
-                            <CitizenDashboard />
-                          </ErrorBoundary>
-                        } />
-                        <Route path="/citizen/*" element={
-                          <ErrorBoundary name="CitizenPortal">
-                            <CitizenPage />
-                          </ErrorBoundary>
-                        } />
-                        <Route path="/admin/*" element={
-                          <ErrorBoundary name="AdminPanel">
-                            <AdminPage />
-                          </ErrorBoundary>
-                        } />
-                        <Route path="/guest" element={
-                          <ErrorBoundary name="GuestDashboard">
-                            <GuestDashboard />
-                          </ErrorBoundary>
-                        } />
-                        <Route path="/about" element={<AboutPage />} />
-                        <Route path="/creator" element={<CreatorPage />} />
-                        <Route path="/privacy" element={<PrivacyPage />} />
-                        <Route path="/terms" element={<TermsPage />} />
-                        <Route path="/accessibility" element={<AccessibilityPage />} />
-                        <Route path="/alerts" element={<AlertsPage />} />
-                        <Route path="*" element={<NotFoundPage />} />
-                      </Routes>
-                    </Suspense>
-                  <LanguagePreferenceDialog />
-                  <AccessibilityPanel />
-                  <FloatingChatWidget />
-                  <OfflineIndicator />
-                  <CookieConsent />
-                  </IncidentProvider>
-              </AlertsProvider>
-            </ReportsProvider>
-            </CitizenAuthProvider>
-            </RegionProvider>
-          </LocationProvider>
-        </SocketProvider>
-      </ThemeProvider>
+      <AppProviders>
+        <RtlEnforcer />
+        <Suspense fallback={<SuspenseFallback />}>
+          <PageTransition>
+            <Routes>
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/citizen/login" element={<CitizenAuthPage />} />
+              <Route path="/citizen/oauth/callback" element={<OAuthCallback />} />
+              <Route path="/citizen/qr-auth" element={<QRAuthPage />} />
+              <Route path="/citizen/magic-link" element={<MagicLinkCallback />} />
+              <Route path="/citizen/dashboard" element={
+                <ErrorBoundary name="CitizenDashboard">
+                  <CitizenDashboard />
+                </ErrorBoundary>
+              } />
+              <Route path="/citizen/*" element={
+                <ErrorBoundary name="CitizenPortal">
+                  <CitizenPage />
+                </ErrorBoundary>
+              } />
+              <Route path="/admin/*" element={
+                <ErrorBoundary name="AdminPanel">
+                  <AdminPage />
+                </ErrorBoundary>
+              } />
+              <Route path="/guest" element={
+                <ErrorBoundary name="GuestDashboard">
+                  <GuestDashboard />
+                </ErrorBoundary>
+              } />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/creator" element={<CreatorPage />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
+              <Route path="/terms" element={<TermsPage />} />
+              <Route path="/accessibility" element={<AccessibilityPage />} />
+              <Route path="/alerts" element={<AlertsPage />} />
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </PageTransition>
+        </Suspense>
+        <LanguagePreferenceDialog />
+        <AccessibilityPanel />
+        <FloatingChatWidget />
+        <OfflineIndicator />
+        <CookieConsent />
+      </AppProviders>
     </ErrorBoundary>
   )
 }

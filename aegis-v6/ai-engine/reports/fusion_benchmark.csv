@@ -1,0 +1,49 @@
+case,true_hazard,pred_hazard,correct,confidence,latency_ms,signals_used,explanation
+0,flood,flood,1,0.0,0.5,ml,Predicted flood with 0% fused confidence from: all signals.
+1,drought,flood,0,0.0,0.2,ml,Predicted flood with 0% fused confidence from: all signals.
+2,wildfire,flood,0,0.0,0.2,ml,Predicted flood with 0% fused confidence from: all signals.
+3,severe_storm,flood,0,0.0,0.1,ml,Predicted flood with 0% fused confidence from: all signals.
+4,heatwave,flood,0,0.0,0.2,ml,Predicted flood with 0% fused confidence from: all signals.
+5,flood,flood,1,0.7059,0.0,nlp,Predicted flood with 71% fused confidence from: text analysis: 71%.
+6,wildfire,wildfire,1,1.0,0.0,nlp,Predicted wildfire with 100% fused confidence from: text analysis: 100%.
+7,severe_storm,severe_storm,1,1.0,0.0,nlp,Predicted severe storm with 100% fused confidence from: text analysis: 100%.
+8,power_outage,power_outage,1,1.0,0.0,nlp,Predicted power outage with 100% fused confidence from: text analysis: 100%.
+9,landslide,landslide,1,0.5,0.0,nlp,Predicted landslide with 50% fused confidence from: text analysis: 50%.
+10,flood,flood,1,0.2361,0.2,"ml,nlp",Predicted flood with 24% fused confidence from: text analysis: 100%.
+11,drought,flood,0,0.0,0.1,"ml,nlp",Predicted flood with 0% fused confidence from: all signals.
+12,flood,wildfire,0,0.2361,0.1,"ml,nlp",Predicted wildfire with 24% fused confidence from: text analysis: 100%.
+13,severe_storm,flood,0,0.2361,0.1,"ml,nlp",Predicted flood with 24% fused confidence from: text analysis: 100%.
+14,unknown,unknown,0,0.0,0.0,,"Insufficient signal — no features, image, or text provided."
+15,flood,flood,1,0.0,0.1,ml,Predicted flood with 0% fused confidence from: all signals.
+16,flood,flood,1,0.0,0.1,ml,Predicted flood with 0% fused confidence from: all signals.
+17,drought,flood,0,0.0,0.1,ml,Predicted flood with 0% fused confidence from: all signals.
+18,wildfire,flood,0,0.0,0.1,ml,Predicted flood with 0% fused confidence from: all signals.
+19,severe_storm,flood,0,0.0,0.1,ml,Predicted flood with 0% fused confidence from: all signals.
+20,heatwave,flood,0,0.0,0.1,ml,Predicted flood with 0% fused confidence from: all signals.
+21,flood,flood,1,0.7059,0.0,nlp,Predicted flood with 71% fused confidence from: text analysis: 71%.
+22,wildfire,wildfire,1,1.0,0.0,nlp,Predicted wildfire with 100% fused confidence from: text analysis: 100%.
+23,severe_storm,severe_storm,1,1.0,0.0,nlp,Predicted severe storm with 100% fused confidence from: text analysis: 100%.
+24,power_outage,power_outage,1,1.0,0.0,nlp,Predicted power outage with 100% fused confidence from: text analysis: 100%.
+25,landslide,landslide,1,0.5,0.0,nlp,Predicted landslide with 50% fused confidence from: text analysis: 50%.
+26,flood,flood,1,0.2361,0.2,"ml,nlp",Predicted flood with 24% fused confidence from: text analysis: 100%.
+27,drought,flood,0,0.0,0.2,"ml,nlp",Predicted flood with 0% fused confidence from: all signals.
+28,flood,wildfire,0,0.2361,0.2,"ml,nlp",Predicted wildfire with 24% fused confidence from: text analysis: 100%.
+29,severe_storm,flood,0,0.2361,0.2,"ml,nlp",Predicted flood with 24% fused confidence from: text analysis: 100%.
+30,unknown,unknown,0,0.0,0.0,,"Insufficient signal — no features, image, or text provided."
+31,flood,flood,1,0.0,0.2,ml,Predicted flood with 0% fused confidence from: all signals.
+32,flood,flood,1,0.0,0.2,ml,Predicted flood with 0% fused confidence from: all signals.
+33,drought,flood,0,0.0,0.2,ml,Predicted flood with 0% fused confidence from: all signals.
+34,wildfire,flood,0,0.0,0.2,ml,Predicted flood with 0% fused confidence from: all signals.
+35,severe_storm,flood,0,0.0,0.2,ml,Predicted flood with 0% fused confidence from: all signals.
+36,heatwave,flood,0,0.0,0.2,ml,Predicted flood with 0% fused confidence from: all signals.
+37,flood,flood,1,0.7059,0.0,nlp,Predicted flood with 71% fused confidence from: text analysis: 71%.
+38,wildfire,wildfire,1,1.0,0.0,nlp,Predicted wildfire with 100% fused confidence from: text analysis: 100%.
+39,severe_storm,severe_storm,1,1.0,0.0,nlp,Predicted severe storm with 100% fused confidence from: text analysis: 100%.
+40,power_outage,power_outage,1,1.0,0.0,nlp,Predicted power outage with 100% fused confidence from: text analysis: 100%.
+41,landslide,landslide,1,0.5,0.0,nlp,Predicted landslide with 50% fused confidence from: text analysis: 50%.
+42,flood,flood,1,0.2361,0.2,"ml,nlp",Predicted flood with 24% fused confidence from: text analysis: 100%.
+43,drought,flood,0,0.0,0.2,"ml,nlp",Predicted flood with 0% fused confidence from: all signals.
+44,flood,wildfire,0,0.2361,0.2,"ml,nlp",Predicted wildfire with 24% fused confidence from: text analysis: 100%.
+45,severe_storm,flood,0,0.2361,0.2,"ml,nlp",Predicted flood with 24% fused confidence from: text analysis: 100%.
+46,unknown,unknown,0,0.0,0.0,,"Insufficient signal — no features, image, or text provided."
+47,flood,flood,1,0.0,0.2,ml,Predicted flood with 0% fused confidence from: all signals.

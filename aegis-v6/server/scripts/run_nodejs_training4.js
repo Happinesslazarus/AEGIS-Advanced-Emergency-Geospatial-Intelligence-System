@@ -4,7 +4,7 @@ const { Pool } = require('pg');
 
 const pool = new Pool({
   host: 'localhost', port: 5432, database: 'aegis',
-  user: 'postgres', password: 'Happylove@!'
+  user: 'postgres', password: process.env.DB_PASSWORD
 });
 
 const JWT_SECRET = 'aeg1s-pr0d-s3cr3t-x7k9m2n4p6q8r0t1w3y5v7b9d1f3h5j7l9';

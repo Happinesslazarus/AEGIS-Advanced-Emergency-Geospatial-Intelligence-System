@@ -1,14 +1,17 @@
 /**
- * services/logger.ts — Structured logging with Pino
+ * File: logger.ts
  *
- * Replaces console.log throughout the server with structured JSON
- * logging. In development, pino-pretty formats output for readability.
- * In production, raw JSON is emitted for log aggregation tools.
+ * Structured logging service — Pino-based logger with pretty-printing in dev
+ * and JSON output in production. Exports a requestLogger() middleware that
+ * logs method, URL, status, duration, and IP for every HTTP request.
  *
- * Usage:
- *   import { logger } from '../services/logger.js'
- *   logger.info({ reportId }, 'Report created')
- *   logger.error({ err }, 'Database query failed')
+ * How it connects:
+ * - Imported by virtually every file in the server
+ * - requestLogger() middleware is applied globally in index.ts
+ * - Redacts sensitive query params (token, password, key)
+ *
+ * Simple explanation:
+ * The main logger — every important server event goes through here.
  */
 
 import pino from 'pino'
@@ -41,7 +44,7 @@ export const logger = pino({
   },
 })
 
- /**
+/**
  * Express request logger middleware.
  * Logs method, url, status code, and response time for every request.
  */

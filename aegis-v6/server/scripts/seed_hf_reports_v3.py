@@ -1,8 +1,18 @@
+"""
+Module: seed_hf_reports_v3.py
+
+Seed_hf_reports_v3 utility script.
+
+Simple explanation:
+Standalone script for seed_hf_reports_v3.
+"""
+
+import os
 """Seed AEGIS with curated disaster reports - v3 with all required columns."""
 import asyncio, asyncpg, uuid, random
 from datetime import datetime, timedelta
 
-DB_URL = 'postgresql://postgres:Happylove%40%21@localhost:5432/aegis'
+DB_URL = os.environ.get('DATABASE_URL', 'postgresql://localhost:5432/aegis')
 
 DISPLAY_TYPE_MAP = {
     ('flood', 'river_flooding'): 'River Flood',

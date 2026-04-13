@@ -1,5 +1,13 @@
 /**
- * incidents/water_supply/index.ts — Water Supply Disruption module (Tier 1: Rule-based)
+ * Module: index.ts
+ *
+ * Water supply disruptions incident module (handles water supply specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for water supply events.
  */
 
 import { BaseIncidentModule } from '../baseModule.js'
@@ -50,4 +58,4 @@ class WaterSupplyModule extends BaseIncidentModule {
 }
 
 export default new WaterSupplyModule()
-
+

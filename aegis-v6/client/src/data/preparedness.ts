@@ -1,3 +1,17 @@
+/**
+ * File: preparedness.ts
+  *
+  * What this file does:
+  * Static preparedness tips and emergency scenarios displayed in the
+  * citizen portal and landing page. Each tip covers a specific hazard
+  * (flood, wildfire, heatwave, etc.) with actionable steps.
+  *
+  * How it connects:
+  * - Used by RiskAssessment.tsx preparedness section
+  * - Used by LandingPage.tsx safety tips carousel
+  * - Content localised via i18n keys where applicable
+ */
+
 import type { PreparednessTip, PreparednessScenario } from '../types'
 
 export const PREPAREDNESS_TIPS: PreparednessTip[] = [

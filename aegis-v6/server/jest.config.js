@@ -1,3 +1,25 @@
+/**
+ * File: jest.config.js
+ *
+ * What this file does:
+ * Jest configuration for the Aegis server-side tests. All tests run
+ * sequentially (maxWorkers: 1) to prevent PostgreSQL deadlocks from
+ * parallel TRUNCATE calls during fixture setup. forceExit ensures the
+ * test runner exits cleanly even if pg.Pool connections are left open.
+ *
+ * Key settings:
+ * - preset: ts-jest        — compiles TypeScript before running tests
+ * - testEnvironment: node  — no DOM emulation needed (server tests only)
+ * - testTimeout: 30s       — allows for real database connections in CI
+ * - coverage threshold     — minimum 18% lines/statements (incremental)
+ *
+ * How it connects:
+ * - Run with: npm test (from aegis-v6/server/)
+ * - Test files in: server/src/__tests__/
+ * - Coverage reports in: server/coverage/
+ * - Requires a running PostgreSQL instance (set DATABASE_URL in .env.test)
+ * - Learn more: https://jestjs.io/docs/configuration
+ */
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',

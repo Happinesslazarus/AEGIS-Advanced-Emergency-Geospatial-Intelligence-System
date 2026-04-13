@@ -1,7 +1,13 @@
 /**
- * incidents/flood/config.ts — Flood incident configuration
- * AI Tier: tier3 (ML) — Uses trained ML models
- * Data Sources: UK Environment Agency API
+ * Module: config.ts
+ *
+ * River and surface water flooding incident module (handles flood specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for flood events.
  */
 
 import type { IncidentRegistryEntry } from '../types.js'
@@ -19,7 +25,7 @@ export const floodConfig: IncidentRegistryEntry = {
     'Weather Data',
     'River Gauge Readings'
   ],
-  aiEndpoint: '/api/ai/predict/flood',
+  aiEndpoint: '/api/predict',
   aiTier: 'ml',
   enabledRegions: ['aberdeen_scotland_uk', 'glasgow_scotland_uk'],
   operationalStatus: 'fully_operational',
@@ -47,4 +53,4 @@ export const FLOOD_SEVERITY_MAPPING = {
   'Flood Alert': 'Medium',
   'No Longer In Force': 'Low'
 }
-
+

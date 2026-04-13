@@ -1,3 +1,11 @@
+/**
+ * Module: OfflineEmergencyCard.tsx
+ *
+ * Offline emergency card citizen component (public-facing UI element).
+ *
+ * How it connects:
+ * - Rendered inside CitizenPage.tsx or CitizenDashboard.tsx */
+
 /* OfflineEmergencyCard.tsx - Location-aware emergency survival card
    Covers all countries worldwide with emergency numbers, survival tips, GPS detection */
 
@@ -395,7 +403,7 @@ ${personalNotes ? `<div class="section">
             className="flex items-center gap-1.5 text-[10px] font-bold bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 px-3 py-2 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-all border border-blue-200/50 dark:border-blue-800/50"
           >
             {locating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Compass className="w-3.5 h-3.5" />}
-            GPS
+            // GPS
           </button>
         </div>
       </div>
@@ -411,7 +419,7 @@ ${personalNotes ? `<div class="section">
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               placeholder={t('offline.searchPlaceholder', lang)}
-              className="w-full pl-9 pr-3 py-2.5 text-xs bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition text-gray-900 dark:text-white placeholder-gray-400"
+              className="w-full pl-9 pr-3 py-2.5 text-xs bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500/30 focus:border-aegis-400 transition text-gray-900 dark:text-white placeholder-gray-400"
             />
           </div>
           <button onClick={handleSearch} disabled={searching || !searchQuery.trim()} className="px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white rounded-xl text-xs font-bold transition-all disabled:opacity-40 shadow-md shadow-blue-500/20">

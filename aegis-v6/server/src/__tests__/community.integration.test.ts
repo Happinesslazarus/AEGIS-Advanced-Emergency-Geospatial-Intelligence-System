@@ -1,8 +1,15 @@
-﻿/**
- * tests__/community.integration.test.ts — Community Posts & Chat
+/**
+ * File: community.integration.test.ts
  *
- * Tests post CRUD, likes (toggle), comments, post reporting, moderation
- * (admin delete), and permission boundaries against a real PostgreSQL DB.
+ * What it tests:
+ * Integration tests for the community help-request and chat endpoints.
+  * Verifies post creation, moderation, upvoting, and real-time
+  * Socket.IO broadcast of new community posts.
+  *
+  * How it connects:
+  * - Tests server/src/routes/communityRoutes.ts
+  * - Database fixtures truncated between tests
+  * - Run via: npm test -- community.integration
  */
 
 import { describe, it, expect, beforeAll, afterAll, afterEach } from '@jest/globals'
@@ -592,4 +599,4 @@ describe('Community Integration Tests', () => {
     })
   })
 })
-
+

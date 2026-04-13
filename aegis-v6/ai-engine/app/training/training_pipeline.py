@@ -1,18 +1,35 @@
-﻿"""
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
- AEGIS AI ENGINE â€” Training Pipeline Orchestrator
- 
- Complete end-to-end training workflow:
- 1. Data loading and validation
- 2. Feature engineering
- 3. Train/validation split
- 4. Hyperparameter tuning (optional)
- 5. Model training
- 6. Evaluation and metrics
- 7. Model registration
- 8. Experiment tracking
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 """
+File: training_pipeline.py
+
+What this file does:
+Complete end-to-end training workflow orchestrator. Steps: data loading,
+validation, feature engineering, train/val split, optional hyperparameter
+tuning (Optuna), model training, evaluation, and model registration with
+governance metadata. Used as the unified entry point when training all
+hazard models in one pass.
+
+How it connects:
+- Invoked by ai-engine/run_training_all.py and train_all.py
+- Delegates data loading to training/data_loaders.py and data_ingestion.py
+- Feature engineering via training/feature_engineering.py
+- Saves model with governance via core/model_registry.py + core/governance.py
+- Hyperparameter search via training/hyperparameter_tuner.py (optional)
+"""
+
+# -------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+# Complete end-to-end training workflow:
+# 1. Data loading and validation
+# 2. Feature engineering
+# 3. Train/validation split
+# 4. Hyperparameter tuning (optional)
+# 5. Model training
+# 6. Evaluation and metrics
+# 7. Model registration
+# 8. Experiment tracking
+# -------------------------------------------------------------------------------
 
 import numpy as np
 import pandas as pd
@@ -483,4 +500,4 @@ class TrainingPipeline:
         comparison_df = pd.DataFrame(comparison_data)
         
         return comparison_df
-
+

@@ -1,25 +1,43 @@
-/*
- * CitizenDashboard.tsx — Full Citizen Dashboard v6.8
+/**
+ * File: CitizenDashboard.tsx
  *
- * 6-tab dashboard with:
- *   1. Overview   — Welcome banner, stats, quick actions, recent activity
- *   2. Messages   — Real-time Socket.IO chat with admin (typing, status, emergency)
- *   3. Safety     — Check-in system (safe/help/unsure) with location
- *   4. Profile    — Edit profile, upload avatar, manage bio/location/vulnerability
- *   5. Security   — Change password
- *   6. Settings   — Notification/audio/caption preferences
+ * What this file does:
+ * The authenticated citizen's personal dashboard. Provides access to their
+ * submitted reports, messaging with operators, the SOS distress button,
+ * community feeds, preparedness guides, safety check-ins, and profile settings.
+ * Citizens log in via CitizenAuthPage and land here after successful auth.
  *
- * Features:
- *   - Socket.IO real-time messaging with typing indicators
- *   - Message status (sent/delivered/read) with tick marks
- *   - Create new support threads with category
- *   - Emergency chat auto-escalation
- *   - Profile photo upload with preview
- *   - Password change with strength meter
- *   - Vulnerability indicator management
+ * How it connects:
+ * - Routed by client/src/App.tsx at /citizen/dashboard
+ * - Protected: redirects unauthenticated users to /citizen (CitizenPage)
+ * - Authenticated user context from client/src/contexts/CitizenAuthContext.tsx
+ * - Real-time messaging via SocketContext + useSocket hook
+ * - Report data from client/src/contexts/ReportsContext.tsx
+ * - Makes API calls via client/src/utils/api.ts (messages, check-ins, profile)
+ * - SOSButton component triggers POST /api/distress/activate
+ *
+ * Key sections (tabbed):
+ * - Home         — safety summary and quick links
+ * - My Reports   — citizen's own submitted reports
+ * - Messages     — direct chat thread with operators
+ * - Community    — community posts and events
+ * - Preparedness — guides, checklists, risk scores
+ * - Profile      — account settings and 2FA
+ *
+ * Learn more:
+ * - client/src/contexts/CitizenAuthContext.tsx — authenticated citizen state
+ * - client/src/components/citizen/SOSButton.tsx — the emergency distress trigger
+ * - client/src/hooks/useDistress.ts             — distress beacon state management
+ * - server/src/routes/citizenRoutes.ts          — citizen-specific API endpoints
+ * - server/src/routes/distressRoutes.ts         — SOS beacon backend
+ *
+ * Simple explanation:
+ * The citizen's home base. After logging in, this is where they report emergencies,
+ * check on their reports, chat with responders, and access safety resources.
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react'
+import { usePageTitle } from '../hooks/usePageTitle'
 import { createPortal } from 'react-dom'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import {
@@ -35,7 +53,7 @@ import {
   Smartphone, Wifi, Flame, Video, Droplets, Waves,
   CloudLightning, ShieldCheck, Languages
 } from 'lucide-react'
-import { useCitizenAuth } from '../contexts/CitizenAuthContext'
+import { useCitizenAuth, getCitizenToken } from '../contexts/CitizenAuthContext'
 import { type ChatThread, type ChatMessage } from '../hooks/useSocket'
 import { useSharedSocket } from '../contexts/SocketContext'
 import type { Socket } from 'socket.io-client'
@@ -59,6 +77,8 @@ import SOSButton from '../components/citizen/SOSButton'
 import DisasterMap from '../components/shared/DisasterMap'
 import ReportCard from '../components/shared/ReportCard'
 import CitizenTwoFactorSettings from '../components/citizen/CitizenTwoFactorSettings'
+import ErrorBoundary from '../components/shared/ErrorBoundary'
+import AlertsPanel from '../components/shared/AlertsPanel'
 
 // Code-split heavy components (loaded on demand per tab)
 const Chatbot = lazy(() => import('../components/citizen/Chatbot'))
@@ -70,6 +90,7 @@ const ReportForm = lazy(() => import('../components/citizen/ReportForm'))
 const CommunityHelp = lazy(() => import('../components/citizen/CommunityHelp'))
 const PreparednessGuide = lazy(() => import('../components/citizen/PreparednessGuide'))
 const PublicSafetyMode = lazy(() => import('../components/shared/PublicSafetyMode'))
+const FamilyCheckIn = lazy(() => import('../components/citizen/FamilyCheckIn'))
 const ClimateRiskDashboard = lazy(() => import('../components/shared/ClimateRiskDashboard'))
 const LiveIncidentMapPanel = lazy(() => import('../components/citizen/LiveIncidentMapPanel'))
 const ShelterFinder = lazy(() => import('../components/citizen/ShelterFinder'))
@@ -80,8 +101,8 @@ import { API_BASE, timeAgo, getPasswordStrength } from '../utils/helpers'
 import MessageStatusIcon from '../components/ui/MessageStatusIcon'
 import { useAnnounce } from '../hooks/useAnnounce'
 import { usePullToRefresh } from '../hooks/usePullToRefresh'
+import { useSwipeGesture } from '../hooks/useSwipeGesture'
 import CountrySearch from '../components/shared/CountrySearch'
-import LanguageSelector from '../components/shared/LanguageSelector'
 import ThemeSelector from '../components/ui/ThemeSelector'
 import { EmptyMessages, EmptyReports, EmptySafety } from '../components/ui/EmptyState'
 import { SkeletonCard, SkeletonStat, SkeletonList, Skeleton } from '../components/ui/Skeleton'
@@ -91,11 +112,12 @@ import type { SidebarItem } from '../components/layout/Sidebar'
 // Use relative paths so Vite's proxy handles API requests (avoids CORS)
 // API_BASE imported from ../utils/helpers
 
-type TabKey = 'overview' | 'livemap' | 'reports' | 'messages' | 'community' | 'prepare' | 'news' | 'safety' | 'shelters' | 'risk' | 'emergency' | 'profile' | 'security' | 'settings'
+type TabKey = 'overview' | 'livemap' | 'alerts' | 'reports' | 'messages' | 'community' | 'prepare' | 'news' | 'safety' | 'shelters' | 'risk' | 'emergency' | 'profile' | 'security' | 'settings'
 
 const TABS: { key: TabKey; labelKey: string; icon: any }[] = [
   { key: 'overview',  labelKey: 'citizen.tab.overview',  icon: Home },
   { key: 'livemap',   labelKey: 'citizen.tab.livemap',  icon: Globe },
+  { key: 'alerts',    labelKey: 'alerts.pageTitle',      icon: Bell },
   { key: 'reports',   labelKey: 'citizen.tab.reports',   icon: FileText },
   { key: 'messages',  labelKey: 'citizen.tab.messages',  icon: MessageSquare },
   { key: 'community', labelKey: 'citizen.tab.community', icon: Users },
@@ -123,9 +145,54 @@ const THREAD_CATEGORIES = [
 
 // MessageStatusIcon imported from ../components/ui/MessageStatusIcon
 
+// Email verification banner with 60s resend cooldown
+function EmailVerificationBanner({ token, lang, announce }: { token: string | null; lang: string; announce: (msg: string) => void }) {
+  const [cooldown, setCooldown] = useState(0)
+  const [sending, setSending] = useState(false)
+
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const timer = setTimeout(() => setCooldown(c => c - 1), 1000)
+    return () => clearTimeout(timer)
+  }, [cooldown])
+
+  const handleResend = async () => {
+    if (cooldown > 0 || sending) return
+    setSending(true)
+    try {
+      const res = await fetch(`${API_BASE}/api/citizen-auth/resend-verification`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        credentials: 'include',
+      })
+      const data = await res.json()
+      if (res.ok) { announce(t('cdash.verificationSent', lang)); setCooldown(60) }
+      else announce(data.error || t('cdash.verificationFailed', lang))
+    } catch { announce(t('cdash.verificationFailed', lang)) }
+    finally { setSending(false) }
+  }
+
+  return (
+    <div className="bg-amber-50 dark:bg-amber-950/40 border-b border-amber-200 dark:border-amber-800 px-4 py-2.5 flex items-center justify-between gap-3 rounded-xl mb-4">
+      <div className="flex items-center gap-2 text-amber-800 dark:text-amber-200 text-sm">
+        <Mail className="w-4 h-4 flex-shrink-0" />
+        <span>{t('citizen.verifyEmail.banner', lang) || 'Please verify your email address to unlock all features.'}</span>
+      </div>
+      <button
+        onClick={handleResend}
+        disabled={cooldown > 0 || sending}
+        className="text-xs font-semibold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/50 hover:bg-amber-200 dark:hover:bg-amber-900 disabled:opacity-60 disabled:cursor-not-allowed px-3 py-1 rounded-lg transition whitespace-nowrap"
+      >
+        {sending ? 'Sending…' : cooldown > 0 ? `Resend in ${cooldown}s` : (t('citizen.verifyEmail.resend', lang) || 'Resend Email')}
+      </button>
+    </div>
+  )
+}
+
 // MAIN COMPONENT
 
 export default function CitizenDashboard(): JSX.Element {
+  usePageTitle('My Dashboard')
   const { user, token, preferences, emergencyContacts, recentSafety, unreadMessages,
     isAuthenticated, loading, logout, updateProfile, uploadAvatar, changePassword,
     updatePreferences, submitSafetyCheckIn, refreshProfile, addEmergencyContact, removeEmergencyContact
@@ -159,6 +226,7 @@ export default function CitizenDashboard(): JSX.Element {
   const [showPreparednessGuide, setShowPreparednessGuide] = useState(false)
   const [showSubscribe, setShowSubscribe] = useState(false)
   const [showSafetyMode, setShowSafetyMode] = useState(false)
+  const [showFamilyCheckIn, setShowFamilyCheckIn] = useState(false)
   const [selectedReport, setSelectedReport] = useState<any>(null)
   const [selectedAlert, setSelectedAlert] = useState<any>(null)
   const [reportSearchTerm, setReportSearchTerm] = useState('')
@@ -209,7 +277,7 @@ export default function CitizenDashboard(): JSX.Element {
     if (socket.connected) {
       socket.fetchCitizenThreads()
     }
-  }, [socket.connected])
+  }, [socket.connected, socket])
 
   // Track community chat + post notifications when NOT on community tab
   useEffect(() => {
@@ -274,7 +342,7 @@ export default function CitizenDashboard(): JSX.Element {
     } finally {
       setNewsRefreshing(false)
     }
-  }, [pushNotification])
+  }, [lang, pushNotification])
 
   // Pull-to-refresh for mobile
   const handlePullRefresh = useCallback(async () => {
@@ -292,7 +360,7 @@ export default function CitizenDashboard(): JSX.Element {
 
   useEffect(() => {
     loadNews(false)
-  }, [])
+  }, [loadNews])
 
   // Sorted reports (live from API)
   const sortedReports = useMemo(() => {
@@ -330,6 +398,18 @@ export default function CitizenDashboard(): JSX.Element {
     if (tabDef) announce(`Navigated to ${t(tabDef.labelKey, lang)} tab`)
   }, [announce, lang, setSearchParams])
 
+  // Swipe left/right to navigate between tabs on mobile
+  const SWIPABLE_TABS: TabKey[] = ['overview', 'livemap', 'alerts', 'reports', 'messages', 'community']
+  const swipeRef = useSwipeGesture<HTMLDivElement>({
+    onSwipe: useCallback((dir) => {
+      const idx = SWIPABLE_TABS.indexOf(activeTab)
+      if (idx < 0) return
+      if (dir === 'left' && idx < SWIPABLE_TABS.length - 1) handleTabChange(SWIPABLE_TABS[idx + 1])
+      if (dir === 'right' && idx > 0) handleTabChange(SWIPABLE_TABS[idx - 1])
+    }, [activeTab, handleTabChange]),
+    threshold: 60,
+  })
+
   // Sync tab when URL ?tab= param changes (e.g., browser back/forward)
   useEffect(() => {
     const urlTab = searchParams.get('tab')
@@ -338,19 +418,22 @@ export default function CitizenDashboard(): JSX.Element {
     } else if (!urlTab && activeTab !== 'overview') {
       setActiveTab('overview')
     }
-  }, [searchParams]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [searchParams, activeTab, VALID_TABS]) // activeTab needed to avoid stale comparison in urlTab !== activeTab check
 
   const handleSubscribe = async () => {
     if (subChannels.length === 0) return
     try {
       const normalizedChannels = subChannels.map(ch => ch === 'webpush' ? 'web' : ch)
       const formattedPhone = subPhone ? formatPhoneWithCountry(selectedCountry, subPhone) : ''
-      if (subChannels.includes('webpush')) {
+      if (subChannels.includes('webpush') && webPushStatus.enabled) {
         try {
           await subscribeToWebPush(subEmail)
           pushNotification?.(t('cdash.webPushEnabled', lang), 'success')
         } catch (err: any) {
-          pushNotification?.(`${t('cdash.webPushFailed', lang)}: ${err.message}`, 'warning')
+          const msg: string = err?.message || ''
+          if (!msg.includes('not configured') && !msg.includes('public key')) {
+            pushNotification?.(`${t('cdash.webPushFailed', lang)}: ${msg}`, 'warning')
+          }
         }
       }
       await apiSubscribe({
@@ -440,41 +523,19 @@ export default function CitizenDashboard(): JSX.Element {
     if (item.key === 'report_emergency') { setShowReportForm(true); return }
     if (item.key === 'map') { handleTabChange('livemap'); return }
     if (item.key === 'home') { handleTabChange('overview'); return }
-    if (item.key === 'alerts') { navigate('/alerts'); return }
+    if (item.key === 'alerts') { handleTabChange('alerts'); return }
     handleTabChange(item.key as TabKey)
   }
 
   return (
-    <AppLayout activeKey={activeTab === 'livemap' ? 'map' : activeTab === 'overview' ? 'home' : activeTab} onNavigate={handleSidebarNav} unreadMessages={totalUnread} communityUnread={communityUnread}>
+    <AppLayout activeKey={activeTab === 'livemap' ? 'map' : activeTab === 'overview' ? 'home' : activeTab === 'alerts' ? 'alerts' : activeTab} onNavigate={handleSidebarNav} unreadMessages={totalUnread} communityUnread={communityUnread}>
       {/* Email verification banner (#23) */}
       {user && !user.emailVerified && (
-        <div className="bg-amber-50 dark:bg-amber-950/40 border-b border-amber-200 dark:border-amber-800 px-4 py-2.5 flex items-center justify-between gap-3 rounded-xl mb-4">
-          <div className="flex items-center gap-2 text-amber-800 dark:text-amber-200 text-sm">
-            <Mail className="w-4 h-4 flex-shrink-0" />
-            <span>{t('citizen.verifyEmail.banner', lang) || 'Please verify your email address to unlock all features.'}</span>
-          </div>
-          <button
-            onClick={async () => {
-              try {
-                const res = await fetch(`${API_BASE}/api/citizen-auth/resend-verification`, {
-                  method: 'POST',
-                  headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                  credentials: 'include',
-                })
-                const data = await res.json()
-                if (res.ok) announce(t('cdash.verificationSent', lang))
-                else announce(data.error || t('cdash.verificationFailed', lang))
-              } catch { announce(t('cdash.verificationFailed', lang)) }
-            }}
-            className="text-xs font-semibold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/50 hover:bg-amber-200 dark:hover:bg-amber-900 px-3 py-1 rounded-lg transition whitespace-nowrap"
-          >
-            {t('citizen.verifyEmail.resend', lang) || 'Resend Email'}
-          </button>
-        </div>
+        <EmailVerificationBanner token={token} lang={lang} announce={announce} />
       )}
 
       {/* Main Content */}
-      <div ref={pullRef} className="relative">
+      <div ref={(el) => { (pullRef as React.MutableRefObject<HTMLDivElement | null>).current = el; (swipeRef as React.MutableRefObject<HTMLDivElement | null>).current = el }} className="relative">
           {/* Pull-to-refresh indicator */}
           {(pullDistance > 0 || pullRefreshing) && (
             <div
@@ -490,15 +551,17 @@ export default function CitizenDashboard(): JSX.Element {
               }`} style={{ transform: `rotate(${pullDistance * 3}deg)` }} />
             </div>
           )}
-          <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-aegis-600" /></div>}>
+          <ErrorBoundary name="TabContent" fallback={<div className="flex items-center justify-center py-12 text-sm text-gray-500 dark:text-gray-400">Failed to load this section. Please refresh.</div>}>
+          <Suspense fallback={<div className="space-y-4 p-4 animate-enter"><SkeletonCard /><SkeletonCard /><SkeletonList count={3} /></div>}>
           {activeTab === 'overview' && <CitizenWelcome user={user} threads={socket.threads} recentSafety={recentSafety} emergencyContacts={emergencyContacts} totalUnread={totalUnread} setActiveTab={(tab: string) => setActiveTab(tab as TabKey)} reportStats={reportStats} onReportEmergency={() => setShowReportForm(true)} onCommunityHelp={() => setShowCommunityHelp(true)} submitSafetyCheckIn={submitSafetyCheckIn} />}
           {activeTab === 'livemap' && <LiveMapTab reports={reports} loc={loc} userPosition={userPosition} detectLocation={detectLocation} alerts={alerts} setSelectedAlert={setSelectedAlert} />}
+          {activeTab === 'alerts' && <AlertsPanel />}
           {activeTab === 'reports' && <ReportsTab reports={sortedReports} loading={reportsLoading} searchTerm={reportSearchTerm} setSearchTerm={setReportSearchTerm} sortField={reportSortField} setSortField={setReportSortField} sortOrder={reportSortOrder} setSortOrder={setReportSortOrder} onViewReport={setSelectedReport} onPrintReport={handlePrintReport} onShareReport={handleShareReport} lang={lang} />}
           {activeTab === 'messages' && <MessagesTab socket={socket} user={user} />}
           {activeTab === 'community' && <CommunitySection parentSocket={socket.socket} />}
           {activeTab === 'prepare' && <PreparednessTab lang={lang} onOpenGuide={() => setShowPreparednessGuide(true)} />}
           {activeTab === 'news' && <NewsTab newsItems={newsItems} newsRefreshing={newsRefreshing} loadNews={loadNews} refreshReports={refreshReports} totalPages={newsTotalPages} lastFetched={newsLastFetched} />}
-          {activeTab === 'safety' && <SafetyTab submitSafetyCheckIn={submitSafetyCheckIn} recentSafety={recentSafety} onEnterSafetyMode={() => setShowSafetyMode(true)} />}
+          {activeTab === 'safety' && <SafetyTab submitSafetyCheckIn={submitSafetyCheckIn} recentSafety={recentSafety} onEnterSafetyMode={() => setShowSafetyMode(true)} onFamilyCheckIn={() => setShowFamilyCheckIn(true)} />}
           {activeTab === 'shelters' && <ShelterFinder />}
           {activeTab === 'risk' && <RiskAssessment />}
           {activeTab === 'emergency' && <OfflineEmergencyCard />}
@@ -506,6 +569,7 @@ export default function CitizenDashboard(): JSX.Element {
           {activeTab === 'security' && <SecurityTab changePassword={changePassword} />}
           {activeTab === 'settings' && <SettingsTab preferences={preferences} updatePreferences={updatePreferences} />}
           </Suspense>
+          </ErrorBoundary>
       </div>
 
       {!showAssistant && (
@@ -517,18 +581,27 @@ export default function CitizenDashboard(): JSX.Element {
           <MessageSquare className="w-6 h-6" />
         </button>
       )}
-      {showAssistant && <Suspense fallback={<div className="fixed bottom-4 left-4 z-50 bg-white dark:bg-gray-900 rounded-xl p-4 shadow-2xl"><Loader2 className="w-6 h-6 animate-spin text-aegis-600" /></div>}><Chatbot onClose={() => setShowAssistant(false)} anchor="left" /></Suspense>}
+      {showAssistant && (
+        <ErrorBoundary name="Chatbot" fallback={null}>
+          <Suspense fallback={<div className="fixed bottom-4 left-4 z-50 bg-white dark:bg-gray-900 rounded-xl p-4 shadow-2xl w-80 space-y-3"><Skeleton className="h-4 w-32" /><Skeleton className="h-3 w-full" /><Skeleton className="h-3 w-3/4" /></div>}>
+            <Chatbot onClose={() => setShowAssistant(false)} anchor="left" />
+          </Suspense>
+        </ErrorBoundary>
+      )}
 
       {/* SOS Distress Beacon */}
       {socket.socket && <SOSButton socket={socket.socket} citizenId={user.id} citizenName={user.displayName || t('cdash.citizenFallback', lang)} />}
 
       {/* MODALS (code-split) */}
-      <Suspense fallback={<div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50"><Loader2 className="w-8 h-8 animate-spin text-white" /></div>}>
-        {showReportForm && <ReportForm onClose={() => setShowReportForm(false)} />}
-        {showCommunityHelp && <CommunityHelp onClose={() => setShowCommunityHelp(false)} />}
-        {showPreparednessGuide && <PreparednessGuide onClose={() => setShowPreparednessGuide(false)} lang={lang} />}
-        {showSafetyMode && <PublicSafetyMode onClose={() => setShowSafetyMode(false)} />}
-      </Suspense>
+      <ErrorBoundary name="Modals" fallback={null}>
+        <Suspense fallback={<div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50"><div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-96 max-w-[90vw] space-y-4 shadow-2xl"><Skeleton className="h-6 w-48" /><SkeletonCard /><Skeleton className="h-10 w-full rounded-lg" /></div></div>}>
+          {showReportForm && <ReportForm onClose={() => setShowReportForm(false)} />}
+          {showCommunityHelp && <CommunityHelp onClose={() => setShowCommunityHelp(false)} />}
+          {showPreparednessGuide && <PreparednessGuide onClose={() => setShowPreparednessGuide(false)} lang={lang} />}
+          {showSafetyMode && <PublicSafetyMode onClose={() => setShowSafetyMode(false)} />}
+          {showFamilyCheckIn && <FamilyCheckIn onClose={() => setShowFamilyCheckIn(false)} userName={user?.displayName || 'Citizen'} />}
+        </Suspense>
+      </ErrorBoundary>
 
       {/* Report Detail Modal */}
       {selectedReport && (
@@ -1260,6 +1333,26 @@ function LiveMapTab({ reports, loc, userPosition, detectLocation, alerts, setSel
 
   return (
     <div className="space-y-4 -mx-2 md:-mx-4">
+      {/* Alerts Banner — shown first so critical warnings are immediately visible */}
+      {alerts.length > 0 && (
+        <div className="px-2 md:px-4 space-y-2">
+          {alerts.slice(0, 3).map((a: any, i: number) => (
+            <button key={a.id || i} onClick={() => setSelectedAlert(a)} className={`w-full text-left p-3 rounded-xl border flex items-center gap-3 transition hover:shadow-md ${
+              a.severity === 'critical' ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800' :
+              a.severity === 'warning' ? 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800' :
+              'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800'
+            }`}>
+              <AlertTriangle className={`w-5 h-5 flex-shrink-0 ${a.severity === 'critical' ? 'text-red-600' : a.severity === 'warning' ? 'text-amber-600' : 'text-blue-600'}`} />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold truncate">{a.title}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{a.message}</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-400 dark:text-gray-400 flex-shrink-0" />
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Controls bar */}
       <div className="flex items-center gap-2 px-2 md:px-4 flex-wrap">
         <h2 className="text-lg font-bold text-primary flex items-center gap-2">
@@ -1289,32 +1382,14 @@ function LiveMapTab({ reports, loc, userPosition, detectLocation, alerts, setSel
         </div>
       </div>
 
-      {/* Alerts Banner */}
-      {alerts.length > 0 && (
-        <div className="px-2 md:px-4 space-y-2">
-          {alerts.slice(0, 3).map((a: any, i: number) => (
-            <button key={a.id || i} onClick={() => setSelectedAlert(a)} className={`w-full text-left p-3 rounded-xl border flex items-center gap-3 transition hover:shadow-md ${
-              a.severity === 'critical' ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800' :
-              a.severity === 'warning' ? 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800' :
-              'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800'
-            }`}>
-              <AlertTriangle className={`w-5 h-5 flex-shrink-0 ${a.severity === 'critical' ? 'text-red-600' : a.severity === 'warning' ? 'text-amber-600' : 'text-blue-600'}`} />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold truncate">{a.title}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{a.message}</p>
-              </div>
-              <ChevronRight className="w-4 h-4 text-gray-400 dark:text-gray-400 flex-shrink-0" />
-            </button>
-          ))}
-        </div>
-      )}
-
       {/* Map — Professional Live Incident Map Panel */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 px-2 md:px-4">
         <div className="lg:col-span-2">
-          <Suspense fallback={<div className="h-[450px] rounded-2xl bg-gray-100 dark:bg-gray-800 animate-pulse" />}>
-            <LiveIncidentMapPanel reports={reports} userPosition={userPosition} center={loc.center} zoom={loc.zoom} />
-          </Suspense>
+          <ErrorBoundary name="LiveIncidentMapPanel" fallback={<div className="h-[450px] rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-sm text-gray-500 dark:text-gray-400">Failed to load map</div>}>
+            <Suspense fallback={<div className="h-[450px] rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-4 space-y-3"><Skeleton className="h-5 w-40" /><Skeleton className="h-[380px] w-full rounded-xl" /></div>}>
+              <LiveIncidentMapPanel reports={reports} userPosition={userPosition} center={loc.center} zoom={loc.zoom} />
+            </Suspense>
+          </ErrorBoundary>
         </div>
         <div className="space-y-4">
           <IntelligenceDashboard collapsed={true} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700" />
@@ -1766,11 +1841,12 @@ function MessagesTab({ socket, user }: { socket: any; user: any }) {
     openThread(thread, true)
     
     // Also mark via REST to ensure server-side sync
-    const token = localStorage.getItem('aegis-citizen-token') || localStorage.getItem('token')
+    const token = getCitizenToken()
     if (token) {
+      const csrfToken = document.cookie.split('; ').find(c => c.startsWith('aegis_csrf='))?.split('=')[1]
       fetch(`/api/citizen/threads/${thread.id}/read`, {
         method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${token}`, ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) }
       }).catch(() => {})
     }
   }
@@ -1795,11 +1871,12 @@ function MessagesTab({ socket, user }: { socket: any; user: any }) {
         setSendingAttachment(true)
         const formData = new FormData()
         formData.append('file', selectedImage)
-        const token = localStorage.getItem('aegis-citizen-token') || localStorage.getItem('token')
+        const token = getCitizenToken()
+        const csrfTok = document.cookie.split('; ').find(c => c.startsWith('aegis_csrf='))?.split('=')[1]
         const uploadRes = await fetch('/api/upload', {
           method: 'POST',
           body: formData,
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(csrfTok ? { 'X-CSRF-Token': csrfTok } : {}) },
         })
         if (!uploadRes.ok) throw new Error('Failed to upload image')
         const uploadData = await uploadRes.json()
@@ -2160,7 +2237,7 @@ function MessagesTab({ socket, user }: { socket: any; user: any }) {
 
 // TAB 3: SAFETY CHECK-IN
 
-function SafetyTab({ submitSafetyCheckIn, recentSafety, onEnterSafetyMode }: any) {
+function SafetyTab({ submitSafetyCheckIn, recentSafety, onEnterSafetyMode, onFamilyCheckIn }: any) {
   const lang = useLanguage()
   const [status, setStatus] = useState<'safe' | 'help' | 'unsure'>('safe')
   const [message, setMessage] = useState('')
@@ -2280,6 +2357,23 @@ function SafetyTab({ submitSafetyCheckIn, recentSafety, onEnterSafetyMode }: any
           <ChevronRight className="w-5 h-5 text-gray-300 dark:text-gray-400 group-hover:text-red-400 group-hover:translate-x-1 transition-all" />
         </div>
       </button>
+
+      {/* Family Check-In CTA */}
+      {onFamilyCheckIn && (
+        <button onClick={onFamilyCheckIn}
+          className="w-full glass-card rounded-2xl p-5 text-left transition-all duration-300 group hover-lift border-2 border-transparent hover:border-pink-300 dark:hover:border-pink-800">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-gradient-to-br from-pink-500 to-rose-500 rounded-2xl flex items-center justify-center text-white group-hover:scale-110 transition-transform shadow-lg shadow-pink-200/50 dark:shadow-pink-900/30">
+              <Users className="w-7 h-7" />
+            </div>
+            <div className="flex-1">
+              <p className="text-base font-bold text-pink-700 dark:text-pink-300 group-hover:text-pink-600">Family Check-In</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Share your safety status with trusted contacts via SMS or share</p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-gray-300 dark:text-gray-400 group-hover:text-pink-400 group-hover:translate-x-1 transition-all" />
+          </div>
+        </button>
+      )}
 
       {/* Recent Check-ins Timeline */}
       {recentSafety && recentSafety.length > 0 && (
@@ -2910,9 +3004,10 @@ function SettingsTab({ preferences, updatePreferences }: any) {
     if (!token) return
     setDeletionLoading(true)
     try {
+      const csrfTok2 = document.cookie.split('; ').find(c => c.startsWith('aegis_csrf='))?.split('=')[1]
       const res = await fetch('/api/citizens/request-deletion', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(csrfTok2 ? { 'X-CSRF-Token': csrfTok2 } : {}) }
       })
       if (res.ok) {
         const data = await res.json()
@@ -2934,9 +3029,10 @@ function SettingsTab({ preferences, updatePreferences }: any) {
     if (!token) return
     setDeletionLoading(true)
     try {
+      const csrfTok3 = document.cookie.split('; ').find(c => c.startsWith('aegis_csrf='))?.split('=')[1]
       const res = await fetch('/api/citizens/cancel-deletion', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(csrfTok3 ? { 'X-CSRF-Token': csrfTok3 } : {}) }
       })
       if (res.ok) {
         setDeletionStatus({ deletion_requested: false, deletion_requested_at: null, deletion_scheduled_at: null })

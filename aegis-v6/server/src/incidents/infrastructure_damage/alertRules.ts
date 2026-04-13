@@ -1,5 +1,13 @@
 /**
- * incidents/infrastructure_damage/alertRules.ts — Alert rule evaluation for infrastructure damage incidents
+ * Module: alertRules.ts
+ *
+ * Infrastructure damage assessment incident module (handles infrastructure damage specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for infrastructure damage events.
  */
 
 import type { AlertRuleContext, AlertRuleResult } from '../types.js'

@@ -1,5 +1,16 @@
 """
- AEGIS AI ENGINE — Configuration Management
+File: config.py
+
+What this file does:
+Pydantic BaseSettings class that loads all AI engine configuration from
+environment variables (or a .env file). Provides typed, validated settings
+for database connection, model paths, API keys, and server ports.
+
+How it connects:
+- Imported everywhere as: from app.core.config import settings
+- Values sourced from ai-engine/.env (see .env.example in project root)
+- MODEL_REGISTRY_PATH and FEATURE_STORE_PATH used by ModelRegistry/FeatureStore
+- DATABASE_URL used by governance.py and model_monitor.py for asyncpg connections
 """
 
 from pydantic_settings import BaseSettings
@@ -75,6 +86,12 @@ class Settings(BaseSettings):
     WEATHER_API_KEY: str = Field(default="", env="WEATHER_API_KEY")
     SATELLITE_API_ENABLED: bool = Field(default=False, env="SATELLITE_API_ENABLED")
     SATELLITE_API_KEY: str = Field(default="", env="SATELLITE_API_KEY")
+
+    # Training data API keys
+    FIRMS_MAP_KEY: str = Field(default="", env="FIRMS_MAP_KEY")
+    ECMWF_API_KEY: str = Field(default="", env="ECMWF_API_KEY")
+    ECMWF_API_EMAIL: str = Field(default="", env="ECMWF_API_EMAIL")
+    ECMWF_API_URL: str = Field(default="https://api.ecmwf.int/v1", env="ECMWF_API_URL")
     
     # Training
     ENABLE_AUTO_RETRAIN: bool = Field(default=False, env="ENABLE_AUTO_RETRAIN")

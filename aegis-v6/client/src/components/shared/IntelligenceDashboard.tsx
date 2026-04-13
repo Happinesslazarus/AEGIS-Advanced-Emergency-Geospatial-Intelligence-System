@@ -1,9 +1,10 @@
 /**
- * IntelligenceDashboard.tsx — Multi-Incident Real-Time Intelligence Panel
+ * Module: IntelligenceDashboard.tsx
  *
- * Aggregates threat levels, active incidents, predictions, and alerts
- * across ALL 11 incident types with live Socket.IO updates.
- */
+ * Intelligence dashboard shared component (reusable UI element used across pages).
+ *
+ * How it connects:
+ * - Used across both admin and citizen interfaces */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
@@ -389,6 +390,13 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
     AMBER:    t('intel.threatAmber', lang),
     GREEN:    t('intel.threatGreen', lang),
   }
+  const compactUpdates = [
+    `${t('intel.active', lang)}: ${dashboard?.totalActiveIncidents ?? 0}`,
+    `${t('intel.alerts', lang)}: ${dashboard?.totalAlerts ?? 0}`,
+    `${t('intel.rivers', lang)}: ${criticalRivers}`,
+    `SOS: ${distressCount}`,
+    threatDescMap[threatLevel],
+  ]
 
   return (
     <div className={`bg-white dark:bg-gray-900/95 backdrop-blur-md border border-gray-200 dark:border-gray-700/60 rounded-xl shadow-2xl overflow-hidden ${className}`}>
@@ -413,6 +421,59 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
         </div>
         {collapsed ? <ChevronDown className="w-4 h-4 text-gray-400 dark:text-gray-300" /> : <ChevronUp className="w-4 h-4 text-gray-400 dark:text-gray-300" />}
       </button>
+
+      {collapsed && (
+        <div className="border-t border-gray-200 dark:border-gray-700/40">
+          {/* Mini score bar */}
+          <div className="px-4 pt-2.5 pb-1">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] text-gray-500 dark:text-gray-300">{t('intel.compositeScore', lang)}</span>
+              <span className="text-[10px] font-mono font-bold text-gray-900 dark:text-white">{score}/100</span>
+            </div>
+            <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-1000 ${score >= 75 ? 'bg-red-500' : score >= 50 ? 'bg-amber-500' : score >= 25 ? 'bg-yellow-500' : 'bg-green-500'}`}
+                style={{ width: `${score}%` }}
+              />
+            </div>
+          </div>
+          {/* Mini stat grid */}
+          <div className="px-4 pb-2.5 grid grid-cols-4 gap-1.5">
+            <div className="text-center p-1.5 bg-gray-100 dark:bg-gray-800/40 rounded-lg">
+              <div className={`text-sm font-bold ${(dashboard?.totalActiveIncidents ?? 0) > 0 ? 'text-red-400' : 'text-gray-400 dark:text-gray-300'}`}>
+                {dashboard?.totalActiveIncidents ?? 0}
+              </div>
+              <div className="text-[9px] text-gray-500 dark:text-gray-300">{t('intel.active', lang)}</div>
+            </div>
+            <div className="text-center p-1.5 bg-gray-100 dark:bg-gray-800/40 rounded-lg">
+              <div className={`text-sm font-bold ${(dashboard?.totalAlerts ?? 0) > 0 ? 'text-amber-400' : 'text-gray-400 dark:text-gray-300'}`}>
+                {dashboard?.totalAlerts ?? 0}
+              </div>
+              <div className="text-[9px] text-gray-500 dark:text-gray-300">{t('intel.alerts', lang)}</div>
+            </div>
+            <div className="text-center p-1.5 bg-gray-100 dark:bg-gray-800/40 rounded-lg">
+              <div className={`text-sm font-bold ${criticalRivers > 0 ? 'text-red-400' : 'text-blue-400'}`}>
+                {criticalRivers}
+              </div>
+              <div className="text-[9px] text-gray-500 dark:text-gray-300 flex items-center justify-center gap-0.5">
+                <Droplets className="w-2 h-2" />{t('intel.rivers', lang)}
+              </div>
+            </div>
+            <div className="text-center p-1.5 bg-gray-100 dark:bg-gray-800/40 rounded-lg">
+              <div className={`text-sm font-bold ${distressCount > 0 ? 'text-red-400 animate-pulse' : 'text-gray-400 dark:text-gray-300'}`}>
+                {distressCount}
+              </div>
+              <div className="text-[9px] text-gray-500 dark:text-gray-300 flex items-center justify-center gap-0.5">
+                <Radio className="w-2 h-2" />SOS
+              </div>
+            </div>
+          </div>
+          {/* Threat description */}
+          <div className="px-4 pb-2.5">
+            <p className="text-[10px] text-gray-500 dark:text-gray-300 italic">{threatDescMap[threatLevel]}</p>
+          </div>
+        </div>
+      )}
 
       {!collapsed && (
         <div className="border-t border-gray-200 dark:border-gray-700/40">

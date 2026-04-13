@@ -1,16 +1,16 @@
 """
-feature_engineering.py — Shared Feature Engineering for All Hazard Training Pipelines.
+File: feature_engineering.py
 
-Stateless utility class (all static methods) operating on pandas DataFrames.
-Consumed by all 11 hazard training scripts via:
+What this file does:
+Feature engineering transforms for the training pipeline: rolling
+statistics (3h, 24h, 7d windows), cyclical time encoding (day-of-year,
+hour), anomaly z-scores, and the LeakagePrevention utility that strips
+future-looking columns from training data to prevent data leakage.
 
-    from app.training.feature_engineering import FeatureEngineer, LeakagePrevention
-
-Design principles:
-    - All rolling windows are BACKWARD-LOOKING only (no future data leakage).
-    - NaN handling: forward-fill then zero-fill residuals.
-    - Vectorised numpy operations wherever possible.
-    - No model state — every method is a pure function on DataFrames.
+How it connects:
+- Used by all training pipelines (base_hazard_pipeline, base_real_pipeline)
+- FeatureStore calls overlapping logic for live prediction features
+- LeakagePrevention used in train_*_real.py __init__ methods
 """
 
 from __future__ import annotations
@@ -891,4 +891,4 @@ class LeakagePrevention:
             "Leakage check passed: {} rows, all features precede labels",
             len(feat_times),
         )
-
+

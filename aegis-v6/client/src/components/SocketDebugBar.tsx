@@ -1,13 +1,15 @@
-﻿/*
- * SocketDebugBar.tsx - Temporary debug UI for socket transport validation
- * 
- * Shows:
- * Socket connection status (live vs failed)
- * User role (citizen/operator/admin)
- * Thread count (messages available)
- * Socket URL being used
- * 
- * Remove this component after confirming transport is working reliably.
+/**
+ * File: SocketDebugBar.tsx
+ *
+ * What this file does:
+ * Developer-only overlay bar that shows the current Socket.IO connection
+ * status, the active server URL, and the authenticated user identity.
+ * Hidden in production (gated by import.meta.env.DEV).
+ *
+ * How it connects:
+ * - Socket state from client/src/contexts/SocketContext.tsx
+ * - Auth state from client/src/contexts/CitizenAuthContext.tsx
+ * - Session token from client/src/utils/auth.ts getSession()
  */
 
 import { useCallback } from 'react'
@@ -83,4 +85,4 @@ export default function SocketDebugBar(): JSX.Element {
     </div>
   )
 }
-
+

@@ -1,8 +1,15 @@
-"""Train just the flood hazard model."""
+"""
+Module: train_flood.py
+
+Train_flood utility script.
+
+Simple explanation:
+Standalone script for train_flood.
+"""
 import os, sys, asyncio, time
 from datetime import datetime, timedelta
 
-os.environ['DATABASE_URL'] = 'postgresql://postgres:Happylove%40%21@localhost:5432/aegis'
+os.environ['DATABASE_URL'] = os.environ.get('DATABASE_URL', 'postgresql://localhost:5432/aegis')
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'ai-engine'))
 os.chdir(os.path.join(os.path.dirname(__file__), '..', '..', 'ai-engine'))
 

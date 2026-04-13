@@ -1,10 +1,19 @@
-/* AppLayout.tsx — Main layout wrapper with TopNavbar + Sidebar + content area */
+/**
+ * Module: AppLayout.tsx
+ *
+ * App layout React component.
+ *
+ * How it connects:
+ * - Used by CitizenPage and CitizenDashboard to wrap citizen views
+ * - Reads alert count from AlertsContext for the navbar badge
+ * Simple explanation:
+ * The page frame for citizen/public-facing pages. */
 
 import { useState, useCallback } from 'react'
 import TopNavbar from './TopNavbar'
 import Sidebar, { type SidebarItem } from './Sidebar'
 import { useAlerts } from '../../contexts/AlertsContext'
-import { useCitizenAuth } from '../../contexts/CitizenAuthContext'
+import { SkipLinks } from '../ui/SkipLinks'
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -27,6 +36,7 @@ export default function AppLayout({ children, activeKey, onNavigate, unreadMessa
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-aegis-100/40 dark:from-gray-950 dark:via-gray-900 dark:to-aegis-950/30 text-gray-900 dark:text-gray-100">
+      <SkipLinks />
       <TopNavbar onMenuToggle={handleMenuToggle} alertCount={alertCount} communityUnread={communityUnread} unreadMessages={unreadMessages} />
 
       <Sidebar
@@ -43,6 +53,7 @@ export default function AppLayout({ children, activeKey, onNavigate, unreadMessa
 
       {/* Main content area — shifts right for the sidebar */}
       <main
+        id="main-content"
         className={`pt-14 min-h-screen transition-all duration-300
           ${sidebarCollapsed ? 'lg:pl-[60px]' : 'lg:pl-[220px]'}
         `}

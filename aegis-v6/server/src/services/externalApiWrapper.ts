@@ -1,13 +1,18 @@
-﻿/**
- * services/externalApiWrapper.ts — Resilient external API caller
+/**
+ * File: externalApiWrapper.ts
  *
- * Every external API call (SEPA, Met Office, OpenWeatherMap, HuggingFace, LLM)
- * goes through this wrapper which provides:
- * Configurable timeout (default 10s)
- * Retry with exponential backoff (default 3 attempts)
- * Cache fallback when all retries fail
- * Structured error logging to external_api_errors table
- * Circuit breaker: stop calling after 10 consecutive failures for 5 minutes
+ * Unified outbound HTTP wrapper — all external API calls (SEPA, Met Office,
+ * OpenWeatherMap, HuggingFace, LLM) go through this wrapper which provides
+ * retry with timeout, PostgreSQL-backed response caching, and an in-memory
+ * circuit breaker (opens after 10 failures, 5-min cooldown).
+ *
+ * How it connects:
+ * - Called by data ingestion, AI, and weather services
+ * - Caches responses in the database to survive restarts
+ * - Falls back to stale cache when the circuit is open
+ *
+ * Simple explanation:
+ * Wraps every outbound API call with retry, caching, and circuit breaking.
  */
 
 import pool from '../models/db.js'
@@ -30,7 +35,7 @@ const circuitState: Record<string, { failures: number; openUntil: number }> = {}
 const CIRCUIT_THRESHOLD = 10
 const CIRCUIT_COOLDOWN_MS = 5 * 60 * 1000 // 5 minutes
 
- /**
+/**
  * Call an external API with retry + cache fallback.
  *
  * @param name       Human-readable service name (e.g., 'sepa_gauge', 'openweathermap')
@@ -50,7 +55,7 @@ export async function callExternalAPI<T>(
   // Circuit breaker check
   const circuit = circuitState[name]
   if (circuit && circuit.failures >= CIRCUIT_THRESHOLD && Date.now() < circuit.openUntil) {
-    logger.warn({ name, failures: circuit.failures }, '[ExternalAPI] Circuit OPEN — serving cache only')
+    logger.warn({ name, failures: circuit.failures }, '[ExternalAPI] Circuit OPEN - serving cache only')
     const cached = await getCache<T>(cacheKey)
     if (cached) {
       return { data: cached.data, source: 'cache', stale: true, cachedAt: cached.cachedAt.toISOString() }
@@ -62,7 +67,7 @@ export async function callExternalAPI<T>(
     try {
       const data = await withTimeout(fetchFn(), timeoutMs)
 
-      // Success — reset circuit breaker
+      // Success - reset circuit breaker
       if (circuitState[name]) {
         circuitState[name].failures = 0
       }
@@ -81,7 +86,7 @@ export async function callExternalAPI<T>(
     }
   }
 
-  // All retries failed — increment circuit breaker
+  // All retries failed - increment circuit breaker
   if (!circuitState[name]) {
     circuitState[name] = { failures: 0, openUntil: 0 }
   }
@@ -98,12 +103,12 @@ export async function callExternalAPI<T>(
     return { data: cached.data, source: 'cache', stale: true, cachedAt: cached.cachedAt.toISOString() }
   }
 
-  // No cache either — hard failure
+  // No cache either - hard failure
   logger.error({ name }, '[ExternalAPI] No live data and no cache available')
   throw new ExternalAPIError(name, 'All retries failed and no cache available')
 }
 
- /**
+/**
  * Reset a service's circuit breaker (e.g., when n8n recovers)
  */
 export function resetCircuitBreaker(name: string): void {
@@ -113,7 +118,7 @@ export function resetCircuitBreaker(name: string): void {
   }
 }
 
- /**
+/**
  * Get all circuit breaker states for the System Health panel
  */
 export function getCircuitBreakerStates(): Record<string, { failures: number; isOpen: boolean }> {

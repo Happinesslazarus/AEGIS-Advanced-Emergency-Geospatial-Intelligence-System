@@ -1,6 +1,13 @@
 /**
- * incidents/power_outage/dataIngestion.ts — Data ingestion for power outage monitoring
- * Data Source: Citizen Reports (no public utility API)
+ * Module: dataIngestion.ts
+ *
+ * Electrical grid failures incident module (handles power outage specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for power outage events.
  */
 
 import pool from '../../models/db.js'

@@ -1,15 +1,17 @@
-﻿/*
- * securityAlertService.ts — Security Alert Notifications for Operators
+/**
+ * File: securityAlertService.ts
  *
- * Sends notifications (email + in-app) when security-relevant events occur:
- * 2FA disabled
- * Backup code used
- * Login from new device/IP
- * Repeated authentication failures
- * Account locked
- * Suspicious access detected
+ * Operator security alert dispatcher — sends alerts (2FA disabled, new device,
+ * backup code used, account locked, etc.) based on per-operator notification
+ * preferences stored in operator_security_preferences.
  *
- * Respects per-operator alert preferences stored in operator_security_preferences.
+ * How it connects:
+ * - Called by auth and security services when notable events occur
+ * - Reads notification preferences from operator_security_preferences table
+ * - Sends alerts via emailService and logs via securityLogger
+ *
+ * Simple explanation:
+ * Notifies operators about security events like new logins or disabled 2FA.
  */
 
 import pool from '../models/db.js'
@@ -34,7 +36,7 @@ interface SecurityAlert {
   metadata?: Record<string, unknown>
 }
 
- /**
+/**
  * Check if the operator wants to receive a specific alert type.
  */
 async function shouldAlert(operatorId: string, alertType: SecurityAlertType): Promise<boolean> {
@@ -44,7 +46,7 @@ async function shouldAlert(operatorId: string, alertType: SecurityAlertType): Pr
   ).catch(() => ({ rows: [] }))
 
   if (result.rows.length === 0) {
-    // No preferences set — default to alerting on everything
+    // No preferences set - default to alerting on everything
     return true
   }
 
@@ -62,7 +64,7 @@ async function shouldAlert(operatorId: string, alertType: SecurityAlertType): Pr
   return column ? (prefs[column] !== false) : true
 }
 
- /**
+/**
  * Send a security alert to an operator.
  * Currently stores in security_events for in-app display.
  * Email integration can be added via emailService.
@@ -189,7 +191,7 @@ export async function alertRepeatedFailures(operatorId: string, count: number, i
 
 // Security Dashboard Queries
 
- /**
+/**
  * Get recent security alerts for the admin security dashboard.
  */
 export async function getRecentSecurityAlerts(limit: number = 50): Promise<Array<{
@@ -223,7 +225,7 @@ export async function getRecentSecurityAlerts(limit: number = 50): Promise<Array
   }))
 }
 
- /**
+/**
  * Get security event counts grouped by type for dashboard analytics.
  */
 export async function getSecurityEventStats(hours: number = 24): Promise<Record<string, number>> {
@@ -243,7 +245,7 @@ export async function getSecurityEventStats(hours: number = 24): Promise<Record<
   return stats
 }
 
- /**
+/**
  * Get operators with the most failed attempts (for admin monitoring).
  */
 export async function getMostFailedOperators(limit: number = 10): Promise<Array<{

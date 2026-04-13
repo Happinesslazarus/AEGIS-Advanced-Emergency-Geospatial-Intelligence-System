@@ -1,3 +1,9 @@
+"""
+Module: region_registry.py
+
+Region_registry AI engine module.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

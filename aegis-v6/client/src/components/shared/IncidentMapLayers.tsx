@@ -1,12 +1,10 @@
-﻿/**
- * IncidentMapLayers.tsx — Multi-incident map layer overlay
+/**
+ * Module: IncidentMapLayers.tsx
  *
- * Renders per-incident-type markers, circles, and geoJSON layers on the
- * Leaflet map. Works alongside the existing DisasterMap component.
+ * Incident map layers shared component (reusable UI element used across pages).
  *
- * Uses the v1 incident API to fetch map data for all enabled incident types
- * and renders them with per-type colours, icons, and severity styling.
- */
+ * How it connects:
+ * - Used across both admin and citizen interfaces */
 
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'

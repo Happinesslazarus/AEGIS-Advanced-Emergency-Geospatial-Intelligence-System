@@ -1,5 +1,13 @@
 /**
- * incidents/wildfire/alertRules.ts — Alert rule evaluation for wildfire incidents
+ * Module: alertRules.ts
+ *
+ * Wildfire and bushfire events incident module (handles wildfire specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for wildfire events.
  */
 
 import type { AlertRuleContext, AlertRuleResult } from '../types.js'

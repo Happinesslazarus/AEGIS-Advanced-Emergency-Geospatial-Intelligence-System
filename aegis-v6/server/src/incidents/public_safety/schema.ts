@@ -1,5 +1,13 @@
 /**
- * incidents/public_safety/schema.ts — Public Safety Incident report validation schema
+ * Module: schema.ts
+ *
+ * Public safety incidents incident module (handles public safety specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for public safety events.
  */
 
 export interface PublicSafetyCustomFields {
@@ -43,4 +51,4 @@ export function sanitizePublicSafetyCustomFields(fields: Record<string, unknown>
     evacuationNeeded: typeof fields.evacuationNeeded === 'boolean' ? fields.evacuationNeeded : undefined
   }
 }
-
+

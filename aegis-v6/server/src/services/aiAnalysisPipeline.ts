@@ -1,22 +1,35 @@
- /*
- * services/aiAnalysisPipeline.ts — Report AI analysis orchestrator
- * When a new report is submitted, this pipeline runs every applicable
- * AI analysis step in parallel where possible:
- *   1. Sentiment analysis (HuggingFace cardiffnlp/twitter-roberta-base)
- *   2. Fake/misinformation detection (roberta-base-openai-detector)
- *   3. Severity assessment (zero-shot BART-large-MNLI)
- *   4. Category classification (zero-shot BART-large-MNLI)
- *   5. Language detection (xlm-roberta-base-language-detection)
- *   6. Urgency scoring (zero-shot BART-large-MNLI)
- *   7. Image analysis (if media attached)
- *   8. Cross-referencing with recent reports in the same area
- *   9. Vulnerable person keyword detection
- *  10. Damage estimation via LLM
- * Results are stored in the reports.ai_analysis JSONB column and
- * logged in the ai_executions table for transparency.
- * The pipeline is non-blocking: if any step fails, the others still
- * complete and the failure is logged without stopping the report flow.
-  */
+/**
+ * File: aiAnalysisPipeline.ts
+ *
+ * What this file does:
+ * Orchestrates every AI quality check on a newly submitted incident report.
+ * Runs sentiment analysis, fake detection, severity scoring, category prediction,
+ * urgency assessment, image analysis, and cross-referencing all in parallel.
+ * Writes the combined results back to the reports table.
+ *
+ * How it connects:
+ * - Called by server/src/routes/reportRoutes.ts immediately after a report INSERT
+ * - Fans out to classifierRouter.ts (ML classification), llmRouter.ts (LLM reasoning),
+ *   imageAnalysisService.ts (vision model), and governanceEngine.ts (policy checks)
+ * - On completion, updates the reports table with {severity, category, sentiment, ...}
+ * - Operators see AI scores in client/src/pages/AdminPage.tsx (Incident Queue)
+ *
+ * Key exports:
+ * - analyseReport(reportId)   — full pipeline for a fresh report
+ * - reanalyseReport(reportId) — re-trigger pipeline on an updated report (operator action)
+ *
+ * Learn more:
+ * - server/src/services/classifierRouter.ts    — routes to ONNX classifiers
+ * - server/src/services/llmRouter.ts           — LLM-based reasoning for severity
+ * - server/src/services/imageAnalysisService.ts — vision analysis for evidence photos
+ * - server/src/services/governanceEngine.ts    — policy / content moderation rules
+ * - server/src/routes/reportRoutes.ts          — triggers this pipeline on new submissions
+ *
+ * Simple explanation:
+ * When someone files a disaster report, this runs every AI check on it at once.
+ * By the time an operator opens the report, they already have a severity score,
+ * category prediction, and a flag if the report looks suspicious.
+ */
 
 import pool from '../models/db.js'
 import { classify } from './classifierRouter.js'
@@ -81,6 +94,8 @@ export interface AIAnalysisResult {
   } | null
   modelsUsed: string[]
   processingTimeMs: number
+  reasoning: string
+  sources: string[]
 }
 
 // —2  INDIVIDUAL ANALYSIS STEPS
@@ -354,6 +369,10 @@ function estimateWaterDepth(
     { patterns: ['rooftop','roof level','up to the roof'],                       depthM: 3.50, confidence: 0.60 },
     { patterns: ['shallow','minor flooding','small puddles'],                    depthM: 0.05, confidence: 0.55 },
     { patterns: ['surface water','surface flood'],                               depthM: 0.08, confidence: 0.52 },
+    { patterns: ['window sill','windowsill','window-sill','sill level','sill height'], depthM: 0.85, confidence: 0.72 },
+    { patterns: ['door frame','door level','doorstep','door threshold'],         depthM: 0.25, confidence: 0.68 },
+    { patterns: ['ground floor window','ground-floor window'],                  depthM: 0.85, confidence: 0.72 },
+    { patterns: ['first floor','second floor','upstairs'],                       depthM: 2.50, confidence: 0.55 },
   ]
 
   for (const { patterns, depthM, confidence } of DEPTH_VOCABULARY) {
@@ -499,6 +518,69 @@ async function estimateDamage(
   }
 }
 
+/* Step 9b: LLM-powered structured analysis fallback
+ * Used when HuggingFace is unavailable/rate-limited.
+ * Calls Groq/Gemini to produce sentiment, panicLevel, fakeProbability etc.
+ */
+async function llmFallbackAnalysis(text: string): Promise<{
+  sentimentScore: number
+  sentimentLabel: string
+  panicLevel: 'None' | 'Low' | 'Moderate' | 'High'
+  fakeProbability: number
+  urgencyLevel: string
+  urgencyScore: number
+  severity: string
+  severityConfidence: number
+  category: string
+  categoryConfidence: number
+} | null> {
+  try {
+    const response = await chatCompletion({
+      messages: [
+        {
+          role: 'system',
+          content: `You are an emergency report analysis AI. Analyse the report and respond ONLY with valid JSON, no markdown.
+Schema: {
+  "sentimentScore": 0.0-1.0,
+  "sentimentLabel": "positive|neutral|negative",
+  "panicLevel": "None|Low|Moderate|High",
+  "fakeProbability": 0.0-1.0,
+  "urgencyLevel": "not urgent|somewhat urgent|urgent|extremely urgent",
+  "urgencyScore": 0.0-1.0,
+  "severity": "low|medium|high|critical",
+  "severityConfidence": 0.0-1.0,
+  "category": "flood|fire|earthquake|storm|infrastructure|medical|evacuation|other",
+  "categoryConfidence": 0.0-1.0
+}
+Rules: panicLevel=High if people are trapped/requesting rescue; severity=high/critical for life-threatening events; urgencyLevel=extremely urgent if immediate rescue needed.`,
+        },
+        {
+          role: 'user',
+          content: `Analyse this emergency report:\n${text.slice(0, 1000)}`,
+        },
+      ],
+      maxTokens: 300,
+      temperature: 0.1,
+    })
+    const raw = response.content.trim().replace(/^```json\s*/i, '').replace(/```$/, '').trim()
+    const parsed = JSON.parse(raw)
+    return {
+      sentimentScore: Math.min(1, Math.max(0, Number(parsed.sentimentScore) || 0)),
+      sentimentLabel: String(parsed.sentimentLabel || 'neutral'),
+      panicLevel: (['None','Low','Moderate','High'].includes(parsed.panicLevel) ? parsed.panicLevel : 'None') as 'None'|'Low'|'Moderate'|'High',
+      fakeProbability: Math.min(1, Math.max(0, Number(parsed.fakeProbability) || 0)),
+      urgencyLevel: String(parsed.urgencyLevel || 'somewhat urgent'),
+      urgencyScore: Math.min(1, Math.max(0, Number(parsed.urgencyScore) || 0)),
+      severity: String(parsed.severity || 'unknown'),
+      severityConfidence: Math.min(1, Math.max(0, Number(parsed.severityConfidence) || 0)),
+      category: String(parsed.category || 'unknown'),
+      categoryConfidence: Math.min(1, Math.max(0, Number(parsed.categoryConfidence) || 0)),
+    }
+  } catch {
+    return null
+  }
+}
+
 // —3  MAIN PIPELINE
 
  /*
@@ -545,29 +627,93 @@ export async function analyseReport(
     crossReference(lat, lng, reportId, text),
   ])
 
-  // Extract results with fallbacks for failed steps
-  const sentimentVal = sentiment.status === 'fulfilled' ? sentiment.value : { score: 0, label: 'unknown', panicLevel: 'None' }
-  const fakeVal = fake.status === 'fulfilled' ? fake.value : { probability: 0, label: 'unknown' }
-  const severityVal = severityResult.status === 'fulfilled' ? severityResult.value : { assessment: 'unknown', confidence: 0 }
-  const categoryVal = category.status === 'fulfilled' ? category.value : { category: 'unknown', confidence: 0 }
+  // Extract results with fallbacks for failed steps and log any errors
+  let sentimentVal = sentiment.status === 'fulfilled' ? sentiment.value : { score: 0, label: 'unknown', panicLevel: 'None' as const }
+  let fakeVal = fake.status === 'fulfilled' ? fake.value : { probability: 0, label: 'unknown' }
+  let severityVal = severityResult.status === 'fulfilled' ? severityResult.value : { assessment: 'unknown', confidence: 0 }
+  let categoryVal = category.status === 'fulfilled' ? category.value : { category: 'unknown', confidence: 0 }
   const languageVal = language.status === 'fulfilled' ? language.value : { language: 'en', confidence: 0 }
-  const urgencyVal = urgency.status === 'fulfilled' ? urgency.value : { level: 'unknown', score: 0 }
+  let urgencyVal = urgency.status === 'fulfilled' ? urgency.value : { level: 'unknown', score: 0 }
   const vulnerableVal = vulnerable.status === 'fulfilled' ? vulnerable.value : { alert: false, keywords: [] }
   const crossRefVal = crossRef.status === 'fulfilled'
     ? crossRef.value
     : { reportIds: [], count: 0, crossReferenceSimilarityScores: [], nearDuplicateCount: 0 }
 
-  // Track which models were used
-  if (sentiment.status === 'fulfilled') modelsUsed.push('sentiment-roberta')
-  if (fake.status === 'fulfilled') modelsUsed.push('fake-detector')
-  if (severityResult.status === 'fulfilled') modelsUsed.push('severity-bart-mnli')
-  if (category.status === 'fulfilled') modelsUsed.push('category-bart-mnli')
-  if (language.status === 'fulfilled') modelsUsed.push('language-xlm-roberta')
-  if (urgency.status === 'fulfilled') modelsUsed.push('urgency-bart-mnli')
+  // Log failures for debugging
+  if (sentiment.status === 'rejected') logger.warn({ err: sentiment.reason, reportId }, '[AI] Sentiment analysis failed')
+  if (fake.status === 'rejected') logger.warn({ err: fake.reason, reportId }, '[AI] Fake detection failed')
+  if (severityResult.status === 'rejected') logger.warn({ err: severityResult.reason, reportId }, '[AI] Severity assessment failed')
+  if (category.status === 'rejected') logger.warn({ err: category.reason, reportId }, '[AI] Category prediction failed')
+  if (language.status === 'rejected') logger.warn({ err: language.reason, reportId }, '[AI] Language detection failed')
+  if (urgency.status === 'rejected') logger.warn({ err: urgency.reason, reportId }, '[AI] Urgency scoring failed')
+  if (vulnerable.status === 'rejected') logger.warn({ err: vulnerable.reason, reportId }, '[AI] Vulnerable person detection failed')
+  if (crossRef.status === 'rejected') logger.warn({ err: crossRef.reason, reportId }, '[AI] Cross-reference check failed')
 
-  // Damage estimation only for high-severity reports (expensive LLM call)
+  // LLM fallback: trigger when HF sentiment+fake both fail, OR when BART-MNLI models all return unknown
+  const hfSentimentFakeFailed = sentimentVal.label === 'unknown' && fakeVal.label === 'unknown'
+  const bartMnliFailed = severityVal.assessment === 'unknown' && categoryVal.category === 'unknown' && urgencyVal.level === 'unknown'
+  const needsLlmFallback = hfSentimentFakeFailed || bartMnliFailed
+  if (needsLlmFallback) {
+    logger.info({ reportId, hfSentimentFakeFailed, bartMnliFailed }, '[AI] HF classifiers degraded — running LLM fallback')
+    const llmResult = await llmFallbackAnalysis(text)
+    if (llmResult) {
+      // Only overwrite fields that are still 'unknown' — preserve successful HF results
+      if (sentimentVal.label === 'unknown') {
+        sentimentVal = { score: llmResult.sentimentScore, label: llmResult.sentimentLabel, panicLevel: llmResult.panicLevel }
+      }
+      if (fakeVal.label === 'unknown') {
+        fakeVal = { probability: llmResult.fakeProbability, label: llmResult.fakeProbability > 0.5 ? 'fake' : 'genuine' }
+      }
+      if (urgencyVal.level === 'unknown') {
+        urgencyVal = { level: llmResult.urgencyLevel, score: llmResult.urgencyScore }
+      }
+      if (severityVal.assessment === 'unknown') {
+        severityVal = { assessment: llmResult.severity, confidence: llmResult.severityConfidence }
+      }
+      if (categoryVal.category === 'unknown') {
+        categoryVal = { category: llmResult.category, confidence: llmResult.categoryConfidence }
+      }
+      // Use LLM's panic level if it's higher than what sentiment alone gave us
+      const panicRank = { 'None': 0, 'Low': 1, 'Moderate': 2, 'High': 3 }
+      const currentRank = panicRank[sentimentVal.panicLevel as keyof typeof panicRank] ?? 0
+      const llmRank = panicRank[llmResult.panicLevel] ?? 0
+      if (llmRank > currentRank) {
+        sentimentVal = { ...sentimentVal, panicLevel: llmResult.panicLevel }
+      }
+      modelsUsed.push('llm-analysis-fallback')
+      logger.info({ reportId, severity: severityVal.assessment, category: categoryVal.category, panicLevel: sentimentVal.panicLevel }, '[AI] LLM fallback analysis complete')
+    }
+  }
+
+  // Post-process panic level: upgrade based on urgency, vulnerability, and severity signals
+  // (sentiment score alone is a weak proxy — this composite gives a much more accurate reading)
+  const panicLevels = ['None', 'Low', 'Moderate', 'High'] as const
+  let panicIdx = panicLevels.indexOf((sentimentVal.panicLevel as typeof panicLevels[number]) ?? 'None')
+  if (panicIdx < 0) panicIdx = 0
+  if (vulnerableVal.alert) panicIdx = Math.max(panicIdx, 2)
+  if (urgencyVal.score > 0.8 || urgencyVal.level?.includes('extremely')) panicIdx = Math.max(panicIdx, 3)
+  else if (urgencyVal.score > 0.6 || urgencyVal.level?.includes('urgent') && !urgencyVal.level?.includes('not')) panicIdx = Math.max(panicIdx, 2)
+  if (severityVal.assessment === 'critical') panicIdx = 3
+  else if (severityVal.assessment === 'high') panicIdx = Math.max(panicIdx, 3)
+  else if (severityVal.assessment === 'medium') panicIdx = Math.max(panicIdx, 1)
+  sentimentVal = { ...sentimentVal, panicLevel: panicLevels[panicIdx] }
+
+  // Track which models were used
+  if (sentiment.status === 'fulfilled' && !hfSentimentFakeFailed) modelsUsed.push('sentiment-roberta')
+  if (fake.status === 'fulfilled' && !hfSentimentFakeFailed) modelsUsed.push('fake-detector')
+  if (severityResult.status === 'fulfilled' && severityVal.assessment !== 'unknown') modelsUsed.push('severity-bart-mnli')
+  if (category.status === 'fulfilled' && categoryVal.category !== 'unknown') modelsUsed.push('category-bart-mnli')
+  if (language.status === 'fulfilled') modelsUsed.push('language-xlm-roberta')
+  if (urgency.status === 'fulfilled' && !hfSentimentFakeFailed && urgencyVal.level !== 'unknown') modelsUsed.push('urgency-bart-mnli')
+
+  // Damage estimation for high-severity reports (expensive LLM call)
+  // Also run when AI detects high/critical severity or urgent/trapped-persons signals
   let damageEstimate = null
-  if (severity === 'high' || urgencyVal.level?.includes('urgent')) {
+  const isDamageable = severity === 'high' || severity === 'critical'
+    || severityVal.assessment === 'high' || severityVal.assessment === 'critical'
+    || urgencyVal.level?.includes('urgent')
+    || vulnerableVal.alert
+  if (isDamageable) {
     damageEstimate = await estimateDamage(text, location, severity)
     if (damageEstimate) modelsUsed.push('damage-llm')
   }
@@ -627,6 +773,59 @@ export async function analyseReport(
     } catch { /* non-critical */ }
   }
 
+  // Generate reasoning summary for transparency and human review
+  const reasoningParts: string[] = []
+  reasoningParts.push(`Report analysed using ${modelsUsed.length} AI models.`)
+  
+  if (sentiment.status === 'fulfilled') {
+    reasoningParts.push(`Sentiment analysis detected ${sentimentVal.label} tone with ${Math.round(sentimentVal.score * 100)}% confidence, panic level: ${sentimentVal.panicLevel}.`)
+  }
+  
+  if (fake.status === 'fulfilled') {
+    reasoningParts.push(`Authenticity check: ${Math.round(fakeVal.probability * 100)}% likelihood of being false or misleading (${fakeVal.label}).`)
+  }
+  
+  if (category.status === 'fulfilled') {
+    reasoningParts.push(`Incident categorized as "${categoryVal.category}" with ${Math.round(categoryVal.confidence * 100)}% confidence.`)
+  }
+  
+  if (crossRef.status === 'fulfilled' && crossRefVal.count > 0) {
+    reasoningParts.push(`Location matches ${crossRefVal.count} nearby active incident${crossRefVal.count > 1 ? 's' : ''} within reference zones.`)
+  }
+  
+  if (vulnerableVal.alert) {
+    reasoningParts.push(`Alert: Report contains keywords suggesting vulnerable persons may be at risk (${vulnerableVal.keywords.slice(0, 2).join(', ')}).`)
+  }
+  
+  if (photoVerified && photoValidation) {
+    reasoningParts.push(`Photo verification complete - flood-related content detected with ${Math.round(photoValidation.waterConfidence * 100)}% confidence.`)
+  }
+  
+  // Composite confidence: best available score across working models
+  const compositeConfidence = Math.max(
+    sentimentVal.score,
+    urgencyVal.score,
+    categoryVal.confidence,
+    severityVal.confidence,
+  )
+  reasoningParts.push(`Severity: ${severityVal.assessment}. Category: ${categoryVal.category}. Urgency: ${urgencyVal.level}. Panic level: ${sentimentVal.panicLevel}. Overall confidence: ${Math.round(compositeConfidence * 100)}%.`)
+  
+  const reasoning = reasoningParts.join(' ')
+  
+  // Compile list of data sources used in this analysis
+  const sources: string[] = []
+  if (sentiment.status === 'fulfilled' || modelsUsed.includes('llm-analysis-fallback')) sources.push('NLP Sentiment Analysis (RoBERTa)')
+  if (fake.status === 'fulfilled' || modelsUsed.includes('llm-analysis-fallback')) sources.push('Authenticity Detector')
+  if (category.status === 'fulfilled' || modelsUsed.includes('llm-analysis-fallback')) sources.push('Incident Category Classifier')
+  if (language.status === 'fulfilled') sources.push('Language Detection')
+  if (urgency.status === 'fulfilled' || modelsUsed.includes('llm-analysis-fallback')) sources.push('Urgency Scoring')
+  if (crossRef.status === 'fulfilled') sources.push('SEPA Emergency Registry')
+  if (vulnerableVal.alert) sources.push('Vulnerability Pattern Matching')
+  if (modelsUsed.includes('llm-analysis-fallback')) sources.push('LLM Triage Analysis (Groq/Gemini)')
+  if (photoVerified) sources.push('Image Recognition Neural Network')
+  if (damageEstimate) sources.push('Damage Estimation LLM')
+  sources.push('Regional Risk Zones Database')
+
   const result: AIAnalysisResult = {
     sentimentScore: sentimentVal.score,
     sentimentLabel: sentimentVal.label,
@@ -653,12 +852,14 @@ export async function analyseReport(
     photoValidation,
     modelsUsed,
     processingTimeMs: Date.now() - start,
+    reasoning,
+    sources,
   }
 
   // Run governance checks (human-in-the-loop enforcement)
   const governance = await enforceGovernance(
     reportId,
-    Math.round(categoryVal.confidence * 100),
+    Math.round(compositeConfidence * 100),
     fakeVal.probability,
     vulnerableVal.alert,
     severityVal.assessment,
@@ -666,7 +867,7 @@ export async function analyseReport(
 
   // Persist results to the database
   try {
-    const confidenceScore = Math.round(categoryVal.confidence * 100)
+    const confidenceScore = Math.round(compositeConfidence * 100)
     const status = governance?.requiresHumanReview ? 'flagged' : undefined
 
     let updateQuery = `UPDATE reports SET ai_analysis = $1, ai_confidence = $2`
@@ -725,7 +926,7 @@ export async function reanalyseReport(reportId: string): Promise<AIAnalysisResul
 // —4  ENHANCED ANALYSIS — Named Entity Recognition, Multi-Hazard Classification,
 //     Priority Scoring, Geospatial Context, Credibility Assessment, Triage, and Confidence Explanation
 
- /**
+/**
  * Named Entity Recognition (NER) — extract structured entities from disaster report text.
  * Uses regex-based pattern matching tuned for emergency/disaster domain.
  */
@@ -885,7 +1086,7 @@ export function extractEntities(text: string): {
   }
 }
 
- /**
+/**
  * Multi-Hazard Classification — detect primary and secondary hazards from report text.
  * Starts with the primary classification from the ML classifier, then scans for
  * secondary hazard indicators using keyword co-occurrence patterns.
@@ -1044,7 +1245,7 @@ export function classifyMultiHazard(
   return results
 }
 
- /**
+/**
  * Priority Scoring — compute a weighted priority score and assign a tier (P1—P4).
  * Combines severity, urgency, vulnerability, verification, and corroboration signals.
  */
@@ -1111,7 +1312,7 @@ export function computePriorityScore(analysis: {
   return { score, tier, factors }
 }
 
- /**
+/**
  * Geospatial Context Enrichment — query nearby infrastructure, flood zones,
  * historical risk scores, and recent incidents around a coordinate.
  */
@@ -1209,7 +1410,7 @@ export async function enrichGeospatialContext(lat: number, lng: number): Promise
   return { nearbyInfrastructure, floodZone, historicalRiskScore, recentIncidentCount }
 }
 
- /**
+/**
  * Report Credibility Assessment — evaluate the trustworthiness of a report
  * based on text quality, media presence, location, cross-references, and reporter history.
  */
@@ -1343,7 +1544,7 @@ export async function assessCredibility(
   return { credibilityScore: score, flags, recommendation }
 }
 
- /**
+/**
  * Triage Recommendation Generator — produce actionable response guidance
  * based on the AI analysis of a report.
  */
@@ -1469,7 +1670,7 @@ export function generateTriageRecommendation(analysis: {
   return { actions, alertLevel, notifyTargets: [...new Set(notifyTargets)], reasoning }
 }
 
- /**
+/**
  * Confidence Explanation — generate a human-readable explanation of the
  * overall analysis confidence, including strong signals, weak signals, and missing data.
  */

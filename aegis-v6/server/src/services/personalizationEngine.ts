@@ -1,15 +1,18 @@
-﻿/**
- * services/personalizationEngine.ts — Advanced AI Personalization Engine
+/**
+ * File: personalizationEngine.ts
  *
- * Implements deep personalization for signed-in citizens and admin operators:
- * Cross-session memory (remembers important facts)
- * Behavioral profiling (learns communication preferences)
- * Conversation summarization (bridges sessions)
- * Smart suggestions (context-aware recommendations)
- * Adaptive response calibration
+ * Citizen personalisation engine — provides cross-session memory for chat
+ * interactions: loads past memories from citizen_chat_memory, extracts new
+ * ones via pattern matching, and uses LLM completions to tailor messaging
+ * to individual user profiles.
  *
- * Anonymous citizens get baseline responses; signed-in users get the full
- * personalization experience with persistent memory across sessions.
+ * How it connects:
+ * - Called by chatService before and after each conversation turn
+ * - Reads/writes the citizen_chat_memory table
+ * - Uses llmRouter for LLM-powered response personalisation
+ *
+ * Simple explanation:
+ * Remembers what each citizen has told the chatbot and personalises future answers.
  */
 
 import pool from '../models/db.js'
@@ -17,7 +20,7 @@ import { devLog } from '../utils/logger.js'
 import { logger } from './logger.js'
 import { chatCompletion } from './llmRouter.js'
 
-// —1  CROSS-SESSION MEMORY — Remember important facts across chats
+// -1  CROSS-SESSION MEMORY - Remember important facts across chats
 
 export interface ChatMemory {
   id: string
@@ -28,7 +31,7 @@ export interface ChatMemory {
   lastUsedAt: Date
 }
 
- /**
+/**
  * Load all active memories for a citizen, ordered by importance and recency.
  * Returns the top 20 most relevant memories to inject into the system prompt.
  */
@@ -56,7 +59,7 @@ export async function loadCitizenMemories(citizenId: string): Promise<ChatMemory
   }
 }
 
- /**
+/**
  * Extract and persist new memories from a conversation message.
  * Uses pattern matching to identify important facts worth remembering.
  */
@@ -70,7 +73,7 @@ export async function extractAndSaveMemories(
 
   for (const mem of memories) {
     try {
-      // Check for duplicates — don't store the same memory twice
+      // Check for duplicates - don't store the same memory twice
       const { rows: existing } = await pool.query(
         `SELECT id FROM citizen_chat_memory
          WHERE citizen_id = $1 AND memory_type = $2
@@ -110,7 +113,7 @@ function extractMemoriesFromText(text: string): ExtractedMemory[] {
   const memories: ExtractedMemory[] = []
   const lower = text.toLowerCase()
 
-  // Location mentions — "I live in X", "I'm in X", "my home is in X"
+  // Location mentions - "I live in X", "I'm in X", "my home is in X"
   const locationPatterns = [
     /(?:i\s+live\s+(?:in|at|near|on)\s+)([A-Z][a-zA-Z\s,]+)/i,
     /(?:my\s+(?:home|house|flat|address)\s+is\s+(?:in|at|on)\s+)([A-Z][a-zA-Z\s,]+)/i,
@@ -173,7 +176,7 @@ function extractMemoriesFromText(text: string): ExtractedMemory[] {
   return memories
 }
 
- /**
+/**
  * Build a rich memory context string to inject into the system prompt.
  */
 export function buildMemoryContext(memories: ChatMemory[]): string {
@@ -212,10 +215,10 @@ export function buildMemoryContext(memories: ChatMemory[]): string {
     sections.push(`?? Emergency contacts: ${grouped.emergency_contact.join('; ')}`)
   }
 
-  return `\n\n[CITIZEN MEMORY — PERSISTENT CROSS-SESSION KNOWLEDGE]\n${sections.join('\n')}\nUse this memory to provide personalized, context-aware responses. Reference their known locations and vulnerabilities proactively when relevant. If they mention something you already know, acknowledge it naturally ("As you mentioned before..." or "Since you live near...").`
+  return `\n\n[CITIZEN MEMORY - PERSISTENT CROSS-SESSION KNOWLEDGE]\n${sections.join('\n')}\nUse this memory to provide personalized, context-aware responses. Reference their known locations and vulnerabilities proactively when relevant. If they mention something you already know, acknowledge it naturally ("As you mentioned before..." or "Since you live near...").`
 }
 
-// —2  BEHAVIORAL PROFILING — Learn communication preferences
+// -2  BEHAVIORAL PROFILING - Learn communication preferences
 
 export interface BehaviorProfile {
   preferredDetailLevel: string
@@ -272,7 +275,7 @@ export async function loadOperatorProfile(operatorId: string): Promise<any | nul
   }
 }
 
- /**
+/**
  * Build a behavior-aware context string that adapts the AI's communication style.
  */
 export function buildBehaviorContext(profile: BehaviorProfile | null): string {
@@ -335,10 +338,10 @@ export function buildBehaviorContext(profile: BehaviorProfile | null): string {
 
   if (instructions.length === 0) return ''
 
-  return `\n\n[ADAPTIVE PERSONALIZATION — LEARNED BEHAVIOR PROFILE]\n${instructions.join('\n')}\nApply these personalization settings naturally. Do not mention them explicitly to the user.`
+  return `\n\n[ADAPTIVE PERSONALIZATION - LEARNED BEHAVIOR PROFILE]\n${instructions.join('\n')}\nApply these personalization settings naturally. Do not mention them explicitly to the user.`
 }
 
- /**
+/**
  * Update the behavior profile after a conversation, learning from the interaction.
  */
 export async function updateBehaviorProfile(
@@ -396,7 +399,7 @@ export async function updateBehaviorProfile(
   }
 }
 
- /**
+/**
  * Update the operator behavior profile after a conversation.
  */
 export async function updateOperatorProfile(
@@ -421,9 +424,9 @@ export async function updateOperatorProfile(
   }
 }
 
-// —3  CONVERSATION SUMMARIZATION — Bridge sessions with context
+// -3  CONVERSATION SUMMARIZATION - Bridge sessions with context
 
- /**
+/**
  * Load the latest conversation summaries for a citizen to provide
  * cross-session context. Returns the 3 most recent summaries.
  */
@@ -457,7 +460,7 @@ export async function loadRecentSummaries(citizenId: string): Promise<Array<{
   }
 }
 
- /**
+/**
  * Build a context block from previous conversation summaries.
  */
 export function buildSummaryContext(summaries: Array<{
@@ -483,7 +486,7 @@ export function buildSummaryContext(summaries: Array<{
     blocks.push(block)
   }
 
-  return `\n\n[PREVIOUS CONVERSATION CONTEXT — CROSS-SESSION CONTINUITY]\n${blocks.join('\n')}\nReference previous conversations naturally when relevant. If they had unresolved questions, proactively address them. If action items were pending, ask for updates.`
+  return `\n\n[PREVIOUS CONVERSATION CONTEXT - CROSS-SESSION CONTINUITY]\n${blocks.join('\n')}\nReference previous conversations naturally when relevant. If they had unresolved questions, proactively address them. If action items were pending, ask for updates.`
 }
 
 function getRelativeTimeString(date: Date): string {
@@ -499,10 +502,10 @@ function getRelativeTimeString(date: Date): string {
   return `${Math.floor(diffDays / 30)} months ago`
 }
 
- /**
+/**
  * Generate and store a conversation summary when a session ends or gets long.
  * Uses a 3-tier approach:
- *   1. LLM-based semantic summarization (preferred — compressed & contextual)
+ *   1. LLM-based semantic summarization (preferred - compressed & contextual)
  *   2. Hierarchical compression for long conversations (groups messages by phase)
  *   3. Extractive fallback if LLM is unavailable
  * Also synthesizes cross-session patterns when prior summaries exist.
@@ -588,7 +591,7 @@ export async function generateAndSaveSummary(
           `Cover: what the user asked about, key advice given, and any unresolved questions. Be concise.`
       }
 
-      // Check for prior summaries — enable cross-session synthesis
+      // Check for prior summaries - enable cross-session synthesis
       let crossSessionContext = ''
       if (citizenId) {
         const { rows: priorSummaries } = await pool.query(
@@ -756,7 +759,7 @@ function detectOverallSentiment(messages: string[]): string {
   return 'neutral'
 }
 
-// —4  SMART SUGGESTIONS — Context-aware quick actions
+// -4  SMART SUGGESTIONS - Context-aware quick actions
 
 export interface SmartSuggestion {
   text: string
@@ -765,7 +768,7 @@ export interface SmartSuggestion {
   priority: number
 }
 
- /**
+/**
  * Generate personalized smart suggestions based on user context,
  * current situation, conversation history, and last bot response.
  * Uses dynamic context parsing to generate relevant follow-ups.
@@ -785,7 +788,7 @@ export function generateSmartSuggestions(opts: {
     return generateAdminSuggestions(opts)
   }
 
-  // Emergency-specific suggestions — immediate action oriented
+  // Emergency-specific suggestions - immediate action oriented
   if (opts.isEmergency) {
     suggestions.push(
       { text: 'Share my location for help', category: 'quick_action', icon: 'MapPin', priority: 10 },
@@ -911,7 +914,7 @@ export function generateSmartSuggestions(opts: {
     }
   }
 
-  // Default suggestions for authenticated users — only if we don't have enough context-driven ones
+  // Default suggestions for authenticated users - only if we don't have enough context-driven ones
   if (opts.isAuthenticated && suggestions.length < 3) {
     suggestions.push(
       { text: 'What alerts are active near me?', category: 'quick_action', icon: 'Bell', priority: 4 },
@@ -949,7 +952,7 @@ function generateAdminSuggestions(opts: any): SmartSuggestion[] {
   return suggestions.slice(0, 5)
 }
 
-// —5  LOG SUGGESTION CLICKS — Learn from user behavior
+// -5  LOG SUGGESTION CLICKS - Learn from user behavior
 
 export async function logSuggestionClick(
   sessionId: string | undefined,
@@ -968,7 +971,7 @@ export async function logSuggestionClick(
   }
 }
 
-// —6  EPISODIC MEMORY — Remember specific past incidents & outcomes
+// -6  EPISODIC MEMORY - Remember specific past incidents & outcomes
 
 export interface EpisodicMemory {
   id: string
@@ -981,8 +984,8 @@ export interface EpisodicMemory {
   relatedAlertId?: string
 }
 
- /**
- * Save an episodic memory — a specific incident the citizen experienced.
+/**
+ * Save an episodic memory - a specific incident the citizen experienced.
  * These are higher-level than chat memories: "Last March you reported flooding on your street"
  */
 export async function saveEpisodicMemory(
@@ -1004,8 +1007,8 @@ export async function saveEpisodicMemory(
   }
 }
 
- /**
- * Load episodic memories for a citizen — past incidents they personally experienced.
+/**
+ * Load episodic memories for a citizen - past incidents they personally experienced.
  * Returns the 15 most recent/important episodes for context injection.
  */
 export async function loadEpisodicMemories(citizenId: string): Promise<EpisodicMemory[]> {
@@ -1033,7 +1036,7 @@ export async function loadEpisodicMemories(citizenId: string): Promise<EpisodicM
   }
 }
 
- /**
+/**
  * Build episodic memory context for system prompt injection.
  */
 export function buildEpisodicContext(episodes: EpisodicMemory[]): string {
@@ -1042,16 +1045,16 @@ export function buildEpisodicContext(episodes: EpisodicMemory[]): string {
   const lines = episodes.map(ep => {
     const date = new Date(ep.occurredAt).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
     const loc = ep.location ? ` near ${ep.location}` : ''
-    const outcome = ep.outcome ? ` — Outcome: ${ep.outcome}` : ''
+    const outcome = ep.outcome ? ` - Outcome: ${ep.outcome}` : ''
     return `- ${date}: ${ep.summary}${loc} (${ep.severity || 'unknown'} severity)${outcome}`
   })
 
-  return `\n\n[EPISODIC MEMORY — PAST INCIDENTS THIS CITIZEN EXPERIENCED]
+  return `\n\n[EPISODIC MEMORY - PAST INCIDENTS THIS CITIZEN EXPERIENCED]
 ${lines.join('\n')}
-Use this history proactively: if current conditions match a past incident, reference it naturally ("Similar conditions to the ${episodes[0]?.eventType || 'incident'} you experienced previously — here's what's different this time..."). This builds trust and shows genuine awareness.`
+Use this history proactively: if current conditions match a past incident, reference it naturally ("Similar conditions to the ${episodes[0]?.eventType || 'incident'} you experienced previously - here's what's different this time..."). This builds trust and shows genuine awareness.`
 }
 
- /**
+/**
  * Extract potential episodes from the conversation automatically.
  * Called after each chat response to detect incident-related statements.
  */

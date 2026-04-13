@@ -1,11 +1,11 @@
-﻿/**
- * config/regions/glasgow.ts — Glasgow city region configuration
+/**
+ * Module: glasgow.ts
  *
- * Glasgow is the second region, proving AEGIS scales to any city.
- * The River Clyde is Glasgow's primary flood risk, flowing W?E through
- * the city centre. The Kelvin joins from the north near Partick.
+ * Glasgow server module.
  *
- * Thresholds calibrated from SEPA published levels for Clyde stations.
+ * How it connects:
+ * - Imported by services and components that need this configuration
+ *
  */
 
 import type { CityRegionConfig } from './types.js'
@@ -129,4 +129,4 @@ const glasgow: CityRegionConfig = {
 }
 
 export default glasgow
-
+

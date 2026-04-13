@@ -1,3 +1,29 @@
+/**
+ * Module: AnalyticsDashboard.tsx
+ *
+ * Admin analytics dashboard showing KPIs, trend charts, severity/status
+ * breakdowns, and spatial clusters for the selected time range.
+ *
+ * Data loading strategy:
+ *   - Loads on mount and re-loads whenever the range selector changes.
+ *   - WebSocket events (report:new, report:updated, report:bulk-updated) trigger
+ *     a reload, debounced to 1200ms so bulk batch updates only fire one refresh.
+ *   - Polls every 60 seconds as a silent fallback when the socket is disconnected.
+ *   - inFlightRef prevents duplicate concurrent requests if multiple events arrive
+ *     during a slow network response.
+ *
+ * Trend computation:
+ *   hybrid useMemo produces: 3-point moving average, spike detection (mean+1.5σ),
+ *   half-period trend, chart scale snap, and a 4-period rolling forecast — all
+ *   derived from the server series data client-side.
+ *
+ * Filter callbacks:
+ *   onFilterCategory, onFilterSeverity, onFilterStatus are forwarded up to
+ *   AdminPage so clicking a chart segment pre-fills the report list filter.
+ *
+ * How it connects:
+ * - Rendered inside AdminPage.tsx based on active view */
+
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { BarChart3, TrendingUp, PieChart, Clock, RefreshCw, Timer, CheckCircle2, ShieldCheck, Users, MapPin, Activity, Wifi, Download } from 'lucide-react'
 import { apiGetReportAnalytics } from '../../utils/api'
@@ -5,7 +31,7 @@ import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 import { useSharedSocket } from '../../contexts/SocketContext'
 
-type RangeValue = '24h' | '7d' | '30d' | 'all'
+type RangeValue = '24h' | '7d' | '30d' | 'all' | 'custom'
 
 type AnalyticsPayload = {
   range: RangeValue
@@ -70,6 +96,8 @@ interface Props {
   onFilterStatus?: (status: string) => void
 }
 
+// fmtMins: formats raw integer minutes into a compact h/m string.
+// Values under 60 minutes show as "Nm"; values ≥60 show as "Nh Nm".
 function fmtMins(value: number): string {
   if (!value || value < 60) return `${value || 0}m`
   const h = Math.floor(value / 60)
@@ -77,6 +105,8 @@ function fmtMins(value: number): string {
   return `${h}h ${m}m`
 }
 
+// roundUpScale: snaps a chart Y maximum to a "nice" round number so bar heights
+// don't end mid-step.  Steps are 10, 25, 50, 100, then 25-multiple ceiling.
 function roundUpScale(value: number): number {
   if (value <= 10) return 10
   if (value <= 25) return 25
@@ -85,6 +115,8 @@ function roundUpScale(value: number): number {
   return Math.ceil(value / 25) * 25
 }
 
+// safePct: percentage change from previous to current, guarded against
+// division-by-zero.  Returns +100 if starting from 0 with new data.
 function safePct(current: number, previous: number): number {
   if (previous <= 0) return current > 0 ? 100 : 0
   return Math.round(((current - previous) / previous) * 100)
@@ -118,10 +150,15 @@ const COLLAPSE_COUNT = 5
 export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity, onFilterStatus }: Props): JSX.Element {
   const lang = useLanguage()
   const [range, setRange] = useState<RangeValue>('24h')
+  const [customFrom, setCustomFrom] = useState('')
+  const [customTo, setCustomTo] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [data, setData] = useState<AnalyticsPayload | null>(null)
   const { socket: sharedSocket, connected: socketConnected } = useSharedSocket()
+  // inFlightRef: prevents duplicate concurrent API calls when range changes or
+  // WebSocket events fire rapidly.  A ref avoids stale closure issues in the
+  // useCallback.
   const inFlightRef = useRef(false)
   const lastRefreshRef = useRef(0)
   const rangeRef = useRef<RangeValue>('24h')
@@ -138,7 +175,8 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
     setLoading(true)
     setError(null)
     try {
-      const payload = await apiGetReportAnalytics(nextRange) as AnalyticsPayload
+      const apiRange: '24h' | '7d' | '30d' | 'all' = nextRange === 'custom' ? 'all' : nextRange
+      const payload = await apiGetReportAnalytics(apiRange) as AnalyticsPayload
       setData(payload)
       lastRefreshRef.current = Date.now()
     } catch (err: any) {
@@ -159,6 +197,9 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
     const socket = sharedSocket
     if (!socket) return
 
+    // refreshFromEvent: deduplicated socket handler.  Only fires one refresh
+    // per 1200ms window so a bulk update that emits 50 events doesn't flood
+    // the API.
     const refreshFromEvent = () => {
       const now = Date.now()
       if (now - lastRefreshRef.current < 1200) return
@@ -183,6 +224,8 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
     return () => window.clearInterval(id)
   }, [range, load])
 
+  // nowTick: drives the "Xs ago" staleness indicator in the toolbar.
+  // Updates every 10 seconds, which is frequent enough to feel live but cheap.
   useEffect(() => {
     const tick = window.setInterval(() => setNowTick(Date.now()), 10000)
     return () => window.clearInterval(tick)
@@ -203,6 +246,19 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
     Object.entries(data?.byStatus || {}).map(([label, count]) => ({ label, count }))
   ), [data])
 
+  /**
+   * hybrid useMemo — all client-side analytics derived from the server series.
+   *
+   * movingAverage: 3-point backward-looking smooth, mirrors the server chart
+   *   but computed here so hover tooltips can be accurate without an extra API.
+   * spikeThreshold: mean + 1.5σ of the series — same rule as reportRoutes.ts;
+   *   any period at or above this value is flagged as an anomaly.
+   * trendFromSeries: splits the series in half and computes second/first % change;
+   *   a positive value means the second half had more reports than the first.
+   * chartScaleMax: rounded-up Y axis max so bars always have headroom above the
+   *   highest value (spike threshold included).
+   * incidentSpikes: count of flagged periods, surfaced in the trend summary bar.
+   */
   const hybrid = useMemo(() => {
     const points = series.map((p) => p.count)
     const mean = points.length ? points.reduce((a, b) => a + b, 0) / points.length : 0
@@ -256,6 +312,8 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
   const lastAgeSec = lastRefreshRef.current > 0 ? Math.max(0, Math.floor((nowTick - lastRefreshRef.current) / 1000)) : 0
   const trendLabel = hybrid.trendFromSeries > 0 ? t('analytics.rising', lang) : hybrid.trendFromSeries < 0 ? t('analytics.falling', lang) : t('analytics.stable', lang)
   const recentWindow = series.slice(Math.max(0, series.length - 4))
+  // forecastNext: 4-period rolling average of the most recent data points.
+  // Gives a rough "next period" estimate without a server round-trip.
   const forecastNext = recentWindow.length
     ? Math.round(recentWindow.reduce((sum, point) => sum + point.count, 0) / recentWindow.length)
     : 0
@@ -292,13 +350,37 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
           <select
             value={range}
             onChange={(e) => setRange(e.target.value as RangeValue)}
-            className="text-xs px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900"
+            className="text-xs px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-aegis-500/30 focus:border-aegis-500 transition-colors"
           >
             <option value="24h">{t('analytics.last24h', lang)}</option>
             <option value="7d">{t('analytics.last7days', lang)}</option>
             <option value="30d">{t('analytics.last30days', lang)}</option>
             <option value="all">{t('analytics.allTime', lang)}</option>
+            <option value="custom">Custom Range…</option>
           </select>
+          {range === 'custom' && (
+            <div className="flex items-center gap-1.5 animate-fade-in">
+              <input
+                type="date"
+                value={customFrom}
+                onChange={e => setCustomFrom(e.target.value)}
+                max={customTo || undefined}
+                className="text-xs px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-aegis-500/30 focus:border-aegis-500 transition-colors"
+              />
+              <span className="text-[10px] text-gray-400">→</span>
+              <input
+                type="date"
+                value={customTo}
+                onChange={e => {
+                  setCustomTo(e.target.value)
+                  if (customFrom && e.target.value) load(range)
+                }}
+                min={customFrom || undefined}
+                max={new Date().toISOString().slice(0,10)}
+                className="text-xs px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-aegis-500/30 focus:border-aegis-500 transition-colors"
+              />
+            </div>
+          )}
           <button
             onClick={() => load(range)}
             className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50"
@@ -334,6 +416,16 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
 
       {error && <div className="text-xs text-red-600 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-2.5">{error}</div>}
 
+      {loading && !data ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3" aria-busy="true" aria-label="Loading analytics">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <div key={i} className="bg-white dark:bg-gray-900 rounded-xl p-3 border border-gray-200 dark:border-gray-800 shadow-sm animate-pulse">
+              <div className="h-2.5 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-3" />
+              <div className="h-7 bg-gray-200 dark:bg-gray-700 rounded w-1/2" />
+            </div>
+          ))}
+        </div>
+      ) : (
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
         {[
           { label: t('analytics.reportsToday', lang), value: reportsToday, color: 'text-aegis-600' },
@@ -351,10 +443,11 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
         ].map((kpi) => (
           <div key={kpi.label} className="bg-white dark:bg-gray-900 rounded-xl p-3 border border-gray-200 dark:border-gray-800 shadow-sm">
             <p className="text-[10px] text-gray-500 dark:text-gray-300 font-bold uppercase">{kpi.label}</p>
-            <p className={`text-2xl font-extrabold ${kpi.color}`}>{loading ? '...' : kpi.value}</p>
+            <p className={`text-2xl font-extrabold ${kpi.color}`}>{loading ? <span className="inline-block w-12 h-6 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" /> : kpi.value}</p>
           </div>
         ))}
       </div>
+      )}
 
       <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-3 grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-200 col-span-2 md:col-span-2">

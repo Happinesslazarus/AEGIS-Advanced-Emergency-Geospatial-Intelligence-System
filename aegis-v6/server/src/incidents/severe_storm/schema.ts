@@ -1,5 +1,13 @@
 /**
- * incidents/severe_storm/schema.ts — Severe Storm report validation schema
+ * Module: schema.ts
+ *
+ * Severe weather and storm systems incident module (handles severe storm specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for severe storm events.
  */
 
 export interface SevereStormCustomFields {
@@ -40,4 +48,4 @@ export function sanitizeSevereStormCustomFields(fields: Record<string, unknown>)
     roadsClosed: typeof fields.roadsClosed === 'boolean' ? fields.roadsClosed : undefined
   }
 }
-
+

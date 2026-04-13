@@ -1,3 +1,11 @@
+/**
+ * Module: ConsentDialog.tsx
+ *
+ * Consent dialog shared component (reusable UI element used across pages).
+ *
+ * How it connects:
+ * - Used across both admin and citizen interfaces */
+
 import { Shield, AlertTriangle } from 'lucide-react'
 import type { ConsentConfig } from '../../types'
 import { t } from '../../utils/i18n'

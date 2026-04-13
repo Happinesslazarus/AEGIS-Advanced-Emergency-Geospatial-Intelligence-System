@@ -1,14 +1,27 @@
-﻿"""
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
- AEGIS AI ENGINE â€” Model Evaluator
- 
- Comprehensive model evaluation with:
- - Classification metrics (accuracy, precision, recall, F1, AUC)
- - Regression metrics (MAE, RMSE, MAPE, RÂ²)
- - Probabilistic metrics (calibration, Brier score)
- - Explainability (SHAP, LIME, feature importance)
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 """
+File: evaluator.py
+
+What this file does:
+Batch evaluator that runs evaluate.py across all trained hazard models,
+compares them against production baselines, and produces a summary report
+(JSON + HTML). Used in CI/CD to gate model promotion.
+
+How it connects:
+- Invoked by ai-engine/scripts/ evaluation scripts and CI workflows
+- Loads models from ModelRegistry, test data from data_ingestion.py
+- Results written to ai-engine/reports/
+"""
+
+# -------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+# Comprehensive model evaluation with:
+# - Classification metrics (accuracy, precision, recall, F1, AUC)
+# - Regression metrics (MAE, RMSE, MAPE, RÂ²)
+# - Probabilistic metrics (calibration, Brier score)
+# - Explainability (SHAP, LIME, feature importance)
+# -------------------------------------------------------------------------------
 
 import numpy as np
 import pandas as pd
@@ -398,4 +411,4 @@ class ModelEvaluator:
         logger.success("Model comparison complete")
         
         return comparison_df
-
+

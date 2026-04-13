@@ -1,20 +1,10 @@
-﻿/**
- * LiveMap.tsx — Professional Leaflet-based live operations map
+/**
+ * Module: LiveMap.tsx
  *
- * Features:
- * CartoDB Dark Matter tiles (free, no token)
- * ESRI World Imagery satellite toggle (free)
- * OpenTopoMap terrain toggle
- * Report markers with severity-coloured pulsing rings
- * River gauge station markers with live level indicators
- * Flood prediction polygon overlays
- * Evacuation route polylines
- * Distress beacon markers (pulsing red)
- * Layer control with basemap switcher
- * Smooth animations and professional styling
+ * Live map shared component (reusable UI element used across pages).
  *
- * No API key / token required — 100% free tile providers.
- */
+ * How it connects:
+ * - Used across both admin and citizen interfaces */
 
 import { useRef, useEffect, useState, useCallback } from 'react'
 import { getAnyToken } from '../../utils/api'
@@ -24,6 +14,7 @@ import { Navigation, ZoomIn, ZoomOut, Satellite, Map as MapIcon, Mountain, Refre
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 import { STATUS_HEX, SEVERITY_HEX_TITLE } from '../../utils/colorTokens'
+import { OSM_TILE, SATELLITE_TILE, TOPO_TILE } from '../../utils/mapTileProviders'
 
 const API = ''
 const DEFAULT_CENTER: [number, number] = [51.5074, -0.1278]
@@ -60,20 +51,11 @@ interface Props {
   onReportClick?: (r: any) => void
 }
 
-// Tile providers (all free, no token)
+// Tile providers — imported from shared mapTileProviders.ts
 const TILES = {
-  dark: {
-    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
-  },
-  satellite: {
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    attribution: '&copy; Esri, Maxar, Earthstar Geographics',
-  },
-  terrain: {
-    url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-    attribution: '&copy; <a href="https://opentopomap.org">OpenTopoMap</a>',
-  },
+  dark: OSM_TILE,
+  satellite: SATELLITE_TILE,
+  terrain: TOPO_TILE,
 }
 
 function createSeverityIcon(severity: string): L.DivIcon {
@@ -164,6 +146,9 @@ const MARKER_CSS = `
   .leaflet-control-zoom { border: none !important; }
   .leaflet-control-zoom a { background: #1f2937 !important; color: #e5e7eb !important; border: 1px solid #374151 !important; }
   .leaflet-control-zoom a:hover { background: #374151 !important; }
+  /* Dark map: invert OSM tiles so they appear dark; hue-rotate restores natural water/vegetation colours.
+     Scoped to .map-dark-invert wrapper so satellite basemap is unaffected. */
+  .map-dark-invert .leaflet-tile { filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%) !important; }
 `
 
 export default function LiveMap({
@@ -226,7 +211,7 @@ export default function LiveMap({
     const latOffset = (((hash % 1000) / 1000) - 0.5) * 0.08
     const lngOffset = ((((hash / 1000) % 1000) / 1000) - 0.5) * 0.12
     return [center[0] + latOffset, center[1] + lngOffset]
-  }, [center])
+  }, [center?.[0], center?.[1]])
 
   // Toggle layer visibility on map
   useEffect(() => {
@@ -753,7 +738,7 @@ export default function LiveMap({
   }, [fetchRivers, fetchDistress, fetchEvacuation, fetchStations, fetchPredictions, fetchRiskLayer, fetchHeatmap])
 
   return (
-    <div className={`relative ${className}`} style={{ height }}>
+    <div className={`relative ${className}${basemap !== 'satellite' ? ' map-dark-invert' : ''}`} style={{ height }}>
       {/* Map container */}
       <div ref={containerRef} className="w-full h-full" style={{ background: '#0f172a' }} />
 

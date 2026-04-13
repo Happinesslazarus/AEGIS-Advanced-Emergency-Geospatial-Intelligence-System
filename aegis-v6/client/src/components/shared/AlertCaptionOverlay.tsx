@@ -1,15 +1,10 @@
-﻿/*
- * AlertCaptionOverlay.tsx - Automated Caption/Subtitle System for Alerts
+/**
+ * Module: AlertCaptionOverlay.tsx
  *
- * Displays animated caption overlays when alerts are announced.
- * Features:
- * Bottom or top positioning (configurable)
- * Auto-dismiss after display
- * Font size options (small/medium/large)
- * Severity-based color coding
- * Accessible contrast ratios
- * Syncs with audio alert system
- */
+ * Alert caption overlay shared component (reusable UI element used across pages).
+ *
+ * How it connects:
+ * - Used across both admin and citizen interfaces */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { AlertTriangle, Info, ShieldAlert, X, Volume2 } from 'lucide-react'
@@ -157,4 +152,4 @@ export function showAlertCaption(alert: {
 }) {
   window.dispatchEvent(new CustomEvent('aegis-caption', { detail: alert }))
 }
-
+

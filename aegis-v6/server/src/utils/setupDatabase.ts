@@ -1,18 +1,18 @@
-/*
- * setupDatabase.ts - Database initialisation script
+/**
+ * File: setupDatabase.ts
  *
- * Run this once to create the database schema and seed sample data:
- *   cd server && npm run db:setup
+ * What this file does:
+ * Database initialisation script: runs all SQL migration files in order,
+ * creates the schema, seeds initial data (admin account, regions, hazard
+ * types), and sets up PostGIS extensions.
  *
- * Prerequisites:
- *   1. PostgreSQL installed and running
- *   2. PostGIS extension available
- *   3. Database 'aegis' created: createdb aegis
- *   4. DATABASE_URL set in .env
+ * How it connects:
+ * - Can be run standalone: npx ts-node src/utils/setupDatabase.ts
+ * - Reads SQL files from server/sql/ directory
+ * - Creates the first admin account if none exists
  *
- * This script reads and executes the SQL files in order:
- *   1. schema.sql - Creates all tables, indexes, and triggers
- *   2. seed.sql   - Inserts sample data for testing
+ * Simple explanation:
+ * Sets up the database from scratch — creates tables, adds initial data.
  */
 
 import fs from 'fs'

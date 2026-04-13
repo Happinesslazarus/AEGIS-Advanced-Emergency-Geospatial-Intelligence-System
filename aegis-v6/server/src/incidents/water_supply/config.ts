@@ -1,7 +1,13 @@
 /**
- * incidents/water_supply/config.ts — Water Supply Disruption incident configuration
- * AI Tier: tier1 (rule-based) — Uses rule-based logic
- * Data Sources: Citizen Reports (no public utility API)
+ * Module: config.ts
+ *
+ * Water supply disruptions incident module (handles water supply specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for water supply events.
  */
 
 import type { IncidentRegistryEntry } from '../types.js'
@@ -39,4 +45,4 @@ export const WATER_SUPPLY_PRIORITY_LEVELS = {
   lowPressure: 'Medium',
   boilAdvisory: 'Medium'
 }
-
+

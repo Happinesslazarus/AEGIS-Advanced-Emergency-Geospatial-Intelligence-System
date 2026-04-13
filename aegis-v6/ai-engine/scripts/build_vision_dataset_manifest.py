@@ -1,8 +1,7 @@
 """
-Build a unified AEGIS vision dataset manifest from internal and external sources.
+Module: build_vision_dataset_manifest.py
 
-The goal is to normalize many dataset formats into a single CSV/JSONL manifest
-that can be used for training, evaluation, and audit.
+Build_vision_dataset_manifest AI engine module.
 """
 
 from __future__ import annotations

@@ -1,8 +1,17 @@
 """
-AEGIS AI Engine — API Authentication Middleware
+File: auth.py
 
-Protects sensitive AI endpoints from unauthorized access.
-Uses API key authentication with optional internal IP bypass for dev.
+What this file does:
+FastAPI dependency that verifies the X-API-Key header on protected routes.
+API keys are compared using HMAC-based constant-time comparison to prevent
+timing attacks. Also supports an internal HMAC signature scheme for
+server-to-server calls (matching server/src/middleware/internalAuth.ts).
+
+How it connects:
+- Used as a Depends() argument on sensitive routes in endpoints.py
+- API key value read from AI_API_KEY environment variable
+- Server calls this from server/src/services/aiAnalysisPipeline.ts
+  with X-Internal-Signature + X-Internal-Timestamp headers
 """
 
 import os
@@ -16,25 +25,6 @@ from loguru import logger
 # Get API key from environment
 API_SECRET_KEY = os.getenv("API_SECRET_KEY", "")
 
-# Allow internal network in development
-INTERNAL_NETWORKS = [
-    "127.0.0.1",
-    "::1",
-    "localhost",
-]
-
-def is_internal_ip(request: Request) -> bool:
-    """Check if request is from internal network."""
-    client_host = request.client.host if request.client else None
-    if not client_host:
-        return False
-    
-    for net in INTERNAL_NETWORKS:
-        if client_host == net or client_host.startswith("10.") or \
-           client_host.startswith("172.") or client_host.startswith("192.168."):
-            return True
-    return False
-
 async def verify_api_key(
     request: Request,
     x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
@@ -46,23 +36,12 @@ async def verify_api_key(
     Accepts:
     - X-API-Key header with the API secret
     - Authorization: Bearer <api_key> header
-    - Internal IP bypass in development mode
     """
-    env = os.getenv("ENV", "development")
-    
-    # Development mode: allow internal IPs without auth
-    if env != "production" and is_internal_ip(request):
-        logger.debug(f"Internal IP bypass for {request.client.host}")
-        return True
-    
-    # Production mode: require API key
+    # Require API key in ALL environments (fail-closed).
+    # The Express server always sends X-API-Key even on localhost.
     if not API_SECRET_KEY:
-        if env == "production":
-            logger.error("API_SECRET_KEY not set in production!")
-            raise HTTPException(status_code=500, detail="Server misconfiguration")
-        # Dev mode without key: allow all (with warning)
-        logger.warning("API_SECRET_KEY not set - allowing all requests (dev mode)")
-        return True
+        logger.error("API_SECRET_KEY not set — rejecting request")
+        raise HTTPException(status_code=500, detail="Server misconfiguration")
     
     # Check X-API-Key header
     if x_api_key:

@@ -1,22 +1,22 @@
-﻿/**
- * ErrorPage.tsx — Full-page error fallback for React Error Boundary crashes.
+/**
+ * File: ErrorPage.tsx
  *
- * Industry-standard features:
- * Correlation ID displayed and selectable for support tickets
- * Structured backend logging with deduplication guard
- * Sentry user feedback integration
- * Retry cooldown countdown UI
- * Retries-exhausted hard-failure state
- * i18n-ready via AEGIS translation system
- * Emergency contacts always visible (critical for emergency platform)
- * Reduced-motion safe animations
- * Focus management: auto-focus heading on mount
+ * What this file does:
+ * Generic error page shown when something goes seriously wrong during
+ * navigation or rendering. Displayed by ErrorBoundary when a route-level
+ * error is caught. Shows a friendly message and a refresh/home link.
+ *
+ * How it connects:
+ * - Used by client/src/components/shared/ErrorBoundary.tsx
+ * - Not directly routed — rendered programmatically on fatal errors
  */
+
 import React, { useCallback, useEffect, useRef } from 'react'
 import * as Sentry from '@sentry/react'
 import { Shield, RefreshCw, Bug, Phone as PhoneIcon, Home, Copy, Check } from 'lucide-react'
 import { t } from '../utils/i18n'
 import { useLanguage } from '../hooks/useLanguage'
+import { getToken } from '../utils/api'
 import EmergencyBanner from '../components/shared/EmergencyBanner'
 
 interface ErrorPageProps {
@@ -71,7 +71,7 @@ export default function ErrorPage({
       }
       fetch(`${API_BASE}/api/internal/errors/frontend`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken() ?? ''}` },
         body: JSON.stringify(payload),
       }).catch(() => {})
     } catch {
@@ -146,12 +146,24 @@ export default function ErrorPage({
             {t('error.pageMessage', lang)}
           </p>
 
-          {/* Error message (dev-visible) */}
-          {error?.message && (
-            <p className="text-xs font-mono text-gray-400 dark:text-gray-500 mb-2 max-w-sm mx-auto truncate">
-              {error.message}
-            </p>
-          )}
+          {/* Error message — translated to plain language */}
+          {error?.message && (() => {
+            const raw = error.message
+            const friendly = raw.includes('Loading chunk') || raw.includes('Failed to fetch dynamically imported module')
+              ? 'A page section could not be loaded. This usually happens after an update — try refreshing.'
+              : raw.includes('NetworkError') || raw.includes('Failed to fetch')
+              ? 'Could not connect to the AEGIS server. Check your internet connection.'
+              : raw.includes('Cannot read properties') || raw.includes('is not a function') || raw.includes('is undefined')
+              ? 'An internal error occurred. Our team has been automatically notified.'
+              : raw.includes('session') || raw.includes('token') || raw.includes('401')
+              ? 'Your session may have expired. Try refreshing or signing in again.'
+              : raw
+            return (
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-2 max-w-sm mx-auto">
+                {friendly}
+              </p>
+            )
+          })()}
 
           {/* Correlation ID — selectable, copyable */}
           {correlationId && (
@@ -240,4 +252,4 @@ export default function ErrorPage({
     </div>
   )
 }
-
+

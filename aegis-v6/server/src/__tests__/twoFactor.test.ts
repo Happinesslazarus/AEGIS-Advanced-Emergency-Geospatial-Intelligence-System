@@ -1,16 +1,15 @@
-﻿/*
- * twoFactor.test.ts — Comprehensive unit tests for TOTP-based 2FA
+/**
+ * File: twoFactor.test.ts
  *
- * Security-focused test suite covering:
- * AES-256-GCM encryption correctness + tamper detection
- * Backup code generation, hashing, verification, and consumption lifecycle
- * Temp token generation and hashing
- * TOTP replay protection with timing-safe comparison
- * Brute-force lockout helper logic
- * Entropy and randomness validation
- * Edge cases and adversarial inputs
- * Information leakage resistance
- * Timing attack resistance properties
+ * What it tests:
+ * Unit tests for the AES-256-GCM 2FA secret encryption layer.
+  * Verifies encrypt/decrypt round-trips, IV uniqueness, tamper
+  * detection (wrong key returns null), and ciphertext format.
+  *
+  * How it connects:
+  * - Tests server/src/utils/twoFactor.ts encryption helpers
+  * - Pure unit test — no DB or network calls
+  * - Run via: npm test -- twoFactor
  */
 
 // Set env before any imports
@@ -807,4 +806,4 @@ describe('end-to-end scenarios', () => {
     expect(check2FALockout(attempts, pastLockout).locked).toBe(false)
   })
 })
-
+

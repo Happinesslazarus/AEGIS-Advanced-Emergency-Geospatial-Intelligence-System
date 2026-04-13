@@ -1,8 +1,7 @@
 """
-test_fake_detector.py — Fake / Spam Report Detection Tests
+Module: test_fake_detector.py
 
-Tests rule-based heuristic detection: genuine reports, obvious spam,
-credibility modifiers, batch detection, and edge cases.
+Test_fake_detector AI engine module.
 """
 
 import pytest

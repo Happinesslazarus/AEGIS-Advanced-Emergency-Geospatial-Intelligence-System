@@ -1,5 +1,13 @@
 /**
- * incidents/heatwave/service.ts — Heatwave incident business logic
+ * Module: service.ts
+ *
+ * Extreme heat events incident module (handles heatwave specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for heatwave events.
  */
 
 import pool from '../../models/db.js'

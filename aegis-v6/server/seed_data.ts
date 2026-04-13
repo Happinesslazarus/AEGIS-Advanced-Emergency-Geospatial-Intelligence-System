@@ -1,57 +1,58 @@
 /**
- * AEGIS v6 — Comprehensive Seed Script
- * Creates: 20 citizens, 30 reports, community chat messages, message threads,
- *          10 admin/operator accounts, and alert subscriptions.
+ * Module: seed_data.ts
  *
- * Run: cd aegis-v6/server && npx tsx seed_data.ts
+ * Seed_data server module.
+ *
  */
 import pg from 'pg'
 import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 
 const pool = new pg.Pool({
-  connectionString: 'postgresql://postgres:Happylove@!@localhost:5432/aegis',
+  connectionString: process.env.DATABASE_URL,
 })
 
-// ─── CITIZEN ACCOUNTS ────────────────────────────────────────────────
+// CITIZEN ACCOUNTS
 const CITIZENS = [
-  { email: 'sarah.mitchell@aegis-test.io',   displayName: 'Sarah Mitchell',   phone: '+353851001001', city: 'Dublin',      country: 'Ireland', bio: 'Community volunteer and first-aid trained resident.' },
-  { email: 'james.oconnor@aegis-test.io',    displayName: "James O'Connor",   phone: '+353851001002', city: 'Cork',        country: 'Ireland', bio: 'Retired firefighter, active neighbourhood watch member.' },
-  { email: 'priya.sharma@aegis-test.io',     displayName: 'Priya Sharma',     phone: '+353851001003', city: 'Galway',      country: 'Ireland', bio: 'Environmental science researcher at NUI Galway.' },
-  { email: 'marcus.johnson@aegis-test.io',   displayName: 'Marcus Johnson',   phone: '+353851001004', city: 'Limerick',    country: 'Ireland', bio: 'Civil engineer concerned with infrastructure safety.' },
-  { email: 'aisha.hassan@aegis-test.io',     displayName: 'Aisha Hassan',     phone: '+353851001005', city: 'Waterford',   country: 'Ireland', bio: 'Medical professional and disaster preparedness advocate.' },
-  { email: 'thomas.burke@aegis-test.io',     displayName: 'Thomas Burke',     phone: '+353851001006', city: 'Kilkenny',    country: 'Ireland', bio: 'Farmer monitoring weather and river levels daily.' },
-  { email: 'elena.volkov@aegis-test.io',     displayName: 'Elena Volkov',     phone: '+353851001007', city: 'Wexford',     country: 'Ireland', bio: 'Coastal resident, experienced with storm surges.' },
-  { email: 'david.chen@aegis-test.io',       displayName: 'David Chen',       phone: '+353851001008', city: 'Drogheda',    country: 'Ireland', bio: 'IT professional and open-data advocate.' },
-  { email: 'grace.okafor@aegis-test.io',     displayName: 'Grace Okafor',     phone: '+353851001009', city: 'Dundalk',     country: 'Ireland', bio: 'Social worker supporting vulnerable communities.' },
-  { email: 'liam.fitzgerald@aegis-test.io',  displayName: 'Liam Fitzgerald',  phone: '+353851001010', city: 'Sligo',       country: 'Ireland', bio: 'Mountain rescue volunteer and outdoor enthusiast.' },
-  { email: 'fatima.alrashid@aegis-test.io',  displayName: 'Fatima Al-Rashid', phone: '+353851001011', city: 'Athlone',     country: 'Ireland', bio: 'Public health nurse in midlands region.' },
-  { email: 'ryan.mccarthy@aegis-test.io',    displayName: 'Ryan McCarthy',    phone: '+353851001012', city: 'Tralee',      country: 'Ireland', bio: 'Boat owner and amateur meteorologist.' },
-  { email: 'sophie.muller@aegis-test.io',    displayName: 'Sophie Müller',    phone: '+353851001013', city: 'Ennis',       country: 'Ireland', bio: 'School teacher trained in emergency evacuation protocols.' },
-  { email: 'benjamin.adeyemi@aegis-test.io', displayName: 'Benjamin Adeyemi', phone: '+353851001014', city: 'Carlow',      country: 'Ireland', bio: 'Construction foreman with structural assessment skills.' },
-  { email: 'niamh.kelly@aegis-test.io',      displayName: 'Niamh Kelly',      phone: '+353851001015', city: 'Tullamore',   country: 'Ireland', bio: 'Veterinary surgeon, assists with animal rescue during floods.' },
-  { email: 'omar.diallo@aegis-test.io',      displayName: 'Omar Diallo',      phone: '+353851001016', city: 'Letterkenny', country: 'Ireland', bio: 'Delivery driver covering rural Donegal routes.' },
-  { email: 'charlotte.dubois@aegis-test.io', displayName: 'Charlotte Dubois', phone: '+353851001017', city: 'Navan',       country: 'Ireland', bio: 'Urban planning consultant and GIS specialist.' },
-  { email: 'patrick.brennan@aegis-test.io',  displayName: 'Patrick Brennan',  phone: '+353851001018', city: 'Castlebar',   country: 'Ireland', bio: 'County councillor focused on disaster resilience.' },
-  { email: 'yuki.tanaka@aegis-test.io',      displayName: 'Yuki Tanaka',      phone: '+353851001019', city: 'Maynooth',    country: 'Ireland', bio: 'Climate science PhD candidate at Maynooth University.' },
-  { email: 'rachel.green@aegis-test.io',     displayName: 'Rachel Green',     phone: '+353851001020', city: 'Mullingar',   country: 'Ireland', bio: 'Red Cross volunteer with crisis communication training.' },
+  { email: 'sarah.mitchell@aegis-test.io',   displayName: 'Sarah Mitchell',   phone: '+353851001001', city: 'Dublin',      country: 'Ireland',  bio: 'Community volunteer and first-aid trained resident.',               password: 'S@r@hM1tchell#Dbl26'  },
+  { email: 'james.oconnor@aegis-test.io',    displayName: "James O'Connor",   phone: '+353851001002', city: 'Cork',        country: 'Ireland',  bio: 'Retired firefighter, active neighbourhood watch member.',           password: 'J@m3s0C0nn0r!C0rk26'  },
+  { email: 'priya.sharma@aegis-test.io',     displayName: 'Priya Sharma',     phone: '+353851001003', city: 'Galway',      country: 'Ireland',  bio: 'Environmental science researcher at NUI Galway.',                   password: 'Pr1ya$hArma@Glwy26'   },
+  { email: 'marcus.johnson@aegis-test.io',   displayName: 'Marcus Johnson',   phone: '+353851001004', city: 'Limerick',    country: 'Ireland',  bio: 'Civil engineer concerned with infrastructure safety.',              password: 'M@rcusJ0hn$on!Lmrk26' },
+  { email: 'aisha.hassan@aegis-test.io',     displayName: 'Aisha Hassan',     phone: '+353851001005', city: 'Waterford',   country: 'Ireland',  bio: 'Medical professional and disaster preparedness advocate.',          password: 'A1sha#H@ssan!Wtr26'   },
+  { email: 'thomas.burke@aegis-test.io',     displayName: 'Thomas Burke',     phone: '+353851001006', city: 'Kilkenny',    country: 'Ireland',  bio: 'Farmer monitoring weather and river levels daily.',                 password: 'Th0m@sBurke#Klk26!'   },
+  { email: 'elena.volkov@aegis-test.io',     displayName: 'Elena Volkov',     phone: '+353851001007', city: 'Wexford',     country: 'Ireland',  bio: 'Coastal resident, experienced with storm surges.',                  password: 'El3na$V0lk0v!Wxf26'   },
+  { email: 'david.chen@aegis-test.io',       displayName: 'David Chen',       phone: '+353851001008', city: 'Drogheda',    country: 'Ireland',  bio: 'IT professional and open-data advocate.',                          password: 'D@v1dCh3n#Dr0g26!'    },
+  { email: 'grace.okafor@aegis-test.io',     displayName: 'Grace Okafor',     phone: '+353851001009', city: 'Dundalk',     country: 'Ireland',  bio: 'Social worker supporting vulnerable communities.',                  password: 'Gr@ce0k@f0r!Dndk26'   },
+  { email: 'liam.fitzgerald@aegis-test.io',  displayName: 'Liam Fitzgerald',  phone: '+353851001010', city: 'Sligo',       country: 'Ireland',  bio: 'Mountain rescue volunteer and outdoor enthusiast.',                 password: 'L1@mF1tzG#Slg026!'    },
+  { email: 'fatima.alrashid@aegis-test.io',  displayName: 'Fatima Al-Rashid', phone: '+353851001011', city: 'Athlone',     country: 'Ireland',  bio: 'Public health nurse in midlands region.',                           password: 'F@t1ma$AlR@sh!Ath26'  },
+  { email: 'ryan.mccarthy@aegis-test.io',    displayName: 'Ryan McCarthy',    phone: '+353851001012', city: 'Tralee',      country: 'Ireland',  bio: 'Boat owner and amateur meteorologist.',                             password: 'Ry@nMcC@rthy#Trl26!'  },
+  { email: 'sophie.muller@aegis-test.io',    displayName: 'Sophie Müller',    phone: '+353851001013', city: 'Ennis',       country: 'Ireland',  bio: 'School teacher trained in emergency evacuation protocols.',          password: 'S0ph13M!ll3r@Enn26'   },
+  { email: 'benjamin.adeyemi@aegis-test.io', displayName: 'Benjamin Adeyemi', phone: '+353851001014', city: 'Carlow',      country: 'Ireland',  bio: 'Construction foreman with structural assessment skills.',            password: 'B3nj@m1nAd3y#Crl26!'  },
+  { email: 'niamh.kelly@aegis-test.io',      displayName: 'Niamh Kelly',      phone: '+353851001015', city: 'Tullamore',   country: 'Ireland',  bio: 'Veterinary surgeon, assists with animal rescue during floods.',      password: 'N1@mhK3lly$Tull26!'   },
+  { email: 'omar.diallo@aegis-test.io',      displayName: 'Omar Diallo',      phone: '+353851001016', city: 'Letterkenny', country: 'Ireland',  bio: 'Delivery driver covering rural Donegal routes.',                    password: '0m@rD1all0#Ltk26!'    },
+  { email: 'charlotte.dubois@aegis-test.io', displayName: 'Charlotte Dubois', phone: '+353851001017', city: 'Navan',       country: 'Ireland',  bio: 'Urban planning consultant and GIS specialist.',                     password: 'Ch@rl0tt3Du80is!Nv26' },
+  { email: 'patrick.brennan@aegis-test.io',  displayName: 'Patrick Brennan',  phone: '+353851001018', city: 'Castlebar',   country: 'Ireland',  bio: 'County councillor focused on disaster resilience.',                 password: 'P@tr1ckBr3nn@n#Csb26' },
+  { email: 'yuki.tanaka@aegis-test.io',      displayName: 'Yuki Tanaka',      phone: '+353851001019', city: 'Maynooth',    country: 'Ireland',  bio: 'Climate science PhD candidate at Maynooth University.',             password: 'Yuk1T@n@k@$Myn26!'   },
+  { email: 'rachel.green@aegis-test.io',     displayName: 'Rachel Green',     phone: '+353851001020', city: 'Mullingar',   country: 'Ireland',  bio: 'Red Cross volunteer with crisis communication training.',           password: 'R@ch3lGr33n!Mlg26#'   },
+  { email: 'happiness.lazarus@aegis-test.io',  displayName: 'Happiness Lazarus', phone: '+353851001021', city: 'Aberdeen',  country: 'Scotland', bio: 'AEGIS system developer and platform creator.',                      password: 'H@pp1n3ss#Laz@rus!26' },
 ]
 
-// ─── OPERATOR / ADMIN ACCOUNTS ───────────────────────────────────────
+// OPERATOR / ADMIN ACCOUNTS
 const OPERATORS = [
-  { email: 'commander@aegis-ops.io',    displayName: 'Director Alex Morgan',       role: 'admin',    department: 'Command & Control',        phone: '+353861000001' },
-  { email: 'ops.director@aegis-ops.io', displayName: 'Ops Director Karen Walsh',   role: 'operator', department: 'Emergency Operations',     phone: '+353861000002' },
-  { email: 'intel@aegis-ops.io',        displayName: 'Analyst Brian Murphy',       role: 'operator', department: 'Intelligence & Analytics', phone: '+353861000003' },
-  { email: 'comms@aegis-ops.io',        displayName: 'Comms Officer Lisa Duffy',   role: 'operator', department: 'Public Communications',   phone: '+353861000004' },
-  { email: 'field@aegis-ops.io',        displayName: 'Field Lead Ronan Gallagher', role: 'operator', department: 'Field Operations',         phone: '+353861000005' },
-  { email: 'logistics@aegis-ops.io',    displayName: 'Resource Mgr Sinead Byrne',  role: 'operator', department: 'Logistics & Resources',    phone: '+353861000006' },
-  { email: 'medical@aegis-ops.io',      displayName: 'Dr. Conor Whelan',           role: 'operator', department: 'Health & Medical',          phone: '+353861000007' },
-  { email: 'security@aegis-ops.io',     displayName: 'Security Sgt. Declan Foley', role: 'operator', department: 'Security & Enforcement',   phone: '+353861000008' },
-  { email: 'training@aegis-ops.io',     displayName: 'QA Lead Marie Connolly',     role: 'viewer',   department: 'Training & Quality',       phone: '+353861000009' },
-  { email: 'sysadmin@aegis-ops.io',     displayName: 'SysAdmin Eoin Doyle',        role: 'admin',    department: 'IT & Systems',             phone: '+353861000010' },
+  { email: 'commander@aegis-ops.io',         displayName: 'Director Alex Morgan',        role: 'admin',    department: 'Command & Control',        phone: '+353861000001', password: 'Al3xM0rg@n#Cmd!C26'   },
+  { email: 'ops.director@aegis-ops.io',      displayName: 'Ops Director Karen Walsh',    role: 'operator', department: 'Emergency Operations',     phone: '+353861000002', password: 'K@r3nW@lsh$0ps!26'    },
+  { email: 'intel@aegis-ops.io',             displayName: 'Analyst Brian Murphy',        role: 'operator', department: 'Intelligence & Analytics', phone: '+353861000003', password: 'Br1@nMurphy#Int3l!26'  },
+  { email: 'comms@aegis-ops.io',             displayName: 'Comms Officer Lisa Duffy',    role: 'operator', department: 'Public Communications',   phone: '+353861000004', password: 'L1s@Duffy$C0mms#26!'  },
+  { email: 'field@aegis-ops.io',             displayName: 'Field Lead Ronan Gallagher',  role: 'operator', department: 'Field Operations',         phone: '+353861000005', password: 'R0n@nG@ll@gh3r!F26#'  },
+  { email: 'logistics@aegis-ops.io',         displayName: 'Resource Mgr Sinead Byrne',   role: 'operator', department: 'Logistics & Resources',    phone: '+353861000006', password: 'S1n3@dByrn3#L0g!26'   },
+  { email: 'medical@aegis-ops.io',           displayName: 'Dr. Conor Whelan',            role: 'operator', department: 'Health & Medical',          phone: '+353861000007', password: 'C0n0rWh3l@n$M3d!26'   },
+  { email: 'security@aegis-ops.io',          displayName: 'Security Sgt. Declan Foley',  role: 'operator', department: 'Security & Enforcement',   phone: '+353861000008', password: 'D3cl@nF0l3y#S3c!26'   },
+  { email: 'training@aegis-ops.io',          displayName: 'QA Lead Marie Connolly',      role: 'viewer',   department: 'Training & Quality',       phone: '+353861000009', password: 'M@r13C0nn0lly$QA!26'  },
+  { email: 'sysadmin@aegis-ops.io',          displayName: 'SysAdmin Eoin Doyle',         role: 'admin',    department: 'IT & Systems',             phone: '+353861000010', password: 'E01nD0yl3#SysAdm!26'  },
+  { email: 'happiness.lazarus@aegis-ops.io', displayName: 'Happiness Lazarus',           role: 'admin',    department: 'Platform Administration',  phone: '+353861000011', password: 'H@pp1n3ss#Laz@rus@26' },
 ]
 
-// ─── REPORT DATA ─────────────────────────────────────────────────────
+// REPORT DATA
 // 30 reports across all 6 incident categories
 // Coordinates are real locations across Ireland
 const REPORTS: Array<{
@@ -59,7 +60,7 @@ const REPORTS: Array<{
   severity: 'high' | 'medium' | 'low'; description: string; locationText: string
   lat: number; lng: number; trapped: string
 }> = [
-  // ── NATURAL DISASTERS (13 reports) ──
+  // NATURAL DISASTERS (13 reports)
   { citizenIdx: 0,  category: 'natural_disaster', subtype: 'flood',         displayType: 'River Flood',       severity: 'high',   description: 'River Liffey has breached its banks near Chapelizod. Water level rising rapidly — approximately 1.5m above normal. Multiple residential streets submerged. Several families on upper floors requesting rescue.',                                              locationText: 'Chapelizod, Dublin 20', lat: 53.3458, lng: -6.3412, trapped: 'yes' },
   { citizenIdx: 1,  category: 'natural_disaster', subtype: 'flood',         displayType: 'Coastal Flood',     severity: 'high',   description: 'Storm surge has overwhelmed coastal defences at Crosshaven. Seawater flooding main street and lower harbour area. Boats dislodged from moorings. Estimated 30+ properties affected.',                                                                        locationText: 'Crosshaven, Co. Cork',  lat: 51.8019, lng: -8.2925, trapped: 'no' },
   { citizenIdx: 2,  category: 'natural_disaster', subtype: 'severe_storm',  displayType: 'Severe Storm',      severity: 'high',   description: 'Category-strong winds measured at 130 km/h with sustained gusts. Multiple trees down across N6 highway. Power lines severed in Oranmore and Clarinbridge. Driving conditions extremely dangerous. Galway Bay waves reaching 8m.',                            locationText: 'Oranmore, Co. Galway',  lat: 53.2689, lng: -8.9167, trapped: 'no' },
@@ -74,7 +75,7 @@ const REPORTS: Array<{
   { citizenIdx: 3,  category: 'natural_disaster', subtype: 'tsunami',       displayType: 'Tidal Surge',       severity: 'low',    description: 'Unusual tidal surge observed at Shannon Estuary — water level 0.8m above predicted high tide. Likely related to Atlantic pressure system. Monitoring situation. No immediate danger but precautionary warnings issued for low-lying areas.',              locationText: 'Foynes, Co. Limerick',   lat: 52.6139, lng: -9.1072, trapped: 'no' },
   { citizenIdx: 19, category: 'natural_disaster', subtype: 'avalanche',     displayType: 'Snow Avalanche',    severity: 'medium', description: 'Snow cornice collapse on Carrauntoohil east face following temperature rise. Debris field blocking Devil\'s Ladder route. Two hill-walkers sheltering at emergency bivvy — phone contact maintained. Mountain rescue team assembling.',          locationText: "Carrauntoohil, Co. Kerry", lat: 51.9991, lng: -9.7439, trapped: 'yes' },
 
-  // ── INFRASTRUCTURE (6 reports) ──
+  // INFRASTRUCTURE (6 reports)
   { citizenIdx: 3,  category: 'infrastructure', subtype: 'infrastructure_damage', displayType: 'Road Collapse',    severity: 'high',   description: 'Major sinkhole opened on the N20 bypass — approximately 6m diameter and 4m deep. Two lanes completely impassable. Traffic diverted via R527. Appears to be caused by collapsed culvert beneath the roadway. Structural engineer required.',                    locationText: 'Patrickswell, Co. Limerick', lat: 52.6092, lng: -8.7178, trapped: 'no' },
   { citizenIdx: 13, category: 'infrastructure', subtype: 'building_collapse',    displayType: 'Partial Collapse', severity: 'high',   description: 'Gable wall of derelict mill building has collapsed onto adjacent car park. Three vehicles crushed. Remaining structure appears highly unstable. Exclusion zone of 50m recommended. No casualties confirmed but access to check underneath vehicles needed.',  locationText: 'Carlow Town, Co. Carlow',    lat: 52.8409, lng: -6.9261, trapped: 'yes' },
   { citizenIdx: 7,  category: 'infrastructure', subtype: 'bridge_damage',        displayType: 'Bridge Damage',    severity: 'medium', description: 'Visible cracking on main span of pedestrian bridge over Boyne. Cracks widening — measured 12mm gap, was 3mm last month. Vibration noticeable when crossed. Bridge serves as primary school access route. Urgent structural assessment needed.',     locationText: 'Drogheda, Co. Louth',        lat: 53.7179, lng: -6.3489, trapped: 'no' },
@@ -82,27 +83,27 @@ const REPORTS: Array<{
   { citizenIdx: 4,  category: 'infrastructure', subtype: 'sinkhole',             displayType: 'Sinkhole',         severity: 'medium', description: 'Ground subsidence developing in residential garden. Hole approximately 2m across, depth unknown. Adjacent garden wall tilting. Two houses showing new cracks in foundation walls. Geologist assessment urgent — possible mine workings below.',          locationText: 'Tramore, Co. Waterford', lat: 52.1601, lng: -7.1508, trapped: 'no' },
   { citizenIdx: 8,  category: 'infrastructure', subtype: 'structural',           displayType: 'Structural Risk',  severity: 'low',    description: 'Storm damage to telecommunications mast. Guy wire snapped and mast showing 5° lean. Adjacent to busy car park. Owner notified but no response after 48 hours. Risk of further deterioration in forecast winds.',                                             locationText: 'Dundalk, Co. Louth',     lat: 54.0054, lng: -6.4017, trapped: 'no' },
 
-  // ── PUBLIC SAFETY (4 reports) ──
+  // PUBLIC SAFETY (4 reports)
   { citizenIdx: 10, category: 'public_safety', subtype: 'public_safety_incident', displayType: 'Public Hazard',    severity: 'medium', description: 'Large section of river bank has collapsed into the Shannon at Athlone Lock. Steel fencing now hanging dangerously over the water. Popular walking route — several families with children in the area daily. Temporary barrier needed urgently.',          locationText: 'Athlone, Co. Westmeath', lat: 53.4233, lng: -7.9408, trapped: 'no' },
   { citizenIdx: 12, category: 'public_safety', subtype: 'person_trapped',         displayType: 'Person Trapped',   severity: 'high',   description: 'Elderly woman trapped in her home by rising flood waters. Water level reached ground-floor window sills. She is on the first floor but has limited mobility. No boat access currently. Address is 3 Bridge View, Ennis.',                                    locationText: 'Ennis, Co. Clare',       lat: 52.8431, lng: -8.9865, trapped: 'yes' },
   { citizenIdx: 9,  category: 'public_safety', subtype: 'missing_person',         displayType: 'Missing Person',   severity: 'high',   description: 'Hill-walker (male, 45) reported overdue. Last contact 14:00 yesterday — planned Ben Bulben summit via north face. Not equipped for overnight. Temperature dropped to 2°C overnight. Phone going straight to voicemail. Family extremely concerned.',      locationText: 'Drumcliff, Co. Sligo',   lat: 54.3294, lng: -8.4917, trapped: 'no' },
   { citizenIdx: 19, category: 'public_safety', subtype: 'hazardous_area',         displayType: 'Hazardous Area',   severity: 'low',    description: 'Quarry blasting operations creating significant vibration in nearby residential estate. Residents report cracks appearing in walls. Blasting schedule not communicated to community. Dust levels also elevated.',                                            locationText: 'Rochfortbridge, Co. Westmeath', lat: 53.4125, lng: -7.2939, trapped: 'no' },
 
-  // ── COMMUNITY SAFETY (3 reports) ──
+  // COMMUNITY SAFETY (3 reports)
   { citizenIdx: 4,  category: 'community_safety', subtype: 'power_outage',            displayType: 'Power Outage',       severity: 'medium', description: 'Complete power failure affecting approximately 2,500 homes in Waterford city centre. Outage duration now exceeds 6 hours. Traffic lights out at 4 major intersections. Hospital running on backup generators. ESB Networks reports damaged transformer.',    locationText: 'Waterford City Centre',     lat: 52.2593, lng: -7.1101, trapped: 'no' },
   { citizenIdx: 15, category: 'community_safety', subtype: 'water_supply_disruption', displayType: 'Water Contamination', severity: 'high',   description: 'Boil-water notice issued for Letterkenny public supply. E. coli detected in routine sampling. Affects estimated 15,000 residents. Source suspected — agricultural runoff into Lough Salt intake. Irish Water deploying emergency tankers.',                 locationText: 'Letterkenny, Co. Donegal',  lat: 54.9558, lng: -7.7342, trapped: 'no' },
   { citizenIdx: 17, category: 'community_safety', subtype: 'evacuation',              displayType: 'Evacuation Required', severity: 'high',   description: 'Mandatory evacuation ordered for Westport Quay area. River Carrowbeg expected to exceed flood defence capacity within 3 hours based on upstream gauge readings. Evacuation centre set up at Westport Town Hall. Transport being coordinated for elderly.',   locationText: 'Westport Quay, Co. Mayo',   lat: 53.7997, lng: -9.5275, trapped: 'no' },
 
-  // ── ENVIRONMENTAL HAZARD (2 reports) ──
+  // ENVIRONMENTAL HAZARD (2 reports)
   { citizenIdx: 2,  category: 'environmental', subtype: 'environmental_hazard', displayType: 'Oil Spill',           severity: 'medium', description: 'Significant oil sheen observed on Galway Bay near Mutton Island. Estimated 200m² coverage and expanding with tide. Source appears to be a grounded vessel. Wildlife rescue teams notified — oiled seabirds already observed. Beach closure recommended.',  locationText: 'Salthill, Co. Galway',    lat: 53.2572, lng: -9.0856, trapped: 'no' },
   { citizenIdx: 16, category: 'environmental', subtype: 'chemical',             displayType: 'Chemical Spill',      severity: 'high',   description: 'Overturned tanker on M3 motorway leaking unknown chemical. Strong acrid smell. HazMat team requested. Two lanes closed. Wind carrying fumes towards Dunshaughlin residential area. Residents advised to close windows and remain indoors.',                locationText: 'Dunshaughlin, Co. Meath', lat: 53.5128, lng: -6.5400, trapped: 'no' },
 
-  // ── MEDICAL EMERGENCY (2 reports) ──
+  // MEDICAL EMERGENCY (2 reports)
   { citizenIdx: 10, category: 'medical', subtype: 'mass_casualty',   displayType: 'Mass Casualty Event', severity: 'high',   description: 'Multi-vehicle collision on the M6 motorway involving 8 vehicles including a bus. Initial reports suggest 15+ casualties with various injuries. Two persons trapped in vehicles requiring hydraulic rescue. Traffic backed up 5km in both directions.', locationText: 'Ballinasloe, Co. Galway', lat: 53.3319, lng: -8.2328, trapped: 'yes' },
   { citizenIdx: 14, category: 'medical', subtype: 'contamination',   displayType: 'Water Contamination',  severity: 'medium', description: 'Multiple residents in housing estate reporting gastrointestinal symptoms. 12 cases in past 24 hours from same neighbourhood. Suspected contaminated private well serving estate. HSE environmental health team requested. Water samples being collected.',  locationText: 'Clara, Co. Offaly', lat: 53.3422, lng: -7.6136, trapped: 'no' },
 ]
 
-// ─── COMMUNITY CHAT MESSAGES ─────────────────────────────────────────
+// COMMUNITY CHAT MESSAGES
 const COMMUNITY_MESSAGES = [
   'Has anyone else noticed the water level rising near the bridge?',
   'Power has been out for 3 hours in our area. Any updates from ESB?',
@@ -126,7 +127,7 @@ const COMMUNITY_MESSAGES = [
   'The wind is absolutely howling. Tiles flying off roofs in our estate.',
 ]
 
-// ─── ONE-TO-ONE MESSAGES TO ADMIN ────────────────────────────────────
+// ONE-TO-ONE MESSAGES TO ADMIN
 const CITIZEN_TO_ADMIN_MESSAGES = [
   'Hello, I submitted a flood report for Chapelizod. Can you confirm it was received?',
   'The situation in Cork harbour is deteriorating rapidly. Do you need more details?',
@@ -150,7 +151,7 @@ const CITIZEN_TO_ADMIN_MESSAGES = [
   'The Red Cross shelter is at capacity. We need additional facility opened.',
 ]
 
-// ─── HELPER ──────────────────────────────────────────────────────────
+// HELPER
 function generateReportNumber(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
   let num = 'RPT-'
@@ -158,18 +159,16 @@ function generateReportNumber(): string {
   return num
 }
 
-// ─── MAIN ────────────────────────────────────────────────────────────
+// MAIN
 async function main() {
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
-    const password = 'AegisTest@2026!'
-    const hash = await bcrypt.hash(password, 12)
 
     console.log('\n=== SEEDING AEGIS v6 DATABASE ===\n')
 
-    // ── 1. CREATE 20 CITIZEN ACCOUNTS ──
-    console.log('--- Creating 20 citizen accounts ---')
+    // 1. CREATE CITIZEN ACCOUNTS
+    console.log(`--- Creating ${CITIZENS.length} citizen accounts ---`)
     const citizenIds: string[] = []
     for (const c of CITIZENS) {
       const existing = await client.query('SELECT id FROM citizens WHERE email = $1', [c.email])
@@ -178,6 +177,7 @@ async function main() {
         console.log(`  [EXISTS] ${c.displayName} (${c.email})`)
         continue
       }
+      const hash = await bcrypt.hash(c.password, 12)
       const res = await client.query(
         `INSERT INTO citizens (email, password_hash, display_name, phone, role, preferred_region, country, city, bio, email_verified, is_active, login_count)
          VALUES ($1, $2, $3, $4, 'citizen', 'ireland', $5, $6, $7, true, true, 1)
@@ -188,8 +188,8 @@ async function main() {
       console.log(`  [CREATED] ${c.displayName} (${c.email})`)
     }
 
-    // ── 2. CREATE 10 OPERATOR ACCOUNTS ──
-    console.log('\n--- Creating 10 operator accounts ---')
+    // 2. CREATE OPERATOR ACCOUNTS
+    console.log(`\n--- Creating ${OPERATORS.length} operator accounts ---`)
     const operatorIds: string[] = []
     for (const op of OPERATORS) {
       const existing = await client.query('SELECT id FROM operators WHERE email = $1', [op.email])
@@ -198,6 +198,7 @@ async function main() {
         console.log(`  [EXISTS] ${op.displayName} (${op.email})`)
         continue
       }
+      const hash = await bcrypt.hash(op.password, 12)
       const res = await client.query(
         `INSERT INTO operators (email, password_hash, display_name, role, department, phone, is_active)
          VALUES ($1, $2, $3, $4::operator_role, $5, $6, true)
@@ -208,7 +209,7 @@ async function main() {
       console.log(`  [CREATED] ${op.displayName} (${op.email}) — Role: ${op.role}, Dept: ${op.department}`)
     }
 
-    // ── 3. CREATE 30 REPORTS ──
+    // 3. CREATE 30 REPORTS
     console.log('\n--- Creating 30 incident reports ---')
     let reportCount = 0
     for (const r of REPORTS) {
@@ -236,7 +237,7 @@ async function main() {
       }
     }
 
-    // ── 4. ADD COMMUNITY CHAT MESSAGES ──
+    // 4. ADD COMMUNITY CHAT MESSAGES
     console.log('\n--- Adding community chat messages ---')
     for (let i = 0; i < COMMUNITY_MESSAGES.length; i++) {
       const citizenId = citizenIds[i % citizenIds.length]
@@ -253,7 +254,7 @@ async function main() {
       }
     }
 
-    // ── 5. CREATE ONE-TO-ONE MESSAGE THREADS (citizen → admin) ──
+    // 5. CREATE ONE-TO-ONE MESSAGE THREADS (citizen → admin)
     console.log('\n--- Creating citizen-to-admin message threads ---')
     const adminId = operatorIds[0] // Commander gets the messages
     for (let i = 0; i < 20; i++) {
@@ -283,7 +284,7 @@ async function main() {
       }
     }
 
-    // ── 6. CREATE ALERT SUBSCRIPTIONS (from citizens) ──
+    // 6. CREATE ALERT SUBSCRIPTIONS (from citizens)
     console.log('\n--- Adding alert subscriptions ---')
     for (let i = 0; i < 20; i++) {
       const c = CITIZENS[i]
@@ -314,27 +315,25 @@ async function main() {
 
     await client.query('COMMIT')
 
-    // ── SUMMARY ──
+    // SUMMARY
     console.log('\n' + '='.repeat(72))
     console.log('  SEED COMPLETE — ALL ACCOUNTS + DATA CREATED')
     console.log('='.repeat(72))
     
-    console.log('\n--- 20 CITIZEN ACCOUNTS ---')
-    console.log('Password for ALL citizens: ' + password)
-    console.log('─'.repeat(72))
-    console.log(`${'Name'.padEnd(22)} ${'Email'.padEnd(36)} ${'City'.padEnd(14)} Phone`)
-    console.log('─'.repeat(72))
+    console.log('\n--- CITIZEN ACCOUNTS ---')
+    console.log('─'.repeat(100))
+    console.log(`${'Name'.padEnd(22)} ${'Email'.padEnd(36)} ${'City'.padEnd(14)} ${'Password'.padEnd(28)}`)
+    console.log('─'.repeat(100))
     CITIZENS.forEach(c => {
-      console.log(`${c.displayName.padEnd(22)} ${c.email.padEnd(36)} ${c.city.padEnd(14)} ${c.phone}`)
+      console.log(`${c.displayName.padEnd(22)} ${c.email.padEnd(36)} ${c.city.padEnd(14)} ${c.password}`)
     })
 
-    console.log('\n--- 10 OPERATOR / ADMIN ACCOUNTS ---')
-    console.log('Password for ALL operators: ' + password)
-    console.log('─'.repeat(92))
-    console.log(`${'Name'.padEnd(32)} ${'Email'.padEnd(28)} ${'Role'.padEnd(10)} ${'Department'.padEnd(26)}`)
-    console.log('─'.repeat(92))
+    console.log('\n--- OPERATOR / ADMIN ACCOUNTS ---')
+    console.log('─'.repeat(110))
+    console.log(`${'Name'.padEnd(32)} ${'Email'.padEnd(36)} ${'Role'.padEnd(10)} ${'Password'.padEnd(28)}`)
+    console.log('─'.repeat(110))
     OPERATORS.forEach(op => {
-      console.log(`${op.displayName.padEnd(32)} ${op.email.padEnd(28)} ${op.role.padEnd(10)} ${op.department}`)
+      console.log(`${op.displayName.padEnd(32)} ${op.email.padEnd(36)} ${op.role.padEnd(10)} ${op.password}`)
     })
 
     console.log('\n--- REPORT SUMMARY ---')

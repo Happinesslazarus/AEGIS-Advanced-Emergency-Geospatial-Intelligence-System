@@ -1,3 +1,9 @@
+"""
+Module: test_moon3.py
+
+Test_moon3 AI engine module.
+"""
+
 import base64, requests
 from pathlib import Path
 

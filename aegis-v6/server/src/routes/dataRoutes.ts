@@ -1,13 +1,19 @@
- /*
- * dataRoutes.ts - Alerts, activity log, AI metrics, weather, and flood zone APIs
- * Combines several data endpoints into one router:
- *   GET/POST /api/alerts              - Manage emergency alerts
- *   GET      /api/activity            - Audit trail of operator actions
- *   GET      /api/ai/models           - AI model performance metrics
- *   GET      /api/weather/:lat/:lng   - Proxy to OpenWeatherMap API
- *   GET      /api/flood-check         - PostGIS point-in-polygon flood zone check
- *   GET      /api/sepa/gauges/:loc    - SEPA river gauge data proxy
-  */
+/**
+ * File: dataRoutes.ts
+ *
+ * What this file does:
+ * Data-centric API routes: emergency alerts CRUD, operator activity logs,
+ * AI model metrics, weather proxying (OpenWeatherMap / Open-Meteo),
+ * flood zone checks (PostGIS), and SEPA river gauge data.
+ *
+ * How it connects:
+ * - Mounted at /api in index.ts (e.g. GET /api/alerts, /api/weather/:lat/:lng)
+ * - Weather data proxied from external APIs to avoid CORS and key exposure
+ * - Flood zone checks use PostGIS spatial queries on the local database
+ *
+ * Simple explanation:
+ * The main data endpoints — alerts, weather, flood zones, and operator logs.
+ */
 
 import { Router, Request, Response, NextFunction } from 'express'
 import rateLimit from 'express-rate-limit'
@@ -136,7 +142,8 @@ router.post('/alerts', authMiddleware, operatorOnly, async (req: AuthRequest, re
     const deliveryResults = await dispatchAlertDeliveries(alertId, title, message, targetChannels, recipients, locationText, alertType)
     alertBroadcastsTotal.inc()
 
-    // Invalidate cached alert and flood-data listings so consumers see the new alert immediately
+    // Invalidate cached alert and flood-data listings so consumers see the new alert immediately.
+    // Uses pattern-based invalidation because the cache key includes region + page/limit combos.
     cacheInvalidatePattern('aegis:v1:alerts:*').catch(() => {})
     cacheInvalidatePattern('aegis:v1:flood_data:*').catch(() => {})
     cacheInvalidatePattern('aegis:v1:news:*').catch(() => {})
@@ -233,8 +240,10 @@ router.get('/weather/:lat/:lng', async (req: Request, res: Response, next: NextF
     const key = buildCacheKey('weather', [activeRegion.id, 'forecast'], { lat, lng })
 
     const { data: result, meta } = await remember(key, CACHE_TTL.WEATHER, async () => {
-      // Primary: Open-Meteo (no API key required)
-      const openMeteoRes = await fetch(
+    // Primary: Open-Meteo (no API key required)
+    // Secondary: OpenWeatherMap (requires WEATHER_API_KEY env var)
+    // Failover happens automatically if Open-Meteo returns a non-2xx response.
+    const openMeteoRes = await fetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,rain,weather_code,cloud_cover,pressure_msl,wind_speed_10m,visibility&hourly=temperature_2m,rain,wind_speed_10m,weather_code&forecast_days=2&timezone=UTC`
       )
 
@@ -396,6 +405,8 @@ router.get('/flood-check', async (req: Request, res: Response, next: NextFunctio
     const key = buildCacheKey('flood', [activeRegion.id, 'zone-check'], { lat: parsedLat, lng: parsedLng })
 
     const { data: result, meta } = await remember(key, CACHE_TTL.FLOOD_ZONES, async () => {
+      // PostGIS ST_Contains: true only if the point is fully inside the polygon (not on the boundary).
+      // Ordered highest probability first so highestRisk = zones[0].probability.
       const dbResult = await pool.query(
         `SELECT zone_name, flood_type, probability, return_period
          FROM flood_zones
@@ -412,6 +423,8 @@ router.get('/flood-check', async (req: Request, res: Response, next: NextFunctio
           probability: z.probability, returnPeriod: z.return_period,
         })),
         highestRisk,
+        // Confidence boost fed into the AI report scoring pipeline when a report
+        // comes from inside a known flood zone with high overlap probability.
         confidenceBoost: highestRisk === 'high' ? 25 : highestRisk === 'medium' ? 15 : highestRisk === 'low' ? 8 : 0,
       }
     })
@@ -597,6 +610,8 @@ router.get('/news', async (_req: Request, res: Response, next: NextFunction): Pr
     ]
 
     const disasterScore = (title: string, source: string): number => {
+      // Higher score = more disaster-relevant. Drives the sort order so emergency news
+      // appears before general world news even if it's a few seconds older.
       const text = `${title} ${source}`.toLowerCase()
       return DISASTER_KEYWORDS.reduce((score, kw) => score + (text.includes(kw) ? 1 : 0), 0)
     }
@@ -617,20 +632,32 @@ router.get('/news', async (_req: Request, res: Response, next: NextFunction): Pr
       }
     }))
 
-    // Deduplicate by URL before sorting
+    // Deduplicate by URL and filter out articles older than 90 days
     const seenUrls = new Set<string>()
+    const cutoff = Date.now() - 90 * 24 * 60 * 60 * 1000 // 90 days ago
     const unique = allItems.filter(item => {
       if (!item.url || item.url === '#' || seenUrls.has(item.url)) return false
+      // Drop articles with no valid date or older than 90 days
+      const age = new Date(item.publishedAt).getTime()
+      if (!Number.isFinite(age) || age < cutoff) return false
       seenUrls.add(item.url)
       return true
     })
 
+    // Sort: recency is primary, disaster relevance is a tiebreaker within a 24h window.
+    // This prevents highly-scored but ancient articles from burying fresh news.
     const sorted = unique
       .sort((a, b) => {
-        // Disaster-relevant items first, then by date
-        const scoreDiff = b.disasterScore - a.disasterScore
-        if (scoreDiff !== 0) return scoreDiff
-        return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+        const ta = new Date(a.publishedAt).getTime()
+        const tb = new Date(b.publishedAt).getTime()
+        const ONE_DAY_MS = 24 * 60 * 60 * 1000
+        // If articles are within 24h of each other, prefer the higher disaster score
+        if (Math.abs(tb - ta) < ONE_DAY_MS) {
+          const scoreDiff = b.disasterScore - a.disasterScore
+          if (scoreDiff !== 0) return scoreDiff
+        }
+        // Otherwise, newest first
+        return tb - ta
       })
       .map(({ publishedAt, disasterScore: _ds, ...rest }) => rest)
 
@@ -747,12 +774,14 @@ async function dispatchAlertDeliveries(
       const subscriberPayload: notificationService.Alert = {
         ...alertPayload,
         subscriberName: subscriber.subscriber_name || undefined,
+        subscriberAuthStatus: subscriber.subscriber_name ? 'Signed in user' : 'Anonymous / not signed in',
         issuedAt: new Date(),
       }
 
       let status = 'failed'
       let error: string | undefined
       let providerId: string | null = null
+      const deliveryStart = process.hrtime.bigint()
 
       try {
         if (channel === 'email') {
@@ -776,6 +805,8 @@ async function dispatchAlertDeliveries(
           providerId = delivery.messageId || null
           if (!delivery.success) error = delivery.error || 'whatsapp_delivery_failed'
         }
+
+        alertDeliveryLatency.observe({ channel }, Number(process.hrtime.bigint() - deliveryStart) / 1e9)
 
         const sentAt = (status === 'sent' || status === 'delivered') ? new Date() : null
         const deliveredAt = status === 'delivered' ? new Date() : null
@@ -804,6 +835,7 @@ async function dispatchAlertDeliveries(
   for (const sub of webPushSubs.rows) {
     let status = 'failed'
     let error: string | undefined
+    const webPushStart = process.hrtime.bigint()
     try {
       const delivery = await notificationService.sendWebPushAlert(
         {
@@ -841,6 +873,7 @@ async function dispatchAlertDeliveries(
     }
     results.push({ channel: 'web', recipient: sub.endpoint, status, error })
     alertDeliveryTotal.inc({ channel: 'web', status })
+    alertDeliveryLatency.observe({ channel: 'web' }, Number(process.hrtime.bigint() - webPushStart) / 1e9)
   }
 
   return results

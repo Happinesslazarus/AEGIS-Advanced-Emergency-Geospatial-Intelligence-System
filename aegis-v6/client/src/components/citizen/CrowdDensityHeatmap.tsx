@@ -1,6 +1,26 @@
-﻿/* CrowdDensityHeatmap.tsx — Professional-grade crowd-density visualization
-   Features: sparkline trends, capacity model, heatmap grid view, LIVE pulse,
-   delta comparisons, sort/filter, peak-hour prediction, density distribution */
+/**
+ * File: CrowdDensityHeatmap.tsx
+ *
+ * What this file does:
+ * Citizen-facing crowd density dashboard. Generates pseudo-real-time crowd
+ * density estimates for nearby zones, including sparkline trend history,
+ * capacity model, and risk-level classification.
+ *
+ * Data model:
+ * Zones are generated client-side using a deterministic hour-seeded formula.
+ * This simulates real IoT/camera density feeds without requiring a backend
+ * sensor integration. In production, `generateZones()` would be replaced
+ * by a live API call.
+ *
+ * How it connects:
+ * - Rendered inside CitizenPage.tsx / CitizenDashboard.tsx
+ * - Uses locationUtils for geocoding the user's position
+ * - No real sensor data — uses hour-seeded pseudo-random generation
+ *
+ * Simple explanation:
+ * Shows citizens how crowded nearby public areas are, so they can plan
+ * evacuation routes or avoid congested zones during emergencies.
+ */
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import {
@@ -42,6 +62,8 @@ const RISK_CONFIG = {
   critical: { labelKey: 'common.critical', bg: 'bg-red-50 dark:bg-red-950/30', border: 'border-red-200/60 dark:border-red-800/40', text: 'text-red-700 dark:text-red-300', dot: 'bg-red-500', hex: '#ef4444' },
 }
 
+// Time-of-day crowd pattern lookup. Used to predict whether crowds are building
+// or settling at the current hour, displayed as a contextual crowd forecast.
 const PEAK_HOURS: Record<number, string> = {
   0: 'quiet', 1: 'quiet', 2: 'quiet', 3: 'quiet', 4: 'quiet', 5: 'waking',
   6: 'building', 7: 'rushHour', 8: 'peak', 9: 'peak', 10: 'high',
@@ -52,6 +74,8 @@ const PEAK_HOURS: Record<number, string> = {
 
 /* HELPERS */
 
+// Density thresholds for risk classification.
+// Calibrated for outdoor public spaces (0-100% capacity scale).
 function getRiskLevel(d: number): 'low' | 'moderate' | 'high' | 'critical' {
   if (d < 30) return 'low'
   if (d < 55) return 'moderate'
@@ -59,6 +83,8 @@ function getRiskLevel(d: number): 'low' | 'moderate' | 'high' | 'critical' {
   return 'critical'
 }
 
+// Generate a plausible-looking density history array ending at `base`.
+// Used to power sparklines without real historical data.
 function generateHistory(base: number, count: number = 8): number[] {
   const h: number[] = []
   let v = Math.max(5, base - 25 + Math.round(Math.random() * 10))
@@ -70,6 +96,9 @@ function generateHistory(base: number, count: number = 8): number[] {
   return h
 }
 
+// Generate synthetic zone data centred around the user's lat/lng.
+// Hour-seeded formula: density varies realistically by time of day and zone index.
+// This simulates an IoT sensor feed until live data integration is available.
 function generateZones(lat: number, lng: number, zonePrefix: string): DensityZone[] {
   const fallbackNames = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].map(suffix => `${zonePrefix} ${suffix}`)
   const offsets = [
@@ -134,6 +163,8 @@ function formatRefreshAgo(lastRefresh: Date, lang: string): string {
 }
 /* SVG COMPONENTS */
 
+// SVG sparkline using an area-fill + line path.
+// Uses a linear gradient fill to give depth; ends with a dot at the current value.
 function Sparkline({ data, color, width = 64, height = 22 }: { data: number[]; color: string; width?: number; height?: number }) {
   if (data.length < 2) return null
   const max = Math.max(...data, 1)
@@ -162,6 +193,8 @@ function Sparkline({ data, color, width = 64, height = 22 }: { data: number[]; c
   )
 }
 
+// SVG ring gauge using stroke-dasharray/strokeDashoffset to show fill percentage.
+// Rotated -90° so the fill starts at 12 o'clock. Critical zones get a glow filter.
 function DensityRing({ value, size = 48, stroke = 5, risk }: { value: number; size?: number; stroke?: number; risk: string }) {
   const r = (size - stroke) / 2
   const circ = 2 * Math.PI * r
@@ -384,7 +417,7 @@ export default function CrowdDensityHeatmap(): JSX.Element {
   const nextPeakIn = nextPeakHour > hour ? nextPeakHour - hour : 24 - hour + nextPeakHour
 
   const processedZones = useMemo(() => {
-    let filtered = filterLevel === 'all' ? zones : zones.filter(z => z.riskLevel === filterLevel)
+    const filtered = filterLevel === 'all' ? zones : zones.filter(z => z.riskLevel === filterLevel)
     switch (sortKey) {
       case 'density': return [...filtered].sort((a, b) => b.density - a.density)
       case 'name':    return [...filtered].sort((a, b) => a.name.localeCompare(b.name))
@@ -427,7 +460,7 @@ export default function CrowdDensityHeatmap(): JSX.Element {
           <div className="flex items-center gap-1.5">
             <button onClick={requestGPS} disabled={loading} className="text-[9px] font-bold bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-300 px-2.5 py-1.5 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/40 transition-all flex items-center gap-1 border border-orange-200/50 dark:border-orange-800/30" title={t('crowd.useGps', lang)}>
               {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <MapPin className="w-3 h-3" />}
-              GPS
+              // GPS
             </button>
             <button onClick={() => { if (userLat != null && userLng != null) loadData(userLat, userLng) }} disabled={loading || userLat == null} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-30" title={t('common.refresh', lang)}>
               {loading ? <Loader2 className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300" />}
@@ -672,9 +705,18 @@ export default function CrowdDensityHeatmap(): JSX.Element {
       {expanded && zones.length === 0 && (
         <div className="p-3">
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-10 gap-3">
-              <div className="w-12 h-12 rounded-full border-4 border-orange-200 dark:border-orange-800/30 border-t-orange-500 animate-spin" />
-              <span className="text-xs text-gray-500 dark:text-gray-300 font-medium">{t('crowd.scanningAreaDensity', lang)}</span>
+            <div className="space-y-3 py-4 px-2">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="flex items-center gap-3 rounded-xl border border-gray-200 dark:border-gray-700 p-3">
+                  <div className="skeleton-shimmer h-10 w-10 rounded-full flex-shrink-0 bg-gray-200 dark:bg-gray-700 motion-reduce:animate-none motion-reduce:opacity-70" />
+                  <div className="flex-1 space-y-2">
+                    <div className="skeleton-shimmer h-3 w-2/5 rounded bg-gray-200 dark:bg-gray-700 motion-reduce:animate-none motion-reduce:opacity-70" />
+                    <div className="skeleton-shimmer h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700 motion-reduce:animate-none motion-reduce:opacity-70" />
+                  </div>
+                  <div className="skeleton-shimmer h-6 w-12 rounded-full bg-gray-200 dark:bg-gray-700 motion-reduce:animate-none motion-reduce:opacity-70" />
+                </div>
+              ))}
+              <p className="text-[10px] text-center text-gray-400 dark:text-gray-300">{t('crowd.scanningAreaDensity', lang)}</p>
             </div>
           ) : locationError ? (
             <div className="py-8 text-center space-y-3">

@@ -1,8 +1,10 @@
 /**
- * Skeletons.tsx — Reusable skeleton placeholder components
- * shown while data is loading. Eliminates layout shift and gives
- * users visual feedback that content is being fetched.
- */
+ * Module: Skeletons.tsx
+ *
+ * Skeletons shared component (reusable UI element used across pages).
+ *
+ * How it connects:
+ * - Used across both admin and citizen interfaces */
 
 /* Generic rectangular skeleton with pulse animation */
 export function SkeletonBox({ className = '' }: { className?: string }): JSX.Element {
@@ -99,4 +101,4 @@ export function SkeletonCardList({ count = 3 }: { count?: number }): JSX.Element
     </div>
   )
 }
-
+

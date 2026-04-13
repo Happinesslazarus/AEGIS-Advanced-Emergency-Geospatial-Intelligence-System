@@ -1,17 +1,11 @@
 /**
- * config/regions.ts — Region configuration registry
+ * Module: regions.ts
  *
- * Defines geographic regions AEGIS can operate in. Scotland is the default
- * deployment target, but additional regions (England, Wales, etc.) can be
- * added by extending the REGIONS map below.
+ * Regions server module.
  *
- * Each region specifies its map centre, flood authority APIs, WMS layers,
- * emergency numbers, and river systems. The active region is selected via
- * the AEGIS_REGION environment variable (defaults to 'scotland').
+ * How it connects:
+ * - Imported by services and components that need this configuration
  *
- * Why a static config rather than DB? Region definitions rarely change and
- * are needed at startup before the DB pool is ready. They also define API
- * endpoints that services depend on during initialisation.
  */
 
 import type { RegionConfig } from '../types/index.js'
@@ -180,7 +174,7 @@ export const REGIONS: Record<string, RegionConfig> = {
   },
 }
 
- /**
+/**
  * Get the active region config. Falls back to Scotland if the
  * AEGIS_REGION env var is unset or points to an unknown region.
  */
@@ -189,7 +183,7 @@ export function getActiveRegion(): RegionConfig {
   return REGIONS[regionId] || REGIONS.scotland
 }
 
- /**
+/**
  * List all available region IDs for admin selection dropdowns.
  */
 export function listRegionIds(): string[] {

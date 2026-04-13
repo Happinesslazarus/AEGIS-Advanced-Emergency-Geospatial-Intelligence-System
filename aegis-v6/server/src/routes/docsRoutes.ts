@@ -1,10 +1,18 @@
-﻿/**
- * routes/docsRoutes.ts — Swagger/OpenAPI documentation
+/**
+ * File: docsRoutes.ts
  *
- * Serves an interactive API documentation page at /api/docs.
- * Request-body schemas are auto-generated from the Zod validation
- * schemas in middleware/validate.ts via Zod v4's built-in toJSONSchema,
- * so docs and validation can never drift apart.
+ * What this file does:
+ * Serves interactive Swagger UI documentation at /api/docs. Builds the
+ * OpenAPI spec from  Zod validation schemas so the docs stay in sync
+ * with the actual request/response shapes.
+ *
+ * How it connects:
+ * - Mounted at /api/docs in index.ts
+ * - Reads Zod schemas from validate.ts to generate the spec dynamically
+ * - Public endpoint (no auth required)
+ *
+ * Simple explanation:
+ * Lets developers browse and test the API through a Swagger web page.
  */
 
 import { Router, Request, Response } from 'express'
@@ -20,7 +28,7 @@ import {
 
 const router = Router()
 
- /**
+/**
  * Convert a Zod schema to an OpenAPI 3.0-compatible JSON Schema object.
  * Strips the $schema key (OpenAPI 3.0 doesn't use it) and removes
  * additionalProperties: false (friendlier Swagger UI rendering).

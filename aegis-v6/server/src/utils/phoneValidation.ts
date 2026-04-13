@@ -1,9 +1,17 @@
 /**
- * phoneValidation.ts - E.164 Phone Number Validation
- * 
- * Validates and normalizes phone numbers to E.164 format
- * Required for Twilio SMS/WhatsApp delivery
- * Default country code is loaded from the active region adapter.
+ * File: phoneValidation.ts
+ *
+ * What this file does:
+ * Validates and normalises phone numbers based on the active region's
+ * phone format rules. Strips formatting characters, applies country
+ * code prefix, and validates length.
+ *
+ * How it connects:
+ * - Used by citizenAuthRoutes.ts and authRoutes.ts during registration
+ * - Gets the expected phone format from the active region adapter
+ *
+ * Simple explanation:
+ * Makes sure phone numbers are valid and consistently formatted.
  */
 
 import { regionRegistry } from '../adapters/regions/RegionRegistry.js'
@@ -13,7 +21,7 @@ function getDefaultCountryCode(): string {
   try { return regionRegistry.getActiveRegion().getPhoneFormat().countryCode } catch { return '44' }
 }
 
- /**
+/**
  * Validates if a phone number is in E.164 format
  * E.164 format: +[country code][subscriber number]
  * Examples: +447700900123 (UK), +14155552671 (US)
@@ -29,7 +37,7 @@ export function isValidE164(phone: string): boolean {
   return e164Pattern.test(phone)
 }
 
- /**
+/**
  * Attempts to normalize a phone number to E.164 format
  * Handles common UK formats:
  * 07700 900123 ? +447700900123
@@ -75,7 +83,7 @@ export function normalizeToE164(phone: string, defaultCountryCode: string = getD
   throw new Error(`Invalid phone number: ${phone}. Must be in E.164 format like +447700900123`)
 }
 
- /**
+/**
  * Formats a phone number for display
  * +447700900123 ? +44 7700 900123
  */
@@ -102,7 +110,7 @@ export function formatPhoneDisplay(phone: string): string {
   return `+${countryCode} ${number}`
 }
 
- /**
+/**
  * Example usage and test cases
  */
 export const PHONE_EXAMPLES = {

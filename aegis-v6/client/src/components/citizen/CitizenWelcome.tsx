@@ -1,7 +1,31 @@
 /**
- * CitizenWelcome.tsx — Stunning, animated, personalized welcome dashboard
- * First thing a signed-in citizen sees. Mind-blowing animations + glass design.
- */
+ * Module: CitizenWelcome.tsx
+ *
+ * Personalised welcome dashboard shown at the top of the citizen area for
+ * authenticated users.
+ *
+ * Sections rendered (top to bottom):
+ *   Hero banner       — animated gradient with live clock, user greeting,
+ *                       quick status pills, and primary CTAs.
+ *   Live stat cards   — total/urgent/high/verified reports + active alerts,
+ *                       each card navigates to the relevant tab.
+ *   Safety check-in   — one-tap safe/help/unsure status with POST to server.
+ *   Quick actions     — 8-button grid covering the most common user journeys.
+ *   Personal insights — activity summary (messages, threads, check-ins, contacts)
+ *                       and a 3-step "Preparedness Journey" guide.
+ *   Recent threads    — last 3 message threads with unread badge, collapsed list.
+ *   Emergency contacts — "Quick Dial" cards that open tel: links for the user's
+ *                        saved emergency contacts.
+ *
+ * Animation model:
+ *   All keyframes are injected once via injectAnimations().  CSS utility
+ *   classes like cw-fade-up, cw-scale-in reference those keyframes.  Each
+ *   section is staggered using delay(i) which offsets animationDelay by 100ms
+ *   per index so sections reveal in a cascade.
+ *
+ * How it connects:
+ * - Rendered inside CitizenPage.tsx or CitizenDashboard.tsx */
+
 import { useState, useEffect, useMemo, useRef } from 'react'
 import {
   Shield, AlertTriangle, MapPin, FileText, Bell, Heart,
@@ -13,8 +37,17 @@ import {
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
 
-/* animation keyframes injected once */
+// STYLE_ID guards against injecting duplicate <style> tags on React hot
+// reloads or remounts.  The id is unique enough to avoid collisions with
+// other components.
 const STYLE_ID = 'citizen-welcome-animations'
+/**
+ * injectAnimations — appends a <style> tag with all welcome-screen keyframes.
+ *
+ * Called once on first mount.  The idempotency check means repeated mounts
+ * (hot reload, tab switch) have no cost.  Using JS injection rather than a
+ * CSS file keeps these animations tree-shaken with the component.
+ */
 function injectAnimations() {
   if (document.getElementById(STYLE_ID)) return
   const style = document.createElement('style')
@@ -79,7 +112,8 @@ export default function CitizenWelcome({
 
   useEffect(() => { injectAnimations(); setMounted(true) }, [])
 
-  // Live clock
+  // Live clock — updates every second; interval is cleared on unmount to
+  // prevent state updates on an unmounted component.
   useEffect(() => {
     const tick = () => {
       const now = new Date()
@@ -91,15 +125,21 @@ export default function CitizenWelcome({
     return () => clearInterval(iv)
   }, [])
 
+  // Time-of-day greeting: good morning (<12), afternoon (<17), evening (17+).
+  // GreetingIcon gives a matching visual cue (sunrise/sun/moon).
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening'
   const GreetingIcon = hour < 12 ? Sunrise : hour < 17 ? Sun : Moon
 
+  // firstName: probe displayName, username, email prefix — in that priority order —
+  // so we always have something personalised to show in the greeting.
   const firstName = useMemo(() => {
     const name = user?.displayName || user?.username || user?.email?.split('@')[0] || 'Citizen'
     return name.split(' ')[0]
   }, [user])
 
+  // stats: consolidate 9 derived values so every section reads from a single
+  // memoized object instead of re-deriving on each render.
   const stats = useMemo(() => ({
     total: reportStats?.total ?? 0,
     urgent: reportStats?.urgent ?? 0,
@@ -112,7 +152,8 @@ export default function CitizenWelcome({
     activeThreads: threads?.filter((t: any) => t.status !== 'closed' && t.status !== 'resolved').length ?? 0,
   }), [reportStats, totalUnread, emergencyContacts, recentSafety, threads])
 
-  // Safety status
+  // safetyStatus: most recent check-in drives the status pill in the hero banner.
+  // recentSafety is sorted newest-first by the parent, so index 0 is current.
   const safetyStatus = useMemo(() => {
     if (!recentSafety?.length) return null
     return recentSafety[0]?.status as string | null
@@ -120,6 +161,8 @@ export default function CitizenWelcome({
 
   if (!mounted) return null
 
+  // delay: memoization-free helper for staggered enter animations.
+  // Each section index i delays by 100ms so the dashboard cascades into view.
   const delay = (i: number) => ({ animationDelay: `${i * 100}ms` })
 
   return (
@@ -508,7 +551,15 @@ export default function CitizenWelcome({
   )
 }
 
-/* Animated number counter */
+/**
+ * AnimatedCounter — smoothly transitions the displayed number from its
+ * previous value to the new `value` using an ease-out cubic curve.
+ *
+ * `prev` ref tracks the last rendered value so subsequent updates (e.g. poll
+ * refreshes) animate from the old count to the new one rather than from 0.
+ * The easing formula `1 - (1-p)^3` decelerates near the end, giving a natural
+ * "settling" feel identical to the useCounter hook in AboutPage.
+ */
 function AnimatedCounter({ value, className }: { value: number; className: string }) {
   const [display, setDisplay] = useState(0)
   const prev = useRef(0)

@@ -1,7 +1,13 @@
 /**
- * incidents/environmental_hazard/config.ts — Environmental Hazard incident configuration
- * AI Tier: tier3 (ML) — Uses trained ML models
- * Data Sources: OpenAQ API (Air Quality)
+ * Module: config.ts
+ *
+ * Environmental contamination events incident module (handles environmental hazard specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for environmental hazard events.
  */
 
 import type { IncidentRegistryEntry } from '../types.js'
@@ -19,7 +25,7 @@ export const environmentalHazardConfig: IncidentRegistryEntry = {
     'Citizen Reports',
     'EPA Data'
   ],
-  aiEndpoint: '/api/ai/predict/environmental',
+  aiEndpoint: '/api/predict',
   aiTier: 'ml',
   enabledRegions: 'all',
   operationalStatus: 'fully_operational',
@@ -46,4 +52,4 @@ export const OPENAQ_CONFIG = {
   radiusKm: 50,
   parameters: ['pm25', 'pm10', 'o3', 'no2', 'so2', 'co']
 }
-
+

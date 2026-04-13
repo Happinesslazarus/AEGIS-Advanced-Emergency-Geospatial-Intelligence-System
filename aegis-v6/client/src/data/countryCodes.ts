@@ -1,6 +1,15 @@
-﻿/**
- * Country codes for international phone numbers
- * Supports major countries with E.164 format
+/**
+ * File: countryCodes.ts
+  *
+  * What this file does:
+  * Curated subset of country dial codes plus helper functions:
+  * codeToFlag() converts a 2-letter ISO code to its flag emoji using
+  * Unicode regional indicator symbols; getCountryByCode() looks up
+  * a country by ISO code; getCountryByDial() looks up by dial prefix.
+  *
+  * How it connects:
+  * - Used by allCountries.ts and allCountryCodes.ts for flag emojis
+  * - Used by phone-number inputs throughout the client
  */
 
 // Converts a 2-letter ISO country code to its flag emoji
@@ -82,4 +91,4 @@ export function formatPhoneWithCountry(country: CountryCode, number: string): st
   const cleaned = number.replace(/^\+?\d{1,4}\s*/, '').replace(/\D/g, '')
   return `${country.dial}${cleaned}`
 }
-
+

@@ -1,9 +1,11 @@
 /**
- * adapters/riverData/RiverDataAdapter.ts — Base interface for river data providers
+ * Module: RiverDataAdapter.ts
  *
- * Any river data provider (SEPA, EA, USGS, OpenMeteo) must implement this
- * interface. The main river service uses adapters exclusively, never
- * calling provider APIs directly.
+ * River data adapter server module.
+ *
+ * How it connects:
+ * - Used by services for external data fetching
+ *
  */
 
 export interface RiverReading {

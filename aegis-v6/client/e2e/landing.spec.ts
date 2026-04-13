@@ -1,3 +1,12 @@
+/**
+ * Module: landing.spec.ts
+ *
+ * Landing test suite (automated tests for this feature).
+ *
+ * Simple explanation:
+ * Verifies that landing works correctly.
+ */
+
 import { test, expect } from '@playwright/test'
 
 test.describe('Landing Page', () => {

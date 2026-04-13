@@ -1,18 +1,26 @@
- /*
- * citizenRoutes.ts - Citizen Safety Check-In & Messaging API
- * Handles citizen-specific functionality:
- *   POST /api/citizen/safety          - Submit safety check-in
- *   GET  /api/citizen/safety/history   - Get safety check-in history
- *   GET  /api/citizen/safety/latest    - Get latest safety status
- *   GET  /api/citizen/threads          - List message threads
- *   POST /api/citizen/threads          - Create new thread
- *   GET  /api/citizen/threads/:id      - Get thread with messages
- *   POST /api/citizen/threads/:id/messages - Send message in thread
- *   PUT  /api/citizen/threads/:id/read - Mark messages as read
- *   GET  /api/citizen/alert-history    - Get citizen alert history
- *   POST /api/citizen/alert-history    - Record alert seen/played
- *   GET  /api/citizen/dashboard-stats  - Get personalised dashboard data
-  */
+/**
+ * File: citizenRoutes.ts
+ *
+ * What this file does:
+ * Citizen-specific features: safety check-ins, message threads with
+ * operators, and the citizen dashboard with personalised alerts.
+ *
+ * How it connects:
+ * - Mounted at /api/citizen in index.ts
+ * - Citizens authenticate via citizenAuthRoutes.ts
+ * - Messages are the citizen half of admin messaging (adminMessagingRoutes.ts)
+ * - Real-time message notifications via Socket.IO
+ *
+ * Key endpoints:
+ * POST /api/citizen/safety          — Submit safety check-in
+ * GET  /api/citizen/safety/history  — Check-in history
+ * GET  /api/citizen/threads         — List message threads
+ * POST /api/citizen/threads         — Start new conversation
+ * POST /api/citizen/threads/:id/messages — Send message
+ *
+ * Simple explanation:
+ * Citizen features: safety check-ins, messaging with operators, and alerts.
+ */
 
 import { Router, Response, NextFunction } from 'express'
 import rateLimit from 'express-rate-limit'
@@ -95,7 +103,8 @@ router.post('/safety', safetyLimiter, async (req: AuthRequest, res: Response, ne
         `SELECT id FROM message_threads
          WHERE citizen_id = $1 AND status IN ('open', 'in_progress')
            AND subject LIKE 'HELP REQUEST%'
-         LIMIT 1`,
+         LIMIT 1
+         FOR UPDATE`,
         [req.user!.id]
       )
 
@@ -489,15 +498,16 @@ router.get('/data-export', async (req: AuthRequest, res: Response, next: NextFun
     const userId = req.user!.id
 
     // Gather all user data from every table in parallel
+    const catchLog = (table: string) => (err: any) => { logger.error({ err, userId, table }, '[DataExport] Query failed'); return { rows: [] as any[] } }
     const [profile, reports, threads, threadMessages, safetyHistory, emergContacts, prefs, alertHistory] = await Promise.all([
       pool.query(`SELECT id, email, display_name, phone, preferred_region, is_vulnerable, country, city, bio, created_at FROM citizens WHERE id = $1`, [userId]),
-      pool.query(`SELECT id, description, severity, status, location_text, created_at FROM reports WHERE citizen_id = $1 ORDER BY created_at DESC`, [userId]).catch(() => ({ rows: [] })),
-      pool.query(`SELECT id, subject, status, priority, created_at FROM message_threads WHERE citizen_id = $1 ORDER BY created_at DESC`, [userId]).catch(() => ({ rows: [] })),
-      pool.query(`SELECT m.content, m.sender_type, m.created_at, t.subject FROM messages m JOIN message_threads t ON m.thread_id = t.id WHERE t.citizen_id = $1 ORDER BY m.created_at DESC LIMIT 500`, [userId]).catch(() => ({ rows: [] })),
-      pool.query(`SELECT status, message, location_lat, location_lng, created_at FROM safety_check_ins WHERE citizen_id = $1 ORDER BY created_at DESC`, [userId]).catch(() => ({ rows: [] })),
-      pool.query(`SELECT name, phone, relationship, is_primary FROM emergency_contacts WHERE citizen_id = $1`, [userId]).catch(() => ({ rows: [] })),
-      pool.query(`SELECT * FROM citizen_preferences WHERE citizen_id = $1`, [userId]).catch(() => ({ rows: [] })),
-      pool.query(`SELECT ah.seen_at, ah.audio_played, a.title, a.severity FROM citizen_alert_history ah JOIN alerts a ON ah.alert_id = a.id WHERE ah.citizen_id = $1 ORDER BY ah.seen_at DESC LIMIT 100`, [userId]).catch(() => ({ rows: [] })),
+      pool.query(`SELECT id, description, severity, status, location_text, created_at FROM reports WHERE citizen_id = $1 ORDER BY created_at DESC`, [userId]).catch(catchLog('reports')),
+      pool.query(`SELECT id, subject, status, priority, created_at FROM message_threads WHERE citizen_id = $1 ORDER BY created_at DESC`, [userId]).catch(catchLog('message_threads')),
+      pool.query(`SELECT m.content, m.sender_type, m.created_at, t.subject FROM messages m JOIN message_threads t ON m.thread_id = t.id WHERE t.citizen_id = $1 ORDER BY m.created_at DESC LIMIT 500`, [userId]).catch(catchLog('messages')),
+      pool.query(`SELECT status, message, location_lat, location_lng, created_at FROM safety_check_ins WHERE citizen_id = $1 ORDER BY created_at DESC`, [userId]).catch(catchLog('safety_check_ins')),
+      pool.query(`SELECT name, phone, relationship, is_primary FROM emergency_contacts WHERE citizen_id = $1`, [userId]).catch(catchLog('emergency_contacts')),
+      pool.query(`SELECT * FROM citizen_preferences WHERE citizen_id = $1`, [userId]).catch(catchLog('citizen_preferences')),
+      pool.query(`SELECT ah.seen_at, ah.audio_played, a.title, a.severity FROM citizen_alert_history ah JOIN alerts a ON ah.alert_id = a.id WHERE ah.citizen_id = $1 ORDER BY ah.seen_at DESC LIMIT 100`, [userId]).catch(catchLog('citizen_alert_history')),
     ])
 
     const exportData = {
@@ -702,7 +712,7 @@ router.get('/deletion-status', async (req: AuthRequest, res: Response, next: Nex
   }
 })
 
-// §9 FAMILY / GROUP SAFETY (#37)
+// FAMILY / GROUP SAFETY (#37)
 
 import crypto from 'crypto'
 import { AppError } from '../utils/AppError.js'

@@ -1,6 +1,13 @@
 /**
- * incidents/infrastructure_damage/aiClient.ts — AI client for infrastructure damage predictions
- * AI Tier: tier1 (rule-based) - Uses simple rule-based logic
+ * Module: aiClient.ts
+ *
+ * Infrastructure damage assessment incident module (handles infrastructure damage specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for infrastructure damage events.
  */
 
 import type { IncidentPrediction } from '../types.js'

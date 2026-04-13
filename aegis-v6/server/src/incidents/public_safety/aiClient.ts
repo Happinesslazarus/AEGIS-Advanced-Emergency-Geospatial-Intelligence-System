@@ -1,6 +1,13 @@
 /**
- * incidents/public_safety/aiClient.ts — AI client for public safety predictions
- * AI Tier: tier1 (rule-based) - Uses simple rule-based logic
+ * Module: aiClient.ts
+ *
+ * Public safety incidents incident module (handles public safety specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for public safety events.
  */
 
 import type { IncidentPrediction } from '../types.js'

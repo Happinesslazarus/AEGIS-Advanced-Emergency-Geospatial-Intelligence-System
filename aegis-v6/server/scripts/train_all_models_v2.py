@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """
-AEGIS World-Class Model Training Script (v2)
-Trains all ML models from the seeded database data.
-Uses correct class names and APIs.
+Module: train_all_models_v2.py
+
+Train_all_models_v2 utility script.
+
+Simple explanation:
+Standalone script for train_all_models_v2.
 """
 
 import asyncio
@@ -17,7 +20,7 @@ ai_engine_path = str(Path(__file__).parent.parent.parent / "ai-engine")
 sys.path.insert(0, ai_engine_path)
 os.chdir(ai_engine_path)
 
-DB_URL = "postgresql://postgres:Happylove%40%21@localhost:5432/aegis"
+DB_URL = os.environ.get('DATABASE_URL', 'postgresql://localhost:5432/aegis')
 
 async def train_report_classifier():
     """Train the hazard type classifier."""
@@ -176,7 +179,7 @@ async def main():
     
     # Summary
     print("\n" + "=" * 60)
-    print(f"TRAINING COMPLETE — {elapsed:.1f}s total")
+    print(f"TRAINING COMPLETE Ã¢â‚¬â€ {elapsed:.1f}s total")
     print("=" * 60)
     
     for name, result in all_results.items():

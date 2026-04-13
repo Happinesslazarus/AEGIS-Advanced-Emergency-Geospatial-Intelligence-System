@@ -1,4 +1,12 @@
-import { useState } from 'react'
+/**
+ * Module: AlertCard.tsx
+ *
+ * Alert card shared component (reusable UI element used across pages).
+ *
+ * How it connects:
+ * - Used across both admin and citizen interfaces */
+
+import { useState, memo } from 'react'
 import {
   Clock, X, Radio, MapPin, Timer,
   AlertTriangle, ShieldAlert, Info, Bell,
@@ -42,7 +50,7 @@ function getIcon(type: string): React.ElementType {
 
 interface Props { alert: Alert; onDismiss?: (id: string) => void; compact?: boolean }
 
-export default function AlertCard({ alert, onDismiss, compact = false }: Props): JSX.Element {
+export default memo(function AlertCard({ alert, onDismiss, compact = false }: Props): JSX.Element {
   const lang = useLanguage()
   const [expanded, setExpanded] = useState(false)
   const cfg = getConfig(alert.severity)
@@ -154,5 +162,4 @@ export default function AlertCard({ alert, onDismiss, compact = false }: Props):
       </div>
     </div>
   )
-}
-
+})

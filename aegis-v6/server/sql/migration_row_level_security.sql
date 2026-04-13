@@ -5,7 +5,7 @@
 -- restricted `aegis_app` role.
 -- Date: 2026-03-24
 
--- §0  Application role (idempotent)
+-- Application role (idempotent)
 
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'aegis_app') THEN
@@ -22,14 +22,14 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public
 ALTER DEFAULT PRIVILEGES IN SCHEMA public
   GRANT USAGE, SELECT ON SEQUENCES TO aegis_app;
 
--- §1  Enable RLS on critical tables
+-- Enable RLS on critical tables
 
 ALTER TABLE reports       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE operators     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE citizens      ENABLE ROW LEVEL SECURITY;
 
--- §2  RLS Policies
+-- RLS Policies
 -- Every policy is wrapped in a DO block so the migration is re-runnable
 -- (DROP IF EXISTS + CREATE).
 
@@ -165,7 +165,7 @@ DO $$ BEGIN
     );
 END $$;
 
--- §3  Verification
+-- Verification
 -- Quick sanity check: list all RLS-enabled tables and their policies.
 
 DO $$

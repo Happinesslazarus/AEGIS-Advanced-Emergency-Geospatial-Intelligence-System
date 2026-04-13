@@ -1,26 +1,7 @@
 """
-AEGIS Model Evaluation and Benchmarking Framework
-Scores AEGIS against commercial AI models on emergency-specific tasks.
+Module: evaluate_model.py
 
-Usage:
-    # Full benchmark vs local model only
-    python scripts/evaluate_model.py --report --output ./reports/benchmark.html
-
-    # Compare against Claude (requires ANTHROPIC_API_KEY)
-    python scripts/evaluate_model.py --compare-claude --report
-
-    # Quick test with the 10 hardest queries
-    python scripts/evaluate_model.py --hard-only
-
-    # Score a specific model
-    python scripts/evaluate_model.py --model aegis-ai
-
-Scoring dimensions (weighted):
-  1. Accuracy (0.30)       — Is the guidance factually correct?
-  2. Actionability (0.25)  — Can the user act on this immediately?
-  3. Prioritisation (0.20) — Is the most critical action stated first?
-  4. Tone calibration (0.15) — Is the tone matched to the crisis level?
-  5. Completeness (0.10)   — Are there dangerous gaps?
+Evaluate_model AI engine module.
 """
 
 from __future__ import annotations
@@ -1051,4 +1032,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
+

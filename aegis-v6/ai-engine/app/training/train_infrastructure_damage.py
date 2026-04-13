@@ -1,22 +1,16 @@
 """
-DEPRECATED — Use train_infrastructure_damage_real.py instead.
+File: train_infrastructure_damage.py
 
-This script used synthetic heuristic labels from a single location.
-The _real.py version uses 13 UK grid locations with engineering-standard
-thresholds and extended ERA5 variables (snow, soil moisture).
+What this file does:
+Trains the infrastructure damage risk-prediction model on synthetic/augmented data.
+Uses BaseHazardPipeline for the training loop. Useful as a quick
+bootstrap when real-world labelled data is unavailable.
 
-train_infrastructure_damage.py — Infrastructure Damage Training Pipeline (DEPRECATED)
-
-Features: weather_severity, flood_depth_proxy, wind_speed, wind_gust,
-          infrastructure_type_proxy, rainfall_24h, soil_moisture
-Data:     Open-Meteo historical (global, free)
-Labels:   Synthetic heuristic → heuristic_model
-          Extreme weather combination thresholds
-Model:    XGBoost classifier
-
-Usage:
-    python -m app.training.train_infrastructure_damage --region=global
-    python -m app.training.train_infrastructure_damage --region=uk
+How it connects:
+- Extends ai-engine/app/training/base_hazard_pipeline.py
+- Synthetic feature generation via data_loaders.py and data_ingestion.py
+- Saves to model_registry/infrastructure_damage/ via ModelRegistry
+- Loaded at inference time by ai-engine/app/hazards/infrastructure_damage.py
 """
 
 from __future__ import annotations

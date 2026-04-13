@@ -1,28 +1,24 @@
-﻿ /*
- * services/mlTrainingPipeline.ts — Server-Side ML Training Orchestrator
- * Trains all ML models using real data from PostgreSQL:
- *   1. Flood Probability Classifier (XGBoost via Python AI Engine)
- *   2. Fake Report Detector (TF-IDF + classifier)
- *   3. Severity Predictor (replaced rule-based with ML, trained via Python)
- *   4. Damage Cost Regression (gradient boosting)
- *   5. Fusion Weight Optimizer (learns optimal weights from outcomes)
- * Training flow:
- *   1. Extract training dataset from PostgreSQL
- *   2. Feature engineering (text, numeric, categorical)
- *   3. Train/test split (80/20 stratified)
- *   4. Model fitting with cross-validation
- *   5. Metrics computation (accuracy, F1, AUC, confusion matrix)
- *   6. Model artifact serialization
- *   7. Store metrics in ai_model_metrics table
- * All models use REAL DATA from the reports and weather tables.
- * Zero Math.random(). Zero synthetic data. Zero hardcoded weights.
-  */
+/**
+ * File: mlTrainingPipeline.ts
+ *
+ * ML model retraining entry point — reads historical fusion data from
+ * PostgreSQL, calls the Python AI Engine via aiClient to retrain, and
+ * stores metrics (accuracy, F1, AUC) back for admin dashboards.
+ *
+ * How it connects:
+ * - Reads training data from the database
+ * - Calls the Python AI Engine through aiClient for training runs
+ * - Writes model metrics to ai_model_metrics for auditing
+ *
+ * Simple explanation:
+ * Sends data to the AI engine for retraining and saves the results.
+ */
 
 import pool from '../models/db.js'
 import { aiClient } from './aiClient.js'
 import { logger } from './logger.js'
 
-// §1  TYPES
+// Shared types used by the SQL-based trainers and the Python AI engine.
 
 interface TrainingResult {
   modelName: string
@@ -36,10 +32,25 @@ interface TrainingResult {
   trainingTimeMs: number
   status: 'success' | 'failed' | 'insufficient_data'
   error?: string
-  metrics: Record<string, any>
+  metrics: Record<string, unknown>
 }
 
-// §2  FUSION WEIGHT OPTIMIZER — Learn optimal weights from data
+interface PythonTrainingResponse {
+  model_version?: string
+  accuracy?: number
+  f1_score?: number
+  training_samples?: number
+  test_samples?: number
+  feature_count?: number
+  training_time_ms?: number
+  [key: string]: unknown
+}
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'Unexpected training error'
+}
+
+// Learns fusion weights from past outcomes so the scoring layer can adapt over time.
 
 export async function trainFusionWeights(): Promise<TrainingResult> {
   const start = Date.now()
@@ -60,7 +71,7 @@ export async function trainFusionWeights(): Promise<TrainingResult> {
     `)
 
     if (rows.length < 50) {
-      // Not enough fusion history yet — compute weights from report data
+      // Fall back to report correlations until we have enough historical fusion runs.
       return await computeWeightsFromReportCorrelations()
     }
 
@@ -97,7 +108,9 @@ export async function trainFusionWeights(): Promise<TrainingResult> {
             const normalised = parsed.normalised || 0
             correlations[name] += normalised * target
           }
-        } catch { /* skip parse errors */ }
+        } catch {
+          // Ignore malformed feature blobs so one bad record does not stop training.
+        }
       }
     }
 
@@ -105,14 +118,14 @@ export async function trainFusionWeights(): Promise<TrainingResult> {
       return await computeWeightsFromReportCorrelations()
     }
 
-    // Normalize correlations to weights that sum to 1
+    // Normalize to a 0..1 weight set before saving the result.
     const total = Object.values(correlations).reduce((a, b) => a + Math.abs(b), 0)
     const learnedWeights: Record<string, number> = {}
     for (const [name, corr] of Object.entries(correlations)) {
       learnedWeights[name] = total > 0 ? Math.abs(corr) / total : 1 / featureNames.length
     }
 
-    // Store learned weights
+    // Save the weights so the runtime scoring layer can reuse them.
     const version = `fusion-weights-v${new Date().toISOString().slice(0, 10)}`
     await pool.query(`
       INSERT INTO ai_model_metrics
@@ -133,7 +146,7 @@ export async function trainFusionWeights(): Promise<TrainingResult> {
       status: 'success',
       metrics: { learnedWeights, correlations },
     }
-  } catch (err: any) {
+  } catch (error: unknown) {
     return {
       modelName: 'fusion_weight_optimizer',
       version: 'failed',
@@ -142,13 +155,13 @@ export async function trainFusionWeights(): Promise<TrainingResult> {
       featureCount: 0,
       trainingTimeMs: Date.now() - start,
       status: 'failed',
-      error: err.message,
+      error: getErrorMessage(error),
       metrics: {},
     }
   }
 }
 
-/* Compute weights from report-weather correlations when no fusion history exists */
+// Uses report-to-weather correlations when we do not have enough fusion history yet.
 async function computeWeightsFromReportCorrelations(): Promise<TrainingResult> {
   const start = Date.now()
 
@@ -179,7 +192,7 @@ async function computeWeightsFromReportCorrelations(): Promise<TrainingResult> {
     }
 
     if (rows.length < 20) {
-      // Use evidence-based default weights from UK flood research
+      // Keep a sensible fallback so the system can still score reports in low-data environments.
       return {
         modelName: 'fusion_weight_optimizer',
         version: 'evidence-based-default',
@@ -199,14 +212,13 @@ async function computeWeightsFromReportCorrelations(): Promise<TrainingResult> {
       }
     }
 
-    // Compute correlation of weather features with severity
-    let rainfallCorr = 0, tempCorr = 0, humidCorr = 0, windCorr = 0
+    // Rainfall and humidity are the strongest signals in the fallback model.
+    let rainfallCorr = 0
+    let humidCorr = 0
     for (const row of rows) {
       const target = severityToScore[row.severity] || 0.5
       rainfallCorr += (row.rainfall_mm || 0) * target
-      tempCorr += Math.abs((row.temperature_c || 15) - 15) * target
       humidCorr += (row.humidity_percent || 70) / 100 * target
-      windCorr += (row.wind_speed_ms || 3) / 10 * target
     }
 
     // Derive weights (rainfall is most important for floods)
@@ -223,7 +235,7 @@ async function computeWeightsFromReportCorrelations(): Promise<TrainingResult> {
       urban_density: 0.04,
     }
 
-    // Normalize
+    // Normalize before persisting so downstream consumers always get comparable weights.
     const total = Object.values(rawWeights).reduce((a, b) => a + b, 0)
     const weights: Record<string, number> = {}
     for (const [k, v] of Object.entries(rawWeights)) {
@@ -247,7 +259,7 @@ async function computeWeightsFromReportCorrelations(): Promise<TrainingResult> {
       status: 'success',
       metrics: { weights, dataRows: rows.length },
     }
-  } catch (err: any) {
+  } catch (error: unknown) {
     return {
       modelName: 'fusion_weight_optimizer',
       version: 'failed',
@@ -256,41 +268,43 @@ async function computeWeightsFromReportCorrelations(): Promise<TrainingResult> {
       featureCount: 0,
       trainingTimeMs: Date.now() - start,
       status: 'failed',
-      error: err.message,
+      error: getErrorMessage(error),
       metrics: {},
     }
   }
 }
 
-// §3  FAKE REPORT DETECTOR — Text classification
+// Tries the Python model first, then falls back to a lightweight SQL heuristic.
 
 export async function trainFakeDetector(): Promise<TrainingResult> {
   const start = Date.now()
 
   try {
-    // Use the AI engine's training endpoint
-    let pyTrainResult: any = null
+    // Prefer the Python trainer because it has the full feature pipeline.
+    let pyTrainResult: PythonTrainingResponse | null = null
     try {
-      pyTrainResult = await aiClient.triggerRetrain('fake_detector', 'all')
-    } catch { /* AI engine may be offline */ }
+      pyTrainResult = await aiClient.triggerRetrain('fake_detector', 'all') as PythonTrainingResponse
+    } catch {
+      // The SQL fallback keeps training available when the AI engine is offline.
+    }
 
-    if (pyTrainResult && (pyTrainResult as any).accuracy) {
-      const r = pyTrainResult as any
+    if (pyTrainResult?.accuracy) {
+      const result = pyTrainResult
       return {
         modelName: 'fake_detector',
-        version: r.model_version || 'v2.0',
-        accuracy: r.accuracy,
-        f1Score: r.f1_score,
-        trainingRows: r.training_samples || 0,
-        testRows: r.test_samples || 0,
-        featureCount: r.feature_count || 0,
+        version: result.model_version || 'v2.0',
+        accuracy: result.accuracy,
+        f1Score: result.f1_score,
+        trainingRows: result.training_samples || 0,
+        testRows: result.test_samples || 0,
+        featureCount: result.feature_count || 0,
         trainingTimeMs: Date.now() - start,
         status: 'success',
-        metrics: r,
+        metrics: result,
       }
     }
 
-    // Fallback: direct SQL-based feature computation for basic fake detection heuristics
+    // Fall back to a heuristic pass so admins still get useful training metadata.
     const { rows } = await pool.query(`
       SELECT
         r.id, r.incident_category, r.description, r.severity, r.ai_confidence,
@@ -303,7 +317,7 @@ export async function trainFakeDetector(): Promise<TrainingResult> {
       LIMIT 5000
     `)
 
-    // Store training metrics
+    // Record the fallback run so the admin dashboard still shows training activity.
     await pool.query(`
       INSERT INTO ai_model_metrics
         (model_name, model_version, metric_name, metric_value, dataset_size)
@@ -318,22 +332,22 @@ export async function trainFakeDetector(): Promise<TrainingResult> {
       featureCount: 5,
       trainingTimeMs: Date.now() - start,
       status: rows.length >= 50 ? 'success' : 'insufficient_data',
-      metrics: { note: 'Using AI engine for full training — fallback to heuristic', rows: rows.length },
+      metrics: { note: 'Using AI engine for full training, fallback to heuristic', rows: rows.length },
     }
-  } catch (err: any) {
+  } catch (error: unknown) {
     return {
       modelName: 'fake_detector',
       version: 'failed',
       trainingRows: 0, testRows: 0, featureCount: 0,
       trainingTimeMs: Date.now() - start,
       status: 'failed',
-      error: err.message,
+      error: getErrorMessage(error),
       metrics: {},
     }
   }
 }
 
-// §4  DAMAGE COST REGRESSION
+// Estimates flood damage ranges from archived impact data.
 
 export async function trainDamageCostModel(): Promise<TrainingResult> {
   const start = Date.now()
@@ -357,27 +371,15 @@ export async function trainDamageCostModel(): Promise<TrainingResult> {
       }
     }
 
-    // Compute regression coefficients using least squares
-    // Features: severity_score, affected_people, area
     const severityScores: Record<string, number> = {
       'low': 1, 'medium': 2, 'high': 3, 'critical': 4,
     }
 
-    const X: number[][] = []
-    const y: number[] = []
-    for (const row of rows) {
-      X.push([
-        severityScores[row.severity] || 2,
-        row.affected_people || 0,
-        row.affected_area_km2 || 0,
-      ])
-      y.push(row.damage_gbp)
-    }
-
-    // Simple weighted average approach for damage estimation
+    // Group by severity so we can build a stable baseline from sparse historical records.
     const severityAvgDamage: Record<string, { total: number; count: number }> = {}
     for (const row of rows) {
       const sev = row.severity || 'medium'
+      severityScores[sev] ||= 2
       if (!severityAvgDamage[sev]) severityAvgDamage[sev] = { total: 0, count: 0 }
       severityAvgDamage[sev].total += row.damage_gbp
       severityAvgDamage[sev].count++
@@ -388,7 +390,7 @@ export async function trainDamageCostModel(): Promise<TrainingResult> {
       avgByLevel[sev] = data.total / data.count
     }
 
-    // People-to-damage ratio
+    // This rough ratio gives downstream services a human-readable fallback estimate.
     const withPeople = rows.filter(r => r.affected_people && r.affected_people > 0)
     const damagePerPerson = withPeople.length > 0
       ? withPeople.reduce((s, r) => s + r.damage_gbp / r.affected_people, 0) / withPeople.length
@@ -396,7 +398,7 @@ export async function trainDamageCostModel(): Promise<TrainingResult> {
 
     const version = `regression-v2-${new Date().toISOString().slice(0, 10)}`
 
-    // Store model coefficients
+    // Save the learned parameters so later requests can explain where the estimate came from.
     await pool.query(`
       INSERT INTO ai_model_metrics
         (model_name, model_version, metric_name, metric_value, dataset_size, metadata)
@@ -420,20 +422,20 @@ export async function trainDamageCostModel(): Promise<TrainingResult> {
       status: 'success',
       metrics: { avgByLevel, damagePerPerson: Math.round(damagePerPerson) },
     }
-  } catch (err: any) {
+  } catch (error: unknown) {
     return {
       modelName: 'damage_cost_regression',
       version: 'failed',
       trainingRows: 0, testRows: 0, featureCount: 0,
       trainingTimeMs: Date.now() - start,
       status: 'failed',
-      error: err.message,
+      error: getErrorMessage(error),
       metrics: {},
     }
   }
 }
 
-// §5  TRAIN ALL MODELS
+// Runs the local trainers first, then asks the Python service to retrain its models.
 
 export async function trainAllModels(): Promise<{
   results: TrainingResult[]
@@ -445,11 +447,11 @@ export async function trainAllModels(): Promise<{
     totalTrainingTimeMs: number
   }
 }> {
-  logger.info('AEGIS ML TRAINING PIPELINE — STARTING')
+  logger.info('ML training pipeline starting')
 
   const results: TrainingResult[] = []
 
-  // Train each model sequentially
+  // Train sequentially so the logs stay readable and database load stays predictable.
   const trainers = [
     { name: 'Fusion Weight Optimizer', fn: trainFusionWeights },
     { name: 'Fake Report Detector', fn: trainFakeDetector },
@@ -463,10 +465,10 @@ export async function trainAllModels(): Promise<{
     logger.info({ model: trainer.name, status: result.status, trainingRows: result.trainingRows, durationMs: result.trainingTimeMs }, `[Training] ${trainer.name} complete`)
   }
 
-  // Also trigger Python AI engine training
+  // Trigger the Python retraining step after the local trainers finish.
   logger.info('[Training] Triggering Python AI Engine training...')
   try {
-    const pyResult: any = await aiClient.triggerRetrain('all', 'global')
+    const pyResult = await aiClient.triggerRetrain('all', 'global') as PythonTrainingResponse | null
     if (pyResult) {
       results.push({
         modelName: 'python_ai_engine',
@@ -481,15 +483,15 @@ export async function trainAllModels(): Promise<{
         metrics: pyResult,
       })
     }
-  } catch (err: any) {
-    logger.warn({ err }, '[Training] Python AI Engine training failed')
+  } catch (error: unknown) {
+    logger.warn({ error }, '[Training] Python AI Engine training failed')
     results.push({
       modelName: 'python_ai_engine',
       version: 'failed',
       trainingRows: 0, testRows: 0, featureCount: 0,
       trainingTimeMs: 0,
       status: 'failed',
-      error: err.message,
+      error: getErrorMessage(error),
       metrics: {},
     })
   }
@@ -506,4 +508,4 @@ export async function trainAllModels(): Promise<{
 
   return { results, summary }
 }
-
+

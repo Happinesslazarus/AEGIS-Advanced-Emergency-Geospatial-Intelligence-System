@@ -1,7 +1,25 @@
-/*
- * CitizenTwoFactorSettings.tsx — 2FA management for citizen dashboard security tab
+/**
+ * File: CitizenTwoFactorSettings.tsx
  *
- * Mirrors the operator TwoFactorSettings but uses citizen-specific API endpoints.
+ * What this file does:
+ * Self-service 2FA management for logged-in citizens. Covers the full
+ * TOTP lifecycle: setup (QR code + manual key), verification, disable,
+ * backup code display/download, and backup code regeneration.
+ *
+ * Flow summary:
+ * 1. Status load  — GET /api/citizen/2fa/status
+ * 2. Setup        — POST /api/citizen/2fa/setup → QR code + manual key displayed
+ * 3. Verify       — POST /api/citizen/2fa/verify → 6-digit TOTP validates setup → backup codes shown
+ * 4. Disable      — POST /api/citizen/2fa/disable → requires password + TOTP/backup code
+ * 5. Regen codes  — POST /api/citizen/2fa/regenerate-backup-codes → requires password + TOTP
+ *
+ * How it connects:
+ * - Rendered inside CitizenPage account settings panel
+ * - Uses apiCitizen2FA* helpers from utils/api.ts
+ *
+ * Simple explanation:
+ * Lets citizens protect their account with an authenticator app, and
+ * gives them backup codes to use if they lose access to the app.
  */
 
 import { useState, useEffect, useRef } from 'react'
@@ -15,32 +33,37 @@ import {
 } from '../../utils/api'
 
 export default function CitizenTwoFactorSettings(): JSX.Element {
+  // Core status: null while loading, then populated by GET /api/citizen/2fa/status
   const [status, setStatus] = useState<TwoFactorStatusResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
+  // Setup flow state: setupData is populated by the /setup endpoint with QR + manual key
   const [setupData, setSetupData] = useState<{ manualKey: string; qrCodeDataUrl: string } | null>(null)
-  const [setupCode, setSetupCode] = useState('')
+  const [setupCode, setSetupCode] = useState('') // TOTP code entered by user during setup
   const [setupLoading, setSetupLoading] = useState(false)
 
+  // Backup codes shown immediately after setup or regen — must be saved before dismissal
   const [backupCodes, setBackupCodes] = useState<string[] | null>(null)
-  const [backupCodesConfirmed, setBackupCodesConfirmed] = useState(false)
+  const [backupCodesConfirmed, setBackupCodesConfirmed] = useState(false) // checkbox gates dismissal button
 
+  // Disable-2FA form state (inline form, not a separate page)
   const [showDisable, setShowDisable] = useState(false)
   const [disablePassword, setDisablePassword] = useState('')
-  const [disableCode, setDisableCode] = useState('')
+  const [disableCode, setDisableCode] = useState('') // accepts TOTP or backup code
   const [disableLoading, setDisableLoading] = useState(false)
   const [showDisablePassword, setShowDisablePassword] = useState(false)
 
+  // Regen-codes form state (requires TOTP only — backup codes proven by using one)
   const [showRegen, setShowRegen] = useState(false)
   const [regenPassword, setRegenPassword] = useState('')
   const [regenCode, setRegenCode] = useState('')
   const [regenLoading, setRegenLoading] = useState(false)
   const [showRegenPassword, setShowRegenPassword] = useState(false)
 
-  const [copied, setCopied] = useState(false)
-  const verifyInputRef = useRef<HTMLInputElement>(null)
+  const [copied, setCopied] = useState(false) // brief 'Copied!' flash after clipboard write
+  const verifyInputRef = useRef<HTMLInputElement>(null) // auto-focused when QR code is shown
 
   useEffect(() => { loadStatus() }, [])
 
@@ -58,6 +81,8 @@ export default function CitizenTwoFactorSettings(): JSX.Element {
   async function handleStartSetup() {
     setError(''); setSuccess(''); setSetupLoading(true)
     try {
+      // Server generates a TOTP secret, stores it temporarily (unverified), and returns
+      // both a QR code data URL and the raw manual key for fallback manual entry.
       const data = await apiCitizen2FASetup()
       setSetupData({ manualKey: data.manualKey, qrCodeDataUrl: data.qrCodeDataUrl })
       setTimeout(() => verifyInputRef.current?.focus(), 100)
@@ -68,12 +93,15 @@ export default function CitizenTwoFactorSettings(): JSX.Element {
 
   async function handleVerifySetup(e: React.FormEvent) {
     e.preventDefault(); setError('')
+    // Client-side validation first: must be exactly 6 digits before hitting the server
     const trimmed = setupCode.trim()
     if (!trimmed || trimmed.length !== 6 || !/^\d{6}$/.test(trimmed)) {
       setError('Enter a valid 6-digit code from your authenticator app.'); return
     }
     setSetupLoading(true)
     try {
+      // Server validates the TOTP code against the temporary secret, then activates 2FA
+      // and returns one-time backup codes that the user must save before dismissing.
       const res = await apiCitizen2FAVerify(trimmed)
       setBackupCodes(res.backupCodes)
       setSetupData(null); setSetupCode('')
@@ -93,6 +121,8 @@ export default function CitizenTwoFactorSettings(): JSX.Element {
     if (!disableCode.trim()) { setError('A TOTP or backup code is required.'); return }
     setDisableLoading(true)
     try {
+      // Disabling requires password + TOTP/backup code: both factors must be re-provided
+      // so an attacker who gains session access still can't silently disable 2FA.
       await apiCitizen2FADisable(disablePassword, disableCode.trim())
       setShowDisable(false); setDisablePassword(''); setDisableCode('')
       setSuccess('Two-factor authentication has been disabled.')
@@ -118,6 +148,7 @@ export default function CitizenTwoFactorSettings(): JSX.Element {
 
   function handleCopyBackupCodes() {
     if (!backupCodes) return
+    // Format as numbered list with header so the clipboard content is self-documenting
     const text = `AEGIS 2FA Backup Codes\nGenerated: ${new Date().toISOString()}\n\n${backupCodes.map((c, i) => `${i + 1}. ${c}`).join('\n')}\n\nEach code can only be used once. Store these in a safe place.`
     navigator.clipboard.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) })
   }
@@ -125,6 +156,7 @@ export default function CitizenTwoFactorSettings(): JSX.Element {
   function handleDownloadBackupCodes() {
     if (!backupCodes) return
     const text = `AEGIS 2FA Backup Recovery Codes\nGenerated: ${new Date().toISOString()}\n${'='.repeat(40)}\n\n${backupCodes.map((c, i) => `${String(i + 1).padStart(2, ' ')}. ${c}`).join('\n')}\n\n${'='.repeat(40)}\nEach code can only be used once.\nStore these codes in a secure location.`
+    // Create a temporary anchor to trigger a browser file download with a date-stamped filename
     const blob = new Blob([text], { type: 'text/plain' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a'); a.href = url
@@ -242,8 +274,25 @@ export default function CitizenTwoFactorSettings(): JSX.Element {
           <form onSubmit={handleVerifySetup} className="space-y-3">
             <div>
               <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Enter the 6-digit code from your app to verify:</label>
-              <input ref={verifyInputRef} type="text" inputMode="numeric" autoComplete="one-time-code" placeholder="000000" value={setupCode} onChange={e => setSetupCode(e.target.value.replace(/\D/g, '').slice(0, 6))} maxLength={6}
-                className="w-full text-center text-xl font-mono tracking-[0.3em] py-2.5 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 focus:border-aegis-500 focus:ring-2 focus:ring-aegis-500/20 outline-none" />
+              <input ref={verifyInputRef} type="text" inputMode="numeric" autoComplete="one-time-code" placeholder="000000"
+                value={setupCode}
+                onChange={e => {
+                  const cleaned = e.target.value.replace(/\D/g, '').slice(0, 6)
+                  setSetupCode(cleaned)
+                  if (cleaned.length === 6) {
+                    setTimeout(() => { (e.target.closest('form') as HTMLFormElement | null)?.requestSubmit() }, 120)
+                  }
+                }}
+                maxLength={6}
+                className={`w-full text-center text-xl font-mono tracking-[0.3em] py-2.5 bg-white dark:bg-gray-900 rounded-xl border outline-none transition-all ${
+                  setupCode.length === 6 ? 'border-green-500 ring-2 ring-green-500/20' : 'border-gray-200 dark:border-gray-700 focus:border-aegis-500 focus:ring-2 focus:ring-aegis-500/20'
+                }`} />
+              {/* Digit progress dots */}
+              <div className="flex justify-center gap-2 mt-1.5" aria-hidden="true">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className={`rounded-full transition-all duration-150 ${i < setupCode.length ? setupCode.length === 6 ? 'w-2.5 h-2.5 bg-green-500' : 'w-2.5 h-2.5 bg-aegis-500' : 'w-2 h-2 bg-gray-200 dark:bg-gray-700'}`} />
+                ))}
+              </div>
             </div>
             <div className="flex gap-2">
               <button type="button" onClick={handleCancelSetup} className="flex-1 py-2 text-xs font-semibold rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">Cancel</button>

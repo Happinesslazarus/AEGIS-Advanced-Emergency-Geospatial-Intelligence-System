@@ -1,9 +1,28 @@
- /*
- * services/evacuationService.ts — Evacuation route calculator
- * Calculates safe routes from a starting point to shelters or high ground,
- * avoiding active flood zones. Uses OpenRouteService API when configured,
- * with pre-calculated fallback routes for monitored cities.
-  */
+/**
+ * File: evacuationService.ts
+ *
+ * Evacuation route calculator — finds safe routes from a starting point to
+ * shelters or high ground, scoring them by safety and distance while factoring
+ * in live road closures, flood zones, and risk signals.
+ *
+ * How it works:
+ * 1. If ORS_API_KEY is set, calls OpenRouteService to route around live hazard
+ *    avoidance polygons built from recent high-risk DB reports.
+ * 2. If ORS is unavailable or missing, falls back to hard-coded pre-calculated
+ *    routes for Aberdeen, Edinburgh, Glasgow, and Dundee.
+ * 3. All routes are ranked via `rankEvacuationRoutes` which blends time score
+ *    with risk score according to the optimizeFor profile (fastest/safest/balanced).
+ *
+ * How it connects:
+ * - Called by evacuation routes when users request escape paths
+ * - Uses incidentIntelligenceCore for live risk data and route risk masks
+ * - Reads shelter locations from the DB (PostGIS spatial queries)
+ * - Feeds into the front-end EvacuationPanel map overlay
+ *
+ * Simple explanation:
+ * Calculates the safest way to get from here to safety during a flood,
+ * preferring dynamic live-routing but always having a fallback.
+ */
 
 import { getActiveCityRegion } from '../config/regions/index.js'
 import pool from '../models/db.js'
@@ -100,6 +119,9 @@ type RouteExplanation = {
 }
 
 // Pre-calculated Routes (fallback) — Aberdeen, Edinburgh, Glasgow, Dundee
+// These route objects are used when ORS is unavailable. They represent real
+// known evacuation corridors for flood-prone areas in each city. Coordinates
+// are [lng, lat] order (GeoJSON convention).
 
 const ABERDEEN_ROUTES: EvacuationRoute[] = [
   {
@@ -228,10 +250,11 @@ const ABERDEEN_ROUTES: EvacuationRoute[] = [
 
 // Core Functions
 
- /*
- * Calculate evacuation routes from a starting point.
- * Uses OpenRouteService if API key present, otherwise pre-calculated routes.
-  */
+ /**
+ * Master dispatcher: try live ORS routing first; fall back to pre-calculated routes.
+ * `floodExtentGeoJSON` is an optional polygon to avoid in addition to live hazard signals.
+ * `destinationType` filters the result set to shelters, high-ground, or both.
+ */
 export async function calculateEvacuationRoutes(
   startLat: number,
   startLng: number,
@@ -245,7 +268,7 @@ export async function calculateEvacuationRoutes(
     try {
       return await calculateWithORS(startLat, startLng, floodExtentGeoJSON, destinationType, orsKey, options)
     } catch (err: any) {
-      logger.warn({ err }, '[Evacuation] ORS failed, using fallback')
+      logger.warn({ err }, '[Evacuation] ORS failed, using fallback') // ORS timeout or 4xx → still serve a result
     }
   }
 
@@ -279,6 +302,10 @@ export async function getOperationalEvacuationOverview(
   }
 }
 
+// Live routing via OpenRouteService directions API.
+// Queries the nearest 3 shelters from the DB using PostGIS <-> (KNN) ordering,
+// then calls the ORS /directions/driving-car endpoint for each with hazard
+// avoidance polygons attached. Routes that fail individually are skipped silently.
 async function calculateWithORS(
   startLat: number,
   startLng: number,
@@ -297,7 +324,7 @@ async function calculateWithORS(
     WHERE is_active = true
     ORDER BY coordinates <-> ST_SetSRID(ST_MakePoint($1, $2), 4326)
     LIMIT 3
-  `, [startLng, startLat]).catch(() => ({ rows: [] }))
+  `, [startLng, startLat]).catch(() => ({ rows: [] })) // PostGIS KNN operator: returns closest shelter first
 
   const routes: EvacuationRoute[] = []
 
@@ -363,6 +390,9 @@ async function calculateWithORS(
   }
 }
 
+// Fetch recent high-risk incident reports within 10km and convert to ORS avoidance polygons.
+// Also merges any explicit liveClosures passed in by the caller (e.g. from emergency command).
+// Returns both the GeoJSON MultiPolygon (for ORS) and raw hazard signals (for route ranking).
 async function buildDynamicAvoidPolygons(
   lat: number,
   lng: number,
@@ -378,7 +408,7 @@ async function buildDynamicAvoidPolygons(
        WHERE coordinates IS NOT NULL
          AND deleted_at IS NULL
          AND status NOT IN ('resolved', 'archived', 'false_report')
-         AND created_at >= NOW() - INTERVAL '4 hours'
+         AND created_at >= NOW() - INTERVAL '4 hours'  -- only fresh signals inform route decisions
          AND ST_DWithin(coordinates, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography, 10000)
          AND (severity IN ('high', 'critical') OR COALESCE(ai_confidence, 0) >= 70)
        LIMIT 20`,
@@ -485,6 +515,10 @@ function getFallbackRoutes(
   }
 }
 
+// Core route ranking function.
+// For each route: projects all route geometry points against all hazard signals,
+// computes a weighted risk score, then blends it with a normalized time score
+// using the optimizeFor profile weights.
 function rankEvacuationRoutes(
   routes: EvacuationRoute[],
   hazards: RouteHazardSignal[],
@@ -492,12 +526,13 @@ function rankEvacuationRoutes(
 ): EvacuationRoute[] {
   if (!routes.length) return []
 
+  // Build the time/risk weight profile from the optimise strategy
   const optimizeFor = options?.optimizeFor || 'balanced'
   const profile = optimizeFor === 'safest'
-    ? { timeWeight: 0.25, riskWeight: 0.75 }
+    ? { timeWeight: 0.25, riskWeight: 0.75 } // prioritise avoiding hazards
     : optimizeFor === 'fastest'
-      ? { timeWeight: 0.75, riskWeight: 0.25 }
-      : { timeWeight: 0.5, riskWeight: 0.5 }
+      ? { timeWeight: 0.75, riskWeight: 0.25 } // prioritise getting there quickly
+      : { timeWeight: 0.5, riskWeight: 0.5 }   // equal balance (default)
 
   const longestDuration = Math.max(...routes.map((r) => r.durationMinutes || 1), 1)
 
@@ -518,6 +553,9 @@ function rankEvacuationRoutes(
 
       minDistance = Math.min(minDistance, nearest)
 
+      // Proximity tiers: closer = higher risk contribution.
+      // 50m = direct overlap (1.0); 150m = possible conflict (0.7);
+      // 300m = nearby threat (0.45); 600m = marginal (0.2); >600m = ignored.
       const proximityRisk = nearest <= 50
         ? 1.0
         : nearest <= 150
@@ -545,9 +583,12 @@ function rankEvacuationRoutes(
       weightedHazard += proximityRisk * severityWeight * h.confidence
     }
 
+    // Normalize risk over hazard count so one very risky point doesn't dominate a many-hazard scenario
     const hazardDenominator = Math.max(1, hazards.length)
     const riskScore = Number(Math.min(1, weightedHazard / hazardDenominator).toFixed(3))
+    // timeScore: 0 = slowest route, 1 = fastest (normalized to worst in set)
     const timeScore = 1 - Math.min(1, (route.durationMinutes || longestDuration) / longestDuration)
+    // recommendationScore: weighted blend of speed and safety — higher = better
     const recommendationScore = Number((
       timeScore * profile.timeWeight + (1 - riskScore) * profile.riskWeight
     ).toFixed(3))
@@ -600,6 +641,9 @@ function extractRoutePoints(geometry: any): Array<{ lat: number; lng: number }> 
     .filter((p: any) => Number.isFinite(p.lat) && Number.isFinite(p.lng))
 }
 
+// Check each consecutive pair of route points against all hazards.
+// A segment is blocked if any point in the pair is within the severity threshold distance.
+// Critical hazards block at 220m, high at 170m, others at 120m.
 function computeBlockedSegments(
   points: Array<{ lat: number; lng: number }>,
   hazards: RouteHazardSignal[],
@@ -637,6 +681,8 @@ function computeBlockedSegments(
   return segments.slice(0, 8)
 }
 
+// Severity weight: scales a hazard's contribution to risk score.
+// Critical incidents get full weight (1.0); low-severity get 0.35.
 function hazardSeverityWeight(severity: string): number {
   const s = String(severity || 'medium').toLowerCase()
   if (s === 'critical') return 1.0
@@ -645,6 +691,9 @@ function hazardSeverityWeight(severity: string): number {
   return 0.55
 }
 
+// Local copy of Haversine formula (mirrors incidentIntelligenceCore.haversineMeters).
+// Returns straight-line distance in metres between two lat/lng points.
+// Uses Earth radius 6371000m; accurate to ~0.3% for distances under 200km.
 function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const toRad = (v: number): number => (v * Math.PI) / 180
   const earthRadiusM = 6371000
@@ -660,9 +709,10 @@ function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number)
   return earthRadiusM * c
 }
 
- /*
+ /**
  * Get all pre-calculated evacuation routes for the active region.
-  */
+ * Called by both fallback routing and the operational overview endpoint.
+ */
 export function getPreCalculatedRoutes(): EvacuationRoute[] {
   return [...ABERDEEN_ROUTES, ...EDINBURGH_ROUTES, ...GLASGOW_ROUTES, ...DUNDEE_ROUTES]
 }

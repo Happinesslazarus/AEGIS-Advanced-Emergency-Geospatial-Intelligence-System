@@ -1,7 +1,14 @@
-﻿/**
- * worldRegions.ts — Comprehensive world region/country data for AEGIS LocationDropdown.
- * Grouped by continent with ISO 3166-1 alpha-2 codes for flag rendering via flagcdn.com.
- * Only locations that exist in LocationContext have `locationKey` set; others are display-only.
+/**
+ * File: worldRegions.ts
+  *
+  * What this file does:
+  * Global region and country lookup table used in the Setup Wizard
+  * and admin localisation settings. Maps ISO codes to display labels
+  * and flag emojis for a consistent region picker across the UI.
+  *
+  * How it connects:
+  * - Used by client/src/pages/SetupWizard.tsx region selection step
+  * - Used by admin locale settings panel
  */
 
 export interface RegionEntry {
@@ -304,7 +311,7 @@ export const WORLD_REGIONS: RegionGroup[] = [
   },
 ]
 
- /**
+/**
  * COUNTRY_DATA — center coordinates + zoom for every country.
  * Used by LocationContext to dynamically generate LocationConfig for any ISO code.
  */

@@ -1,3 +1,17 @@
+/**
+ * File: globalFloodData.ts
+  *
+  * What this file does:
+  * Hard-coded global flood hotspot data: major at-risk cities,
+  * significant rivers, and historical flood zones. Powers the worldwide
+  * map overlay in LiveMap.tsx and Map3DView.tsx when the user zooms out.
+  *
+  * How it connects:
+  * - Used by client/src/components/LiveMap.tsx for global flood overlay
+  * - Used by client/src/components/Map3DView.tsx for 3D globe risk zones
+  * - Static data — not fetched from the server
+ */
+
 // GLOBAL FLOOD & HAZARD DATA — Worldwide flood hotspots, rivers, risk zones
 // Used by both 2D LiveMap and 3D Map3DView for global visualization
 

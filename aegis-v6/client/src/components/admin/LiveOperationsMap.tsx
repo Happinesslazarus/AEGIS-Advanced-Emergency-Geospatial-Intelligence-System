@@ -1,18 +1,12 @@
-﻿ /*
- * LiveOperationsMap.tsx — Professional Tactical COP (Common Operating Picture)
- * Modeled after FEMA WebEOC COP, UK Resilience Direct, Zetron ICS map,
- * Palantir Gotham Geo, ESRi ArcGIS Operations Dashboard. Features:
- * Live mission clock with ZULU/local time
- * Mouse coordinate readout (lat/lon)
- * Incident marker legend with severity/status color key
- * Quick-filter incident type icon bar
- * Report density indicator badge
- * Bottom SCADA-style status bar (connection, layers, data freshness, zoom)
- * Tactical toolbar (measure, screenshot, heatmap toggle)
- * All existing panels: Intel, Rivers, Distress, Flood Layers, Prediction Timeline
-  */
+/**
+ * Module: LiveOperationsMap.tsx
+ *
+ * Live operations map (real-time geospatial situational awareness).
+ *
+ * How it connects:
+ * - Rendered inside AdminPage.tsx based on active view */
 
-import React, { useState, useCallback, useEffect, useRef, useMemo, lazy, Suspense } from 'react'
+import React, { useState, useCallback, useEffect, useRef, useMemo, lazy, Suspense, memo } from 'react'
 import {
   Map, Brain, Layers, Maximize2, Minimize2, X, MapPin, Crosshair,
   Clock, Wifi, WifiOff, Radio, Thermometer, Eye, EyeOff,
@@ -65,7 +59,7 @@ const INCIDENT_TYPE_FILTERS = [
   { key: 'medical', labelKey: 'admin.filters.type.medical', icon: HeartPulse, color: 'text-rose-500' },
 ] as const
 
-export default function LiveOperationsMap(props: LiveOperationsMapProps) {
+const LiveOperationsMap = memo(function LiveOperationsMap(props: LiveOperationsMapProps) {
   const lang = useLanguage()
   const {
     filtered, reports, loc,
@@ -303,7 +297,7 @@ export default function LiveOperationsMap(props: LiveOperationsMapProps) {
   return (
     <div
       ref={mapContainerRef}
-      className={`animate-fade-in bg-gray-950 overflow-hidden isolate ${isFullscreen ? 'fixed inset-0 z-[9999] w-screen h-screen' : 'rounded-xl ring-1 ring-gray-200 dark:ring-gray-800 shadow-lg'}`}
+      className={`animate-fade-in bg-gray-950 overflow-hidden isolate ${isFullscreen ? 'fixed inset-0 z-[9999] w-screen h-screen' : 'rounded-xl ring-1 ring-gray-200 dark:ring-gray-800 shadow-lg relative z-0'}`}
     >
 
       {/*
@@ -482,7 +476,7 @@ export default function LiveOperationsMap(props: LiveOperationsMapProps) {
       </div>
 
       {/*
-          MAP AREA
+          // MAP AREA
            */}
       <div className={`relative ${isFullscreen ? 'h-[calc(100vh-92px)]' : 'h-[calc(100vh-13rem)]'}`}>
 
@@ -711,10 +705,14 @@ export default function LiveOperationsMap(props: LiveOperationsMapProps) {
           <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white text-[8px]">Ctrl+S</kbd> {t('liveOps.screenshot', lang)}</span>
           <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white text-[8px]">Ctrl+D</kbd> {t('common.export', lang)}</span>
           <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">?</kbd> {t('liveOps.toggleHelp', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">Esc</kbd> {t('common.close', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">{t('common.esc', lang)}</kbd> {t('common.close', lang)}</span>
         </div>
       )}
     </div>
   )
-}
+})
+
+LiveOperationsMap.displayName = 'LiveOperationsMap'
+
+export default LiveOperationsMap
 

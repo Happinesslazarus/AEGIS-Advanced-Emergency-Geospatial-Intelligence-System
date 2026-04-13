@@ -1,3 +1,15 @@
+/**
+ * File: AccessibilityPage.tsx
+ *
+ * What this file does:
+ * Describes AEGIS's accessibility features and WCAG compliance statement.
+ * Provides contact information for accessibility feedback. Static page.
+ *
+ * How it connects:
+ * - Routed by client/src/App.tsx at /accessibility
+ * - Linked from the footer across all pages
+ */
+
 import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Shield, ChevronDown, ChevronUp, Accessibility, Eye, Keyboard, Monitor, MousePointer, Languages, Ear, CheckCircle2, ArrowLeft, Smartphone } from 'lucide-react'
@@ -189,4 +201,4 @@ export default function AccessibilityPage(): JSX.Element {
     </div>
   )
 }
-
+

@@ -3,13 +3,43 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="AEGIS - Advanced Emergency Geospatial Intelligence System" />
+    <meta name="description" content="AEGIS - Advanced Emergency Geospatial Intelligence System. Real-time disaster alerts, incident reporting, and community safety tools for citizens and emergency managers." />
+    <meta name="keywords" content="emergency management, disaster response, flood alerts, safety, AEGIS" />
+    <meta name="author" content="AEGIS Emergency Management" />
+    <meta name="robots" content="index, follow" />
     <meta name="google" content="translate" />
     <meta name="theme-color" content="#1e6b4e" />
-    <link rel="manifest" href="/manifest.json" />
-    <title>AEGIS | Emergency Response System</title>
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="AEGIS Emergency Management Platform" />
+    <meta property="og:description" content="Real-time disaster alerts, incident reporting, and community safety tools." />
+    <meta property="og:image" content="/og-image.png" />
+    <meta property="og:url" content="https://aegis-platform.org" />
+    <meta property="og:site_name" content="AEGIS" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="AEGIS Emergency Management Platform" />
+    <meta name="twitter:description" content="Real-time disaster alerts, incident reporting, and community safety tools." />
+    <meta name="twitter:image" content="/og-image.png" />
+    
+    <!-- Preconnect hints for critical third-party origins -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://unpkg.com" crossorigin />
+    <link rel="preconnect" href="https://flagcdn.com" crossorigin />
+    <link rel="preconnect" href="https://api.mapbox.com" crossorigin />
+    <link rel="preconnect" href="https://tiles.stadiamaps.com" crossorigin />
+    
+    <!-- DNS prefetch for less critical but commonly used origins -->
+    <link rel="dns-prefetch" href="https://api.openweathermap.org" />
+    <link rel="dns-prefetch" href="https://environment.data.gov.uk" />
+    <link rel="dns-prefetch" href="https://sepa.org.uk" />
+    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
+    
+    <link rel="manifest" href="/manifest.json" />
+    <title>AEGIS | Emergency Response System</title>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     <link rel="icon" href="/favicon.svg" />

@@ -1,11 +1,11 @@
 /**
- * adapters/riverData/SEPAAdapter.ts — Scottish Environment Protection Agency adapter
+ * Module: SEPAAdapter.ts
  *
- * Fetches live river level data from the SEPA KiWIS time-series API.
- * This is a public API requiring no authentication key.
+ * S e p a adapter server module.
  *
- * API: https://timeseries.sepa.org.uk/KiWIS/KiWIS
- * Documentation: https://timeseries.sepa.org.uk/KiWIS/KiWIS?service=kisters&type=queryServices&request=getrequestinfo
+ * How it connects:
+ * - Used by services for external data fetching
+ *
  */
 
 import type { RiverDataAdapter, RiverReading, RiverHistory } from './RiverDataAdapter.js'
@@ -177,4 +177,4 @@ export class SEPAAdapter implements RiverDataAdapter {
       .filter((r): r is RiverReading => r !== null)
   }
 }
-
+

@@ -1,9 +1,13 @@
 /**
- * incidents/flood/index.ts — Flood incident module (Tier 3: ML)
+ * Module: index.ts
  *
- * Fully operational incident with ML prediction via the AI engine,
- * river gauge data ingestion, evacuation route calculation, and
- * real-time WMS map layers.
+ * River and surface water flooding incident module (handles flood specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for flood events.
  */
 
 import { Request, Response } from 'express'
@@ -47,7 +51,7 @@ class FloodModule extends BaseIncidentModule {
         const assessment = await calculateThreatLevel()
         res.json({ incidentType: 'flood', ...assessment })
       } catch (err: any) {
-        res.status(500).json({ error: 'Failed to assess flood threat', details: err.message })
+        res.status(500).json({ error: 'Could not assess flood threat at this time. Please try again.' })
       }
     })
 
@@ -65,7 +69,7 @@ class FloodModule extends BaseIncidentModule {
         )
         res.json(result)
       } catch (err: any) {
-        res.status(500).json({ error: 'Failed to calculate evacuation routes', details: err.message })
+        res.status(500).json({ error: 'Could not calculate evacuation routes. Please try again shortly.' })
       }
     })
 
@@ -101,7 +105,7 @@ class FloodModule extends BaseIncidentModule {
         }
         res.status(404).json({ error: 'Flood extent data not found' })
       } catch (err: any) {
-        res.status(500).json({ error: 'Failed to load flood extent' })
+        res.status(500).json({ error: 'Could not load flood extent map. Please try again.' })
       }
     })
   }

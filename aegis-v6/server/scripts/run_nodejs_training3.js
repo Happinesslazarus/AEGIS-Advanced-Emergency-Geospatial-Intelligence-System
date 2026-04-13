@@ -11,7 +11,7 @@ try {
 
 const pool = new Pool({
   host: 'localhost', port: 5432, database: 'aegis',
-  user: 'postgres', password: 'Happylove@!'
+  user: 'postgres', password: process.env.DB_PASSWORD
 });
 
 function httpReq(method, path, body, token) {

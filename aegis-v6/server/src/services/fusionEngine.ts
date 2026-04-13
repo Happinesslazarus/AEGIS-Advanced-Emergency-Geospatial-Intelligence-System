@@ -1,26 +1,18 @@
-﻿ /*
- * services/fusionEngine.ts — Multi-Source Data Fusion Algorithm
- * Features #16-25: Fuses 10 real-time data sources into a single
- * flood probability score using weighted ensemble.
- * Inputs:
- *   16. Water Level (EA / Open-Meteo Flood)
- *   17. Rainfall 24h (Open-Meteo / OpenWeatherMap)
- *   18. River Gauge Delta (rate of change)
- *   19. Soil Saturation (proxy from rainfall history)
- *   20. NLP Citizen Report Analysis (aggregated recent reports)
- *   21. Historical Match / Fingerprinting
- *   22. Terrain Analysis (elevation-based risk)
- *   23. Photo CNN Analysis (water detection from uploaded images)
- *   24. Seasonal Weighting (time-of-year risk modifier)
- *   25. Urban Density Weighting (population exposure)
- * Output:
- * Fused probability (0-1)
- * Confidence score (0-100)
- * Per-feature contributions (XAI)
- * Time-to-flood estimate
- * Contributing factor breakdown
- * This is the ML prediction layer — it NEVER uses an LLM.
-  */
+/**
+ * File: fusionEngine.ts
+ *
+ * Multi-source data fusion engine — normalises and combines 10 real-time data
+ * sources (water level, rainfall, soil moisture, citizen NLP, photos, satellite,
+ * etc.) into a single flood probability score with confidence and risk level.
+ *
+ * How it connects:
+ * - Reads live data from DB, weather APIs (Open-Meteo), and region config
+ * - Consumed by floodFingerprinting for pattern matching
+ * - Uses evidence-based feature weights for ensemble scoring
+ *
+ * Simple explanation:
+ * Merges weather, sensor, and report data into one number that says how likely a flood is.
+ */
 
 import pool from '../models/db.js'
 import { devLog } from '../utils/logger.js'
@@ -28,7 +20,7 @@ import { getActiveCityRegion } from '../config/regions/index.js'
 import { OpenMeteoAdapter } from '../adapters/riverData/OpenMeteoAdapter.js'
 import { logger } from './logger.js'
 
-// —1  TYPES
+// -1  TYPES
 
 export interface FusionInput {
   regionId: string
@@ -76,23 +68,23 @@ export interface FusionResult {
   computationTimeMs: number
 }
 
-// —2  FEATURE WEIGHTS (loaded from training pipeline, with evidence-based defaults)
+// -2  FEATURE WEIGHTS (loaded from training pipeline, with evidence-based defaults)
 
 /* Evidence-based defaults from UK flood research (used until model trains) */
 const EVIDENCE_BASED_DEFAULTS: Record<string, number> = {
-  water_level: 0.18,       // #16 — highest individual importance
+  water_level: 0.18,       // #16 - highest individual importance
   rainfall_24h: 0.16,      // #17
-  gauge_delta: 0.14,       // #18 — rate of change is critical
+  gauge_delta: 0.14,       // #18 - rate of change is critical
   soil_saturation: 0.12,   // #19
-  citizen_nlp: 0.15,       // #20 — real-time human intelligence (increased from 0.10)
+  citizen_nlp: 0.15,       // #20 - real-time human intelligence (increased from 0.10)
   historical_match: 0.09,  // #21
   terrain: 0.07,           // #22
   photo_cnn: 0.05,         // #23
-  seasonal: 0.04,          // #24 — reduced from 0.05 (passive signal)
-  urban_density: 0.04,     // #25 — reduced from 0.06 (static signal)
+  seasonal: 0.04,          // #24 - reduced from 0.05 (passive signal)
+  urban_density: 0.04,     // #25 - reduced from 0.06 (static signal)
 }
 
-/* Cached learned weights — refreshed from DB every 5 minutes */
+/* Cached learned weights - refreshed from DB every 5 minutes */
 let _cachedWeights: Record<string, number> | null = null
 let _weightsCacheTime = 0
 const WEIGHTS_CACHE_TTL = 5 * 60 * 1000 // 5 minutes
@@ -262,7 +254,7 @@ async function getLearnedWeights(): Promise<Record<string, number>> {
       }
     }
   } catch {
-    // DB error — use defaults
+    // DB error - use defaults
   }
 
   const defaults: Record<string, number> = { ...EVIDENCE_BASED_DEFAULTS }
@@ -272,9 +264,9 @@ async function getLearnedWeights(): Promise<Record<string, number>> {
   return _cachedWeights
 }
 
-// —3  INDIVIDUAL FEATURE NORMALISATION FUNCTIONS
+// -3  INDIVIDUAL FEATURE NORMALISATION FUNCTIONS
 
-/* #16: Water Level — normalise gauge reading to risk (0-1) */
+/* #16: Water Level - normalise gauge reading to risk (0-1) */
 function normaliseWaterLevel(levelM: number, thresholdM: number): number {
   // Hydrological risk mapping: risk increases non-linearly as level approaches threshold
   // Based on flood frequency analysis where threshold = ~Q10 event level
@@ -283,12 +275,12 @@ function normaliseWaterLevel(levelM: number, thresholdM: number): number {
   if (ratio < 0.6) return (ratio - 0.3) * 0.167          // Low risk zone (0 ? 0.05)
   if (ratio < 0.8) return 0.05 + (ratio - 0.6) * 0.75    // Moderate (0.05 ? 0.20)
   if (ratio < 0.95) return 0.20 + (ratio - 0.8) * 2.0    // Elevated (0.20 ? 0.50)
-  if (ratio < 1.0) return 0.50 + (ratio - 0.95) * 6.0    // High — sharp ramp near threshold (0.50 ? 0.80)
+  if (ratio < 1.0) return 0.50 + (ratio - 0.95) * 6.0    // High - sharp ramp near threshold (0.50 ? 0.80)
   // Above threshold: rapid convergence to 1.0
   return Math.min(1.0, 0.80 + (ratio - 1.0) * 2.0)       // (0.80 ? 1.0)
 }
 
-/* #17: Rainfall 24h — mm to risk score */
+/* #17: Rainfall 24h - mm to risk score */
 function normaliseRainfall(mm: number): number {
   // UK rainfall return periods (approximate, England/Wales averages):
   // Daily totals: 10mm = common, 25mm = notable, 50mm = Q5, 80mm = Q10, 120mm = Q50, 150mm+ = Q100
@@ -308,7 +300,7 @@ function blendRainfallWithNowcast(mm24h: number, forecast6h: number | undefined)
   return Number((mm24h + Math.min(40, forecast6h * 0.65)).toFixed(2))
 }
 
-/* #18: Gauge Delta — rate of change to risk */
+/* #18: Gauge Delta - rate of change to risk */
 function normaliseGaugeDelta(readings: Array<{ value: number; timestamp: Date }>): {
   normalised: number; deltaPerHour: number
 } {
@@ -338,13 +330,13 @@ function normaliseGaugeDelta(readings: Array<{ value: number; timestamp: Date }>
   return { normalised: Math.min(1.0, 0.75 + deltaPerHour), deltaPerHour }
 }
 
-/* #19: Soil Saturation — direct 0-1 mapping */
+/* #19: Soil Saturation - direct 0-1 mapping */
 function normaliseSoilSaturation(
   saturation: number | undefined | null,
   satelliteExtentRatio?: number,
 ): number {
   if (saturation === undefined || saturation === null) {
-    // Unknown soil saturation — estimate from seasonal baseline
+    // Unknown soil saturation - estimate from seasonal baseline
     // UK average soil moisture: ~0.6 in winter, ~0.3 in summer
     const month = new Date().getMonth() // 0-11
     const seasonalBaseline = month >= 3 && month <= 8 ? 0.3 : 0.55  // Summer vs winter
@@ -357,7 +349,7 @@ function normaliseSoilSaturation(
   return Math.min(1.0, Number((base + satBoost).toFixed(3)))
 }
 
-/* #20: Citizen NLP — aggregate recent report urgency */
+/* #20: Citizen NLP - aggregate recent report urgency */
 function normaliseCitizenReports(
   reports: Array<{ description: string; severity: string; confidence: number; createdAt: Date }> | undefined,
 ): number {
@@ -380,12 +372,12 @@ function normaliseCitizenReports(
     score += recencyWeight * severityWeight * confidenceWeight
   }
 
-  // Normalise by report count — more reports = higher confidence
+  // Normalise by report count - more reports = higher confidence
   const countBoost = Math.min(1.0, reports.length / 10)
   return Math.min(1.0, (score / Math.max(1, reports.length)) * 0.7 + countBoost * 0.3)
 }
 
-/* #21: Historical Match — best cosine similarity with recency decay */
+/* #21: Historical Match - best cosine similarity with recency decay */
 function normaliseHistoricalMatch(
   events: Array<{ featureVector?: any; eventName?: string; similarity?: number; eventDate?: Date }> | undefined,
 ): number {
@@ -405,7 +397,7 @@ function normaliseHistoricalMatch(
   return Math.min(1.0, bestScore)
 }
 
-/* #22: Terrain — elevation + slope risk */
+/* #22: Terrain - elevation + slope risk */
 function normaliseTerrain(elevationM: number | undefined, slopePercent: number | undefined): number {
   if (elevationM === undefined) return 0.5 // Unknown
 
@@ -426,7 +418,7 @@ function normaliseTerrain(elevationM: number | undefined, slopePercent: number |
   return elevRisk * 0.7 + slopeRisk * 0.3
 }
 
-/* #23: Photo CNN — aggregate water detection from uploaded images */
+/* #23: Photo CNN - aggregate water detection from uploaded images */
 function normalisePhotoCnn(
   scores: Array<{ waterConfidence: number; disasterConfidence: number }> | undefined,
   satelliteExtentRatio?: number,
@@ -441,7 +433,7 @@ function normalisePhotoCnn(
   return Math.min(1.0, Number((base * 0.75 + satelliteExtentRatio * 0.25).toFixed(3)))
 }
 
-/* #24: Seasonal Weighting — UK flood season risk */
+/* #24: Seasonal Weighting - UK flood season risk */
 function normaliseSeasonal(month: number | undefined): number {
   // UK flood season: October-March (higher risk)
   // month 1-12
@@ -453,14 +445,14 @@ function normaliseSeasonal(month: number | undefined): number {
   return seasonalRisk[m] || 0.5
 }
 
-/* #25: Urban Density — population exposure risk */
+/* #25: Urban Density - population exposure risk */
 function normaliseUrbanDensity(ratio: number | undefined): number {
   if (ratio === undefined) return 0.5
   // Higher density = more people at risk = higher priority
   return Math.min(1.0, Math.max(0, ratio))
 }
 
-// —4  MAIN FUSION FUNCTION
+// -4  MAIN FUSION FUNCTION
 
  /*
  * Run the multi-source fusion algorithm.
@@ -672,7 +664,7 @@ export async function runFusion(input: FusionInput): Promise<FusionResult> {
   return result
 }
 
-// —5  LIVE DATA FETCHERS
+// -5  LIVE DATA FETCHERS
 
  /*
  * Fetch all available live data for a region and return a FusionInput.
@@ -746,14 +738,14 @@ export async function gatherFusionData(
     input.satelliteWaterExtentRatio = satelliteSignal.value
   }
 
-  // Terrain — approximate from location
+  // Terrain - approximate from location
   input.elevationM = estimateElevation(latitude, longitude)
   input.urbanDensityRatio = estimateUrbanDensity(latitude, longitude)
 
   return input
 }
 
-// —6  DATA SOURCE IMPLEMENTATIONS
+// -6  DATA SOURCE IMPLEMENTATIONS
 
 /* Fetch river gauge data from SEPA/EA API */
 async function fetchGaugeData(lat: number, lng: number): Promise<{
@@ -1098,9 +1090,9 @@ function estimateUrbanDensity(lat: number, lng: number): number {
   return 0.10                             // Rural
 }
 
-// —7  BAYESIAN FUSION
+// -7  BAYESIAN FUSION
 
- /**
+/**
  * Fuse features using Bayes' theorem.
  * Treats each feature's normalised value as P(evidence_i | flood) and computes
  * the posterior P(flood | all evidence) with a configurable prior (default 5%).
@@ -1111,7 +1103,7 @@ export function fuseBayesian(features: FusionFeature[], prior = 0.05): number {
 
   // P(flood | evidence) ? P(flood) * ? P(e_i | flood)
   // P(no flood | evidence) ? P(no flood) * ? P(e_i | no flood)
-  // Where P(e_i | flood) — feature.normalised, P(e_i | no flood) — 1 - feature.normalised
+  // Where P(e_i | flood) - feature.normalised, P(e_i | no flood) - 1 - feature.normalised
   let logLikelihoodFlood = Math.log(prior)
   let logLikelihoodNoFlood = Math.log(1 - prior)
 
@@ -1133,9 +1125,9 @@ export function fuseBayesian(features: FusionFeature[], prior = 0.05): number {
   return Math.max(0, Math.min(1, Number(posterior.toFixed(6))))
 }
 
-// —8  MAX-POOLING FUSION (CONSERVATIVE)
+// -8  MAX-POOLING FUSION (CONSERVATIVE)
 
- /**
+/**
  * Conservative fusion strategy: return the single highest weighted feature
  * contribution. Any single strong signal triggers high risk.
  */
@@ -1150,16 +1142,16 @@ export function fuseMaxPooling(features: FusionFeature[]): number {
     }
   }
 
-  // Scale to [0, 1] — the max single contribution from a perfectly weighted
+  // Scale to [0, 1] - the max single contribution from a perfectly weighted
   // feature is its weight (when normalised=1). Normalise by the max possible
   // weight so the result spans the full range.
   const maxWeight = Math.max(...features.map(f => f.weight), 0.01)
   return Math.min(1.0, maxContribution / maxWeight)
 }
 
-// —9  MAJORITY VOTING
+// -9  MAJORITY VOTING
 
- /**
+/**
  * Count how many features exceed a threshold and derive a probability from
  * the proportion of "votes" for high risk. Also returns agreement ratio.
  */
@@ -1178,9 +1170,9 @@ export function fuseMajorityVoting(
   }
 }
 
-// —10  TEMPORAL FUSION
+// -10  TEMPORAL FUSION
 
- /**
+/**
  * Query recent fusion computations for a region and compute an exponentially
  * weighted moving average, trend direction, and volatility.
  */
@@ -1259,9 +1251,9 @@ export async function fuseTemporalSequence(
   }
 }
 
-// —11  UNCERTAINTY QUANTIFICATION
+// -11  UNCERTAINTY QUANTIFICATION
 
- /**
+/**
  * Compute a 90% confidence interval around the fused probability, accounting
  * for the number of available features, their agreement, and missing data.
  */
@@ -1312,7 +1304,7 @@ export function quantifyUncertainty(
   }
 }
 
-// —12  FEATURE INTERACTION DETECTION
+// -12  FEATURE INTERACTION DETECTION
 
 /* Interaction rule definition */
 interface InteractionRule {
@@ -1329,7 +1321,7 @@ const INTERACTION_RULES: InteractionRule[] = [
   { featureNames: ['Photo CNN', 'Citizen Report NLP'], condition: 'both_low', type: 'dampening', factor: 0.85 },
 ]
 
- /**
+/**
  * Detect multiplicative interactions between features and adjust probability.
  * Returns detected interactions and the adjusted probability (capped at 0.99).
  */
@@ -1379,9 +1371,9 @@ export function detectFeatureInteractions(
   }
 }
 
-// —13  MULTI-HAZARD FUSION PROFILES
+// -13  MULTI-HAZARD FUSION PROFILES
 
- /**
+/**
  * Weight profiles for non-flood hazard types. Each profile maps feature
  * names to importance weights (summing to ~1). Used to re-weight the fusion
  * engine for different hazard predictions.
@@ -1437,7 +1429,7 @@ const DEFAULT_HAZARD_PROFILE: Record<string, number> = {
   seasonal: 0.05,
 }
 
- /**
+/**
  * Return the weight profile for a given hazard type.
  * Falls back to a balanced default if the hazard has no specific profile.
  */

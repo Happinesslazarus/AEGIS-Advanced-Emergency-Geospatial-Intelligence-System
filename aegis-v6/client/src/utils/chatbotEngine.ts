@@ -1,7 +1,49 @@
+/**
+ * File: chatbotEngine.ts
+ *
+ * Client-side emergency guidance chatbot engine.
+ * Classifies an incoming plain-text message into one of 30+ intents using a
+ * fast keyword-matching algorithm, then returns a pre-written Markdown response.
+ * No server call or ML model is needed — the whole engine runs in the browser.
+ *
+ * Glossary:
+ *   Intent         = the recognised purpose of the user's message
+ *                    (e.g. I.FLOOD = the user is asking about flooding)
+ *   KW[]           = keyword-to-intent mapping array; each entry has a list of
+ *                    trigger keywords and the intent they map to
+ *   R              = response table: a Record mapping each intent to a Markdown string
+ *   detect()       = private function that scores each intent and returns the best match
+ *   conf           = confidence score (0.0 to 1.0); higher means the engine is more
+ *                    certain about the intent; used by the UI to decide how to present
+ *                    the response
+ *   ChatResponse   = { text: string, intent: string, confidence: number };
+ *                    defined in client/src/types
+ *   I.UNK          = 'unknown' intent: fallback when no keywords match
+ *   generateChatResponse = public entry point: detects intent and returns response
+ *   getSuggestions = returns locale-aware suggested starter questions for the chat UI
+ *
+ * Algorithm (detect):
+ *   1. Lowercase the input message
+ *   2. For each KW entry, sum scores for matching keywords:
+ *      score += (number of words in keyword) × (2 if keyword length > 5, else 1)
+ *      (longer, more specific keywords are weighted higher)
+ *   3. Return the intent with the highest score  
+ *   4. If no keyword matched, return I.UNK with a low confidence (0.15)
+ *
+ * How it connects:
+ * - Called from client/src/components/Chatbot.tsx on user message submit
+ * - ChatResponse type defined in client/src/types/index.ts
+ */
+
 import type { ChatResponse } from '../types'
 
+// Intent type is just a string; using a named type makes function signatures clearer
 type Intent = string
 
+// ---------------------------------------------------------------------------
+// Intent constants — short alias keys used throughout this module
+// All values are lowercase strings (used as keys in KW and R below)
+// ---------------------------------------------------------------------------
 const I = {
   GREET: 'greet', FLOOD: 'flood', QUAKE: 'quake', FIRE: 'fire', STORM: 'storm',
   EVAC: 'evac', AID: 'aid', CONTACTS: 'contacts', REPORT: 'report',
@@ -15,6 +57,11 @@ const I = {
   THANKS: 'thanks', UNK: 'unknown',
 } as const
 
+// ---------------------------------------------------------------------------
+// Keyword → intent mapping
+// Each entry contains keywords (including multilingual synonyms) that map to
+// one intent.  Longer keywords in multi-word phrases score higher in detect().
+// ---------------------------------------------------------------------------
 const KW: { kw: string[]; i: Intent }[] = [
   { kw: ['hello','hi','hey','help','hola','bonjour','مرحبا','你好','नमस्ते','olá','cześć','السلام علیکم','good morning','good evening'], i: I.GREET },
   { kw: ['flood','flooding','water rising','water level','submerged','inundación','inondation','فيضان','洪水','बाढ़','enchente','powódź','سیلاب','river burst','dam'], i: I.FLOOD },
@@ -51,7 +98,13 @@ const KW: { kw: string[]; i: Intent }[] = [
   { kw: ['thank','thanks','cheers','appreciate','helpful','great'], i: I.THANKS },
 ]
 
+// ---------------------------------------------------------------------------
+// Response templates — one Markdown string per intent
+// Rendered inside Chatbot.tsx using react-markdown.
+// Keep entries informative but concise; use **bold** for critical actions.
+// ---------------------------------------------------------------------------
 const R: Record<Intent, string> = {
+  
   [I.GREET]: "Hello! I'm the AEGIS Emergency AI Assistant. I provide guidance for **all disaster types** and in **multiple languages** — ask in yours.\n\nI can help with:\n• **Safety guidance** — floods, earthquakes, fires, storms, tsunamis & more\n• **Evacuation** routes, shelters, supplies\n• **Emergency contacts** worldwide\n• **Mental health** support — if you're struggling\n• **How to report** an incident\n\nWhat do you need?",
   [I.FLOOD]: "**Flood Safety**\n\n**Water rising NOW:**\n• Move to higher ground immediately\n• **Never** walk/drive through flood water (15cm knocks you down, 60cm floats a car)\n• Turn off gas, electricity, water at mains\n• Keep phone charged\n\n**If trapped upstairs:**\n• Call 999\n• Signal from window with bright fabric or torch\n• Report via AEGIS so responders know your location\n\n**If in water:**\n• Float on back, feet downstream\n• Grab something that floats\n• Don't fight the current\n\n**Warning:** Flood water contains sewage and chemicals — avoid all contact.",
   [I.QUAKE]: "**Earthquake — DROP, COVER, HOLD ON**\n\n• **DROP** to hands and knees\n• **COVER** your head under sturdy furniture\n• **HOLD ON** until shaking stops completely\n\n**Indoors:** Stay inside. Don't run out. Away from windows and heavy objects.\n**Outdoors:** Open area, away from buildings, power lines, overpasses.\n**In bed:** Stay, protect head with pillow.\n**Driving:** Pull over, avoid bridges. Stay in vehicle.\n\n**After shaking:**\n• Expect aftershocks\n• Check for gas leaks (smell/hissing — leave if detected)\n• Use stairs, never lifts\n• Check on neighbours",
@@ -88,22 +141,46 @@ const R: Record<Intent, string> = {
   [I.UNK]: "I can help with:\n\n• **Any disaster** — flood, earthquake, fire, storm, tsunami, volcano, landslide, heatwave, drought, nuclear, pandemic\n• **Evacuation, shelter, supplies**\n• **Emergency contacts** (UK, US, EU, Australia, India)\n• **Mental health** support\n• **First aid** basics\n• **How to report** incidents\n\nI understand **multiple languages** — ask in yours!\n\nTry: \"What do I do in a flood?\", \"Heatwave safety\", \"Drought water tips\", or \"emergency numbers\"",
 }
 
+// ---------------------------------------------------------------------------
+// Intent detection (private)
+// ---------------------------------------------------------------------------
+
+/**
+ * Scores each KW entry against the lowercased input and returns the
+ * best-matching intent and a 0–1 confidence value.
+ * Confidence formula: 0.6 + (keyword score × 0.08), capped at 0.95
+ */
 function detect(msg: string): { intent: Intent; conf: number } {
   const low = msg.toLowerCase().trim()
   let best = { intent: I.UNK as Intent, score: 0 }
   for (const m of KW) {
     let score = 0
+    // Multi-word keywords score per word; longer keywords (>5 chars) score double
     for (const k of m.kw) if (low.includes(k)) score += k.split(' ').length * (k.length > 5 ? 2 : 1)
     if (score > best.score) best = { intent: m.i, score }
   }
+  // UNK gets a fixed low confidence; everything else scales with keyword match strength
   return { intent: best.intent, conf: best.intent === I.UNK ? 0.15 : Math.min(0.95, 0.6 + best.score * 0.08) }
 }
 
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+/**
+ * Processes a user's chat message and returns a guidance response.
+ * Intent and confidence are passed through so the UI can show a confidence bar
+ * or suggest follow-up actions.
+ */
 export function generateChatResponse(message: string): ChatResponse {
   const { intent, conf } = detect(message)
   return { text: R[intent], intent, confidence: conf }
 }
 
+/**
+ * Returns a locale-specific array of suggested starter questions for the chat UI.
+ * Falls back to English if the requested language code is not in the map.
+ */
 export function getSuggestions(lang: string = 'en'): string[] {
   const s: Record<string, string[]> = {
     en: ['What do I do in a flood?', 'Heatwave safety tips', 'Drought water conservation', 'I feel overwhelmed', 'Emergency contacts', 'How to report', 'Earthquake safety', 'My child is scared', 'Emergency kit list'],

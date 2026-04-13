@@ -1,7 +1,17 @@
+"""
+Module: fix_schema2.py
+
+Fix_schema2 utility script.
+
+Simple explanation:
+Standalone script for fix_schema2.
+"""
+
+import os
 import asyncio, asyncpg
 
 async def main():
-    c = await asyncpg.connect('postgresql://postgres:Happylove%40%21@localhost:5432/aegis')
+    c = await asyncpg.connect(os.environ.get('DATABASE_URL', 'postgresql://localhost:5432/aegis'))
     
     # 1. Add missing columns to ai_model_metrics
     alterations = [

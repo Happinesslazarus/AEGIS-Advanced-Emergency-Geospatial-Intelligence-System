@@ -1,7 +1,10 @@
 """
-Retrain all hazard models using REAL weather data.
-Now that data_loaders.py uses actual weather_observations from the DB,
-models should learn real meteorological patterns instead of deterministic formulas.
+Module: retrain_hazards_real.py
+
+Retrain_hazards_real utility script.
+
+Simple explanation:
+Standalone script for retrain_hazards_real.
 """
 import asyncio
 import sys
@@ -14,7 +17,7 @@ warnings.filterwarnings('ignore')
 sys.path.insert(0, r'e:\aegis-v6-fullstack\aegis-v6\ai-engine')
 os.chdir(r'e:\aegis-v6-fullstack\aegis-v6\ai-engine')
 
-DB_URL = 'postgresql://postgres:Happylove%40%21@localhost:5432/aegis'
+DB_URL = os.environ.get('DATABASE_URL', 'postgresql://localhost:5432/aegis')
 
 async def train_hazard(hazard_type: str):
     """Train a single hazard model."""

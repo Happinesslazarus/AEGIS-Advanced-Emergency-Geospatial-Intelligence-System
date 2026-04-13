@@ -1,4 +1,13 @@
-﻿"""
+"""
+Module: patch_real_weather.py
+
+Patch_real_weather utility script.
+
+Simple explanation:
+Standalone script for patch_real_weather.
+"""
+
+"""
 Patch data_loaders.py to use REAL weather data from weather_observations table
 instead of deterministic formulas. This is the core fix for hazard model accuracy.
 """
@@ -286,4 +295,4 @@ print("  - Added _load_weather_cache() method")
 print("  - Added _get_nearest_weather() method with nearest-neighbor lookup")
 print("  - Replaced deterministic features with real weather + stochastic derivation")
 print("  - Kept same feature interface (static, dynamic, climate dicts)")
-
+

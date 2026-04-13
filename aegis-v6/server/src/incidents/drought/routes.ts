@@ -1,10 +1,13 @@
 /**
- * incidents/drought/routes.ts — Custom routes for drought incidents
+ * Module: routes.ts
  *
- * Drought-specific extensions beyond the standard BaseIncidentModule routes:
- *   GET /drought-index   — current drought index score and severity
- *   GET /water-advisory  — conservation advisory for the region
- *   GET /precipitation   — 30-day precipitation summary
+ * Extended drought conditions incident module (handles drought specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for drought events.
  */
 
 import { Router, type Request, type Response } from 'express'
@@ -32,7 +35,7 @@ export function setupDroughtRoutes(router: Router): void {
         fetchedAt: data.fetchedAt,
       })
     } catch (err: any) {
-      res.status(500).json({ error: 'Failed to fetch drought index', details: err.message })
+      res.status(500).json({ error: 'Could not load drought index data. Please try again shortly.' })
     }
   })
 
@@ -50,7 +53,7 @@ export function setupDroughtRoutes(router: Router): void {
         generatedAt: new Date().toISOString(),
       })
     } catch (err: any) {
-      res.status(500).json({ error: 'Failed to generate water advisory', details: err.message })
+      res.status(500).json({ error: 'Could not generate water advisory. Please try again.' })
     }
   })
 
@@ -69,8 +72,8 @@ export function setupDroughtRoutes(router: Router): void {
         fetchedAt: data.fetchedAt,
       })
     } catch (err: any) {
-      res.status(500).json({ error: 'Failed to fetch precipitation data', details: err.message })
+      res.status(500).json({ error: 'Could not load precipitation data. Please try again shortly.' })
     }
   })
 }
-
+

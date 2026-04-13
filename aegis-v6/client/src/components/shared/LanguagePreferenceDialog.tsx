@@ -1,12 +1,10 @@
 /**
- * LanguagePreferenceDialog.tsx — First-visit language preference prompt.
+ * Module: LanguagePreferenceDialog.tsx
  *
- * Shows a fullscreen dialog on first visit asking the user to choose
- * their preferred language. Persists choice to localStorage and calls
- * setLanguage() to update the i18n system globally.
+ * Language preference dialog shared component (reusable UI element used across pages).
  *
- * Shows again only if localStorage key 'aegis_lang_chosen' is not set.
- */
+ * How it connects:
+ * - Used across both admin and citizen interfaces */
 
 import { useState, useEffect } from 'react'
 import { Globe, Check, X } from 'lucide-react'
@@ -14,6 +12,7 @@ import { useTranslation } from 'react-i18next'
 import { setLanguage, getLanguage, t } from '../../utils/i18n'
 import { LANGUAGES } from '../../data/disasterTypes'
 import { useLanguage } from '../../hooks/useLanguage'
+import { loadLanguage } from '../../i18n/config'
 import { codeToFlag } from '../../data/countryCodes'
 
 const LANG_FLAGS: Record<string, string> = {
@@ -48,7 +47,7 @@ export default function LanguagePreferenceDialog(): JSX.Element | null {
 
   const handleConfirm = () => {
     setLanguage(selected)
-    try { i18n.changeLanguage(selected) } catch {}
+    loadLanguage(selected).then(() => i18n.changeLanguage(selected)).catch(() => {})
     localStorage.setItem(LS_KEY, selected)
     localStorage.setItem('aegis-language', selected)
     setVisible(false)
@@ -132,4 +131,4 @@ export default function LanguagePreferenceDialog(): JSX.Element | null {
     </div>
   )
 }
-
+

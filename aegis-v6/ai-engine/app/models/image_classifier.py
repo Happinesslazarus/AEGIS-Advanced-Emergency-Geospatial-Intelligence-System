@@ -1,6 +1,7 @@
 """
- AEGIS AI ENGINE -- Image Classification Module
- CLIP zero-shot disaster image recognition (ViT-B-32)
+Module: image_classifier.py
+
+Image classification model (analyses disaster photos).
 """
 
 from typing import Dict, Any

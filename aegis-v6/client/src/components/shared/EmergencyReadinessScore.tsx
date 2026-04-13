@@ -1,3 +1,11 @@
+/**
+ * Module: EmergencyReadinessScore.tsx
+ *
+ * Emergency readiness score shared component (reusable UI element used across pages).
+ *
+ * How it connects:
+ * - Used across both admin and citizen interfaces */
+
 import { useState, useEffect, useRef } from 'react'
 import { Shield, CheckCircle2, Circle, ChevronDown, ChevronUp, Sparkles } from 'lucide-react'
 import { t } from '../../utils/i18n'

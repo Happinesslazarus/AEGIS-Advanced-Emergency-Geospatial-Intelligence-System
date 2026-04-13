@@ -1,7 +1,18 @@
 /**
- * Production-safe logging utility.
- * devLog()` only emits in non-production (replaces raw console.log).
- * auditLog()` always emits (for critical operational events).
+ * File: logger.ts (utils)
+ *
+ * What this file does:
+ * Simple development logging helpers. devLog prints to console only in
+ * non-production environments. auditLog writes structured JSON entries
+ * for audit-sensitive operations.
+ *
+ * How it connects:
+ * - devLog used throughout the codebase for debug output
+ * - auditLog used by admin routes (cache, community) to record actions
+ * - In production, auditLog writes JSON to stdout for log aggregation
+ *
+ * Note: The main structured logger (Pino) lives in services/logger.ts.
+ * This file provides lightweight helpers for simpler use cases.
  */
 const isProd = process.env.NODE_ENV === 'production'
 
@@ -23,4 +34,4 @@ export function auditLog(tag: string, message: string, meta?: Record<string, unk
     console.log(`[${tag}] ${message}`, meta ? JSON.stringify(meta) : '')
   }
 }
-
+

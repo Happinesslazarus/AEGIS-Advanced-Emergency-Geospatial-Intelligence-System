@@ -1,20 +1,7 @@
 """
-AEGIS Fine-Tuning Dataset Generator
-Generates a world-class all-hazards emergency AI training dataset using the
-Anthropic Claude API. Produces 1,500+ JSONL examples across 12 categories.
+Module: generate_training_data.py
 
-Usage:
-    python scripts/generate_training_data.py \
-        --api-key sk-ant-... \
-        --output ./data/aegis_training_data.jsonl \
-        --resume
-
-Features:
-  - Checkpointing: resumes from last saved position if interrupted
-  - Validation: enforces quality gates on every example
-  - Rate-limit handling: exponential backoff with jitter
-  - Progress tracking: per-category counts and quality metrics
-  - Deduplication: fuzzy hash check against existing examples
+Generate_training_data AI engine module.
 """
 
 import argparse
@@ -780,4 +767,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
+

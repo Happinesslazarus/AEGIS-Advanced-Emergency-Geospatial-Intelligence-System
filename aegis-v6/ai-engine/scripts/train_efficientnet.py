@@ -1,14 +1,7 @@
 """
-AEGIS Vision - EfficientNet Fine-Tuning for Disaster Image Classification
-Fine-tunes EfficientNet-B0 (pre-trained on ImageNet) on AEGIS disaster images
-with heavy data augmentation to overcome the small dataset (42 images).
+Module: train_efficientnet.py
 
-Evaluation: Leave-One-Out (LOO) cross-validation for unbiased accuracy.
-
-Usage:
-    python scripts/train_efficientnet.py                    # Full LOO benchmark
-    python scripts/train_efficientnet.py --epochs 20        # More training
-    python scripts/train_efficientnet.py --train-final      # Train production model
+Train_efficientnet AI engine module.
 """
 
 import json

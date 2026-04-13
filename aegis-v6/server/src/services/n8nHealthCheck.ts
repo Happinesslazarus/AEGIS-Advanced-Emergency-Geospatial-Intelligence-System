@@ -1,12 +1,17 @@
 /**
- * services/n8nHealthCheck.ts — n8n Health Monitor & Fallback Activator
+ * File: n8nHealthCheck.ts
  *
- * Pings n8n every 60 seconds. If n8n is unreachable for 3 consecutive checks
- * (3 minutes), activates fallback cron jobs. When n8n recovers, deactivates
- * fallback and lets n8n resume.
+ * n8n workflow server health monitor — pings n8n every 60 seconds and
+ * activates fallback cron jobs after 3 consecutive failures. Deactivates
+ * fallbacks when n8n reconnects.
  *
- * Fetches n8n version + active workflow count when connected.
- * This is a WATCHDOG — it runs inside the AEGIS backend, not inside n8n.
+ * How it connects:
+ * - Pings the n8n server at N8N_HOST on a 60-second interval
+ * - Calls activateFallbackJobs/deactivateFallbackJobs from cronJobs
+ * - Triggers workflow re-registration via n8nWorkflowService on reconnect
+ *
+ * Simple explanation:
+ * Checks if the n8n automation server is alive and switches to backup jobs if it's not.
  */
 
 import { activateFallbackJobs, deactivateFallbackJobs } from './cronJobs.js'
@@ -49,7 +54,7 @@ function n8nHeaders(): Record<string, string> {
   return headers
 }
 
- /**
+/**
  * Check if n8n is reachable and fetch version/workflow stats.
  */
 async function checkN8nHealth(): Promise<boolean> {
@@ -113,7 +118,7 @@ async function checkN8nHealth(): Promise<boolean> {
   }
 }
 
- /**
+/**
  * Main health check loop iteration
  */
 async function runCheck(): Promise<void> {
@@ -153,7 +158,7 @@ async function runCheck(): Promise<void> {
   }
 }
 
- /**
+/**
  * Start the n8n health monitor.
  * Called from server startup (index.ts).
  */
@@ -180,7 +185,7 @@ export function startN8nHealthMonitor(): void {
   intervalId = setInterval(runCheck, CHECK_INTERVAL_MS)
 }
 
- /**
+/**
  * Stop the health monitor (for graceful shutdown).
  */
 export function stopN8nHealthMonitor(): void {
@@ -190,7 +195,7 @@ export function stopN8nHealthMonitor(): void {
   }
 }
 
- /**
+/**
  * Get current n8n health state for the System Health dashboard.
  */
 export function getN8nHealthState(): N8nHealthState {

@@ -1,5 +1,13 @@
 /**
- * incidents/heatwave/routes.ts — Custom routes for heatwave incidents
+ * Module: routes.ts
+ *
+ * Extreme heat events incident module (handles heatwave specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for heatwave events.
  */
 
 import { Router, Request, Response } from 'express'
@@ -19,8 +27,7 @@ export function setupHeatwaveRoutes(router: Router): void {
         message: 'Temperature forecast integration pending'
       })
     } catch (err: unknown) {
-      const error = err as Error
-      res.status(500).json({ error: 'Failed to fetch temperature forecast', details: error.message })
+      res.status(500).json({ error: 'Could not load temperature forecast. Please try again shortly.' })
     }
   })
 
@@ -35,8 +42,7 @@ export function setupHeatwaveRoutes(router: Router): void {
         message: 'Cooling centers data pending'
       })
     } catch (err: unknown) {
-      const error = err as Error
-      res.status(500).json({ error: 'Failed to fetch cooling centers', details: error.message })
+      res.status(500).json({ error: 'Could not load cooling centres. Please try again.' })
     }
   })
 
@@ -51,9 +57,8 @@ export function setupHeatwaveRoutes(router: Router): void {
         message: 'Heat index calculation pending'
       })
     } catch (err: unknown) {
-      const error = err as Error
-      res.status(500).json({ error: 'Failed to calculate heat index', details: error.message })
+      res.status(500).json({ error: 'Could not calculate heat index. Please try again.' })
     }
   })
 }
-
+

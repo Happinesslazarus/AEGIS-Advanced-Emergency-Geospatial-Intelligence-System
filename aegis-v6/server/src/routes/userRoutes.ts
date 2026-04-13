@@ -1,16 +1,25 @@
-/*
- * userRoutes.ts - User Management API for Super Admins
+/**
+ * File: userRoutes.ts
  *
- * Handles CRUD operations for operator accounts:
- *   GET    /api/users         - List all operators (Super Admin only)
- *   GET    /api/users/:id     - Get single operator details
- *   PUT    /api/users/:id     - Update operator (role, department, phone)
- *   PUT    /api/users/:id/suspend   - Suspend account temporarily or permanently
- *   PUT    /api/users/:id/activate  - Activate suspended account
- *   POST   /api/users/:id/reset-password - Generate password reset token
- *   DELETE /api/users/:id     - Soft-delete operator account
+ * What this file does:
+ * Super-admin user management: list, view, update, suspend, activate,
+ * and delete operator accounts. Only super-admins can access these.
  *
- * All actions are logged to audit_log with before/after state.
+ * How it connects:
+ * - Mounted at /api/users in index.ts
+ * - Manages the operators table
+ * - Used by the admin user management panel in the frontend
+ *
+ * Key endpoints:
+ * GET    /api/users         — List all operators
+ * GET    /api/users/:id     — Get operator details
+ * PUT    /api/users/:id     — Update operator
+ * PUT    /api/users/:id/suspend   — Suspend account
+ * PUT    /api/users/:id/activate  — Reactivate account
+ * DELETE /api/users/:id     — Soft-delete operator
+ *
+ * Simple explanation:
+ * Admin tools for managing operator accounts.
  */
 
 import { Router, Response, NextFunction } from 'express'

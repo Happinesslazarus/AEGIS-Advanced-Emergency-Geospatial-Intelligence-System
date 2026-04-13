@@ -1,4 +1,18 @@
-﻿import { useState, useRef, useEffect } from 'react'
+/**
+ * File: ThemeSelector.tsx
+ *
+ * What this file does:
+ * Dropdown button to switch between light, dark, and system-default
+ * themes. Reads and writes theme preference via ThemeContext so the
+ * change is reflected everywhere instantly.
+ *
+ * How it connects:
+ * - Consumes client/src/contexts/ThemeContext.tsx (theme, setTheme)
+ * - Embedded in the top nav bar and accessibility panel
+ * - Theme preference persisted to localStorage by ThemeContext
+ */
+
+import { useState, useRef, useEffect } from 'react'
 import { Palette, Check } from 'lucide-react'
 import { useTheme, THEMES, type ThemeName } from '../../contexts/ThemeContext'
 
@@ -111,4 +125,4 @@ export default function ThemeSelector({ darkNav, className = '' }: Props) {
     </div>
   )
 }
-
+

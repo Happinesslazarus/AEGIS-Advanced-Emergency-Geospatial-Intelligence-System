@@ -1,10 +1,10 @@
- /*
- * CommandCenter.tsx — Professional Emergency Operations Command Interface
- * Modeled after real-world EOC dashboards (Palantir Gotham, ESRI Ops Dashboard,
- * UK Cabinet Office COBR). Features: Threat Level Banner, Live Mission Clock,
- * Systems Status Ribbon, Auto-Generated SitRep, Threat Matrix, Resource Readiness,
- * Unified Ops Feed, and full incident awareness.
-  */
+/**
+ * Module: CommandCenter.tsx
+ *
+ * Command center dashboard (real-time operational overview).
+ *
+ * How it connects:
+ * - Rendered inside AdminPage.tsx based on active view */
 
 import React, { useState, useEffect, useMemo, memo } from 'react'
 import {
@@ -403,25 +403,32 @@ export default function CommandCenter({
       {/*
           SECTION 3 — KPI METRICS (8 cards)
            */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-2 stagger-children">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-2">
         {([
-          { l: t('admin.stats.total', lang), v: stats.total, g: 'from-slate-500/10 to-slate-500/5 dark:from-slate-400/10 dark:to-slate-400/5', ring: 'ring-slate-200 dark:ring-slate-700', c: 'text-slate-900 dark:text-white', i: FileText, ic: 'text-slate-400' },
-          { l: t('admin.stats.urgent', lang), v: stats.urgent, g: 'from-red-500/10 to-red-500/5 dark:from-red-500/15 dark:to-red-500/5', ring: 'ring-red-200 dark:ring-red-800', c: 'text-red-600 dark:text-red-400', i: Siren, ic: 'text-red-400', pulse: stats.urgent > 0 },
-          { l: t('admin.stats.unverified', lang), v: stats.unverified, g: 'from-aegis-500/10 to-aegis-500/5 dark:from-aegis-500/15 dark:to-aegis-500/5', ring: 'ring-aegis-200 dark:ring-aegis-800', c: 'text-aegis-600 dark:text-aegis-400', i: Clock, ic: 'text-aegis-400' },
-          { l: t('admin.stats.verified', lang), v: stats.verified, g: 'from-emerald-500/10 to-emerald-500/5 dark:from-emerald-500/15 dark:to-emerald-500/5', ring: 'ring-emerald-200 dark:ring-emerald-800', c: 'text-emerald-600 dark:text-emerald-400', i: CheckCircle, ic: 'text-emerald-400' },
-          { l: t('admin.stats.flagged', lang), v: stats.flagged, g: 'from-orange-500/10 to-orange-500/5 dark:from-orange-500/15 dark:to-orange-500/5', ring: 'ring-orange-200 dark:ring-orange-800', c: 'text-orange-600 dark:text-orange-400', i: Flag, ic: 'text-orange-400' },
-          { l: t('admin.stats.resolved', lang), v: stats.resolved, g: 'from-gray-500/10 to-gray-500/5 dark:from-gray-400/10 dark:to-gray-400/5', ring: 'ring-gray-200 dark:ring-gray-700', c: 'text-gray-500 dark:text-gray-300', i: CheckCircle2, ic: 'text-gray-400 dark:text-gray-300' },
-          { l: t('admin.stats.avgAi', lang), v: `${stats.avgConf}%`, g: 'from-violet-500/10 to-violet-500/5 dark:from-violet-500/15 dark:to-violet-500/5', ring: 'ring-violet-200 dark:ring-violet-800', c: 'text-violet-600 dark:text-violet-400', i: Brain, ic: 'text-violet-400' },
-          { l: t('admin.stats.trapped', lang), v: stats.trapped, g: 'from-fuchsia-500/10 to-fuchsia-500/5 dark:from-fuchsia-500/15 dark:to-fuchsia-500/5', ring: 'ring-fuchsia-200 dark:ring-fuchsia-800', c: 'text-fuchsia-600 dark:text-fuchsia-400', i: AlertTriangle, ic: 'text-fuchsia-400' },
+          { l: t('admin.stats.total', lang),      v: stats.total,          g: 'from-slate-500/10 to-slate-500/5 dark:from-slate-400/10 dark:to-slate-400/5',   ring: 'ring-slate-200 dark:ring-slate-700',    c: 'text-slate-900 dark:text-white',            i: FileText,     ic: 'text-slate-400',                    filter: '' },
+          { l: t('admin.stats.urgent', lang),     v: stats.urgent,         g: 'from-red-500/10 to-red-500/5 dark:from-red-500/15 dark:to-red-500/5',            ring: 'ring-red-200 dark:ring-red-800',        c: 'text-red-600 dark:text-red-400',            i: Siren,        ic: 'text-red-400',     pulse: stats.urgent > 0, filter: 'urgent' },
+          { l: t('admin.stats.unverified', lang), v: stats.unverified,     g: 'from-aegis-500/10 to-aegis-500/5 dark:from-aegis-500/15 dark:to-aegis-500/5',    ring: 'ring-aegis-200 dark:ring-aegis-800',    c: 'text-aegis-600 dark:text-aegis-400',        i: Clock,        ic: 'text-aegis-400',                    filter: 'unverified' },
+          { l: t('admin.stats.verified', lang),   v: stats.verified,       g: 'from-emerald-500/10 to-emerald-500/5 dark:from-emerald-500/15 dark:to-emerald-500/5', ring: 'ring-emerald-200 dark:ring-emerald-800', c: 'text-emerald-600 dark:text-emerald-400', i: CheckCircle,  ic: 'text-emerald-400',                  filter: 'verified' },
+          { l: t('admin.stats.flagged', lang),    v: stats.flagged,        g: 'from-orange-500/10 to-orange-500/5 dark:from-orange-500/15 dark:to-orange-500/5',  ring: 'ring-orange-200 dark:ring-orange-800',  c: 'text-orange-600 dark:text-orange-400',      i: Flag,         ic: 'text-orange-400',                   filter: 'flagged' },
+          { l: t('admin.stats.resolved', lang),   v: stats.resolved,       g: 'from-gray-500/10 to-gray-500/5 dark:from-gray-400/10 dark:to-gray-400/5',          ring: 'ring-gray-200 dark:ring-gray-700',      c: 'text-gray-500 dark:text-gray-300',          i: CheckCircle2, ic: 'text-gray-400 dark:text-gray-300',  filter: 'resolved' },
+          { l: t('admin.stats.avgAi', lang),      v: `${stats.avgConf}%`,  g: 'from-violet-500/10 to-violet-500/5 dark:from-violet-500/15 dark:to-violet-500/5',  ring: 'ring-violet-200 dark:ring-violet-800',  c: 'text-violet-600 dark:text-violet-400',      i: Brain,        ic: 'text-violet-400',                   filter: '' },
+          { l: t('admin.stats.trapped', lang),    v: stats.trapped,        g: 'from-fuchsia-500/10 to-fuchsia-500/5 dark:from-fuchsia-500/15 dark:to-fuchsia-500/5', ring: 'ring-fuchsia-200 dark:ring-fuchsia-800', c: 'text-fuchsia-600 dark:text-fuchsia-400', i: AlertTriangle, ic: 'text-fuchsia-400',                  filter: 'trapped' },
         ] as const).map((s, i) => (
-          <div key={i} className={`relative overflow-hidden bg-gradient-to-br ${s.g} backdrop-blur-sm rounded-2xl p-3 ring-1 ${s.ring} hover:shadow-lg transition-all duration-200 group`}>
+          <button
+            key={i}
+            onClick={() => { if (s.filter) { onFilterType(s.filter); onViewChange('reports') } }}
+            className={`stat-card-enter relative overflow-hidden bg-gradient-to-br ${s.g} backdrop-blur-sm rounded-2xl p-3 ring-1 ${s.ring} hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 group text-left ${s.filter ? 'cursor-pointer' : 'cursor-default'}`}
+            style={{ animationDelay: `${i * 60}ms` }}
+            title={s.filter ? `View ${s.l} reports` : undefined}
+          >
             <div className="flex items-center justify-between mb-1.5">
               <s.i className={`w-4 h-4 ${s.ic} group-hover:scale-110 transition-transform`} />
               {'pulse' in s && s.pulse && <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />}
             </div>
             <p className={`text-2xl font-black tabular-nums tracking-tight ${s.c}`}>{s.v}</p>
             <p className="text-[9px] text-gray-500 dark:text-gray-300 font-bold uppercase tracking-wider mt-0.5">{s.l}</p>
-          </div>
+            {s.filter && <ChevronRight className="absolute bottom-2 right-2 w-3 h-3 text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity" />}
+          </button>
         ))}
       </div>
 
@@ -430,46 +437,85 @@ export default function CommandCenter({
            */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 animate-slide-up" style={{ animationDelay: '0.1s' }}>
 
-        {/*  SITREP — Auto-Generated Situation Report  */}
+        {/*  SITREP — Advanced Situation Intelligence Brief  */}
         <div className="bg-white dark:bg-gray-900/80 backdrop-blur rounded-2xl ring-1 ring-gray-200 dark:ring-gray-800 shadow-sm overflow-hidden">
-          <button
-            onClick={() => setSitrepOpen(p => !p)}
-            className="w-full px-4 py-3 flex items-center justify-between border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-slate-50 to-gray-50 dark:from-gray-900 dark:to-gray-900/50 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-          >
+          {/* Header bar */}
+          <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-slate-50 to-gray-50 dark:from-gray-900 dark:to-gray-900/50">
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded-lg bg-gray-900 dark:bg-white flex items-center justify-center">
                 <FileText className="w-3 h-3 text-white dark:text-gray-900" />
               </div>
-              <div className="text-left">
+              <div>
                 <h3 className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">{t('command.situationBrief', lang)}</h3>
-                <p className="text-[9px] text-gray-400 dark:text-gray-300">{t('command.autoGenerated', lang)}</p>
+                <p className="text-[9px] text-gray-400 dark:text-gray-300">
+                  {now.toLocaleDateString(dateLocale, { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()} {now.toLocaleTimeString(dateLocale, { hour12: false })}
+                </p>
               </div>
             </div>
-            {sitrepOpen ? <ChevronUp className="w-4 h-4 text-gray-400 dark:text-gray-300" /> : <ChevronDown className="w-4 h-4 text-gray-400 dark:text-gray-300" />}
-          </button>
-          <div className={`overflow-hidden transition-all duration-300 ease-in-out ${sitrepOpen ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}>
-            <div className="p-4 space-y-3">
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => { const text = `${t('command.opBrief', lang)} — ${now.toLocaleDateString(dateLocale)}\n${t('command.threatPosture', lang)}: ${threat.label}\n${sitrepLines.map(l => l.text).join('\n')}`; navigator.clipboard.writeText(text).then(() => { setSitrepCopied(true); setTimeout(() => setSitrepCopied(false), 2000) }).catch(() => {}) }}
+                className="flex items-center gap-1 text-[9px] font-bold text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 bg-white dark:bg-gray-700 px-2 py-1 rounded-lg ring-1 ring-gray-200 dark:ring-gray-600 transition-all hover:shadow-sm"
+                title={t('command.copySitrep', lang)}
+              >
+                {sitrepCopied ? <CheckCircle className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+                {sitrepCopied ? t('common.copied', lang) : t('common.copy', lang)}
+              </button>
+              <button onClick={() => setSitrepOpen(p => !p)} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                {sitrepOpen ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Threat posture mini-bar */}
+          <div className={`flex items-center justify-between px-4 py-2 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r ${threat.color} flex-shrink-0`}>
+            <div className="flex items-center gap-2">
+              <ShieldAlert className={`w-3.5 h-3.5 ${threat.text}`} />
+              <span className={`text-[10px] font-black uppercase tracking-[0.15em] ${threat.text}`}>
+                {t('command.threatPosture', lang)}: {threat.label}
+              </span>
+              <span className={`w-1.5 h-1.5 rounded-full ${threat.dot} ${threatLevel !== 'NORMAL' ? 'animate-pulse' : ''}`} />
+            </div>
+            <div className={`flex items-center gap-3 text-[10px] font-bold tabular-nums ${threat.text}`}>
+              <span>{stats.total} incidents</span>
+              <span className="w-px h-3 bg-white/30" />
+              <span>{stats.urgent} urgent</span>
+              {stats.trapped > 0 && <><span className="w-px h-3 bg-white/30" /><span className="animate-pulse">{stats.trapped} trapped</span></>}
+            </div>
+          </div>
+
+          {/* Collapsible brief body — fixed height, internal scroll */}
+          {sitrepOpen && (
+            <div className="overflow-y-auto max-h-[280px] p-4 space-y-3 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700">
+              {/* Quick summary badges row */}
+              <div className="flex flex-wrap gap-1.5">
+                {(() => {
+                  const alertCount = sitrepLines.filter(l => l.alert).length
+                  const resRate = stats.total > 0 ? Math.round((stats.resolved / stats.total) * 100) : 0
+                  return (
+                    <>
+                      {alertCount > 0 && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 ring-1 ring-red-200/50 dark:ring-red-800/50 animate-pulse">
+                          <AlertTriangle className="w-2.5 h-2.5" /> {alertCount} alerts
+                        </span>
+                      )}
+                      {stats.avgConf > 0 && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 ring-1 ring-violet-200/50 dark:ring-violet-800/50">
+                          <Brain className="w-2.5 h-2.5" /> AI {stats.avgConf}%
+                        </span>
+                      )}
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold ring-1 ${resRate >= 80 ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 ring-green-200/50 dark:ring-green-800/50' : resRate >= 50 ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 ring-amber-200/50 dark:ring-amber-800/50' : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 ring-red-200/50 dark:ring-red-800/50'}`}>
+                        <CheckCircle className="w-2.5 h-2.5" /> {resRate}% resolved
+                      </span>
+                    </>
+                  )
+                })()}
+              </div>
+              {/* Monospace intelligence writeup */}
               <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3 ring-1 ring-gray-100 dark:ring-gray-700 font-mono text-[11px] text-gray-700 dark:text-gray-300 space-y-1.5 leading-relaxed">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-[9px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-widest">
-                    {t('command.opBrief', lang)} — {now.toLocaleDateString(dateLocale, { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()} {now.toLocaleTimeString(dateLocale, { hour12: false })}
-                  </p>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); const text = `${t('command.opBrief', lang)} — ${now.toLocaleDateString(dateLocale)}\n${t('command.threatPosture', lang)}: ${threat.label}\n${sitrepLines.map(l => l.text).join('\n')}`; navigator.clipboard.writeText(text).then(() => { setSitrepCopied(true); setTimeout(() => setSitrepCopied(false), 2000) }).catch(() => {}) }}
-                    className="flex items-center gap-1 text-[9px] font-bold text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 bg-white dark:bg-gray-700 px-2 py-1 rounded-lg ring-1 ring-gray-200 dark:ring-gray-600 transition-all hover:shadow-sm"
-                    title={t('command.copySitrep', lang)}
-                  >
-                    {sitrepCopied ? <CheckCircle className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
-                    {sitrepCopied ? t('common.copied', lang) : t('common.copy', lang)}
-                  </button>
-                </div>
-                <p className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  <span className={`w-2 h-2 rounded-full ${threat.dot}`} />
-                  {t('command.threatPosture', lang)}: {threat.label}
-                </p>
                 {sitrepLines.map((line, i) => (
                   line.section === 'header' ? (
-                    <p key={i} className="text-[8px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] mt-2 mb-0.5 border-t border-gray-200/50 dark:border-gray-700/50 pt-2 first:border-t-0 first:pt-0 first:mt-0">
+                    <p key={i} className="text-[8px] font-black text-gray-500 dark:text-gray-300 uppercase tracking-[0.2em] mt-2 mb-0.5 border-t border-gray-200/50 dark:border-gray-700/50 pt-2 first:border-t-0 first:pt-0 first:mt-0">
                       {line.text}
                     </p>
                   ) : (
@@ -480,7 +526,7 @@ export default function CommandCenter({
                   )
                 ))}
               </div>
-              {/* PRIORITY ACTIONS — extracted from AI recommendations */}
+              {/* AI Recommendations */}
               {(commandCenter?.recommendations || []).length > 0 && (
                 <div className="bg-gradient-to-r from-violet-50/80 to-purple-50/80 dark:from-violet-950/20 dark:to-purple-950/10 rounded-xl p-3 ring-1 ring-violet-200/60 dark:ring-violet-800/30">
                   <p className="text-[9px] font-bold text-violet-600 dark:text-violet-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
@@ -498,7 +544,7 @@ export default function CommandCenter({
                 </div>
               )}
             </div>
-          </div>
+          )}
         </div>
 
         {/*  THREAT MATRIX — Incident Type × Severity  */}
@@ -537,9 +583,9 @@ export default function CommandCenter({
                   return (
                     <div key={type}
                       role="button" tabIndex={0}
-                      onClick={() => onFilterType(type)}
-                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onFilterType(type) } }}
-                      className={`grid grid-cols-[1fr_32px_32px_32px_36px] sm:grid-cols-[1fr_40px_40px_40px_44px] gap-1 items-center px-1.5 py-1.5 rounded-lg cursor-pointer transition-all ${
+                      onClick={() => { onFilterType(type); onViewChange('reports') }}
+                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onFilterType(type); onViewChange('reports') } }}
+                      className={`grid grid-cols-[1fr_32px_32px_32px_36px] sm:grid-cols-[1fr_40px_40px_40px_44px] gap-1 items-center px-1.5 py-1.5 rounded-lg cursor-pointer transition-all animate-fade-in ${
                         isDominant ? 'bg-red-50/60 dark:bg-red-950/15 ring-1 ring-red-200/50 dark:ring-red-800/30' : 'hover:bg-gray-50 dark:hover:bg-gray-800/30'
                       }`}
                       style={{ opacity: 0.5 + intensity * 0.5 }}
@@ -620,7 +666,7 @@ export default function CommandCenter({
                         <div className={`w-2 h-2 rounded-full ${v.c}`} />
                         <span className="text-[10px] text-gray-600 dark:text-gray-300 flex-1">{severityLabel(v.s)}</span>
                         <span className="text-[10px] font-bold tabular-nums">{v.n}</span>
-                        <span className="text-[9px] text-gray-400 dark:text-gray-500 tabular-nums w-7 text-right">{pct}%</span>
+                        <span className="text-[9px] text-gray-400 dark:text-gray-400 tabular-nums w-7 text-right">{pct}%</span>
                       </div>
                       <div className="h-1 bg-gray-100 dark:bg-gray-700/50 rounded-full overflow-hidden ml-4">
                         <div className={`h-full rounded-full ${v.bar} transition-all duration-700`} style={{ width: `${pct}%` }} />
@@ -671,8 +717,8 @@ export default function CommandCenter({
                   <p className="text-xs font-bold tabular-nums">{stats.total > 0 ? Math.round((stats.resolved / stats.total) * 100) : 0}%</p>
                 </div>
                 <div className="flex items-center justify-between">
-                  <p className="text-[10px] text-gray-400 dark:text-gray-500">{t('command.targetBenchmark', lang)}</p>
-                  <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 tabular-nums">80%</p>
+                  <p className="text-[10px] text-gray-400 dark:text-gray-400">{t('command.targetBenchmark', lang)}</p>
+                  <p className="text-[10px] font-bold text-gray-400 dark:text-gray-400 tabular-nums">80%</p>
                 </div>
               </div>
             </div>
@@ -695,18 +741,18 @@ export default function CommandCenter({
                   </p>
                   <div className="mt-2 space-y-1">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[8px] text-gray-400 dark:text-gray-500 w-12 text-right tabular-nums">{t('command.today', lang)}</span>
+                      <span className="text-[8px] text-gray-400 dark:text-gray-300 w-12 text-right tabular-nums">{t('command.today', lang)}</span>
                       <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                         <div className={`h-full rounded-full transition-all duration-500 ${delta > 0 ? 'bg-red-400' : 'bg-emerald-400'}`} style={{ width: `${(today / maxBar) * 100}%` }} />
                       </div>
                       <span className="text-[9px] font-bold tabular-nums w-5 text-right">{today}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[8px] text-gray-400 dark:text-gray-500 w-12 text-right tabular-nums">{t('command.yesterday', lang)}</span>
+                      <span className="text-[8px] text-gray-400 dark:text-gray-300 w-12 text-right tabular-nums">{t('command.yesterday', lang)}</span>
                       <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                         <div className="h-full rounded-full bg-gray-300 dark:bg-gray-600 transition-all duration-500" style={{ width: `${(yesterday / maxBar) * 100}%` }} />
                       </div>
-                      <span className="text-[9px] font-bold tabular-nums w-5 text-right text-gray-400">{yesterday}</span>
+                      <span className="text-[9px] font-bold tabular-nums w-5 text-right text-gray-400 dark:text-gray-300">{yesterday}</span>
                     </div>
                   </div>
                 </>
@@ -727,18 +773,18 @@ export default function CommandCenter({
                   </p>
                   <div className="mt-2 space-y-1">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[8px] text-gray-400 dark:text-gray-500 w-12 text-right tabular-nums">{t('command.thisWeek', lang)}</span>
+                      <span className="text-[8px] text-gray-400 dark:text-gray-300 w-12 text-right tabular-nums">{t('command.thisWeek', lang)}</span>
                       <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                         <div className={`h-full rounded-full transition-all duration-500 ${delta > 0 ? 'bg-red-400' : 'bg-emerald-400'}`} style={{ width: `${(thisW / maxBar) * 100}%` }} />
                       </div>
                       <span className="text-[9px] font-bold tabular-nums w-5 text-right">{thisW}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[8px] text-gray-400 dark:text-gray-500 w-12 text-right tabular-nums">{t('command.lastWeek', lang)}</span>
+                      <span className="text-[8px] text-gray-400 dark:text-gray-300 w-12 text-right tabular-nums">{t('command.lastWeek', lang)}</span>
                       <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                         <div className="h-full rounded-full bg-gray-300 dark:bg-gray-600 transition-all duration-500" style={{ width: `${(prevW / maxBar) * 100}%` }} />
                       </div>
-                      <span className="text-[9px] font-bold tabular-nums w-5 text-right text-gray-400">{prevW}</span>
+                      <span className="text-[9px] font-bold tabular-nums w-5 text-right text-gray-400 dark:text-gray-300">{prevW}</span>
                     </div>
                   </div>
                 </>
@@ -809,8 +855,8 @@ export default function CommandCenter({
                 <span className="text-xs font-bold text-red-800 dark:text-red-300">{t('alerts.title', lang)}</span>
                 <span className="ml-auto text-[10px] bg-red-600 text-white px-2 py-0.5 rounded-full font-bold">{alerts.length}</span>
               </div>
-              {alerts.slice(0, 3).map((a: any) => (
-                <div key={a.id} className="mb-1.5 last:mb-0 bg-white/60 dark:bg-gray-900/40 backdrop-blur rounded-xl px-3 py-2 ring-1 ring-red-100 dark:ring-red-900/30">
+              {alerts.slice(0, 3).map((a: any, idx: number) => (
+                <div key={a.id} className="mb-1.5 last:mb-0 bg-white/60 dark:bg-gray-900/40 backdrop-blur rounded-xl px-3 py-2 ring-1 ring-red-100 dark:ring-red-900/30 animate-slide-in-right" style={{ animationDelay: `${idx * 80}ms` }}>
                   <p className="text-xs font-semibold text-red-900 dark:text-red-200">{a.title}</p>
                   <p className="text-[10px] text-red-600/70 dark:text-red-400/70 mt-0.5">{new Date(a.timestamp || Date.now()).toLocaleTimeString(dateLocale)}</p>
                 </div>
@@ -858,7 +904,7 @@ export default function CommandCenter({
                     <CheckCircle className="w-5 h-5 text-emerald-500" />
                   </div>
                   <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">{t('command.allSystemsNominal', lang)}</p>
-                  <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{t('command.noActionsRequired', lang)}</p>
+                  <p className="text-[10px] text-gray-400 dark:text-gray-400 mt-0.5">{t('command.noActionsRequired', lang)}</p>
                 </div>
               )
             })()}
@@ -908,7 +954,13 @@ export default function CommandCenter({
                 const respBarColor = row.avgResponseMinutes <= 10 ? 'bg-emerald-400' : row.avgResponseMinutes <= 30 ? 'bg-blue-400' : row.avgResponseMinutes <= 60 ? 'bg-amber-400' : 'bg-red-400'
                 const handledPct = Math.round((row.handled / maxHandled) * 100)
                 return (
-                  <div key={`${row.operator}-${idx}`} className={`rounded-xl px-4 py-2.5 ring-1 transition-all group ${idx === 0 ? 'bg-gradient-to-r from-yellow-50/80 to-amber-50/50 dark:from-yellow-950/10 dark:to-amber-950/5 ring-yellow-200/60 dark:ring-yellow-800/30' : 'bg-gray-50 dark:bg-gray-800/40 ring-gray-100 dark:ring-gray-800 hover:ring-aegis-300 dark:hover:ring-aegis-700'}`}>
+                  <button
+                    key={`${row.operator}-${idx}`}
+                    onClick={() => { setActivityShowAll(true); onViewChange('audit') }}
+                    title={`View ${row.operator}'s activity log`}
+                    className={`w-full text-left rounded-xl px-4 py-2.5 ring-1 transition-all group cursor-pointer animate-fade-in ${idx === 0 ? 'bg-gradient-to-r from-yellow-50/80 to-amber-50/50 dark:from-yellow-950/10 dark:to-amber-950/5 ring-yellow-200/60 dark:ring-yellow-800/30 hover:ring-yellow-400/60 dark:hover:ring-yellow-600/40' : 'bg-gray-50 dark:bg-gray-800/40 ring-gray-100 dark:ring-gray-800 hover:ring-aegis-300 dark:hover:ring-aegis-700'}`}
+                    style={{ animationDelay: `${idx * 80}ms` }}
+                  >
                     <div className="flex items-center gap-3">
                       <span className="text-sm w-7 text-center flex-shrink-0 flex items-center justify-center">{medal}</span>
                       <div className="flex-1 min-w-0">
@@ -923,15 +975,16 @@ export default function CommandCenter({
                         <p className={`text-xs font-black tabular-nums ${respColor}`}>{fmtMinsLocalized(row.avgResponseMinutes, lang)}</p>
                         <p className={`text-[8px] font-bold ${respColor}`}>{respRating}</p>
                       </div>
+                      <ChevronRight className="w-3.5 h-3.5 text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
                     </div>
                     {/* Performance bar */}
                     <div className="mt-1.5 ml-10 flex items-center gap-2">
                       <div className="flex-1 h-1 bg-gray-100 dark:bg-gray-700/50 rounded-full overflow-hidden">
-                        <div className={`h-full rounded-full ${respBarColor} transition-all duration-500`} style={{ width: `${handledPct}%` }} />
+                        <div className={`h-full rounded-full ${respBarColor} bar-grow transition-all duration-500`} style={{ width: `${handledPct}%` }} />
                       </div>
-                      <span className="text-[8px] text-gray-400 tabular-nums">{handledPct}%</span>
+                      <span className="text-[8px] text-gray-400 dark:text-gray-300 tabular-nums">{handledPct}%</span>
                     </div>
-                  </div>
+                  </button>
                 )
               })
             })()}
@@ -1049,14 +1102,14 @@ export default function CommandCenter({
 
       {showKeyboard && (
         <div className="mt-3 bg-gray-900 text-white rounded-xl p-3 flex items-center gap-4 flex-wrap text-[10px] font-mono ring-1 ring-gray-700">
-          <span className="font-bold text-gray-400 uppercase tracking-wider mr-1">Shortcuts</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">R</kbd> Refresh</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">C</kbd> Copy SitRep</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">S</kbd> Toggle SitRep</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">E</kbd> Export CSV</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">J</kbd> Export JSON</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">?</kbd> Toggle Shortcuts</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">Esc</kbd> Close</span>
+          <span className="font-bold text-gray-400 uppercase tracking-wider mr-1">{t('common.shortcuts', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">R</kbd> {t('common.refresh', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">C</kbd> {t('common.copySitrep', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">S</kbd> {t('common.toggleSitrep', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">E</kbd> {t('common.exportCsv', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">J</kbd> {t('common.exportJson', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">?</kbd> {t('common.toggleShortcuts', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">{t('common.esc', lang)}</kbd> {t('common.close', lang)}</span>
         </div>
       )}
     </div>

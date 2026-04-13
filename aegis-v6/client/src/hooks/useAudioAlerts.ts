@@ -1,12 +1,10 @@
-﻿/*
- * useAudioAlerts.ts - Web Speech API Audio Alert System
+/**
+ * Module: useAudioAlerts.ts
  *
- * Provides text-to-speech functionality for alert announcements:
- * Auto-play for critical alerts (configurable)
- * Manual play for any alert
- * Voice selection, volume, rate settings
- * Respects user preferences (mute, quiet hours, etc.)
- */
+ * useAudioAlerts custom React hook (audio alerts logic).
+ *
+ * How it connects:
+ * - Used by React components that need this functionality */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 
@@ -42,7 +40,9 @@ export function useAudioAlerts(userSettings?: Partial<AudioAlertSettings>) {
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
   const playedAlertsRef = useRef<Set<string>>(new Set())
 
-  // Check browser support
+  // Check browser support for the Web Speech Synthesis API.
+  // Most modern browsers support this; Firefox requires a user gesture first;
+  // JSDOM (used in tests) does not support it at all.
   useEffect(() => {
     const isSupported = 'speechSynthesis' in window
     setSupported(isSupported)
@@ -54,6 +54,9 @@ export function useAudioAlerts(userSettings?: Partial<AudioAlertSettings>) {
       }
 
       loadVoices()
+      // 'voiceschanged' fires asynchronously (especially in Chrome) when the
+      // browser finishes loading the OS voice list.  We must listen for it or
+      // the initial getVoices() call returns an empty array.
       speechSynthesis.addEventListener('voiceschanged', loadVoices)
       return () => speechSynthesis.removeEventListener('voiceschanged', loadVoices)
     }
@@ -64,7 +67,9 @@ export function useAudioAlerts(userSettings?: Partial<AudioAlertSettings>) {
     localStorage.setItem('aegis-audio-settings', JSON.stringify(settings))
   }, [settings])
 
-  // Get the selected voice object
+  // getVoice: pick the best available voice.
+  // en-GB is preferred for a Scottish emergency platform; en-US is the
+  // fallback; if no English voice is found we use whatever is first in the list.
   const getVoice = useCallback((): SpeechSynthesisVoice | null => {
     if (settings.voice === 'default' || !voices.length) {
       // Prefer English UK/US voice
@@ -77,15 +82,18 @@ export function useAudioAlerts(userSettings?: Partial<AudioAlertSettings>) {
     return voices.find(v => v.name === settings.voice) || voices[0] || null
   }, [settings.voice, voices])
 
-  // Speak text
+  // speak: low-level Text-to-Speech function.
+  // `alertId` deduplication prevents the same alert from being read multiple
+  // times if the component re-renders while the alert is still active.
   const speak = useCallback((text: string, options?: { priority?: 'critical' | 'warning' | 'info'; alertId?: string }) => {
     if (!supported || !settings.enabled) return
 
-    // Don't repeat the same alert
+    // Don't repeat the same alert — store spoken alert IDs in a ref so the
+    // check is synchronous and doesn't trigger a re-render.
     if (options?.alertId && playedAlertsRef.current.has(options.alertId)) return
     if (options?.alertId) playedAlertsRef.current.add(options.alertId)
 
-    // Cancel any current speech
+    // Cancel any in-progress speech so the new message starts immediately.
     speechSynthesis.cancel()
 
     const utterance = new SpeechSynthesisUtterance(text)
@@ -180,4 +188,4 @@ export function useAudioAlerts(userSettings?: Partial<AudioAlertSettings>) {
     stop,
   }
 }
-
+

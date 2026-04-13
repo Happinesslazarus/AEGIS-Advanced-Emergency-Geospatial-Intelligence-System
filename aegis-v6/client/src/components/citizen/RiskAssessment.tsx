@@ -1,3 +1,11 @@
+/**
+ * Module: RiskAssessment.tsx
+ *
+ * Risk assessment citizen component (public-facing UI element).
+ *
+ * How it connects:
+ * - Rendered inside CitizenPage.tsx or CitizenDashboard.tsx */
+
 /* RiskAssessment.tsx — Professional Location-Aware Hazard Assessment
    Arc gauge · radar chart · 24-hour trend forecasts · real-time data */
 
@@ -142,10 +150,11 @@ function RadarChart({ factors }: { factors: RiskFactor[] }) {
 }
 
 const weatherCache = new Map<string, { data: any; ts: number }>()
-const CACHE_TTL = 10 * 60 * 1000 // 10 minutes
+const CACHE_TTL = 5 * 60 * 1000 // 5 minutes (shorter to avoid stale location data)
 
 function cacheKey(lat: number, lng: number): string {
-  return `${Math.round(lat * 20) / 20},${Math.round(lng * 20) / 20}`
+  // Round to 0.01° (~1km) instead of 0.05° (~5km) for finer location sensitivity
+  return `${Math.round(lat * 100) / 100},${Math.round(lng * 100) / 100}`
 }
 
 async function cachedFetch(url: string, key: string): Promise<any> {
@@ -656,7 +665,7 @@ export default function RiskAssessment(): JSX.Element {
             className="flex items-center gap-1.5 text-[10px] font-bold bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 px-3 py-2 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-all border border-blue-200/50 dark:border-blue-800/50"
           >
             {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Compass className="w-3.5 h-3.5" />}
-            GPS
+            // GPS
           </button>
           {hasData && (
             <button
@@ -681,7 +690,7 @@ export default function RiskAssessment(): JSX.Element {
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               placeholder="Search city, postcode, or address..."
-              className="w-full pl-9 pr-3 py-2.5 text-xs bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition text-gray-900 dark:text-white placeholder-gray-400"
+              className="w-full pl-9 pr-3 py-2.5 text-xs bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500/30 focus:border-aegis-400 transition text-gray-900 dark:text-white placeholder-gray-400"
             />
           </div>
           <button onClick={handleSearch} disabled={searching || !searchQuery.trim()} className="px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white rounded-xl text-xs font-bold transition-all disabled:opacity-40 shadow-md shadow-blue-500/20">
@@ -709,12 +718,39 @@ export default function RiskAssessment(): JSX.Element {
           </div>
         </div>
       ) : loading ? (
-        /* Loading */
+        /* Loading skeleton matching the data layout */
         <div className="glass-card rounded-2xl overflow-hidden">
-          <div className="py-14 text-center">
-            <Loader2 className="w-8 h-8 text-blue-500 mx-auto mb-3 animate-spin" />
-            <p className="text-sm font-bold text-gray-700 dark:text-gray-200">Analyzing hazard data...</p>
-            <p className="text-[10px] text-gray-400 dark:text-gray-300 mt-1">Weather, flood gauges, wind models & more</p>
+          <div className="p-5">
+            <div className="flex items-center gap-5">
+              <div className="flex-shrink-0 w-[200px] h-[120px] skeleton-shimmer rounded-xl bg-gray-200 dark:bg-gray-700 motion-reduce:animate-none motion-reduce:opacity-70" />
+              <div className="flex-1 space-y-3">
+                <div className="skeleton-shimmer h-5 w-40 rounded bg-gray-200 dark:bg-gray-700 motion-reduce:animate-none motion-reduce:opacity-70" />
+                <div className="skeleton-shimmer h-3 w-56 rounded bg-gray-200 dark:bg-gray-700 motion-reduce:animate-none motion-reduce:opacity-70" />
+                <div className="grid grid-cols-3 gap-3 pt-2">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="space-y-2">
+                      <div className="skeleton-shimmer h-8 w-12 rounded bg-gray-200 dark:bg-gray-700 motion-reduce:animate-none motion-reduce:opacity-70" />
+                      <div className="skeleton-shimmer h-3 w-20 rounded bg-gray-200 dark:bg-gray-700 motion-reduce:animate-none motion-reduce:opacity-70" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="border-t border-gray-200/50 dark:border-white/[0.06] p-5">
+            <div className="skeleton-shimmer h-4 w-32 rounded bg-gray-200 dark:bg-gray-700 mb-3 motion-reduce:animate-none motion-reduce:opacity-70" />
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {[1, 2, 3, 4, 5, 6].map(i => (
+                <div key={i} className="rounded-xl border border-gray-200 dark:border-gray-700 p-3 space-y-2">
+                  <div className="skeleton-shimmer h-3 w-16 rounded bg-gray-200 dark:bg-gray-700 motion-reduce:animate-none motion-reduce:opacity-70" />
+                  <div className="skeleton-shimmer h-6 w-10 rounded bg-gray-200 dark:bg-gray-700 motion-reduce:animate-none motion-reduce:opacity-70" />
+                  <div className="skeleton-shimmer h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700 motion-reduce:animate-none motion-reduce:opacity-70" />
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="px-5 pb-4 text-center">
+            <p className="text-[10px] text-gray-400 dark:text-gray-300">Analyzing hazard data — weather, flood gauges, wind models & more</p>
           </div>
         </div>
       ) : (

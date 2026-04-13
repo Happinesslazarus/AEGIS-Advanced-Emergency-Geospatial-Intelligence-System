@@ -1,4 +1,11 @@
-"""Fix engineer_all_features to check for station_id before river features."""
+"""
+Module: patch_feature_eng.py
+
+Patch_feature_eng utility script.
+
+Simple explanation:
+Standalone script for patch_feature_eng.
+"""
 filepath = r"E:\aegis-v6-fullstack\aegis-v6\ai-engine\app\training\feature_engineering.py"
 
 with open(filepath, 'r', encoding='utf-8') as f:

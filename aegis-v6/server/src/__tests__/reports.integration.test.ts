@@ -1,8 +1,15 @@
-﻿/**
- * tests__/reports.integration.test.ts — Emergency Report Management
+/**
+ * File: reports.integration.test.ts
  *
- * Tests report submission (auth + anon), filtering, status updates,
- * bulk operations, and validation against a real PostgreSQL test database.
+ * What it tests:
+ * Integration tests for the incident report submission and retrieval flow.
+  * Verifies report creation, AI analysis trigger, media upload,
+  * status transitions, and admin approval flow.
+  *
+  * How it connects:
+  * - Tests server/src/routes/reportRoutes.ts
+  * - AI analysis mocked to isolate from ai-engine service
+  * - Run via: npm test -- reports.integration
  */
 
 import { describe, it, expect, beforeAll, afterAll, afterEach } from '@jest/globals'
@@ -532,4 +539,4 @@ describe('Reports Integration Tests', () => {
     })
   })
 })
-
+

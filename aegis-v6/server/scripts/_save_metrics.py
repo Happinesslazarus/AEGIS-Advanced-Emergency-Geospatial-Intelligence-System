@@ -1,6 +1,16 @@
+"""
+Module: _save_metrics.py
+
+_save_metrics utility script.
+
+Simple explanation:
+Standalone script for _save_metrics.
+"""
+
+import os
 import asyncio, asyncpg
 async def f():
-    c = await asyncpg.connect('postgresql://postgres:Happylove%40%21@localhost:5432/aegis')
+    c = await asyncpg.connect(os.environ.get('DATABASE_URL', 'postgresql://localhost:5432/aegis'))
     cols = await c.fetch("SELECT column_name FROM information_schema.columns WHERE table_name='ai_model_metrics' ORDER BY ordinal_position")
     print([x[0] for x in cols])
     

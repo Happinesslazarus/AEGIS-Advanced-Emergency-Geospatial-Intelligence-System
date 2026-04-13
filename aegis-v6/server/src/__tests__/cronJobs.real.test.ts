@@ -1,3 +1,17 @@
+/**
+ * File: cronJobs.real.test.ts
+ *
+ * What it tests:
+ * Tests for the exported scheduler surface of cronJobs.ts.
+  * Verifies that all scheduled jobs can be started and stopped cleanly
+  * without leaking timers — guards against test-runner hangs.
+  *
+  * How it connects:
+  * - Tests server/src/services/cronJobs.ts exported interface
+  * - Mocks all external service calls (weather, threat level APIs)
+  * - Run via: npm test -- cronJobs.real
+ */
+
 process.env.NODE_ENV = 'test'
 
 const scheduledTasks: Array<{ expression: string; callback: () => void; stop: jest.Mock }> = []

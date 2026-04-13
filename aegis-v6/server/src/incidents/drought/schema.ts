@@ -1,5 +1,13 @@
 /**
- * incidents/drought/schema.ts — Drought report validation schema
+ * Module: schema.ts
+ *
+ * Extended drought conditions incident module (handles drought specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for drought events.
  */
 
 export interface DroughtCustomFields {
@@ -34,4 +42,4 @@ export function sanitizeDroughtCustomFields(fields: Record<string, unknown>): Dr
     riverLevelLow:      typeof fields.riverLevelLow      === 'boolean' ? fields.riverLevelLow      : undefined,
   }
 }
-
+

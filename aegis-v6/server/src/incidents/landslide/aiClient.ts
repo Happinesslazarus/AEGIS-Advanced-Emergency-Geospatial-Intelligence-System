@@ -1,6 +1,13 @@
 /**
- * incidents/landslide/aiClient.ts — AI client for landslide predictions
- * AI Tier: tier2 (statistical) - Uses statistical models
+ * Module: aiClient.ts
+ *
+ * Ground movement and landslides incident module (handles landslide specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for landslide events.
  */
 
 import type { IncidentPrediction } from '../types.js'

@@ -1,4 +1,14 @@
-/* AdminNavbar.tsx — Top navigation bar for the Operator dashboard */
+/**
+ * Module: AdminNavbar.tsx
+ *
+ * Admin navbar React component.
+ *
+ * How it connects:
+ * - Rendered by AdminLayout
+ * - Reads alerts from AlertsContext for the notification dropdown
+ * - Calls onViewChange to switch the active admin view
+ * Simple explanation:
+ * The top navbar operators see with search, alerts, and quick actions. */
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
@@ -7,7 +17,7 @@ import {
   Menu, Siren, Home, User, ExternalLink, Zap, X, Clock
 } from 'lucide-react'
 import { useAlerts } from '../../contexts/AlertsContext'
-import LanguageSelector from '../shared/LanguageSelector'
+import LanguageDropdown from '../shared/LanguageDropdown'
 import ThemeSelector from '../ui/ThemeSelector'
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
@@ -63,7 +73,7 @@ export default function AdminNavbar({
   navItems = [], activeView = '',
 }: AdminNavbarProps): JSX.Element {
   const lang = useLanguage()
-  const { alerts } = useAlerts()
+  const { alerts, dismissAllNotifications } = useAlerts()
   const [portalOpen, setPortalOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
@@ -115,11 +125,22 @@ export default function AdminNavbar({
   const activeAlertCount = alerts.filter(a => a.active).length
   const totalBellCount = activeAlertCount + communityUnread + messagingUnread
 
+  // Bell shake when urgentCount increases
+  const [bellShaking, setBellShaking] = useState(false)
+  const prevUrgentRef = useRef(urgentCount)
+  useEffect(() => {
+    if (urgentCount > prevUrgentRef.current) {
+      setBellShaking(true)
+      setTimeout(() => setBellShaking(false), 700)
+    }
+    prevUrgentRef.current = urgentCount
+  }, [urgentCount])
+
   // Active view label for breadcrumb
   const activeViewLabel = navItems.find(item => item.id === activeView)?.label || ''
 
   return (
-    <nav role="navigation" aria-label="Main navigation" className="fixed top-0 left-0 right-0 z-40 bg-white/98 dark:bg-surface-ultra-dark backdrop-blur-2xl border-b border-gray-200 dark:border-aegis-500/15 shadow-md shadow-gray-200/50 dark:shadow-2xl dark:shadow-black/80">
+    <nav role="navigation" aria-label="Main navigation" className="fixed top-0 left-0 right-0 z-[500] bg-white/98 dark:bg-surface-ultra-dark backdrop-blur-2xl border-b border-gray-200 dark:border-aegis-500/15 shadow-md shadow-gray-200/50 dark:shadow-2xl dark:shadow-black/80">
       {/* Accent line */}
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-aegis-400/60 to-transparent pointer-events-none" />
       <div className="h-14 flex items-center gap-3 px-4">
@@ -167,7 +188,7 @@ export default function AdminNavbar({
 
           {/* Breadcrumb — show current view on larger screens */}
           {activeViewLabel && (
-            <div className="hidden 2xl:flex items-center gap-1 text-[10px] text-gray-400 dark:text-gray-500">
+            <div className="hidden 2xl:flex items-center gap-1 text-[10px] text-gray-400 dark:text-gray-400">
               <ChevronDown className="w-3 h-3 -rotate-90" aria-hidden="true" />
               <span className="font-semibold text-gray-600 dark:text-gray-300">{activeViewLabel}</span>
             </div>
@@ -233,7 +254,7 @@ export default function AdminNavbar({
               aria-expanded={notifOpen}
               className="relative min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-aegis-50 dark:hover:bg-aegis-500/10 border border-gray-200 dark:border-white/8 hover:border-aegis-500/25 transition-all"
             >
-              <Bell className="w-4 h-4 text-gray-500 dark:text-gray-300" />
+              <Bell className={`w-4 h-4 text-gray-500 dark:text-gray-300 ${bellShaking ? 'bell-shake' : ''}`} />
               {totalBellCount > 0 && (
                 <span className="absolute -top-1 -right-1 w-4.5 h-4.5 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center shadow-sm shadow-red-500/40 animate-pulse">
                   {totalBellCount > 9 ? '9+' : totalBellCount}
@@ -246,7 +267,12 @@ export default function AdminNavbar({
               <div className="absolute right-0 top-12 w-80 max-w-[calc(100vw-1.5rem)] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700/60 overflow-hidden z-50">
                 <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
                   <span className="text-xs font-bold text-gray-900 dark:text-white">{t('layout.header.notifications', lang)}</span>
-                  <span className="text-[10px] text-gray-500 dark:text-gray-300">{t('common.total', lang)}: {totalBellCount}</span>
+                  <button
+                    onClick={() => { dismissAllNotifications(); setNotifOpen(false) }}
+                    className="text-[10px] font-semibold text-aegis-600 dark:text-aegis-400 hover:underline"
+                  >
+                    Mark all read
+                  </button>
                 </div>
                 <div className="max-h-64 overflow-y-auto">
                   {/* Community chat unread */}
@@ -318,7 +344,7 @@ export default function AdminNavbar({
 
           {/* Theme + Language */}
           <ThemeSelector darkNav={dark} />
-          <LanguageSelector darkNav={dark} />
+          <LanguageDropdown darkNav={dark} />
 
           {/* Profile */}
           <button

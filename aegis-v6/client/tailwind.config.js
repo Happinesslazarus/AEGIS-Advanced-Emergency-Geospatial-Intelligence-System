@@ -1,4 +1,23 @@
-﻿/* @type {import('tailwindcss').Config} */
+﻿/**
+ * File: tailwind.config.js
+ *
+ * What this file does:
+ * Tailwind CSS design-system configuration for the Aegis client. Defines:
+ * - Custom colour palette: aegis-50..950 (resolved from CSS custom properties
+ *   in globals.css so dark/light mode switching works with a single class)
+ * - Semantic colour tokens: surface.*, fg.*, border (theme-aware via CSS vars)
+ * - Typography, spacing, and animation extensions
+ * - Dark mode via the 'class' strategy (ThemeContext toggles the dark class)
+ *
+ * How it connects:
+ * - Processed by Vite via the PostCSS plugin (see postcss.config.js)
+ * - CSS variables it references are defined in client/src/styles/globals.css
+ * - ThemeContext.tsx adds/removes the 'dark' class on <html> to trigger theming
+ * - Content paths cover all .ts/.tsx files so no unused classes are purged
+ *
+ * Learn more: https://tailwindcss.com/docs/configuration
+ */
+/* @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   darkMode: 'class',
@@ -118,6 +137,25 @@ export default {
         'shimmer':'shimmer 2s infinite',
         'float':'float 3s ease-in-out infinite',
         'glow':'glowPulse 2s ease-in-out infinite',
+        /* Phase 6 — Enhanced micro-interactions */
+        'bounce-subtle':'bounceSubtle 0.5s ease-out',
+        'pop':'pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+        'shake':'shake 0.5s ease-in-out',
+        'ping-slow':'pingSlow 2s cubic-bezier(0, 0, 0.2, 1) infinite',
+        'wiggle':'wiggle 0.3s ease-in-out',
+        'count-up':'countUp 0.4s ease-out forwards',
+        'reveal':'reveal 0.5s ease-out forwards',
+        'slide-fade-left':'slideFadeLeft 0.3s ease-out forwards',
+        'slide-fade-right':'slideFadeRight 0.3s ease-out forwards',
+        'pin-drop':'pinDrop 0.4s cubic-bezier(0.175,0.885,0.32,1.275) forwards',
+        'bar-grow':'barGrow 0.6s ease-out forwards',
+        'toast-in':'toastIn 0.35s cubic-bezier(0,0,0.2,1) forwards',
+        'toast-out':'toastOut 0.25s cubic-bezier(0.4,0,1,1) forwards',
+        'status-flash':'statusFlash 0.6s ease-out',
+        'slide-up-stagger':'slideUp 0.35s ease-out forwards',
+        'bell-shake':'bellShake 0.6s ease-in-out',
+        'check-draw':'checkDraw 0.5s ease-out forwards',
+        'confetti-pop':'confettiPop 0.4s cubic-bezier(0.175,0.885,0.32,1.275) forwards',
       },
       keyframes: {
         fadeIn: { '0%':{opacity:'0'},'100%':{opacity:'1'} },
@@ -130,6 +168,24 @@ export default {
         float: { '0%,100%':{transform:'translateY(0)'},'50%':{transform:'translateY(-6px)'} },
         glowPulse: { '0%,100%':{boxShadow:'0 0 5px rgba(var(--aegis-600),0.3)'},'50%':{boxShadow:'0 0 20px rgba(var(--aegis-600),0.5)'} },
         ring: { '0%,100%':{transform:'rotate(0deg)'},'10%,30%':{transform:'rotate(-10deg)'},'20%,40%':{transform:'rotate(10deg)'},'50%':{transform:'rotate(0deg)'} },
+        /* Phase 6 — New keyframes */
+        bounceSubtle: { '0%,100%':{transform:'translateY(0)'},'50%':{transform:'translateY(-4px)'} },
+        pop: { '0%':{transform:'scale(0.95)',opacity:'0'},'50%':{transform:'scale(1.02)'},'100%':{transform:'scale(1)',opacity:'1'} },
+        shake: { '0%,100%':{transform:'translateX(0)'},'10%,30%,50%,70%,90%':{transform:'translateX(-2px)'},'20%,40%,60%,80%':{transform:'translateX(2px)'} },
+        pingSlow: { '0%':{transform:'scale(1)',opacity:'1'},'75%,100%':{transform:'scale(1.5)',opacity:'0'} },
+        wiggle: { '0%,100%':{transform:'rotate(0)'},'25%':{transform:'rotate(-3deg)'},'75%':{transform:'rotate(3deg)'} },
+        countUp: { '0%':{opacity:'0',transform:'translateY(8px)'},'100%':{opacity:'1',transform:'translateY(0)'} },
+        reveal: { '0%':{opacity:'0',clipPath:'inset(0 100% 0 0)'},'100%':{opacity:'1',clipPath:'inset(0 0 0 0)'} },
+        slideFadeLeft: { '0%':{opacity:'0',transform:'translateX(12px)'},'100%':{opacity:'1',transform:'translateX(0)'} },
+        slideFadeRight: { '0%':{opacity:'0',transform:'translateX(-12px)'},'100%':{opacity:'1',transform:'translateX(0)'} },
+        pinDrop: { '0%':{opacity:'0',transform:'translateY(-20px) scale(0.5)'},'70%':{transform:'translateY(4px) scale(1.1)'},'100%':{opacity:'1',transform:'translateY(0) scale(1)'} },
+        barGrow: { '0%':{transform:'scaleY(0)',transformOrigin:'bottom'},'100%':{transform:'scaleY(1)',transformOrigin:'bottom'} },
+        toastIn: { '0%':{opacity:'0',transform:'translateX(100%) scale(0.95)'},'100%':{opacity:'1',transform:'translateX(0) scale(1)'} },
+        toastOut: { '0%':{opacity:'1',transform:'translateX(0) scale(1)'},'100%':{opacity:'0',transform:'translateX(100%) scale(0.95)'} },
+        statusFlash: { '0%,100%':{backgroundColor:'transparent'},'25%,75%':{backgroundColor:'rgba(var(--aegis-500),0.15)'} },
+        bellShake: { '0%,100%':{transform:'rotate(0)'},'10%':{transform:'rotate(-15deg)'},'20%':{transform:'rotate(15deg)'},'30%':{transform:'rotate(-10deg)'},'40%':{transform:'rotate(10deg)'},'50%':{transform:'rotate(-5deg)'},'60%':{transform:'rotate(5deg)'},'70%':{transform:'rotate(0)'} },
+        checkDraw: { '0%':{strokeDashoffset:'100'},'100%':{strokeDashoffset:'0'} },
+        confettiPop: { '0%':{transform:'scale(0) rotate(-10deg)',opacity:'0'},'60%':{transform:'scale(1.15) rotate(3deg)',opacity:'1'},'100%':{transform:'scale(1) rotate(0)',opacity:'1'} },
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
@@ -139,4 +195,4 @@ export default {
   },
   plugins: [],
 }
-
+

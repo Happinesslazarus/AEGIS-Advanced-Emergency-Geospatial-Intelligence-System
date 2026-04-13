@@ -1,10 +1,11 @@
-﻿/**
- * adapters/regions/RegionAdapter.interface.ts — Region adapter contract
+/**
+ * Module: RegionAdapter.interface.ts
  *
- * Every deployment region must implement this interface. The service layer
- * calls these methods exclusively — never provider APIs directly. Adding a
- * new country/region means creating one adapter file, one config JSON, and
- * registering them. No core service rewrites.
+ * Region adapter.interface server module.
+ *
+ * How it connects:
+ * - Used by services for external data fetching
+ *
  */
 
 // Return types
@@ -125,7 +126,7 @@ export interface RegionMetadata {
   currency?: string
 }
 
- /**
+/**
  * Cities/areas with pre-configured monitoring within this region.
  */
 export interface MonitoredCity {

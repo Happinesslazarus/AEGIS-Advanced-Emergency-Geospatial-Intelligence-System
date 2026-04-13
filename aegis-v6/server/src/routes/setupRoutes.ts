@@ -1,12 +1,18 @@
-﻿/**
- * routes/setupRoutes.ts — First-run onboarding & platform setup API
+/**
+ * File: setupRoutes.ts
  *
- * Endpoints:
- *   GET  /api/admin/setup/status           — Public: returns first-run detection state
- *   POST /api/admin/setup/region           — Admin: persist region selection
- *   POST /api/admin/setup/notifications    — Admin: persist notification channel config
- *   POST /api/admin/setup/complete         — Admin: finalise first-run setup
- *   POST /api/admin/setup/reset            — Admin: reset setup state (dev / recovery)
+ * What this file does:
+ * First-run setup wizard for new AEGIS installations. Checks whether
+ * the platform has been configured, guides admin through initial setup
+ * (create first admin account, select region, configure features).
+ *
+ * How it connects:
+ * - Mounted at /api/admin/setup in index.ts
+ * - Reads/writes system_config table for setup state
+ * - After setup, the wizard endpoints return "already configured"
+ *
+ * Simple explanation:
+ * Walks new installations through the initial configuration steps.
  */
 
 import { Router, Request, Response, NextFunction } from 'express'
@@ -208,4 +214,4 @@ router.post('/reset', authMiddleware, requireRole('admin'), async (req: AuthRequ
 })
 
 export default router
-
+

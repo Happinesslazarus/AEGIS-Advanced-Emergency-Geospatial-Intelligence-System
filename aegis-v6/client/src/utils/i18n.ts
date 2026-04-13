@@ -1,12 +1,23 @@
- /*
- * i18n.ts — Complete internationalisation engine for AEGIS
- * ALL keys are defined in ALL 9 supported languages so that every UI string
- * translates correctly when the user switches language.
- * Supported: en, es, fr, ar, zh, hi, pt, pl, ur
-  */
+/**
+ * File: i18n.ts
+ *
+ * What this file does:
+ * Thin wrapper around i18next providing t(), setLanguage(), getLanguage(),
+ * and isRtl() for programmatic language access outside React hooks.
+ *
+ * How it connects:
+ * - Used across the whole client for translated text
+ * - Language resources defined in client/src/i18n/config.ts
+ * - Language preference stored in localStorage
+ *
+ * Learn more:
+ * - client/src/i18n/config.ts       -- language bundles and i18next setup
+ * - client/src/hooks/useLanguage.ts -- React hook for language switching
+ */
 
 import i18next from '../i18n/config'
-import type { TranslationMap, LanguageCode } from '../types'
+import type { TranslationMap } from '../types'
+import { getRegion } from '../config/regionConfig'
 
 // ENGLISH (source of truth – every key MUST exist here)
 
@@ -640,6 +651,21 @@ const en = {
   'admin.ai.decisionFactors': 'Decision Factors',
   'admin.ai.inputFeatures': 'Input Features',
   'admin.ai.outputConfidence': 'Output Confidence',
+  // AITransparencyDashboard additional keys
+  'admin.ai.aegisHealth': 'AEGIS AI Health',
+  'admin.ai.systemStatus': 'System Status',
+  'admin.ai.unavailable': 'Unavailable:',
+  'admin.ai.engineOffline': '. The AI engine may be offline or models may not yet be trained.',
+  'admin.ai.trainModelsHint': 'Train models through the AI engine to see their training status and enable retraining here.',
+  'admin.ai.active': 'Active:',
+  'admin.ai.providerConnected': 'Provider connected — detailed metrics appear when active chat sessions are running',
+  'admin.ai.providerTelemetryHint': 'Provider telemetry data appears once active AI chat sessions exist',
+  'admin.ai.coverageScope': 'System Coverage & Scope',
+  'admin.ai.primaryRegion': 'Primary Region',
+  'admin.ai.scotlandUk': 'Scotland & United Kingdom',
+  'admin.ai.sepaFloodZones': 'SEPA flood zones · Glasgow · Edinburgh · Stirling · Aberdeen',
+  'admin.ai.hazardTypesCovered': 'Hazard Types Covered',
+  'admin.ai.coverageNote': 'AEGIS AI models are trained on Scottish and UK-wide emergency response data. Coverage regions are configurable per deployment. Primary data source: SEPA (Scottish Environment Protection Agency).',
 
   //  AllReportsManager
   'admin.reports.manager': 'All Reports Manager',
@@ -877,6 +903,133 @@ const en = {
   'admin.resource.recallConfirm': 'Recall this resource?',
   'admin.resource.deploySuccess': 'Resource deployed successfully',
   'admin.resource.recallSuccess': 'Resource recalled successfully',
+  // Zone management
+  'admin.resource.addZone': 'Add Zone',
+  'admin.resource.createFirstZone': 'Create First Zone',
+  'admin.resource.createDeploymentZone': 'Create Deployment Zone',
+  'admin.resource.zoneDetails': 'Zone Details',
+  'admin.resource.editZone': 'Edit Zone',
+  'admin.resource.deleteZone': 'Delete zone',
+  'admin.resource.zoneName': 'Zone Name',
+  'admin.resource.zoneNamePlaceholder': 'e.g. Aberdeen City Centre — North Sector',
+  // Actions
+  'admin.resource.save': 'Save',
+  'admin.resource.cancel': 'Cancel',
+  'admin.resource.edit': 'Edit',
+  'admin.resource.details': 'Details',
+  'admin.resource.confirmDraft': 'Confirm Draft',
+  'admin.resource.deployNow': 'Deploy Now',
+  'admin.resource.acknowledge': 'Ack',
+  'admin.resource.next': 'Next',
+  'admin.resource.back': 'Back',
+  // AI-related
+  'admin.resource.aiDraft': 'AI DRAFT',
+  'admin.resource.aiDraftsAwaitingReview': 'AI Drafts Awaiting Review',
+  'admin.resource.aiResourceEngine': 'AI Resource Engine',
+  'admin.resource.aiAssessment': 'AI Assessment',
+  'admin.resource.aiSuggested': 'AI suggested:',
+  'admin.resource.autoApplied': 'AUTO-APPLIED',
+  'admin.resource.autoCalculatedFor': 'Auto-calculated for',
+  'admin.resource.resetToAi': 'Reset to AI Recommendation',
+  'admin.resource.resourceOverride': 'Resource Override',
+  'admin.resource.resourceOverrideDesc': 'Adjust counts if AI values need correction (max 99 each)',
+  // Labels
+  'admin.resource.priority': 'Priority',
+  'admin.resource.priorityLevel': 'Priority Level',
+  'admin.resource.hazard': 'Hazard',
+  'admin.resource.hazardType': 'Hazard Type',
+  'admin.resource.hazardClassification': 'Hazard Classification',
+  'admin.resource.reports': 'Reports',
+  'admin.resource.affected': 'Affected',
+  'admin.resource.totalAssets': 'Total Assets',
+  'admin.resource.geoPin': 'Geo-Pin',
+  'admin.resource.fire': 'Fire',
+  'admin.resource.fireEngines': 'Fire Engines',
+  'admin.resource.boats': 'Boats',
+  'admin.resource.rescueBoats': 'Rescue Boats',
+  'admin.resource.ambulances': 'Ambulances',
+  'admin.resource.noResourcesStaged': 'No resources staged',
+  // Mutual Aid
+  'admin.resource.mutualAid': 'Mutual Aid',
+  'admin.resource.activeRequest': 'ACTIVE REQUEST',
+  // ICS (Incident Command System)
+  'admin.resource.incidentCommander': 'Incident Commander',
+  'admin.resource.icsOperationsLog': 'ICS Operations Log',
+  'admin.resource.icsOpsLog': 'ICS Ops Log',
+  'admin.resource.noLogEntries': 'No log entries yet.',
+  'admin.resource.noEntries': 'No entries.',
+  'admin.resource.addLogEntryPlaceholder': 'Add log entry… (Enter to submit)',
+  'admin.resource.logEntryPlaceholder': 'Log entry…',
+  'admin.resource.log': 'Log',
+  // Asset tracking
+  'admin.resource.assetTracking': 'Asset Tracking',
+  'admin.resource.onSite': 'on-site',
+  'admin.resource.addAsset': 'Add Asset',
+  'admin.resource.loadingAssets': 'Loading assets…',
+  'admin.resource.noAssetsTracked': 'No assets tracked yet.',
+  'admin.resource.crew': 'crew',
+  'admin.resource.callSignPlaceholder': 'Call sign e.g. AMB-01',
+  'admin.resource.crewPlaceholder': 'Crew',
+  'admin.resource.assets': 'Assets',
+  'admin.resource.add': 'Add',
+  // Form fields
+  'admin.resource.namePlaceholder': 'Name',
+  'admin.resource.affectedPlaceholder': 'e.g. 200',
+  'admin.resource.estimatedAffected': 'Estimated Affected',
+  'admin.resource.estimatedAffectedPlaceholder': 'e.g. 150 residents',
+  'admin.resource.activeReports': 'Active Reports',
+  'admin.resource.linkToIncident': 'Link to Incident Report',
+  'admin.resource.optional': '(optional)',
+  'admin.resource.noneSelected': '— None —',
+  'admin.resource.coordinates': 'Coordinates',
+  'admin.resource.latPlaceholder': 'Latitude  e.g. 57.149',
+  'admin.resource.lonPlaceholder': 'Longitude  e.g. -2.094',
+  'admin.resource.accessRoutes': 'Access Routes / Ingress Notes',
+  'admin.resource.accessRoutesPlaceholder': 'Primary route: A90 northbound exit 3. Alternate: B999 via Dyce. Road closures: King St between Union Bridge and Castle St.',
+  // Commander
+  'admin.resource.commanderNotes': 'Commander Notes',
+  'admin.resource.commanderNotesDesc': '(optional — terrain, access routes, hazard specifics)',
+  'admin.resource.commanderNotesPlaceholder': 'Add operational notes visible to all responders...',
+  'admin.resource.commanderPlaceholder': 'e.g. Commander J. MacLeod',
+  // Radio
+  'admin.resource.radioChannel': 'Radio Channel',
+  'admin.resource.radioPlaceholder': 'e.g. TAC-3 / 155.250 MHz',
+  // Weather conditions
+  'admin.resource.weatherConditions': 'Weather Conditions',
+  'admin.resource.weather.clear': 'Clear / Fair',
+  'admin.resource.weather.overcast': 'Overcast / Cloudy',
+  'admin.resource.weather.rain': 'Rain',
+  'admin.resource.weather.heavyRain': 'Heavy Rain / Downpour',
+  'admin.resource.weather.thunderstorm': 'Thunderstorm',
+  'admin.resource.weather.fog': 'Fog / Low Visibility',
+  'admin.resource.weather.snow': 'Snow',
+  'admin.resource.weather.ice': 'Ice / Freezing',
+  'admin.resource.weather.extremeHeat': 'Extreme Heat',
+  'admin.resource.weather.highWind': 'High Wind / Gale',
+  // Evacuation status
+  'admin.resource.evacuationStatus': 'Evacuation Status',
+  'admin.resource.evac.none': 'No Evacuation',
+  'admin.resource.evac.voluntary': 'Voluntary Evacuation',
+  'admin.resource.evac.mandatory': 'Mandatory Evacuation',
+  'admin.resource.evac.shelter': 'Shelter-in-Place',
+  'admin.resource.evac.completed': 'Evacuation Completed',
+  // Operational details
+  'admin.resource.operationalDetails': 'Operational Details',
+  'admin.resource.comms': 'Comms:',
+  'admin.resource.weatherLabel': 'Weather:',
+  'admin.resource.evacuationLabel': 'Evacuation:',
+  'admin.resource.accessLabel': 'Access:',
+  'admin.resource.notes': 'Notes:',
+  // Threat/Incident
+  'admin.resource.threat': 'THREAT:',
+  'admin.resource.threatLabel': 'Threat:',
+  'admin.resource.incident': 'incident',
+  'admin.resource.incidentAiAssisted': 'incident • AI-assisted resource staging',
+  // Critical alert
+  'admin.resource.criticalPriority': 'CRITICAL PRIORITY',
+  'admin.resource.criticalNotice': '— Creating this zone will trigger immediate multi-channel notifications to all active command staff and operators.',
+  // Summary
+  'admin.resource.deploymentReadiness': 'Deployment Readiness',
 
   //  SystemHealthPanel
   'admin.health.title': 'Architecture Status Board',
@@ -1018,6 +1171,65 @@ const en = {
   'admin.login.heroRegions': 'regions worldwide',
   'admin.login.heroPowered': 'Powered by',
   'admin.login.heroModels': 'AI models',
+
+  //  TwoFactorChallenge + TwoFactorSettings
+  'twofa.title': 'Two-Factor Authentication',
+  'twofa.enterCode': 'Please enter your authentication code',
+  'twofa.invalidCode': 'Invalid code. Please try again.',
+  'twofa.verifyFailed': 'Verification failed. Please try again.',
+  'twofa.sessionExpired': 'Session expired. Please log in again.',
+  'twofa.enterTotpDesc': 'Enter the 6-digit code from your authenticator app.',
+  'twofa.enterBackupDesc': 'Enter one of your backup recovery codes.',
+  'twofa.authenticator': 'Authenticator',
+  'twofa.backupCode': 'Use Backup Code',
+  'twofa.authCode': 'Authentication Code',
+  'twofa.backupRecoveryCode': 'Backup Recovery Code',
+  'twofa.rememberDevice': 'Remember this device for 30 days',
+  'twofa.verifying': 'Verifying...',
+  'twofa.verifySignIn': 'Verify & Sign In',
+  'twofa.backToLogin': 'Back to Login',
+  'twofa.loadFailed': 'Failed to load 2FA status',
+  'twofa.setupFailed': 'Failed to start 2FA setup',
+  'twofa.invalidSetupCode': 'Please enter a valid 6-digit code',
+  'twofa.enabled': 'Two-factor authentication enabled successfully',
+  'twofa.verifyFreshCode': 'Please use a fresh code from your authenticator',
+  'twofa.passwordRequired': 'Password is required',
+  'twofa.codeRequired': 'Authentication code is required',
+  'twofa.disabled': 'Two-factor authentication disabled',
+  'twofa.disableFailed': 'Failed to disable 2FA',
+  'twofa.regenFailed': 'Failed to regenerate backup codes',
+  'twofa.codesRegenerated': 'Backup codes regenerated successfully',
+  'twofa.aria.totpCode': '6-digit authentication code',
+  'twofa.aria.backupCode': 'Backup recovery code',
+  'twofa.backupOnlyOnce': 'Each backup code can only be used once',
+  // TwoFactorSettings-specific
+  'twofa.backupRecoveryCodes': 'Backup Recovery Codes',
+  'twofa.saveCodesSecure': 'Save these codes in a secure location. Each code can only be used once.',
+  'twofa.notShownAgain': 'These will not be shown again.',
+  'twofa.download': 'Download',
+  'twofa.confirmSaved': 'I have saved these backup codes in a secure location',
+  'twofa.doneSaved': "Done — I've Saved My Codes",
+  'twofa.enable': 'Enable Two-Factor Authentication',
+  'twofa.scanQrCode': 'Scan QR Code',
+  'twofa.scanQrDesc': 'Scan this QR code with your authenticator app (Google Authenticator, Authy, 1Password, or Microsoft Authenticator).',
+  'twofa.enterKeyManually': 'Or enter this key manually:',
+  'twofa.copyKey': 'Copy key',
+  'twofa.enterCodeVerify': 'Enter the 6-digit code from your app to verify:',
+  'twofa.cancel': 'Cancel',
+  'twofa.verifyEnable': 'Verify & Enable',
+  'twofa.regenerateBackupCodes': 'Regenerate Backup Codes',
+  'twofa.disable': 'Disable Two-Factor Authentication',
+  'twofa.disable2fa': 'Disable 2FA',
+  'twofa.disableWarning': 'This will remove two-factor authentication from your account. You must provide your password and a valid code.',
+  'twofa.currentPassword': 'Current password',
+  'twofa.totpOrBackup': '6-digit TOTP code or backup code',
+  'twofa.totpCode': '6-digit TOTP code',
+  'twofa.codeOrBackup': '6-digit code or backup code',
+  'twofa.confirmDisable': 'Confirm Disable',
+  'twofa.regenerateDesc': 'This will invalidate all existing backup codes and generate 10 new ones.',
+  'twofa.generateNewCodes': 'Generate New Codes',
+  'twofa.lastVerified': 'Last verified:',
+  'twofa.codesGenerated': 'Recovery codes generated:',
 
   // CITIZEN COMPONENTS — comprehensive i18n keys
 
@@ -1462,6 +1674,16 @@ const en = {
   'layout.sidebar.citizenPage': 'Citizen Page',
   'layout.sidebar.collapse': 'Collapse Sidebar',
   'layout.sidebar.expand': 'Expand Sidebar',
+  'layout.sidebar.home': 'Home',
+  'layout.sidebar.communitySupport': 'Community Support',
+  'layout.sidebar.safetyCheckIn': 'Safety Check-In',
+  'layout.sidebar.myProfile': 'My Profile',
+  'layout.sidebar.navigation': 'Navigation',
+  'layout.sidebar.expandSidebar': 'Expand Sidebar',
+  'layout.sidebar.collapseSidebar': 'Collapse Sidebar',
+  'layout.sidebar.myAccount': 'My Account',
+  'layout.sidebar.unlockFullFeatures': 'Unlock full features',
+  'layout.sidebar.openNavigation': 'Open Navigation',
 
   //  Header
   'layout.header.search': 'Search...',
@@ -2712,6 +2934,32 @@ const en = {
   'common.created': 'Created',
   'common.dismiss': 'Dismiss',
   'common.toggleMap': 'Toggle map',
+  'common.toggleShortcuts': 'Toggle Shortcuts',
+  'common.clearFilters': 'Clear Filters',
+  'common.newest': 'Newest',
+  'common.oldest': 'Oldest',
+  'common.switchTabs': 'Switch Tabs',
+  'common.quickReplies': 'Quick Replies',
+  'common.autoTranslate': 'Auto-Translate',
+  'common.quickActions': 'Quick Actions',
+  'common.home': 'Home',
+  'common.esc': 'Esc',
+  'common.copySitrep': 'Copy SitRep',
+  'common.toggleSitrep': 'Toggle SitRep',
+  'common.communityHealth': 'Community Health',
+  'common.recentReports': 'Recent Reports',
+  'common.moreInModerationTab': 'more in Moderation tab',
+  'common.report': 'report',
+  'common.vulnerable': 'Vulnerable',
+  'common.quickNavigation': 'Quick Navigation',
+  'common.returnToMain': 'Return to the main landing page',
+  'common.systemOnline': 'SYSTEM ONLINE',
+  'common.encrypted': 'ENCRYPTED',
+  'common.citizenPortal': 'Citizen Portal',
+  'common.publicSafetyDashboard': 'Public safety dashboard & services',
+  'common.continueWith': 'or continue with',
+  'common.signInWithGoogle': 'Sign in with Google',
+  'common.sessionExpired': 'Your session has expired. Please sign in again.',
 
   //  Time
   'time.today': 'Today',
@@ -5041,9 +5289,26 @@ const en = {
 
 } satisfies TranslationMap
 
+// Helper: merge en as base so every key is guaranteed present
+function withEnBase(partial: TranslationMap): TranslationMap {
+  return { ...en, ...partial }
+}
+
 // SPANISH
 
-const es: TranslationMap = {
+const es: TranslationMap = withEnBase({
+  'layout.sidebar.home': 'Inicio',
+  'layout.sidebar.communitySupport': 'Apoyo Comunitario',
+  'layout.sidebar.safetyCheckIn': 'Registro de Seguridad',
+  'layout.sidebar.myProfile': 'Mi Perfil',
+  'layout.sidebar.navigation': 'Navegación',
+  'layout.sidebar.expandSidebar': 'Expandir Barra Lateral',
+  'layout.sidebar.collapseSidebar': 'Contraer Barra Lateral',
+  'layout.sidebar.myAccount': 'Mi Cuenta',
+  'layout.sidebar.unlockFullFeatures': 'Desbloquear todas las funciones',
+  'layout.sidebar.openNavigation': 'Abrir Navegación',
+  'layout.header.settings': 'Configuración',
+  'risk.title': 'Evaluación de Riesgo',
   'app.title': 'AEGIS', 'app.subtitle': 'Sistema de Respuesta a Emergencias',
   'app.admin.title': 'AEGIS Admin', 'app.admin.subtitle': 'Centro de Operaciones de Emergencia',
   'nav.reportEmergency': 'Reportar Emergencia', 'nav.aiAssistant': 'Asistente IA',
@@ -5356,7 +5621,7 @@ const es: TranslationMap = {
   'citizen.reportDetail.title': 'Detalles del Reporte',
   'citizen.alertDetail.title': 'Detalles de la Alerta',
   'citizen.alertDetail.safetyAdvice': 'Consejo de Seguridad',
-  'citizen.alertDetail.safetyMsg': 'Siga las instrucciones de las autoridades locales. Si está en peligro inmediato, llame al 999.',
+  'citizen.alertDetail.safetyMsg': 'Siga las instrucciones de las autoridades locales. Si está en peligro inmediato, llame al {{EMERGENCY_NUMBER}}.',
   'citizen.alertDetail.reportIncident': 'Reportar Incidente',
   'citizen.subscribe.chooseChannels': 'Elija canales de alerta y proporcione datos de contacto:',
   'citizen.subscribe.subscribeTo': 'Suscribirse a Alertas',
@@ -5397,7 +5662,7 @@ const es: TranslationMap = {
   'common.reports': 'reportes', 'common.loadingReports': 'Cargando reportes...',
   'common.noReportsFound': 'No se encontraron reportes',
   'chat.title': 'Asistente IA de Emergencia', 'chat.subtitle': 'Guía multi-desastre',
-  'chat.placeholder': 'Pregunte sobre seguridad...', 'chat.disclaimer': 'Asistente IA — para emergencias llame al 999',
+  'chat.placeholder': 'Pregunte sobre seguridad...', 'chat.disclaimer': 'Asistente IA — para emergencias llame al {{EMERGENCY_NUMBER}}',
   'general.close': 'Cerrar', 'general.cancel': 'Cancelar', 'general.confirm': 'Confirmar',
   'general.loading': 'Cargando...', 'general.noResults': 'Sin resultados',
   //  Preparedness Guide i18n
@@ -5942,11 +6207,23 @@ const es: TranslationMap = {
   'floodLayer.evacuationRoutes': 'Rutas de Evacuación', 'floodLayer.evacuationRoutesDesc': 'Corredores de evacuación precalculados',
   'floodLayer.floodZonesWms': 'Zonas de Inundación (WMS)', 'floodLayer.predictions': 'Predicciones', 'floodLayer.evacuation': 'Evacuación',
   'floodPred.nowLabel': 'Ahora',
-}
+})
 
 // FRENCH
 
-const fr: TranslationMap = {
+const fr: TranslationMap = withEnBase({
+  'layout.sidebar.home': 'Accueil',
+  'layout.sidebar.communitySupport': 'Soutien Communautaire',
+  'layout.sidebar.safetyCheckIn': 'Vérification de Sécurité',
+  'layout.sidebar.myProfile': 'Mon Profil',
+  'layout.sidebar.navigation': 'Navigation',
+  'layout.sidebar.expandSidebar': 'Développer la Barre Latérale',
+  'layout.sidebar.collapseSidebar': 'Réduire la Barre Latérale',
+  'layout.sidebar.myAccount': 'Mon Compte',
+  'layout.sidebar.unlockFullFeatures': 'Débloquer toutes les fonctionnalités',
+  'layout.sidebar.openNavigation': 'Ouvrir la Navigation',
+  'layout.header.settings': 'Paramètres',
+  'risk.title': 'Évaluation des Risques',
   'app.title': 'AEGIS', 'app.subtitle': "Système d'Intervention d'Urgence",
   'app.admin.title': 'AEGIS Admin', 'app.admin.subtitle': "Centre d'Opérations d'Urgence",
   'nav.reportEmergency': 'Signaler une Urgence', 'nav.aiAssistant': 'Assistant IA',
@@ -6257,7 +6534,7 @@ const fr: TranslationMap = {
   'citizen.reportDetail.title': 'Détails du Rapport',
   'citizen.alertDetail.title': "Détails de l'Alerte",
   'citizen.alertDetail.safetyAdvice': 'Conseil de Sécurité',
-  'citizen.alertDetail.safetyMsg': 'Suivez les instructions des autorités locales. En danger immédiat, appelez le 999.',
+  'citizen.alertDetail.safetyMsg': 'Suivez les instructions des autorités locales. En danger immédiat, appelez le {{EMERGENCY_NUMBER}}.',
   'citizen.alertDetail.reportIncident': 'Signaler un Incident',
   'citizen.subscribe.chooseChannels': "Choisissez les canaux d'alerte et fournissez vos coordonnées :",
   'citizen.subscribe.subscribeTo': "S'abonner aux Alertes",
@@ -6298,7 +6575,7 @@ const fr: TranslationMap = {
   'common.reports': 'rapports', 'common.loadingReports': 'Chargement des rapports...',
   'common.noReportsFound': 'Aucun rapport trouvé',
   'chat.title': "Assistant IA d'Urgence", 'chat.subtitle': 'Guide multi-catastrophes',
-  'chat.placeholder': 'Demandez des conseils de sécurité...', 'chat.disclaimer': 'Assistant IA — pour les urgences appelez le 999',
+  'chat.placeholder': 'Demandez des conseils de sécurité...', 'chat.disclaimer': 'Assistant IA — pour les urgences appelez le {{EMERGENCY_NUMBER}}',
   'general.close': 'Fermer', 'general.cancel': 'Annuler', 'general.confirm': 'Confirmer',
   'general.loading': 'Chargement...', 'general.noResults': 'Aucun résultat',
   //  Preparedness Guide i18n
@@ -6787,9 +7064,21 @@ const fr: TranslationMap = {
   'floodLayer.evacuationRoutes': "Routes d'Évacuation", 'floodLayer.evacuationRoutesDesc': "Corridors d'évacuation précalculés",
   'floodLayer.floodZonesWms': "Zones d'Inondation (WMS)", 'floodLayer.predictions': 'Prédictions', 'floodLayer.evacuation': 'Évacuation',
   'floodPred.nowLabel': 'Maintenant',
-}
+})
 
-const ar: TranslationMap = {
+const ar: TranslationMap = withEnBase({
+  'layout.sidebar.home': 'الرئيسية',
+  'layout.sidebar.communitySupport': 'الدعم المجتمعي',
+  'layout.sidebar.safetyCheckIn': 'تسجيل السلامة',
+  'layout.sidebar.myProfile': 'ملفي الشخصي',
+  'layout.sidebar.navigation': 'التنقل',
+  'layout.sidebar.expandSidebar': 'توسيع الشريط الجانبي',
+  'layout.sidebar.collapseSidebar': 'طي الشريط الجانبي',
+  'layout.sidebar.myAccount': 'حسابي',
+  'layout.sidebar.unlockFullFeatures': 'فتح جميع الميزات',
+  'layout.sidebar.openNavigation': 'فتح التنقل',
+  'layout.header.settings': 'الإعدادات',
+  'risk.title': 'تقييم المخاطر',
   'app.admin.title': 'إيجيس المشرف', 'app.admin.subtitle': 'مركز عمليات الطوارئ',
   'nav.reportEmergency': 'الإبلاغ عن حالة طوارئ', 'nav.aiAssistant': 'مساعد الذكاء الاصطناعي',
   'nav.communityHelp': 'المحادثة المجتمعية', 'nav.preparedness': 'دليل الاستعداد',
@@ -7071,7 +7360,7 @@ const ar: TranslationMap = {
   'citizen.reportDetail.title': 'تفاصيل التقرير',
   'citizen.alertDetail.title': 'تفاصيل التنبيه',
   'citizen.alertDetail.safetyAdvice': 'نصيحة السلامة',
-  'citizen.alertDetail.safetyMsg': 'اتبع توجيهات السلطات المحلية. إذا كنت في خطر فوري، اتصل بـ 999.',
+  'citizen.alertDetail.safetyMsg': 'اتبع توجيهات السلطات المحلية. إذا كنت في خطر فوري، اتصل بـ {{EMERGENCY_NUMBER}}.',
   'citizen.alertDetail.reportIncident': 'الإبلاغ عن حادث',
   'citizen.subscribe.chooseChannels': 'اختر قنوات التنبيه وأدخل بيانات الاتصال:',
   'citizen.subscribe.subscribeTo': 'الاشتراك في التنبيهات',
@@ -7107,7 +7396,7 @@ const ar: TranslationMap = {
   'common.reports': 'تقارير', 'common.loadingReports': 'جارٍ تحميل التقارير...',
   'common.noReportsFound': 'لم يتم العثور على تقارير',
   'chat.title': 'مساعد الطوارئ', 'chat.subtitle': 'إرشاد متعدد الكوارث',
-  'chat.placeholder': 'اسأل عن إرشادات السلامة...', 'chat.disclaimer': 'مساعد ذكاء اصطناعي — للطوارئ اتصل بـ 999',
+  'chat.placeholder': 'اسأل عن إرشادات السلامة...', 'chat.disclaimer': 'مساعد ذكاء اصطناعي — للطوارئ اتصل بـ {{EMERGENCY_NUMBER}}',
   'general.close': 'إغلاق', 'general.cancel': 'إلغاء', 'general.confirm': 'تأكيد',
   'general.loading': 'جارٍ التحميل...', 'general.noResults': 'لا توجد نتائج',
   //  Preparedness Guide i18n
@@ -7591,11 +7880,23 @@ const ar: TranslationMap = {
   'floodLayer.evacuationRoutes': 'طرق الإخلاء', 'floodLayer.evacuationRoutesDesc': 'ممرات إخلاء محسوبة مسبقاً',
   'floodLayer.floodZonesWms': 'مناطق الفيضان (WMS)', 'floodLayer.predictions': 'التنبؤات', 'floodLayer.evacuation': 'إخلاء',
   'floodPred.nowLabel': 'الآن',
-}
+})
 
 // CHINESE (Simplified)
 
-const zh: TranslationMap = {
+const zh: TranslationMap = withEnBase({
+  'layout.sidebar.home': '首页',
+  'layout.sidebar.communitySupport': '社区支持',
+  'layout.sidebar.safetyCheckIn': '安全签到',
+  'layout.sidebar.myProfile': '我的资料',
+  'layout.sidebar.navigation': '导航',
+  'layout.sidebar.expandSidebar': '展开侧边栏',
+  'layout.sidebar.collapseSidebar': '收起侧边栏',
+  'layout.sidebar.myAccount': '我的账户',
+  'layout.sidebar.unlockFullFeatures': '解锁全部功能',
+  'layout.sidebar.openNavigation': '打开导航',
+  'layout.header.settings': '设置',
+  'risk.title': '风险评估',
   'app.title': 'AEGIS', 'app.subtitle': '紧急响应系统',
   'app.admin.title': 'AEGIS 管理', 'app.admin.subtitle': '紧急行动中心',
   'nav.reportEmergency': '报告紧急情况', 'nav.aiAssistant': 'AI助手',
@@ -7865,7 +8166,7 @@ const zh: TranslationMap = {
   'citizen.map.weather': '天气', 'citizen.map.riverLevels': '河流水位',
   'citizen.reportDetail.title': '报告详情',
   'citizen.alertDetail.title': '警报详情', 'citizen.alertDetail.safetyAdvice': '安全建议',
-  'citizen.alertDetail.safetyMsg': '请遵循当地政府指导。如有立即危险请拨打999。',
+  'citizen.alertDetail.safetyMsg': '请遵循当地政府指导。如有立即危险请拨打{{EMERGENCY_NUMBER}}。',
   'citizen.alertDetail.reportIncident': '报告事件',
   'citizen.subscribe.chooseChannels': '选择警报渠道并提供联系方式：',
   'citizen.subscribe.subscribeTo': '订阅警报', 'citizen.subscribe.settingUp': '设置中...',
@@ -7892,7 +8193,7 @@ const zh: TranslationMap = {
   'common.reports': '报告', 'common.loadingReports': '正在加载报告...',
   'common.noReportsFound': '未找到报告',
   'chat.title': 'AI紧急助手', 'chat.subtitle': '多灾害指导',
-  'chat.placeholder': '询问安全指导...', 'chat.disclaimer': 'AI助手 — 紧急情况请拨打999',
+  'chat.placeholder': '询问安全指导...', 'chat.disclaimer': 'AI助手 — 紧急情况请拨打{{EMERGENCY_NUMBER}}',
   'general.close': '关闭', 'general.cancel': '取消', 'general.confirm': '确认',
   'general.loading': '加载中...', 'general.noResults': '无结果',
   //  Preparedness Guide i18n
@@ -8376,7 +8677,7 @@ const zh: TranslationMap = {
   'floodLayer.evacuationRoutes': '疏散路线', 'floodLayer.evacuationRoutesDesc': '预计算疏散走廊',
   'floodLayer.floodZonesWms': '洪水区域 (WMS)', 'floodLayer.predictions': '预测', 'floodLayer.evacuation': '疏散',
   'floodPred.nowLabel': '现在',
-}
+})
 
 // Remaining languages use a compact "seed + spread" pattern. Every key that
 // exists in `en` is guaranteed to exist in each locale.  When a translation is
@@ -8384,12 +8685,19 @@ const zh: TranslationMap = {
 // is handled by the `t()` function below.  The most-visible UI keys (nav, tabs,
 // buttons, admin dashboard labels) are fully translated for all 9 languages.
 
-// Helper: merge en as base so every key is guaranteed present
-function withEnBase(partial: TranslationMap): TranslationMap {
-  return { ...en, ...partial }
-}
-
 const hi: TranslationMap = withEnBase({
+  'layout.sidebar.home': 'होम',
+  'layout.sidebar.communitySupport': 'सामुदायिक सहायता',
+  'layout.sidebar.safetyCheckIn': 'सुरक्षा चेक-इन',
+  'layout.sidebar.myProfile': 'मेरी प्रोफ़ाइल',
+  'layout.sidebar.navigation': 'नेविगेशन',
+  'layout.sidebar.expandSidebar': 'साइडबार विस्तृत करें',
+  'layout.sidebar.collapseSidebar': 'साइडबार संक्षिप्त करें',
+  'layout.sidebar.myAccount': 'मेरा खाता',
+  'layout.sidebar.unlockFullFeatures': 'सभी सुविधाएं अनलॉक करें',
+  'layout.sidebar.openNavigation': 'नेविगेशन खोलें',
+  'layout.header.settings': 'सेटिंग्स',
+  'risk.title': 'जोखिम मूल्यांकन',
   'app.title': 'AEGIS', 'app.subtitle': 'आपातकालीन प्रतिक्रिया प्रणाली',
   'app.admin.title': 'AEGIS व्यवस्थापक', 'app.admin.subtitle': 'आपातकालीन संचालन केंद्र',
   'nav.reportEmergency': 'आपातकाल की रिपोर्ट करें', 'nav.aiAssistant': 'AI सहायक',
@@ -8693,6 +9001,18 @@ const hi: TranslationMap = withEnBase({
 })
 
 const pt: TranslationMap = withEnBase({
+  'layout.sidebar.home': 'Início',
+  'layout.sidebar.communitySupport': 'Apoio Comunitário',
+  'layout.sidebar.safetyCheckIn': 'Verificação de Segurança',
+  'layout.sidebar.myProfile': 'Meu Perfil',
+  'layout.sidebar.navigation': 'Navegação',
+  'layout.sidebar.expandSidebar': 'Expandir Barra Lateral',
+  'layout.sidebar.collapseSidebar': 'Recolher Barra Lateral',
+  'layout.sidebar.myAccount': 'Minha Conta',
+  'layout.sidebar.unlockFullFeatures': 'Desbloquear todas as funcionalidades',
+  'layout.sidebar.openNavigation': 'Abrir Navegação',
+  'layout.header.settings': 'Configurações',
+  'risk.title': 'Avaliação de Risco',
   'app.title': 'AEGIS', 'app.subtitle': 'Sistema de Resposta a Emergências',
   'app.admin.title': 'AEGIS Admin', 'app.admin.subtitle': 'Centro de Operações de Emergência',
   'nav.reportEmergency': 'Reportar Emergência', 'nav.aiAssistant': 'Assistente IA',
@@ -8885,6 +9205,18 @@ const pt: TranslationMap = withEnBase({
 })
 
 const pl: TranslationMap = withEnBase({
+  'layout.sidebar.home': 'Strona główna',
+  'layout.sidebar.communitySupport': 'Wsparcie Społeczności',
+  'layout.sidebar.safetyCheckIn': 'Kontrola Bezpieczeństwa',
+  'layout.sidebar.myProfile': 'Mój Profil',
+  'layout.sidebar.navigation': 'Nawigacja',
+  'layout.sidebar.expandSidebar': 'Rozwiń Pasek Boczny',
+  'layout.sidebar.collapseSidebar': 'Zwiń Pasek Boczny',
+  'layout.sidebar.myAccount': 'Moje Konto',
+  'layout.sidebar.unlockFullFeatures': 'Odblokuj wszystkie funkcje',
+  'layout.sidebar.openNavigation': 'Otwórz Nawigację',
+  'layout.header.settings': 'Ustawienia',
+  'risk.title': 'Ocena Ryzyka',
   'app.title': 'AEGIS', 'app.subtitle': 'System Reagowania Kryzysowego',
   'app.admin.title': 'AEGIS Admin', 'app.admin.subtitle': 'Centrum Operacji Kryzysowych',
   'nav.reportEmergency': 'Zgłoś Sytuację Awaryjną', 'nav.aiAssistant': 'Asystent AI',
@@ -9070,6 +9402,18 @@ const pl: TranslationMap = withEnBase({
 })
 
 const ur: TranslationMap = withEnBase({
+  'layout.sidebar.home': 'ہوم',
+  'layout.sidebar.communitySupport': 'کمیونٹی سپورٹ',
+  'layout.sidebar.safetyCheckIn': 'حفاظتی چیک ان',
+  'layout.sidebar.myProfile': 'میری پروفائل',
+  'layout.sidebar.navigation': 'نیویگیشن',
+  'layout.sidebar.expandSidebar': 'سائیڈبار کھولیں',
+  'layout.sidebar.collapseSidebar': 'سائیڈبار بند کریں',
+  'layout.sidebar.myAccount': 'میرا اکاؤنٹ',
+  'layout.sidebar.unlockFullFeatures': 'تمام خصوصیات کھولیں',
+  'layout.sidebar.openNavigation': 'نیویگیشن کھولیں',
+  'layout.header.settings': 'ترتیبات',
+  'risk.title': 'خطرے کا جائزہ',
   'app.title': 'ایجس', 'app.subtitle': 'ہنگامی ردعمل کا نظام',
   'app.admin.title': 'ایجس ایڈمن', 'app.admin.subtitle': 'ہنگامی آپریشن سینٹر',
   'nav.reportEmergency': 'ایمرجنسی کی رپورٹ کریں', 'nav.aiAssistant': 'AI معاون',
@@ -9296,9 +9640,8 @@ export function t(key: string, lang: string = 'en'): string {
   // the active region's emergency number so i18n strings are never hardcoded
   if (value.includes('{{EMERGENCY_NUMBER}}')) {
     try {
-      const { getRegion } = require('../config/regionConfig')
       value = value.split('{{EMERGENCY_NUMBER}}').join(getRegion().emergencyNumber)
-    } catch { /* SSR / test fallback — leave token */ }
+    } catch { value = value.split('{{EMERGENCY_NUMBER}}').join('999') }
   }
 
   return value
@@ -9315,12 +9658,16 @@ export { ALL_TRANSLATIONS }
 function getInitialLanguage(): string {
   if (typeof window === 'undefined') return 'en'
 
-  return normalizeLanguageCode(
-    localStorage.getItem('aegis_lang')
-    || localStorage.getItem('aegis-language')
-    || window.navigator?.language
-    || 'en',
-  )
+  try {
+    return normalizeLanguageCode(
+      localStorage.getItem('aegis_lang')
+      || localStorage.getItem('aegis-language')
+      || window.navigator?.language
+      || 'en',
+    )
+  } catch {
+    return 'en'
+  }
 }
 
 let currentLang = getInitialLanguage()
@@ -9331,8 +9678,12 @@ export function getLanguage(): string { return currentLang }
 export function setLanguage(lang: string): void {
   currentLang = normalizeLanguageCode(lang)
   if (typeof window !== 'undefined') {
-    localStorage.setItem('aegis_lang', currentLang)
-    localStorage.setItem('aegis-language', currentLang)
+    try {
+      localStorage.setItem('aegis_lang', currentLang)
+      localStorage.setItem('aegis-language', currentLang)
+    } catch (err) {
+      console.warn('[i18n] Could not persist language preference:', err)
+    }
   }
   void i18next.changeLanguage(currentLang).catch(() => {
     // Keep the custom i18n store authoritative even if the react-i18next
@@ -9360,4 +9711,390 @@ export function getMissingTranslationKeys(lang: string): string[] {
   const baseKeys = Object.keys(ALL_TRANSLATIONS.en)
   const langMap = ALL_TRANSLATIONS[normalizedLang] || {}
   return baseKeys.filter((key) => !(key in langMap))
+}
+
+// PLURALIZATION RULES (CLDR-compliant)
+
+type PluralCategory = 'zero' | 'one' | 'two' | 'few' | 'many' | 'other'
+
+interface PluralForms {
+  zero?: string
+  one?: string
+  two?: string
+  few?: string
+  many?: string
+  other: string
+}
+
+// CLDR plural rules per language
+// https://www.unicode.org/cldr/charts/latest/supplemental/language_plural_rules.html
+const PLURAL_RULES: Record<string, (n: number) => PluralCategory> = {
+  // English: 1=one, else other
+  en: (n) => n === 1 ? 'one' : 'other',
+  
+  // Spanish: 1=one, else other
+  es: (n) => n === 1 ? 'one' : 'other',
+  
+  // French: 0,1=one, else other (treats 0 as singular)
+  fr: (n) => (n === 0 || n === 1) ? 'one' : 'other',
+  
+  // Arabic: complex 6-form system
+  ar: (n) => {
+    if (n === 0) return 'zero'
+    if (n === 1) return 'one'
+    if (n === 2) return 'two'
+    const mod100 = n % 100
+    if (mod100 >= 3 && mod100 <= 10) return 'few'
+    if (mod100 >= 11) return 'many'
+    return 'other'
+  },
+  
+  // Chinese: no plural forms (always 'other')
+  zh: () => 'other',
+  
+  // Hindi: 0,1=one, else other
+  hi: (n) => (n === 0 || n === 1) ? 'one' : 'other',
+  
+  // Portuguese: 1=one, else other
+  pt: (n) => n === 1 ? 'one' : 'other',
+  
+  // Polish: complex 3-form system
+  pl: (n) => {
+    if (n === 1) return 'one'
+    const mod10 = n % 10
+    const mod100 = n % 100
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return 'few'
+    return 'many'
+  },
+  
+  // Urdu: 1=one, else other
+  ur: (n) => n === 1 ? 'one' : 'other',
+}
+
+/**
+ * Get the plural category for a number in the given language
+ */
+export function getPluralCategory(n: number, lang?: string): PluralCategory {
+  const normalizedLang = normalizeLanguageCode(lang || currentLang)
+  const rule = PLURAL_RULES[normalizedLang] || PLURAL_RULES.en
+  return rule(Math.abs(n))
+}
+
+/**
+ * Select the correct plural form for a number
+ * 
+ * @example
+ * plural(5, { one: '1 alert', other: '{{count}} alerts' }, 'en')
+ * // Returns: '5 alerts'
+ */
+export function plural(count: number, forms: PluralForms, lang?: string): string {
+  const category = getPluralCategory(count, lang)
+  const template = forms[category] ?? forms.other
+  return template.replace(/\{\{count\}\}/g, String(count))
+}
+
+/**
+ * Common plural patterns for emergency system
+ */
+export const PLURALS = {
+  alerts: (count: number, lang?: string) => plural(count, {
+    zero: t('alerts.none', lang),
+    one: t('stats.activeAlerts', lang) + ': 1',
+    other: `${t('stats.activeAlerts', lang)}: {{count}}`,
+  }, lang),
+  
+  reports: (count: number, lang?: string) => plural(count, {
+    one: '1 ' + t('reports.title', lang).toLowerCase().replace('recent ', ''),
+    other: `{{count}} ${t('reports.title', lang).toLowerCase().replace('recent ', '')}`,
+  }, lang),
+  
+  minutes: (count: number, lang?: string) => {
+    const forms: Record<string, PluralForms> = {
+      en: { one: '1 minute ago', other: '{{count}} minutes ago' },
+      es: { one: 'hace 1 minuto', other: 'hace {{count}} minutos' },
+      fr: { one: 'il y a 1 minute', other: 'il y a {{count}} minutes' },
+      ar: { zero: 'الآن', one: 'منذ دقيقة', two: 'منذ دقيقتين', few: 'منذ {{count}} دقائق', many: 'منذ {{count}} دقيقة', other: 'منذ {{count}} دقيقة' },
+      zh: { other: '{{count}}分钟前' },
+      hi: { one: '1 मिनट पहले', other: '{{count}} मिनट पहले' },
+      pt: { one: 'há 1 minuto', other: 'há {{count}} minutos' },
+      pl: { one: '1 minutę temu', few: '{{count}} minuty temu', many: '{{count}} minut temu', other: '{{count}} minut temu' },
+      ur: { one: '1 منٹ پہلے', other: '{{count}} منٹ پہلے' },
+    }
+    const normalizedLang = normalizeLanguageCode(lang || currentLang)
+    return plural(count, forms[normalizedLang] || forms.en, lang)
+  },
+  
+  hours: (count: number, lang?: string) => {
+    const forms: Record<string, PluralForms> = {
+      en: { one: '1 hour ago', other: '{{count}} hours ago' },
+      es: { one: 'hace 1 hora', other: 'hace {{count}} horas' },
+      fr: { one: 'il y a 1 heure', other: 'il y a {{count}} heures' },
+      ar: { one: 'منذ ساعة', two: 'منذ ساعتين', few: 'منذ {{count}} ساعات', many: 'منذ {{count}} ساعة', other: 'منذ {{count}} ساعة' },
+      zh: { other: '{{count}}小时前' },
+      hi: { one: '1 घंटा पहले', other: '{{count}} घंटे पहले' },
+      pt: { one: 'há 1 hora', other: 'há {{count}} horas' },
+      pl: { one: '1 godzinę temu', few: '{{count}} godziny temu', many: '{{count}} godzin temu', other: '{{count}} godzin temu' },
+      ur: { one: '1 گھنٹہ پہلے', other: '{{count}} گھنٹے پہلے' },
+    }
+    const normalizedLang = normalizeLanguageCode(lang || currentLang)
+    return plural(count, forms[normalizedLang] || forms.en, lang)
+  },
+}
+
+// LOCALE-SPECIFIC FORMATTING
+
+// Locale codes for Intl APIs (BCP 47)
+const LOCALE_CODES: Record<string, string> = {
+  en: 'en-GB', // UK English for emergency services context
+  es: 'es-ES',
+  fr: 'fr-FR',
+  ar: 'ar-SA',
+  zh: 'zh-CN',
+  hi: 'hi-IN',
+  pt: 'pt-PT',
+  pl: 'pl-PL',
+  ur: 'ur-PK',
+}
+
+/**
+ * Get BCP 47 locale code for Intl APIs
+ */
+export function getLocaleCode(lang?: string): string {
+  const normalizedLang = normalizeLanguageCode(lang || currentLang)
+  return LOCALE_CODES[normalizedLang] || 'en-GB'
+}
+
+/**
+ * Format a number according to locale conventions
+ * 
+ * @example
+ * formatNumber(1234567.89, 'de') // "1.234.567,89"
+ * formatNumber(1234567.89, 'en') // "1,234,567.89"
+ */
+export function formatNumber(value: number, lang?: string, options?: Intl.NumberFormatOptions): string {
+  try {
+    return new Intl.NumberFormat(getLocaleCode(lang), options).format(value)
+  } catch {
+    return String(value)
+  }
+}
+
+/**
+ * Format a date according to locale conventions
+ * 
+ * @example
+ * formatDate(new Date(), 'fr') // "6 avr. 2026"
+ * formatDate(new Date(), 'ar') // "٦ أبريل ٢٠٢٦"
+ */
+export function formatDate(
+  date: Date | number | string,
+  lang?: string,
+  options: Intl.DateTimeFormatOptions = { dateStyle: 'medium' }
+): string {
+  try {
+    const d = typeof date === 'string' ? new Date(date) : date
+    return new Intl.DateTimeFormat(getLocaleCode(lang), options).format(d)
+  } catch {
+    return String(date)
+  }
+}
+
+/**
+ * Format a time according to locale conventions
+ */
+export function formatTime(
+  date: Date | number | string,
+  lang?: string,
+  options: Intl.DateTimeFormatOptions = { timeStyle: 'short' }
+): string {
+  try {
+    const d = typeof date === 'string' ? new Date(date) : date
+    return new Intl.DateTimeFormat(getLocaleCode(lang), options).format(d)
+  } catch {
+    return String(date)
+  }
+}
+
+/**
+ * Format date and time together
+ */
+export function formatDateTime(
+  date: Date | number | string,
+  lang?: string,
+  options: Intl.DateTimeFormatOptions = { dateStyle: 'medium', timeStyle: 'short' }
+): string {
+  try {
+    const d = typeof date === 'string' ? new Date(date) : date
+    return new Intl.DateTimeFormat(getLocaleCode(lang), options).format(d)
+  } catch {
+    return String(date)
+  }
+}
+
+/**
+ * Format relative time (e.g., "2 hours ago", "in 3 days")
+ */
+export function formatRelativeTime(date: Date | number | string, lang?: string): string {
+  try {
+    const d = typeof date === 'string' ? new Date(date) : typeof date === 'number' ? new Date(date) : date
+    const now = Date.now()
+    const diff = d.getTime() - now
+    const absDiff = Math.abs(diff)
+    
+    const rtf = new Intl.RelativeTimeFormat(getLocaleCode(lang), { numeric: 'auto' })
+    
+    if (absDiff < 60 * 1000) {
+      return rtf.format(Math.round(diff / 1000), 'second')
+    } else if (absDiff < 60 * 60 * 1000) {
+      return rtf.format(Math.round(diff / (60 * 1000)), 'minute')
+    } else if (absDiff < 24 * 60 * 60 * 1000) {
+      return rtf.format(Math.round(diff / (60 * 60 * 1000)), 'hour')
+    } else if (absDiff < 7 * 24 * 60 * 60 * 1000) {
+      return rtf.format(Math.round(diff / (24 * 60 * 60 * 1000)), 'day')
+    } else if (absDiff < 30 * 24 * 60 * 60 * 1000) {
+      return rtf.format(Math.round(diff / (7 * 24 * 60 * 60 * 1000)), 'week')
+    } else {
+      return rtf.format(Math.round(diff / (30 * 24 * 60 * 60 * 1000)), 'month')
+    }
+  } catch {
+    return String(date)
+  }
+}
+
+/**
+ * Format distance in user's preferred units
+ */
+export function formatDistance(meters: number, lang?: string): string {
+  const normalizedLang = normalizeLanguageCode(lang || currentLang)
+  
+  // US uses miles, everyone else uses km
+  const useImperial = normalizedLang === 'en' && typeof navigator !== 'undefined' && 
+    (navigator.language?.includes('US') || navigator.language?.includes('us'))
+  
+  if (useImperial) {
+    const miles = meters / 1609.344
+    if (miles < 0.1) {
+      const feet = meters * 3.28084
+      return formatNumber(Math.round(feet), lang) + ' ft'
+    }
+    return formatNumber(Math.round(miles * 10) / 10, lang) + ' mi'
+  } else {
+    if (meters < 1000) {
+      return formatNumber(Math.round(meters), lang) + ' m'
+    }
+    return formatNumber(Math.round(meters / 100) / 10, lang) + ' km'
+  }
+}
+
+// RTL LAYOUT UTILITIES
+
+/**
+ * Check if current or specified language is RTL
+ */
+export function isRtlLanguage(lang?: string): boolean {
+  return ['ar', 'ur'].includes(normalizeLanguageCode(lang || currentLang))
+}
+
+/**
+ * Get text direction for current or specified language
+ */
+export function getTextDirection(lang?: string): 'ltr' | 'rtl' {
+  return isRtlLanguage(lang) ? 'rtl' : 'ltr'
+}
+
+/**
+ * Get CSS logical properties for directional layout
+ * Converts physical directions to logical ones for RTL support
+ */
+export function getDirectionalStyles(lang?: string): {
+  startAlign: 'left' | 'right'
+  endAlign: 'left' | 'right'
+  startMargin: 'marginLeft' | 'marginRight'
+  endMargin: 'marginLeft' | 'marginRight'
+  startPadding: 'paddingLeft' | 'paddingRight'
+  endPadding: 'paddingLeft' | 'paddingRight'
+} {
+  const rtl = isRtlLanguage(lang)
+  return {
+    startAlign: rtl ? 'right' : 'left',
+    endAlign: rtl ? 'left' : 'right',
+    startMargin: rtl ? 'marginRight' : 'marginLeft',
+    endMargin: rtl ? 'marginLeft' : 'marginRight',
+    startPadding: rtl ? 'paddingRight' : 'paddingLeft',
+    endPadding: rtl ? 'paddingLeft' : 'paddingRight',
+  }
+}
+
+/**
+ * Mirror a value for RTL (e.g., for icons that point in a direction)
+ */
+export function mirrorForRtl<T>(ltrValue: T, rtlValue: T, lang?: string): T {
+  return isRtlLanguage(lang) ? rtlValue : ltrValue
+}
+
+/**
+ * Get the correct chevron direction for navigation
+ */
+export function getChevronDirection(direction: 'back' | 'forward', lang?: string): 'left' | 'right' {
+  const isRtl = isRtlLanguage(lang)
+  if (direction === 'back') {
+    return isRtl ? 'right' : 'left'
+  }
+  return isRtl ? 'left' : 'right'
+}
+
+/**
+ * CSS class helper for RTL-aware Tailwind classes
+ * Automatically converts directional classes for RTL
+ * 
+ * @example
+ * rtlClass('ml-4 text-left') // RTL: 'mr-4 text-right'
+ */
+export function rtlClass(classes: string, lang?: string): string {
+  if (!isRtlLanguage(lang)) return classes
+  
+  return classes
+    .replace(/\bml-/g, '__mr-__')
+    .replace(/\bmr-/g, 'ml-')
+    .replace(/__mr-__/g, 'mr-')
+    .replace(/\bpl-/g, '__pr-__')
+    .replace(/\bpr-/g, 'pl-')
+    .replace(/__pr-__/g, 'pr-')
+    .replace(/\bleft-/g, '__right-__')
+    .replace(/\bright-/g, 'left-')
+    .replace(/__right-__/g, 'right-')
+    .replace(/\btext-left\b/g, 'text-right')
+    .replace(/\btext-right\b/g, 'text-left')
+    .replace(/\brounded-l\b/g, '__rounded-r__')
+    .replace(/\brounded-r\b/g, 'rounded-l')
+    .replace(/__rounded-r__/g, 'rounded-r')
+    .replace(/\bborder-l\b/g, '__border-r__')
+    .replace(/\bborder-r\b/g, 'border-l')
+    .replace(/__border-r__/g, 'border-r')
+}
+
+// TRANSLATION INTERPOLATION
+
+/**
+ * Interpolate variables into a translation string
+ * 
+ * @example
+ * interpolate('Hello, {{name}}!', { name: 'World' })
+ * // Returns: 'Hello, World!'
+ */
+export function interpolate(template: string, variables: Record<string, string | number>): string {
+  return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
+    return key in variables ? String(variables[key]) : match
+  })
+}
+
+/**
+ * Translate with variable interpolation
+ * 
+ * @example
+ * tVar('form.call999', { EMERGENCY_NUMBER: '999' })
+ */
+export function tVar(key: string, variables: Record<string, string | number>, lang?: string): string {
+  const template = t(key, lang)
+  return interpolate(template, variables)
 }

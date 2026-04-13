@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { X, ChevronRight, ChevronLeft, MapPin, Camera, Send, AlertTriangle, CheckCircle, Wind, Flame, Droplets, Home, Construction, Zap, Users, Siren } from 'lucide-react'
 import { MapContainer, TileLayer, Circle, CircleMarker, Marker, useMapEvents, useMap, ZoomControl } from 'react-leaflet'
@@ -10,6 +10,7 @@ import { useReports } from '../../contexts/ReportsContext'
 import { useAlerts } from '../../contexts/AlertsContext'
 import type { ReportFormData, IncidentCategoryKey, SeverityLevel, TrappedOption, LocationMetadata, LocationSource } from '../../types'
 import { useLanguage } from '../../hooks/useLanguage'
+import { useConfetti } from '../ui/ConfettiEffect'
 
 interface Props { onClose: () => void }
 
@@ -65,12 +66,23 @@ const FREE_TILE_PROVIDERS: TileProvider[] = [
     attribution: '&copy; Esri, Maxar, Earthstar Geographics',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
   },
+  {
+    name: 'Dark',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+  },
 ]
 
 function MapClickCapture({ onPick }: { onPick: (lat: number, lng: number) => void }): null {
+  const map = useMap()
   useMapEvents({
     click: (e) => onPick(e.latlng.lat, e.latlng.lng),
   })
+  useEffect(() => {
+    // Show crosshair so users know the map is clickable
+    map.getContainer().style.cursor = 'crosshair'
+    return () => { map.getContainer().style.cursor = '' }
+  }, [map])
   return null
 }
 
@@ -78,9 +90,13 @@ function MapModalResizeFix({ visible }: { visible: boolean }): null {
   const map = useMap()
   useEffect(() => {
     if (!visible) return
-    const t1 = window.setTimeout(() => map.invalidateSize(), 50)
-    const t2 = window.setTimeout(() => map.invalidateSize(), 220)
-    return () => { window.clearTimeout(t1); window.clearTimeout(t2) }
+    // Use ResizeObserver instead of brittle hardcoded timeouts
+    const container = map.getContainer()
+    const observer = new ResizeObserver(() => map.invalidateSize())
+    observer.observe(container)
+    // Also invalidate once immediately on mount
+    map.invalidateSize()
+    return () => observer.disconnect()
   }, [map, visible])
   return null
 }
@@ -100,6 +116,168 @@ function MapFlyTo({ coords }: { coords: [number, number] | null }): null {
   return null
 }
 
+// Searchable combobox for incident category / subtype selection
+// Uses fixed positioning so the dropdown escapes overflow:hidden/auto modal containers
+interface SearchableOption { key: string; label: string; icon?: string }
+function SearchableSelect({
+  options,
+  value,
+  placeholder,
+  onChange,
+}: {
+  options: SearchableOption[]
+  value: string
+  placeholder: string
+  onChange: (key: string) => void
+}): JSX.Element {
+  const [query, setQuery] = useState('')
+  const [open, setOpen] = useState(false)
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({})
+  const containerRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const selected = options.find(o => o.key === value)
+  const filtered = query.trim()
+    ? options.filter(o => o.label.toLowerCase().includes(query.toLowerCase()))
+    : options
+
+  // Compute fixed position from input rect so dropdown escapes overflow clipping
+  const openDropdown = () => {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect()
+      const spaceBelow = window.innerHeight - rect.bottom
+      const spaceAbove = rect.top
+      const dropHeight = Math.min(240, options.length * 44 + 16)
+      const showAbove = spaceBelow < dropHeight && spaceAbove > dropHeight
+      // Clamp maxHeight to available viewport space (mobile overflow fix)
+      const maxH = Math.min(240, (showAbove ? spaceAbove : spaceBelow) - 8)
+      setDropdownStyle({
+        position: 'fixed',
+        left: rect.left,
+        width: rect.width,
+        maxHeight: `${Math.max(120, maxH)}px`,
+        ...(showAbove
+          ? { bottom: window.innerHeight - rect.top + 4, top: 'auto' }
+          : { top: rect.bottom + 4, bottom: 'auto' }),
+        zIndex: 9999,
+      })
+    }
+    setOpen(true)
+  }
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false)
+        setQuery('')
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  // Reposition on scroll/resize while open
+  useEffect(() => {
+    if (!open) return
+    const reposition = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect()
+        const spaceBelow = window.innerHeight - rect.bottom
+        const dropHeight = Math.min(240, options.length * 44 + 16)
+        const showAbove = spaceBelow < dropHeight && rect.top > dropHeight
+        setDropdownStyle(prev => ({
+          ...prev,
+          left: rect.left,
+          width: rect.width,
+          ...(showAbove
+            ? { bottom: window.innerHeight - rect.top + 4, top: 'auto' }
+            : { top: rect.bottom + 4, bottom: 'auto' }),
+        }))
+      }
+    }
+    window.addEventListener('scroll', reposition, true)
+    window.addEventListener('resize', reposition)
+    return () => {
+      window.removeEventListener('scroll', reposition, true)
+      window.removeEventListener('resize', reposition)
+    }
+  }, [open, options.length])
+
+  const handleSelect = useCallback((key: string) => {
+    onChange(key)
+    setOpen(false)
+    setQuery('')
+  }, [onChange])
+
+  return (
+    <div ref={containerRef}>
+      {/* Input box */}
+      <div
+        className={`input flex items-center gap-2 cursor-text ${open ? 'ring-2 ring-aegis-500' : ''}`}
+        onClick={() => { openDropdown(); inputRef.current?.focus() }}
+      >
+        {selected && !open ? (
+          <>
+            {selected.icon && <LucideIcon name={selected.icon} className="w-4 h-4 text-aegis-600 shrink-0" />}
+            <span className="flex-1 text-sm">{selected.label}</span>
+            <button
+              type="button"
+              className="ml-1 text-gray-400 hover:text-gray-600 text-xs"
+              onClick={e => { e.stopPropagation(); onChange(''); setQuery('') }}
+              aria-label="Clear selection"
+            >✕</button>
+          </>
+        ) : (
+          <>
+            <input
+              ref={inputRef}
+              type="text"
+              className="flex-1 bg-transparent outline-none text-sm placeholder:text-gray-400"
+              placeholder={open ? 'Type to filter…' : placeholder}
+              value={query}
+              onChange={e => { setQuery(e.target.value); if (!open) openDropdown() }}
+              onFocus={() => openDropdown()}
+              autoComplete="off"
+            />
+            <span className="text-gray-400 text-xs select-none">{open ? '▲' : '▼'}</span>
+          </>
+        )}
+      </div>
+
+      {/* Dropdown — rendered at fixed viewport position to escape overflow clipping */}
+      {open && (
+        <ul
+          style={dropdownStyle}
+          className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl max-h-60 overflow-y-auto"
+          role="listbox"
+        >
+          {filtered.length === 0 ? (
+            <li className="px-3 py-2 text-sm text-gray-400">No results for "{query}"</li>
+          ) : (
+            filtered.map(opt => (
+              <li
+                key={opt.key}
+                role="option"
+                aria-selected={opt.key === value}
+                className={`flex items-center gap-2 px-3 py-2.5 cursor-pointer text-sm hover:bg-aegis-50 dark:hover:bg-aegis-950/30 transition-colors ${
+                  opt.key === value ? 'bg-aegis-100 dark:bg-aegis-900/40 font-medium text-aegis-700 dark:text-aegis-300' : ''
+                }`}
+                onMouseDown={e => { e.preventDefault(); handleSelect(opt.key) }}
+              >
+                {opt.icon && <LucideIcon name={opt.icon} className="w-4 h-4 text-aegis-500 shrink-0" />}
+                <span>{opt.label}</span>
+                {opt.key === value && <span className="ml-auto text-aegis-600 text-xs">✓</span>}
+              </li>
+            ))
+          )}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 // Draggable drop-pin for precision location correction
 function DraggablePin({
   position,
@@ -115,7 +293,7 @@ function DraggablePin({
   const icon = useMemo(
     () =>
       L.divIcon({
-        className: '',
+        className: 'leaflet-map-pin-icon',
         html: `<div style="position:relative;width:28px;height:36px">
           <div style="width:22px;height:22px;background:${colour};border:3px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 3px 10px rgba(0,0,0,0.4);position:absolute;top:0;left:3px;"></div>
           <div style="width:5px;height:5px;background:rgba(0,0,0,0.2);border-radius:50%;position:absolute;bottom:1px;left:12px;"></div>
@@ -308,6 +486,8 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
   const [step, setStep] = useState(1); const [errors, setErrors] = useState<Record<string, string>>({})
   const [mediaFiles, setMediaFiles] = useState<{file: File, preview: string}[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
+  const { triggerConfetti, ConfettiOverlay } = useConfetti()
   const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [locationConfirmed, setLocationConfirmed] = useState(false)
@@ -512,7 +692,9 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
             : 'Report submitted. AI review in progress.',
           form.trappedPersons === 'yes' ? 'warning' : 'success'
         )
-        onClose()
+        setSubmitted(true)
+        triggerConfetti()
+        setTimeout(() => onClose(), 2000)
       } catch (err: any) {
         pushNotification(err?.message || 'Failed to submit report. Please try again.', 'error')
       } finally {
@@ -879,7 +1061,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
       accuracy: null,
       source: 'address_search',
       confidence: 'medium',
-      confirmed: false,
+      confirmed: true,
     })
   }
 
@@ -1023,6 +1205,16 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-50" role="dialog" aria-modal="true">
+      <ConfettiOverlay />
+      {submitted ? (
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg p-8 text-center animate-fade-in">
+          <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Report Submitted!</h2>
+          <p className="text-gray-600 dark:text-gray-400">Your report is being reviewed by our AI system. Thank you for helping keep your community safe.</p>
+        </div>
+      ) : (
       <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[95vh] overflow-y-auto animate-fade-in">
         <div className="bg-red-600 text-white p-4 sm:p-5 rounded-t-2xl flex items-center justify-between sticky top-0 z-10">
           <div>
@@ -1043,16 +1235,12 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
           {step === 1 && (
             <div className="space-y-3">
               <h3 className="text-lg font-semibold">What type of incident?</h3>
-              <select className="input w-full" value={form.incidentCategory} onChange={e => { up('incidentCategory', e.target.value); up('incidentSubtype', '') }}>
-                <option value="">— Select incident type —</option>
-                {INCIDENT_CATEGORIES.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
-              </select>
-              {form.incidentCategory && (
-                <div className="flex items-center gap-2 p-3 bg-aegis-50 dark:bg-aegis-950/20 rounded-xl border border-aegis-200 dark:border-aegis-800">
-                  <LucideIcon name={INCIDENT_CATEGORIES.find(c => c.key === form.incidentCategory)?.icon || 'HelpCircle'} className="w-5 h-5 text-aegis-600" />
-                  <span className="text-sm font-medium">{INCIDENT_CATEGORIES.find(c => c.key === form.incidentCategory)?.label}</span>
-                </div>
-              )}
+              <SearchableSelect
+                options={INCIDENT_CATEGORIES.map(c => ({ key: c.key, label: c.label, icon: c.icon }))}
+                value={form.incidentCategory}
+                placeholder="Search or select incident type…"
+                onChange={key => { up('incidentCategory', key); up('incidentSubtype', '') }}
+              />
               {errors.incidentCategory && <p className="text-red-500 text-sm">{errors.incidentCategory}</p>}
             </div>
           )}
@@ -1061,18 +1249,12 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
           {step === 2 && (
             <div className="space-y-3">
               <h3 className="text-lg font-semibold">What specifically?</h3>
-              <select className="input" value={form.incidentSubtype} onChange={e => up('incidentSubtype', e.target.value)}>
-                <option value="">— Select —</option>
-                {(DISASTER_SUBTYPES[form.incidentCategory as IncidentCategoryKey] || []).map(s => (
-                  <option key={s.key} value={s.key}>{s.label}</option>
-                ))}
-              </select>
-              {form.incidentSubtype && (
-                <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                  <LucideIcon name={(DISASTER_SUBTYPES[form.incidentCategory as IncidentCategoryKey] || []).find(s => s.key === form.incidentSubtype)?.icon || 'HelpCircle'} className="w-5 h-5 text-aegis-600" />
-                  <span className="text-sm">{(DISASTER_SUBTYPES[form.incidentCategory as IncidentCategoryKey] || []).find(s => s.key === form.incidentSubtype)?.label}</span>
-                </div>
-              )}
+              <SearchableSelect
+                options={(DISASTER_SUBTYPES[form.incidentCategory as IncidentCategoryKey] || []).map(s => ({ key: s.key, label: s.label, icon: s.icon }))}
+                value={form.incidentSubtype}
+                placeholder="Search or select subtype…"
+                onChange={key => up('incidentSubtype', key)}
+              />
               {errors.incidentSubtype && <p className="text-red-500 text-sm">{errors.incidentSubtype}</p>}
             </div>
           )}
@@ -1284,11 +1466,12 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
                     <span className="ml-auto text-[9px] text-gray-400 dark:text-gray-400">Tap map to pin</span>
                   </div>
 
+                  <div className="map-wrapper" style={{ height: 260, overflow: 'hidden' }} onWheel={e => e.stopPropagation()}>
                   <MapContainer
                     center={selectedCoords || gpsCoords || [defaultLat, defaultLng]}
                     zoom={selectedCoords || gpsCoords ? 15 : 13}
                     zoomControl={false}
-                    style={{ height: 260, width: '100%' }}
+                    style={{ height: '100%', width: '100%' }}
                   >
                     <ZoomControl position="topright" />
                     <MapModalResizeFix visible={true} />
@@ -1327,6 +1510,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
                       />
                     )}
                   </MapContainer>
+                  </div>
 
                   <div className="flex items-center gap-2 px-2 py-1.5 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
                     <span className="text-[10px] text-gray-500 dark:text-gray-400 flex-1">
@@ -1460,6 +1644,7 @@ export default function ReportForm({ onClose }: Props): JSX.Element {
           )}
         </div>
       </div>
+      )}
     </div>
   )
 }

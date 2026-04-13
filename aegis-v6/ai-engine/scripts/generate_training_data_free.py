@@ -1,20 +1,7 @@
 """
-AEGIS Fine-Tuning Dataset Generator — FREE API Edition
-Generates 1,900+ all-hazards emergency AI training examples using FREE LLM APIs:
-  - Google Gemini (gemini-2.0-flash) — 15 RPM free tier
-  - Groq (llama-3.1-8b-instant) — 30 RPM free tier
-  - OpenRouter (meta-llama/llama-3.1-8b-instruct:free) — 20 RPM free tier
+Module: generate_training_data_free.py
 
-Round-robins across providers to maximise throughput (~65 batches/min combined).
-
-Usage:
-    python scripts/generate_training_data_free.py --resume
-    python scripts/generate_training_data_free.py --category flood --resume
-    python scripts/generate_training_data_free.py --dry-run
-
-Reads API keys from:
-  - Environment variables: GEMINI_API_KEY, GROQ_API_KEY, OPENROUTER_API_KEY
-  - Or from ../../server/.env (auto-detected)
+Generate_training_data_free AI engine module.
 """
 
 import argparse
@@ -982,4 +969,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
+

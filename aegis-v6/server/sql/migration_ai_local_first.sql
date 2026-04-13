@@ -2,12 +2,12 @@
 -- AEGIS v6.11 — Local-First AI System Migration
 --
 -- Adds tables for:
---   §1  Canned replies (admin messaging templates)
---   §2  Token usage log (persistent AI cost tracking)
---   §3  Response cache improvements
---   §4  Chat session enhancements (model routing metadata)
+--   Canned replies (admin messaging templates)
+--   Token usage log (persistent AI cost tracking)
+--   Response cache improvements
+--   Chat session enhancements (model routing metadata)
 
--- §1  CANNED REPLIES — Reusable admin messaging templates
+-- CANNED REPLIES — Reusable admin messaging templates
 CREATE TABLE IF NOT EXISTS canned_replies (
     id              UUID            PRIMARY KEY DEFAULT gen_random_uuid(),
     title           VARCHAR(200)    NOT NULL,
@@ -27,7 +27,7 @@ CREATE INDEX IF NOT EXISTS idx_canned_replies_category
 CREATE UNIQUE INDEX IF NOT EXISTS uq_canned_replies_shortcut
     ON canned_replies (shortcut) WHERE shortcut IS NOT NULL AND deleted_at IS NULL;
 
--- §2  TOKEN USAGE LOG — Persistent AI invocation tracking for cost dashboard
+-- TOKEN USAGE LOG — Persistent AI invocation tracking for cost dashboard
 CREATE TABLE IF NOT EXISTS token_usage_log (
     id              UUID            PRIMARY KEY DEFAULT gen_random_uuid(),
     provider        VARCHAR(50)     NOT NULL,
@@ -49,7 +49,7 @@ CREATE INDEX IF NOT EXISTS idx_token_usage_provider
 CREATE INDEX IF NOT EXISTS idx_token_usage_local
     ON token_usage_log (is_local, created_at DESC);
 
--- §3  RESPONSE CACHE — Ensure the cache table exists with all needed columns
+-- RESPONSE CACHE — Ensure the cache table exists with all needed columns
 CREATE TABLE IF NOT EXISTS response_cache (
     query_hash      VARCHAR(64)     PRIMARY KEY,
     query_text      TEXT            NOT NULL,
@@ -70,7 +70,7 @@ CREATE INDEX IF NOT EXISTS idx_response_cache_embedding
     ON response_cache USING hnsw (embedding_vector vector_cosine_ops)
     WHERE embedding_vector IS NOT NULL;
 
--- §4  CHAT SESSION ENHANCEMENTS
+-- CHAT SESSION ENHANCEMENTS
 -- Add query classification tracking and model preference columns
 
 ALTER TABLE chat_sessions
@@ -84,7 +84,7 @@ ALTER TABLE chat_messages
     ADD COLUMN IF NOT EXISTS is_local BOOLEAN DEFAULT false,
     ADD COLUMN IF NOT EXISTS query_classification VARCHAR(30);
 
--- §5  SEED DATA — Default canned replies for emergency management
+-- SEED DATA — Default canned replies for emergency management
 INSERT INTO canned_replies (title, content, category, shortcut) VALUES
     ('Emergency Acknowledged',
      'Thank you for reporting this emergency. We have received your message and are coordinating a response. Please stay safe and follow any evacuation instructions. If you are in immediate danger, call emergency services immediately.',

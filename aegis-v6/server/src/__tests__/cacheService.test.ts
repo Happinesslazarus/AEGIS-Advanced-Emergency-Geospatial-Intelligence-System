@@ -1,9 +1,15 @@
-﻿/*
- * tests__/cacheService.test.ts — Unit tests for the Redis caching layer
+/**
+ * File: cacheService.test.ts
  *
- * All tests run WITHOUT a live Redis connection. The Redis module is fully mocked
- * so tests exercise key generation, remember() flow, stale-if-error, negative
- * caching, invalidation, and the in-memory fallback.
+ * What it tests:
+ * Unit tests for the cacheService (in-memory LRU + Redis adapter).
+  * Verifies get/set/delete, TTL expiry, Redis fallback logic,
+  * and cache invalidation by prefix.
+  *
+  * How it connects:
+  * - Tests server/src/services/cacheService.ts
+  * - Redis connection mocked (no live Redis required)
+  * - Run via: npm test -- cacheService
  */
 
 // Mock Redis before any imports
@@ -330,4 +336,4 @@ describe('cacheService', () => {
     })
   })
 })
-
+

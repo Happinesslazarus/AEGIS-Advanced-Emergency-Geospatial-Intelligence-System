@@ -1,4 +1,8 @@
-"""Quick environment check for vision fine-tuning dependencies."""
+"""
+Module: check_env.py
+
+Check_env AI engine module.
+"""
 import sys
 import os
 

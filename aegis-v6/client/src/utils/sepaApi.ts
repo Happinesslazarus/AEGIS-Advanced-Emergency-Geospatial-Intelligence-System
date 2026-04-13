@@ -1,23 +1,72 @@
 /**
- * SEPA River Level API integration
- * Public API - no key required
- * https://timeseries.sepa.org.uk/KiWIS/KiWIS?
+ * File: sepaApi.ts
+ *
+ * Fetches live river level data from two authoritative UK sources:
+ *   1. SEPA KiWIS  — the Scottish Environment Protection Agency's real-time
+ *                    river-gauge web service (used for Scottish locations)
+ *   2. EA API      — the English Environment Agency flood API, proxied
+ *                    through the AEGIS backend at /api/flood-data/stations
+ *
+ * fetchRiverLevels() implements a cascading strategy:
+ *   Scotland → try SEPA KiWIS first → fallback to EA API → final SEPA retry
+ *   England  → try EA API only
+ *
+ * Glossary:
+ *   SEPA             = Scottish Environment Protection Agency; operates a network
+ *                      of river gauge stations across Scotland
+ *   EA               = Environment Agency; runs the flood monitoring network
+ *                      for England and Wales
+ *   KiWIS            = SEPA's timeseries web service (Kisters Water Information System);
+ *                      exposes station lists, timeseries definitions, and values
+ *   gauge station    = a sensor installed in a river that measures the water level
+ *                      (height above the riverbed) continuously
+ *   level            = current water height in metres above the gauge datum
+ *   levelTrend       = direction of recent change: 'rising' | 'falling' | 'steady';
+ *                      determined by comparing the latest reading to 3 readings earlier
+ *   normalLevel      = typical day-to-day water level (derived from API data or estimated)
+ *   warningLevel     = threshold at which flooding may begin to affect low-lying land
+ *   alertLevel       = critical threshold at which properties and roads are at risk
+ *   status           = derived alert tier: 'normal' | 'rising' | 'warning' | 'alert'
+ *   timeseries       = a sequence of (timestamp, value) pairs from a single gauge sensor;
+ *                      KiWIS may have multiple timeseries per station ('15min', '1hour', etc.)
+ *   ts_id            = SEPA KiWIS internal identifier for one timeseries record
+ *   Haversine formula = great-circle distance between two lat/lng points on a sphere;
+ *                       used to find the nearest gauge stations to the user's location
+ *   LOCATION_CENTERS  = lookup table mapping location name keys to lat/lng coordinates;
+ *                       used to resolve named places like 'aberdeen' to a coordinate
+ *   KNOWN_GAUGES      = hand-curated mapping of major cities to their known station IDs;
+ *                       used as a fallback to identify river names when the API omits them
+ *
+ * How it connects:
+ * - Used by client/src/components/shared/RiverGaugePanel.tsx
+ * - Used by client/src/hooks/useFloodData.ts
+ * - Server-side equivalent: server/src/services/riverLevelService.ts
  */
 
+/** Shape of a single river gauge reading returned by this module */
 export interface RiverGauge {
   id: string; name: string; river: string; location: string
-  level: number; levelTrend: 'rising' | 'falling' | 'steady'
-  normalLevel: number; warningLevel: number; alertLevel: number
+  level: number;          // current water level in metres
+  levelTrend: 'rising' | 'falling' | 'steady'
+  normalLevel: number;   // typical day-to-day level (metres)
+  warningLevel: number;  // flooding may begin above this level
+  alertLevel: number;    // property/road risk level
   status: 'normal' | 'rising' | 'warning' | 'alert'
   lastUpdated: string; source: 'sepa' | 'ea'
 }
 
+/** One historical data point from the gauge timeseries */
 export interface RiverHistory {
   time: string; level: number
 }
 
+// Base URL for SEPA's KiWIS web service (Query Services endpoint)
 const SEPA_API = 'https://timeseries.sepa.org.uk/KiWIS/KiWIS'
 
+// ---------------------------------------------------------------------------
+// Location centre coordinates
+// Used to resolve named places to lat/lng so we can find nearby gauge stations
+// ---------------------------------------------------------------------------
 const LOCATION_CENTERS: Record<string, { lat: number; lng: number; region?: string }> = {
   // Scotland
   aberdeen: { lat: 57.1497, lng: -2.0943, region: 'scotland' },
@@ -51,26 +100,40 @@ const LOCATION_CENTERS: Record<string, { lat: number; lng: number; region?: stri
   northern_ireland: { lat: 54.6, lng: -6.7, region: 'england' },
 }
 
-/* Determine which API region to use based on coordinates */
+// ---------------------------------------------------------------------------
+// Geo-math helpers
+// ---------------------------------------------------------------------------
+
+/** Returns 'scotland' when lat > 55.3 (rough geographic boundary), else 'england'.
+ *  Determines which API endpoint to call first. */
 function detectRegion(lat: number): string {
   // Simple heuristic: Scotland is roughly lat > 55.3
   return lat > 55.3 ? 'scotland' : 'england'
 }
 
+/** Convert degrees to radians (required by the Haversine formula) */
 function toRad(deg: number): number {
   return (deg * Math.PI) / 180
 }
 
+/** Great-circle distance in kilometres between two WGS-84 coordinates.
+ *  Haversine formula — accurate for distances up to a few hundred kilometres. */
 function distanceKm(aLat: number, aLng: number, bLat: number, bLng: number): number {
-  const earthRadiusKm = 6371
+  const earthRadiusKm = 6371           // Earth's mean radius
   const dLat = toRad(bLat - aLat)
   const dLng = toRad(bLng - aLng)
+  // Haversine components
   const sa = Math.sin(dLat / 2) * Math.sin(dLat / 2)
   const sb = Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * Math.sin(dLng / 2) * Math.sin(dLng / 2)
   const c = 2 * Math.atan2(Math.sqrt(sa + sb), Math.sqrt(1 - sa - sb))
   return earthRadiusKm * c
 }
 
+// ---------------------------------------------------------------------------
+// Known gauge station catalogue
+// Curated list of major city stations used to resolve river names when the
+// API response omits or truncates the river_name field
+// ---------------------------------------------------------------------------
 // Known gauge stations for key locations
 const KNOWN_GAUGES: Record<string, { stations: { id: string; name: string; river: string }[] }> = {
   aberdeen: {
@@ -101,28 +164,47 @@ const KNOWN_GAUGES: Record<string, { stations: { id: string; name: string; river
   },
 }
 
+// ---------------------------------------------------------------------------
+// Public functions
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetches live river gauge readings for a named location or explicit coordinates.
+ *
+ * Strategy:
+ *   1. Resolve locationKey to lat/lng (or use explicit userLat/userLng)
+ *   2. Detect whether location is in Scotland or England
+ *   3. Scotland: try SEPA KiWIS → on failure, try EA API → final SEPA retry
+ *   4. England:  try EA API only
+ *
+ * Throws if no gauge data is available from any source.
+ */
 export async function fetchRiverLevels(locationKey: string, userLat?: number, userLng?: number): Promise<RiverGauge[]> {
-  const normalizedKey = locationKey.toLowerCase().replace(/[\s-]+/g, '_')
+  const normalizedKey = locationKey.toLowerCase().replace(/[\s-]+/g, '_') // normalise to snake_case
   const locEntry = LOCATION_CENTERS[normalizedKey]
   const selectedCenter = userLat != null && userLng != null
-    ? { lat: userLat, lng: userLng }
+    ? { lat: userLat, lng: userLng }  // explicit GPS coordinates from the user's device
     : locEntry
-      ? { lat: locEntry.lat, lng: locEntry.lng }
+      ? { lat: locEntry.lat, lng: locEntry.lng } // resolved from LOCATION_CENTERS table
       : null
 
   if (!selectedCenter) {
     throw new Error(`No river monitoring data available for "${locationKey}". Try selecting a UK location.`)
   }
 
+  // Determine whether to query SEPA (Scotland) or EA (England) first
   const region = userLat != null ? detectRegion(userLat) : (locEntry?.region || detectRegion(selectedCenter.lat))
 
-  // For Scottish locations, try SEPA KiWIS first (it's the authoritative source)
+  // --- Step 1: SEPA KiWIS (Scotland only) ---
+  // SEPA is the authoritative source for Scottish gauges; try it first
+  // to avoid unnecessary calls to the EA proxy
   if (region === 'scotland') {
     const sepaFirst = await trySepaKiWIS(selectedCenter.lat, selectedCenter.lng, locationKey)
     if (sepaFirst.length > 0) return sepaFirst
   }
 
-  // Step 1 — try UK EA / backend proxy API
+  // --- Step 2: EA / backend proxy API ---
+  // Fetches from /api/flood-data/stations which proxies the Environment Agency API
   const eaResults: RiverGauge[] = []
   try {
     const stationsRes = await fetch(`/api/flood-data/stations?region=${region}&lat=${selectedCenter.lat}&lng=${selectedCenter.lng}&dist=80`)
@@ -201,7 +283,8 @@ export async function fetchRiverLevels(locationKey: string, userLat?: number, us
 
   if (eaResults.length > 0) return eaResults
 
-  // Step 2 — final SEPA fallback (if Scotland SEPA-first also failed above, try again with EA-only path exhausted)
+  // --- Step 3: Final SEPA retry ---
+  // Reached here only if EA API also failed for a Scottish location
   if (region === 'scotland') {
     const sepaRetry = await trySepaKiWIS(selectedCenter.lat, selectedCenter.lng, locationKey)
     if (sepaRetry.length > 0) return sepaRetry
@@ -210,10 +293,19 @@ export async function fetchRiverLevels(locationKey: string, userLat?: number, us
   throw new Error('No live gauge data available — check your connection.')
 }
 
-/* Try SEPA KiWIS API for Scottish stations */
+/**
+ * Internal helper: queries SEPA KiWIS for gauges within 60 km of the given coordinates.
+ * Returns up to 5 RiverGauge objects from the SEPA real-time timeseries service.
+ *
+ * KiWIS response format: first element is a header row, subsequent elements are data rows.
+ * Each data row may be a plain array or a { value: [...] } wrapper object.
+ * The '15min' timeseries is preferred as it gives the freshest readings;
+ * falls back to the first available timeseries if '15min' is not present.
+ */
 async function trySepaKiWIS(lat: number, lng: number, locationKey: string): Promise<RiverGauge[]> {
   const results: RiverGauge[] = []
   try {
+    // Fetch all SEPA station metadata; filter + sort by proximity in a single pass
     const stationListUrl = `${SEPA_API}?service=kisters&type=queryServices&datasource=0&request=getStationList&returnfields=station_id,station_name,station_latitude,station_longitude,river_name&format=json`
     const stationRes = await fetch(stationListUrl)
     if (!stationRes.ok) return results
@@ -243,6 +335,7 @@ async function trySepaKiWIS(lat: number, lng: number, locationKey: string): Prom
 
     for (const station of nearbyStations) {
       try {
+        // Fetch timeseries list for this station, filtered to stage (S = water level) parameter
         const tsUrl = `${SEPA_API}?service=kisters&type=queryServices&datasource=0&request=getTimeseriesList&station_id=${station.station_id}&parametertype_name=S&returnfields=ts_id,ts_name&format=json`
         const tsRes = await fetch(tsUrl)
         if (!tsRes.ok) continue
@@ -254,10 +347,11 @@ async function trySepaKiWIS(lat: number, lng: number, locationKey: string): Prom
           if (!arr || arr.length < 2) return null
           return { ts_id: String(arr[0]), ts_name: String(arr[1]) }
         }).filter(Boolean) as { ts_id: string; ts_name: string }[]
-        // Prefer the "15minute" timeseries for live data, fall back to first available
+        // Prefer the 15-minute timeseries for the most up-to-date reading
         const liveTs = tsRows.find(ts => ts.ts_name.includes('15min') || ts.ts_name.includes('15Min')) || tsRows[0]
         if (!liveTs?.ts_id) continue
-
+        
+        // Fetch the latest values for this timeseries
         const valUrl = `${SEPA_API}?service=kisters&type=queryServices&datasource=0&request=getTimeseriesValues&ts_id=${liveTs.ts_id}&period=P1D&returnfields=Timestamp,Value&format=json`
         const valRes = await fetch(valUrl)
         if (!valRes.ok) continue
@@ -265,12 +359,14 @@ async function trySepaKiWIS(lat: number, lng: number, locationKey: string): Prom
         const values = valData?.[0]?.data || []
         if (values.length === 0) continue
 
+        // SEPA values are [timestamp, level] pairs — take the latest and previous for trend calculation
         const latest = values[values.length - 1]
         const prev = values.length > 2 ? values[values.length - 3] : values[0]
         const level = parseFloat(latest[1])
         const prevLevel = parseFloat(prev[1])
         if (!Number.isFinite(level)) continue
 
+        // SEPA doesn't provide typical levels, so we use a simple heuristic: normal = 75% of current, warning = 120%, alert = 144%
         const trend: RiverGauge['levelTrend'] = level > prevLevel + 0.02 ? 'rising' : level < prevLevel - 0.02 ? 'falling' : 'steady'
         const normalLevel = level * 0.7
         const warningLevel = level * 1.3
@@ -294,20 +390,26 @@ async function trySepaKiWIS(lat: number, lng: number, locationKey: string): Prom
   return results
 }
 
+// ---------------------------------------------------------------------------
+// Colour helpers — map gauge status to Tailwind classes
+// ---------------------------------------------------------------------------
+
+/** Returns a Tailwind text-colour class for the gauge's current alert status */
 export function getGaugeColor(status: RiverGauge['status']): string {
   switch (status) {
-    case 'alert': return 'text-red-600'
-    case 'warning': return 'text-amber-600'
-    case 'rising': return 'text-orange-500'
-    default: return 'text-green-600'
+    case 'alert':   return 'text-red-600'    // at or above alert threshold
+    case 'warning': return 'text-amber-600'  // approaching alert level
+    case 'rising':  return 'text-orange-500' // rising but not yet at warning level
+    default:        return 'text-green-600'  // within normal range
   }
 }
 
+/** Returns Tailwind background + border classes for the gauge card */
 export function getGaugeBg(status: RiverGauge['status']): string {
   switch (status) {
-    case 'alert': return 'bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800'
+    case 'alert':   return 'bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800'
     case 'warning': return 'bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-800'
-    case 'rising': return 'bg-orange-50 border-orange-200 dark:bg-orange-950/20 dark:border-orange-800'
-    default: return 'bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800'
+    case 'rising':  return 'bg-orange-50 border-orange-200 dark:bg-orange-950/20 dark:border-orange-800'
+    default:        return 'bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800'
   }
 }

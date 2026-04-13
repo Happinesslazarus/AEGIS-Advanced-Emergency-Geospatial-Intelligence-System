@@ -1,5 +1,13 @@
 /**
- * incidents/public_safety/index.ts — Public Safety Incident module (Tier 1: Rule-based)
+ * Module: index.ts
+ *
+ * Public safety incidents incident module (handles public safety specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for public safety events.
  */
 
 import { BaseIncidentModule } from '../baseModule.js'
@@ -54,4 +62,4 @@ class PublicSafetyModule extends BaseIncidentModule {
 }
 
 export default new PublicSafetyModule()
-
+

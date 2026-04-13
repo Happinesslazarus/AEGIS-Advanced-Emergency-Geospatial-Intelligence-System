@@ -1,3 +1,12 @@
+/**
+ * Module: citizen-auth.spec.ts
+ *
+ * Citizen-auth test suite (automated tests for this feature).
+ *
+ * Simple explanation:
+ * Verifies that citizen-auth works correctly.
+ */
+
 import { test, expect } from '@playwright/test'
 
 test.describe('Citizen Auth', () => {

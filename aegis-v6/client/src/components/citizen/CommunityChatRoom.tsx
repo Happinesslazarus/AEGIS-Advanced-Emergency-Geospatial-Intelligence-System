@@ -1,10 +1,10 @@
-﻿/*
- * CommunityChatRoom.tsx - Enhanced Real-time Community Chat Room
+/**
+ * Module: CommunityChatRoom.tsx
  *
- * Features: image sharing, reply-to, emoji picker, lightbox,
- * auto-link URLs, typing indicators, online users panel,
- * edit messages, confirm delete, report messages, role badges.
- */
+ * Community chat room citizen component (public-facing UI element).
+ *
+ * How it connects:
+ * - Rendered inside CitizenPage.tsx or CitizenDashboard.tsx */
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
@@ -551,9 +551,14 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     if (!activeToken) return
     setJoiningCommunity(true)
     try {
+      const csrfToken = document.cookie.split('; ').find(c => c.startsWith('aegis_csrf='))?.split('=')[1]
       const res = await fetch('/api/community/join', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${activeToken}`, 'Content-Type': 'application/json' }
+        headers: {
+          Authorization: `Bearer ${activeToken}`,
+          'Content-Type': 'application/json',
+          ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
+        }
       })
       if (res.ok) {
         setIsMember(true)
@@ -592,9 +597,13 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
     if (!activeToken) return
     if (!window.confirm(t('communityChat.leaveConfirm', currentLang))) return
     try {
+      const csrfToken = document.cookie.split('; ').find(c => c.startsWith('aegis_csrf='))?.split('=')[1]
       const res = await fetch('/api/community/leave', {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${activeToken}` }
+        headers: {
+          Authorization: `Bearer ${activeToken}`,
+          ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
+        }
       })
       if (res.ok) {
         // Leave Socket.IO room first, then update UI
@@ -1144,9 +1153,13 @@ export default function CommunityChatRoom({ parentSocket }: { parentSocket?: Soc
       const token = activeToken
       const formData = new FormData()
       formData.append('image', imageFile)
+      const csrfToken = document.cookie.split('; ').find(c => c.startsWith('aegis_csrf='))?.split('=')[1]
       const res = await fetch(`${API_BASE}/api/community/chat/upload`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
+        },
         body: formData,
       })
       const data = await res.json()

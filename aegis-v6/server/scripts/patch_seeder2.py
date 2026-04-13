@@ -1,4 +1,11 @@
-"""Patch #2: Fix reporter_ip length and historical_flood_events schema."""
+"""
+Module: patch_seeder2.py
+
+Patch_seeder2 utility script.
+
+Simple explanation:
+Standalone script for patch_seeder2.
+"""
 
 f = r'e:\aegis-v6-fullstack\aegis-v6\server\scripts\seed_training_data.py'
 t = open(f, 'r', encoding='utf-8').read()

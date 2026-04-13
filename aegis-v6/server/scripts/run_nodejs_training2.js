@@ -8,7 +8,7 @@ const pool = new Pool({
   port: 5432,
   database: 'aegis',
   user: 'postgres',
-  password: 'Happylove@!'
+  password: process.env.DB_PASSWORD
 });
 
 function post(path, body, token) {

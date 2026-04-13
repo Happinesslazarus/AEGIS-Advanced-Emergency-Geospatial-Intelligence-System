@@ -1,10 +1,13 @@
 /**
- * incidents/drought/service.ts — Business logic for drought incident management
+ * Module: service.ts
  *
- * Provides higher-level operations beyond the BaseIncidentModule defaults:
- * Fetch and cache drought index from external data
- * Generate water conservation advisories
- * Aggregate regional drought status
+ * Extended drought conditions incident module (handles drought specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for drought events.
  */
 
 import { ingestDroughtData, classifyDroughtSeverity, type DroughtIngestionResult } from './dataIngestion.js'

@@ -1,17 +1,18 @@
-﻿/*
- * services/cacheService.ts — Production-grade Redis caching layer
+/**
+ * File: cacheService.ts
  *
- * Enterprise cache abstraction with:
- * Namespace-scoped, collision-safe keys
- * JSON serialization with type safety
- * Stale-if-error fallback with configurable grace windows
- * Negative caching for "no data" responses
- * Prometheus observability (hit/miss/stale/error metrics)
- * Operation timeout protection
- * Graceful degradation when Redis is unavailable
- * In-memory LRU fallback for single-node / dev deploys
+ * Enterprise cache abstraction — namespace-scoped, versioned keys with
+ * stale-while-revalidate grace periods and LRU eviction (5000 entries).
+ * Full Prometheus instrumentation via cacheMetrics. Exports the shared
+ * Redis instance and redisReady flag for other services.
  *
- * Never caches: auth tokens, JWT, PII, mutation responses.
+ * How it connects:
+ * - Imports cache metric counters/histograms from cacheMetrics.ts
+ * - Exports the shared redis client and redisReady flag
+ * - Used by socket.ts, cronJobs, and route handlers
+ *
+ * Simple explanation:
+ * The main caching layer — keeps hot data in memory so the DB doesn't get hammered.
  */
 
 import Redis from 'ioredis'
@@ -75,12 +76,12 @@ if (REDIS_URL && REDIS_ENABLED) {
   })
 
   redis.connect().catch((err) => {
-    auditLog('cache', 'Redis unavailable at startup — using in-memory fallback', { error: err?.message })
+    auditLog('cache', 'Redis unavailable at startup - using in-memory fallback', { error: err?.message })
     redis = null
     redisReady = false
   })
 } else {
-  auditLog('cache', REDIS_ENABLED ? 'No REDIS_URL — using in-memory fallback' : 'Redis disabled via REDIS_ENABLED=false')
+  auditLog('cache', REDIS_ENABLED ? 'No REDIS_URL - using in-memory fallback' : 'Redis disabled via REDIS_ENABLED=false')
 }
 
 // In-memory fallback (LRU-style eviction at 5000 entries)
@@ -124,7 +125,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 
 // Cache key builder
 
- /**
+/**
  * Build a deterministic, collision-safe cache key.
  *
  * Format: aegis:v1:{namespace}:{parts joined by ':'}:{hash of params}
@@ -167,7 +168,7 @@ interface CacheEnvelope<T = unknown> {
 
 // Public API
 
- /**
+/**
  * Get a cached value. Returns null on miss.
  * If the item exists but is expired, it returns null (stale lookup is separate).
  */
@@ -183,7 +184,7 @@ export async function cacheGet<T>(key: string): Promise<T | null> {
       return null
     }
     if (Date.now() > envelope.expiresAt) {
-      // Expired but data may exist for stale-if-error — return null for fresh reads
+      // Expired but data may exist for stale-if-error - return null for fresh reads
       cacheMissesTotal.inc()
       cacheNamespaceMissesTotal.inc({ namespace: ns })
       timer()
@@ -201,7 +202,7 @@ export async function cacheGet<T>(key: string): Promise<T | null> {
   }
 }
 
- /**
+/**
  * Get stale data for a key (expired but within grace window).
  * Used by stale-if-error fallback.
  */
@@ -222,7 +223,7 @@ export async function cacheGetStale<T>(key: string): Promise<{ data: T; stale: b
   }
 }
 
- /**
+/**
  * Set a cache value with TTL in seconds.
  */
 export async function cacheSet<T>(key: string, value: T, ttlSeconds?: number): Promise<void> {
@@ -249,7 +250,7 @@ export async function cacheSet<T>(key: string, value: T, ttlSeconds?: number): P
     }
   } catch (err: any) {
     cacheErrorsTotal.inc({ operation: 'set' })
-    auditLog('cache', 'set error — falling back to memory', { key, error: err.message })
+    auditLog('cache', 'set error - falling back to memory', { key, error: err.message })
   }
 
   // In-memory fallback
@@ -264,7 +265,7 @@ export async function cacheSet<T>(key: string, value: T, ttlSeconds?: number): P
   timer()
 }
 
- /**
+/**
  * Delete a single cached key.
  */
 export async function cacheDel(key: string): Promise<void> {
@@ -281,7 +282,7 @@ export async function cacheDel(key: string): Promise<void> {
   cacheInvalidationsTotal.inc({ namespace: ns })
 }
 
- /**
+/**
  * Invalidate a single key (alias for del with logging).
  */
 export async function cacheInvalidate(key: string): Promise<void> {
@@ -289,7 +290,7 @@ export async function cacheInvalidate(key: string): Promise<void> {
   return cacheDel(key)
 }
 
- /**
+/**
  * Invalidate all keys matching a glob pattern (e.g. "aegis:v1:weather:*").
  * Uses SCAN instead of KEYS for production safety.
  * Returns the number of keys deleted.
@@ -350,7 +351,7 @@ export async function cacheInvalidatePattern(pattern: string, dryRun = false): P
   return removed
 }
 
- /**
+/**
  * Cache-aside with producer function.
  *
  * 1. Try cache hit ? return cached data
@@ -381,7 +382,7 @@ export async function remember<T>(
     return { data: cached, meta: { source: 'cache', stale: false, namespace: ns } }
   }
 
-  // 2. Cache miss — call producer
+  // 2. Cache miss - call producer
   try {
     const freshData = await producer()
 
@@ -395,7 +396,7 @@ export async function remember<T>(
 
     return { data: freshData, meta: { source: 'origin', stale: false, namespace: ns } }
   } catch (producerError) {
-    // 3. Producer failed — try stale-if-error
+    // 3. Producer failed - try stale-if-error
     if (options?.staleOnError) {
       const stale = await cacheGetStale<T>(key)
       if (stale && stale.data !== null) {
@@ -412,7 +413,7 @@ export async function remember<T>(
       }
     }
 
-    // 4. No stale data available — propagate the error
+    // 4. No stale data available - propagate the error
     throw producerError
   }
 }

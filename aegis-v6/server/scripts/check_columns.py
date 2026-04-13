@@ -1,7 +1,17 @@
+"""
+Module: check_columns.py
+
+Check_columns utility script.
+
+Simple explanation:
+Standalone script for check_columns.
+"""
+
+import os
 import asyncio, asyncpg
 
 async def main():
-    c = await asyncpg.connect('postgresql://postgres:Happylove%40%21@localhost:5432/aegis')
+    c = await asyncpg.connect(os.environ.get('DATABASE_URL', 'postgresql://localhost:5432/aegis'))
     rows = await c.fetch("""
         SELECT column_name, data_type 
         FROM information_schema.columns 

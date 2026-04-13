@@ -1,7 +1,13 @@
 /**
- * incidents/power_outage/index.ts — Power Outage module (Tier 1: Rule-based)
+ * Module: index.ts
  *
- * Community-safety incident using report-density analysis.
+ * Electrical grid failures incident module (handles power outage specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for power outage events.
  */
 
 import { BaseIncidentModule } from '../baseModule.js'
@@ -65,4 +71,4 @@ class PowerOutageModule extends BaseIncidentModule {
 }
 
 export default new PowerOutageModule()
-
+

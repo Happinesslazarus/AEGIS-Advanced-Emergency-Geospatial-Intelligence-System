@@ -1,20 +1,24 @@
-﻿ /*
- * services/ragExpansionService.ts — RAG Knowledge Base Builder
- * Expands the RAG document store (rag_documents table) with:
- *   1. Wikipedia flood knowledge articles
- *   2. UK Government flood guidance documents
- *   3. Historical flood event summaries
- *   4. News article content
- *   5. Climate/weather pattern knowledge
- *   6. Emergency response procedures
- * Uses text-based search as primary (pgvector optional enhancement).
- * All content is chunked, deduplicated, and indexed for retrieval.
-  */
+/**
+ * File: ragExpansionService.ts
+ *
+ * RAG knowledge base manager — chunks documents semantically (paragraph/header
+ * boundaries with overlap), stores them with embeddings in rag_documents, and
+ * retrieves relevant context using BM25 scoring, query expansion via disaster
+ * synonyms, and result re-ranking.
+ *
+ * How it connects:
+ * - Stores/retrieves from the rag_documents PostgreSQL table
+ * - Uses embeddingRouter for vector embeddings (dynamic import)
+ * - Consumed by chatService for context retrieval before LLM calls
+ *
+ * Simple explanation:
+ * Manages the knowledge base the chatbot searches through to answer questions.
+ */
 
 import pool from '../models/db.js'
 import { logger } from './logger.js'
 
-// —1  RAG DOCUMENT STORE MANAGEMENT
+// -1  RAG DOCUMENT STORE MANAGEMENT
 
 interface RAGDocument {
   title: string
@@ -27,7 +31,7 @@ interface RAGDocument {
 const CHUNK_SIZE = 500 // tokens (roughly words)
 const CHUNK_OVERLAP = 50
 
- /**
+/**
  * Split text into semantically-aware chunks for RAG retrieval.
  * Priority: split on double newlines (paragraphs) > headers > sentence boundaries > word boundaries.
  * Falls back to fixed-size word splitting only for very large paragraphs.
@@ -166,7 +170,7 @@ async function storeRAGDocument(doc: RAGDocument): Promise<number> {
   return stored
 }
 
-// —2  KNOWLEDGE BASE: FLOOD MANAGEMENT EXPERTISE
+// -2  KNOWLEDGE BASE: FLOOD MANAGEMENT EXPERTISE
 
 const FLOOD_KNOWLEDGE_BASE: RAGDocument[] = [
   {
@@ -189,7 +193,7 @@ const FLOOD_KNOWLEDGE_BASE: RAGDocument[] = [
   },
   {
     title: 'Climate Change Impact on UK Flooding',
-    content: `Climate projections (UKCP18) indicate significant increases in UK flood risk: Temperature rise of 1.5-4.5—C by 2100 depending on emissions pathway. Winter rainfall expected to increase 10-30% by 2080s. Summer rainfall may decrease but become more intense (more flash floods). Sea level rise of 0.3-1.1m by 2100 along UK coastline. The Committee on Climate Change estimates that without adaptation: properties at significant flood risk will increase from 1.8 million to 2.6 million by 2050. Current flood defences protect to approx 1 in 100 year standard. Climate change means a "1 in 100 year" flood today may become a "1 in 30 year" event by 2080. The Environment Agency estimates —1 billion annual investment needed in flood defences. Key adaptation measures: managed retreat from coastlines, upstream natural flood management (tree planting, leaky dams), property-level resilience, improved drainage infrastructure, enhanced early warning systems using AI/ML.`,
+    content: `Climate projections (UKCP18) indicate significant increases in UK flood risk: Temperature rise of 1.5-4.5-C by 2100 depending on emissions pathway. Winter rainfall expected to increase 10-30% by 2080s. Summer rainfall may decrease but become more intense (more flash floods). Sea level rise of 0.3-1.1m by 2100 along UK coastline. The Committee on Climate Change estimates that without adaptation: properties at significant flood risk will increase from 1.8 million to 2.6 million by 2050. Current flood defences protect to approx 1 in 100 year standard. Climate change means a "1 in 100 year" flood today may become a "1 in 30 year" event by 2080. The Environment Agency estimates -1 billion annual investment needed in flood defences. Key adaptation measures: managed retreat from coastlines, upstream natural flood management (tree planting, leaky dams), property-level resilience, improved drainage infrastructure, enhanced early warning systems using AI/ML.`,
     source: 'UKCP18 Climate Projections',
     category: 'climate_change',
   },
@@ -207,7 +211,7 @@ const FLOOD_KNOWLEDGE_BASE: RAGDocument[] = [
   },
   {
     title: 'Flood Insurance in the UK',
-    content: `The Flood Re scheme, launched in 2016, ensures affordable home insurance for properties at high flood risk. Funded by a levy on insurers (—180M/year). Properties built after 2009 are excluded (to discourage building in flood zones). Council tax band-based caps on flood element of premium: Band A-B max —210, Band C-D max —336, Band E-F max —630, Band G-H max —1260. Only available to domestic properties (not businesses). The scheme is designed to transition to risk-reflective pricing by 2039, with increasing premiums as government invests in defences. Currently covers approximately 350,000 high-risk homes. Before Flood Re, some homeowners in flood zones could not obtain insurance at any price, leading to property values dropping 20-30%. Business flood insurance remains purely commercial, with premiums of —5000-50000+ for high-risk properties.`,
+    content: `The Flood Re scheme, launched in 2016, ensures affordable home insurance for properties at high flood risk. Funded by a levy on insurers (-180M/year). Properties built after 2009 are excluded (to discourage building in flood zones). Council tax band-based caps on flood element of premium: Band A-B max -210, Band C-D max -336, Band E-F max -630, Band G-H max -1260. Only available to domestic properties (not businesses). The scheme is designed to transition to risk-reflective pricing by 2039, with increasing premiums as government invests in defences. Currently covers approximately 350,000 high-risk homes. Before Flood Re, some homeowners in flood zones could not obtain insurance at any price, leading to property values dropping 20-30%. Business flood insurance remains purely commercial, with premiums of -5000-50000+ for high-risk properties.`,
     source: 'Flood Re / ABI',
     category: 'flood_insurance',
   },
@@ -231,7 +235,7 @@ const FLOOD_KNOWLEDGE_BASE: RAGDocument[] = [
   },
 ]
 
-// —2b  GLOBAL KNOWLEDGE BASE: UNIVERSAL DISASTER MANAGEMENT
+// -2b  GLOBAL KNOWLEDGE BASE: UNIVERSAL DISASTER MANAGEMENT
 
 const GLOBAL_KNOWLEDGE_BASE: RAGDocument[] = [
   {
@@ -242,49 +246,49 @@ const GLOBAL_KNOWLEDGE_BASE: RAGDocument[] = [
   },
   {
     title: 'Types of Flooding Worldwide',
-    content: `Flooding types vary by geography and climate zone. 1) Fluvial/River flooding — affects all continents. Major flood-prone rivers: Ganges-Brahmaputra (Bangladesh/India), Yangtze/Yellow (China), Mississippi (US), Rhine/Danube (Europe), Nile (Africa), Amazon (South America). Monsoon-driven flooding in South/Southeast Asia affects 250+ million annually. 2) Coastal/Storm surge — highest risk in Bay of Bengal (Bangladesh, Myanmar, India), Gulf of Mexico (US), South Pacific islands, and low-lying deltas worldwide. Climate change-driven sea level rise of 0.3-1.1m by 2100 threatens 300+ million people. 3) Flash flooding — common in arid regions (Middle East, North Africa, US Southwest) where sudden storms overwhelm dry wadi/arroyo systems. Increasing in mountainous regions globally. 4) Urban/Pluvial flooding — growing rapidly worldwide as urbanization outpaces drainage infrastructure. Affects megacities across all continents. 5) Glacial lake outburst floods (GLOFs) — Himalayas, Andes, Alps. Climate change increasing frequency as glaciers retreat. 6) Tsunami flooding — Pacific Ring of Fire (Japan, Chile, Indonesia, West Americas), Indian Ocean. Early warning via PTWC and regional centers.`,
+    content: `Flooding types vary by geography and climate zone. 1) Fluvial/River flooding - affects all continents. Major flood-prone rivers: Ganges-Brahmaputra (Bangladesh/India), Yangtze/Yellow (China), Mississippi (US), Rhine/Danube (Europe), Nile (Africa), Amazon (South America). Monsoon-driven flooding in South/Southeast Asia affects 250+ million annually. 2) Coastal/Storm surge - highest risk in Bay of Bengal (Bangladesh, Myanmar, India), Gulf of Mexico (US), South Pacific islands, and low-lying deltas worldwide. Climate change-driven sea level rise of 0.3-1.1m by 2100 threatens 300+ million people. 3) Flash flooding - common in arid regions (Middle East, North Africa, US Southwest) where sudden storms overwhelm dry wadi/arroyo systems. Increasing in mountainous regions globally. 4) Urban/Pluvial flooding - growing rapidly worldwide as urbanization outpaces drainage infrastructure. Affects megacities across all continents. 5) Glacial lake outburst floods (GLOFs) - Himalayas, Andes, Alps. Climate change increasing frequency as glaciers retreat. 6) Tsunami flooding - Pacific Ring of Fire (Japan, Chile, Indonesia, West Americas), Indian Ocean. Early warning via PTWC and regional centers.`,
     source: 'UNDRR / WMO',
     category: 'global_flood_types',
   },
   {
     title: 'Global Flood Warning and Data Systems',
-    content: `Real-time global flood monitoring uses multiple satellite and ground-based systems. GDACS (Global Disaster Alerts and Coordination System) — UN-backed system providing near-real-time alerts for earthquakes, floods, cyclones, and volcanic eruptions worldwide. GloFAS (Global Flood Awareness System) — Copernicus/ECMWF 30-day probabilistic flood forecasts for all major global rivers. USGS Earthquake Hazards — real-time global earthquake monitoring, ShakeMap, and aftershock forecasts. NASA FIRMS (Fire Information for Resource Management System) — near-real-time active fire detection worldwide using MODIS and VIIRS satellite data. Open-Meteo — free weather and flood API providing global forecasts without API key, including river discharge estimates. OpenWeatherMap — global weather data with alerts. National systems include: NWS (US), Met Office (UK), JMA (Japan), BoM (Australia), IMD (India), DWD (Germany), M—t—o-France, ECCC (Canada). All coordinate through WMO Global Producing Centres. The International Charter on Space and Major Disasters provides free satellite imagery to disaster-affected countries.`,
+    content: `Real-time global flood monitoring uses multiple satellite and ground-based systems. GDACS (Global Disaster Alerts and Coordination System) - UN-backed system providing near-real-time alerts for earthquakes, floods, cyclones, and volcanic eruptions worldwide. GloFAS (Global Flood Awareness System) - Copernicus/ECMWF 30-day probabilistic flood forecasts for all major global rivers. USGS Earthquake Hazards - real-time global earthquake monitoring, ShakeMap, and aftershock forecasts. NASA FIRMS (Fire Information for Resource Management System) - near-real-time active fire detection worldwide using MODIS and VIIRS satellite data. Open-Meteo - free weather and flood API providing global forecasts without API key, including river discharge estimates. OpenWeatherMap - global weather data with alerts. National systems include: NWS (US), Met Office (UK), JMA (Japan), BoM (Australia), IMD (India), DWD (Germany), M-t-o-France, ECCC (Canada). All coordinate through WMO Global Producing Centres. The International Charter on Space and Major Disasters provides free satellite imagery to disaster-affected countries.`,
     source: 'GDACS / GloFAS / USGS / NASA',
     category: 'global_warning_systems',
   },
   {
     title: 'Earthquake Preparedness and Response Worldwide',
-    content: `Earthquakes affect all tectonic plate boundaries globally. Most seismically active zones: Pacific Ring of Fire (70% of earthquakes — Japan, Philippines, Indonesia, Chile, US West Coast, New Zealand), Alpine-Himalayan Belt (Turkey, Iran, Nepal, Afghanistan, Italy, Greece), East African Rift. Universal safety: Drop, Cover, Hold On (endorsed by all major agencies). Building codes vary enormously: Japan and New Zealand lead with base isolation and seismic design standards (IBC, Eurocode 8). Many developing nations lack enforced codes — same magnitude earthquake kills 10x more people. USGS monitors 20,000+ earthquakes annually via global seismograph network. Tsunami risk from undersea earthquakes >7.0: monitored by Pacific Tsunami Warning Center (PTWC) and Indian Ocean Tsunami Warning System (IOTWS), established after 2004 Boxing Day tsunami (230,000+ deaths, 14 countries). Key indicators: strong shaking near coast, unusual ocean withdrawal, official warnings via sirens, TV, mobile alerts.`,
+    content: `Earthquakes affect all tectonic plate boundaries globally. Most seismically active zones: Pacific Ring of Fire (70% of earthquakes - Japan, Philippines, Indonesia, Chile, US West Coast, New Zealand), Alpine-Himalayan Belt (Turkey, Iran, Nepal, Afghanistan, Italy, Greece), East African Rift. Universal safety: Drop, Cover, Hold On (endorsed by all major agencies). Building codes vary enormously: Japan and New Zealand lead with base isolation and seismic design standards (IBC, Eurocode 8). Many developing nations lack enforced codes - same magnitude earthquake kills 10x more people. USGS monitors 20,000+ earthquakes annually via global seismograph network. Tsunami risk from undersea earthquakes >7.0: monitored by Pacific Tsunami Warning Center (PTWC) and Indian Ocean Tsunami Warning System (IOTWS), established after 2004 Boxing Day tsunami (230,000+ deaths, 14 countries). Key indicators: strong shaking near coast, unusual ocean withdrawal, official warnings via sirens, TV, mobile alerts.`,
     source: 'USGS / PTWC / UNDRR',
     category: 'earthquake',
   },
   {
     title: 'Wildfire Risk and Response Globally',
-    content: `Wildfires are increasing worldwide due to climate change, affecting every inhabited continent. Fire seasons: Northern Hemisphere (June-October), Southern Hemisphere (December-March), tropical dry seasons vary. Highest-risk regions: Western US/Canada, Australia, Mediterranean (Greece, Turkey, Spain, Portugal), Amazon/Cerrado (Brazil), Siberia (Russia), Sub-Saharan Africa. NASA FIRMS detects 400,000+ active fires annually using MODIS/VIIRS satellite data with 4-hour update cycle. Wildfire preparedness: defensible space (30m clearance around structures), ember-resistant construction, evacuation planning, air quality awareness (PM2.5 monitoring via OpenAQ). Fire weather indices: FFDI (Australia), FWI (Canada, EU), NFDRS (US). Smoke health impacts extend hundreds of kilometres from fire — vulnerable populations (elderly, children, respiratory conditions) should monitor AQI and stay indoors when poor. Recovery considerations vary by ecosystem: Mediterranean scrub regenerates differently from boreal forest.`,
+    content: `Wildfires are increasing worldwide due to climate change, affecting every inhabited continent. Fire seasons: Northern Hemisphere (June-October), Southern Hemisphere (December-March), tropical dry seasons vary. Highest-risk regions: Western US/Canada, Australia, Mediterranean (Greece, Turkey, Spain, Portugal), Amazon/Cerrado (Brazil), Siberia (Russia), Sub-Saharan Africa. NASA FIRMS detects 400,000+ active fires annually using MODIS/VIIRS satellite data with 4-hour update cycle. Wildfire preparedness: defensible space (30m clearance around structures), ember-resistant construction, evacuation planning, air quality awareness (PM2.5 monitoring via OpenAQ). Fire weather indices: FFDI (Australia), FWI (Canada, EU), NFDRS (US). Smoke health impacts extend hundreds of kilometres from fire - vulnerable populations (elderly, children, respiratory conditions) should monitor AQI and stay indoors when poor. Recovery considerations vary by ecosystem: Mediterranean scrub regenerates differently from boreal forest.`,
     source: 'NASA FIRMS / UNDRR',
     category: 'wildfire',
   },
   {
     title: 'Tropical Cyclone and Hurricane Safety',
-    content: `Tropical cyclones (hurricanes, typhoons) affect tropical and subtropical regions worldwide. Basins: Atlantic/East Pacific (hurricanes — US, Caribbean, Mexico, Central America), Western Pacific (typhoons — Philippines, Japan, China, Vietnam, Taiwan), Indian Ocean (cyclones — India, Bangladesh, Myanmar, East Africa, Australia), South Pacific (cyclones — Australia, Fiji, Vanuatu, Tonga). Classification: Saffir-Simpson (Atlantic/East Pacific, Cat 1-5), JMA (Western Pacific), Australian Bureau of Meteorology, IMD (Indian Ocean). Universal safety: evacuate from storm surge zones, shelter in interior rooms away from windows, stockpile 7-day supplies. Storm surge causes 90% of cyclone deaths. Forecast centres: NHC (US), JTWC (US military/global), JMA (Western Pacific), RSMC New Delhi (Indian Ocean), BoM (Australia). Warning times: 3-5 days typical. Critical actions: secure property, fill vehicles with fuel, charge devices, identify nearest shelter, know evacuation routes.`,
+    content: `Tropical cyclones (hurricanes, typhoons) affect tropical and subtropical regions worldwide. Basins: Atlantic/East Pacific (hurricanes - US, Caribbean, Mexico, Central America), Western Pacific (typhoons - Philippines, Japan, China, Vietnam, Taiwan), Indian Ocean (cyclones - India, Bangladesh, Myanmar, East Africa, Australia), South Pacific (cyclones - Australia, Fiji, Vanuatu, Tonga). Classification: Saffir-Simpson (Atlantic/East Pacific, Cat 1-5), JMA (Western Pacific), Australian Bureau of Meteorology, IMD (Indian Ocean). Universal safety: evacuate from storm surge zones, shelter in interior rooms away from windows, stockpile 7-day supplies. Storm surge causes 90% of cyclone deaths. Forecast centres: NHC (US), JTWC (US military/global), JMA (Western Pacific), RSMC New Delhi (Indian Ocean), BoM (Australia). Warning times: 3-5 days typical. Critical actions: secure property, fill vehicles with fuel, charge devices, identify nearest shelter, know evacuation routes.`,
     source: 'WMO / NHC / JMA',
     category: 'cyclone',
   },
   {
     title: 'Climate Change and Global Disaster Risk',
-    content: `IPCC AR6 (2021-2023) confirms climate change is intensifying extreme weather events worldwide. Key projections: Global average temperature rise of 1.5-4.5—C by 2100. Sea level rise of 0.28-1.01m by 2100, threatening 300+ million coastal residents. Extreme rainfall events increasing in intensity and frequency across most regions. Heatwaves becoming 2.8x more frequent at 1.5—C warming, 5.6x at 2—C. Tropical cyclone intensity increasing (more Category 4-5 storms), though total number may decrease. Wildfire weather conditions increasing in Mediterranean, western Americas, Australia, and Siberia. Drought risk increasing in already-dry regions (Middle East, North Africa, Southern Africa, Central Asia). Glacial retreat accelerating in Himalayas, Andes, Alps — threatening water supply for 2+ billion people. Permafrost thaw in Arctic creating landslide and infrastructure risks. Adaptation priorities: early warning systems, climate-resilient infrastructure, nature-based solutions, community preparedness, and equitable resource allocation. The Sendai Framework target: substantially reduce disaster mortality and economic losses by 2030.`,
+    content: `IPCC AR6 (2021-2023) confirms climate change is intensifying extreme weather events worldwide. Key projections: Global average temperature rise of 1.5-4.5-C by 2100. Sea level rise of 0.28-1.01m by 2100, threatening 300+ million coastal residents. Extreme rainfall events increasing in intensity and frequency across most regions. Heatwaves becoming 2.8x more frequent at 1.5-C warming, 5.6x at 2-C. Tropical cyclone intensity increasing (more Category 4-5 storms), though total number may decrease. Wildfire weather conditions increasing in Mediterranean, western Americas, Australia, and Siberia. Drought risk increasing in already-dry regions (Middle East, North Africa, Southern Africa, Central Asia). Glacial retreat accelerating in Himalayas, Andes, Alps - threatening water supply for 2+ billion people. Permafrost thaw in Arctic creating landslide and infrastructure risks. Adaptation priorities: early warning systems, climate-resilient infrastructure, nature-based solutions, community preparedness, and equitable resource allocation. The Sendai Framework target: substantially reduce disaster mortality and economic losses by 2030.`,
     source: 'IPCC AR6 / UNDRR Sendai Framework',
     category: 'climate_change_global',
   },
   {
     title: 'AEGIS Global Capabilities',
-    content: `AEGIS (Adaptive Emergency Governance and Intelligence System) is designed as a globally deployable disaster intelligence platform. Architecture supports any geographic location through its modular region adapter system. The GenericAdapter uses globally available data sources (Open-Meteo weather and flood APIs, OpenWeatherMap, NASA POWER) that require no regional authority integration and work for any latitude/longitude on Earth. The system covers all major hazard types: floods, earthquakes, fires, storms, tsunamis, volcanic eruptions, landslides, heatwaves, drought, power outages, infrastructure damage, and environmental hazards. The LLM chatbot provides guidance in multiple languages, with emergency numbers and crisis resources dynamically configured per region. The AI engine uses universal disaster science — Drop Cover Hold On for earthquakes, fire triangle for wildfires, Saffir-Simpson for cyclones — applicable worldwide regardless of local agency or institutional framework. Real-time data fusion combines weather forecasts, citizen reports, historical matching, and terrain analysis for any location globally.`,
+    content: `AEGIS (Adaptive Emergency Governance and Intelligence System) is designed as a globally deployable disaster intelligence platform. Architecture supports any geographic location through its modular region adapter system. The GenericAdapter uses globally available data sources (Open-Meteo weather and flood APIs, OpenWeatherMap, NASA POWER) that require no regional authority integration and work for any latitude/longitude on Earth. The system covers all major hazard types: floods, earthquakes, fires, storms, tsunamis, volcanic eruptions, landslides, heatwaves, drought, power outages, infrastructure damage, and environmental hazards. The LLM chatbot provides guidance in multiple languages, with emergency numbers and crisis resources dynamically configured per region. The AI engine uses universal disaster science - Drop Cover Hold On for earthquakes, fire triangle for wildfires, Saffir-Simpson for cyclones - applicable worldwide regardless of local agency or institutional framework. Real-time data fusion combines weather forecasts, citizen reports, historical matching, and terrain analysis for any location globally.`,
     source: 'AEGIS Documentation',
     category: 'system_global',
   },
 ]
 
-// —3  BUILD RAG INDEX FROM ALL SOURCES
+// -3  BUILD RAG INDEX FROM ALL SOURCES
 
 export async function expandRAGKnowledgeBase(): Promise<{
   totalDocuments: number
@@ -327,7 +331,7 @@ export async function expandRAGKnowledgeBase(): Promise<{
       LIMIT 200
     `)
     for (const row of rows) {
-      const content = `${row.event_name} (${row.region}, ${row.event_date || 'date unknown'}): ${row.description}. Severity: ${row.severity}. ${row.affected_people ? `Affected: ${row.affected_people} people.` : ''} ${row.damage_gbp ? `Estimated damage: —${(row.damage_gbp / 1e6).toFixed(1)}M.` : ''}`
+      const content = `${row.event_name} (${row.region}, ${row.event_date || 'date unknown'}): ${row.description}. Severity: ${row.severity}. ${row.affected_people ? `Affected: ${row.affected_people} people.` : ''} ${row.damage_gbp ? `Estimated damage: -${(row.damage_gbp / 1e6).toFixed(1)}M.` : ''}`
       const stored = await storeRAGDocument({
         title: `Historical Event: ${row.event_name}`,
         content,
@@ -425,7 +429,7 @@ export async function expandRAGKnowledgeBase(): Promise<{
   return { totalDocuments: total, newDocuments: newDocs, sources }
 }
 
-// —4  RAG RETRIEVAL — Vector similarity first, full-text fallback
+// -4  RAG RETRIEVAL - Vector similarity first, full-text fallback
 
  /*
  * Retrieve relevant RAG documents.
@@ -469,8 +473,8 @@ export async function ragRetrieve(query: string, limit = 5): Promise<Array<{
         }
       }
     } catch (embErr: any) {
-      // Embedding provider not configured or failed — fall through to text search
-      logger.warn({ err: embErr }, '[RAG] Vector search unavailable — using full-text search')
+      // Embedding provider not configured or failed - fall through to text search
+      logger.warn({ err: embErr }, '[RAG] Vector search unavailable - using full-text search')
     }
 
     //  Phase 2: Full-text search with ts_rank_cd
@@ -514,7 +518,7 @@ export async function ragRetrieve(query: string, limit = 5): Promise<Array<{
   }
 }
 
-// —5  QUERY EXPANSION WITH DISASTER SYNONYM DICTIONARY
+// -5  QUERY EXPANSION WITH DISASTER SYNONYM DICTIONARY
 
 export const DISASTER_SYNONYMS: Record<string, string[]> = {
   flood: ['flooding', 'inundation', 'water level', 'river overflow', 'flash flood', 'deluge', 'submerge'],
@@ -533,7 +537,7 @@ export const DISASTER_SYNONYMS: Record<string, string[]> = {
   infrastructure: ['road closure', 'bridge collapse', 'structural damage', 'utility failure'],
 }
 
- /**
+/**
  * Expand a user query by appending top-3 synonyms for every word that
  * matches a key in DISASTER_SYNONYMS. Duplicate terms are removed.
  */
@@ -553,7 +557,7 @@ export function expandQuery(query: string): string {
   return Array.from(expanded).join(' ')
 }
 
-// —6  BM25 SCORING
+// -6  BM25 SCORING
 
 const STOPWORDS = new Set([
   'a', 'an', 'the', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
@@ -577,7 +581,7 @@ function tokenize(text: string): string[] {
     .filter(w => w.length > 1 && !STOPWORDS.has(w))
 }
 
- /**
+/**
  * Compute a BM25 relevance score for a single document against a query.
  *
  * Because we score documents individually (no corpus-wide IDF), the IDF
@@ -622,7 +626,7 @@ export function computeBM25Score(
   return score
 }
 
-// —7  CONTEXTUAL RE-RANKING
+// -7  CONTEXTUAL RE-RANKING
 
 const SOURCE_AUTHORITY: Record<string, number> = {
   expert_knowledge: 1.0,
@@ -631,7 +635,7 @@ const SOURCE_AUTHORITY: Record<string, number> = {
   citizen_report: 0.4,
 }
 
- /**
+/**
  * Re-rank RAG retrieval results using keyword overlap, source authority,
  * title relevance, and length penalty heuristics.
  */
@@ -642,22 +646,22 @@ export function rerankResults(
   const queryWords = new Set(tokenize(query))
 
   const scored = results.map(r => {
-    // 1. Keyword overlap (0—0.4)
+    // 1. Keyword overlap (0-0.4)
     const contentTokens = tokenize(r.content)
     const matchCount = contentTokens.filter(t => queryWords.has(t)).length
     const keywordScore = Math.min(0.4, (matchCount / Math.max(queryWords.size, 1)) * 0.4)
 
-    // 2. Source authority (0—0.3)
+    // 2. Source authority (0-0.3)
     const srcKey = r.source.toLowerCase().replace(/[\s-]/g, '_')
     const authorityRaw = SOURCE_AUTHORITY[srcKey] ?? 0.5
     const authorityScore = authorityRaw * 0.3
 
-    // 3. Title relevance bonus (0—0.2)
+    // 3. Title relevance bonus (0-0.2)
     const titleTokens = tokenize(r.title)
     const titleMatches = titleTokens.filter(t => queryWords.has(t)).length
     const titleScore = Math.min(0.2, (titleMatches / Math.max(queryWords.size, 1)) * 0.2)
 
-    // 4. Length penalty (0—0.1) — very short or very long content penalised
+    // 4. Length penalty (0-0.1) - very short or very long content penalised
     const len = r.content.length
     let lengthScore = 0.1
     if (len < 50) lengthScore = 0.02
@@ -672,36 +676,36 @@ export function rerankResults(
   return scored
 }
 
-// —8  MULTI-HAZARD EXPERT KNOWLEDGE BASE
+// -8  MULTI-HAZARD EXPERT KNOWLEDGE BASE
 
 const MULTI_HAZARD_KNOWLEDGE_BASE: RAGDocument[] = [
   {
     title: 'Wildfire Safety and Prevention',
-    content: `Wildfires pose an increasing threat to communities worldwide, accelerated by climate change, prolonged droughts, and changes in land use. Fire behaviour is governed by the fire triangle: heat, fuel, and oxygen. Topography plays a critical role — fires advance fastest uphill due to pre-heating of fuel above the flame front, with slope doubling the rate of spread for every 10 degrees of incline. Wind speed and direction are the most dangerous variables; erratic winds can cause spot fires kilometres ahead of the main front. Firefighting strategy distinguishes between direct attack (suppression at the fire edge using water, retardant, and hand tools) and indirect attack (creating firebreaks and backburning ahead of the fire). Defensible space around structures is vital: Zone 1 (0-10m) should be cleared of all combustible vegetation and debris; Zone 2 (10-30m) should have thinned, low-growing, fire-resistant planting; Zone 3 (30-60m) should remove dead material and reduce canopy density. Ember attack is the primary ignition mechanism for structures — fine mesh screens on vents, sealed eaves, and non-combustible roofing are essential. Community Wildfire Protection Plans (CWPPs) coordinate evacuation routes, trigger points for evacuation orders, and shelter-in-place criteria. Air quality during wildfires can reach hazardous levels (AQI > 300) requiring N95/P2 masks and sealed indoor environments. Smoke inhalation is the leading cause of wildfire fatalities, not direct burns.`,
+    content: `Wildfires pose an increasing threat to communities worldwide, accelerated by climate change, prolonged droughts, and changes in land use. Fire behaviour is governed by the fire triangle: heat, fuel, and oxygen. Topography plays a critical role - fires advance fastest uphill due to pre-heating of fuel above the flame front, with slope doubling the rate of spread for every 10 degrees of incline. Wind speed and direction are the most dangerous variables; erratic winds can cause spot fires kilometres ahead of the main front. Firefighting strategy distinguishes between direct attack (suppression at the fire edge using water, retardant, and hand tools) and indirect attack (creating firebreaks and backburning ahead of the fire). Defensible space around structures is vital: Zone 1 (0-10m) should be cleared of all combustible vegetation and debris; Zone 2 (10-30m) should have thinned, low-growing, fire-resistant planting; Zone 3 (30-60m) should remove dead material and reduce canopy density. Ember attack is the primary ignition mechanism for structures - fine mesh screens on vents, sealed eaves, and non-combustible roofing are essential. Community Wildfire Protection Plans (CWPPs) coordinate evacuation routes, trigger points for evacuation orders, and shelter-in-place criteria. Air quality during wildfires can reach hazardous levels (AQI > 300) requiring N95/P2 masks and sealed indoor environments. Smoke inhalation is the leading cause of wildfire fatalities, not direct burns.`,
     source: 'expert_knowledge',
     category: 'wildfire',
   },
   {
     title: 'Heatwave Health Risks and Emergency Response',
-    content: `Heatwaves are the deadliest natural hazard in many countries, with mortality rising sharply when temperatures exceed locally adapted thresholds. The UK activates Heat-Health Alerts at Level 2 (alert, daytime =30—C / night =15—C) through Level 4 (national emergency). Physiologically, the body manages heat through vasodilation and sweating, but these mechanisms fail in the elderly, very young, those on certain medications (diuretics, beta-blockers, anticholinergics), and during sustained high humidity (wet-bulb temperature =35—C is near-fatal for all). Heat exhaustion presents as heavy sweating, weakness, nausea, and headache; progression to heat stroke (core temperature =40—C, confusion, loss of consciousness) is a medical emergency with 10-50% mortality if untreated. Urban heat island effects raise city temperatures 2-8—C above surrounding rural areas due to absorbed solar radiation in concrete and asphalt, waste heat from buildings and vehicles, and reduced evapotranspiration. Emergency response centres should open cool rooms with air conditioning in public buildings, deploy outreach workers to check on vulnerable individuals, ensure water distribution at public locations, adjust public transport schedules, and issue guidance on recognising heat illness. Infrastructure impacts include rail buckling above 27—C on older track, road surface melting above 40—C, and transformer failures that can cascade into power outages during peak air conditioning demand. Long-term adaptation requires green infrastructure, reflective surfaces, improved building insulation standards, and heat action plans embedded in local emergency planning.`,
+    content: `Heatwaves are the deadliest natural hazard in many countries, with mortality rising sharply when temperatures exceed locally adapted thresholds. The UK activates Heat-Health Alerts at Level 2 (alert, daytime =30-C / night =15-C) through Level 4 (national emergency). Physiologically, the body manages heat through vasodilation and sweating, but these mechanisms fail in the elderly, very young, those on certain medications (diuretics, beta-blockers, anticholinergics), and during sustained high humidity (wet-bulb temperature =35-C is near-fatal for all). Heat exhaustion presents as heavy sweating, weakness, nausea, and headache; progression to heat stroke (core temperature =40-C, confusion, loss of consciousness) is a medical emergency with 10-50% mortality if untreated. Urban heat island effects raise city temperatures 2-8-C above surrounding rural areas due to absorbed solar radiation in concrete and asphalt, waste heat from buildings and vehicles, and reduced evapotranspiration. Emergency response centres should open cool rooms with air conditioning in public buildings, deploy outreach workers to check on vulnerable individuals, ensure water distribution at public locations, adjust public transport schedules, and issue guidance on recognising heat illness. Infrastructure impacts include rail buckling above 27-C on older track, road surface melting above 40-C, and transformer failures that can cascade into power outages during peak air conditioning demand. Long-term adaptation requires green infrastructure, reflective surfaces, improved building insulation standards, and heat action plans embedded in local emergency planning.`,
     source: 'expert_knowledge',
     category: 'heatwave',
   },
   {
     title: 'Severe Storm Preparedness and Safety',
-    content: `Severe storms encompass thunderstorms, tornadoes, derechos, and tropical cyclones, each presenting distinct hazards. Thunderstorm severity is classified by the presence of large hail (=2.5cm), damaging winds (=90km/h), or tornadoes. Supercell thunderstorms, characterised by a persistent rotating updraft (mesocyclone), produce the most violent tornadoes (EF3-EF5). Lightning kills approximately 2,000 people globally per year; the 30/30 rule recommends seeking shelter when the flash-to-bang interval drops below 30 seconds and remaining sheltered for 30 minutes after the last thunder. Wind damage follows an exponential curve — a 200km/h wind exerts four times the force of a 100km/h wind. Preparedness measures include reinforcing roof connections with hurricane straps, installing impact-resistant glazing or storm shutters, trimming overhanging trees, securing outdoor objects, and maintaining emergency supplies for 72 hours minimum. Flood risk during storms is amplified by storm surge in coastal areas (the leading cause of hurricane fatalities), intense rainfall overwhelming drainage, and debris blocking watercourses. Storm tracking relies on Doppler radar (detecting rotation and precipitation intensity), satellite imagery (cloud top temperatures indicate convective strength), weather balloon soundings (atmospheric profile and instability indices), and surface observation networks. Emergency communication during storms should use multiple channels: sirens, wireless emergency alerts (WEA/Cell Broadcast), social media, local radio, and door-to-door warning in high-risk zones. Post-storm hazards include downed power lines, weakened structures, contaminated flood water, and carbon monoxide from generator use indoors.`,
+    content: `Severe storms encompass thunderstorms, tornadoes, derechos, and tropical cyclones, each presenting distinct hazards. Thunderstorm severity is classified by the presence of large hail (=2.5cm), damaging winds (=90km/h), or tornadoes. Supercell thunderstorms, characterised by a persistent rotating updraft (mesocyclone), produce the most violent tornadoes (EF3-EF5). Lightning kills approximately 2,000 people globally per year; the 30/30 rule recommends seeking shelter when the flash-to-bang interval drops below 30 seconds and remaining sheltered for 30 minutes after the last thunder. Wind damage follows an exponential curve - a 200km/h wind exerts four times the force of a 100km/h wind. Preparedness measures include reinforcing roof connections with hurricane straps, installing impact-resistant glazing or storm shutters, trimming overhanging trees, securing outdoor objects, and maintaining emergency supplies for 72 hours minimum. Flood risk during storms is amplified by storm surge in coastal areas (the leading cause of hurricane fatalities), intense rainfall overwhelming drainage, and debris blocking watercourses. Storm tracking relies on Doppler radar (detecting rotation and precipitation intensity), satellite imagery (cloud top temperatures indicate convective strength), weather balloon soundings (atmospheric profile and instability indices), and surface observation networks. Emergency communication during storms should use multiple channels: sirens, wireless emergency alerts (WEA/Cell Broadcast), social media, local radio, and door-to-door warning in high-risk zones. Post-storm hazards include downed power lines, weakened structures, contaminated flood water, and carbon monoxide from generator use indoors.`,
     source: 'expert_knowledge',
     category: 'severe_storm',
   },
   {
     title: 'Landslide Warning Signs and Risk Reduction',
-    content: `Landslides — the downslope movement of rock, debris, or earth — are triggered by rainfall saturation, earthquakes, volcanic activity, erosion, or human modifications to slopes. The UK experiences approximately 30-50 significant landslides per year, concentrated in upland Scotland, Wales, and South West England. Key warning signs observable by citizens include: new cracks or bulges appearing in the ground, walls, or pavements; tilting trees, fence posts, or utility poles; sudden changes in water flow — springs appearing in new locations, streams becoming turbid, or surface water flows altering direction; doors and windows sticking in frames (indicating ground movement); unusual sounds such as rumbling or cracking from hillsides. The Factor of Safety (FoS) quantifies slope stability: FoS = resisting forces / driving forces. Values below 1.0 indicate failure. Rainfall antecedent conditions are critical — prolonged wet periods raise the water table and increase pore water pressure, reducing the effective shear strength of soil. Intensity-duration thresholds define when rainfall is likely to trigger movement; for UK conditions, landslides typically activate at >60mm/24h on susceptible slopes. Mitigation engineering includes: retaining walls, soil nailing, drainage (horizontal drains, French drains, deep wells), slope regrading, rock bolting, catch fences and debris barriers, and bioengineering (deep-rooted vegetation). Land use planning should avoid development on slopes >25 degrees, ancient landslide deposits (identified in BGS mapping), and zones of active coastal or river erosion. Community-based monitoring networks using tilt sensors, rain gauges, and regular visual inspection can provide effective early warning at low cost.`,
+    content: `Landslides - the downslope movement of rock, debris, or earth - are triggered by rainfall saturation, earthquakes, volcanic activity, erosion, or human modifications to slopes. The UK experiences approximately 30-50 significant landslides per year, concentrated in upland Scotland, Wales, and South West England. Key warning signs observable by citizens include: new cracks or bulges appearing in the ground, walls, or pavements; tilting trees, fence posts, or utility poles; sudden changes in water flow - springs appearing in new locations, streams becoming turbid, or surface water flows altering direction; doors and windows sticking in frames (indicating ground movement); unusual sounds such as rumbling or cracking from hillsides. The Factor of Safety (FoS) quantifies slope stability: FoS = resisting forces / driving forces. Values below 1.0 indicate failure. Rainfall antecedent conditions are critical - prolonged wet periods raise the water table and increase pore water pressure, reducing the effective shear strength of soil. Intensity-duration thresholds define when rainfall is likely to trigger movement; for UK conditions, landslides typically activate at >60mm/24h on susceptible slopes. Mitigation engineering includes: retaining walls, soil nailing, drainage (horizontal drains, French drains, deep wells), slope regrading, rock bolting, catch fences and debris barriers, and bioengineering (deep-rooted vegetation). Land use planning should avoid development on slopes >25 degrees, ancient landslide deposits (identified in BGS mapping), and zones of active coastal or river erosion. Community-based monitoring networks using tilt sensors, rain gauges, and regular visual inspection can provide effective early warning at low cost.`,
     source: 'expert_knowledge',
     category: 'landslide',
   },
   {
     title: 'Power Outage Emergency Response and Grid Resilience',
-    content: `Power outages disrupt modern life comprehensively, affecting heating/cooling, medical equipment, communications, water supply (pumping stations), wastewater treatment, traffic management, and food safety. Outage causes include severe weather (the leading cause, responsible for 70% of major outages), equipment failure, vegetation contact, cyber attack, and demand overload. The UK grid operates at 50Hz; frequency drops below 49.5Hz trigger automatic load shedding to prevent total system collapse (cascading blackout). Response phases: immediate (0-4 hours) — assess scope, deploy mobile generators to critical infrastructure (hospitals, care homes, water treatment), activate emergency communications; short-term (4-72 hours) — coordinate welfare checks on vulnerable customers (Priority Services Register), open warm/cool spaces, distribute information on food safety (refrigerated food unsafe after 4 hours, frozen after 48 hours); restoration — network operators follow a priority reconnection sequence: generation stations, hospitals, water infrastructure, telecommunications, then residential areas. Household preparedness should include: battery or hand-crank radio, torch with spare batteries, power bank for mobile devices, non-perishable food supplies, bottled water, warm clothing and blankets, first aid kit, and knowledge of how to manually override electric garage doors and gas central heating. Generator safety is critical: portable generators must never operate indoors or in enclosed spaces due to carbon monoxide risk. Distributed energy resources (solar panels with battery storage, community microgrids) are increasingly important for resilience, but grid-tied solar systems without battery backup will not function during outages due to anti-islanding protection.`,
+    content: `Power outages disrupt modern life comprehensively, affecting heating/cooling, medical equipment, communications, water supply (pumping stations), wastewater treatment, traffic management, and food safety. Outage causes include severe weather (the leading cause, responsible for 70% of major outages), equipment failure, vegetation contact, cyber attack, and demand overload. The UK grid operates at 50Hz; frequency drops below 49.5Hz trigger automatic load shedding to prevent total system collapse (cascading blackout). Response phases: immediate (0-4 hours) - assess scope, deploy mobile generators to critical infrastructure (hospitals, care homes, water treatment), activate emergency communications; short-term (4-72 hours) - coordinate welfare checks on vulnerable customers (Priority Services Register), open warm/cool spaces, distribute information on food safety (refrigerated food unsafe after 4 hours, frozen after 48 hours); restoration - network operators follow a priority reconnection sequence: generation stations, hospitals, water infrastructure, telecommunications, then residential areas. Household preparedness should include: battery or hand-crank radio, torch with spare batteries, power bank for mobile devices, non-perishable food supplies, bottled water, warm clothing and blankets, first aid kit, and knowledge of how to manually override electric garage doors and gas central heating. Generator safety is critical: portable generators must never operate indoors or in enclosed spaces due to carbon monoxide risk. Distributed energy resources (solar panels with battery storage, community microgrids) are increasingly important for resilience, but grid-tied solar systems without battery backup will not function during outages due to anti-islanding protection.`,
     source: 'expert_knowledge',
     category: 'power_outage',
   },
@@ -713,33 +717,33 @@ const MULTI_HAZARD_KNOWLEDGE_BASE: RAGDocument[] = [
   },
   {
     title: 'Infrastructure Damage Assessment and Recovery',
-    content: `Post-disaster infrastructure damage assessment follows a systematic triage process to prioritise repair and ensure public safety. The three-phase assessment protocol: Phase 1 (Rapid Visual Screening, 0-24 hours) — exterior-only inspection of structures categorised as Inspected/Green (apparently safe), Restricted Use/Yellow (potential hazard, limited entry), or Unsafe/Red (imminent collapse risk). Phase 2 (Detailed Engineering Assessment, 1-14 days) — interior inspection by structural engineers using ATC-20/EMS-98 classifications, load path analysis, and measurement of deformations. Phase 3 (Comprehensive Evaluation, weeks-months) — full structural analysis, materials testing, and repair specification. Transportation infrastructure prioritisation follows: life-safety routes first (hospital access, evacuation corridors), then critical supply chains (fuel, food distribution), followed by economic recovery routes. Bridge inspection after events checks for scour (the leading cause of bridge failure in floods — undermining of foundations by water flow), bearing displacement, deck shifting, abutment cracking, and approach road washout. Underground utilities (gas, water, telecommunications, electricity) require coordinated assessment as damage to one system often affects adjacent infrastructure in shared corridors. The cost-benefit analysis of repair versus replacement uses a threshold of approximately 50% replacement cost — if repairs exceed this, full replacement is generally more economical and delivers modern resilience standards. Community recovery timelines depend heavily on pre-existing mutual aid agreements, pre-positioned materials contracts, and trained damage assessment volunteer networks (such as the UK Reserves of structural engineers maintained by the Institution of Structural Engineers).`,
+    content: `Post-disaster infrastructure damage assessment follows a systematic triage process to prioritise repair and ensure public safety. The three-phase assessment protocol: Phase 1 (Rapid Visual Screening, 0-24 hours) - exterior-only inspection of structures categorised as Inspected/Green (apparently safe), Restricted Use/Yellow (potential hazard, limited entry), or Unsafe/Red (imminent collapse risk). Phase 2 (Detailed Engineering Assessment, 1-14 days) - interior inspection by structural engineers using ATC-20/EMS-98 classifications, load path analysis, and measurement of deformations. Phase 3 (Comprehensive Evaluation, weeks-months) - full structural analysis, materials testing, and repair specification. Transportation infrastructure prioritisation follows: life-safety routes first (hospital access, evacuation corridors), then critical supply chains (fuel, food distribution), followed by economic recovery routes. Bridge inspection after events checks for scour (the leading cause of bridge failure in floods - undermining of foundations by water flow), bearing displacement, deck shifting, abutment cracking, and approach road washout. Underground utilities (gas, water, telecommunications, electricity) require coordinated assessment as damage to one system often affects adjacent infrastructure in shared corridors. The cost-benefit analysis of repair versus replacement uses a threshold of approximately 50% replacement cost - if repairs exceed this, full replacement is generally more economical and delivers modern resilience standards. Community recovery timelines depend heavily on pre-existing mutual aid agreements, pre-positioned materials contracts, and trained damage assessment volunteer networks (such as the UK Reserves of structural engineers maintained by the Institution of Structural Engineers).`,
     source: 'expert_knowledge',
     category: 'infrastructure_damage',
   },
   {
     title: 'Environmental Hazards: Chemical and Industrial',
-    content: `Environmental hazards from chemical spills, industrial accidents, and contamination events require specialised response protocols distinct from natural disasters. The UK Control of Major Accident Hazards (COMAH) regulations identify approximately 900 upper-tier and 500 lower-tier sites holding dangerous substances. Emergency planning zones are defined around these sites with pre-determined public protection actions. Chemical incident classification uses the CHEMDATA system: hazard identification (UN number, substance name, physical properties), exposure assessment (wind direction and speed determine plume dispersion — the Gaussian plume model predicts concentration downwind), and health risk evaluation (acute exposure guideline levels: AEGL-1 notable discomfort, AEGL-2 irreversible health effects, AEGL-3 life-threatening). Public protective actions include: shelter-in-place (close windows, doors, vents; turn off HVAC; seal gaps with wet towels; stay upstairs for heavier-than-air gases), evacuation (perpendicular to wind direction, upwind assembly points), and decontamination (remove clothing, wash with copious water, no scrubbing). Air quality monitoring during incidents uses portable gas detectors (photoionisation detectors for VOCs, electrochemical cells for specific gases), Draeger tubes for rapid qualitative assessment, and deployed air monitoring stations for sustained events. Water contamination from environmental incidents requires source control (booming, absorbent deployment, shut-off valves), monitoring downstream of the spill, and notification to water abstractors. The Environmental Damage Regulations 2009 place strict liability on operators for damage to protected species, habitats, water resources, and land. Long-term health surveillance of exposed populations may be required depending on the substances involved, including cancer registries and respiratory function monitoring.`,
+    content: `Environmental hazards from chemical spills, industrial accidents, and contamination events require specialised response protocols distinct from natural disasters. The UK Control of Major Accident Hazards (COMAH) regulations identify approximately 900 upper-tier and 500 lower-tier sites holding dangerous substances. Emergency planning zones are defined around these sites with pre-determined public protection actions. Chemical incident classification uses the CHEMDATA system: hazard identification (UN number, substance name, physical properties), exposure assessment (wind direction and speed determine plume dispersion - the Gaussian plume model predicts concentration downwind), and health risk evaluation (acute exposure guideline levels: AEGL-1 notable discomfort, AEGL-2 irreversible health effects, AEGL-3 life-threatening). Public protective actions include: shelter-in-place (close windows, doors, vents; turn off HVAC; seal gaps with wet towels; stay upstairs for heavier-than-air gases), evacuation (perpendicular to wind direction, upwind assembly points), and decontamination (remove clothing, wash with copious water, no scrubbing). Air quality monitoring during incidents uses portable gas detectors (photoionisation detectors for VOCs, electrochemical cells for specific gases), Draeger tubes for rapid qualitative assessment, and deployed air monitoring stations for sustained events. Water contamination from environmental incidents requires source control (booming, absorbent deployment, shut-off valves), monitoring downstream of the spill, and notification to water abstractors. The Environmental Damage Regulations 2009 place strict liability on operators for damage to protected species, habitats, water resources, and land. Long-term health surveillance of exposed populations may be required depending on the substances involved, including cancer registries and respiratory function monitoring.`,
     source: 'expert_knowledge',
     category: 'environmental_hazard',
   },
   {
     title: 'Drought Management and Water Conservation',
-    content: `Drought develops slowly — a "creeping disaster" that may take months to recognise and years to recover from. The UK Drought Plan framework requires water companies to produce statutory drought plans reviewed every five years, detailing demand-side and supply-side actions at escalating trigger levels. Drought severity is assessed using the Standardised Precipitation Index (SPI), which compares observed rainfall against historical distribution: SPI -1.0 to -1.49 indicates moderate drought, -1.5 to -1.99 severe drought, and below -2.0 extreme drought. Groundwater drought monitoring tracks borehole levels against percentile ranges — the British Geological Survey publishes monthly groundwater situation reports. Water company drought triggers typically follow four levels: Level 1 (enhanced monitoring and voluntary restraint messaging), Level 2 (Temporary Use Bans — hosepipe bans), Level 3 (Drought Permits to increase abstraction or reduce compensation flows), and Level 4 (Drought Orders imposing statutory use restrictions, including non-essential use bans for commercial customers and potential standpipe/rota-cut supplies as a last resort). Agricultural drought impacts crop yields through soil moisture deficit — the UK Meteorological Office calculates potential soil moisture deficit (PSMD) which, when exceeding 50mm for rain-fed crops, significantly reduces yields. Ecological impacts include river flow reduction below environmental flow requirements (Q95 — the flow exceeded 95% of the time), fish kills from low dissolved oxygen, and permanent damage to wetland habitats if peat dries and oxidises. Community drought response should promote water efficiency (target: 110 litres/person/day from current UK average of 145), fix leaking infrastructure, implement greywater recycling where possible, adjust irrigation schedules (early morning to reduce evaporation), and support vulnerable populations who may ration drinking water inappropriately.`,
+    content: `Drought develops slowly - a "creeping disaster" that may take months to recognise and years to recover from. The UK Drought Plan framework requires water companies to produce statutory drought plans reviewed every five years, detailing demand-side and supply-side actions at escalating trigger levels. Drought severity is assessed using the Standardised Precipitation Index (SPI), which compares observed rainfall against historical distribution: SPI -1.0 to -1.49 indicates moderate drought, -1.5 to -1.99 severe drought, and below -2.0 extreme drought. Groundwater drought monitoring tracks borehole levels against percentile ranges - the British Geological Survey publishes monthly groundwater situation reports. Water company drought triggers typically follow four levels: Level 1 (enhanced monitoring and voluntary restraint messaging), Level 2 (Temporary Use Bans - hosepipe bans), Level 3 (Drought Permits to increase abstraction or reduce compensation flows), and Level 4 (Drought Orders imposing statutory use restrictions, including non-essential use bans for commercial customers and potential standpipe/rota-cut supplies as a last resort). Agricultural drought impacts crop yields through soil moisture deficit - the UK Meteorological Office calculates potential soil moisture deficit (PSMD) which, when exceeding 50mm for rain-fed crops, significantly reduces yields. Ecological impacts include river flow reduction below environmental flow requirements (Q95 - the flow exceeded 95% of the time), fish kills from low dissolved oxygen, and permanent damage to wetland habitats if peat dries and oxidises. Community drought response should promote water efficiency (target: 110 litres/person/day from current UK average of 145), fix leaking infrastructure, implement greywater recycling where possible, adjust irrigation schedules (early morning to reduce evaporation), and support vulnerable populations who may ration drinking water inappropriately.`,
     source: 'expert_knowledge',
     category: 'drought',
   },
   {
     title: 'Earthquake Response and Seismic Safety',
-    content: `Although the UK experiences only minor seismicity (largest recorded: 6.1 ML, Dogger Bank 1931), earthquake preparedness is essential for global disaster response platforms and for UK citizens travelling or living abroad. Earthquake hazard is quantified by Peak Ground Acceleration (PGA) mapped in national seismic hazard assessments. The Modified Mercalli Intensity scale (I-XII) describes observed effects from imperceptible (I) to total destruction (XII). Immediate protective actions follow "Drop, Cover, Hold On": drop to hands and knees, take cover under sturdy furniture, hold on until shaking stops. Doorways are not safer than other locations in modern buildings. After shaking stops: check for injuries, check for gas leaks (smell, hissing sound — shut off at meter if suspected), check water and electrical lines, be prepared for aftershocks (typically 1 magnitude unit smaller than mainshock). Building vulnerability depends on construction type: unreinforced masonry is most dangerous (responsible for 75% of earthquake fatalities worldwide), while steel-frame and reinforced concrete with ductile detailing perform well. Soft-storey collapse (ground-floor parking or retail with weak columns) is a common failure mode in residential buildings. Liquefaction occurs when saturated loose sand loses strength during shaking, causing foundations to sink and buried infrastructure to float — areas near rivers and coastlines on alluvial deposits are most susceptible. Tsunami risk follows submarine earthquakes of magnitude =7.0 with vertical seafloor displacement; arrival time depends on distance (deep-ocean speed ~800km/h). Evacuation to high ground (=30m) or the upper floors of reinforced concrete buildings is the primary protective action, triggered by strong sustained shaking lasting >20 seconds in coastal areas or official tsunami warning.`,
+    content: `Although the UK experiences only minor seismicity (largest recorded: 6.1 ML, Dogger Bank 1931), earthquake preparedness is essential for global disaster response platforms and for UK citizens travelling or living abroad. Earthquake hazard is quantified by Peak Ground Acceleration (PGA) mapped in national seismic hazard assessments. The Modified Mercalli Intensity scale (I-XII) describes observed effects from imperceptible (I) to total destruction (XII). Immediate protective actions follow "Drop, Cover, Hold On": drop to hands and knees, take cover under sturdy furniture, hold on until shaking stops. Doorways are not safer than other locations in modern buildings. After shaking stops: check for injuries, check for gas leaks (smell, hissing sound - shut off at meter if suspected), check water and electrical lines, be prepared for aftershocks (typically 1 magnitude unit smaller than mainshock). Building vulnerability depends on construction type: unreinforced masonry is most dangerous (responsible for 75% of earthquake fatalities worldwide), while steel-frame and reinforced concrete with ductile detailing perform well. Soft-storey collapse (ground-floor parking or retail with weak columns) is a common failure mode in residential buildings. Liquefaction occurs when saturated loose sand loses strength during shaking, causing foundations to sink and buried infrastructure to float - areas near rivers and coastlines on alluvial deposits are most susceptible. Tsunami risk follows submarine earthquakes of magnitude =7.0 with vertical seafloor displacement; arrival time depends on distance (deep-ocean speed ~800km/h). Evacuation to high ground (=30m) or the upper floors of reinforced concrete buildings is the primary protective action, triggered by strong sustained shaking lasting >20 seconds in coastal areas or official tsunami warning.`,
     source: 'expert_knowledge',
     category: 'earthquake',
   },
 ]
 
-// —9  ENHANCED RAG RETRIEVE WITH QUERY EXPANSION
+// -9  ENHANCED RAG RETRIEVE WITH QUERY EXPANSION
 
- /**
+/**
  * Enhanced retrieval pipeline:
  *   1. Expand the query using DISASTER_SYNONYMS
  *   2. Retrieve documents via the existing ragRetrieve()
@@ -762,9 +766,9 @@ export async function ragRetrieveEnhanced(
   return reranked.slice(0, limit)
 }
 
-// —10  DYNAMIC KNOWLEDGE INJECTION
+// -10  DYNAMIC KNOWLEDGE INJECTION
 
- /**
+/**
  * Pull the latest predictions, alerts, and threat assessments from the
  * database and store them as ephemeral RAG documents (source = 'realtime_injection').
  * Old injections (>1 hour) are purged before new ones are inserted.
@@ -797,7 +801,7 @@ export async function injectRealtimeKnowledge(): Promise<number> {
           `${row.description || ''} ` +
           `Issued: ${row.created_at}.`
         await storeRAGDocument({
-          title: `Realtime: Flood Prediction — ${row.region}`,
+          title: `Realtime: Flood Prediction - ${row.region}`,
           content,
           source: 'realtime_injection',
           category: 'realtime_flood',
@@ -823,7 +827,7 @@ export async function injectRealtimeKnowledge(): Promise<number> {
           `${row.message || ''} ` +
           `Issued: ${row.created_at}.`
         await storeRAGDocument({
-          title: `Realtime: Alert — ${row.title}`,
+          title: `Realtime: Alert - ${row.title}`,
           content,
           source: 'realtime_injection',
           category: 'realtime_alert',
@@ -848,7 +852,7 @@ export async function injectRealtimeKnowledge(): Promise<number> {
           `Contributing factors: ${factors}. ` +
           `Assessed: ${row.assessed_at}.`
         await storeRAGDocument({
-          title: `Realtime: Threat Assessment — ${row.region}`,
+          title: `Realtime: Threat Assessment - ${row.region}`,
           content,
           source: 'realtime_injection',
           category: 'realtime_threat',

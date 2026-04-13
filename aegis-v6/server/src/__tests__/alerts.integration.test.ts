@@ -1,8 +1,15 @@
-﻿/**
- * tests__/alerts.integration.test.ts — Alert Broadcasting & Subscriptions
+/**
+ * File: alerts.integration.test.ts
  *
- * Tests the alert subscription CRUD, alert creation, and delivery-log path
- * against a real PostgreSQL test database.
+ * What it tests:
+ * Integration tests for the alerts and push-subscription endpoints.
+  * Verifies alert creation, retrieval, push subscription registration,
+  * and real-time Socket.IO broadcast on new alert events.
+  *
+  * How it connects:
+  * - Tests server/src/routes/alertRoutes.ts and subscriptionRoutes.ts
+  * - Database fixtures in server/src/__tests__/helpers/
+  * - Run via: npm test -- alerts.integration
  */
 
 import { describe, it, expect, beforeAll, afterAll, afterEach } from '@jest/globals'
@@ -432,4 +439,4 @@ describe('Alerts & Subscriptions Integration Tests', () => {
     })
   })
 })
-
+

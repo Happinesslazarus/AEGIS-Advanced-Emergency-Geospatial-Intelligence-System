@@ -1,6 +1,13 @@
 /**
- * incidents/water_supply/aiClient.ts — AI client for water supply predictions
- * AI Tier: tier1 (rule-based) - Uses simple rule-based logic
+ * Module: aiClient.ts
+ *
+ * Water supply disruptions incident module (handles water supply specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for water supply events.
  */
 
 import type { IncidentPrediction } from '../types.js'

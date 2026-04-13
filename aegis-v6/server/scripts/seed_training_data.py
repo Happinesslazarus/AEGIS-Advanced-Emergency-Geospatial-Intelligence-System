@@ -1,16 +1,11 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
-AEGIS World-Class Data Seeder
-Seeds the PostgreSQL database with realistic disaster data for training all AI models.
-Pulls data from HuggingFace datasets and Open-Meteo weather API.
+Module: seed_training_data.py
 
-Tables seeded:
-  - reports (1200+ disaster reports across 6 categories)
-  - reporter_scores (matching reporter credibility data)
-  - weather_observations (historical UK weather from Open-Meteo)
-  - flood_archives (UK flood damage records)
-  - fusion_computations (synthetic fusion data for weight training)
-  - historical_flood_events (additional historical floods)
+Seed_training_data utility script.
+
+Simple explanation:
+Standalone script for seed_training_data.
 """
 
 import json
@@ -27,7 +22,7 @@ import psycopg2
 import psycopg2.extras
 import requests
 
-DB_URL = "postgresql://postgres:Happylove%40%21@localhost:5432/aegis"
+DB_URL = os.environ.get('DATABASE_URL', 'postgresql://localhost:5432/aegis')
 
 # UK Locations with realistic coordinates
 UK_LOCATIONS = [
@@ -108,7 +103,7 @@ STORM_DESCRIPTIONS = [
 ]
 
 HEATWAVE_DESCRIPTIONS = [
-    "Extreme temperatures recorded at {location}. {temp}°C measured at 2pm. Several people treated for heat exhaustion at outdoor events. Water supplies strained.",
+    "Extreme temperatures recorded at {location}. {temp}Â°C measured at 2pm. Several people treated for heat exhaustion at outdoor events. Water supplies strained.",
     "Wildfire risk elevated due to prolonged heatwave near {location}. Grass fires reported on multiple sites. Fire service issuing warnings about barbecue use.",
     "Heat-related health emergency. {count} people hospitalised with heat stroke in {area} today. NHS declaring major incident at local A&E departments.",
     "Railway services suspended due to rail buckling risk. Track temperature exceeding safety limits. Passengers stranded at {location} station.",
@@ -116,7 +111,7 @@ HEATWAVE_DESCRIPTIONS = [
     "Road surface melting on {street} causing traffic hazards. Vehicles becoming stuck in softened tarmac. Highway maintenance crews deployed urgently.",
     "Reservoir levels critically low near {location}. Water company implementing emergency measures. Supply interruptions expected in coming days.",
     "Reports of livestock dying from heat stress in fields near {location}. RSPCA called to multiple locations. Farmers struggling with water supply.",
-    "School closures across {area} due to extreme heat. Classrooms unsafe at {temp}°C. Children sent home. Working parents facing childcare crisis.",
+    "School closures across {area} due to extreme heat. Classrooms unsafe at {temp}Â°C. Children sent home. Working parents facing childcare crisis.",
     "Heat exhaustion cases surging at {location}. Ambulance service reporting unprecedented 999 call volumes. Public urged to check on vulnerable neighbours.",
 ]
 
@@ -923,4 +918,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
+

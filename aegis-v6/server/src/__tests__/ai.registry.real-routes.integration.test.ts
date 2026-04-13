@@ -1,3 +1,17 @@
+/**
+ * File: ai.registry.real-routes.integration.test.ts
+ *
+ * What it tests:
+ * Integration tests for the AI model governance routes.
+  * Covers model status queries, retraining triggers, and the governance
+  * lifecycle (shadow → candidate → active) via real HTTP routes.
+  *
+  * How it connects:
+  * - Tests server/src/routes/aiRoutes.ts (registry governance endpoints)
+  * - Testing server/src/services/modelMonitoringService.ts in integration
+  * - Run via: npm test -- ai.registry.real
+ */
+
 process.env.NODE_ENV = 'test'
 process.env.JWT_SECRET ??= 'test-jwt-secret-at-least-32-characters-long'
 process.env.REFRESH_TOKEN_SECRET ??= 'test-refresh-secret-at-least-32-chars'

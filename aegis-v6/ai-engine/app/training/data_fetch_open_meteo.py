@@ -1,10 +1,17 @@
 """
-Open-Meteo Historical Weather Data Fetcher.
+File: data_fetch_open_meteo.py
 
-Free, global, no API key required.
-Docs: https://open-meteo.com/en/docs/historical-weather-api
+What this file does:
+Bulk historical weather data fetcher using the Open-Meteo API. Downloads
+multi-year hourly weather records (temperature, precipitation, wind,
+humidity, soil moisture) for all configured regions and stores them locally
+for use in hazard model training.
 
-Returns hourly data as a pandas DataFrame for any lat/lon and date range.
+How it connects:
+- Called by base_real_pipeline.py to populate training datasets
+- Region list from ai-engine/registry/region_registry.py
+- Output CSV/JSON files consumed by data_ingestion.py
+- Open-Meteo API: https://archive-api.open-meteo.com (free, no key)
 """
 
 from __future__ import annotations

@@ -1,3 +1,15 @@
+/**
+ * File: PrivacyPage.tsx
+ *
+ * What this file does:
+ * Privacy policy page for AEGIS. Describes what data is collected,
+ * how it is used, and user rights. Static legal content, no API calls.
+ *
+ * How it connects:
+ * - Routed by client/src/App.tsx at /privacy
+ * - Linked from LandingPage.tsx and cookie consent banner
+ */
+
 import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Shield, ChevronDown, ChevronUp, Lock, Eye, Database, Server, Trash2, UserCheck, Globe2, Mail, FileText, ArrowLeft } from 'lucide-react'
@@ -103,6 +115,8 @@ export default function PrivacyPage(): JSX.Element {
               <div className={`bg-white dark:bg-gray-900 rounded-xl border transition-all duration-300 ${isOpen ? 'border-aegis-200 dark:border-aegis-800 shadow-sm' : 'border-gray-100 dark:border-gray-800'}`}>
                 <button
                   onClick={() => toggle(i)}
+                  aria-expanded={isOpen}
+                  aria-controls={`privacy-section-${i}`}
                   className="w-full flex items-center gap-3 px-5 py-4 text-left group"
                 >
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${isOpen ? 'bg-aegis-100 dark:bg-aegis-900/40 text-aegis-600 dark:text-aegis-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500'}`}>
@@ -113,7 +127,7 @@ export default function PrivacyPage(): JSX.Element {
                   {isOpen ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
                 </button>
 
-                <div className={`overflow-hidden transition-all duration-300 ${isOpen ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                <div id={`privacy-section-${i}`} className={`overflow-hidden transition-all duration-300 ${isOpen ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}>
                   <div className="px-5 pb-5 pt-0 space-y-2 text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
                     {paragraphs.map((p, pi) => (
                       <SafeHtml key={pi} html={p} className="text-sm leading-relaxed" />
@@ -146,4 +160,4 @@ export default function PrivacyPage(): JSX.Element {
     </div>
   )
 }
-
+

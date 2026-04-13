@@ -1,16 +1,12 @@
-﻿ /*
- * LiveIncidentMapPanel.tsx — Professional-grade Live Incident Map wrapper
- * Wraps DisasterMap with professional dashboard features:
- * LIVE pulse indicator with refresh timer
- * Incident type filter pills
- * Time range selector (1h / 6h / 24h / 7d)
- * Quick stats row (Active, Critical, Under Control, Resolved, Trend)
- * Severity distribution bar
- * Activity feed overlay (scrollable incident timeline)
- * Status footer with connection info
-  */
+/**
+ * Module: LiveIncidentMapPanel.tsx
+ *
+ * Live incident map panel citizen component (public-facing UI element).
+ *
+ * How it connects:
+ * - Rendered inside CitizenPage.tsx or CitizenDashboard.tsx */
 
-import { useState, useEffect, useMemo, useRef, useCallback, lazy, Suspense } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback, lazy, Suspense, Component } from 'react'
 import {
   MapPin, Activity, AlertTriangle, Shield, Clock, ChevronDown, ChevronUp,
   Radio, TrendingUp, TrendingDown, Minus, Filter, Crosshair,
@@ -21,6 +17,29 @@ import type { Report, SeverityLevel, IncidentCategoryKey } from '../../types'
 const DisasterMap = lazy(() => import('../shared/DisasterMap'))
 import { t } from '../../utils/i18n'
 import { useLanguage } from '../../hooks/useLanguage'
+
+// Local error boundary just for the map tile area
+class MapErrorBoundary extends Component<{ children: React.ReactNode }, { failed: boolean }> {
+  constructor(props: { children: React.ReactNode }) { super(props); this.state = { failed: false } }
+  static getDerivedStateFromError() { return { failed: true } }
+  render() {
+    if (this.state.failed) {
+      return (
+        <div className="h-full flex flex-col items-center justify-center gap-3 bg-gray-100 dark:bg-gray-800 rounded-xl">
+          <AlertTriangle className="w-8 h-8 text-amber-500" />
+          <p className="text-sm font-semibold text-gray-600 dark:text-gray-300">Map could not be loaded</p>
+          <button
+            className="text-xs px-4 py-2 bg-aegis-600 text-white rounded-lg hover:bg-aegis-700 transition flex items-center gap-1.5"
+            onClick={() => this.setState({ failed: false })}
+          >
+            <RefreshCw className="w-3.5 h-3.5" /> Retry
+          </button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 
 // Config
 
@@ -353,17 +372,19 @@ export default function LiveIncidentMapPanel({ reports, userPosition, center, zo
           <div className="relative border-t border-gray-100 dark:border-gray-800/50">
             {/* Map container */}
             <div className="h-[320px] sm:h-[420px] lg:h-[480px]">
-              <Suspense fallback={<div className="h-full animate-pulse bg-gray-200 dark:bg-gray-800 rounded" />}>
-                <DisasterMap
-                  reports={mapReports}
-                  center={userPosition || center}
-                  zoom={userPosition ? 14 : zoom}
-                  showDistress
-                  showPredictions
-                  showRiskLayer
-                  showFloodMonitoring
-                />
-              </Suspense>
+              <MapErrorBoundary>
+                <Suspense fallback={<div className="h-full animate-pulse bg-gray-200 dark:bg-gray-800 rounded" />}>
+                  <DisasterMap
+                    reports={mapReports}
+                    center={userPosition || center}
+                    zoom={userPosition ? 14 : zoom}
+                    showDistress
+                    showPredictions
+                    showRiskLayer
+                    showFloodMonitoring
+                  />
+                </Suspense>
+              </MapErrorBoundary>
             </div>
 
             {/* Activity feed overlay (right side) */}
@@ -422,6 +443,30 @@ export default function LiveIncidentMapPanel({ reports, userPosition, center, zo
               </div>
             )}
 
+            {/* Empty feed overlay — when feed toggled on but no reports match */}
+            {showFeed && feedItems.length === 0 && filteredReports.length === 0 && (
+              <div className="absolute top-2 right-2 z-[700] w-[220px]">
+                <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-xl border border-gray-200/60 dark:border-gray-700/40 shadow-2xl overflow-hidden">
+                  <div className="flex items-center justify-between px-2.5 py-2 border-b border-gray-100 dark:border-gray-800/50">
+                    <div className="flex items-center gap-1.5">
+                      <Radio className="w-3 h-3 text-gray-400" />
+                      <span className="text-[10px] font-extrabold text-gray-700 dark:text-gray-200 uppercase tracking-wider">{t('incident.activity', lang)}</span>
+                    </div>
+                    <button onClick={(e) => { e.stopPropagation(); setShowFeed(false) }} className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                      <EyeOff className="w-3 h-3 text-gray-400 dark:text-gray-300" />
+                    </button>
+                  </div>
+                  <div className="py-6 px-3 text-center">
+                    <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-2">
+                      <Shield className="w-4 h-4 text-green-500" />
+                    </div>
+                    <p className="text-[10px] font-bold text-gray-700 dark:text-gray-200">{t('incident.allClear', lang)}</p>
+                    <p className="text-[9px] text-gray-400 dark:text-gray-300 mt-0.5">No incidents reported in this area</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Toggle feed button (when hidden) */}
             {!showFeed && (
               <button
@@ -470,4 +515,4 @@ export default function LiveIncidentMapPanel({ reports, userPosition, center, zo
     </div>
   )
 }
-
+

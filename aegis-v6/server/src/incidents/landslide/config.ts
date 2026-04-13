@@ -1,7 +1,13 @@
 /**
- * incidents/landslide/config.ts — Landslide incident configuration
- * AI Tier: tier2 (statistical) — Uses statistical models
- * Data Sources: Open-Meteo Weather API, Geological Data
+ * Module: config.ts
+ *
+ * Ground movement and landslides incident module (handles landslide specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for landslide events.
  */
 
 import type { IncidentRegistryEntry } from '../types.js'
@@ -40,4 +46,4 @@ export const LANDSLIDE_RISK_THRESHOLDS = {
   slopeAngleCritical: 35, // degrees
   soilMoistureCritical: 80 // %
 }
-
+

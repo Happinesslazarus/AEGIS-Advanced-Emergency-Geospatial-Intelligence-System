@@ -1,12 +1,11 @@
-﻿/**
- * adapters/riverData/OpenMeteoAdapter.ts — Universal fallback river data adapter
+/**
+ * Module: OpenMeteoAdapter.ts
  *
- * Uses the Open-Meteo Flood API which covers any river basin on Earth
- * and requires NO API key. This is the ultimate fallback when provider-
- * specific APIs (SEPA, EA) fail or the region is outside their coverage.
+ * Open meteo adapter server module.
  *
- * API: https://flood-api.open-meteo.com/v1/flood
- * Provides daily river discharge forecasts for any coordinates.
+ * How it connects:
+ * - Used by services for external data fetching
+ *
  */
 
 import type { RiverDataAdapter, RiverReading, RiverHistory } from './RiverDataAdapter.js'

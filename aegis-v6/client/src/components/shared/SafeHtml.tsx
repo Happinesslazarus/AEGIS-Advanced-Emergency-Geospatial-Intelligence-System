@@ -1,13 +1,10 @@
-﻿/**
- * SafeHtml — XSS-safe alternative to dangerouslySetInnerHTML.
+/**
+ * Module: SafeHtml.tsx
  *
- * Strips all script tags, javascript: href values, and inline event handlers
- * before rendering. Allows only a curated set of safe block/inline elements.
+ * Safe html shared component (reusable UI element used across pages).
  *
- * Usage:
- *   <SafeHtml html={t('some.key', lang)} />
- *   <SafeHtml html={t('some.key', lang)} tag="div" className="my-class" />
- */
+ * How it connects:
+ * - Used across both admin and citizen interfaces */
 
 import React from 'react'
 
@@ -21,7 +18,7 @@ const BLOCKED_ATTRS = /^(on\w+|srcdoc|action|formaction|data|x-bind|v-on|ng-\w+)
 
 // Sanitizer
 
- /**
+/**
  * Lightweight HTML sanitizer that does NOT require DOMPurify.
  * Uses the browser's built-in HTML parser via a detached document, then
  * walks the parsed tree, removing unsafe nodes/attributes in-place.

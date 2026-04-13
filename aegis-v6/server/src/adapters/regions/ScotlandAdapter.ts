@@ -1,9 +1,27 @@
 /**
- * adapters/regions/ScotlandAdapter.ts — Scotland region adapter
+ * Module: ScotlandAdapter.ts
  *
- * Integrates SEPA for flood warnings and river gauges, Met Office for weather,
- * and Open-Meteo as a resilient fallback. Preserves existing Scotland
- * functionality while exposing it through the RegionAdapter interface.
+ * RegionAdapter implementation for Scotland. Fetches live data from SEPA
+ * (Scottish Environment Protection Agency) and the Environment Agency (EA)
+ * as a fallback, then normalises the results into the shared
+ * FloodWarning / RiverLevel / WeatherForecast / RainfallData interfaces so
+ * the rest of the system is decoupled from the Scotland-specific API shapes.
+ *
+ * External APIs used:
+ * - SEPA Flood Warnings: https://www.sepa.org.uk/environment/water/flooding/
+ * - EA Flood API (fallback): https://environment.data.gov.uk/flood-monitoring/
+ * - River gauge readings: resolved via fetchWithFallback() in adapters/riverData/
+ * - Weather/rain: Open-Meteo (via BaseRegionAdapter.getWeatherForecast)
+ *
+ * Severity normalisation: 'severe' > 'warning' > 'alert' > 'info'
+ * Maps SEPA numeric levels (1–4) and text labels to this 4-point scale.
+ * Max 50 warnings returned per request to prevent unbounded payloads.
+ *
+ * How it connects:
+ * - Registered automatically in RegionRegistry.ensureBuiltIns()
+ * - Consumed via RegionRegistry.getActiveRegion() in cronJobs, flood services,
+ *   and every BaseIncidentModule instance when REGION_ID=scotland
+ * - Extends BaseRegionAdapter which loads scotland.json region config file
  */
 
 import { BaseRegionAdapter } from './BaseRegionAdapter.js'
@@ -213,4 +231,4 @@ function weatherCodeToDescription(code: number | undefined): string {
   }
   return map[code] || `Weather code ${code}`
 }
-
+

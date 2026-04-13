@@ -1,16 +1,18 @@
- /*
- * services/governanceEngine.ts — AI Governance, XAI & Audit System
- * Feature #30: XAI — Explainable AI Feature Importance (real SHAP-like values)
- * Feature #31: Human-in-the-Loop Threshold Enforcement
- * Feature #32: Model Version Tracking (from database)
- * Feature #33: AI Execution Audit Logging (full trail)
- * Feature #34: Confidence Distribution Analysis (computed from stored predictions)
- * Also implements:
- * Report routing for low-confidence cases
- * A/B model testing support
- * Drift detection computation
- * Labelling pipeline for operator annotations
-  */
+/**
+ * File: governanceEngine.ts
+ *
+ * AI governance layer — implements explainable AI (SHAP-like feature importance),
+ * human-in-the-loop review routing, model drift detection, and execution audit
+ * logging. Determines whether predictions require manual review.
+ *
+ * How it connects:
+ * - Called by aiAnalysisPipeline after predictions are generated
+ * - Reads model metrics from the database for drift detection
+ * - Routes low-confidence predictions to human reviewers
+ *
+ * Simple explanation:
+ * Makes sure AI decisions are explainable and flags ones that need human review.
+ */
 
 import pool from '../models/db.js'
 import { logger } from './logger.js'
@@ -686,7 +688,7 @@ export async function estimateDamageCost(
 
 // —10  RETRAINING TRIGGER DETECTION
 
- /**
+/**
  * Determine which models need retraining based on drift, label volume, and age.
  */
 export async function checkRetrainingNeeded(): Promise<{
@@ -776,7 +778,7 @@ export async function checkRetrainingNeeded(): Promise<{
 
 // —11  FAIRNESS METRICS
 
- /**
+/**
  * Compute fairness metrics across location zones based on AI confidence distribution.
  */
 export async function computeFairnessMetrics(): Promise<{
@@ -856,7 +858,7 @@ export async function computeFairnessMetrics(): Promise<{
 
 // —12  MODEL EXPLANATION
 
- /**
+/**
  * Generate a human-readable explanation for a report's AI analysis.
  */
 export async function generateModelExplanation(
@@ -934,7 +936,7 @@ export async function generateModelExplanation(
 
 // —13  GOVERNANCE HEALTH CHECK
 
- /**
+/**
  * Check overall governance health: auto-verifications, flagging rates, review backlog, model errors.
  */
 export async function checkGovernanceHealth(): Promise<{
@@ -1013,5 +1015,274 @@ export async function checkGovernanceHealth(): Promise<{
     healthy: violations.length === 0,
     violations,
     stats,
+  }
+}
+
+// —14  SEVERITY BIAS DETECTION
+
+/**
+ * Detect severity assignment bias — whether AI assigns certain severity levels
+ * disproportionately compared to human overrides.
+ */
+export async function computeSeverityBias(): Promise<{
+  biasDetected: boolean
+  severityStats: Array<{ level: string; aiCount: number; overriddenCount: number; overrideRate: number }>
+  recommendations: string[]
+}> {
+  const recommendations: string[] = []
+
+  try {
+    const result = await pool.query(
+      `SELECT
+         COALESCE(ai_severity, 'unknown') as severity,
+         COUNT(*)::int as total,
+         SUM(CASE WHEN severity != ai_severity AND severity IS NOT NULL THEN 1 ELSE 0 END)::int as overridden
+       FROM reports
+       WHERE ai_severity IS NOT NULL AND deleted_at IS NULL
+       GROUP BY ai_severity
+       ORDER BY severity`,
+    )
+
+    const severityStats: Array<{ level: string; aiCount: number; overriddenCount: number; overrideRate: number }> = []
+    let maxOverrideRate = 0
+
+    for (const row of result.rows) {
+      const overrideRate = row.total > 0 ? (row.overridden / row.total) * 100 : 0
+      if (overrideRate > maxOverrideRate) maxOverrideRate = overrideRate
+
+      severityStats.push({
+        level: row.severity,
+        aiCount: row.total,
+        overriddenCount: row.overridden,
+        overrideRate: Math.round(overrideRate * 10) / 10,
+      })
+
+      if (overrideRate > 25 && row.total >= 10) {
+        recommendations.push(
+          `Severity "${row.severity}" has ${overrideRate.toFixed(1)}% override rate — consider retraining severity model`,
+        )
+      }
+    }
+
+    const biasDetected = maxOverrideRate > 30
+
+    if (recommendations.length === 0) {
+      recommendations.push('No significant severity bias detected')
+    }
+
+    return { biasDetected, severityStats, recommendations }
+  } catch (err: any) {
+    logger.error({ err }, '[Governance] Severity bias computation failed')
+    return { biasDetected: false, severityStats: [], recommendations: ['Computation failed: ' + err.message] }
+  }
+}
+
+// —15  TEMPORAL BIAS DETECTION
+
+/**
+ * Detect time-of-day performance variation — whether AI confidence or error rates
+ * vary systematically by hour of day (e.g., night shift lower quality).
+ */
+export async function computeTemporalBias(): Promise<{
+  biasDetected: boolean
+  hourlyStats: Array<{ hour: number; avgConfidence: number; reportCount: number; errorRate: number }>
+  peakHours: number[]
+  lowHours: number[]
+  recommendations: string[]
+}> {
+  const recommendations: string[] = []
+
+  try {
+    const result = await pool.query(
+      `SELECT
+         EXTRACT(HOUR FROM created_at)::int as hour,
+         AVG(ai_confidence)::numeric as avg_conf,
+         COUNT(*)::int as report_count,
+         SUM(CASE WHEN status = 'flagged' THEN 1 ELSE 0 END)::numeric / NULLIF(COUNT(*), 0) as error_rate
+       FROM reports
+       WHERE ai_confidence > 0 AND deleted_at IS NULL
+         AND created_at > NOW() - INTERVAL '30 days'
+       GROUP BY EXTRACT(HOUR FROM created_at)
+       HAVING COUNT(*) >= 5
+       ORDER BY hour`,
+    )
+
+    const hourlyStats: Array<{ hour: number; avgConfidence: number; reportCount: number; errorRate: number }> = []
+    const peakHours: number[] = []
+    const lowHours: number[] = []
+
+    // Compute global average
+    let totalConf = 0, totalCount = 0
+    for (const row of result.rows) {
+      totalConf += parseFloat(row.avg_conf) * row.report_count
+      totalCount += row.report_count
+    }
+    const globalAvg = totalCount > 0 ? totalConf / totalCount : 50
+
+    for (const row of result.rows) {
+      const avgConf = parseFloat(row.avg_conf) || 0
+      const errorRate = parseFloat(row.error_rate) || 0
+
+      hourlyStats.push({
+        hour: row.hour,
+        avgConfidence: Math.round(avgConf * 100) / 100,
+        reportCount: row.report_count,
+        errorRate: Math.round(errorRate * 1000) / 10,
+      })
+
+      if (avgConf > globalAvg + 10) {
+        peakHours.push(row.hour)
+      } else if (avgConf < globalAvg - 10) {
+        lowHours.push(row.hour)
+      }
+    }
+
+    const biasDetected = lowHours.length > 0 || peakHours.length > 0
+
+    if (lowHours.length > 0) {
+      recommendations.push(
+        `Hours ${lowHours.join(', ')} show lower AI confidence — consider reviewing overnight processing quality`,
+      )
+    }
+    if (peakHours.length > 0) {
+      recommendations.push(
+        `Hours ${peakHours.join(', ')} show higher AI confidence — baseline for model performance`,
+      )
+    }
+    if (!biasDetected) {
+      recommendations.push('No significant temporal bias detected')
+    }
+
+    return { biasDetected, hourlyStats, peakHours, lowHours, recommendations }
+  } catch (err: any) {
+    logger.error({ err }, '[Governance] Temporal bias computation failed')
+    return { biasDetected: false, hourlyStats: [], peakHours: [], lowHours: [], recommendations: ['Computation failed: ' + err.message] }
+  }
+}
+
+// —16  LANGUAGE BIAS DETECTION
+
+/**
+ * Detect language-based performance variation — whether AI performs differently
+ * on reports in different languages.
+ */
+export async function computeLanguageBias(): Promise<{
+  biasDetected: boolean
+  languageStats: Array<{ language: string; avgConfidence: number; reportCount: number; fakeDetectionRate: number }>
+  underperformingLanguages: string[]
+  recommendations: string[]
+}> {
+  const recommendations: string[] = []
+  const underperformingLanguages: string[] = []
+
+  try {
+    const result = await pool.query(
+      `SELECT
+         COALESCE(ai_language, 'unknown') as language,
+         AVG(ai_confidence)::numeric as avg_conf,
+         COUNT(*)::int as report_count,
+         AVG(CASE WHEN ai_analysis::text LIKE '%fake_probability%' 
+             THEN (ai_analysis::json->>'fake_probability')::numeric ELSE 0 END) as avg_fake_prob
+       FROM reports
+       WHERE ai_confidence > 0 AND deleted_at IS NULL
+       GROUP BY ai_language
+       HAVING COUNT(*) >= 5
+       ORDER BY avg_conf ASC`,
+    )
+
+    const languageStats: Array<{ language: string; avgConfidence: number; reportCount: number; fakeDetectionRate: number }> = []
+
+    // Compute global baseline
+    let totalConf = 0, totalCount = 0
+    for (const row of result.rows) {
+      totalConf += parseFloat(row.avg_conf) * row.report_count
+      totalCount += row.report_count
+    }
+    const globalAvg = totalCount > 0 ? totalConf / totalCount : 50
+
+    for (const row of result.rows) {
+      const avgConf = parseFloat(row.avg_conf) || 0
+      const avgFakeProb = parseFloat(row.avg_fake_prob) || 0
+
+      languageStats.push({
+        language: row.language,
+        avgConfidence: Math.round(avgConf * 100) / 100,
+        reportCount: row.report_count,
+        fakeDetectionRate: Math.round(avgFakeProb * 1000) / 10,
+      })
+
+      // Flag languages with >15% lower confidence than global
+      if (avgConf < globalAvg - 15 && row.report_count >= 10) {
+        underperformingLanguages.push(row.language)
+        recommendations.push(
+          `Language "${row.language}" has ${(globalAvg - avgConf).toFixed(1)}% lower confidence — consider language-specific training data`,
+        )
+      }
+    }
+
+    const biasDetected = underperformingLanguages.length > 0
+
+    if (!biasDetected) {
+      recommendations.push('No significant language bias detected')
+    }
+
+    return { biasDetected, languageStats, underperformingLanguages, recommendations }
+  } catch (err: any) {
+    logger.error({ err }, '[Governance] Language bias computation failed')
+    return { biasDetected: false, languageStats: [], underperformingLanguages: [], recommendations: ['Computation failed: ' + err.message] }
+  }
+}
+
+// —17  COMPREHENSIVE BIAS REPORT
+
+/**
+ * Generate a comprehensive bias report combining all bias metrics.
+ */
+export async function generateBiasReport(): Promise<{
+  overallBiasScore: number
+  location: Awaited<ReturnType<typeof computeFairnessMetrics>>
+  severity: Awaited<ReturnType<typeof computeSeverityBias>>
+  temporal: Awaited<ReturnType<typeof computeTemporalBias>>
+  language: Awaited<ReturnType<typeof computeLanguageBias>>
+  criticalIssues: string[]
+}> {
+  const [location, severity, temporal, language] = await Promise.all([
+    computeFairnessMetrics(),
+    computeSeverityBias(),
+    computeTemporalBias(),
+    computeLanguageBias(),
+  ])
+
+  const criticalIssues: string[] = []
+
+  // Identify critical bias issues
+  if (location.overallFairness < 60) {
+    criticalIssues.push('Location bias: Overall fairness below 60%')
+  }
+  if (severity.biasDetected) {
+    criticalIssues.push('Severity bias: High override rates detected')
+  }
+  if (temporal.lowHours.length >= 4) {
+    criticalIssues.push('Temporal bias: Multiple hours with degraded performance')
+  }
+  if (language.underperformingLanguages.length >= 2) {
+    criticalIssues.push(`Language bias: ${language.underperformingLanguages.length} languages underperforming`)
+  }
+
+  // Compute overall bias score (100 = no bias)
+  let biasDeductions = 0
+  biasDeductions += (100 - location.overallFairness) * 0.3
+  if (severity.biasDetected) biasDeductions += 20
+  if (temporal.biasDetected) biasDeductions += 15
+  if (language.biasDetected) biasDeductions += 15
+  const overallBiasScore = Math.max(0, Math.round(100 - biasDeductions))
+
+  return {
+    overallBiasScore,
+    location,
+    severity,
+    temporal,
+    language,
+    criticalIssues,
   }
 }

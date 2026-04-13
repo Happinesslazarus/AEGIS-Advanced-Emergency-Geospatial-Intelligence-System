@@ -1,19 +1,17 @@
 """
- AEGIS AI ENGINE — Data Labeling Pipeline
- Interactive labeling tool for creating training datasets
+File: data_labeling_pipeline.py
 
-This module provides tools for:
-1. Image labeling - download images from reports, manually label hazard type
-2. Fake report labeling - review reports, classify as real/fake
-3. Severity correction - verify/correct AI-predicted severity
-4. Export labeled data for model training
+What this file does:
+Amploys rule-based and threshold heuristics to auto-label raw weather/
+sensor records with hazard event ground-truth. For example: labels a
+record as "flood=1" if river discharge exceeded the 95th-percentile
+historical value. Used to produce supervised training datasets from
+otherwise unlabelled historical records.
 
-WORKFLOW:
-1. Extract data from database
-2. Display items for labeling
-3. Collect human annotations
-4. Save to labeled_data/ directory
-5. Use labeled data to train models with ml_pipeline.py
+How it connects:
+- Called by data_ingestion.py to add target labels to raw DataFrames
+- Labelling rules configurable in ai-engine/config.yaml per hazard type
+- Labelled output consumed by feature_engineering.py
 """
 
 import os

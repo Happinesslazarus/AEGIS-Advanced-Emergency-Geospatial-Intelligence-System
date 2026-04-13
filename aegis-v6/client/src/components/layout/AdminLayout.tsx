@@ -1,8 +1,18 @@
-/* AdminLayout.tsx — Layout wrapper combining AdminNavbar + AdminSidebar + content area */
+/**
+ * Module: AdminLayout.tsx
+ *
+ * Admin layout React component.
+ *
+ * How it connects:
+ * - Used by AdminPage to wrap all admin views
+ * - Composes AdminNavbar and AdminSidebar with SkipLinks for a11y
+ * Simple explanation:
+ * The page frame for the operator/admin dashboard. */
 
 import { useState, useCallback } from 'react'
 import AdminNavbar from './AdminNavbar'
 import AdminSidebar from './AdminSidebar'
+import { SkipLinks } from '../ui/SkipLinks'
 import type { Operator } from '../../types'
 
 interface AdminLayoutProps {
@@ -39,6 +49,7 @@ export default function AdminLayout({
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
+      <SkipLinks />
       <AdminNavbar
         user={user}
         dark={dark}
@@ -70,6 +81,7 @@ export default function AdminLayout({
 
       {/* Main content area — shifts right for the sidebar */}
       <main
+        id="main-content"
         className={`pt-24 min-h-screen transition-all duration-300
           ${sidebarCollapsed ? 'lg:pl-[60px]' : 'lg:pl-[220px]'}
         `}

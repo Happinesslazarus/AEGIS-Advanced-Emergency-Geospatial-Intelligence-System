@@ -1,10 +1,17 @@
-﻿/**
- * services/regionConfigService.ts — Enhanced Region Configuration Service
+/**
+ * File: regionConfigService.ts
  *
- * Provides a unified API for querying region-specific incident configuration,
- * emergency contacts, alert authorities, and per-incident operational settings.
+ * Region configuration resolver — provides a unified API for querying
+ * region-specific incident types, alert thresholds (advisory/warning/critical),
+ * and emergency contacts with sensible defaults.
  *
- * Wraps the existing region registry with multi-incident awareness.
+ * How it connects:
+ * - Reads from the CITY_REGIONS config and region adapters
+ * - Used by incident routes, alert services, and dashboards
+ * - Supports all 10 incident types with per-region enable/disable
+ *
+ * Simple explanation:
+ * Knows what alert thresholds and settings apply in each city or region.
  */
 
 import {
@@ -30,7 +37,7 @@ const DEFAULT_INCIDENT_CONFIG: RegionIncidentConfig = {
 
 // Service API
 
- /**
+/**
  * Get the full region config for a given region ID.
  * Returns active region if no ID specified.
  */
@@ -41,7 +48,7 @@ export function getRegion(regionId?: string): CityRegionConfig {
   return getActiveCityRegion()
 }
 
- /**
+/**
  * Check if a specific incident type is enabled in a region.
  */
 export function isIncidentEnabledForRegion(
@@ -54,7 +61,7 @@ export function isIncidentEnabledForRegion(
   return cfg ? cfg.enabled : true
 }
 
- /**
+/**
  * Get all incident types enabled for a specific region.
  */
 export function getEnabledIncidentsForRegion(regionId?: string): IncidentTypeId[] {
@@ -66,7 +73,7 @@ export function getEnabledIncidentsForRegion(regionId?: string): IncidentTypeId[
   })
 }
 
- /**
+/**
  * Get the incident-specific config for a region (thresholds, data sources, etc.)
  */
 export function getIncidentConfigForRegion(
@@ -80,7 +87,7 @@ export function getIncidentConfigForRegion(
   return { ...DEFAULT_INCIDENT_CONFIG, ...region.enabledIncidents[incidentType] }
 }
 
- /**
+/**
  * Get alert thresholds for a specific incident type in a region.
  */
 export function getAlertThresholds(
@@ -91,7 +98,7 @@ export function getAlertThresholds(
   return cfg.alertThresholds || DEFAULT_INCIDENT_CONFIG.alertThresholds!
 }
 
- /**
+/**
  * Get the alerting authority for a specific incident type.
  * Falls back to the region's default alertingAuthority.
  */
@@ -106,7 +113,7 @@ export function getAlertAuthority(
   return region.alertingAuthority
 }
 
- /**
+/**
  * Get emergency contacts for a region, optionally filtered by type.
  */
 export function getEmergencyContacts(
@@ -121,21 +128,21 @@ export function getEmergencyContacts(
   return all
 }
 
- /**
+/**
  * Get the language configured for a region.
  */
 export function getRegionLanguage(regionId?: string): string {
   return getRegion(regionId).language || 'en'
 }
 
- /**
+/**
  * Get the unit system for a region.
  */
 export function getRegionUnits(regionId?: string): 'metric' | 'imperial' {
   return getRegion(regionId).units || 'metric'
 }
 
- /**
+/**
  * Get a summary of all regions and their incident support.
  */
 export function getRegionSummary(): Array<{
@@ -162,7 +169,7 @@ export function getRegionSummary(): Array<{
   })
 }
 
- /**
+/**
  * Validate that a region has all required configuration for an incident type.
  */
 export function validateRegionIncidentSupport(
@@ -178,13 +185,13 @@ export function validateRegionIncidentSupport(
 
   // Flood requires rivers
   if (incidentType === 'flood' && (!region.rivers || region.rivers.length === 0)) {
-    warnings.push('No river stations configured — flood monitoring will be limited to citizen reports')
+    warnings.push('No river stations configured - flood monitoring will be limited to citizen reports')
   }
 
   // Weather-dependent types need weather provider
   if (['severe_storm', 'heatwave', 'wildfire', 'landslide'].includes(incidentType)) {
     if (!region.weatherProvider) {
-      warnings.push('No weather provider configured — predictions will use Open-Meteo fallback')
+      warnings.push('No weather provider configured - predictions will use Open-Meteo fallback')
     }
   }
 

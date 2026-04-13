@@ -1,3 +1,18 @@
+/**
+ * File: chatPromptBuilder.ts
+ *
+ * System prompt assembler — composes the LLM system prompt from modular
+ * sections: core identity, risk triage protocol, response contract, and
+ * all-hazard playbook. Also builds an admin/operator addendum with ICS framing.
+ *
+ * How it connects:
+ * - Pure functions, no external dependencies
+ * - Consumed exclusively by chatService.ts
+ *
+ * Simple explanation:
+ * Builds the instruction text that tells the AI chatbot how to behave.
+ */
+
 type CrisisResource = { name: string; number: string }
 
 interface BasePromptInput {
@@ -9,6 +24,9 @@ interface BasePromptInput {
   crisisResources?: CrisisResource[]
 }
 
+// Core identity text: establishes the assistant's role, capabilities, and hard refusals.
+// Permitting everyday tasks (rewriting, summarising, translating) prevents the model
+// from refusing helpful requests that happen to mention emergency context.
 function buildCoreIdentity(input: BasePromptInput): string {
   return [
     `You are AEGIS, the local-first emergency AI for ${input.regionName}.`,
@@ -19,6 +37,9 @@ function buildCoreIdentity(input: BasePromptInput): string {
   ].join(' ')
 }
 
+// Risk triage rules: tells the model how to scale its urgency and tone based on
+// the severity of the user's situation. The phone number is injected here so
+// the model always uses the region-correct emergency contact rather than a hardcoded one.
 function buildRiskProtocol(input: BasePromptInput): string {
   const resources = [
     `Emergency number: ${input.emergencyNumber}.`,
@@ -36,6 +57,9 @@ function buildRiskProtocol(input: BasePromptInput): string {
   ].join('\n')
 }
 
+// Response format contract: keeps answers concise and action-first.
+// Explicitly forbids reasoning traces and XML tags so chain-of-thought from
+// thinking models doesn't leak into the user-visible response.
 function buildResponseContract(): string {
   return [
     'Response contract:',
@@ -49,6 +73,9 @@ function buildResponseContract(): string {
   ].join('\n')
 }
 
+// Per-hazard guidance that the model draws on when users describe a specific emergency.
+// Rivers are injected so the model can reference locally relevant waterways by name
+// rather than giving generic flood advice.
 function buildHazardPlaybook(input: BasePromptInput): string {
   const rivers = input.rivers.length > 0 ? input.rivers.join(', ') : 'local rivers'
   return [
@@ -65,6 +92,8 @@ function buildHazardPlaybook(input: BasePromptInput): string {
   ].join('\n')
 }
 
+// Assemble the full system prompt from the four modular sections.
+// Sections are joined with double newlines so LLMs parse them as distinct blocks.
 export function buildBaseSystemPrompt(input: BasePromptInput): string {
   return [
     buildCoreIdentity(input),
@@ -74,6 +103,9 @@ export function buildBaseSystemPrompt(input: BasePromptInput): string {
   ].join('\n\n')
 }
 
+// Separate operator addendum appended after the citizen base prompt.
+// Operator mode unlocks more data-dense, ICS-framed responses appropriate
+// for trained emergency management staff rather than the general public.
 export function buildAdminSystemAddendum(): string {
   return [
     'Operator mode:',

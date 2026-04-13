@@ -1,0 +1,23 @@
+{
+  "hazard": "drought",
+  "train_regions": [
+    "English Lowlands",
+    "Northern England"
+  ],
+  "test_region": "Scotland",
+  "train_end": "2023-01-01",
+  "test_start": "2023-01-01",
+  "lag_dynamic": true,
+  "n_features": 14,
+  "n_train": 1658520,
+  "n_test": 407772,
+  "train_positive_rate": 0.05753503123266527,
+  "test_positive_rate": 0.0034602670119576627,
+  "location_overlap": 0,
+  "roc_auc": 0.9676664137706745,
+  "pr_auc": 0.09429293363603655,
+  "accuracy": 0.9652894264441894,
+  "precision": 0.0728698800026815,
+  "recall": 0.7703756201275691,
+  "f1": 0.1331455169034787
+}

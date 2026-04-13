@@ -1,23 +1,16 @@
 """
-AEGIS AI Engine — Crisis NLP Fine-Tuning Pipeline
+File: finetune_crisis_nlp.py
 
-Fine-tunes DistilBERT on real crisis datasets for:
-  1. Crisis sentiment / distress detection (5-class)
-  2. Disaster type classification (multi-label)
-  3. Urgency / severity scoring (regression)
+What this file does:
+Fine-tunes a small language model (e.g. distilbert-base-uncased) on
+crisis-domain text classification: flood alerts, emergency bulletins,
+SOS messages. Produces a custom embeddings model used by the report_
+classifier_ml.py for better semantic classification of free-text reports.
 
-Datasets (auto-downloaded):
-  - CrisisNLP  (Muhammad Imran et al.)  — ~60K labeled crisis tweets
-  - CrisisLex  (Universite Laval)       — 60K tweets from 6 crises
-  - HumAID     (Firoj Alam et al.)      — 77K tweets, 11 disaster types
-
-Requirements:
-    pip install transformers datasets accelerate scikit-learn
-
-Usage:
-    python -m app.training.finetune_crisis_nlp --task sentiment --epochs 5 --batch-size 16
-    python -m app.training.finetune_crisis_nlp --task hazard_type --epochs 8
-    python -m app.training.finetune_crisis_nlp --task urgency --epochs 5
+How it connects:
+- Saves fine-tuned model checkpoint to ai-engine/model_registry/nlp/
+- Checkpoint loaded by models/report_classifier_ml.py at inference time
+- Training data from ai-engine/data/crisis_nlp_corpus/
 """
 
 from __future__ import annotations
@@ -524,4 +517,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
+

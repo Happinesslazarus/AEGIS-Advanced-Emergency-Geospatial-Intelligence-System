@@ -1,7 +1,13 @@
 /**
- * incidents/wildfire/config.ts — Wildfire incident configuration
- * AI Tier: tier3 (ML) — Uses trained ML models
- * Data Sources: NASA FIRMS API
+ * Module: config.ts
+ *
+ * Wildfire and bushfire events incident module (handles wildfire specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for wildfire events.
  */
 
 import type { IncidentRegistryEntry } from '../types.js'
@@ -19,7 +25,7 @@ export const wildfireConfig: IncidentRegistryEntry = {
     'Citizen Reports',
     'Weather Data'
   ],
-  aiEndpoint: '/api/ai/predict/wildfire',
+  aiEndpoint: '/api/predict',
   aiTier: 'ml',
   enabledRegions: 'all',
   operationalStatus: 'fully_operational',
@@ -46,4 +52,4 @@ export const NASA_FIRMS_CONFIG = {
   confidence: 80, // minimum confidence
   lookbackHours: 24
 }
-
+

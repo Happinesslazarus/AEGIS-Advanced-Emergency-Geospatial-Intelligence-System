@@ -1,18 +1,39 @@
-﻿ /*
- * aiClient.ts - AI Engine Integration Layer
- * This module handles communication between Node.js and the FastAPI AI Engine.
- * It provides a clean interface for requesting predictions and other AI operations.
- * Architecture:
- * Node.js (this) → HTTP → FastAPI AI Engine
- * Includes retry logic, timeout handling, error mapping
- * Caches model status information
-  */
+/**
+ * File: aiClient.ts
+ *
+ * What this file does:
+ * HTTP client for the Python AI Engine (FastAPI, port 8000). Wraps all calls
+ * to the AI service with abort-controller timeouts, auth headers, JSON error
+ * unwrapping, and graceful 'unavailable' handling. Caches the model-status
+ * response for 60 s so the dashboard doesn't pummel the AI engine.
+ *
+ * How it works:
+ * Every method calls the private `request()` helper, which:
+ * 1. Builds the full URL from AI_ENGINE_URL env var
+ * 2. Sets an AbortController timeout (default 30 s)
+ * 3. Attaches X-API-Key + Authorization headers for inter-service auth
+ * 4. Parses the JSON error body on failure and re-throws with a clean message
+ *
+ * How it connects:
+ * - Used by server/src/services/floodPredictionService.ts
+ * - Used by server/src/services/aiAnalysisPipeline.ts
+ * - Used by server/src/routes/aiRoutes.ts (admin model management)
+ * - Talks to ai-engine/app/api/endpoints.py over HTTP
+ * - AI_ENGINE_URL defaults to http://localhost:8000
+ * - AI_ENGINE_API_KEY must match the key configured in the Python service
+ *
+ * Simple explanation:
+ * Sends data to the Python AI prediction engine and brings results back safely.
+ * If the AI engine is down, calls here fail with a human-readable error message
+ * rather than crashing the whole server.
+ */
 
 import { devLog } from '../utils/logger.js'
 import { logger } from './logger.js'
 
 const AI_ENGINE_URL = process.env.AI_ENGINE_URL || 'http://localhost:8000'
-const AI_ENGINE_TIMEOUT = parseInt(process.env.AI_ENGINE_TIMEOUT || '30000', 10)
+const AI_ENGINE_TIMEOUT = parseInt(process.env.AI_ENGINE_TIMEOUT || '30000', 10) // 30 s default
+const AI_ENGINE_API_KEY = process.env.AI_ENGINE_API_KEY || process.env.API_SECRET_KEY || ''
 
 interface PredictionRequest {
   hazard_type:
@@ -73,6 +94,14 @@ class AIClient {
   private modelStatusCache: { data: any; timestamp: number } | null = null
   private readonly CACHE_TTL = 60000 // 1 minute
 
+  private buildAuthHeaders(): Record<string, string> {
+    if (!AI_ENGINE_API_KEY) return {}
+    return {
+      'X-API-Key': AI_ENGINE_API_KEY,
+      Authorization: `Bearer ${AI_ENGINE_API_KEY}`,
+    }
+  }
+
   private buildUrl(path: string): string {
     const base = AI_ENGINE_URL.endsWith('/') ? AI_ENGINE_URL.slice(0, -1) : AI_ENGINE_URL
     const normalized = path.startsWith('/') ? path : `/${path}`
@@ -86,7 +115,7 @@ class AIClient {
 
     try {
       const method = (init?.method || 'GET').toUpperCase()
-      devLog(`[AI] → ${method} ${path}`)
+      devLog(`[AI] ? ${method} ${path}`)
 
       const response = await fetch(url, {
         ...init,
@@ -94,11 +123,12 @@ class AIClient {
         headers: {
           'Content-Type': 'application/json',
           'User-Agent': 'AEGIS-Node-Backend/1.0',
+          ...this.buildAuthHeaders(),
           ...(init?.headers || {})
         }
       })
 
-      devLog(`[AI] ← ${response.status} ${path}`)
+      devLog(`[AI] ? ${response.status} ${path}`)
 
       if (!response.ok) {
         const body = await response.json().catch(() => null)
@@ -120,9 +150,7 @@ class AIClient {
     }
   }
 
-   /*
-   * Check if AI Engine is available
-    */
+  /** Quick liveness check — uses a 5 s timeout so status endpoints don't block the main flow */
   async isAvailable(): Promise<boolean> {
     try {
       await this.request('/health', undefined, 5000)
@@ -132,9 +160,11 @@ class AIClient {
     }
   }
 
-   /*
-   * Generate hazard prediction
-    */
+  /**
+   * Generate a hazard prediction by sending feature data to the AI engine.
+   * The engine runs the appropriate ML model (flood, fire, storm, etc.) and returns
+   * probability, confidence, contributing factors, and optional GeoJSON polygon.
+   */
   async predict(request: PredictionRequest): Promise<PredictionResponse> {
     try {
       const response = await this.request<PredictionResponse>('/api/predict', {
@@ -144,6 +174,7 @@ class AIClient {
 
       return {
         ...response,
+        // Normalise: always have a generated_at timestamp even if the AI engine omitted it
         generated_at: response.generated_at || new Date().toISOString()
       }
     } catch (error: any) {
@@ -151,13 +182,14 @@ class AIClient {
     }
   }
 
-   /*
-   * Get model status (with caching)
-    */
+  /**
+   * Get model status for all loaded models (with 1-minute process-level cache).
+   * Pass skipCache=true when you need fresh data (e.g. after triggering a retrain).
+   */
   async getModelStatus(skipCache = false): Promise<any> {
     const now = Date.now()
 
-    // Return cached data if available and fresh
+    // Serve from cache if fresh enough — avoids a status-poll on every chat message
     if (!skipCache && this.modelStatusCache) {
       const age = now - this.modelStatusCache.timestamp
       if (age < this.CACHE_TTL) {
@@ -168,10 +200,7 @@ class AIClient {
 
     try {
       const response = await this.request<any>('/api/model-status')
-      this.modelStatusCache = {
-        data: response,
-        timestamp: now
-      }
+      this.modelStatusCache = { data: response, timestamp: now }
       return response
     } catch (error: any) {
       logger.error({ err: error }, '[AI] Failed to get model status')
@@ -242,10 +271,11 @@ class AIClient {
     }
   }
 
-   /*
-   * Classify disaster image using CLIP vision model.
-   * Sends image as multipart/form-data to /api/classify-image.
-    */
+  /**
+   * Classify a disaster image using the CLIP vision model.
+   * Must send as multipart/form-data because the Python endpoint expects a file upload.
+   * We build the multipart body manually here to avoid pulling in the `form-data` npm package.
+   */
   async classifyImage(imageBuffer: Buffer, filename = 'image.jpg'): Promise<{
     hazard_type: string
     disaster_type: string
@@ -262,7 +292,7 @@ class AIClient {
     const timeout = setTimeout(() => controller.abort(), 15000)
 
     try {
-      // Build multipart form data
+      // Build multipart/form-data body manually (avoids adding a new npm dependency)
       const boundary = '----AEGISBoundary' + Date.now()
       const header = `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${filename}"\r\nContent-Type: application/octet-stream\r\n\r\n`
       const footer = `\r\n--${boundary}--\r\n`
@@ -277,6 +307,7 @@ class AIClient {
         headers: {
           'Content-Type': `multipart/form-data; boundary=${boundary}`,
           'User-Agent': 'AEGIS-Node-Backend/1.0',
+          ...this.buildAuthHeaders(),
         },
         body,
       })
@@ -399,6 +430,10 @@ class AIClient {
 
   //  Model Lifecycle Management
 
+  //  Model Registry — version lifecycle management
+  // These methods map 1-to-1 with registry endpoints in the Python AI engine.
+  // Using encodeURIComponent to handle hazard types like 'severe_storm' safely in URL paths.
+
   async listRegistryVersions(hazardType: string, regionId: string): Promise<any> {
     return this.request(`/api/registry/versions/${encodeURIComponent(hazardType)}/${encodeURIComponent(regionId)}`)
   }
@@ -465,7 +500,7 @@ class AIClient {
   }
 }
 
-// Singleton instance
+// Singleton — all callers import this one shared instance so they share the model status cache
 export const aiClient = new AIClient()
 
 // Export types
@@ -475,4 +510,4 @@ export type {
   ModelStatus,
   HazardTypeInfo
 }
-
+

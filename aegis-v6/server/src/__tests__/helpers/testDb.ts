@@ -1,9 +1,11 @@
-﻿/**
- * tests__/helpers/testDb.ts — Test Database Utilities
+/**
+ * Module: testDb.ts
  *
- * Provides an isolated PostgreSQL connection for integration tests.
- * Uses DATABASE_URL from environment (CI sets this to aegis_test).
- * Guarantees no test data leaks into the development database.
+ * Test db server module.
+ *
+ * How it connects:
+ * - Run by the test runner (Vitest or Jest)
+ *
  */
 
 import pg from 'pg'
@@ -14,7 +16,7 @@ const { Pool } = pg
 
 let _pool: pg.Pool | null = null
 
- /**
+/**
  * Returns a shared Pool pointing at the test database.
  * Validates that we are NOT accidentally connected to a production DB.
  */
@@ -46,7 +48,7 @@ export function getTestPool(): pg.Pool {
 
 // Schema bootstrap
 
- /**
+/**
  * Ensures the minimum schema required by integration tests exists.
  * Idempotent — safe to call in every beforeAll.
  */
@@ -691,7 +693,7 @@ const ALL_TEST_TABLES = [
   'citizens',
 ]
 
- /**
+/**
  * Truncate all test tables. Call in afterEach / afterAll to isolate tests.
  */
 export async function truncateAll(): Promise<void> {
@@ -699,7 +701,7 @@ export async function truncateAll(): Promise<void> {
   await pool.query(`TRUNCATE ${ALL_TEST_TABLES.join(', ')} CASCADE`)
 }
 
- /**
+/**
  * Truncate specific tables only.
  */
 export async function truncateTables(...tables: string[]): Promise<void> {
@@ -715,7 +717,7 @@ export async function truncateTables(...tables: string[]): Promise<void> {
 
 // Transaction wrapper (for single-test isolation)
 
- /**
+/**
  * Run a callback inside a transaction that is always rolled back.
  * Useful for tests that need full isolation without truncation cost.
  */
@@ -736,7 +738,7 @@ export async function withRollback<T>(
 
 // Lifecycle
 
- /**
+/**
  * Close the pool. Call in the final afterAll of each test file.
  */
 export async function closeTestPool(): Promise<void> {

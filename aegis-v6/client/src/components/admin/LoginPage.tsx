@@ -1,8 +1,28 @@
-/* LoginPage.tsx — Operator authentication with login, register, and password reset forms. */
+/**
+ * File: LoginPage.tsx
+ *
+ * What this file does:
+ * Operator login page with three auth flows:
+ * 1. Standard email/password → calls apiLogin(), stores JWT on success
+ * 2. Two-factor auth → if the API returns requires2FA=true, swaps in TwoFactorChallenge
+ *    with the tempToken from the initial response
+ * 3. Google OAuth → hard link to /api/auth/google (server-side redirect flow)
+ * Also has an inline "forgot password" handler that triggers a reset email.
+ *
+ * How it connects:
+ * - onLogin(user) callback passed in from AdminPage.tsx updates parent auth state
+ * - apiLogin() / apiForgotPassword() live in client/src/utils/api.ts
+ * - session=expired search param is set by the auth interceptor when a JWT expires
+ * - TwoFactorChallenge.tsx handles TOTP/SMS code entry and completes the sign-in
+ *
+ * Simple explanation:
+ * The operator login screen. Handles passwords, 2FA, Google sign-in, and
+ * session expiry messages, then hands a verified user object to the parent.
+ */
 
 import { useState, useRef, useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Shield, Lock, Mail, LogIn, CheckCircle, Eye, EyeOff, X as XIcon, Check, ArrowLeft, Home, Loader2, AlertCircle, Fingerprint, Radio, Zap, ChevronDown, Users, ArrowRight, Globe, Info, Menu, X } from 'lucide-react'
+import { Shield, Lock, Mail, LogIn, CheckCircle, Eye, EyeOff, X as XIcon, Check, ArrowLeft, Home, Loader2, AlertCircle, Fingerprint, Radio, Zap, ChevronDown, ChevronRight, Users, ArrowRight, Globe, Info, Menu, X, Github, QrCode, Wand2 } from 'lucide-react'
 import { apiLogin, apiForgotPassword, setToken, setUser } from '../../utils/api'
 import type { Operator } from '../../types'
 import LanguageSelector from '../shared/LanguageSelector'
@@ -20,6 +40,8 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
   const lang = useLanguage()
   const { dark } = useTheme()
   const [searchParams, setSearchParams] = useSearchParams()
+  // session=expired is appended to the URL by the API interceptor when a 401 fires.
+  // We read it once on mount and clear it from the URL after showing the banner.
   const sessionExpired = searchParams.get('session') === 'expired'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -31,6 +53,11 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
   const [tempToken, setTempToken] = useState('')
   const [navDropdownOpen, setNavDropdownOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [magicLinkEmail, setMagicLinkEmail] = useState('')
+  const [magicLinkSent, setMagicLinkSent] = useState(false)
+  const [magicLinkLoading, setMagicLinkLoading] = useState(false)
+  const [showMagicLink, setShowMagicLink] = useState(false)
+  const [showMoreAuth, setShowMoreAuth] = useState(false)
   const navDropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -47,6 +74,22 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
     { icon: Fingerprint, title: t('login.secureAccess', lang), desc: t('login.endToEndEncrypted', lang) },
   ]
 
+  const handleMagicLink = async () => {
+    if (!magicLinkEmail) return
+    setMagicLinkLoading(true)
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/magic-link/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: magicLinkEmail }),
+      })
+      const data = await res.json()
+      if (data.success) setMagicLinkSent(true)
+      else setError(data.error || 'Failed to send magic link')
+    } catch { setError('Failed to send magic link') }
+    finally { setMagicLinkLoading(false) }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -54,7 +97,9 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
     try {
       const res = await apiLogin(email, password)
       if (res.requires2FA && res.tempToken) {
-        // 2FA required — show challenge screen
+        // 2FA required: server returned a short-lived tempToken instead of a full JWT.
+        // Swap to the TwoFactorChallenge screen. The tempToken is exchanged for a
+        // real JWT after the user enters their OTP code.
         setTwoFactorRequired(true)
         setTempToken(res.tempToken)
         setLoading(false)
@@ -113,7 +158,7 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
         <div className="hidden md:flex items-center gap-2">
           <div className="flex items-center gap-1.5 bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/20 px-2.5 py-1 rounded-lg">
             <span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" /><span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" /></span>
-            <span className="text-[10px] font-bold text-green-600 dark:text-green-400">SYSTEM ONLINE</span>
+            <span className="text-[10px] font-bold text-green-600 dark:text-green-400">{t('common.systemOnline', lang)}</span>
           </div>
           <div className="flex items-center gap-1.5 bg-aegis-50 dark:bg-aegis-500/10 border border-aegis-200 dark:border-aegis-500/20 px-2.5 py-1 rounded-lg">
             <Lock className="w-3 h-3 text-aegis-500" />
@@ -132,13 +177,13 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
               onClick={() => setNavDropdownOpen(v => !v)}
               className="flex items-center gap-2 text-xs font-bold px-3.5 sm:px-4 py-2.5 rounded-xl bg-aegis-600 hover:bg-aegis-700 active:bg-aegis-800 shadow-lg shadow-aegis-600/20 hover:shadow-aegis-500/40 transition-all hover:scale-[1.02] active:scale-[0.97] text-white cursor-pointer select-none min-h-[40px]">
               <Menu className="w-4 h-4" />
-              <span className="hidden sm:inline">Navigate</span>
+              <span className="hidden sm:inline">{t('common.navigate', lang)}</span>
               <ChevronDown className={`w-3.5 h-3.5 opacity-80 transition-transform duration-200 ${navDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
             {navDropdownOpen && (
               <div className="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-white/10 rounded-2xl shadow-2xl shadow-black/15 dark:shadow-black/50 overflow-hidden z-[60]" style={{ animation: 'aegis-fade-up 0.18s ease-out' }}>
                 <div className="px-4 py-3 bg-gradient-to-r from-aegis-50 to-blue-50/50 dark:from-aegis-950/40 dark:to-blue-950/20 border-b border-gray-200/60 dark:border-white/8">
-                  <p className="text-[10px] text-aegis-600 dark:text-aegis-400 font-extrabold uppercase tracking-[0.18em]">Quick Navigation</p>
+                  <p className="text-[10px] text-aegis-600 dark:text-aegis-400 font-extrabold uppercase tracking-[0.18em]">{t('common.quickNavigation', lang)}</p>
                 </div>
                 <div className="p-2 space-y-0.5">
                   <Link to="/" onClick={() => setNavDropdownOpen(false)}
@@ -147,8 +192,8 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
                       <Globe className="w-[18px] h-[18px] text-gray-500 dark:text-white/60 group-hover:text-aegis-600 dark:group-hover:text-aegis-400 transition-colors duration-150" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-bold text-gray-900 dark:text-white group-hover:text-aegis-700 dark:group-hover:text-aegis-300 transition-colors">Home</p>
-                      <p className="text-[10px] text-gray-400 dark:text-white/40 mt-0.5 leading-tight">Return to the main landing page</p>
+                      <p className="text-[13px] font-bold text-gray-900 dark:text-white group-hover:text-aegis-700 dark:group-hover:text-aegis-300 transition-colors">{t('common.home', lang)}</p>
+                      <p className="text-[10px] text-gray-400 dark:text-white/40 mt-0.5 leading-tight">{t('common.returnToMain', lang)}</p>
                     </div>
                     <ArrowRight className="w-4 h-4 text-gray-300 dark:text-white/15 group-hover:text-aegis-500 dark:group-hover:text-aegis-400 group-hover:translate-x-1 transition-all duration-150 flex-shrink-0" />
                   </Link>
@@ -158,8 +203,8 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
                       <Users className="w-[18px] h-[18px] text-blue-500 dark:text-blue-400 group-hover:text-blue-600 dark:group-hover:text-blue-300 transition-colors duration-150" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-bold text-gray-900 dark:text-white group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors">Citizen Portal</p>
-                      <p className="text-[10px] text-gray-400 dark:text-white/40 mt-0.5 leading-tight">Public safety dashboard & services</p>
+                      <p className="text-[13px] font-bold text-gray-900 dark:text-white group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors">{t('common.citizenPortal', lang)}</p>
+                      <p className="text-[10px] text-gray-400 dark:text-white/40 mt-0.5 leading-tight">{t('common.publicSafetyDashboard', lang)}</p>
                     </div>
                     <ArrowRight className="w-4 h-4 text-gray-300 dark:text-white/15 group-hover:text-blue-500 dark:group-hover:text-blue-400 group-hover:translate-x-1 transition-all duration-150 flex-shrink-0" />
                   </Link>
@@ -179,7 +224,9 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
       </nav>
 
       <div className="flex-1 flex items-center justify-center p-4 relative z-10">
-      {/* 2FA Challenge Screen */}
+      {/* 2FA Challenge Screen: replaces the login form when the server says 2FA is required.
+           onSuccess receives the real JWT + full user object from the OTP exchange endpoint.
+           onCancel clears the tempToken and returns to the password form. */}
       {twoFactorRequired && tempToken ? (
         <TwoFactorChallenge
           tempToken={tempToken}
@@ -229,7 +276,7 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
         </div>
 
         {/* Right — Auth Form */}
-        <div className="w-full lg:max-w-lg flex-1">
+        <div className="w-full max-w-lg mx-auto lg:mx-0 flex-1">
         {/* Mobile/Tablet: compact branding + feature highlights */}
         <div className="mb-6 lg:hidden">
           <div className="text-center mb-4">
@@ -261,8 +308,8 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
 
           {sessionExpired && (
             <div role="status" aria-live="polite" className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 px-3 py-2.5 rounded-xl text-sm mb-4 flex items-center gap-2" style={{ animation: 'aegis-fade-up 0.4s ease-out' }}>
-              <AlertCircle className="w-4 h-4 flex-shrink-0"/>Your session has expired. Please sign in again.
-              <button onClick={() => { searchParams.delete('session'); setSearchParams(searchParams, { replace: true }) }} className="ml-auto text-amber-500 hover:text-amber-700 dark:hover:text-amber-200 transition-colors" aria-label="Dismiss">&times;</button>
+              <AlertCircle className="w-4 h-4 flex-shrink-0"/>{t('common.sessionExpired', lang)}
+              <button onClick={() => { searchParams.delete('session'); setSearchParams(searchParams, { replace: true }) }} className="ml-auto text-amber-500 hover:text-amber-700 dark:hover:text-amber-200 transition-colors" aria-label={t('common.dismiss', lang)}>&times;</button>
             </div>
           )}
           {regSuccess && <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 px-3 py-2.5 rounded-xl text-sm mb-4 flex items-center gap-2"><CheckCircle className="w-4 h-4 flex-shrink-0"/>{regSuccess}</div>}
@@ -316,20 +363,122 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
             </button>
           </form>
 
-          {/*  OAuth Divider & Google Sign-In  */}
-          <div className="relative my-4">
+          {/*  ─── Alternative Sign-In Methods ─── */}
+          <div className="relative my-3">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200 dark:border-gray-700" /></div>
             <div className="relative flex justify-center text-xs">
-              <span className="px-3 bg-white dark:bg-gray-900 text-gray-400 dark:text-gray-300">or continue with</span>
+              <span className="px-3 bg-white dark:bg-gray-900 text-gray-400 dark:text-gray-300">{t('common.continueWith', lang)}</span>
             </div>
           </div>
-          <a
-            href={`${API_BASE}/api/auth/google`}
-            className="w-full flex items-center justify-center gap-3 py-2.5 px-4 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors text-sm font-medium text-gray-700 dark:text-gray-200 shadow-sm"
-          >
-            <svg className="w-5 h-5" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-            <span>Sign in with Google</span>
-          </a>
+
+          {/* Primary quick options — 2-col grid, always visible */}
+          <div className="grid grid-cols-2 gap-2">
+            <a href={`${API_BASE}/api/auth/google`}
+              className="flex items-center justify-center gap-2 py-2.5 px-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 transition text-sm font-medium text-gray-700 dark:text-gray-200 shadow-sm">
+              <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+              <span className="truncate">Google</span>
+            </a>
+            <a href={`${API_BASE}/api/auth/github`}
+              className="flex items-center justify-center gap-2 py-2.5 px-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 transition text-sm font-medium text-white shadow-sm">
+              <Github className="w-4 h-4 flex-shrink-0" />
+              <span className="truncate">GitHub</span>
+            </a>
+          </div>
+
+          {/* Expandable advanced methods */}
+          <button type="button" onClick={() => setShowMoreAuth(prev => !prev)}
+            className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition">
+            <span>{showMoreAuth ? 'Hide' : 'More sign-in options'}</span>
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showMoreAuth ? 'rotate-180' : ''}`} />
+          </button>
+
+          {showMoreAuth && (
+            <div className="space-y-2 animate-[aegis-fade-up_0.25s_ease-out]">
+
+              {/* Passkey */}
+              <button type="button"
+                onClick={async () => {
+                  try {
+                    if (!window.PublicKeyCredential) { setError('Passkeys not supported on this device'); return }
+                    const res = await fetch(`${API_BASE}/api/security/passkeys/auth-options`, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+                    const { data } = await res.json()
+                    const credential = await navigator.credentials.get({ publicKey: { ...data, challenge: Uint8Array.from(atob(data.challenge.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)), allowCredentials: (data.allowCredentials || []).map((c: any) => ({ ...c, id: Uint8Array.from(atob(c.id.replace(/-/g, '+').replace(/_/g, '/')), ch => ch.charCodeAt(0)) })) } }) as PublicKeyCredential
+                    const authRes = credential.response as AuthenticatorAssertionResponse
+                    const toBase64Url = (buf: ArrayBuffer) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
+                    const verifyRes = await fetch(`${API_BASE}/api/security/passkeys/auth-verify`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: credential.id, rawId: toBase64Url(credential.rawId), response: { authenticatorData: toBase64Url(authRes.authenticatorData), clientDataJSON: toBase64Url(authRes.clientDataJSON), signature: toBase64Url(authRes.signature) }, type: 'public-key' }) })
+                    const verifyData = await verifyRes.json()
+                    if (verifyData.success && verifyData.token) {
+                      setToken(verifyData.token)
+                      setUser(verifyData.user)
+                      onLogin(verifyData.user)
+                    } else { setError(verifyData.error || 'Passkey authentication failed') }
+                  } catch (err: any) { setError(err?.message || 'Passkey authentication failed') }
+                }}
+                className="w-full flex items-center gap-3 py-2.5 px-4 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 transition text-sm text-gray-700 dark:text-gray-200 shadow-sm">
+                <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center flex-shrink-0">
+                  <Fingerprint className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div className="text-left min-w-0">
+                  <p className="font-medium text-sm">Passkey / Biometric</p>
+                  <p className="text-[11px] text-gray-400 dark:text-gray-500">Face ID, fingerprint, or security key</p>
+                </div>
+              </button>
+
+              {/* Magic Link */}
+              {!showMagicLink ? (
+                <button type="button" onClick={() => setShowMagicLink(true)}
+                  className="w-full flex items-center gap-3 py-2.5 px-4 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 transition text-sm text-gray-700 dark:text-gray-200 shadow-sm">
+                  <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center flex-shrink-0">
+                    <Wand2 className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div className="text-left min-w-0">
+                    <p className="font-medium text-sm">Magic Link</p>
+                    <p className="text-[11px] text-gray-400 dark:text-gray-500">Passwordless sign-in via email</p>
+                  </div>
+                </button>
+              ) : magicLinkSent ? (
+                <div className="w-full p-3 rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/30 text-center">
+                  <CheckCircle className="w-5 h-5 text-green-500 mx-auto mb-1" />
+                  <p className="text-sm font-medium text-green-700 dark:text-green-300">Check your email!</p>
+                  <p className="text-xs text-green-600 dark:text-green-400 mt-0.5">We sent a sign-in link to {magicLinkEmail}</p>
+                </div>
+              ) : (
+                <div className="w-full p-3 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/20 space-y-2">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Wand2 className="w-4 h-4 text-amber-500" />
+                    <span className="text-xs font-semibold text-amber-700 dark:text-amber-300">Magic Link</span>
+                  </div>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                    <input type="email" value={magicLinkEmail} onChange={e => setMagicLinkEmail(e.target.value)}
+                      placeholder="Enter email for magic link" className="w-full pl-10 pr-3 py-2.5 text-sm bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-amber-500 focus:border-transparent transition" />
+                  </div>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => setShowMagicLink(false)}
+                      className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 transition">Cancel</button>
+                    <button type="button" onClick={handleMagicLink} disabled={magicLinkLoading || !magicLinkEmail}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-xs font-semibold text-white transition">
+                      {magicLinkLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
+                      <span>Send Link</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Emergency QR */}
+              <Link to="/citizen/qr-auth"
+                className="w-full flex items-center gap-3 py-2.5 px-4 border border-red-200 dark:border-red-800/60 rounded-xl bg-red-50/50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 transition text-sm text-red-700 dark:text-red-300 shadow-sm">
+                <div className="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/40 flex items-center justify-center flex-shrink-0">
+                  <QrCode className="w-4 h-4 text-red-600 dark:text-red-400" />
+                </div>
+                <div className="text-left min-w-0">
+                  <p className="font-medium text-sm">Emergency QR</p>
+                  <p className="text-[11px] text-red-500/70 dark:text-red-400/60">Scan from kiosk or phone — no password needed</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-red-300 dark:text-red-600 ml-auto flex-shrink-0" />
+              </Link>
+            </div>
+          )}
 
           <p className="text-center text-[10px] text-gray-400 dark:text-gray-300 mt-4">{t('admin.portal.signin', lang)}</p>
 
@@ -348,4 +497,4 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
     </div>
   )
 }
-
+

@@ -1,10 +1,17 @@
-﻿/*
- * services/cacheMetrics.ts — Prometheus metrics for Redis cache observability
+/**
+ * File: cacheMetrics.ts
  *
- * Separate from metrics.ts to avoid circular imports (cacheService imports this,
- * metrics.ts remains the main metrics registry).
+ * Prometheus metric definitions for the caching layer — counters for hits,
+ * misses, sets, invalidations, errors, and stale serves, plus a histogram
+ * for operation duration. Pure definitions, no business logic.
  *
- * All metrics use the `aegis_cache_` prefix for dashboard discoverability.
+ * How it connects:
+ * - Imported by cacheService.ts to instrument cache operations
+ * - Scraped by Prometheus alongside other metrics
+ * - Separated from metrics.ts to avoid circular imports
+ *
+ * Simple explanation:
+ * Defines the numbers Prometheus tracks about cache performance.
  */
 
 import client from 'prom-client'

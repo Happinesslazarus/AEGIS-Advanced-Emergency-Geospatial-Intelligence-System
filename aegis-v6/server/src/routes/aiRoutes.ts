@@ -1,8 +1,34 @@
-﻿/*
- * aiRoutes.ts - AI prediction and model management endpoints
+/**
+ * File: aiRoutes.ts
  *
- * These routes integrate with the FastAPI AI Engine and provide
- * prediction capabilities to the frontend.
+ * What this file does:
+ * Proxies AI prediction requests from the frontend to the Python FastAPI
+ * engine. Operators can trigger hazard predictions, view model status,
+ * and manage AI pipeline configuration. Also exposes model governance
+ * endpoints (rollback, drift detection, version promotion) for admins.
+ *
+ * Route groups:
+ * - POST /api/ai/predict         — run a hazard prediction and persist to DB
+ * - GET  /api/ai/predictions     — historical prediction log with filters
+ * - GET  /api/ai/status          — liveness probe for the AI engine
+ * - POST /api/ai/retrain         — trigger background model retraining
+ * - POST /api/ai/classify-image  — CNN image classification (ViT + DETR)
+ * - POST /api/ai/classify-report — NLP hazard type classification
+ * - POST /api/ai/predict-severity— NLP severity prediction
+ * - POST /api/ai/detect-fake     — fake/spam report detector
+ * - GET  /api/ai/models          — governed model list
+ * - POST /api/ai/models/rollback — model rollback (admin)
+ * - GET  /api/ai/drift           — drift detection report
+ * - POST /api/ai/registry/*      — on-disk model registry management
+ *
+ * How it connects:
+ * - Mounted at /api/ai in index.ts
+ * - Forwards requests to the AI engine via aiClient service
+ * - Uses imageAnalysisService for image-based predictions
+ * - Operator/admin authenticated endpoints
+ *
+ * Simple explanation:
+ * The bridge between the web API and the Python AI prediction engine.
  */
 
 import { Router, Request, Response, NextFunction } from 'express'
@@ -27,6 +53,7 @@ import { regionRegistry } from '../adapters/regions/index.js'
 
 const router = Router()
 
+// Prometheus requires numeric gauge values; map string alert levels to 0-3.
 function alertLevelToMetric(alertLevel: string): number {
   const level = String(alertLevel || '').toUpperCase()
   if (level === 'INFO') return 1
@@ -60,12 +87,12 @@ router.post('/predict', authMiddleware, operatorOnly, async (req: AuthRequest, r
       longitude === undefined ||
       longitude === null
     ) {
-      throw AppError.badRequest('Missing required fields')
+      throw AppError.badRequest('Please provide all required fields: location coordinates and hazard type.')
     }
 
     // Validate coordinates
     if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
-      throw AppError.badRequest('Invalid coordinates')
+      throw AppError.badRequest('The coordinates provided are invalid. Latitude must be -90 to 90, longitude -180 to 180.')
     }
 
     devLog(
@@ -100,7 +127,9 @@ router.post('/predict', authMiddleware, operatorOnly, async (req: AuthRequest, r
       ) RETURNING id
     `
 
-    // Safe polygon construction — validate geometry before building WKT (M21)
+    // Build WKT polygon string from the GeoJSON if it's valid.
+    // Invalid or missing geometry is logged and skipped rather than failing the whole request.
+    // PostGIS requires exactly: POLYGON((lng lat, lng lat, ...))
     let affectedAreaWKT: string | null = null
     try {
       const geo = prediction.geo_polygon
@@ -121,12 +150,17 @@ router.post('/predict', authMiddleware, operatorOnly, async (req: AuthRequest, r
       logger.warn({ err: polyErr }, '[AI Predict] Skipping invalid geo_polygon')
     }
 
+    // Extract top 5 SHAP contributors sorted by absolute importance descending.
+    // Stored separately from the full prediction payload for fast analytics queries.
     const topShapContributors = (prediction.contributing_factors || [])
       .filter((f: any) => typeof f === 'object' && f !== null)
       .sort((a: any, b: any) => Math.abs(Number(b.importance || 0)) - Math.abs(Number(a.importance || 0)))
       .slice(0, 5)
       .map((f: any) => ({ factor: f.factor || f.name, importance: Number(f.importance || 0), value: f.value }))
 
+    // SHA-256 hash of the full input feature set used as an idempotency/dedup key.
+    // Allows the frontend to check whether a cached prediction is still valid
+    // for the same coordinates, hazard type, and horizon.
     const inputFeatureSummaryHash = crypto
       .createHash('sha256')
       .update(JSON.stringify({
@@ -167,7 +201,8 @@ router.post('/predict', authMiddleware, operatorOnly, async (req: AuthRequest, r
     aiPredictionLatency.observe({ hazard_type }, (Date.now() - predStart) / 1000)
     aegisModelPredictionsTotal.inc({ hazard: hazard_type, region: region_id, version: prediction.model_version || 'unknown' })
 
-    // Broadcast to connected admin clients via socket.io (M18)
+    // Broadcast to connected admin clients via socket.io so dashboards
+    // update in real time without a manual refresh.
     const io = (req as any).app?.get('io')
     if (io) {
       io.to('admins').emit('ai:prediction', {
@@ -280,7 +315,7 @@ router.get('/status', async (_req: Request, res: Response, next: NextFunction): 
     const modelStatus = await aiClient.getModelStatus()
 
     res.json({
-      status: 'operational',
+      status: modelStatus?.status || 'operational',
       ai_engine_available: true,
       ...modelStatus
     })
@@ -311,7 +346,7 @@ router.post('/retrain', authMiddleware, adminOnly, async (req: AuthRequest, res:
     const { hazard_type, region_id } = req.body
 
     if (!hazard_type) {
-      throw AppError.badRequest('Missing hazard_type')
+      throw AppError.badRequest('Please specify a hazard type (e.g. flood, wildfire, heatwave).')
     }
 
     const resolvedRegionId = (typeof region_id === 'string' && region_id.trim()) || regionRegistry.getActiveRegion().getMetadata().regionId
@@ -345,7 +380,7 @@ router.post('/classify-image', authMiddleware, operatorOnly, async (req: AuthReq
     const { image_path, latitude, longitude, report_id } = req.body
 
     if (!image_path) {
-      throw AppError.badRequest('image_path is required')
+      throw AppError.badRequest('An image path is required for classification.')
     }
 
     devLog(`[AI Classify Image] Analysing: ${image_path}`)
@@ -377,7 +412,7 @@ router.post('/classify-report', authMiddleware, operatorOnly, async (req: AuthRe
     const { text, description, location } = req.body
 
     if (!text) {
-      throw AppError.badRequest('Report text required')
+      throw AppError.badRequest('Report text is required. Please provide a description.')
     }
 
     devLog('[AI Classify Report] Analyzing report text')
@@ -406,7 +441,7 @@ router.post('/predict-severity', authMiddleware, operatorOnly, async (req: AuthR
     } = req.body
 
     if (!text) {
-      throw AppError.badRequest('Report text required')
+      throw AppError.badRequest('Report text is required. Please provide a description.')
     }
 
     devLog('[AI Predict Severity] Analyzing severity')
@@ -444,7 +479,7 @@ router.post('/detect-fake', authMiddleware, operatorOnly, async (req: AuthReques
     } = req.body
 
     if (!text) {
-      throw AppError.badRequest('Report text required')
+      throw AppError.badRequest('Report text is required. Please provide a description.')
     }
 
     devLog('[AI Detect Fake] Analyzing report authenticity')
@@ -492,7 +527,8 @@ router.get('/models', authMiddleware, operatorOnly, async (_req: Request, res: R
 router.get('/models/:modelName/versions', authMiddleware, operatorOnly, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { modelName } = req.params
-    const limit = parseInt(req.query.limit as string) || 20
+    const parsedLimit = parseInt(req.query.limit as string)
+    const limit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? Math.min(parsedLimit, 100) : 20
     const result = await aiClient.listModelVersions(modelName, limit)
     res.json(result)
   } catch (err) {
@@ -509,7 +545,7 @@ router.post('/models/rollback', authMiddleware, adminOnly, async (req: AuthReque
     const { model_name, target_version } = req.body
 
     if (!model_name) {
-      throw AppError.badRequest('model_name is required')
+      throw AppError.badRequest('A model name is required. Please specify which model to use.')
     }
 
     devLog(`[AI Rollback] Model: ${model_name}, target: ${target_version || 'previous'}`)
@@ -541,7 +577,8 @@ router.post('/models/rollback', authMiddleware, adminOnly, async (req: AuthReque
 router.get('/drift', authMiddleware, operatorOnly, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const model_name = req.query.model_name as string | undefined
-    const hours = parseInt(req.query.hours as string) || 24
+    const parsedHours = parseInt(req.query.hours as string)
+    const hours = Number.isFinite(parsedHours) && parsedHours > 0 ? Math.min(parsedHours, 8760) : 24
     const result = await aiClient.checkDrift(model_name, hours)
     res.json(result)
   } catch (err) {
@@ -559,7 +596,7 @@ router.post('/predictions/:predictionId/feedback', authMiddleware, operatorOnly,
     const { feedback } = req.body
 
     if (!feedback || !['correct', 'incorrect', 'uncertain'].includes(feedback)) {
-      throw AppError.badRequest('feedback must be: correct, incorrect, uncertain')
+      throw AppError.badRequest('Invalid feedback value. Please choose one of: correct, incorrect, or uncertain.')
     }
 
     const result = await aiClient.submitPredictionFeedback(predictionId, feedback)
@@ -576,7 +613,8 @@ router.post('/predictions/:predictionId/feedback', authMiddleware, operatorOnly,
 router.get('/predictions/stats', authMiddleware, operatorOnly, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const model_name = req.query.model_name as string | undefined
-    const hours = parseInt(req.query.hours as string) || 24
+    const parsedHours2 = parseInt(req.query.hours as string)
+    const hours = Number.isFinite(parsedHours2) && parsedHours2 > 0 ? Math.min(parsedHours2, 8760) : 24
     const result = await aiClient.getPredictionStats(model_name, hours)
     res.json(result)
   } catch (err) {
@@ -603,7 +641,8 @@ router.get('/governance/models', authMiddleware, operatorOnly, async (_req: Requ
  */
 router.get('/governance/drift', authMiddleware, operatorOnly, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const hours = parseInt(req.query.hours as string) || 24
+    const parsedHours3 = parseInt(req.query.hours as string)
+    const hours = Number.isFinite(parsedHours3) && parsedHours3 > 0 ? Math.min(parsedHours3, 8760) : 24
     const result = await aiClient.checkDrift(undefined, hours)
     // Also pull persisted drift records from DB if available
     const dbDrift = await pool.query(`
@@ -627,7 +666,8 @@ router.get('/governance/drift', authMiddleware, operatorOnly, async (req: Reques
 router.get('/confidence-distribution', authMiddleware, operatorOnly, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const modelName = (req.query.model as string) || null
-    const hours = parseInt(req.query.hours as string) || 168 // 7 days default
+    const parsedHours4 = parseInt(req.query.hours as string)
+    const hours = Number.isFinite(parsedHours4) && parsedHours4 > 0 ? Math.min(parsedHours4, 8760) : 168 // 7 days default
 
     const params: any[] = [hours]
     let modelFilter = ''
@@ -699,7 +739,8 @@ router.get('/audit', authMiddleware, operatorOnly, async (req: Request, res: Res
       modelFilter = `AND model_name = $${params.length}`
     }
 
-    // Try prediction_logs first, fall back to ai_predictions
+    // Try prediction_logs first (full ML run logs); fall back to ai_predictions
+    // if that table is empty (older deployments or test environments).
     const result = await pool.query(`
       SELECT id, model_name, hazard_type, risk_level, confidence,
              execution_time_ms, feedback, created_at
@@ -835,7 +876,7 @@ router.post('/registry/cleanup/:hazardType/:regionId', authMiddleware, adminOnly
 router.post('/registry/cleanup-all', authMiddleware, adminOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const keep = parseInt(req.query.keep as string) || 3
-    const dryRun = req.query.dry_run !== 'false' // default to dry-run for safety
+    const dryRun = req.query.dry_run !== 'false' // default to dry-run for safety — must explicitly pass dry_run=false to actually delete
     const result = await aiClient.cleanupAllRegistry(keep, dryRun)
     res.json(result)
   } catch (err) {

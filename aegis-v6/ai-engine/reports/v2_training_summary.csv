@@ -1,0 +1,12 @@
+hazard,status,error
+flood,FAILED,train_flood_v2.py failed
+drought,FAILED,train_drought_v2.py failed
+heatwave,FAILED,Hazard 'heatwave' has only 9 positive training examples (need ≥ 50). Re-run the label builder or check data sources.
+wildfire,FAILED,Hazard 'wildfire' has only 0 positive training examples (need ≥ 50). Re-run the label builder or check data sources.
+severe_storm,FAILED,"The 'cv' parameter of CalibratedClassifierCV must be an int in the range [2, inf), an object implementing 'split' and 'get_n_splits', an iterable or None. Got 'prefit' instead."
+landslide,FAILED,Hazard 'landslide' has only 0 positive training examples (need ≥ 50). Re-run the label builder or check data sources.
+power_outage,FAILED,Hazard 'power_outage' has only 0 positive training examples (need ≥ 50). Re-run the label builder or check data sources.
+water_supply_disruption,FAILED,Hazard 'water_supply_disruption' has only 0 positive training examples (need ≥ 50). Re-run the label builder or check data sources.
+infrastructure_damage,FAILED,Hazard 'infrastructure_damage' has only 0 positive training examples (need ≥ 50). Re-run the label builder or check data sources.
+public_safety_incident,FAILED,Hazard 'public_safety_incident' has only 0 positive training examples (need ≥ 50). Re-run the label builder or check data sources.
+environmental_hazard,SKIPPED,Label file not found: E:\aegis-v6-fullstack\aegis-v6\ai-engine\data\labels\environmental_hazard_labels.parquet

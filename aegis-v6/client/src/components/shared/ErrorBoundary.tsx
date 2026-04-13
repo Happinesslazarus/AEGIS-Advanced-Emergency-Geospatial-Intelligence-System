@@ -1,14 +1,10 @@
-﻿/**
- * ErrorBoundary.tsx — Production-grade React error boundary.
+/**
+ * Module: ErrorBoundary.tsx
  *
- * Features:
- * Sentry integration with error fingerprinting & correlation IDs
- * Configurable retry limit with exponential back-off cooldown
- * Full-page vs. inline card mode
- * Structured backend error logging with correlation ID
- * Screen-reader announcements via hidden live region
- * Graceful degradation chain: custom fallback ? ErrorPage ? inline card
- */
+ * Error boundary shared component (reusable UI element used across pages).
+ *
+ * How it connects:
+ * - Used across both admin and citizen interfaces */
 
 import { Component, type ErrorInfo, type ReactNode, createRef } from 'react'
 import * as Sentry from '@sentry/react'
@@ -258,6 +254,15 @@ export default class ErrorBoundary extends Component<Props, State> {
 
     // Inline card mode
     const lang = getLanguage()
+    // Translate raw technical error messages into plain language
+    const rawMsg = this.state.error?.message || ''
+    const friendlyMsg = rawMsg.includes('Loading chunk') || rawMsg.includes('Failed to fetch dynamically imported module')
+      ? 'This section failed to load. This can happen after an update — try refreshing the page.'
+      : rawMsg.includes('NetworkError') || rawMsg.includes('Failed to fetch')
+      ? 'Could not connect to the server. Check your internet connection.'
+      : rawMsg.includes('Cannot read properties') || rawMsg.includes('is not a function') || rawMsg.includes('is undefined')
+      ? 'An unexpected error occurred in this section. Our team has been notified.'
+      : rawMsg || t('error.unexpected', lang)
     return (
       <>
         {srAnnouncer}
@@ -265,15 +270,10 @@ export default class ErrorBoundary extends Component<Props, State> {
           <div className="bg-danger-surface border border-muted rounded-2xl p-6 max-w-md w-full">
             <AlertTriangle className="w-10 h-10 text-red-500 mx-auto mb-3" aria-hidden="true" />
             <h2 className="text-lg font-bold text-red-700 dark:text-red-400 mb-2">
-              {t('shared.error.title', lang)}
+              {this.props.name ? `${this.props.name} failed to load` : t('shared.error.title', lang)}
             </h2>
             <p className="text-sm text-red-600 dark:text-red-300 mb-1">
-              {this.props.name && (
-                <span className="font-mono text-xs bg-red-100 dark:bg-red-900/40 px-1.5 py-0.5 rounded mr-2">
-                  {this.props.name}
-                </span>
-              )}
-              {this.state.error?.message || t('error.unexpected', lang)}
+              {friendlyMsg}
             </p>
 
             {this.state.correlationId && (
@@ -316,4 +316,4 @@ export default class ErrorBoundary extends Component<Props, State> {
     )
   }
 }
-
+

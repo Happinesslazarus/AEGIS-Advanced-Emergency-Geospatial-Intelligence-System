@@ -1,15 +1,10 @@
-﻿ /*
- * CommunityChat.tsx — Community Discussion Board (Advanced UI)
- * Features:
- * Modern social-media-style post feed
- * Lucide icon system (no Unicode emojis)
- * Report posts with reason selection
- * Admin can delete only reported posts
- * Animated like interactions
- * Glassmorphism cards and gradients
- * Skeleton loading, rich post creation
- * Beautiful comment section
-  */
+/**
+ * Module: CommunityChat.tsx
+ *
+ * Community chat citizen component (public-facing UI element).
+ *
+ * How it connects:
+ * - Rendered inside CitizenPage.tsx or CitizenDashboard.tsx */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { getAnyToken } from '../../utils/api'
@@ -162,9 +157,13 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  const authHeaders = useCallback(() => ({
-    Authorization: `Bearer ${getAnyToken() || ''}`
-  }), [])
+  const authHeaders = useCallback(() => {
+    const csrfToken = document.cookie.split('; ').find(c => c.startsWith('aegis_csrf='))?.split('=')[1]
+    return {
+      Authorization: `Bearer ${getAnyToken() || ''}`,
+      ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
+    }
+  }, [])
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -1148,7 +1147,7 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
                 <textarea
                   value={editContent}
                   onChange={(e) => { if (e.target.value.length <= maxChars) setEditContent(e.target.value) }}
-                  className="w-full px-3.5 py-3 text-[15px] leading-relaxed bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 min-h-[120px] resize-none transition-all text-gray-900 dark:text-gray-100"
+                  className="w-full px-3.5 py-3 text-[15px] leading-relaxed bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-aegis-500/30 focus:border-aegis-400 min-h-[120px] resize-none transition-all text-gray-900 dark:text-gray-100"
                   rows={4}
                 />
                 <div className="flex justify-end mt-1">
@@ -1166,7 +1165,7 @@ export default function CommunityChat({ parentSocket }: { parentSocket?: Socket 
                     value={editLocation}
                     onChange={(e) => setEditLocation(e.target.value)}
                     placeholder={t('communityChat.addLocation', lang)}
-                    className="w-full pl-10 pr-3 py-2.5 text-sm bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all text-gray-900 dark:text-gray-100"
+                    className="w-full pl-10 pr-3 py-2.5 text-sm bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-aegis-500/30 focus:border-aegis-400 transition-all text-gray-900 dark:text-gray-100"
                   />
                 </div>
               </div>

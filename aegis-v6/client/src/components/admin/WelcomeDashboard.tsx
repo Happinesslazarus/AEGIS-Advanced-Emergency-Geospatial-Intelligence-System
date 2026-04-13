@@ -1,3 +1,11 @@
+/**
+ * Module: WelcomeDashboard.tsx
+ *
+ * Welcome dashboard admin component (operator dashboard panel).
+ *
+ * How it connects:
+ * - Rendered inside AdminPage.tsx based on active view */
+
 import { useMemo, useState, useEffect, useRef } from 'react'
 import {
   BarChart3, FileText, Users, Bell, Activity,
@@ -113,7 +121,7 @@ export default function WelcomeDashboard({ user, stats, alerts, reports, lang, o
           { icon: Wifi, label: t('admin.welcome.statusWebSocket', lang), ok: socketConnected ?? true },
         ] as const).map(s => (
           <div key={s.label} className="flex items-center gap-1.5 whitespace-nowrap">
-            <s.icon className="w-3 h-3 text-gray-400 dark:text-gray-500" />
+            <s.icon className="w-3 h-3 text-gray-400 dark:text-gray-400" />
             <span className="text-[10px] font-semibold text-gray-600 dark:text-gray-300">{s.label}</span>
             <span className={`w-1.5 h-1.5 rounded-full ${s.ok ? 'bg-emerald-500' : 'bg-red-500 animate-pulse'}`} />
           </div>
@@ -327,14 +335,14 @@ export default function WelcomeDashboard({ user, stats, alerts, reports, lang, o
 
       {showKeyboard && (
         <div className="mt-3 bg-gray-900 text-white rounded-xl p-3 flex items-center gap-4 flex-wrap text-[10px] font-mono ring-1 ring-gray-700">
-          <span className="font-bold text-gray-400 uppercase tracking-wider mr-1">Shortcuts</span>
+          <span className="font-bold text-gray-400 uppercase tracking-wider mr-1">{t('common.shortcuts', lang)}</span>
           <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">D</kbd> Command Center</span>
           <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">R</kbd> Reports</span>
           <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">M</kbd> Map</span>
           <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">A</kbd> Analytics</span>
           <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">B</kbd> Broadcast</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">?</kbd> Toggle Shortcuts</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">Esc</kbd> Close</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">?</kbd> {t('common.toggleShortcuts', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-white">{t('common.esc', lang)}</kbd> {t('common.close', lang)}</span>
         </div>
       )}
     </div>

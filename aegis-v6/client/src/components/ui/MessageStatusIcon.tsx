@@ -1,3 +1,16 @@
+/**
+ * File: MessageStatusIcon.tsx
+ *
+ * What this file does:
+ * Tiny component that renders a single checkmark (sent), double grey
+ * check (delivered), or double blue check (read) based on the message
+ * status string from the server.
+ *
+ * How it connects:
+ * - Used by FloatingChatWidget.tsx and any chat message list
+ * - Status values: "sent" | "delivered" | "read" (set by server socket events)
+ */
+
 import { Check, CheckCheck } from 'lucide-react'
 
 interface Props {
@@ -17,4 +30,4 @@ export default function MessageStatusIcon({ status, size = 'md' }: Props) {
   if (status === 'delivered') return <CheckCheck className={`${cls} text-gray-400 dark:text-gray-300`} />
   return <Check className={`${cls} text-gray-400 dark:text-gray-300`} />
 }
-
+

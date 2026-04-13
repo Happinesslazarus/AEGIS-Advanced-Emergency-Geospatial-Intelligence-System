@@ -1,16 +1,38 @@
-﻿ /*
- * services/cronJobs.ts — Scheduled background tasks
- * Uses node-cron to run periodic jobs:
- * 1. Ingest flood warnings via region adapter (every 15 minutes)
- * 2. Clean expired response cache entries (hourly)
- * 3. Expire old chat sessions (daily)
- * 4. Re-ingest data from EA, NASA POWER, Open-Meteo (every 6 hours)
- * 5. Retrain ML models (daily at 2am)
- * 6. Monitor AI confidence + anomaly detection (every 30 minutes)
- * 7. Expand RAG knowledge base (daily at 4am)
- * Each job logs its execution to the scheduled_jobs table for auditing.
- * Jobs are idempotent and safe to restart at any time.
-  */
+/**
+ * File: cronJobs.ts
+ *
+ * What this file does:
+ * Runs all scheduled background tasks for the AEGIS platform. These include
+ * ingesting live river level data from SEPA and EA APIs, recalculating threat
+ * levels, running AI hazard predictions, monitoring model drift, and cleaning
+ * up expired sessions and stale cache entries.
+ *
+ * How it connects:
+ * - Started at server boot from server/src/index.ts (startCronJobs)
+ * - Calls server/src/services/riverLevelService.ts on schedule for river data
+ * - Calls server/src/services/threatLevelService.ts to recalculate threat level
+ * - Calls server/src/services/aiClient.ts to request prediction updates from AI engine
+ * - Calls server/src/services/modelMonitoringService.ts to check for model drift
+ * - Emits Socket.IO events via server/src/services/socket.ts when broadcasts are triggered
+ * - Writes job timing & outcomes to the cron_jobs table and Prometheus metrics
+ *
+ * Key jobs and schedules:
+ * - River levels:   every 5 min (SEPA / EA ingestion)
+ * - Threat level:   every 10 min (recalculated from live data)
+ * - AI predictions: every 15 min (hazard forecast refresh)
+ * - Model drift:    every 6 hours (detects degrading model accuracy)
+ * - Session cleanup: every 1 hour (removes expired auth sessions)
+ *
+ * Learn more:
+ * - server/src/services/riverLevelService.ts   — river gauge ingestion and broadcasts
+ * - server/src/services/threatLevelService.ts  — how threat level is calculated
+ * - server/src/services/modelMonitoringService.ts — model performance drift detection
+ * - server/src/services/aiClient.ts            — HTTP client for the AI engine
+ *
+ * Simple explanation:
+ * The scheduled task runner. Keeps AEGIS data fresh without anyone having to
+ * click a button — river levels, forecasts, and threat scores update automatically.
+ */
 
 import cron from 'node-cron'
 import pool from '../models/db.js'
@@ -27,12 +49,12 @@ import { fetchWithTimeout } from '../utils/fetchWithTimeout.js'
 
 const region = getActiveRegion()
 
-/* Resolve region ID for incident modules: query param → env → active adapter */
+/* Resolve region ID for incident modules: query param ? env ? active adapter */
 function getActiveRegionId(): string {
   return process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId
 }
 
-// §1 JOB EXECUTION WRAPPER
+// -1 JOB EXECUTION WRAPPER
 
 async function runJob(name: string, fn: () => Promise<number | string>): Promise<void> {
   const start = Date.now()
@@ -49,7 +71,7 @@ async function runJob(name: string, fn: () => Promise<number | string>): Promise
       `INSERT INTO scheduled_jobs (job_name, status, duration_ms, records_affected, completed_at)
        VALUES ($1, 'success', $2, $3, now())`,
       [name, duration, affected],
-    ).catch(() => {}) // Don't fail the job if logging fails
+    ).catch((err) => logger.debug({ err, name }, '[CronJobs] Failed to log job success'))
   } catch (err: any) {
     const duration = Date.now() - start
     logger.error({ job: name, durationMs: duration, err }, `[Cron] ${name} failed`)
@@ -61,11 +83,11 @@ async function runJob(name: string, fn: () => Promise<number | string>): Promise
       `INSERT INTO scheduled_jobs (job_name, status, duration_ms, error_message, completed_at)
        VALUES ($1, 'failed', $2, $3, now())`,
       [name, duration, err.message],
-    ).catch(() => {})
+    ).catch((logErr) => logger.debug({ err: logErr, name }, '[CronJobs] Failed to log job failure'))
   }
 }
 
-// §2 FLOOD WARNINGS INGESTION (region-aware)
+// -2 FLOOD WARNINGS INGESTION (region-aware)
 
 async function ingestFloodWarnings(): Promise<number> {
   // Use the active region adapter to get flood warnings from the correct authority
@@ -85,7 +107,7 @@ async function ingestFloodWarnings(): Promise<number> {
       source: w.source,
     }))
   } catch {
-    // Adapter failed — try raw ingestion endpoint URLs as fallback
+    // Adapter failed - try raw ingestion endpoint URLs as fallback
     const urls = [endpoints.flood_warnings, endpoints.flood_rss].filter(Boolean)
     for (const url of urls) {
       try {
@@ -107,7 +129,7 @@ async function ingestFloodWarnings(): Promise<number> {
           }))
           break
         }
-      } catch { continue }
+      } catch (e: any) { logger.warn({ err: e, url }, '[Cron/FloodWarnings] Fallback URL failed'); continue }
     }
   }
 
@@ -140,8 +162,11 @@ async function ingestFloodWarnings(): Promise<number> {
         ],
       )
       ingested++
-    } catch {
-      // Duplicate or constraint error — skip
+    } catch (err: any) {
+      // Skip duplicate key violations (23505), log anything else
+      if (err?.code !== '23505') {
+        logger.warn({ err, alertId: String(item.id) }, '[CronJobs] Failed to ingest alert')
+      }
     }
   }
 
@@ -153,7 +178,7 @@ function extractTag(xml: string, tag: string): string | null {
   return match ? match[1].replace(/<[^>]+>/g, '').trim() : null
 }
 
-// §3 CACHE CLEANUP
+// -3 CACHE CLEANUP
 
 async function cleanExpiredCache(): Promise<number> {
   const result = await pool.query(
@@ -162,7 +187,7 @@ async function cleanExpiredCache(): Promise<number> {
   return result.rowCount || 0
 }
 
-// §4 EXPIRE OLD CHAT SESSIONS
+// -4 EXPIRE OLD CHAT SESSIONS
 
 async function expireChatSessions(): Promise<number> {
   const result = await pool.query(
@@ -172,7 +197,7 @@ async function expireChatSessions(): Promise<number> {
   return result.rowCount || 0
 }
 
-// §5 DATA RE-INGESTION (scheduled)
+// -5 DATA RE-INGESTION (scheduled)
 
 async function scheduledDataIngestion(): Promise<number> {
   try {
@@ -201,7 +226,7 @@ async function scheduledDataIngestion(): Promise<number> {
   }
 }
 
-// §6 ML MODEL RETRAINING (scheduled)
+// -6 ML MODEL RETRAINING (scheduled)
 
 async function scheduledModelRetraining(): Promise<number> {
   try {
@@ -216,7 +241,7 @@ async function scheduledModelRetraining(): Promise<number> {
   }
 }
 
-// §7 AI CONFIDENCE MONITORING & ANOMALY DETECTION
+// -7 AI CONFIDENCE MONITORING & ANOMALY DETECTION
 
 async function monitorAIConfidence(): Promise<number> {
   try {
@@ -244,6 +269,8 @@ async function monitorAIConfidence(): Promise<number> {
     const stddevConf = parseFloat(stats.stddev_confidence) || 0
     const predCount = parseInt(stats.prediction_count) || 0
     const lowConfCount = parseInt(stats.low_confidence_count) || 0
+
+    if (predCount === 0) return 0
 
     // Anomaly detection: flag if confidence drops significantly
     const lowConfRatio = lowConfCount / predCount
@@ -287,7 +314,7 @@ async function monitorAIConfidence(): Promise<number> {
       logger.info({ avgConf, predCount, lowConfCount }, '[Monitor] AI confidence OK')
     }
 
-    // Check model drift — compare recent vs historical performance
+    // Check model drift - compare recent vs historical performance
     const { rows: historicalMetrics } = await pool.query(`
       SELECT metric_value
       FROM ai_model_metrics
@@ -310,7 +337,7 @@ async function monitorAIConfidence(): Promise<number> {
           const { trainAllModels } = await import('./mlTrainingPipeline.js')
           logger.info('[Monitor] Auto-triggering retraining due to model drift...')
           await trainAllModels()
-        } catch { /* non-critical */ }
+        } catch (e: any) { logger.warn({ err: e }, '[Monitor] Auto-retraining failed') }
       }
     }
 
@@ -321,7 +348,7 @@ async function monitorAIConfidence(): Promise<number> {
   }
 }
 
-// §8 RAG KNOWLEDGE BASE EXPANSION (scheduled)
+// -8 RAG KNOWLEDGE BASE EXPANSION (scheduled)
 
 async function scheduledRAGExpansion(): Promise<number> {
   try {
@@ -336,7 +363,7 @@ async function scheduledRAGExpansion(): Promise<number> {
   }
 }
 
-// §9c SAFETY CHECK-IN REMINDERS (#36)
+// -9c SAFETY CHECK-IN REMINDERS (#36)
 // FIX (2026-03-16 audit): The INSERT used column "body" which does not exist in the
 // messages table (correct column: "content") and omitted the NOT NULL sender_id column.
 // Both bugs caused every reminder to silently fail at the per-citizen catch block while
@@ -371,6 +398,7 @@ async function sendSafetyReminders(): Promise<number> {
   if (overdue.rows.length === 0) return 0
 
   let reminded = 0
+  let totalFailures = 0
   let consecutiveFailures = 0
 
   for (const citizen of overdue.rows) {
@@ -398,7 +426,7 @@ async function sendSafetyReminders(): Promise<number> {
         threadId = newThread.rows[0].id
       }
 
-      // Add a system message (column is "content", not "body" — see migration_citizen_system.sql §7)
+      // Add a system message (column is "content", not "body" - see migration_citizen_system.sql -7)
       const hoursAgo = Math.round(
         (Date.now() - new Date(citizen.last_at).getTime()) / (1000 * 60 * 60)
       )
@@ -410,7 +438,7 @@ async function sendSafetyReminders(): Promise<number> {
           SYSTEM_SENDER_ID,
           ` Safety Reminder: We haven't heard from you in ${hoursAgo} hours. ` +
           `Please check in when you can so we know you're safe. ` +
-          `Go to Safety → Check In to update your status.`,
+          `Go to Safety ? Check In to update your status.`,
         ]
       )
 
@@ -447,6 +475,7 @@ async function sendSafetyReminders(): Promise<number> {
       consecutiveFailures = 0
     } catch (err: any) {
       consecutiveFailures++
+      totalFailures++
       logger.error({ citizenId: citizen.id, err }, '[Cron/SafetyReminder] Failed for citizen')
 
       // If every attempt so far has failed, the problem is likely systemic (schema mismatch,
@@ -461,10 +490,19 @@ async function sendSafetyReminders(): Promise<number> {
     }
   }
 
+  // If more than 50% of reminders failed, treat the job as failed so runJob logs it accordingly
+  const total = reminded + totalFailures
+  if (total > 0 && totalFailures / total > 0.5) {
+    throw new Error(
+      `Safety reminder job partial failure: ${totalFailures}/${total} reminders failed (>${Math.round(totalFailures / total * 100)}%). ` +
+      `Only ${reminded} succeeded.`
+    )
+  }
+
   return reminded
 }
 
-// §9b ACCOUNT DELETION PROCESSING (30-day grace period)
+// -9b ACCOUNT DELETION PROCESSING (30-day grace period)
 
 async function processScheduledDeletions(): Promise<number> {
   // Find citizens whose 30-day grace period has expired
@@ -527,7 +565,7 @@ async function processScheduledDeletions(): Promise<number> {
   return processed
 }
 
-// §10 SCHEDULE ALL JOBS
+// -10 SCHEDULE ALL JOBS
 
 export function startCronJobs(): void {
   // Ingest flood warnings every 15 minutes
@@ -605,7 +643,7 @@ export function startCronJobs(): void {
         for (const m of models) {
           if (m.drift_detected) {
             driftCount++
-            logger.warn({ modelName: m.model_name }, '[Cron/Drift] Drift detected — consider retraining')
+            logger.warn({ modelName: m.model_name }, '[Cron/Drift] Drift detected - consider retraining')
             await pool.query(`
               INSERT INTO model_drift_metrics (model_name, metric_name, drift_detected, threshold, current_value, created_at)
               VALUES ($1, 'output_distribution', true, 0.05, $2, NOW())
@@ -666,23 +704,23 @@ export function startCronJobs(): void {
   })
 
   // Run flood warning ingestion immediately on startup
-  runJob('flood_warnings_ingestion', ingestFloodWarnings)
+  runJob('flood_warnings_ingestion', ingestFloodWarnings).catch(e => logger.error({ err: e }, '[Cron] flood_warnings_ingestion startup failed'))
 
   // Fetch river levels immediately on startup
-  setTimeout(() => runJob('river_level_fetch', fetchAndBroadcastLevels), 5_000)
+  setTimeout(() => { runJob('river_level_fetch', fetchAndBroadcastLevels).catch(e => logger.error({ err: e }, '[Cron] river_level_fetch startup failed')) }, 5_000)
 
   // Run initial confidence monitoring
-  setTimeout(() => runJob('ai_confidence_monitor', monitorAIConfidence), 30_000)
+  setTimeout(() => { runJob('ai_confidence_monitor', monitorAIConfidence).catch(e => logger.error({ err: e }, '[Cron] ai_confidence_monitor startup failed')) }, 30_000)
 
   // Run initial model monitoring quickly after startup
-  setTimeout(() => runJob('model_monitoring_rolling_stats', collectModelRollingStats), 45_000)
-  setTimeout(() => runJob('model_monitoring_hourly_snapshot', computeAndPersistModelDriftSnapshots), 60_000)
+  setTimeout(() => { runJob('model_monitoring_rolling_stats', collectModelRollingStats).catch(e => logger.error({ err: e }, '[Cron] model_monitoring_rolling_stats startup failed')) }, 45_000)
+  setTimeout(() => { runJob('model_monitoring_hourly_snapshot', computeAndPersistModelDriftSnapshots).catch(e => logger.error({ err: e }, '[Cron] model_monitoring_hourly_snapshot startup failed')) }, 60_000)
 
   // Calculate initial threat level on startup
-  setTimeout(() => runJob('threat_level_assessment', async () => {
+  setTimeout(() => { runJob('threat_level_assessment', async () => {
     const assessment = await calculateThreatLevel()
     return assessment.level
-  }), 10_000)
+  }).catch(e => logger.error({ err: e }, '[Cron] threat_level_assessment startup failed')) }, 10_000)
 
   // Poll Telegram for /start messages every 2 minutes to capture chat_ids
   // This lets users subscribe with @username and have their numeric chat_id
@@ -719,12 +757,12 @@ export function startCronJobs(): void {
               body: JSON.stringify({
                 chat_id: msg.chat.id,
                 parse_mode: 'HTML',
-                text: `[OK] <b>AEGIS Alert System</b>\n\nYou are now connected! You will receive emergency alerts in this chat.\n\n🆔 Your Telegram ID: <code>${chatId}</code>`,
+                text: `[OK] <b>AEGIS Alert System</b>\n\nYou are now connected! You will receive emergency alerts in this chat.\n\n?? Your Telegram ID: <code>${chatId}</code>`,
               }),
             }).catch(() => {})
           }
         }
-      } catch { /* ignore network errors */ }
+      } catch (e: any) { logger.warn({ err: e }, '[Cron/Telegram] Poll failed') }
     }
     // Run immediately on startup, then every 2 minutes
     setTimeout(pollTelegram, 5_000)
@@ -733,7 +771,7 @@ export function startCronJobs(): void {
   }
 }
 
-// §11 n8n FALLBACK MODE
+// -11 n8n FALLBACK MODE
 // When the n8n instance is unreachable, the health monitor calls
 // activateFallbackJobs() so the same data-fetching work still happens
 // via cron inside this Node process. When n8n comes back online,
@@ -744,23 +782,23 @@ let fallbackActive = false
 
  /*
  * Start cron-based fallback jobs that mirror the critical n8n workflows:
- * WF1 — Gauge polling (every 5 min)
- * WF2 — Weather forecast (every 30 min)
- * WF3 — Rainfall aggregation (every 15 min)
- * WF3b — Flood alert ingestion (every 15 min)
- * WF4 — Lightweight AI run (every 30 min)
- * WF5 — Air quality monitor (every 20 min)
- * WF6 — Cross-incident evaluator (every 5 min)
- * WF7 — Wildfire FDI (every 15 min)
- * WF8 — Heatwave check (hourly)
- * ... — All 11 incident modules (various)
+ * WF1 - Gauge polling (every 5 min)
+ * WF2 - Weather forecast (every 30 min)
+ * WF3 - Rainfall aggregation (every 15 min)
+ * WF3b - Flood alert ingestion (every 15 min)
+ * WF4 - Lightweight AI run (every 30 min)
+ * WF5 - Air quality monitor (every 20 min)
+ * WF6 - Cross-incident evaluator (every 5 min)
+ * WF7 - Wildfire FDI (every 15 min)
+ * WF8 - Heatwave check (hourly)
+ * ... - All 11 incident modules (various)
   */
 export function activateFallbackJobs(): void {
   if (fallbackActive) return
   fallbackActive = true
   logger.info('[Cron/Fallback] Activating n8n fallback jobs')
 
-  // WF1: Gauge polling (already runs via §10, but ensure 5-min cadence)
+  // WF1: Gauge polling (already runs via -10, but ensure 5-min cadence)
   fallbackTasks.push(
     cron.schedule('*/5 * * * *', () => runJob('fallback_gauge_poll', fetchAndBroadcastLevels)),
   )
@@ -802,12 +840,12 @@ export function activateFallbackJobs(): void {
     cron.schedule('*/30 * * * *', () => runJob('fallback_ai_monitor', monitorAIConfidence)),
   )
 
-  // WF3b: Flood alert ingestion (supplementary — mirrors n8n WF3 ingestion path)
+  // WF3b: Flood alert ingestion (supplementary - mirrors n8n WF3 ingestion path)
   fallbackTasks.push(
     cron.schedule('*/15 * * * *', () => runJob('fallback_flood_alerts', ingestFloodWarnings)),
   )
 
-  // WF7 Fallback: Wildfire — Fire Danger Index every 15 min
+  // WF7 Fallback: Wildfire - Fire Danger Index every 15 min
   fallbackTasks.push(
     cron.schedule('*/15 * * * *', () =>
       runJob('fallback_wildfire_fdi', async () => {
@@ -825,7 +863,7 @@ export function activateFallbackJobs(): void {
     ),
   )
 
-  // WF8 Fallback: Heatwave — temperature check hourly
+  // WF8 Fallback: Heatwave - temperature check hourly
   fallbackTasks.push(
     cron.schedule('0 * * * *', () =>
       runJob('fallback_heatwave_check', async () => {
@@ -843,7 +881,7 @@ export function activateFallbackJobs(): void {
     ),
   )
 
-  // WF9 Fallback: Severe Storm — weather data every 10 min
+  // WF9 Fallback: Severe Storm - weather data every 10 min
   fallbackTasks.push(
     cron.schedule('*/10 * * * *', () =>
       runJob('fallback_severe_storm', async () => {
@@ -861,7 +899,7 @@ export function activateFallbackJobs(): void {
     ),
   )
 
-  // WF10 Fallback: Landslide — rainfall + soil every 3h
+  // WF10 Fallback: Landslide - rainfall + soil every 3h
   fallbackTasks.push(
     cron.schedule('0 */3 * * *', () =>
       runJob('fallback_landslide_risk', async () => {
@@ -879,7 +917,7 @@ export function activateFallbackJobs(): void {
     ),
   )
 
-  // WF11-14 Fallback: Rule-based incidents — evaluate every 5 min
+  // WF11-14 Fallback: Rule-based incidents - evaluate every 5 min
   const ruleBasedIncidents = [
     'power_outage',
     'water_supply_disruption',
@@ -905,7 +943,7 @@ export function activateFallbackJobs(): void {
     )
   }
 
-  // WF15 Fallback: Environmental Hazard — air quality every 20 min
+  // WF15 Fallback: Environmental Hazard - air quality every 20 min
   fallbackTasks.push(
     cron.schedule('*/20 * * * *', () =>
       runJob('fallback_environmental_aqi', async () => {
@@ -923,7 +961,7 @@ export function activateFallbackJobs(): void {
     ),
   )
 
-  // WF16 Fallback: Drought — precipitation deficit every 6 hours
+  // WF16 Fallback: Drought - precipitation deficit every 6 hours
   fallbackTasks.push(
     cron.schedule('0 */6 * * *', () =>
       runJob('fallback_drought_monitor', async () => {
@@ -944,7 +982,7 @@ export function activateFallbackJobs(): void {
   // NOTE: WF5 (Air Quality / Environmental Hazard) is already covered by WF15 above.
   // Removed the duplicate WF5 fallback task that was previously here.
 
-  // WF6 Fallback: Cross-incident Alert Evaluator — every 5 min
+  // WF6 Fallback: Cross-incident Alert Evaluator - every 5 min
   fallbackTasks.push(
     cron.schedule('*/5 * * * *', () =>
       runJob('fallback_alert_evaluator', async () => {
@@ -1027,11 +1065,11 @@ export function deactivateFallbackJobs(): void {
     task.stop()
   }
   fallbackTasks.length = 0
-  logger.info('[Cron/Fallback] n8n recovered — fallback jobs deactivated')
+  logger.info('[Cron/Fallback] n8n recovered - fallback jobs deactivated')
 }
 
 /* Whether fallback mode is currently active. */
 export function isFallbackActive(): boolean {
   return fallbackActive
 }
-
+

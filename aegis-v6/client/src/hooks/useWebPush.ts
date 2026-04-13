@@ -1,3 +1,11 @@
+/**
+ * Module: useWebPush.ts
+ *
+ * useWebPush custom React hook (web push logic).
+ *
+ * How it connects:
+ * - Used by React components that need this functionality */
+
 import { useEffect, useState } from 'react'
 
 export interface WebPushStatus {
@@ -16,11 +24,18 @@ export const useWebPush = () => {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  // Check browser support and get public key
+  // Check browser support and get the VAPID public key.
+  // VAPID (Voluntary Application Server Identification for Web Push) = a standard
+  // that lets the browser verify the push message genuinely came from THIS app's
+  // server and not an impersonator.  The server generates a VAPID key pair;
+  // we send the public half to the browser when subscribing.
   useEffect(() => {
     const checkSupport = async () => {
       try {
-        // Check if browser supports Web Push
+        // Web Push requires three browser features:
+        // serviceWorker: to receive push messages in the background when the tab is closed
+        // PushManager:   the API that manages push subscriptions
+        // Notification:  the permission+display API for showing alerts
         const isSupported =
           'serviceWorker' in navigator &&
           'PushManager' in window &&
@@ -33,7 +48,8 @@ export const useWebPush = () => {
           return
         }
 
-        // Fetch notification service status to get public key
+        // Fetch the VAPID public key from our server so we can pass it to
+        // PushManager.subscribe() when the user opts in.
         try {
           const response = await fetch('/api/notifications/status')
           const data = await response.json()
@@ -46,8 +62,11 @@ export const useWebPush = () => {
           console.warn('Could not fetch notification status from server')
         }
 
-        // Check if already subscribed
+        // Check if the user already has an active push subscription from a
+        // previous session.  pushManager.getSubscription() returns null if not.
         try {
+          // navigator.serviceWorker.ready waits until the service worker is
+          // installed and activated (may be immediate if called after registration).
           const reg = await navigator.serviceWorker.ready
           const subscription = await reg.pushManager.getSubscription()
           setStatus(prev => ({ ...prev, subscribed: !!subscription }))

@@ -1,19 +1,10 @@
-﻿/**
- * Map3DView.tsx — Deck.gl 3D Operations Map with MapLibre GL base
+/**
+ * Module: Map3DView.tsx
  *
- * Professional 3D mode for the Live Operations Map using:
- * MapLibre GL JS with CartoDB Dark Matter vector style (FREE, no token)
- * Deck.gl layers: ScatterplotLayer, ColumnLayer, ArcLayer, PolygonLayer, IconLayer, TextLayer
- * 3D extruded buildings from OSM data
- * Report markers as 3D columns colour-coded by severity
- * River gauge stations as glowing orbs with height = water level
- * Distress beacons as pulsing red pillars
- * Flood prediction extents as translucent 3D polygons
- * Evacuation routes as animated arcs
- * Smooth orbital rotation and pitch controls
+ * Map3 d view shared component (reusable UI element used across pages).
  *
- * No API key / token required.
- */
+ * How it connects:
+ * - Used across both admin and citizen interfaces */
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { getAnyToken } from '../../utils/api'
@@ -44,8 +35,8 @@ const DEFAULT_BEARING = -20
 const SEV_COLOURS = SEVERITY_RGBA
 const STATUS_COLOURS = STATUS_RGBA
 
-// CartoDB Dark Matter (no token needed)
-const DARK_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
+// OpenFreeMap dark style (free, no token, OSM-based) — replaces CARTO which is unavailable
+const DARK_STYLE = 'https://tiles.openfreemap.org/styles/dark'
 
 interface Report {
   id: string | number
@@ -143,7 +134,7 @@ export default function Map3DView({
       animFrameRef.current = requestAnimationFrame(animate)
     }
     animate()
-    return () => { running = false; cancelAnimationFrame(animFrameRef.current) }
+    return () => { running = false; if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current) }
   }, [])
 
   // Init MapLibre
@@ -419,7 +410,7 @@ export default function Map3DView({
       animFrameRef.current = requestAnimationFrame(rotate)
     }
     rotate()
-    return () => cancelAnimationFrame(animFrameRef.current)
+    return () => { if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current) }
   }, [autoRotate])
 
   // Toggle 3D buildings

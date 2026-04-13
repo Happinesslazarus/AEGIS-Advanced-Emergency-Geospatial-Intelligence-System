@@ -1,13 +1,7 @@
 """
- AEGIS AI ENGINE — Complete Training Pipeline with Real Data Ingestion
+Module: run_training_with_ingestion.py
 
- This script implements the full production-grade training workflow:
- 1. Check database table row counts
- 2. Run data ingestion if < 1000 rows available
- 3. Validate dataset meets minimum requirements
- 4. Execute model training with comprehensive logging
- 5. Export trained models to registry
- 6. Abort if any validation fails
+Run_training_with_ingestion AI engine module.
 """
 
 import asyncio

@@ -1,3 +1,12 @@
+/**
+ * Module: guest-dashboard.spec.ts
+ *
+ * Guest-dashboard test suite (automated tests for this feature).
+ *
+ * Simple explanation:
+ * Verifies that guest-dashboard works correctly.
+ */
+
 import { test, expect } from '@playwright/test'
 
 test.describe('Guest Dashboard', () => {

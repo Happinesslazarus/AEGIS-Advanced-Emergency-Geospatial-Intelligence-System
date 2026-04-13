@@ -1,5 +1,13 @@
 /**
- * incidents/wildfire/routes.ts — Custom routes for wildfire incidents
+ * Module: routes.ts
+ *
+ * Wildfire and bushfire events incident module (handles wildfire specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for wildfire events.
  */
 
 import { Router, Request, Response } from 'express'
@@ -17,8 +25,7 @@ export function setupWildfireRoutes(router: Router): void {
         message: 'NASA FIRMS hotspot integration pending'
       })
     } catch (err: unknown) {
-      const error = err as Error
-      res.status(500).json({ error: 'Failed to fetch fire hotspots', details: error.message })
+      res.status(500).json({ error: 'Could not load fire hotspot data. Please try again.' })
     }
   })
 
@@ -34,8 +41,7 @@ export function setupWildfireRoutes(router: Router): void {
         message: 'Fire risk assessment pending'
       })
     } catch (err: unknown) {
-      const error = err as Error
-      res.status(500).json({ error: 'Failed to assess fire risk', details: error.message })
+      res.status(500).json({ error: 'Could not assess fire risk at this time. Please try again.' })
     }
   })
 
@@ -50,9 +56,8 @@ export function setupWildfireRoutes(router: Router): void {
         message: 'Smoke forecast integration pending'
       })
     } catch (err: unknown) {
-      const error = err as Error
-      res.status(500).json({ error: 'Failed to fetch smoke forecast', details: error.message })
+      res.status(500).json({ error: 'Could not load smoke and air quality forecast. Please try again.' })
     }
   })
 }
-
+

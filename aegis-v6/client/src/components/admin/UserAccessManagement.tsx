@@ -1,5 +1,25 @@
-/* UserAccessManagement.tsx — Enterprise User & Access Management Console
-   RBAC, full audit trail, account lifecycle, session monitoring, bulk ops. */
+/**
+ * File: UserAccessManagement.tsx
+ *
+ * What this file does:
+ * Full operator account management console for admins. Four tabs:
+ * - Directory: searchable user table with inline edit, suspend, role change
+ * - Audit: immutable event trail of all account actions
+ * - Roles: RBAC role descriptions and per-role permission matrix
+ * - Sessions: active and terminated session monitoring
+ *
+ * State is owned by the parent (AdminPage.tsx) and passed down as props +
+ * API helpers, keeping this component stateless except for UI.
+ *
+ * How it connects:
+ * - Rendered inside AdminPage.tsx
+ * - All API calls delegated to props (apiGetUsers, apiUpdateUser, etc.)
+ * - Role constants and permissions are i18n-translated at render time
+ *
+ * Simple explanation:
+ * Gives admins a single console to manage who can access the system,
+ * what they can do, and a complete audit trail of every change.
+ */
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import {
@@ -35,8 +55,12 @@ interface Props {
 type Tab = 'directory' | 'audit' | 'roles' | 'sessions'
 type SortField = 'name' | 'role' | 'department' | 'status' | 'lastLogin' | 'created'
 
+// Sentinel value for the "no department assigned" option in the role-edit dropdown.
+// Using an explicit string rather than '' or null prevents accidentally clearing the field.
 const UNASSIGNED_VALUE = '__unassigned__'
 
+// getRoleMeta is a function (not a constant) so it can call t() with the live language.
+// This ensures role labels and descriptions update immediately on locale change.
 function getRoleMeta(lang: string): Record<string, { label: string; color: string; bg: string; ring: string; icon: typeof Shield; desc: string; perms: string[] }> {
   return {
     admin: {
@@ -292,7 +316,7 @@ export default function UserAccessManagement({
 
   const filteredUsers = useMemo(() => {
     const q = search.toLowerCase()
-    let items = users.filter(u => {
+    const items = users.filter(u => {
       if (q && !u.display_name?.toLowerCase().includes(q) && !u.email?.toLowerCase().includes(q) && !u.department?.toLowerCase().includes(q) && !u.id?.toLowerCase().includes(q)) return false
       if (roleFilter !== 'all' && u.role !== roleFilter) return false
       if (statusFilter !== 'all' && getUserStatus(u) !== statusFilter) return false
@@ -499,7 +523,7 @@ export default function UserAccessManagement({
             <div className="px-5 py-3 flex flex-col lg:flex-row items-stretch lg:items-center gap-2.5">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 dark:text-gray-300" />
-                <input ref={searchRef} value={search} onChange={e => setSearch(e.target.value)} placeholder={t('users.searchPlaceholder', lang)} className="w-full pl-9 pr-3 py-2.5 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all placeholder:text-gray-400 dark:text-gray-300" />
+                <input ref={searchRef} value={search} onChange={e => setSearch(e.target.value)} placeholder={t('users.searchPlaceholder', lang)} className="w-full pl-9 pr-3 py-2.5 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-aegis-500/40 focus:border-aegis-500 transition-all placeholder:text-gray-400 dark:text-gray-300" />
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)} className="px-2.5 py-2.5 text-[11px] font-semibold bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
@@ -547,7 +571,7 @@ export default function UserAccessManagement({
                 <thead>
                   <tr className="text-[10px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-100 dark:border-gray-800">
                     <th className="px-4 py-3 text-left w-10">
-                      <input type="checkbox" checked={bulkSelected.size === filteredUsers.length && filteredUsers.length > 0} onChange={toggleBulkAll} className="w-3.5 h-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                      <input type="checkbox" checked={bulkSelected.size === filteredUsers.length && filteredUsers.length > 0} onChange={toggleBulkAll} className="w-3.5 h-3.5 rounded border-gray-300 text-aegis-600 focus:ring-aegis-500" />
                     </th>
                     <th className="px-3 py-3 text-left"><SortBtn field="name">{t('users.user', lang)}</SortBtn></th>
                     <th className="px-3 py-3 text-left"><SortBtn field="role">{t('users.role', lang)}</SortBtn></th>
@@ -569,7 +593,7 @@ export default function UserAccessManagement({
                       <React.Fragment key={u.id}>
                         <tr className={`group text-xs hover:bg-gray-50 dark:hover:bg-gray-800/20 transition-colors ${status === 'suspended' ? 'bg-red-50/30 dark:bg-red-950/5' : ''}`}>
                           <td className="px-4 py-3">
-                            <input type="checkbox" checked={bulkSelected.has(u.id)} onChange={() => toggleBulk(u.id)} className="w-3.5 h-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                            <input type="checkbox" checked={bulkSelected.has(u.id)} onChange={() => toggleBulk(u.id)} className="w-3.5 h-3.5 rounded border-gray-300 text-aegis-600 focus:ring-aegis-500" />
                           </td>
                           <td className="px-3 py-3">
                             <button onClick={() => setExpandedUser(isExpanded ? null : u.id)} className="flex items-center gap-2.5 group/user">
@@ -660,7 +684,7 @@ export default function UserAccessManagement({
               </table>
               {filteredUsers.length === 0 && (
                 <div className="text-center py-16">
-                  <Users className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                  <Users className="w-10 h-10 text-gray-300 dark:text-gray-400 mx-auto mb-3" />
                   <p className="font-semibold text-gray-600 dark:text-gray-300">{t('users.noUsersMatch', lang)}</p>
                   <p className="text-xs text-gray-400 dark:text-gray-300 mt-1">{search ? t('users.tryDifferentSearch', lang) : t('users.noUsersRegistered', lang)}</p>
                 </div>
@@ -686,7 +710,7 @@ export default function UserAccessManagement({
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm px-5 py-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 dark:text-gray-300" />
-              <input value={auditSearch} onChange={e => setAuditSearch(e.target.value)} placeholder={t('admin.auditTrail.search', lang)} className="w-full pl-9 pr-3 py-2.5 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500/40 transition-all placeholder:text-gray-400 dark:text-gray-300" />
+              <input value={auditSearch} onChange={e => setAuditSearch(e.target.value)} placeholder={t('admin.auditTrail.search', lang)} className="w-full pl-9 pr-3 py-2.5 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-aegis-500/40 transition-all placeholder:text-gray-400 dark:text-gray-300" />
             </div>
             <select value={auditTypeFilter} onChange={e => setAuditTypeFilter(e.target.value)} className="px-2.5 py-2.5 text-[11px] font-semibold bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
               <option value="all">{t('audit.allTypes', lang)}</option>
@@ -739,7 +763,7 @@ export default function UserAccessManagement({
               </table>
               {filteredAudit.length === 0 && (
                 <div className="text-center py-16">
-                  <History className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                  <History className="w-10 h-10 text-gray-300 dark:text-gray-400 mx-auto mb-3" />
                   <p className="font-semibold text-gray-600 dark:text-gray-300">{t('audit.noEntriesFound', lang)}</p>
                 </div>
               )}
@@ -913,7 +937,7 @@ export default function UserAccessManagement({
                 })}
                 {auditLog.filter(a => a.action_type?.includes('user_') || a.action_type === 'login' || a.action_type === 'password_reset_generate').length === 0 && (
                   <div className="text-center py-8">
-                    <Clock className="w-6 h-6 text-gray-300 dark:text-gray-600 mx-auto mb-1.5" />
+                    <Clock className="w-6 h-6 text-gray-300 dark:text-gray-400 mx-auto mb-1.5" />
                     <p className="text-xs text-gray-400 dark:text-gray-300">{t('users.noAccountEvents', lang)}</p>
                   </div>
                 )}
@@ -943,7 +967,7 @@ export default function UserAccessManagement({
             <div className="p-5 space-y-4">
               <div>
                 <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">{t('admin.users.displayName', lang)}</label>
-                <input className="w-full px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 outline-none" value={editForm.displayName} onChange={e => setEditForm(f => ({ ...f, displayName: e.target.value }))} />
+                <input className="w-full px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 outline-none" value={editForm.displayName} onChange={e => setEditForm(f => ({ ...f, displayName: e.target.value }))} />
               </div>
               <div>
                 <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">{t('users.roleAssignment', lang)}</label>
@@ -961,14 +985,14 @@ export default function UserAccessManagement({
               </div>
               <div>
                 <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">{t('users.department', lang)}</label>
-                <select className="w-full px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 outline-none" value={editForm.department} onChange={e => setEditForm(f => ({ ...f, department: e.target.value }))}>
+                <select className="w-full px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 outline-none" value={editForm.department} onChange={e => setEditForm(f => ({ ...f, department: e.target.value }))}>
                   <option value="">{t('users.selectDepartment', lang)}</option>
                   {departments.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
                 </select>
               </div>
               <div>
                 <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">{t('common.phone', lang)}</label>
-                <input className="w-full px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="+44 1234 567890" value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} />
+                <input className="w-full px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 outline-none" placeholder="+44 1234 567890" value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} />
               </div>
               <div className="flex gap-3 pt-2">
                 <button onClick={() => setEditModal(null)} className="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl py-3 text-sm font-semibold transition-colors">{t('common.cancel', lang)}</button>
@@ -1045,7 +1069,21 @@ export default function UserAccessManagement({
               </div>
               <div>
                 <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">Email <span className="text-red-500">*</span></label>
-                <input type="email" className="w-full px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="operator@aegis.gov.uk" value={inviteForm.email} onChange={e => setInviteForm(f => ({ ...f, email: e.target.value }))} />
+                {(() => {
+                  const emailOk = inviteForm.email.length > 0 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteForm.email)
+                  const emailBad = inviteForm.email.length > 0 && !emailOk
+                  return (
+                    <div className="relative">
+                      <input type="email"
+                        className={`w-full px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border focus:ring-2 outline-none transition-all ${emailBad ? 'border-red-400 focus:ring-red-500/20' : emailOk ? 'border-green-500 focus:ring-green-500/20' : 'border-gray-200 dark:border-gray-700 focus:ring-emerald-500'}`}
+                        placeholder="operator@aegis.gov.uk"
+                        value={inviteForm.email}
+                        onChange={e => setInviteForm(f => ({ ...f, email: e.target.value }))} />
+                      {emailBad && <p className="text-[10px] text-red-500 mt-0.5">Enter a valid email address</p>}
+                      {emailOk && <p className="text-[10px] text-green-600 dark:text-green-400 mt-0.5">✓ Valid email</p>}
+                    </div>
+                  )
+                })()}
               </div>
               <div>
                 <label className="text-xs font-bold text-gray-600 dark:text-gray-300 block mb-1.5">Initial Password <span className="text-red-500">*</span></label>

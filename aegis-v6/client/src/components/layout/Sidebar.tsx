@@ -1,4 +1,32 @@
-/* Sidebar.tsx — Responsive sidebar navigation for AEGIS platform */
+/**
+ * Module: Sidebar.tsx
+ *
+ * Collapsible citizen navigation sidebar with desktop, tablet, and mobile modes.
+ *
+ * Layout behaviour:
+ * - Desktop (lg+): fixed sidebar, 220 px wide or collapsed to 60 px icon rail.
+ * - Tablet (md–lg): sidebar hidden by default; a small toggle button opens it.
+ * - Mobile (<md): only accessible via mobileOpen prop; no persistent sidebar.
+ * - Mobile/tablet: slides in as an overlay drawer with backdrop dismiss.
+ *
+ * Navigation model:
+ * - All items declared in NAV_ITEM_CONFIG (public) and CITIZEN_EXTRA_ITEM_CONFIG
+ *   (authenticated only).  The citizen-extra list is appended only when the user
+ *   is authenticated, keeping the list lean for guests.
+ * - guestAccess:false items are rendered but disabled (greyed, lock icon) for
+ *   guests so they discover the features while being guided to sign in.
+ * - Clicking a locked item is a no-op; an inline "Sign in" link lets the guest
+ *   navigate to /citizen/login without a separate prompt.
+ *
+ * Badges:
+ * - alertCount, unreadMessages, communityUnread are mapped to item keys in
+ *   getBadge().  Badge dots render on the icon in both expanded and collapsed
+ *   modes.
+ *
+ * How it connects:
+ * - Rendered by AppLayout
+ * - Reads auth state from CitizenAuthContext to show/hide items
+ * - Calls onNavigate with a SidebarItem when the user picks a section */
 
 import { useState, useEffect } from 'react'
 import { Link, useLocation as useRouterLocation } from 'react-router-dom'
@@ -27,6 +55,15 @@ interface SidebarItemConfig extends Omit<SidebarItem, 'label'> {
   labelKey: string
 }
 
+/**
+ * NAV_ITEM_CONFIG — core navigation available to all users (guests and citizens).
+ *
+ * guestAccess:true  items appear and work for unauthenticated guests.
+ * guestAccess:false items appear but are disabled with a lock badge; clicking
+ * them shows a sign-in prompt rather than navigating.
+ * citizenOnly:true  items go into the citizen-account section below the divider.
+ * color             Lucide icon colour class; overrides the default gray when active.
+ */
 const NAV_ITEM_CONFIG: SidebarItemConfig[] = [
   { key: 'home',       labelKey: 'layout.sidebar.home',             icon: Sparkles,      path: '/citizen/dashboard',              guestAccess: false, citizenOnly: true, color: 'text-indigo-500' },
   { key: 'map',        labelKey: 'map.title',                       icon: MapPin,        path: '/citizen',                        guestAccess: true,  color: 'text-blue-500' },
@@ -40,6 +77,10 @@ const NAV_ITEM_CONFIG: SidebarItemConfig[] = [
   { key: 'news',       labelKey: 'citizen.tab.news',                icon: Newspaper,     path: '/citizen?tab=news',               guestAccess: true,  color: 'text-purple-500' },
 ]
 
+/**
+ * CITIZEN_EXTRA_ITEM_CONFIG — account-level items shown only when authenticated.
+ * Appended to navItems at render time; never shown to guests.
+ */
 const CITIZEN_EXTRA_ITEM_CONFIG: SidebarItemConfig[] = [
   { key: 'messages',   labelKey: 'citizen.tab.messages',            icon: MessageSquare, path: '/citizen/dashboard?tab=messages', guestAccess: false, citizenOnly: true, color: 'text-sky-500' },
   { key: 'safety',     labelKey: 'layout.sidebar.safetyCheckIn',    icon: ShieldAlert,   path: '/citizen/dashboard?tab=safety',   guestAccess: false, citizenOnly: true, color: 'text-green-600' },
@@ -67,6 +108,8 @@ export default function Sidebar({
   const routerLocation = useRouterLocation()
   const lang = useLanguage()
 
+  // localizeItems resolves i18n keys at render time so labels update immediately
+  // when the user switches language without a remount.
   const localizeItems = (configs: SidebarItemConfig[]): SidebarItem[] =>
     configs.map(({ labelKey, ...item }) => ({ ...item, label: t(labelKey, lang) }))
 
@@ -79,6 +122,8 @@ export default function Sidebar({
     setMobileOpen(false)
   }, [routerLocation.pathname, routerLocation.search])
 
+  // getBadge maps live badge counts to their corresponding nav key.
+  // Only three items carry badges; everything else returns 0.
   const getBadge = (key: string) => {
     if (key === 'alerts' && alertCount > 0) return alertCount
     if (key === 'messages' && unreadMessages > 0) return unreadMessages
@@ -88,6 +133,8 @@ export default function Sidebar({
 
   const renderItem = (item: SidebarItem) => {
     const isActive = activeKey === item.key
+    // isLocked: item requires authentication but user is a guest.
+    // The button renders (so guests see all features) but is disabled.
     const isLocked = !item.guestAccess && !isAuthenticated
     const badge = getBadge(item.key)
     const Icon = item.icon
@@ -131,7 +178,8 @@ export default function Sidebar({
           </>
         )}
 
-        {/* Tooltip for collapsed mode */}
+        {/* Tooltip for collapsed mode — CSS group-hover opacity; no JS state needed.
+             Also shows lock hint so guests know why the item requires sign-in. */}
         {collapsed && (
           <div className="absolute left-full ml-2 px-2.5 py-1.5 bg-gray-900 dark:bg-gray-700 text-white text-[10px] font-medium rounded-lg shadow-lg whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity z-50">
             {item.label}
@@ -160,7 +208,8 @@ export default function Sidebar({
 
       {/* Navigation items */}
       <nav className="flex-1 overflow-y-auto py-2 px-2 space-y-0.5">
-        {/* Welcome — own section, first item for authenticated users */}
+        {/* Welcome — always rendered first for authenticated users so the personalised
+             dashboard entry is visually separated above the public nav items. */}
         {isAuthenticated && (
           <div className="space-y-0.5 mb-1">
             {items.filter(i => i.key === 'home').map(renderItem)}
@@ -187,7 +236,9 @@ export default function Sidebar({
           </>
         )}
 
-        {/* Guest sign-in CTA at bottom */}
+        {/* Guest sign-in CTA — shown when the user hasn't authenticated yet.
+             Only visible in expanded mode; in collapsed mode the lock icons on
+             individual items serve as the signal. */}
         {!isAuthenticated && !collapsed && (
           <div className="mt-4 mx-1">
             <Link
@@ -207,7 +258,9 @@ export default function Sidebar({
         )}
       </nav>
 
-      {/* Emergency report button */}
+      {/* Emergency report button — prominent bottom CTA visible at all times.
+           Creates a synthetic SidebarItem so onNavigate can handle the action
+           the same way as a regular nav click without a dedicated route. */}
       <div className={`px-2 pb-3 pt-2 border-t border-gray-200 dark:border-white/5 ${collapsed ? 'px-1.5' : ''}`}>
         <button
           onClick={() => onNavigate({ key: 'report_emergency', label: t('nav.reportEmergency', lang), icon: AlertTriangle, path: '', guestAccess: true })}

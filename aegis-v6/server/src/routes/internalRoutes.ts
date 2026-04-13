@@ -1,18 +1,23 @@
 /**
- * routes/internalRoutes.ts — Internal API endpoints (SECURED)
+ * File: internalRoutes.ts
  *
- * These endpoints are NOT meant for direct citizen/operator use.
- * They enable:
- *   1. n8n ? WebSocket bridge: n8n workflow POSTs here, and we broadcast
- *      the payload to all connected Socket.IO clients.
- *   2. Frontend error logging: React error boundaries POST here.
- *   3. System health dashboard: aggregated health state of all subsystems.
+ * What this file does:
+ * Internal service endpoints: n8n WebSocket bridge, frontend error
+ * logging (React error boundaries POST here), system health status,
+ * live region configuration, and circuit breaker states.
  *
- * SECURITY: All endpoints require internal API key or n8n webhook signature.
- * Set INTERNAL_API_KEY and N8N_WEBHOOK_SECRET environment variables.
+ * How it connects:
+ * - Mounted at /api/internal in index.ts
+ * - Protected by internalAuth middleware (API key / webhook signature)
+ * - n8n automation workflows call these endpoints
+ * - Frontend error boundaries log client errors here
+ *
+ * Simple explanation:
+ * Backend-only endpoints for automation workflows and internal monitoring.
  */
 
 import { Router, Request, Response, NextFunction } from 'express'
+import rateLimit from 'express-rate-limit'
 import pool from '../models/db.js'
 import { devLog } from '../utils/logger.js'
 import { getActiveCityRegion } from '../config/regions/index.js'
@@ -21,17 +26,34 @@ import { isFallbackActive } from '../services/cronJobs.js'
 import { getCircuitBreakerStates } from '../services/externalApiWrapper.js'
 import { getWorkflowDefinitions } from '../services/n8nWorkflowService.js'
 import { internalAuth, n8nWebhookAuth, internalApiKeyAuth } from '../middleware/internalAuth.js'
+import { authMiddleware, operatorOnly } from '../middleware/auth.js'
 import { AppError } from '../utils/AppError.js'
 import { logger } from '../services/logger.js'
 
 const router = Router()
 const activeRegion = getActiveCityRegion()
 
+// Rate limiter specifically for the unauthenticated error-logging endpoint.
+// Without this any external party can flood the frontend_errors table.
+const frontendErrorLimiter = rateLimit({
+  windowMs: 60 * 1000,  // 1 minute
+  max: 20,              // 20 error submissions per minute per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many error reports. Please try again later.' },
+  skipSuccessfulRequests: false,
+})
+
 // Apply internal authentication to all routes in this router
 // Frontend error logging is public (no auth) - see individual route
 router.use((req, res, next) => {
   // Allow error logging without auth (needed for frontend error boundaries)
   if (req.path === '/errors/frontend' && req.method === 'POST') {
+    return next()
+  }
+  // System health is accessed by logged-in operators via the admin dashboard;
+  // it uses staff JWT auth at the route level instead of the internal API key.
+  if (req.path === '/health/system' && req.method === 'GET') {
     return next()
   }
   // All other internal endpoints require authentication
@@ -63,7 +85,7 @@ router.post('/ws-broadcast', (req: Request, res: Response) => {
 
 // ?2  Frontend error logging
 
-router.post('/errors/frontend', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/errors/frontend', frontendErrorLimiter, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const {
       error_message,
@@ -102,7 +124,7 @@ router.post('/errors/frontend', async (req: Request, res: Response, next: NextFu
 
 // ?3  System health dashboard
 
-router.get('/health/system', async (_req: Request, res: Response, next: NextFunction) => {
+router.get('/health/system', authMiddleware, operatorOnly, async (_req: Request, res: Response, next: NextFunction) => {
   try {
     // Database
     let dbOk = false
@@ -193,7 +215,7 @@ router.get('/health/system', async (_req: Request, res: Response, next: NextFunc
 //
 // These endpoints are called by n8n workflows to push data back into AEGIS.
 
- /**
+/**
  * POST /api/internal/n8n-webhook/weather
  * Receives weather data from n8n WF2 and broadcasts via Socket.IO.
  */
@@ -222,7 +244,7 @@ router.post('/n8n-webhook/weather', async (req: Request, res: Response, next: Ne
   }
 })
 
- /**
+/**
  * POST /api/internal/n8n-webhook/alerts
  * Receives flood alert data from n8n WF3 and processes it.
  */
@@ -284,7 +306,7 @@ router.post('/n8n-webhook/alerts', async (req: Request, res: Response, next: Nex
   }
 })
 
- /**
+/**
  * POST /api/internal/n8n-webhook/gauges
  * Receives river gauge data from n8n WF1.
  */
@@ -305,7 +327,7 @@ router.post('/n8n-webhook/gauges', async (req: Request, res: Response, next: Nex
 
 // ?5  Multi-incident n8n webhook endpoints
 
- /**
+/**
  * WF4 ? Multi-hazard weather alerts
  * n8n posts evaluated multi-hazard weather alerts here.
  */
@@ -337,7 +359,7 @@ router.post('/n8n-webhook/multi-hazard', async (req: Request, res: Response, nex
   }
 })
 
- /**
+/**
  * WF5 ? Air quality monitoring alerts
  */
 router.post('/n8n-webhook/air-quality', async (req: Request, res: Response, next: NextFunction) => {
@@ -367,7 +389,7 @@ router.post('/n8n-webhook/air-quality', async (req: Request, res: Response, next
   }
 })
 
- /**
+/**
  * WF6 ? Cross-incident escalation alerts
  * Receives compound/cascading emergency alerts from the incident alert evaluator.
  */

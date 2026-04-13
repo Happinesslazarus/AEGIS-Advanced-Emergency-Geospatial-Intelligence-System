@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
 # AEGIS v6 -- Database Migration Runner
 # Runs inside the dedicated `migration` Docker service.
 #

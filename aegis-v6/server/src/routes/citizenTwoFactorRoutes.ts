@@ -1,17 +1,24 @@
-/*
- * citizenTwoFactorRoutes.ts — TOTP-based Two-Factor Authentication for Citizens
+/**
+ * File: citizenTwoFactorRoutes.ts
  *
- * Mirrors the operator 2FA system with the same zero-trust protections:
- * AES-256-GCM encrypted secrets, replay protection, brute-force lockout,
- * SHA-256 hashed backup codes, IP + User-Agent binding.
+ * What this file does:
+ * TOTP two-factor authentication for citizen accounts. Mirrors the
+ * operator 2FA flow (twoFactorRoutes.ts) but scoped to citizens.
  *
- * Endpoints:
- *   POST /api/citizen-auth/2fa/setup              — Generate TOTP secret + QR code
- *   POST /api/citizen-auth/2fa/verify             — Confirm first TOTP code, enable 2FA
- *   POST /api/citizen-auth/2fa/authenticate       — Complete login with TOTP/backup code
- *   POST /api/citizen-auth/2fa/disable            — Disable 2FA (requires password + code)
- *   POST /api/citizen-auth/2fa/regenerate-backup-codes — Regenerate recovery codes
- *   GET  /api/citizen-auth/2fa/status             — Check 2FA status for current citizen
+ * How it connects:
+ * - Mounted at /api/citizen-auth/2fa in index.ts
+ * - Works with citizenAuthRoutes.ts for the two-step login flow
+ * - Uses twoFactorCrypto for secret encryption at rest
+ *
+ * Key endpoints:
+ * POST /api/citizen-auth/2fa/setup           — Generate secret + QR code
+ * POST /api/citizen-auth/2fa/verify          — Confirm and enable 2FA
+ * POST /api/citizen-auth/2fa/authenticate    — Complete login with code
+ * POST /api/citizen-auth/2fa/disable         — Turn off 2FA
+ * POST /api/citizen-auth/2fa/regenerate-backup-codes — New recovery codes
+ *
+ * Simple explanation:
+ * Lets citizens add an authenticator app as a second login step.
  */
 
 import { Router, Response, NextFunction } from 'express'
@@ -32,7 +39,9 @@ import { AppError } from '../utils/AppError.js'
 
 const router = Router()
 
-// TOTP Configuration
+// TOTP configuration — must match the values encoded in the QR code URI so that
+// authenticator apps (Google Authenticator, Authy, etc.) produce matching codes.
+// TOTP_WINDOW=1 allows a 30-second drift in either direction for clock skew.
 const ISSUER = 'AEGIS'
 const TOTP_DIGITS = 6
 const TOTP_PERIOD = 30
@@ -47,7 +56,12 @@ function generateOTPAuthURI(email: string, secret: string): string {
   return `otpauth://totp/${encodeURIComponent(ISSUER)}:${encodeURIComponent(email)}?secret=${secret}&issuer=${encodeURIComponent(ISSUER)}&digits=${TOTP_DIGITS}&period=${TOTP_PERIOD}`
 }
 
-// Rate Limiters
+// Rate limiters — intentionally stricter on destructive/sensitive operations.
+// setup: 5 attempts/15min — prevents TOTP secret churn from QR spamming.
+// verify: 5 attempts/15min — brute-force guard during setup confirmation.
+// auth: 10 attempts/15min  — slightly higher to accommodate clock-drift retries.
+// disable: 3 attempts/15min — tightest; disabling 2FA is a high-risk action.
+// regen: 3 attempts/hour   — hourly window to prevent backup code exhaustion attacks.
 const setupLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 5, message: { error: 'Too many 2FA setup attempts. Please try again later.' }, standardHeaders: true, legacyHeaders: false })
 const verifyLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 5, message: { error: 'Too many 2FA verification attempts. Please try again later.' }, standardHeaders: true, legacyHeaders: false })
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: { error: 'Too many 2FA authentication attempts. Please try again later.' }, standardHeaders: true, legacyHeaders: false })
@@ -56,6 +70,15 @@ const regenLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 3, message: { er
 
 // Helpers
 
+/**
+ * record2FAFailure — increments the citizen's failed attempt counter and
+ * applies a progressive lockout when the threshold is crossed.
+ *
+ * The lockout duration escalates with each threshold breach (determined by
+ * should2FALockout).  When locked, the lockoutMinutes field is written to
+ * two_factor_locked_until so a DB restart or server restart doesn’t
+ * inadvertently unlock the account.
+ */
 async function record2FAFailure(
   citizenId: string, clientIp: string, userAgent: string, metadata: Record<string, any>
 ): Promise<{ locked: boolean; lockoutMinutes: number }> {
@@ -81,6 +104,11 @@ async function reset2FAFailures(citizenId: string): Promise<void> {
   await pool.query('UPDATE citizens SET two_factor_failed_attempts = 0, two_factor_locked_until = NULL WHERE id = $1', [citizenId])
 }
 
+/**
+ * enforce2FALockout — gate that must be called before accepting any 2FA code.
+ * Reads the lockout state from the DB; throws 429 immediately if active,
+ * which prevents the rest of the route handler from running at all.
+ */
 async function enforce2FALockout(citizenId: string): Promise<void> {
   const result = await pool.query('SELECT two_factor_failed_attempts, two_factor_locked_until FROM citizens WHERE id = $1', [citizenId])
   if (result.rows.length === 0) return
@@ -230,9 +258,13 @@ router.post('/authenticate', authLimiter, async (req: AuthRequest, res: Response
     const citizen = cResult.rows[0]
     if (!citizen.two_factor_enabled || !citizen.two_factor_secret) throw AppError.badRequest('Two-factor authentication is not enabled for this account.')
 
+    // isBackupCode heuristic: TOTP codes are always exactly 6 digits.
+    // Recovery codes are hyphenated (e.g. "ABCD-EFGH-IJKL") or longer.
+    // This lets us route the code to the correct verifier without an extra
+    // request parameter from the client.
     const isBackupCode = code.length > 6 || code.includes('-')
-    let backupCodeUsed = false
     let backupCodesRemaining: number | null = null
+    let backupCodeUsed = false
 
     if (isBackupCode) {
       const storedCodes: string[] = citizen.two_factor_backup_codes || []
@@ -264,6 +296,10 @@ router.post('/authenticate', authLimiter, async (req: AuthRequest, res: Response
         }
         throw AppError.unauthorized('Invalid code.')
       }
+      // TOTP replay guard: each 30-second code is stored as a hash immediately
+      // after first use.  If the same code arrives again within the valid window,
+      // isTOTPReplay detects it and rejects — prevents an attacker who captures
+      // the code in transit from using it a second time.
       const codeHash = hashTOTPCode(code)
       if (isTOTPReplay(codeHash, citizen.two_factor_last_totp_hash, citizen.two_factor_last_totp_at)) {
         await logSecurityEvent({ userId: citizen.id, userType: 'citizen', eventType: '2fa_auth_failed', ipAddress: clientIp, userAgent, metadata: { reason: 'totp_replay' } })
@@ -272,7 +308,9 @@ router.post('/authenticate', authLimiter, async (req: AuthRequest, res: Response
       await pool.query('UPDATE citizens SET two_factor_last_totp_hash = $1, two_factor_last_totp_at = NOW() WHERE id = $2', [codeHash, citizen.id])
     }
 
-    // Consume temp token
+    // Optimistic consume: the WHERE consumed=false clause means concurrent
+    // requests both receive the same temp token but only one can actually
+    // flip it.  The second returns 0 rows, triggering a 401 (replay detected).
     const consumeResult = await pool.query('UPDATE two_factor_temp_tokens SET consumed = true WHERE id = $1 AND consumed = false RETURNING id', [tempRecord.id])
     if (consumeResult.rows.length === 0) throw AppError.unauthorized('This temporary token has already been used. Please log in again.')
 

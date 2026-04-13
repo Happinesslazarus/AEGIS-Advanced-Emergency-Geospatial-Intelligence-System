@@ -1,5 +1,13 @@
 /**
- * incidents/heatwave/alertRules.ts — Alert rule evaluation for heatwave incidents
+ * Module: alertRules.ts
+ *
+ * Extreme heat events incident module (handles heatwave specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for heatwave events.
  */
 
 import type { AlertRuleContext, AlertRuleResult } from '../types.js'

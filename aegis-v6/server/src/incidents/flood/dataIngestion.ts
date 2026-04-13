@@ -1,6 +1,13 @@
 /**
- * incidents/flood/dataIngestion.ts — Data ingestion for flood monitoring
- * Data Source: UK Environment Agency Flood Monitoring API
+ * Module: dataIngestion.ts
+ *
+ * River and surface water flooding incident module (handles flood specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for flood events.
  */
 
 import { FLOOD_DATA_SOURCES } from './config.js'

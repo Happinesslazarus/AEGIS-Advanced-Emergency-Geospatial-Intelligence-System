@@ -1,14 +1,11 @@
-﻿/**
- * config/regions/aberdeen.ts — Aberdeen city region configuration
+/**
+ * Module: aberdeen.ts
  *
- * Defines Aberdeen-specific geographic data, river stations (Don & Dee),
- * flood thresholds calibrated from SEPA historical records, WMS layers
- * for the SEPA Flood Map, and emergency contact details.
+ * Aberdeen server module.
  *
- * The River Don runs NE through Aberdeen to the North Sea at Bridge of Don.
- * The River Dee runs E through the south of the city past Cults and Duthie Park.
+ * How it connects:
+ * - Imported by services and components that need this configuration
  *
- * Thresholds are based on SEPA published action levels for these stations.
  */
 
 import type { CityRegionConfig } from './types.js'
@@ -136,4 +133,4 @@ const aberdeen: CityRegionConfig = {
 }
 
 export default aberdeen
-
+

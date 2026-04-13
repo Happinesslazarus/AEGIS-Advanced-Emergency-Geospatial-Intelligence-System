@@ -1,5 +1,11 @@
-"""Patch data_loaders.py to use ground-truth category labels directly as training targets 
-instead of deriving them from environmental features (circular reasoning)."""
+"""
+Module: patch_target.py
+
+Patch_target utility script.
+
+Simple explanation:
+Standalone script for patch_target.
+"""
 import pathlib
 
 f = pathlib.Path(r'e:\aegis-v6-fullstack\aegis-v6\ai-engine\app\training\data_loaders.py')

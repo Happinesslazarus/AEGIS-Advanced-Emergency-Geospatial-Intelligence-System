@@ -1,17 +1,8 @@
 #!/usr/bin/env python3
 """
-evaluate_vision.py — AEGIS Vision Benchmark Evaluation Runner
+Module: evaluate_vision.py
 
-Evaluates the vision analysis pipeline against labeled disaster images.
-Measures:  disaster_type accuracy, severity accuracy, confidence calibration,
-           processing speed, and false positive/negative rates.
-
-Usage:
-  python scripts/evaluate_vision.py                          # Full benchmark
-  python scripts/evaluate_vision.py --category wildfire      # Single category
-  python scripts/evaluate_vision.py --limit 10               # Quick test
-  python scripts/evaluate_vision.py --report                 # Generate HTML report
-  python scripts/evaluate_vision.py --api-url http://host:3001  # Custom server
+Evaluate_vision AI engine module.
 """
 
 import argparse

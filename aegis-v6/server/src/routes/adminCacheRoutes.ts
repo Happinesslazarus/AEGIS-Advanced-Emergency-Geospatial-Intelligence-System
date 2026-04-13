@@ -1,9 +1,24 @@
-/*
- * routes/adminCacheRoutes.ts — Admin cache management endpoints
- *   POST /api/admin/cache/clear            — Flush entire cache
- *   POST /api/admin/cache/clear-namespace  — Flush one namespace
- *   POST /api/admin/cache/clear-key        — Delete a single key
- *   GET  /api/admin/cache/stats            — Cache diagnostics
+/**
+ * File: adminCacheRoutes.ts
+ *
+ * What this file does:
+ * Admin cache management: flush the entire cache, clear a specific
+ * namespace, delete individual keys, and view cache diagnostics.
+ * All operations are audit-logged.
+ *
+ * How it connects:
+ * - Mounted at /api/admin/cache in index.ts
+ * - Uses cacheService for the actual cache operations
+ * - Requires admin authentication
+ *
+ * Key endpoints:
+ * POST /api/admin/cache/clear           — Flush entire cache
+ * POST /api/admin/cache/clear-namespace — Flush one namespace
+ * POST /api/admin/cache/clear-key       — Delete a single key
+ * GET  /api/admin/cache/stats           — Cache diagnostics
+ *
+ * Simple explanation:
+ * Gives admins control over the server cache for troubleshooting.
  */
 
 import { Router, Response, NextFunction } from 'express'
@@ -16,7 +31,7 @@ const router = Router()
 // All admin cache routes require admin authentication
 router.use(authMiddleware, adminOnly)
 
- /**
+/**
  * POST /api/admin/cache/clear
  * Flush the entire aegis cache.
  * Body: { dryRun?: boolean }
@@ -35,7 +50,7 @@ router.post('/clear', async (req: AuthRequest, res: Response, next: NextFunction
   }
 })
 
- /**
+/**
  * POST /api/admin/cache/clear-namespace
  * Flush all keys within a single namespace (e.g. "weather", "river_levels").
  * Body: { namespace: string, dryRun?: boolean }
@@ -44,11 +59,11 @@ router.post('/clear-namespace', async (req: AuthRequest, res: Response, next: Ne
   try {
     const { namespace, dryRun } = req.body
     if (!namespace || typeof namespace !== 'string') {
-      return res.status(400).json({ error: 'namespace is required (string)' })
+      return res.status(400).json({ error: 'A cache namespace is required.' })
     }
     // Sanitise namespace: allow only alphanumeric, underscore, hyphen
     if (!/^[a-z0-9_-]{1,64}$/i.test(namespace)) {
-      return res.status(400).json({ error: 'Invalid namespace format' })
+      return res.status(400).json({ error: 'Invalid namespace format. Use only letters, numbers, hyphens, and underscores.' })
     }
     const pattern = `aegis:v1:${namespace}:*`
     const isDry = dryRun === true
@@ -64,7 +79,7 @@ router.post('/clear-namespace', async (req: AuthRequest, res: Response, next: Ne
   }
 })
 
- /**
+/**
  * POST /api/admin/cache/clear-key
  * Delete a single cache key.
  * Body: { key: string, dryRun?: boolean }
@@ -73,7 +88,7 @@ router.post('/clear-key', async (req: AuthRequest, res: Response, next: NextFunc
   try {
     const { key, dryRun } = req.body
     if (!key || typeof key !== 'string') {
-      return res.status(400).json({ error: 'key is required (string)' })
+      return res.status(400).json({ error: 'A cache key is required.' })
     }
     // Only allow keys within our namespace prefix
     if (!key.startsWith('aegis:v1:')) {
@@ -93,7 +108,7 @@ router.post('/clear-key', async (req: AuthRequest, res: Response, next: NextFunc
   }
 })
 
- /**
+/**
  * GET /api/admin/cache/stats
  * Return cache connection status, memory usage, and keyspace info.
  */

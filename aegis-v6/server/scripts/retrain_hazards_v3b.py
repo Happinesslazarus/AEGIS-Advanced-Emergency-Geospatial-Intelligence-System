@@ -1,5 +1,10 @@
 """
-Retrain all hazard models with grid-searched hyperparameters - v3 fixed API.
+Module: retrain_hazards_v3b.py
+
+Retrain_hazards_v3b utility script.
+
+Simple explanation:
+Standalone script for retrain_hazards_v3b.
 """
 import asyncio
 import sys
@@ -12,7 +17,7 @@ warnings.filterwarnings('ignore')
 sys.path.insert(0, r'e:\aegis-v6-fullstack\aegis-v6\ai-engine')
 os.chdir(r'e:\aegis-v6-fullstack\aegis-v6\ai-engine')
 
-DB_URL = 'postgresql://postgres:Happylove%40%21@localhost:5432/aegis'
+DB_URL = os.environ.get('DATABASE_URL', 'postgresql://localhost:5432/aegis')
 
 async def train_hazard(hazard_type: str):
     from app.training.data_loaders import DataLoader
@@ -123,11 +128,11 @@ async def train_hazard(hazard_type: str):
                     'precision': precision_score(y_val, y_pred),
                     'recall': recall_score(y_val, y_pred),
                 }
-                marker = ' ★'
+                marker = ' Ã¢Ëœâ€¦'
             
             print(f"    [{i+1:2d}] acc={acc:.3f} auc={auc:.3f} f1={f1:.3f}{marker}")
         
-        print(f"\n  ★ Best: acc={best_metrics['accuracy']:.1%} auc={best_metrics['roc_auc']:.3f} f1={best_metrics['f1_score']:.3f}")
+        print(f"\n  Ã¢Ëœâ€¦ Best: acc={best_metrics['accuracy']:.1%} auc={best_metrics['roc_auc']:.3f} f1={best_metrics['f1_score']:.3f}")
         print(f"    params: depth={best_params['max_depth']} lr={best_params['learning_rate']} n={best_params['n_estimators']}")
         
         # Save model

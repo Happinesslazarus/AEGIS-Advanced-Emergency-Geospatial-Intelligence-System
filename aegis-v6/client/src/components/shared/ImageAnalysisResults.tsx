@@ -1,10 +1,27 @@
 /**
- * ImageAnalysisResults.tsx — Displays AI-powered image analysis results
+ * Module: ImageAnalysisResults.tsx
  *
- * Shows HuggingFace ViT classifications, DETR object detections,
- * EXIF verification, manipulation detection, and damage assessment
- * for report-attached photos.
- */
+ * Displays the AI image analysis output produced when a citizen attaches a
+ * photo to an incident report.  The analysis object contains up to four
+ * sections, all optional depending on whether the server-side pipeline ran
+ * each step:
+ *
+ *   photoValidation  — Computer-vision output: water detection confidence,
+ *                       disaster confidence score (0–100), top classifications
+ *                       from the HuggingFace pipeline, and object detections.
+ *   exifAnalysis     — GPS and timestamp cross-check: does the image EXIF
+ *                       location match the reported location?  Is the capture
+ *                       time plausible for the incident window?
+ *   manipulationCheck — Forgery indicators: riskLevel (low/medium/high) and
+ *                       a list of specific signals that triggered the check.
+ *   damageAssessment  — Severity classification (minor/moderate/severe),
+ *                       flood depth estimate, and structural damage flag.
+ *
+ * The panel is collapsible; compact=true collapses it by default so it can
+ * sit in a sidebar without dominating the layout.
+ *
+ * How it connects:
+ * - Used across both admin and citizen interfaces */
 
 import { useState } from 'react'
 import {
@@ -80,6 +97,12 @@ interface Props {
   compact?: boolean
 }
 
+/**
+ * ConfidenceBar — thin horizontal bar representing a 0–100 confidence value.
+ * The value is clamped to 0–100 so out-of-range API values never break the bar.
+ * The colour prop maps to a pre-approved Tailwind bg class via the lookup object,
+ * falling back to blue for unknown colour keys.
+ */
 function ConfidenceBar({ value, colour = 'blue' }: { value: number; colour?: string }) {
   const colours: Record<string, string> = {
     blue: 'bg-blue-500',
@@ -98,6 +121,12 @@ function ConfidenceBar({ value, colour = 'blue' }: { value: number; colour?: str
   )
 }
 
+/**
+ * BooleanBadge — three-state badge for boolean analysis flags.
+ * null/undefined → "N/A" (data not available from that analysis step)
+ * true  → green success pill with custom trueLabel
+ * false → red failure pill with custom falseLabel
+ */
 function BooleanBadge({ value, trueLabel, falseLabel }: { value?: boolean | null; trueLabel: string; falseLabel: string }) {
   if (value === null || value === undefined) return <span className="text-[9px] text-gray-400">N/A</span>
   return value
@@ -107,6 +136,7 @@ function BooleanBadge({ value, trueLabel, falseLabel }: { value?: boolean | null
 
 export default function ImageAnalysisResults({ analysis, loading = false, className = '', compact = false }: Props): JSX.Element {
   const lang = useLanguage()
+  // compact=true collapses the panel by default; expanded starts as !compact
   const [expanded, setExpanded] = useState(!compact)
 
   if (loading) {
@@ -136,6 +166,8 @@ export default function ImageAnalysisResults({ analysis, loading = false, classN
   const damage = analysis.damageAssessment
   const manip = analysis.manipulationCheck
 
+  // manipRiskColour maps risk level string to a Tailwind text colour.
+  // Defaults to green (low / unknown) so unlabeled results look safe.
   const manipRiskColour = (manip?.riskLevel || '').toLowerCase() === 'high' ? 'text-red-400'
     : (manip?.riskLevel || '').toLowerCase() === 'medium' ? 'text-amber-400'
     : 'text-green-400'

@@ -1,7 +1,13 @@
 /**
- * incidents/landslide/index.ts — Landslide module (Tier 2: Statistical)
+ * Module: index.ts
  *
- * Combines rainfall data + terrain analysis + report patterns.
+ * Ground movement and landslides incident module (handles landslide specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for landslide events.
  */
 
 import { BaseIncidentModule } from '../baseModule.js'
@@ -77,4 +83,4 @@ class LandslideModule extends BaseIncidentModule {
 }
 
 export default new LandslideModule()
-
+

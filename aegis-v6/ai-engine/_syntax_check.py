@@ -1,3 +1,9 @@
+"""
+Module: _syntax_check.py
+
+_syntax_check AI engine module.
+"""
+
 import ast, pathlib, sys
 
 files = [

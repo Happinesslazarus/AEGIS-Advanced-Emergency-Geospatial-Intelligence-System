@@ -1,13 +1,11 @@
 /**
- * EmergencyBanner.tsx — Highly visible emergency contact banner.
+ * Module: EmergencyBanner.tsx
  *
- * Features:
- * i18n via useLanguage + t()
- * ARIA role="alert" with aria-live="assertive" for screen readers
- * Dismissible with localStorage persistence (per session key)
- * Respects prefers-reduced-motion (no transition when reduced)
- * Always re-appears on page-level error boundaries (via forceShow prop)
- */
+ * Emergency banner shared component (reusable UI element used across pages).
+ *
+ * How it connects:
+ * - Used across both admin and citizen interfaces */
+
 import { useState, useCallback, useEffect } from 'react'
 import { Phone, X } from 'lucide-react'
 import { t } from '../../utils/i18n'
@@ -75,4 +73,4 @@ export default function EmergencyBanner({ forceShow = false }: EmergencyBannerPr
     </div>
   )
 }
-
+

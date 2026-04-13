@@ -1,14 +1,26 @@
 /**
- * middleware/internalAuth.ts — Internal API & Webhook Authentication
+ * File: internalAuth.ts
  *
- * Protects internal endpoints from unauthorized access:
- * 1. n8n webhook endpoints: Require signed webhook secret
- * 2. Internal automation: Require internal API key
- * 3. Admin operations: Require admin role
+ * What this file does:
+ * Authenticates internal service-to-service requests and n8n webhook calls.
+ * Supports three authentication methods: API key header, HMAC webhook
+ * signatures, and internal IP bypass (development only).
  *
- * Environment variables:
- * INTERNAL_API_KEY: Required for internal automation endpoints
- * N8N_WEBHOOK_SECRET: Required for n8n webhook validation
+ * How it connects:
+ * - Used by internalRoutes.ts for inter-service communication
+ * - Used by incident module routes for n8n workflow integration
+ * - Works alongside auth.ts (which handles user-facing authentication)
+ * - n8n workflows sign requests with HMAC-SHA256 via X-N8N-Signature header
+ *
+ * Key exports:
+ * - internalApiKeyAuth — validates X-Internal-API-Key header
+ * - n8nWebhookAuth — validates HMAC signature from n8n workflows
+ * - internalAuth — combined: accepts API key OR webhook signature
+ * - adminOnly / operatorOnly — role-based gates for internal routes
+ *
+ * Simple explanation:
+ * Makes sure only trusted internal services (not random users) can call
+ * internal API endpoints. Uses secret keys and cryptographic signatures.
  */
 
 import { Request, Response, NextFunction } from 'express'
@@ -51,7 +63,7 @@ const INTERNAL_IP_RANGES = [
   /^::ffff:192\.168\./,
 ]
 
- /**
+/**
  * Check if IP is from internal network
  */
 function isInternalIP(ip: string | undefined): boolean {
@@ -61,7 +73,7 @@ function isInternalIP(ip: string | undefined): boolean {
   )
 }
 
- /**
+/**
  * Validate HMAC signature from n8n webhooks
  */
 function validateWebhookSignature(payload: string, signature: string): boolean {
@@ -81,13 +93,13 @@ function validateWebhookSignature(payload: string, signature: string): boolean {
   }
 }
 
- /**
+/**
  * Internal API Key middleware
  * Validates X-Internal-API-Key header
  */
 export function internalApiKeyAuth(req: Request, res: Response, next: NextFunction): void {
-  // Allow from internal IPs in development
-  if (process.env.NODE_ENV !== 'production' && isInternalIP(req.ip)) {
+  // Allow from internal IPs ONLY in local development — staging/production always require the key
+  if (process.env.NODE_ENV === 'development' && isInternalIP(req.ip)) {
     return next()
   }
 
@@ -116,13 +128,13 @@ export function internalApiKeyAuth(req: Request, res: Response, next: NextFuncti
   next()
 }
 
- /**
+/**
  * n8n Webhook authentication middleware
  * Validates X-N8N-Signature header (HMAC-SHA256)
  */
 export function n8nWebhookAuth(req: Request, res: Response, next: NextFunction): void {
-  // Allow from internal IPs in development without signature
-  if (process.env.NODE_ENV !== 'production' && isInternalIP(req.ip)) {
+  // Allow from internal IPs ONLY in local development — staging/production always require signature
+  if (process.env.NODE_ENV === 'development' && isInternalIP(req.ip)) {
     return next()
   }
 
@@ -147,12 +159,12 @@ export function n8nWebhookAuth(req: Request, res: Response, next: NextFunction):
   next()
 }
 
- /**
+/**
  * Combined internal auth: API key OR valid webhook signature OR internal IP (dev only)
  */
 export function internalAuth(req: Request, res: Response, next: NextFunction): void {
-  // Development mode: allow internal IPs
-  if (process.env.NODE_ENV !== 'production' && isInternalIP(req.ip)) {
+  // Allow from internal IPs ONLY in local development — staging/production always authenticate
+  if (process.env.NODE_ENV === 'development' && isInternalIP(req.ip)) {
     return next()
   }
 
@@ -181,7 +193,7 @@ export function internalAuth(req: Request, res: Response, next: NextFunction): v
   res.status(401).json({ error: 'Authentication required for internal endpoints' })
 }
 
- /**
+/**
  * Admin-only middleware (requires auth + admin role)
  */
 export function adminOnly(req: AuthRequest, res: Response, next: NextFunction): void {
@@ -198,7 +210,7 @@ export function adminOnly(req: AuthRequest, res: Response, next: NextFunction): 
   next()
 }
 
- /**
+/**
  * Operator-only middleware (admin or operator)
  */
 export function operatorOnly(req: AuthRequest, res: Response, next: NextFunction): void {
@@ -215,12 +227,12 @@ export function operatorOnly(req: AuthRequest, res: Response, next: NextFunction
   next()
 }
 
- /**
+/**
  * Combined middleware: authMiddleware + adminOnly
  */
 export const requireAdmin = [authMiddleware, adminOnly]
 
- /**
+/**
  * Combined middleware: authMiddleware + operatorOnly
  */
 export const requireOperator = [authMiddleware, operatorOnly]

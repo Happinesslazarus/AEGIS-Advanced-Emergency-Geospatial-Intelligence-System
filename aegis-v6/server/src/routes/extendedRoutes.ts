@@ -1,18 +1,31 @@
-﻿ /*
- * extendedRoutes.ts - Additional API routes for production features (SECURED)
- * Handles:
- * Department listing (public)
- * Alert subscriptions (subscribe, verify, unsubscribe) (public)
- * Audit trail (log actions, query history) (admin only)
- * Community help (offers/requests CRUD) (authenticated)
- * Alert delivery via multi-channel notifications (admin only)
- * Data ingestion pipeline (admin only)
- * ML training pipeline (admin only)
- * RAG knowledge base expansion (admin only)
- * Resilience monitoring (operator only)
+/**
+ * File: extendedRoutes.ts
  *
- * SECURITY: Sensitive endpoints require admin authentication
-  */
+ * What this file does:
+ * Extended API surface: alert subscriptions, audit logs, department
+ * listings, community help coordination, flood predictions, AI
+ * governance, fusion engine, and resilience infrastructure endpoints.
+ *
+ * How it connects:
+ * - Mounted at /api in index.ts
+ * - Aggregates functionality from many services (notification, AI,
+ *   governance, fusion, data ingestion, ML pipeline, resilience)
+ * - Both public and authenticated endpoints
+ *
+ * Key endpoint groups:
+ * - /departments — Department listings
+ * - /subscriptions — Alert subscription management
+ * - /audit — Audit log query (admin)
+ * - /community — Community help coordination
+ * - /predictions — Flood predictions and pre-alerts
+ * - /notifications — Notification channel management
+ * - /governance — AI governance dashboard
+ * - /fusion — Multi-source data fusion
+ *
+ * Simple explanation:
+ * The "everything else" routes file — subscriptions, alerts, deployments,
+ * AI governance, and admin infrastructure tools.
+ */
 import { Router, Request, Response, NextFunction } from 'express'
 import rateLimit from 'express-rate-limit'
 import { authMiddleware, AuthRequest, verifyToken } from '../middleware/auth.js'
@@ -25,7 +38,8 @@ import * as notificationService from '../services/notificationService.js'
 import { devLog } from '../utils/logger.js'
 import { aiClient } from '../services/aiClient.js'
 import { isValidE164, normalizeToE164 } from '../utils/phoneValidation.js'
-import { computeConfidenceDistribution, getExecutionAuditLog, addTrainingLabel, computeRiskHeatmap, estimateDamageCost, getModelMetrics, checkModelDrift } from '../services/governanceEngine.js'
+import { computeConfidenceDistribution, getExecutionAuditLog, addTrainingLabel, computeRiskHeatmap, estimateDamageCost, getModelMetrics, checkModelDrift, generateBiasReport, checkGovernanceHealth } from '../services/governanceEngine.js'
+import { getClassifierHealth } from '../services/classifierRouter.js'
 import { runFingerprinting, getActivePredictions, sendPreAlert } from '../services/floodFingerprinting.js'
 import { gatherFusionData, runFusion } from '../services/fusionEngine.js'
 import { ensureIngestionSchema, runFullIngestion, ingestEAFloodData, ingestNASAPowerData, ingestOpenMeteoData, ingestUKFloodHistory, ingestWikipediaFloodKnowledge } from '../services/dataIngestionService.js'
@@ -47,58 +61,54 @@ const subscriptionLimiter = rateLimit({
   legacyHeaders: false,
 })
 
-// ─── Multi-hazard resource recommendation helper ──────────────────────────────
-// Returns smart ambulance/fire_engine/rescue_boat counts based on incident type
-// and priority level. Covers all 40+ AEGIS hazard subtypes across 6 categories.
+// Maps hazard type + priority to recommended resource counts per deployment zone
 function getResourceRecommendation(hazardType: string, priority: 'Critical' | 'High'): { ambulances: number; fire_engines: number; rescue_boats: number } {
   const isCritical = priority === 'Critical'
   const h = (hazardType || '').toLowerCase()
 
-  // ── WATER / COASTAL — rescue boats first ──────────────────────────────────
+  // Water/coastal - rescue boats are the priority
   if (['flood', 'tsunami', 'coastal', 'flash_flood'].some(k => h.includes(k))) {
     return { ambulances: isCritical ? 4 : 2, fire_engines: isCritical ? 2 : 1, rescue_boats: isCritical ? 6 : 3 }
   }
-  // ── WILDFIRE — fire engines dominant ──────────────────────────────────────
+  // Wildfire - fire engines dominant
   if (['wildfire', 'fire', 'burn'].some(k => h.includes(k))) {
     return { ambulances: isCritical ? 4 : 2, fire_engines: isCritical ? 8 : 4, rescue_boats: 0 }
   }
-  // ── VOLCANIC — hazmat + structural + evacuation mix ───────────────────────
+  // Volcanic - hazmat + structural + evacuation mix
   if (['volcanic', 'volcano', 'lava', 'ash'].some(k => h.includes(k))) {
     return { ambulances: isCritical ? 5 : 3, fire_engines: isCritical ? 3 : 2, rescue_boats: isCritical ? 1 : 0 }
   }
-  // ── STRUCTURAL / SEISMIC — heavy search & rescue, urban SAR ──────────────
+  // Structural/seismic - heavy search & rescue
   if (['earthquake', 'seismic', 'building_collapse', 'structural', 'landslide', 'avalanche', 'sinkhole', 'debris', 'bridge_damage', 'road_damage'].some(k => h.includes(k))) {
     return { ambulances: isCritical ? 6 : 3, fire_engines: isCritical ? 4 : 2, rescue_boats: 0 }
   }
-  // ── HAZMAT / CHEMICAL / ENVIRONMENTAL ────────────────────────────────────
+  // Hazmat/chemical/environmental
   if (['chemical', 'gas_leak', 'hazmat', 'pollution', 'contamination', 'environmental_hazard', 'environmental', 'radiation'].some(k => h.includes(k))) {
     return { ambulances: isCritical ? 5 : 3, fire_engines: isCritical ? 3 : 2, rescue_boats: 0 }
   }
-  // ── MEDICAL / MASS CASUALTY ───────────────────────────────────────────────
+  // Medical/mass casualty - ambulances are the priority
   if (['medical', 'mass_casualty', 'casualty'].some(k => h.includes(k))) {
     return { ambulances: isCritical ? 10 : 5, fire_engines: isCritical ? 2 : 1, rescue_boats: 0 }
   }
-  // ── STORM / WIND / TORNADO / HURRICANE ───────────────────────────────────
+  // Storm/wind/tornado/hurricane
   if (['storm', 'tornado', 'hurricane', 'typhoon', 'cyclone', 'severe_storm'].some(k => h.includes(k))) {
     return { ambulances: isCritical ? 4 : 2, fire_engines: isCritical ? 3 : 2, rescue_boats: isCritical ? 3 : 1 }
   }
-  // ── EXTREME WEATHER — heatwave / drought ─────────────────────────────────
+  // Extreme weather - heatwave/drought
   if (['heatwave', 'heat', 'drought'].some(k => h.includes(k))) {
     return { ambulances: isCritical ? 6 : 3, fire_engines: isCritical ? 2 : 1, rescue_boats: 0 }
   }
-  // ── INFRASTRUCTURE — power / water / road ────────────────────────────────
+  // Infrastructure - power/water/road
   if (['infrastructure', 'power_line', 'power_outage', 'water_main', 'water_supply'].some(k => h.includes(k))) {
     return { ambulances: isCritical ? 2 : 1, fire_engines: isCritical ? 2 : 1, rescue_boats: 0 }
   }
-  // ── PUBLIC SAFETY — trapped / missing / evacuation ───────────────────────
+  // Public safety - trapped/missing/evacuation
   if (['public_safety', 'person_trapped', 'missing', 'evacuation', 'hazardous_area'].some(k => h.includes(k))) {
     return { ambulances: isCritical ? 4 : 2, fire_engines: isCritical ? 2 : 1, rescue_boats: isCritical ? 1 : 0 }
   }
-  // ── FALLBACK ──────────────────────────────────────────────────────────────
+  // Fallback for unknown hazard types
   return { ambulances: isCritical ? 3 : 2, fire_engines: isCritical ? 2 : 1, rescue_boats: isCritical ? 1 : 0 }
 }
-// ─────────────────────────────────────────────────────────────────────────────
-
 router.get('/departments', async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const { rows } = await pool.query('SELECT id, name, description FROM departments ORDER BY name')
@@ -261,7 +271,7 @@ router.delete('/subscriptions/:id', authMiddleware, async (req: AuthRequest, res
 router.post('/audit', authMiddleware, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { operator_id, operator_name, action, action_type, target_type, target_id, before_state, after_state } = req.body
-    const ip = req.ip || req.headers['x-forwarded-for'] || 'unknown'
+    const ip = req.ip || 'unknown'
     const ua = req.headers['user-agent'] || 'unknown'
 
     const { rows } = await pool.query(
@@ -279,7 +289,7 @@ router.post('/audit', authMiddleware, requireAdmin, async (req: AuthRequest, res
 router.get('/audit', authMiddleware, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { action_type, operator_id, limit, offset, date_from, date_to, search } = req.query
-    let query = 'SELECT * FROM audit_log WHERE 1=1'
+    let query = 'SELECT id, action_type, action, operator_id, operator_name, target_id, target_type, ip_address, metadata, created_at FROM audit_log WHERE 1=1'
     const params: any[] = []
     let idx = 1
 
@@ -308,7 +318,7 @@ router.get('/audit', authMiddleware, requireAdmin, async (req: AuthRequest, res:
 router.get('/community', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { type, category, status } = req.query
-    let query = 'SELECT * FROM community_help WHERE 1=1'
+    let query = 'SELECT id, type, category, title, description, location_text, location_lat, location_lng, contact_info, capacity, status, user_id, created_at, updated_at FROM community_help WHERE 1=1'
     const params: any[] = []
     let idx = 1
 
@@ -350,14 +360,14 @@ router.post('/community', authMiddleware, async (req: AuthRequest, res: Response
   }
 })
 
-// Update status (fulfil, cancel, expire) — requires authentication
+// Update status (fulfil, cancel, expire)
 router.put('/community/:id/status', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { status } = req.body
     if (!status || !['fulfilled', 'cancelled', 'expired', 'active'].includes(status)) {
       throw AppError.badRequest('Invalid status.')
     }
-    // #5 — Ownership check: only the creator (or an operator) can update status
+    // Only the creator (or an operator) can update status
     const userId = req.user?.id
     const userRole = req.user?.role || ''
     const isOperator = ['admin', 'operator', 'manager'].includes(userRole)
@@ -378,7 +388,7 @@ router.put('/community/:id/status', authMiddleware, async (req: AuthRequest, res
 
 // FLOOD PREDICTIONS
 
-// Get all active flood predictions — deduplicated: latest per area only
+// Get all active flood predictions, deduplicated to latest per area
 router.get('/predictions', async (_req: Request, res: Response, next: NextFunction) => {
   // Reusable SQL fragment: DISTINCT ON (area) keeps the most recent run per area
   const latestPerAreaSQL = `
@@ -630,7 +640,7 @@ router.post('/notifications/subscribe', subscriptionLimiter, async (req: Request
   try {
     const { subscription, email } = req.body
 
-    // Derive user_id from auth token if present — never trust body (#77)
+    // Derive user_id from auth token if present - never trust the body
     let user_id: number | null = null
     const authHeader = req.headers.authorization
     if (authHeader?.startsWith('Bearer ')) {
@@ -885,7 +895,7 @@ router.post('/alerts/broadcast', authMiddleware, requireAdmin, async (req: AuthR
   }
 })
 
-// ALERT DELIVERY LOG — Advanced multi-channel delivery tracking
+// ALERT DELIVERY LOG
 
 function buildDeliveryWhere(q: Record<string, any>): { where: string; params: any[]; nextIdx: number } {
   const clauses: string[] = []
@@ -902,7 +912,7 @@ function buildDeliveryWhere(q: Record<string, any>): { where: string; params: an
   return { where: clauses.length ? 'WHERE ' + clauses.join(' AND ') : '', params, nextIdx: idx }
 }
 
-// GET /api/alerts/delivery — paginated, filtered, joined with alert title
+// GET /api/alerts/delivery - paginated, filtered, joined with alert title
 router.get('/alerts/delivery', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) { res.status(403).json({ error: 'Insufficient permissions.' }); return }
   try {
@@ -927,7 +937,7 @@ router.get('/alerts/delivery', authMiddleware, async (req: AuthRequest, res: Res
   }
 })
 
-// GET /api/alerts/delivery/stats — analytics dashboard data
+// GET /api/alerts/delivery/stats - analytics dashboard data
 router.get('/alerts/delivery/stats', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) { res.status(403).json({ error: 'Insufficient permissions.' }); return }
   try {
@@ -975,7 +985,7 @@ router.get('/alerts/delivery/stats', authMiddleware, async (req: AuthRequest, re
   }
 })
 
-// GET /api/alerts/delivery/grouped — per-alert summary with all channel deliveries
+// GET /api/alerts/delivery/grouped - per-alert summary with all channel deliveries
 router.get('/alerts/delivery/grouped', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) { res.status(403).json({ error: 'Insufficient permissions.' }); return }
   try {
@@ -1013,7 +1023,7 @@ router.get('/alerts/delivery/grouped', authMiddleware, async (req: AuthRequest, 
   }
 })
 
-// POST /api/alerts/delivery/:id/retry — retry a single failed delivery
+// POST /api/alerts/delivery/:id/retry - retry a single failed delivery
 router.post('/alerts/delivery/:id/retry', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) { res.status(403).json({ error: 'Insufficient permissions.' }); return }
   try {
@@ -1037,7 +1047,7 @@ router.post('/alerts/delivery/:id/retry', authMiddleware, async (req: AuthReques
   }
 })
 
-// POST /api/alerts/delivery/retry-failed — bulk retry failed deliveries
+// POST /api/alerts/delivery/retry-failed - bulk retry failed deliveries
 router.post('/alerts/delivery/retry-failed', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) { res.status(403).json({ error: 'Insufficient permissions.' }); return }
   try {
@@ -1069,7 +1079,7 @@ router.post('/alerts/delivery/retry-failed', authMiddleware, async (req: AuthReq
   }
 })
 
-// GET /api/alerts/delivery/export.csv — stream CSV download to browser
+// GET /api/alerts/delivery/export.csv - stream CSV download
 router.get('/alerts/delivery/export.csv', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) { res.status(403).json({ error: 'Insufficient permissions.' }); return }
   try {
@@ -1176,7 +1186,7 @@ router.post('/deployments/:id/recall', authMiddleware, async (req: AuthRequest, 
       throw AppError.badRequest('reason and outcome_summary are required for recall.')
     }
     if (trimmedReason.length > 500 || trimmedOutcome.length > 1000) {
-      throw AppError.badRequest('reason must be ≤500 chars, outcome_summary ≤1000 chars.')
+      throw AppError.badRequest('reason must be =500 chars, outcome_summary =1000 chars.')
     }
 
     const { rows } = await pool.query(
@@ -1314,7 +1324,7 @@ router.post('/deployments', authMiddleware, async (req: AuthRequest, res: Respon
       ]
     )
 
-    // Module 4: Critical zone escalation — notify all active admin/operator staff
+    // Critical zone escalation - notify all active admin/operator staff
     if (zonePriority === 'Critical') {
       try {
         const { rows: staffRows } = await pool.query(
@@ -1455,8 +1465,6 @@ router.patch('/deployments/:id', authMiddleware, async (req: AuthRequest, res: R
   }
 })
 
-// ─── WORLD-CLASS OPS EXTENSIONS ─────────────────────────────────────────────
-
 // Acknowledge an AI draft deployment zone (operator review step)
 router.patch('/deployments/:id/acknowledge', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) throw AppError.forbidden('Insufficient permissions.')
@@ -1525,7 +1533,7 @@ router.patch('/deployments/:id/mutual-aid', authMiddleware, async (req: AuthRequ
   } catch (err) { next(err) }
 })
 
-// ─── DEPLOYMENT ASSETS (Module 3: per-vehicle GPS tracking) ─────────────────
+// DEPLOYMENT ASSETS (per-vehicle GPS tracking)
 
 // List assets for a zone
 router.get('/deployments/:id/assets', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -1564,7 +1572,7 @@ router.post('/deployments/:id/assets', authMiddleware, async (req: AuthRequest, 
   } catch (err) { next(err) }
 })
 
-// Update asset status / GPS — must precede /:id routes to avoid conflicts
+// Update asset status / GPS - must precede /:id routes to avoid conflicts
 router.patch('/deployments/assets/:assetId', authMiddleware, async (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!['admin', 'operator'].includes(req.user?.role || '')) throw AppError.forbidden('Insufficient permissions.')
   try {
@@ -1625,8 +1633,7 @@ router.get('/reports/:id/media', async (req: Request, res: Response, next: NextF
   }
 })
 
-// AI MODEL STATUS — MOVED to aiRoutes.ts (Phase 5 Governance)
-// GET /api/ai/models now served by aiRoutes with live AI engine data
+// AI MODEL STATUS (detailed model endpoints moved to aiRoutes.ts)
 
 router.get('/ai/status', async (_req: Request, res: Response, next: NextFunction) => {
   try {
@@ -1643,10 +1650,9 @@ router.get('/ai/status', async (_req: Request, res: Response, next: NextFunction
   }
 })
 
-//  AI GOVERNANCE ENDPOINTS (Features #30-34)
+// AI GOVERNANCE ENDPOINTS
 
-// GET /api/ai/governance/models — Model metrics from PostgreSQL ai_model_metrics table
-// Used by AITransparencyDashboard to show real accuracy, F1, confusion matrix, XAI weights
+// GET /api/ai/governance/models - used by AITransparencyDashboard for accuracy, F1, etc.
 router.get('/ai/governance/models', authMiddleware, requireOperator, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const metrics = await getModelMetrics()
@@ -1656,7 +1662,7 @@ router.get('/ai/governance/models', authMiddleware, requireOperator, async (_req
   }
 })
 
-// GET /api/ai/governance/drift — Model drift detection from PostgreSQL
+// GET /api/ai/governance/drift - model drift detection
 router.get('/ai/governance/drift', authMiddleware, requireOperator, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const drift = await checkModelDrift()
@@ -1666,7 +1672,37 @@ router.get('/ai/governance/drift', authMiddleware, requireOperator, async (_req:
   }
 })
 
-// GET /api/ai/confidence-distribution — Computed from real predictions
+// GET /api/ai/governance/bias - bias report (location, severity, temporal, language)
+router.get('/ai/governance/bias', authMiddleware, requireOperator, async (_req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const report = await generateBiasReport()
+    res.json(report)
+  } catch (err) {
+    next(err)
+  }
+})
+
+// GET /api/ai/governance/health - auto-verifications, flagging rates, backlog
+router.get('/ai/governance/health', authMiddleware, requireOperator, async (_req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const health = await checkGovernanceHealth()
+    res.json(health)
+  } catch (err) {
+    next(err)
+  }
+})
+
+// GET /api/ai/classifier/health - circuit breaker status for HF classifiers
+router.get('/ai/classifier/health', authMiddleware, requireOperator, async (_req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const health = getClassifierHealth()
+    res.json({ models: health, timestamp: new Date().toISOString() })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// GET /api/ai/confidence-distribution - computed from real predictions
 router.get('/ai/confidence-distribution', authMiddleware, requireOperator, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { model } = req.query
@@ -1677,7 +1713,7 @@ router.get('/ai/confidence-distribution', authMiddleware, requireOperator, async
   }
 })
 
-// GET /api/ai/audit — AI execution audit log
+// GET /api/ai/audit - AI execution audit log
 router.get('/ai/audit', authMiddleware, requireOperator, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const limit = parseInt(req.query.limit as string) || 50
@@ -1842,9 +1878,9 @@ router.put('/operators/:id/profile', authMiddleware, requireAdmin, async (req: A
   }
 })
 
-//  AI PREDICTION ENGINE — Plug & Play Architecture
+//  AI PREDICTION ENGINE - Plug & Play Architecture
 
-// POST /api/predictions/run — Production-ready prediction endpoint
+// POST /api/predictions/run - Runs a hazard prediction via the AI engine
 router.post('/predictions/run', authMiddleware, requireOperator, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { area, latitude, longitude, weather_data, historical_indicators, region_id } = req.body
@@ -1879,7 +1915,7 @@ router.post('/predictions/run', authMiddleware, requireOperator, async (req: Aut
     ).catch(() => {})
 
     // Store prediction record
-    // Compute affected_radius_km from probability (0-100% → 0.5-15 km range)
+    // Compute affected_radius_km from probability (0-100% ? 0.5-15 km range)
     const affectedRadiusKm = Math.max(0.5, Math.round(((predictionResponse.probability || 0.1) * 15) * 100) / 100)
 
     await pool.query(
@@ -1932,7 +1968,7 @@ router.post('/predictions/run', authMiddleware, requireOperator, async (req: Aut
       ]
     ).catch(() => null)
 
-    // Module 1: Auto-create draft deployment zone for high-probability predictions (≥70%)
+    // Module 1: Auto-create draft deployment zone for high-probability predictions (=70%)
     if (fpResult?.rows?.[0]?.id && probability01 >= 0.7) {
       const fpId = fpResult.rows[0].id
       const draftPriority = probability01 >= 0.85 ? 'Critical' : 'High'
@@ -1952,7 +1988,7 @@ router.post('/predictions/run', authMiddleware, requireOperator, async (req: Aut
         [
           area || 'Queried Area',
           draftPriority,
-          `AI-flagged risk area — ${(probability01 * 100).toFixed(0)}% ${resolvedHazardType.replace(/_/g, ' ')} probability`,
+          `AI-flagged risk area - ${(probability01 * 100).toFixed(0)}% ${resolvedHazardType.replace(/_/g, ' ')} probability`,
           draftAiRec,
           resources.ambulances,
           resources.fire_engines,
@@ -1970,9 +2006,9 @@ router.post('/predictions/run', authMiddleware, requireOperator, async (req: Aut
   }
 })
 
-//  SPATIAL INTELLIGENCE — GeoJSON endpoints for QGIS + Heatmaps
+//  SPATIAL INTELLIGENCE - GeoJSON endpoints for QGIS + Heatmaps
 
-// GET /api/map/risk-layer — Returns structured GeoJSON risk layer
+// GET /api/map/risk-layer - Returns structured GeoJSON risk layer
 router.get('/map/risk-layer', async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await pool.query(
@@ -1991,7 +2027,7 @@ router.get('/map/risk-layer', async (_req: Request, res: Response, next: NextFun
   }
 })
 
-// GET /api/map/heatmap-data — Returns dynamically computed heatmap intensity data
+// GET /api/map/heatmap-data - Returns dynamically computed heatmap intensity data
 router.get('/map/heatmap-data', async (_req: Request, res: Response, next: NextFunction) => {
   try {
     // First try live computation from historical + report data
@@ -2020,7 +2056,7 @@ router.get('/map/heatmap-data', async (_req: Request, res: Response, next: NextF
   }
 })
 
-// GET /api/ai/status/detail — Returns detailed DB execution analytics
+// GET /api/ai/status/detail - Returns detailed DB execution analytics
 router.get('/ai/status/detail', authMiddleware, requireOperator, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const models = await pool.query(
@@ -2036,10 +2072,10 @@ router.get('/ai/status/detail', authMiddleware, requireOperator, async (_req: Au
   }
 })
 
-// GET /api/ai/drift — MOVED to aiRoutes.ts (Phase 5 Governance)
+// GET /api/ai/drift - MOVED to aiRoutes.ts (Phase 5 Governance)
 // Now served by aiRoutes with live AI engine drift detection
 
-// POST /api/ai/labels — Add training label (human-in-the-loop)
+// POST /api/ai/labels - Add training label (human-in-the-loop)
 router.post('/ai/labels', authMiddleware, requireOperator, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { report_id, label_type, label_value, operator_id, confidence } = req.body
@@ -2053,7 +2089,7 @@ router.post('/ai/labels', authMiddleware, requireOperator, async (req: AuthReque
   }
 })
 
-// POST /api/ai/damage-estimate — Economic damage estimation model
+// POST /api/ai/damage-estimate - Economic damage estimation model
 router.post('/ai/damage-estimate', authMiddleware, requireOperator, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { severity, affected_area_km2, population_density, duration_hours, water_depth_m } = req.body
@@ -2072,7 +2108,7 @@ router.post('/ai/damage-estimate', authMiddleware, requireOperator, async (req: 
 
 //  MULTI-SOURCE FUSION ENGINE (Features #16-25)
 
-// POST /api/fusion/run — Run full 10-source fusion analysis (ADMIN ONLY)
+// POST /api/fusion/run - Run full 10-source fusion analysis (ADMIN ONLY)
 router.post('/fusion/run', requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { region_id, latitude, longitude } = req.body
@@ -2092,7 +2128,7 @@ router.post('/fusion/run', requireAdmin, async (req: Request, res: Response, nex
 
 //  FLOOD FINGERPRINTING ENGINE (Features #26-27)
 
-// POST /api/fingerprint/run — Run cosine-similarity flood fingerprinting (OPERATOR ONLY)
+// POST /api/fingerprint/run - Run cosine-similarity flood fingerprinting (OPERATOR ONLY)
 router.post('/fingerprint/run', requireOperator, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { region_id, latitude, longitude, area } = req.body
@@ -2111,7 +2147,7 @@ router.post('/fingerprint/run', requireOperator, async (req: Request, res: Respo
 
 //  DATA INGESTION PIPELINE (ADMIN ONLY)
 
-// POST /api/ingestion/run — Run full data ingestion from all sources (ADMIN ONLY)
+// POST /api/ingestion/run - Run full data ingestion from all sources (ADMIN ONLY)
 router.post('/ingestion/run', requireAdmin, async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await runFullIngestion()
@@ -2121,7 +2157,7 @@ router.post('/ingestion/run', requireAdmin, async (_req: Request, res: Response,
   }
 })
 
-// POST /api/ingestion/source/:source — Run single source ingestion (ADMIN ONLY)
+// POST /api/ingestion/source/:source - Run single source ingestion (ADMIN ONLY)
 router.post('/ingestion/source/:source', requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const source = req.params.source
@@ -2141,7 +2177,7 @@ router.post('/ingestion/source/:source', requireAdmin, async (req: Request, res:
   }
 })
 
-// GET /api/ingestion/status — Get ingestion history and table counts (OPERATOR ONLY)
+// GET /api/ingestion/status - Get ingestion history and table counts (OPERATOR ONLY)
 router.get('/ingestion/status', authMiddleware, requireOperator, async (_req: Request, res: Response, next: NextFunction) => {
   try {
     await ensureIngestionSchema()
@@ -2153,9 +2189,11 @@ router.get('/ingestion/status', authMiddleware, requireOperator, async (_req: Re
       'rag_documents', 'ai_model_metrics', 'ingestion_log',
     ]
 
+    const ALLOWED_TABLES = new Set(tables)
     const counts: Record<string, number> = {}
     for (const t of tables) {
       try {
+        if (!ALLOWED_TABLES.has(t)) { counts[t] = 0; continue }
         const r = await pool.query(`SELECT COUNT(*) as c FROM ${t}`)
         counts[t] = parseInt(r.rows[0].c) || 0
       } catch { counts[t] = 0 }
@@ -2181,7 +2219,7 @@ router.get('/ingestion/status', authMiddleware, requireOperator, async (_req: Re
 
 //  ML TRAINING PIPELINE (ADMIN ONLY)
 
-// POST /api/training/run — Train all ML models (ADMIN ONLY)
+// POST /api/training/run - Train all ML models (ADMIN ONLY)
 router.post('/training/run', requireAdmin, async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await trainAllModels()
@@ -2191,7 +2229,7 @@ router.post('/training/run', requireAdmin, async (_req: Request, res: Response, 
   }
 })
 
-// POST /api/training/fusion-weights — Train fusion weight optimizer (ADMIN ONLY)
+// POST /api/training/fusion-weights - Train fusion weight optimizer (ADMIN ONLY)
 router.post('/training/fusion-weights', requireAdmin, async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await trainFusionWeights()
@@ -2203,7 +2241,7 @@ router.post('/training/fusion-weights', requireAdmin, async (_req: Request, res:
 
 //  RAG KNOWLEDGE BASE (ADMIN ONLY)
 
-// POST /api/rag/expand — Expand RAG knowledge base (ADMIN ONLY)
+// POST /api/rag/expand - Expand RAG knowledge base (ADMIN ONLY)
 router.post('/rag/expand', requireAdmin, async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await expandRAGKnowledgeBase()
@@ -2213,7 +2251,7 @@ router.post('/rag/expand', requireAdmin, async (_req: Request, res: Response, ne
   }
 })
 
-// POST /api/rag/query — Query RAG knowledge base (OPERATOR ONLY)
+// POST /api/rag/query - Query RAG knowledge base (OPERATOR ONLY)
 router.post('/rag/query', authMiddleware, requireOperator, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { query, limit } = req.body
@@ -2228,7 +2266,7 @@ router.post('/rag/query', authMiddleware, requireOperator, async (req: Request, 
 
 //  RESILIENCE MONITORING (OPERATOR ONLY)
 
-// GET /api/resilience/status — Get cache, rate limit, circuit breaker status (OPERATOR ONLY)
+// GET /api/resilience/status - Get cache, rate limit, circuit breaker status (OPERATOR ONLY)
 router.get('/resilience/status', requireOperator, (_req: Request, res: Response, next: NextFunction) => {
   try {
     res.json(getResilienceStatus())
@@ -2239,7 +2277,7 @@ router.get('/resilience/status', requireOperator, (_req: Request, res: Response,
 
 //  SYSTEM REPORT (OPERATOR ONLY)
 
-// GET /api/system/report — Generate comprehensive system status report (OPERATOR ONLY)
+// GET /api/system/report - Generate comprehensive system status report (OPERATOR ONLY)
 router.get('/system/report', requireOperator, async (_req: Request, res: Response, next: NextFunction) => {
   try {
     // Table row counts
@@ -2250,9 +2288,11 @@ router.get('/system/report', requireOperator, async (_req: Request, res: Respons
       'ai_model_metrics', 'ai_executions', 'fusion_computations',
       'flood_predictions', 'image_analyses', 'reporter_scores',
     ]
+    const ALLOWED_TABLES = new Set(tables)
     const tableCounts: Record<string, number> = {}
     for (const t of tables) {
       try {
+        if (!ALLOWED_TABLES.has(t)) { tableCounts[t] = 0; continue }
         const r = await pool.query(`SELECT COUNT(*) as c FROM ${t}`)
         tableCounts[t] = parseInt(r.rows[0].c) || 0
       } catch { tableCounts[t] = 0 }
@@ -2286,14 +2326,14 @@ router.get('/system/report', requireOperator, async (_req: Request, res: Respons
     // Recent ingestion
     let lastIngestion: any = null
     try {
-      const r = await pool.query(`SELECT * FROM ingestion_log ORDER BY created_at DESC LIMIT 1`)
+      const r = await pool.query(`SELECT id, status, source, records_processed, errors, created_at FROM ingestion_log ORDER BY created_at DESC LIMIT 1`)
       lastIngestion = r.rows[0] || null
     } catch { /* ignore */ }
 
     const totalRows = Object.values(tableCounts).reduce((a, b) => a + b, 0)
 
     res.json({
-      system: 'AEGIS v6 — Hybrid AI Disaster Intelligence Platform',
+      system: 'AEGIS v6 - Hybrid AI Disaster Intelligence Platform',
       version: '6.0.0-production',
       generatedAt: new Date().toISOString(),
       database: {

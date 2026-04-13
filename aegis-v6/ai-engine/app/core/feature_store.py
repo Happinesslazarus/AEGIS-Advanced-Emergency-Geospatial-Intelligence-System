@@ -1,7 +1,20 @@
-﻿"""
- AEGIS AI ENGINE — Feature Store
- Centralized feature engineering and caching for all hazard modules
 """
+File: feature_store.py
+
+What this file does:
+In-process feature store that fetches live weather, river discharge, and
+forecasting data, engineers derived features (rolling means, anomaly
+scores, day-of-year cyclical encoding), and caches results to avoid
+redundant API calls during a prediction cycle. Each hazard predictor
+calls FeatureStore.get_features(location) to get its input vector.
+
+How it connects:
+- Used by every hazard predictor in ai-engine/app/hazards/
+- Fetches live data via ai-engine/app/core/data_providers.py
+- Initialised as a global singleton in ai-engine/main.py
+- Cache TTL controlled by settings.FEATURE_CACHE_TTL_SECONDS
+"""
+
 
 from typing import Dict, List, Optional, Any
 import numpy as np
@@ -63,13 +76,9 @@ class FeatureStore:
         - land_use, impervious_surface_ratio, vegetation_class
         """
         
-        # In production, this would query:
-        # DEM (Digital Elevation Model) for elevation, slope
-        # Soil databases for soil properties
-        # Land use databases (Corine Land Cover, etc.)
-        # Catchment boundary data
-        
-        # For now, return stub features with realistic defaults
+        # Regional defaults — overridden by live API data (elevation, SEPA, etc.)
+        # via get_all_features() which calls fetch_live_features() from data_providers.py.
+        # These values are only used when live APIs are unreachable.
         features = {
             "latitude": latitude,
             "longitude": longitude,
@@ -171,7 +180,9 @@ class FeatureStore:
         if timestamp is None:
             timestamp = datetime.utcnow()
         
-        # Calculate seasonal indicators
+        # seasonal_anomaly: sine of the month fraction captures the cyclical
+        # nature of seasons — Jan=0, Apr≈+1, Jul=0, Oct≈-1 — without requiring
+        # the model to learn that month 12 and month 1 are adjacent.
         month = timestamp.month
         seasonal_anomaly = np.sin(2 * np.pi * month / 12)
         
@@ -211,9 +222,12 @@ class FeatureStore:
 
         # Auto-fetch from live APIs when no overrides given
         if not feature_overrides:
+            # Cache key is rounded to 2 decimal places (~1 km grid cell) so nearby
+            # coordinate pairs in the same grid cell share one API call.
             cache_key = f"{round(latitude, 2)}_{round(longitude, 2)}"
             cached = self.cache.get(cache_key)
             now = datetime.utcnow()
+            # 600 seconds (10 min) TTL: balances freshness with API rate limits.
             if cached and (now - cached["ts"]).total_seconds() < 600:
                 feature_overrides = cached["overrides"]
                 logger.debug(f"[FeatureStore] Using cached live data for {cache_key}")
@@ -266,7 +280,10 @@ class FeatureStore:
     def _get_climate_zone(self, latitude: float) -> int:
         """
         Encode climate zone based on latitude.
-        Köppen climate classification simplified.
+        Simplified Köppen classification: only latitude bands are used here
+        because longitude/continent context is not available at this call site.
+        The full Köppen Cfb (temperate oceanic) zone for Scotland is captured
+        by the 50–60° bucket (returns 1).
         """
         if latitude > 60:
             return 0  # Subarctic
@@ -310,4 +327,4 @@ class FeatureStore:
         logger.info("Cleaning up feature store...")
         self.cache.clear()
         logger.success("Feature store cleanup complete")
-
+

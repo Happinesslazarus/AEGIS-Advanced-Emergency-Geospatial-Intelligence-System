@@ -1,29 +1,17 @@
 """
-AEGIS Continuous Learning Pipeline
-Nightly self-improvement cycle for the AEGIS LLM.
+File: continuous_learning.py
 
-Architecture:
-  1. Collect negative feedback from the day's interactions
-  2. Analyse failure patterns using the local model (meta-cognition)
-  3. Generate corrected training examples via Claude API (high quality)
-  4. Collect high-quality positive examples (thumbs up + high confidence)
-  5. Anti-poisoning validation (diversity, anomaly detection, human gate)
-  6. Human operator approval gate — no auto-promotion without sign-off
-  7. If approved: micro-fine-tuning pass on the new batch
-  8. Benchmark the candidate model — must improve by =2% to promote
-  9. Generate nightly improvement report for operators
+What this file does:
+Autonomous retraining pipeline that monitors prediction accuracy in
+production, detects when a model's performance has degraded below
+threshold, and triggers an incremental retraining cycle using the most
+recent labelled data. Designed to run as a separate long-running process.
 
-Safety principles:
-  - No automatic model promotion — human must approve in the AEGIS dashboard
-  - Anti-poisoning: statistical diversity check before any training
-  - Volume gate: minimum 50 examples before any micro-finetune
-  - Quality gate: each example validated against the full AEGIS quality rubric
-  - Rollback: previous model version always preserved and immediately restorable
-
-Usage (run as nightly cron or Windows Task Scheduler):
-    python -m app.autonomous.continuous_learning --mode nightly
-    python -m app.autonomous.continuous_learning --mode status
-    python -m app.autonomous.continuous_learning --mode approve --batch-id <id>
+How it connects:
+- Monitors the aegis_predictions table via asyncpg
+- Calls training_pipeline.py to run the full retraining workflow
+- Writes retraining status to PostgreSQL model_governance table
+- Can be triggered manually or runs on a schedule (cron/K8s CronJob)
 """
 
 from __future__ import annotations
@@ -888,4 +876,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
+

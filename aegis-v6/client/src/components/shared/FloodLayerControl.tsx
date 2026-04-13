@@ -1,10 +1,10 @@
 /**
- * FloodLayerControl.tsx — Toggle panel for WMS flood zone layers,
- * flood prediction extents, and evacuation routes.
+ * Module: FloodLayerControl.tsx
  *
- * Floating panel that sits on top of the map, allowing users to
- * control which flood data layers are visible.
- */
+ * Flood layer control shared component (reusable UI element used across pages).
+ *
+ * How it connects:
+ * - Used across both admin and citizen interfaces */
 
 import { useState, useMemo } from 'react'
 import {

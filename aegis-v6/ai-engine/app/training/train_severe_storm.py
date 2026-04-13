@@ -1,15 +1,16 @@
 """
-train_severe_storm.py — Severe Storm Training Pipeline
+File: train_severe_storm.py
 
-Features: wind_speed, pressure_change_rate, temperature_gradient, humidity, season
-Data:     Open-Meteo historical (global, free)
-Labels:   Proxy thresholds (wind > 20 m/s OR pressure drop > 5 hPa/3h) → weakly_supervised
-Model:    XGBoost classifier
+What this file does:
+Trains the severe storm risk-prediction model on synthetic/augmented data.
+Uses BaseHazardPipeline for the training loop. Useful as a quick
+bootstrap when real-world labelled data is unavailable.
 
-Usage:
-    python -m app.training.train_severe_storm --region=global
-    python -m app.training.train_severe_storm --region=uk
-    python -m app.training.train_severe_storm --region=nigeria
+How it connects:
+- Extends ai-engine/app/training/base_hazard_pipeline.py
+- Synthetic feature generation via data_loaders.py and data_ingestion.py
+- Saves to model_registry/severe_storm/ via ModelRegistry
+- Loaded at inference time by ai-engine/app/hazards/severe_storm.py
 """
 
 from __future__ import annotations

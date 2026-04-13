@@ -1,12 +1,20 @@
-﻿ /*
- * GuestDashboard.tsx — Public/Guest read-only dashboard
- * Provides a read-only view of:
- * Regional incident overview
- * Active alerts
- * Public safety guidance
- * Read-only map visualization
- * No authentication required.
-  */
+/**
+ * File: GuestDashboard.tsx
+ *
+ * What this file does:
+ * Read-only public dashboard for visitors who want to see live data without
+ * creating an account. Shows current alerts, the disaster map, recent reports
+ * (anonymised), and regional risk information. No personal data is stored.
+ *
+ * How it connects:
+ * - Routed by client/src/App.tsx at /guest
+ * - Reads from AlertsContext and the public reports API endpoints
+ * - Linked from LandingPage.tsx ("Continue as Guest" button)
+ *
+ * Learn more:
+ * - client/src/pages/LandingPage.tsx — entry point that leads here
+ * - client/src/pages/CitizenPage.tsx — a richer public view with form submission
+ */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -542,13 +550,66 @@ export default function GuestDashboard(): JSX.Element {
                 </div>
               )}
               {incidents.length === 0 && !loading && (
-                <div className="p-6 text-center text-gray-400 dark:text-gray-300 text-sm">{t('common:noData', 'No data available')}</div>
+                <div className="p-8 text-center">
+                  <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center mx-auto mb-3">
+                    <Activity className="w-6 h-6 text-blue-400" />
+                  </div>
+                  <p className="font-semibold text-gray-900 dark:text-white text-sm">{t('common:noIncidents', 'No Active Incidents')}</p>
+                  <p className="text-xs text-gray-400 dark:text-white/40 mt-1">All monitored regions are clear</p>
+                </div>
               )}
             </div>
           </div>
         </div>
 
         {/*  SAFETY GUIDANCE — Enhanced with visual cards  */}
+        {predictions.length > 0 && (
+          <div className="glass-card rounded-2xl overflow-hidden shadow-lg">
+            <div className="px-5 py-4 border-b border-gray-200/50 dark:border-white/[0.06] flex items-center justify-between">
+              <h2 className="font-bold text-gray-900 dark:text-white flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-purple-400 to-violet-600 flex items-center justify-center shadow-md">
+                  <TrendingUp className="w-4 h-4 text-white" />
+                </div>
+                {t('dashboard:predictions.title', 'AI Forecasts')}
+                <span className="text-[10px] font-bold bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded-full">{predictions.length}</span>
+              </h2>
+              <span className="text-[10px] text-gray-400 dark:text-white/30 flex items-center gap-1 font-medium">
+                <Compass className="w-3 h-3" /> {ct('guest.aiPowered', lang)}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-0.5 bg-gray-100 dark:bg-white/[0.03]">
+              {predictions.slice(0, 6).map((pred, idx) => {
+                const Icon = INCIDENT_ICONS[pred.incidentType] || TrendingUp
+                return (
+                  <div key={idx} className="bg-white dark:bg-gray-900/80 p-4 hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-colors">
+                    <div className="flex items-start gap-3">
+                      <Icon className="w-5 h-5 mt-0.5 shrink-0 text-purple-500" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white mb-0.5 truncate capitalize">{pred.incidentType.replace(/_/g, ' ')}</p>
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${SEVERITY_COLORS[pred.severity] || 'bg-gray-200 text-gray-700'}`}>
+                            {pred.severity.toUpperCase()}
+                          </span>
+                          {pred.confidence != null && (
+                            <span className="text-[10px] text-gray-400 dark:text-white/40 font-medium">
+                              {Math.round(pred.confidence * 100)}% confidence
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {pred.location?.name || `${pred.location.lat.toFixed(2)}, ${pred.location.lng.toFixed(2)}`}
+                          {' · '}
+                          {Math.round(pred.probability * 100)}% probability
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         <div className="glass-card rounded-2xl p-6 shadow-lg">
           <h2 className="font-bold text-gray-900 dark:text-white flex items-center gap-2.5 mb-5">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center shadow-md">
@@ -621,4 +682,4 @@ export default function GuestDashboard(): JSX.Element {
     </div>
   )
 }
-
+

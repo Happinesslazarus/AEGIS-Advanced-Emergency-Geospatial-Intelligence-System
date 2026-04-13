@@ -1,15 +1,20 @@
 /**
- * middleware/requestId.ts — X-Request-ID correlation middleware
+ * File: requestId.ts
  *
- * Generates or forwards a unique request ID for every HTTP request.
- * This ID is:
- *   1. Read from the incoming X-Request-ID header (if set by a reverse proxy)
- *   2. Generated as a UUID v4 if not present
- *   3. Attached to `req.id` for use in route handlers and services
- *   4. Set on the response X-Request-ID header for client-side correlation
- *   5. Bound to the Pino child logger so every log line includes the request ID
+ * What this file does:
+ * Assigns a unique correlation ID (UUID v4) to every incoming request.
+ * If the client or upstream proxy already set X-Request-ID, that value
+ * is preserved. Otherwise a new one is generated.
  *
- * This enables end-to-end tracing across Client ? Nginx ? Server ? AI Engine.
+ * How it connects:
+ * - Registered early in the middleware chain (index.ts) before the logger
+ * - The request ID appears in all log entries, error responses, and the
+ *   X-Request-ID response header, making it easy to trace a single request
+ *   across services and logs
+ *
+ * Simple explanation:
+ * Every request gets a unique ID so you can find all log entries for
+ * that request when debugging.
  */
 
 import { Request, Response, NextFunction } from 'express'
@@ -26,9 +31,15 @@ declare global {
 
 export function requestIdMiddleware(req: Request, res: Response, next: NextFunction): void {
   const incomingId = req.headers['x-request-id']
-  const id = typeof incomingId === 'string' && incomingId.length > 0
-    ? incomingId
-    : crypto.randomUUID()
+
+  // Accept forwarded IDs only if they look like a UUID or safe alphanumeric string (max 128 chars).
+  // This prevents header injection via crafted X-Request-ID values.
+  const isSafe = typeof incomingId === 'string'
+    && incomingId.length > 0
+    && incomingId.length <= 128
+    && /^[\w-]+$/.test(incomingId)
+
+  const id = isSafe ? incomingId as string : crypto.randomUUID()
 
   req.requestId = id
   res.setHeader('X-Request-ID', id)

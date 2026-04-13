@@ -1,17 +1,10 @@
-﻿ /*
- * AnalyticsCenter.tsx — Professional EOC Intelligence & Analytics Console
- * Modeled after FEMA IPAWS Analytics, UK Resilience Direct Reports,
- * Palantir Gotham Intelligence, Esri ArcGIS Ops Dashboard analytics.
- * Wraps the existing AnalyticsDashboard (733-line component with 12 KPIs,
- * 10 chart sections, WebSocket real-time) and adds:
- * Executive command header with mission clock + data feed indicators
- * Operational Tempo (OPTEMPO) ribbon — key situation summary in one line
- * SLA / threshold performance gauges
- * Severity distribution donut (visual)
- * Enhanced activity log with timeline + filtering
- * Data quality scorecard with coverage metrics
- * Keyboard shortcut reference
-  */
+/**
+ * Module: AnalyticsCenter.tsx
+ *
+ * Analytics center (charts, metrics, and data visualisation).
+ *
+ * How it connects:
+ * - Rendered inside AdminPage.tsx based on active view */
 
 import React, { useState, useMemo, useEffect } from 'react'
 import {
@@ -240,7 +233,7 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
           <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">F</kbd> {t('shortcuts.toggleFullscreen', lang)}</span>
           <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">O</kbd> {t('shortcuts.toggleOptempo', lang)}</span>
           <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">?</kbd> {t('common.shortcuts', lang)}</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">Esc</kbd> {t('shortcuts.close', lang)}</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-300 dark:text-gray-300 ring-1 ring-gray-700">{t('common.esc', lang)}</kbd> {t('shortcuts.close', lang)}</span>
           <button onClick={() => setShowKeyboard(false)} className="ml-auto text-gray-400 dark:text-gray-300 hover:text-white"><X className="w-3 h-3" /></button>
         </div>
       )}
@@ -278,7 +271,7 @@ export default function AnalyticsCenter(props: AnalyticsCenterProps) {
                     {/* Target line */}
                     <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                       fill="none" strokeWidth="0.5" strokeDasharray={`${g.target} ${100 - g.target}`}
-                      className="text-gray-400 dark:text-gray-600" strokeOpacity="0.5"
+                      className="text-gray-400 dark:text-gray-400" strokeOpacity="0.5"
                       style={{ stroke: '#6b7280' }} />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">

@@ -1,21 +1,17 @@
 """
-Base Hazard Training Pipeline.
+File: base_hazard_pipeline.py
 
-Provides the standard lifecycle every hazard training script must follow:
-    1. Data ingestion   (from Open-Meteo / OpenAQ / SRTM via region config)
-    2. Feature engineering
-    3. Label generation  (must be explicitly documented)
-    4. Train / validation split
-    5. Model training    (XGBoost default)
-    6. Evaluation        (accuracy, F1, ROC-AUC + baseline comparison)
-    7. SHAP explainability
-    8. Save model + metadata to registry
+What this file does:
+Abstract base class for all synthetic-data hazard training pipelines.
+Defines the train() interface, handles train/validation split, model
+persistence via ModelRegistry, and evaluation metric logging. Each
+train_HAZARD.py subclass overrides _build_features() and _build_model().
 
-Subclasses implement:
-    - HAZARD_NAME, FEATURES, LABEL_STRATEGY, DATA_SOURCES, KNOWN_LIMITATIONS
-    - ingest_data()
-    - engineer_features()
-    - generate_labels()
+How it connects:
+- Extended by ai-engine/app/training/train_*.py (synthetic data trainers)
+- Complemented by base_real_pipeline.py for real-world data trainers
+- Saves models via ai-engine/app/core/model_registry.py
+- Training triggered by ai-engine/app/training/train_all.py
 """
 
 from __future__ import annotations

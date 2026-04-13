@@ -1,16 +1,18 @@
 """
- AEGIS AI ENGINE — Model Governance Module
- Phase 5: Versioning, Drift Detection, Safe Deployment, Rollback
+File: governance.py
 
-Every trained model is:
-  1. Versioned (timestamp + hash)
-  2. Stored as a candidate in model_governance
-  3. Compared against the current active model
-  4. Promoted only if performance improves (or no active exists)
-  5. Rolled back if degraded
+What this file does:
+ML model governance layer: records model version, training metrics, and
+approval status in the PostgreSQL model_governance table. Computes
+performance checksums to detect silent degradation, enforces a promotion
+workflow (shadow -> candidate -> active), and provides a retraining lock
+to prevent concurrent training runs.
 
-Prediction logging captures every inference for monitoring and feedback.
-Drift detection compares running statistics against training baselines.
+How it connects:
+- Called by ai-engine/main.py background governance loop
+- Called by ai-engine/app/api/endpoints.py for model status endpoints
+- Writes to the model_governance table (see server/sql/schema.sql)
+- model_registry.py reads governance status before loading a new model
 """
 
 import hashlib
@@ -26,7 +28,7 @@ import asyncpg
 
 DB_URL = os.getenv('DATABASE_URL', 'postgresql://localhost:5432/aegis')
 
-# §1  MODEL GOVERNANCE — Versioning, Registration, Activation
+# MODEL GOVERNANCE — Versioning, Registration, Activation
 
 class ModelGovernance:
     """
@@ -51,6 +53,10 @@ class ModelGovernance:
         """
         Register a newly trained model as a CANDIDATE.
         Does NOT activate it — that requires compare_and_promote().
+        
+        The separation prevents training pipelines from self-promoting:
+        a human operator or the automatic A/B comparison must explicitly
+        promote the candidate before it handles live traffic.
         """
         conn = await asyncpg.connect(self.db_url)
         try:
@@ -130,7 +136,8 @@ class ModelGovernance:
                 )
 
                 if improvement < min_improvement:
-                    # Candidate is worse — mark as failed
+                    # Mark the candidate as 'failed' (not just archived) so the
+                    # governance audit trail shows why this version was rejected.
                     await conn.execute(
                         "UPDATE model_governance SET status='failed', notes=$1 WHERE model_name=$2 AND version=$3",
                         f"Rejected: {primary_metric}={candidate_score:.4f} < active {active_score:.4f} (min_improvement={min_improvement})",
@@ -187,6 +194,9 @@ class ModelGovernance:
                 if not target:
                     return {"status": "error", "message": f"Version {target_version} not found"}
             else:
+                # No existing version; pick the most-recently-activated archived
+                # version (NULLS LAST ensures models never activated come last).
+                # 'rollback' status is also eligible to roll back to.
                 target = await conn.fetchrow("""
                     SELECT * FROM model_governance
                     WHERE model_name=$1 AND status IN ('archived', 'rollback')
@@ -302,11 +312,17 @@ class ModelGovernance:
 
     @staticmethod
     def _compute_hash(data: Dict) -> str:
-        """Compute a stable hash of training data/config."""
+        """Compute a stable SHA-256 fingerprint of training metrics or config.
+        
+        Used as the dataset_hash when the caller hasn't provided one.  Sorting
+        keys ensures the same dict always produces the same hash regardless of
+        insertion order.  Only the first 32 hex chars are stored to keep DB
+        column widths manageable.
+        """
         raw = json.dumps(data, sort_keys=True, default=str)
         return hashlib.sha256(raw.encode()).hexdigest()[:32]
 
-# §2  PREDICTION LOGGER — Log every prediction for monitoring
+# PREDICTION LOGGER — Log every prediction for monitoring
 
 class PredictionLogger:
     """
@@ -335,6 +351,8 @@ class PredictionLogger:
         """Log a single prediction. Returns the log ID."""
         pool = await self._get_pool()
         async with pool.acquire() as conn:
+            # Hash the input so we can later identify duplicate predictions
+            # (same inputs called twice) without storing the raw input twice.
             input_hash = hashlib.md5(
                 json.dumps(input_data, sort_keys=True, default=str).encode()
             ).hexdigest()
@@ -430,7 +448,7 @@ class PredictionLogger:
             await self._pool.close()
             self._pool = None
 
-# §3  DRIFT DETECTOR — Statistical drift detection
+# DRIFT DETECTOR — Statistical drift detection
 
 class DriftDetector:
     """
@@ -629,7 +647,7 @@ class DriftDetector:
                 })
         return results
 
-# §4  SINGLETON INSTANCES
+# SINGLETON INSTANCES
 
 governance = ModelGovernance()
 prediction_logger = PredictionLogger()

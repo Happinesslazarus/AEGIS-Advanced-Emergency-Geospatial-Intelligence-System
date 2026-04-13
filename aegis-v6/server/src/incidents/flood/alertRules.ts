@@ -1,5 +1,13 @@
 /**
- * incidents/flood/alertRules.ts — Alert rule evaluation for flood incidents
+ * Module: alertRules.ts
+ *
+ * River and surface water flooding incident module (handles flood specific logic).
+ *
+ * How it connects:
+ * - Part of the incident module system, registered via incidents/registry.ts
+ *
+ * Simple explanation:
+ * Manages detection, assessment, and response for flood events.
  */
 
 import type { AlertRuleContext, AlertRuleResult } from '../types.js'

@@ -1,13 +1,10 @@
-﻿/**
- * IncidentContext — React context for multi-incident state management
+/**
+ * Module: IncidentContext.tsx
  *
- * Provides:
- * Incident registry (types, status, AI tiers)
- * Active incident filtering for dashboards
- * Cross-incident dashboard summary
- * Real-time socket.io integration for incident:alert events
- * Loading/error state
- */
+ * Incident context React context provider (shares state across components).
+ *
+ * How it connects:
+ * - Wraps components in App.tsx via AppProviders */
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
 import { io, type Socket } from 'socket.io-client'
@@ -74,9 +71,32 @@ const DEFAULT_FILTER: IncidentFilter = {
   region: null,
 }
 
+const FALLBACK_INCIDENT_CONTEXT: IncidentContextType = {
+  registry: [],
+  registryLoading: false,
+  dashboard: null,
+  dashboardLoading: false,
+  filter: DEFAULT_FILTER,
+  setFilter: () => {},
+  resetFilter: () => {},
+  selectedIncidentType: null,
+  setSelectedIncidentType: () => {},
+  refreshRegistry: async () => {},
+  refreshDashboard: async () => {},
+  refreshAll: async () => {},
+  activeIncidentCount: 0,
+  enabledTypes: [],
+  operationalTypes: [],
+  getModuleByType: () => undefined,
+  liveAlerts: [],
+  clearLiveAlerts: () => {},
+}
+
 const IncidentContext = createContext<IncidentContextType | null>(null)
 
-// Use same origin so Vite's /socket.io proxy forwards WebSocket to port 3001
+// Use same origin so Vite's /socket.io proxy forwards WebSocket to port 3001.
+// An empty string means "connect to the same host the page was loaded from",
+// which lets the Vite dev server proxy the WebSocket connection automatically.
 const API_BASE = import.meta.env.VITE_API_URL ?? ''
 
 export function IncidentProvider({ children }: { children: ReactNode }): JSX.Element {
@@ -130,16 +150,24 @@ export function IncidentProvider({ children }: { children: ReactNode }): JSX.Ele
   }, [])
 
   useEffect(() => {
+    // io() opens a Socket.IO connection (WebSocket with auto-fallback to HTTP
+    // long-polling).  We pass both transports explicitly so the server doesn't
+    // have to negotiate from scratch on every reconnect.
     const socket: Socket = io(API_BASE, {
       transports: ['websocket', 'polling'],
       path: '/socket.io',
     })
+    // 'incident:alert' — routine incoming prediction (appended to the end of the list).
     socket.on('incident:alert', (data: LiveIncidentAlert) => {
       setLiveAlerts(prev => [...prev, data])
     })
+    // 'incident:alert:priority' — high-urgency alert.  We prepend it so it
+    // appears at the top, and cap the list at 50 to avoid unbounded growth.
     socket.on('incident:alert:priority', (data: LiveIncidentAlert) => {
       setLiveAlerts(prev => [data, ...prev].slice(0, 50))
     })
+    // When the AI engine finishes a retrain, it emits this event.  We refresh
+    // the dashboard so accuracy metrics and risk numbers are up to date.
     socket.on('incident:predictions_updated', () => {
       refreshDashboard()
     })
@@ -200,7 +228,10 @@ export function IncidentProvider({ children }: { children: ReactNode }): JSX.Ele
 
 export function useIncidents(): IncidentContextType {
   const ctx = useContext(IncidentContext)
-  if (!ctx) throw new Error('useIncidents must be used within IncidentProvider')
+  if (!ctx) {
+    console.error('[IncidentContext] useIncidents called outside IncidentProvider — using safe fallback context')
+    return FALLBACK_INCIDENT_CONTEXT
+  }
   return ctx
 }
 

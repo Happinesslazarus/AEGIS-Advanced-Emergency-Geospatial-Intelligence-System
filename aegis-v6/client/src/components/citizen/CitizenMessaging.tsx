@@ -1,11 +1,10 @@
-﻿ /*
- * CitizenMessaging.tsx — Professional Citizen-to-Admin Messaging
- * Split-panel layout (WhatsApp Web / Intercom style):
- * Left: threaded inbox with search, status badges, unread counts
- * Right: full chat with date separators, message grouping, scroll-to-bottom
- * Responsive: collapses to single-panel on mobile
- * Real-time: socket-driven with read receipts, delivery status
-  */
+/**
+ * Module: CitizenMessaging.tsx
+ *
+ * Citizen messaging citizen component (public-facing UI element).
+ *
+ * How it connects:
+ * - Rendered inside CitizenPage.tsx or CitizenDashboard.tsx */
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import {
@@ -17,6 +16,7 @@ import {
 import { type ChatThread, type ChatMessage } from '../../hooks/useSocket'
 import { useSharedSocket } from '../../contexts/SocketContext'
 import { getSession } from '../../utils/auth'
+import { getCitizenToken } from '../../contexts/CitizenAuthContext'
 import { timeAgo } from '../../utils/helpers'
 import MessageStatusIcon from '../ui/MessageStatusIcon'
 import { t } from '../../utils/i18n'
@@ -101,11 +101,11 @@ export default function CitizenMessaging(): JSX.Element {
     loadThreadMessages, markRead, setActiveThread
   } = socket
 
-  // Connect on mount
+  // Connect on mount; also reconnect if the socket drops and comes back up
   useEffect(() => {
-    const token = localStorage.getItem('aegis-citizen-token') || localStorage.getItem('token')
+    const token = getCitizenToken() || localStorage.getItem('token')
     if (token && !connected) connect(token)
-  }, [])
+  }, [connected, connect])
 
   // Fetch threads once connected
   useEffect(() => {
@@ -158,7 +158,7 @@ export default function CitizenMessaging(): JSX.Element {
         .map(m => m.id)
       if (unreadIds.length > 0) markRead(activeThread.id, unreadIds)
     }
-  }, [activeThread?.id, messages.length])
+  }, [activeThread, messages, markRead])
 
   // Auto-resize textarea
   useEffect(() => {
@@ -212,10 +212,14 @@ export default function CitizenMessaging(): JSX.Element {
       if (selectedImage) {
         const formData = new FormData()
         formData.append('file', selectedImage)
+        const csrfUpload = document.cookie.split('; ').find(c => c.startsWith('aegis_csrf='))?.split('=')[1]
         const uploadRes = await fetch('/api/upload', {
           method: 'POST',
           body: formData,
-          headers: { Authorization: `Bearer ${localStorage.getItem('aegis-citizen-token') || localStorage.getItem('token')}` }
+          headers: {
+            Authorization: `Bearer ${getCitizenToken() || localStorage.getItem('token')}`,
+            ...(csrfUpload ? { 'X-CSRF-Token': csrfUpload } : {}),
+          }
         })
         if (!uploadRes.ok) throw new Error(t('citizenMsg.uploadFailed', lang))
         const { url: imageUrl } = await uploadRes.json()
@@ -327,12 +331,18 @@ export default function CitizenMessaging(): JSX.Element {
                 <X className="w-3.5 h-3.5 text-gray-400 dark:text-gray-300" />
               </button>
             </div>
-            <input
-              value={newSubject}
-              onChange={(e) => setNewSubject(e.target.value)}
-              placeholder={t('citizenMsg.subjectPlaceholder', lang)}
-              className="w-full px-3 py-2 text-xs bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500"
-            />
+            <div className="relative">
+              <input
+                value={newSubject}
+                onChange={(e) => setNewSubject(e.target.value.slice(0, 120))}
+                placeholder={t('citizenMsg.subjectPlaceholder', lang)}
+                maxLength={120}
+                className="w-full px-3 py-2 pr-16 text-xs bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500"
+              />
+              {newSubject.length > 80 && (
+                <span className={`absolute right-2 top-1/2 -translate-y-1/2 text-[9px] font-medium ${newSubject.length > 110 ? 'text-red-500' : 'text-amber-500'}`}>{newSubject.length}/120</span>
+              )}
+            </div>
             <select
               value={newCategory}
               onChange={(e) => setNewCategory(e.target.value)}
@@ -343,13 +353,19 @@ export default function CitizenMessaging(): JSX.Element {
               <option value="report">{t('citizenMsg.reportIssue', lang)}</option>
               <option value="feedback">{t('citizenMsg.feedback', lang)}</option>
             </select>
-            <textarea
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder={t('citizenMsg.describePlaceholder', lang)}
-              rows={2}
-              className="w-full px-3 py-2 text-xs bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 resize-none"
-            />
+            <div className="relative">
+              <textarea
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value.slice(0, 500))}
+                placeholder={t('citizenMsg.describePlaceholder', lang)}
+                rows={2}
+                maxLength={500}
+                className="w-full px-3 py-2 text-xs bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 resize-none"
+              />
+              {newMessage.length > 300 && (
+                <span className={`absolute bottom-1.5 right-2 text-[9px] font-medium ${newMessage.length > 470 ? 'text-red-500' : 'text-amber-500'}`}>{newMessage.length}/500</span>
+              )}
+            </div>
             <button
               onClick={handleCreateThread}
               disabled={!newSubject.trim() || !newMessage.trim()}
@@ -635,21 +651,31 @@ export default function CitizenMessaging(): JSX.Element {
                   >
                     <Paperclip className="w-4 h-4" />
                   </button>
-                  <textarea
-                    ref={textareaRef}
-                    value={msgInput}
-                    onChange={(e) => setMsgInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault()
-                        handleSendMessage()
-                      }
-                    }}
-                    placeholder={t('citizen.messages.typeMessage', lang)}
-                    disabled={isLoading}
-                    rows={1}
-                    className="flex-1 px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-aegis-500 focus:border-transparent transition resize-none max-h-28"
-                  />
+                  <div className="flex-1 relative">
+                    <textarea
+                      ref={textareaRef}
+                      value={msgInput}
+                      onChange={(e) => setMsgInput(e.target.value.slice(0, 1000))}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault()
+                          handleSendMessage()
+                        }
+                      }}
+                      placeholder={t('citizen.messages.typeMessage', lang)}
+                      disabled={isLoading}
+                      rows={1}
+                      maxLength={1000}
+                      className={`w-full px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 rounded-xl border focus:ring-2 focus:border-transparent transition resize-none max-h-28 ${
+                        msgInput.length > 900 ? 'border-amber-400 focus:ring-amber-500' : 'border-gray-200 dark:border-gray-700 focus:ring-aegis-500'
+                      }`}
+                    />
+                    {msgInput.length > 800 && (
+                      <span className={`absolute bottom-1.5 right-2 text-[10px] font-medium pointer-events-none transition-colors ${msgInput.length > 950 ? 'text-red-500' : 'text-amber-500'}`}>
+                        {msgInput.length}/1000
+                      </span>
+                    )}
+                  </div>
                   <button
                     onClick={handleSendMessage}
                     disabled={(!msgInput.trim() && !selectedImage) || isLoading}
@@ -674,4 +700,4 @@ export default function CitizenMessaging(): JSX.Element {
     </div>
   )
 }
-
+

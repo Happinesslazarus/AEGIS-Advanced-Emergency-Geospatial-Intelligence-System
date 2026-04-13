@@ -1,0 +1,13 @@
+experiment,train_region,test_region,roc_auc,accuracy,precision,recall,f1,n_train,n_test
+In-distribution,English Lowlands,English Lowlands,1.0,0.9989,0.9383,1.0,0.9682,2182856,2182856
+English Lowlands → Northern England,English Lowlands,Northern England,0.9994,0.9981,0.9369,0.9906,0.963,2182856,581854
+English Lowlands → Scotland,English Lowlands,Scotland,0.9984,0.997,0.9615,0.9854,0.9733,2182856,1019148
+Northern England → English Lowlands,Northern England,English Lowlands,0.9994,0.9995,0.9819,0.991,0.9864,581854,2182856
+In-distribution,Northern England,Northern England,1.0,0.9999,0.9959,1.0,0.9979,581854,581854
+Northern England → Scotland,Northern England,Scotland,0.9998,0.9992,0.9901,0.9953,0.9927,581854,1019148
+Scotland → English Lowlands,Scotland,English Lowlands,0.9999,0.9983,0.9145,0.9916,0.9515,1019148,2182856
+Scotland → Northern England,Scotland,Northern England,0.9999,0.9974,0.9099,0.9963,0.9512,1019148,581854
+In-distribution,Scotland,Scotland,1.0,0.9971,0.9503,1.0,0.9745,1019148,1019148
+English Lowlands + Northern England → Scotland,English Lowlands + Northern England,Scotland,0.9994,0.9973,0.9596,0.9927,0.9759,2764710,1019148
+English Lowlands + Scotland → Northern England,English Lowlands + Scotland,Northern England,0.9999,0.9986,0.949,0.9996,0.9736,3202004,581854
+Northern England + Scotland → English Lowlands,Northern England + Scotland,English Lowlands,0.992,0.9971,0.8697,0.9798,0.9214,1601002,2182856

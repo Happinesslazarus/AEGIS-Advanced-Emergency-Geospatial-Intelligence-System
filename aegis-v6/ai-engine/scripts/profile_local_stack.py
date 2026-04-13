@@ -1,11 +1,7 @@
 """
-Profile the local AEGIS model stack against the actual machine.
+Module: profile_local_stack.py
 
-This script is hardware-aware and answers four questions:
-1. What machine do we really have?
-2. Which Ollama models are installed?
-3. Does the current .env match the best local profile for this hardware?
-4. What should be downloaded or changed next?
+Profile_local_stack AI engine module.
 """
 
 from __future__ import annotations

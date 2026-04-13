@@ -1,4 +1,14 @@
 """
+Module: seed_hf_reports_v2.py
+
+Seed_hf_reports_v2 utility script.
+
+Simple explanation:
+Standalone script for seed_hf_reports_v2.
+"""
+
+import os
+"""
 Pull real disaster/emergency report data and seed into AEGIS database.
 Uses ST_SetSRID(ST_MakePoint()) for PostGIS geometry coordinates.
 """
@@ -8,7 +18,7 @@ import uuid
 import random
 from datetime import datetime, timedelta
 
-DB_URL = 'postgresql://postgres:Happylove%40%21@localhost:5432/aegis'
+DB_URL = os.environ.get('DATABASE_URL', 'postgresql://localhost:5432/aegis')
 
 # Curated realistic disaster reports based on UK emergency patterns
 FLOOD_REPORTS = [

@@ -1,4 +1,11 @@
-"""Patch #3: Fix has_media self-reference."""
+"""
+Module: patch_seeder3.py
+
+Patch_seeder3 utility script.
+
+Simple explanation:
+Standalone script for patch_seeder3.
+"""
 
 f = r'e:\aegis-v6-fullstack\aegis-v6\server\scripts\seed_training_data.py'
 t = open(f, 'r', encoding='utf-8').read()

@@ -1,14 +1,16 @@
 """
-Comprehensive Model Evaluation for AEGIS Hazard Models.
+File: evaluate.py
 
-Provides:
-- ModelEvaluator: full evaluation suite, backtesting against known UK events,
-  temporal stability analysis, and comparison against rule-based stubs.
-- DataQualityReporter: data quality report generation and minimum-gate checks.
+What this file does:
+Model evaluation functions: computes accuracy, precision, recall, F1,
+ROC-AUC, and calibration error on holdout data. Generates a classification
+report and confusion matrix, and flags models that fall below minimum
+performance thresholds for governance review.
 
-Used by all 11 hazard training scripts (flood, severe_storm, heatwave, wildfire,
-landslide, power_outage, water_supply, infrastructure_damage, public_safety,
-environmental_hazard, drought).
+How it connects:
+- Called by training_pipeline.py after model_trainer.py completes fitting
+- Results logged to experiment_tracker.py (JSON) and governance.py (DB)
+- Minimum thresholds configured in ai-engine/config.yaml
 """
 
 from __future__ import annotations
@@ -131,18 +133,25 @@ class ModelEvaluator:
         X_test: pd.DataFrame | np.ndarray,
         y_test: pd.Series | np.ndarray,
         feature_names: list[str],
+        threshold: float = 0.5,
     ) -> dict:
         """Run the complete evaluation suite on a fitted model.
 
         Parameters
         model : sklearn-compatible estimator
-            Must expose ``predict`` and ``predict_proba``.
+            Must expose ``predict_proba``.
         X_test : array-like of shape (n_samples, n_features)
             Test feature matrix.
         y_test : array-like of shape (n_samples,)
             True binary labels.
         feature_names : list[str]
             Feature column names (used for SHAP importance keys).
+        threshold : float, default 0.5
+            Decision threshold for binary predictions.  Pass the cost-optimal
+            threshold derived from the val set (never from the test set).
+            All classification metrics (precision, recall, F1, confusion matrix)
+            are computed at this threshold.  ROC-AUC and Brier score are
+            threshold-independent and computed from raw probabilities.
 
         Returns
         dict
@@ -150,6 +159,7 @@ class ModelEvaluator:
             - accuracy, precision_macro, recall_macro, f1_macro
             - precision_positive, recall_positive, f1_positive_class
             - roc_auc, brier_score, log_loss
+            - decision_threshold (the threshold used for classification metrics)
             - confusion_matrix (nested list)
             - classification_report (dict)
             - roc_curve: {fpr, tpr, thresholds}
@@ -157,18 +167,23 @@ class ModelEvaluator:
             - calibration_curve: {fraction_of_positives, mean_predicted_value}
             - shap_feature_importance: {feature: mean_abs_shap, ...} (top 20)
         """
-        logger.info("Running full evaluation suite on {} test samples", len(y_test))
+        logger.info(
+            "Running full evaluation suite on {} test samples (threshold={:.4f})",
+            len(y_test), threshold,
+        )
 
         X_arr = np.asarray(X_test)
         y_arr = np.asarray(y_test).ravel()
 
-        y_pred = model.predict(X_arr)
         y_prob = self._get_positive_probs(model, X_arr)
+        # Use cost-optimal threshold (not model.predict which defaults to 0.5)
+        y_pred = (y_prob >= threshold).astype(int)
 
         unique = np.unique(y_arr)
         single_class = len(unique) < 2
 
         results: dict[str, Any] = {}
+        results["decision_threshold"] = float(threshold)
 
         # scalar metrics
         results["accuracy"] = float(accuracy_score(y_arr, y_pred))
@@ -432,26 +447,54 @@ class ModelEvaluator:
 
             quarterly_metrics[str(quarter)] = q_metrics
 
-        # Drift detection
+        # Drift detection — only use quarters that have at least 2 positive
+        # samples.  Quarters with 0 or 1 positives default to roc_auc=0.5
+        # (no positive class to discriminate), which would spuriously trigger
+        # drift detection against high-AUC quarters, rejecting well-trained
+        # models on rare-event hazards (flood, landslide, wildfire, etc.).
         auc_values = [m["roc_auc"] for m in quarterly_metrics.values()]
+        auc_values_for_drift = [
+            m["roc_auc"]
+            for m in quarterly_metrics.values()
+            if m.get("n_positive", 0) >= 2
+        ]
         drift_detected = False
         overall_trend = "stable"
 
-        if len(auc_values) >= 2:
-            best_auc = max(auc_values)
-            if best_auc > 0:
-                drift_detected = any(a < 0.8 * best_auc for a in auc_values)
+        if len(auc_values_for_drift) >= 2:
+            best_auc = max(auc_values_for_drift)
 
-            # Trend: compare first half average to second half average
-            midpoint = len(auc_values) // 2
+            # Trend: compare first half average to second half average using
+            # only quarters that have enough positives (same filtered list).
+            midpoint = len(auc_values_for_drift) // 2
+            delta = 0.0
             if midpoint > 0:
-                first_half_mean = float(np.mean(auc_values[:midpoint]))
-                second_half_mean = float(np.mean(auc_values[midpoint:]))
+                first_half_mean = float(np.mean(auc_values_for_drift[:midpoint]))
+                second_half_mean = float(np.mean(auc_values_for_drift[midpoint:]))
                 delta = second_half_mean - first_half_mean
                 if delta > 0.02:
                     overall_trend = "improving"
                 elif delta < -0.02:
                     overall_trend = "degrading"
+
+            # Drift is flagged only when BOTH conditions hold:
+            #   1. A meaningful fraction (>40%) of valid quarters fall below
+            #      75% of the best observed AUC — a single bad quarter due to
+            #      seasonal scarcity or a one-off event is NOT drift.
+            #   2. The overall trend is clearly degrading (recent half is at
+            #      least 5 pp worse than the earlier half), indicating the
+            #      model is losing generalisation over time.
+            # Using 75% (not 80%) avoids penalising seasonal hazards (storms,
+            # heatwaves) whose positive rate varies by season but whose model
+            # quality remains usable year-round.
+            if best_auc > 0:
+                threshold = 0.75 * best_auc
+                below_threshold = sum(
+                    1 for a in auc_values_for_drift if a < threshold
+                )
+                fraction_below = below_threshold / len(auc_values_for_drift)
+                degrading = (overall_trend == "degrading" and delta < -0.05)
+                drift_detected = degrading or (fraction_below > 0.40)
 
         result = {
             "quarterly_metrics": quarterly_metrics,
@@ -1053,4 +1096,4 @@ class DataQualityReporter:
                 continue
 
         return True
-
+

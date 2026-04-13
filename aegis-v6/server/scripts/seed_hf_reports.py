@@ -1,4 +1,14 @@
 """
+Module: seed_hf_reports.py
+
+Seed_hf_reports utility script.
+
+Simple explanation:
+Standalone script for seed_hf_reports.
+"""
+
+import os
+"""
 Pull real disaster/emergency report data from HuggingFace datasets
 and seed into the AEGIS database for improved model training.
 
@@ -12,7 +22,7 @@ import random
 import numpy as np
 from datetime import datetime, timedelta
 
-DB_URL = 'postgresql://postgres:Happylove%40%21@localhost:5432/aegis'
+DB_URL = os.environ.get('DATABASE_URL', 'postgresql://localhost:5432/aegis')
 
 # Crisis NLP / disaster response data - manually curated realistic reports
 # These are representative examples based on public disaster report patterns
@@ -93,21 +103,21 @@ DROUGHT_REPORTS = [
 ]
 
 HEATWAVE_REPORTS = [
-    ("Temperature hit 38°C today, hottest day on record for the area", "critical", "extreme_heat"),
+    ("Temperature hit 38Ã‚Â°C today, hottest day on record for the area", "critical", "extreme_heat"),
     ("Heat health alert issued, vulnerable people at risk", "high", "extreme_heat"),
     ("Railway lines buckling in extreme heat, services cancelled", "high", "infrastructure"),
     ("Cooling centres opened across the borough for vulnerable residents", "medium", "extreme_heat"),
-    ("Minor warmth, pleasant summer day around 28°C", "low", "warm_weather"),
+    ("Minor warmth, pleasant summer day around 28Ã‚Â°C", "low", "warm_weather"),
     ("Asphalt melting on main road, surface tacky and damaged", "high", "infrastructure"),
     ("Three people hospitalised with heatstroke at outdoor event", "critical", "health"),
     ("School closed early due to inability to keep classrooms cool", "medium", "extreme_heat"),
-    ("Office workers sent home as building has no air conditioning and hit 35°C inside", "medium", "extreme_heat"),
-    ("Night temperatures not dropping below 25°C, sleep disruption widespread", "high", "extreme_heat"),
+    ("Office workers sent home as building has no air conditioning and hit 35Ã‚Â°C inside", "medium", "extreme_heat"),
+    ("Night temperatures not dropping below 25Ã‚Â°C, sleep disruption widespread", "high", "extreme_heat"),
     ("Bins and recycling collection suspended due to extreme heat worker safety", "medium", "extreme_heat"),
     ("Grass fire on common land, suspected started by glass in hot sun", "high", "infrastructure"),
     ("Zoo animals given ice blocks and shade shelters as temperatures soar", "medium", "extreme_heat"),
     ("Water demand spike causing low pressure in some areas", "high", "infrastructure"),
-    ("Record overnight temperature of 27°C recorded at observing station", "high", "extreme_heat"),
+    ("Record overnight temperature of 27Ã‚Â°C recorded at observing station", "high", "extreme_heat"),
     ("Pet owners warned about hot pavements burning paws", "low", "extreme_heat"),
     ("Concrete expansion joint failure on bridge in extreme heat", "high", "infrastructure"),
     ("Ambulance service reporting surge in heat-related callouts", "critical", "health"),
@@ -122,7 +132,7 @@ HEATWAVE_REPORTS = [
     ("Sports events cancelled due to extreme heat warning", "medium", "extreme_heat"),
     ("Tarmac soft enough to leave footprints at airport", "high", "infrastructure"),
     ("National Parks seeing increased litter near water as people seek relief", "low", "extreme_heat"),
-    ("Fourth consecutive day above 35°C, unprecedented for this region", "critical", "extreme_heat"),
+    ("Fourth consecutive day above 35Ã‚Â°C, unprecedented for this region", "critical", "extreme_heat"),
 ]
 
 STORM_REPORTS = [

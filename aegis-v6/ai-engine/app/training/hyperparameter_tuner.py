@@ -1,14 +1,28 @@
-﻿"""
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
- AEGIS AI ENGINE â€” Hyperparameter Tuner
- 
- Optuna-based hyperparameter optimization:
- - Bayesian optimization
- - Pruning underperforming trials
- - Multi-objective optimization
- - Integration with MLflow tracking
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 """
+File: hyperparameter_tuner.py
+
+What this file does:
+Optuna-based hyperparameter optimisation wrapper. Defines search spaces
+for RandomForest, GradientBoosting, and XGBoost models, runs N trials
+(configurable), and returns the best parameters. Integrated as an optional
+step in training_pipeline.py.
+
+How it connects:
+- Called by training_pipeline.py when ENABLE_HYPERPARAMETER_TUNING=true
+- Optuna storage backend: SQLite file in ai-engine/data/optuna.db
+- Best params passed to model_trainer.py for final training run
+"""
+
+# -------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+# Optuna-based hyperparameter optimization:
+# - Bayesian optimization
+# - Pruning underperforming trials
+# - Multi-objective optimization
+# - Integration with MLflow tracking
+# -------------------------------------------------------------------------------
 
 from __future__ import annotations
 
@@ -387,4 +401,4 @@ class HyperparameterTuner:
                 raise optuna.TrialPruned()
         
         return objective
-
+

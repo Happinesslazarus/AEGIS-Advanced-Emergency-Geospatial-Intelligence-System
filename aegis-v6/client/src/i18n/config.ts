@@ -1,18 +1,25 @@
-﻿/**
- * i18n/config.ts — react-i18next configuration
- *
- * Initializes i18next with:
- * Browser language detection
- * Namespace-based translation files
- * Fallback to English
- * Support for 9 languages (en, es, fr, ar, de, pt, hi, zh, sw)
+/**
+ * File: config.ts
+  *
+  * What this file does:
+  * Initialises i18next with react-i18next and the browser language
+  * detector. Loads translation JSON bundles (lazy-loaded per locale),
+  * sets fallback language to English, and configures namespace and key
+  * separator conventions for the whole client.
+  *
+  * How it connects:
+  * - Imported once in client/src/main.tsx before React renders
+  * - Translation files in client/public/locales/<lang>/translation.json
+  * - Used everywhere via useTranslation() or utils/i18n.ts t()
+  * - Language preference persisted in localStorage by LanguageDetector
+  * - Learn more: https://react.i18next.com
  */
 
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
 
-// English
+// English (always bundled — fallback language, zero load delay)
 import enCommon from './locales/en/common.json'
 import enIncidents from './locales/en/incidents.json'
 import enDashboard from './locales/en/dashboard.json'
@@ -22,96 +29,36 @@ import enAdmin from './locales/en/admin.json'
 import enCitizen from './locales/en/citizen.json'
 import enLanding from './locales/en/landing.json'
 
-// Spanish
-import esCommon from './locales/es/common.json'
-import esIncidents from './locales/es/incidents.json'
-import esDashboard from './locales/es/dashboard.json'
-import esAlerts from './locales/es/alerts.json'
-import esMap from './locales/es/map.json'
-import esAdmin from './locales/es/admin.json'
-import esCitizen from './locales/es/citizen.json'
-import esLanding from './locales/es/landing.json'
-
-// French
-import frCommon from './locales/fr/common.json'
-import frIncidents from './locales/fr/incidents.json'
-import frDashboard from './locales/fr/dashboard.json'
-import frAlerts from './locales/fr/alerts.json'
-import frMap from './locales/fr/map.json'
-import frAdmin from './locales/fr/admin.json'
-import frCitizen from './locales/fr/citizen.json'
-import frLanding from './locales/fr/landing.json'
-
-// Arabic (RTL)
-import arCommon from './locales/ar/common.json'
-import arIncidents from './locales/ar/incidents.json'
-import arDashboard from './locales/ar/dashboard.json'
-import arAlerts from './locales/ar/alerts.json'
-import arMap from './locales/ar/map.json'
-import arAdmin from './locales/ar/admin.json'
-import arCitizen from './locales/ar/citizen.json'
-import arLanding from './locales/ar/landing.json'
-
-// German
-import deCommon from './locales/de/common.json'
-import deIncidents from './locales/de/incidents.json'
-import deDashboard from './locales/de/dashboard.json'
-import deAlerts from './locales/de/alerts.json'
-import deMap from './locales/de/map.json'
-import deAdmin from './locales/de/admin.json'
-import deCitizen from './locales/de/citizen.json'
-import deLanding from './locales/de/landing.json'
-
-// Portuguese
-import ptCommon from './locales/pt/common.json'
-import ptIncidents from './locales/pt/incidents.json'
-import ptDashboard from './locales/pt/dashboard.json'
-import ptAlerts from './locales/pt/alerts.json'
-import ptMap from './locales/pt/map.json'
-import ptAdmin from './locales/pt/admin.json'
-import ptCitizen from './locales/pt/citizen.json'
-import ptLanding from './locales/pt/landing.json'
-
-// Hindi
-import hiCommon from './locales/hi/common.json'
-import hiIncidents from './locales/hi/incidents.json'
-import hiDashboard from './locales/hi/dashboard.json'
-import hiAlerts from './locales/hi/alerts.json'
-import hiMap from './locales/hi/map.json'
-import hiAdmin from './locales/hi/admin.json'
-import hiCitizen from './locales/hi/citizen.json'
-import hiLanding from './locales/hi/landing.json'
-
-// Chinese (Simplified)
-import zhCommon from './locales/zh/common.json'
-import zhIncidents from './locales/zh/incidents.json'
-import zhDashboard from './locales/zh/dashboard.json'
-import zhAlerts from './locales/zh/alerts.json'
-import zhMap from './locales/zh/map.json'
-import zhAdmin from './locales/zh/admin.json'
-import zhCitizen from './locales/zh/citizen.json'
-import zhLanding from './locales/zh/landing.json'
-
-// Swahili
-import swCommon from './locales/sw/common.json'
-import swIncidents from './locales/sw/incidents.json'
-import swDashboard from './locales/sw/dashboard.json'
-import swAlerts from './locales/sw/alerts.json'
-import swMap from './locales/sw/map.json'
-import swAdmin from './locales/sw/admin.json'
-import swCitizen from './locales/sw/citizen.json'
-import swLanding from './locales/sw/landing.json'
+const NAMESPACES = ['common', 'incidents', 'dashboard', 'alerts', 'map', 'admin', 'citizen', 'landing'] as const
 
 const resources = {
   en: { common: enCommon, incidents: enIncidents, dashboard: enDashboard, alerts: enAlerts, map: enMap, admin: enAdmin, citizen: enCitizen, landing: enLanding },
-  es: { common: esCommon, incidents: esIncidents, dashboard: esDashboard, alerts: esAlerts, map: esMap, admin: esAdmin, citizen: esCitizen, landing: esLanding },
-  fr: { common: frCommon, incidents: frIncidents, dashboard: frDashboard, alerts: frAlerts, map: frMap, admin: frAdmin, citizen: frCitizen, landing: frLanding },
-  ar: { common: arCommon, incidents: arIncidents, dashboard: arDashboard, alerts: arAlerts, map: arMap, admin: arAdmin, citizen: arCitizen, landing: arLanding },
-  de: { common: deCommon, incidents: deIncidents, dashboard: deDashboard, alerts: deAlerts, map: deMap, admin: deAdmin, citizen: deCitizen, landing: deLanding },
-  pt: { common: ptCommon, incidents: ptIncidents, dashboard: ptDashboard, alerts: ptAlerts, map: ptMap, admin: ptAdmin, citizen: ptCitizen, landing: ptLanding },
-  hi: { common: hiCommon, incidents: hiIncidents, dashboard: hiDashboard, alerts: hiAlerts, map: hiMap, admin: hiAdmin, citizen: hiCitizen, landing: hiLanding },
-  zh: { common: zhCommon, incidents: zhIncidents, dashboard: zhDashboard, alerts: zhAlerts, map: zhMap, admin: zhAdmin, citizen: zhCitizen, landing: zhLanding },
-  sw: { common: swCommon, incidents: swIncidents, dashboard: swDashboard, alerts: swAlerts, map: swMap, admin: swAdmin, citizen: swCitizen, landing: swLanding },
+}
+
+/**
+ * Lazy-load translation bundles for non-English languages.
+ * Uses Vite dynamic imports so each language is code-split into its own chunk.
+ */
+const loaders: Record<string, () => Promise<Record<string, unknown>>[]> = {
+  es: () => NAMESPACES.map(ns => import(`./locales/es/${ns}.json`)),
+  fr: () => NAMESPACES.map(ns => import(`./locales/fr/${ns}.json`)),
+  ar: () => NAMESPACES.map(ns => import(`./locales/ar/${ns}.json`)),
+  de: () => NAMESPACES.map(ns => import(`./locales/de/${ns}.json`)),
+  pt: () => NAMESPACES.map(ns => import(`./locales/pt/${ns}.json`)),
+  hi: () => NAMESPACES.map(ns => import(`./locales/hi/${ns}.json`)),
+  zh: () => NAMESPACES.map(ns => import(`./locales/zh/${ns}.json`)),
+  sw: () => NAMESPACES.map(ns => import(`./locales/sw/${ns}.json`)),
+}
+
+const loadedLanguages = new Set<string>(['en'])
+
+export async function loadLanguage(lng: string): Promise<void> {
+  if (loadedLanguages.has(lng) || !loaders[lng]) return
+  const modules = await Promise.all(loaders[lng]())
+  NAMESPACES.forEach((ns, i) => {
+    i18n.addResourceBundle(lng, ns, (modules[i] as any).default ?? modules[i], true, true)
+  })
+  loadedLanguages.add(lng)
 }
 
 i18n
@@ -121,7 +68,8 @@ i18n
     resources,
     fallbackLng: 'en',
     defaultNS: 'common',
-    ns: ['common', 'incidents', 'dashboard', 'alerts', 'map', 'admin', 'citizen', 'landing'],
+    ns: [...NAMESPACES],
+    partialBundledLanguages: true,
     interpolation: {
       escapeValue: false, // React already escapes
     },
@@ -134,6 +82,12 @@ i18n
       useSuspense: false,
     },
   })
+
+// Pre-load detected language on startup (non-blocking)
+const detected = i18n.language?.split('-')[0]
+if (detected && detected !== 'en' && loaders[detected]) {
+  loadLanguage(detected).then(() => i18n.changeLanguage(detected))
+}
 
 export default i18n
 
@@ -150,4 +104,4 @@ export const SUPPORTED_LANGUAGES = [
 ] as const
 
 export type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number]['code']
-
+

@@ -1,12 +1,10 @@
 /**
- * RiverLevelPanel.tsx — Live River Level Monitoring Sidebar
+ * Module: RiverLevelPanel.tsx
  *
- * Fetches real-time river data from the server API (which uses
- * SEPA ? OpenMeteo fallback chain). Shows animated gauge bars,
- * sparkline trend dots, flood status, and timestamps.
+ * River level panel shared component (reusable UI element used across pages).
  *
- * Receives Socket.IO updates via `river:levels_updated` for live refresh.
- */
+ * How it connects:
+ * - Used across both admin and citizen interfaces */
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import {

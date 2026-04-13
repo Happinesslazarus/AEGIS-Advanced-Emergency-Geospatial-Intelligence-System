@@ -1,6 +1,48 @@
+/**
+ * File: AdminPage.tsx
+ *
+ * What this file does:
+ * The main operator and admin dashboard. Displays live incident reports, alert
+ * management, analytics, the interactive map, messaging, and user management.
+ * Operators log in here (or via the embedded LoginPage) and manage everything
+ * from a single tabbed interface.
+ *
+ * How it connects:
+ * - Routed by client/src/App.tsx at /admin
+ * - Protected: redirects unauthenticated users to the LoginPage embedded here
+ * - Reads reports from client/src/contexts/ReportsContext.tsx
+ * - Reads alerts from client/src/contexts/AlertsContext.tsx
+ * - Real-time updates arrive via Socket.IO (shared socket from SocketContext)
+ * - Makes API calls via client/src/utils/api.ts for reports, users, deployments
+ * - Heavy sub-panels are lazy-loaded (CommandCenter, DistressPanel, etc.)
+ *
+ * Key panels (tabbed):
+ * - Dashboard    — live incident stats and quick actions
+ * - Reports      — full incident queue with AI scores and filters
+ * - Map          — live geospatial view of all incidents
+ * - Alerts       — send and manage emergency broadcasts
+ * - Analytics    — historical stats and charts
+ * - Messaging    — operator-to-citizen real-time chat
+ * - Distress     — active SOS beacon map
+ * - Users        — operator and citizen account management
+ *
+ * Learn more:
+ * - client/src/contexts/ReportsContext.tsx   — shared report state for all components
+ * - client/src/utils/api.ts                  — all API call functions used here
+ * - client/src/components/admin/             — sub-components for each panel
+ * - server/src/routes/reportRoutes.ts        — the backend these panels read from
+ * - server/src/routes/adminAiRoutes.ts       — AI management used in analytics panel
+ *
+ * Simple explanation:
+ * The control room for emergency responders. All operators and admins live in
+ * this page. They see reports as they come in, triage them, send alerts to the
+ * public, chat with citizens, and track where resources are deployed.
+ */
+
 /* AdminPage.tsx ? Operator dashboard with reports, alerts, analytics, and messaging. */
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
+import { usePageTitle } from '../hooks/usePageTitle'
 import { lazy, Suspense } from 'react'
 import { Link } from 'react-router-dom'
 import {
@@ -18,47 +60,48 @@ import { useAlerts } from '../contexts/AlertsContext'
 import { useTheme } from '../contexts/ThemeContext'
 import { useLocation } from '../contexts/LocationContext'
 import { LOCATIONS } from '../contexts/LocationContext'
-import { getSession, logout, validateTokenOrRedirect } from '../utils/auth'
+import { getSession, logout, validateTokenOrRedirectAsync } from '../utils/auth'
 import { exportReportsCSV, exportReportJSON as exportReportsJSON } from '../utils/exportData'
 import { apiLogActivity, apiCreateAlert, apiGetAuditLog, apiAuditLog, apiGetPredictions, apiSendPreAlert, apiGetDeployments, apiDeployResources, apiRecallResources, apiRunPrediction, apiGetHeatmapData, apiGetUsers, apiUpdateUser, apiSuspendUser, apiActivateUser, apiResetUserPassword, apiDeleteUser, apiGetCommandCenterAnalytics, apiBulkUpdateReportStatus, apiUpdateProfile, apiUpdateReportNotes, getToken } from '../utils/api'
-const DisasterMap = lazy(() => import('../components/shared/DisasterMap'))
 import ReportCard from '../components/shared/ReportCard'
 import LoginPage from '../components/admin/LoginPage'
 import TwoFactorSettings from '../components/admin/TwoFactorSettings'
 import SetupWizard from './SetupWizard'
 import { useSetupStatus } from '../hooks/useSetupStatus'
-import AnalyticsDashboard from '../components/admin/AnalyticsDashboard'
-import AdminMessaging from '../components/admin/AdminMessaging'
-import DeliveryDashboard from '../components/admin/DeliveryDashboard'
-import CommunityChat from '../components/citizen/CommunityChat'
-import CommunityChatRoom from '../components/citizen/CommunityChatRoom'
-import AdminCommunityHub from '../components/admin/AdminCommunityHub'
-import AdminHistoricalIntelligence from '../components/admin/AdminHistoricalIntelligence'
-import AdminAuditTrail from '../components/admin/AdminAuditTrail'
-import AdminAlertBroadcast from '../components/admin/AdminAlertBroadcast'
-import Chatbot from '../components/citizen/Chatbot'
-import IntelligenceDashboard from '../components/shared/IntelligenceDashboard'
-import RiverLevelPanel from '../components/shared/RiverLevelPanel'
-import FloodLayerControl from '../components/shared/FloodLayerControl'
-import FloodPredictionTimeline from '../components/shared/FloodPredictionTimeline'
+import IncidentFilterPanel from '../components/shared/IncidentFilterPanel'
+
+// Lazy load heavy components for bundle optimization
+const DisasterMap = lazy(() => import('../components/shared/DisasterMap'))
 const LiveMap = lazy(() => import('../components/shared/LiveMap'))
 const Map3DView = lazy(() => import('../components/shared/Map3DView'))
-import DistressPanel from '../components/admin/DistressPanel'
-import SecurityDashboard from '../components/admin/SecurityDashboard'
-import SystemHealthPanel from '../components/admin/SystemHealthPanel'
-import ClimateRiskDashboard from '../components/shared/ClimateRiskDashboard'
-import LanguageSelector from '../components/shared/LanguageSelector'
-import IncidentFilterPanel from '../components/shared/IncidentFilterPanel'
-import IncidentCommandConsole from '../components/admin/IncidentCommandConsole'
-import CommandCenter from '../components/admin/CommandCenter'
-import WelcomeDashboard from '../components/admin/WelcomeDashboard'
-import AllReportsManager from '../components/admin/AllReportsManager'
 const LiveOperationsMap = lazy(() => import('../components/admin/LiveOperationsMap'))
-import AnalyticsCenter from '../components/admin/AnalyticsCenter'
-import AITransparencyConsole from '../components/admin/AITransparencyConsole'
-import ResourceDeploymentConsole from '../components/admin/ResourceDeploymentConsole'
-import UserAccessManagement from '../components/admin/UserAccessManagement'
 const CrowdDensityHeatmap = lazy(() => import('../components/admin/AdminCrowdDensity'))
+const AnalyticsDashboard = lazy(() => import('../components/admin/AnalyticsDashboard'))
+const AdminMessaging = lazy(() => import('../components/admin/AdminMessaging'))
+const DeliveryDashboard = lazy(() => import('../components/admin/DeliveryDashboard'))
+const CommunityChat = lazy(() => import('../components/citizen/CommunityChat'))
+const CommunityChatRoom = lazy(() => import('../components/citizen/CommunityChatRoom'))
+const AdminCommunityHub = lazy(() => import('../components/admin/AdminCommunityHub'))
+const AdminHistoricalIntelligence = lazy(() => import('../components/admin/AdminHistoricalIntelligence'))
+const AdminAuditTrail = lazy(() => import('../components/admin/AdminAuditTrail'))
+const AdminAlertBroadcast = lazy(() => import('../components/admin/AdminAlertBroadcast'))
+const Chatbot = lazy(() => import('../components/citizen/Chatbot'))
+const IntelligenceDashboard = lazy(() => import('../components/shared/IntelligenceDashboard'))
+const RiverLevelPanel = lazy(() => import('../components/shared/RiverLevelPanel'))
+const FloodLayerControl = lazy(() => import('../components/shared/FloodLayerControl'))
+const FloodPredictionTimeline = lazy(() => import('../components/shared/FloodPredictionTimeline'))
+const DistressPanel = lazy(() => import('../components/admin/DistressPanel'))
+const SecurityDashboard = lazy(() => import('../components/admin/SecurityDashboard'))
+const SystemHealthPanel = lazy(() => import('../components/admin/SystemHealthPanel'))
+const ClimateRiskDashboard = lazy(() => import('../components/shared/ClimateRiskDashboard'))
+const IncidentCommandConsole = lazy(() => import('../components/admin/IncidentCommandConsole'))
+const CommandCenter = lazy(() => import('../components/admin/CommandCenter'))
+const WelcomeDashboard = lazy(() => import('../components/admin/WelcomeDashboard'))
+const AllReportsManager = lazy(() => import('../components/admin/AllReportsManager'))
+const AnalyticsCenter = lazy(() => import('../components/admin/AnalyticsCenter'))
+const AITransparencyConsole = lazy(() => import('../components/admin/AITransparencyConsole'))
+const ResourceDeploymentConsole = lazy(() => import('../components/admin/ResourceDeploymentConsole'))
+const UserAccessManagement = lazy(() => import('../components/admin/UserAccessManagement'))
 import type { Report, Operator } from '../types'
 import ThemeSelector from '../components/ui/ThemeSelector'
 import AdminLayout from '../components/layout/AdminLayout'
@@ -68,8 +111,10 @@ import { t } from '../utils/i18n'
 import { escapeHtml } from '../utils/helpers'
 import { useLanguage } from '../hooks/useLanguage'
 import { useIncidents } from '../contexts/IncidentContext'
+import { useToast } from '../contexts/ToastContext'
 import { SkeletonTable, SkeletonChart, SkeletonCard, SkeletonList } from '../components/ui/Skeleton'
 import { EmptyAdminTable } from '../components/ui/EmptyState'
+import KeyboardShortcutsOverlay from '../components/admin/KeyboardShortcutsOverlay'
 
 import { SEVERITY_BG_PILL, STATUS_BG_PILL } from '../utils/colorTokens'
 const SEV_COLORS: Record<string, string> = SEVERITY_BG_PILL
@@ -79,11 +124,13 @@ const CATEGORY_ICONS: Record<string, any> = { natural_disaster: Droplets, infras
 type View = 'home'|'dashboard'|'reports'|'map'|'analytics'|'ai_models'|'history'|'audit'|'alert_send'|'resources'|'predictions'|'users'|'messaging'|'community'|'system_health'|'delivery'|'crowd'|'security'|'incident_console'
 
 export default function AdminPage(): JSX.Element {
+  usePageTitle('Admin Dashboard')
   const lang = useLanguage()
   const { reports, loading, verifyReport, flagReport, markUrgent, resolveReport, archiveReport, markFalseReport, refreshReports } = useReports()
   const { alerts, notifications, pushNotification, dismissNotification, refreshAlerts } = useAlerts()
   const { location: loc, activeLocation, setActiveLocation, availableLocations } = useLocation()
   const { dark, toggle } = useTheme()
+  const { toast } = useToast()
   const { filter: incidentFilter } = useIncidents()
   const selectedTypes = incidentFilter?.types ?? []
   const { loading: setupLoading, status: setupStatus, refetch: setupRefetch } = useSetupStatus()
@@ -143,6 +190,7 @@ export default function AdminPage(): JSX.Element {
   } | null>(null)
   const [selectedReportIds, setSelectedReportIds] = useState<Set<string>>(new Set())
   const [smartFilter, setSmartFilter] = useState('')
+  const [showShortcuts, setShowShortcuts] = useState(false)
   const notifSocketRef = useRef<Socket | null>(null)
   const [socketConnected, setSocketConnected] = useState(false)
   const [activityShowAll, setActivityShowAll] = useState(false)
@@ -151,7 +199,7 @@ export default function AdminPage(): JSX.Element {
   const predictionAreaOptions = useMemo(() => {
     const map = new globalThis.Map<string, { area: string; lat: number; lng: number; regionId: string }>()
     Object.entries(LOCATIONS).forEach(([regionKey, cfg]) => {
-      ;(cfg.floodZones || []).forEach((zone: any) => {
+      (cfg.floodZones || []).forEach((zone: any) => {
         const area = String(zone.name || '').trim()
         const lat = Number(zone?.coords?.[0])
         const lng = Number(zone?.coords?.[1])
@@ -179,11 +227,14 @@ export default function AdminPage(): JSX.Element {
     }
   }, [user])
 
-  // Validate token on mount - redirect to login if invalid/expired
+  // Validate token on mount after silent-refresh settles.
   useEffect(() => {
-    if (!validateTokenOrRedirect()) {
-      return
-    }
+    let mounted = true
+    ;(async () => {
+      if (!mounted) return
+      await validateTokenOrRedirectAsync()
+    })()
+    return () => { mounted = false }
   }, [])
 
   // Lightweight socket for receiving community chat notifications (global broadcast)
@@ -209,9 +260,24 @@ export default function AdminPage(): JSX.Element {
       setCommunityUnread(prev => prev + 1)
     })
 
-    s.on('report:new', () => {
+    s.on('report:new', (data: any) => {
       loadCommandCenter()
       refreshReports?.()
+      if (data?.severity === 'High' || data?.status === 'Urgent') {
+        toast({
+          type: 'urgent',
+          title: `🚨 Urgent Report: ${data?.type || 'New Incident'}`,
+          message: data?.location ? `📍 ${data.location}` : undefined,
+          duration: 8000,
+        })
+      } else if (data?.type) {
+        toast({
+          type: 'info',
+          title: `New Report: ${data.type}`,
+          message: data?.location || undefined,
+          duration: 4500,
+        })
+      }
     })
 
     s.on('report:updated', (update: any) => {
@@ -241,7 +307,7 @@ export default function AdminPage(): JSX.Element {
       notifSocketRef.current = null
       setSocketConnected(false)
     }
-  }, [user?.id, loadCommandCenter])
+  }, [user?.id, loadCommandCenter, refreshReports])
 
   useEffect(() => {
     if (!predictionAreaOptions.length) return
@@ -257,9 +323,14 @@ export default function AdminPage(): JSX.Element {
     }
   }, [view])
 
-  // Load audit log
+  // Load audit log with unmount protection
   useEffect(()=>{
-    if(user) apiGetAuditLog({limit:'500'}).then(d=>{if(d&&d.length>0)setAuditLog(d);else setAuditLog([])}).catch(()=>setAuditLog([]))
+    if(!user) return
+    let cancelled = false
+    apiGetAuditLog({limit:'500'}).then(d=>{
+      if(!cancelled){if(d&&d.length>0)setAuditLog(d);else setAuditLog([])}
+    }).catch(()=>{if(!cancelled)setAuditLog([])})
+    return ()=>{cancelled=true}
   },[user])
 
   useEffect(() => {
@@ -423,7 +494,7 @@ export default function AdminPage(): JSX.Element {
   const doBulkArchive=()=>askConfirm(t('admin.bulk.archiveTitle',lang),t('admin.bulk.archiveMsg',lang).replace('{n}',String(selectedReportIds.size)),'warning',async()=>{const ids=Array.from(selectedReportIds);await runBulkAction(ids,'Archived',t('admin.bulk.archiveSuccess',lang).replace('{n}',String(ids.length)),'success')})
   const doBulkFalseReport=()=>askConfirm(t('admin.bulk.falseTitle',lang),t('admin.bulk.falseMsg',lang).replace('{n}',String(selectedReportIds.size)),'danger',async()=>{const ids=Array.from(selectedReportIds);await runBulkAction(ids,'False_Report',t('admin.bulk.falseSuccess',lang).replace('{n}',String(ids.length)),'warning')})
 
-  const toggleSelection=(id:string)=>{setSelectedReportIds(prev=>{const next=new Set(prev);if(next.has(id)){next.delete(id)}else{next.add(id)};return next})}
+  const toggleSelection=(id:string)=>{setSelectedReportIds(prev=>{const next=new Set(prev);if(next.has(id)){next.delete(id)}else{next.add(id)}return next})}
   const toggleSelectAll=()=>{if(selectedReportIds.size===filtered.length){setSelectedReportIds(new Set())}else{setSelectedReportIds(new Set(filtered.map(r=>r.id)))}}
 
   const handlePrint=()=>{const w=window.open('','','width=800,height=600');if(!w){pushNotification(t('admin.print.allowPopups',lang),'warning');return}w.document.write('<html><head><title>AEGIS Report</title><style>body{font-family:Arial;padding:20px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:12px}th{background:#1a4480;color:white}.header{text-align:center;margin-bottom:20px}</style></head><body>');w.document.write(`<div class="header"><h1>AEGIS Emergency Report</h1><p>Generated: ${new Date().toLocaleString()} by ${escapeHtml(user?.displayName||'')}</p><p>${filtered.length} reports</p></div>`);w.document.write('<table><tr><th>ID</th><th>Type</th><th>Severity</th><th>Status</th><th>Location</th><th>AI%</th><th>Time</th></tr>');filtered.forEach(r=>{w.document.write(`<tr><td>${escapeHtml(r.reportNumber||'')}</td><td>${escapeHtml(r.type||'')}</td><td>${escapeHtml(r.severity)}</td><td>${escapeHtml(r.status)}</td><td>${escapeHtml(r.location||'')}</td><td>${r.confidence||0}%</td><td>${new Date(r.timestamp).toLocaleString()}</td></tr>`)});w.document.write('</table><p style="margin-top:20px;font-size:10px;color:#666">AEGIS Emergency Response System - OFFICIAL USE ONLY</p></body></html>');w.document.close();w.focus();w.print()}
@@ -492,13 +563,18 @@ export default function AdminPage(): JSX.Element {
     }, format, `aegis-command-center-${new Date().toISOString().slice(0, 10)}`)
   }
 
-  // Keyboard shortcut: Ctrl+K / ?K focuses global search (must be before early return)
+  // Keyboard shortcut: Ctrl+K focuses global search; ? opens shortcut overlay
   const globalSearchRef = useRef<HTMLInputElement>(null)
   React.useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName
+      const inInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (e.target as HTMLElement).isContentEditable
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault()
         globalSearchRef.current?.focus()
+      }
+      if (e.key === '?' && !inInput && !e.ctrlKey && !e.metaKey) {
+        setShowShortcuts(prev => !prev)
       }
     }
     window.addEventListener('keydown', handler)
@@ -1294,6 +1370,9 @@ export default function AdminPage(): JSX.Element {
         {showChatbot ? <X className="w-6 h-6" /> : <MessageSquare className="w-6 h-6" />}
         {!showChatbot && <span className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white dark:border-gray-900 animate-pulse" />}
       </button>
+
+      {/* Keyboard Shortcuts Overlay */}
+      <KeyboardShortcutsOverlay open={showShortcuts} onClose={() => setShowShortcuts(false)} />
 
       {/* Toasts */}
       <div className="fixed top-16 right-4 z-50 space-y-2.5" role="status" aria-live="polite">

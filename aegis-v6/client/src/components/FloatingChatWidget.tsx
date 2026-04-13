@@ -1,17 +1,17 @@
-﻿/*
- * FloatingChatWidget.tsx — Floating Chat Button + Mini Chat Window
+/**
+ * File: FloatingChatWidget.tsx
  *
- * A persistent chat FAB that appears on citizen pages when authenticated.
- * Features:
- * Floating action button with unread badge
- * Expandable mini chat panel (bottom-right)
- * Thread list or active conversation
- * New thread creation
- * Real-time messaging via Socket.IO
- * Compact, mobile-friendly design
+ * What this file does:
+ * Persistent collapsible chat widget shown on every authenticated page.
+ * Lets citizens browse message threads, open a conversation, and send
+ * messages in real time without leaving the current page.
  *
- * NOTE: This widget is for CITIZENS to report issues to admin.
- *       Admin/operators should NOT see this widget.
+ * How it connects:
+ * - Mounted globally in client/src/App.tsx (always rendered for auth users)
+ * - Real-time messages via client/src/contexts/SocketContext.tsx
+ * - Auth state from client/src/contexts/CitizenAuthContext.tsx
+ * - API calls to /api/chat (server/src/routes/chatRoutes.ts)
+ * - MessageStatusIcon shows per-message delivery state
  */
 
 import { useState, useEffect, useRef, useMemo } from 'react'
@@ -330,4 +330,4 @@ export default function FloatingChatWidget(): JSX.Element | null {
     </>
   )
 }
-
+

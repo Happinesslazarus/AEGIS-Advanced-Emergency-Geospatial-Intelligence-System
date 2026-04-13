@@ -1,13 +1,10 @@
-﻿/**
- * contexts/RegionContext.tsx — Server-side region adapter metadata
+/**
+ * Module: RegionContext.tsx
  *
- * Fetches the active region's adapter configuration from /api/config/region
- * and exposes it to the React tree. This provides region-specific data like
- * emergency contacts, phone formats, authorities, and flood zones that come
- * from the server's region adapter (not the client-side LocationContext).
+ * Region context React context provider (shares state across components).
  *
- * Works alongside LocationContext (client-side map/location state).
- */
+ * How it connects:
+ * - Wraps components in App.tsx via AppProviders */
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react'
 
@@ -107,10 +104,14 @@ export function RegionProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true)
       setError(null)
+      // /api/config/region returns the adapter for the server's active region
+      // (set via AEGIS_REGION env var on the server).  The adapter contains
+      // emergency numbers, flood-zone GeoJSON sources, and language settings.
       const res = await fetch('/api/config/region')
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
-      // The adapter metadata is nested under data.adapter
+      // The full adapter config is nested under data.adapter (the rest of the
+      // response may contain version info or feature flags).
       if (data.adapter) {
         setRegion(data.adapter)
       }
@@ -141,4 +142,4 @@ export function useRegion(): RegionContextType {
 }
 
 export default RegionContext
-
+

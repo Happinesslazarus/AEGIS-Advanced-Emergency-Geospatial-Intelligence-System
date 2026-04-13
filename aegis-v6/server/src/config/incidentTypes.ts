@@ -1,3 +1,28 @@
+/**
+ * File: incidentTypes.ts
+ *
+ * What this file does:
+ * Defines the canonical list of incident types the system can handle,
+ * including their display names, AI model assignments, severity levels,
+ * custom field schemas, dashboard widgets, and alert thresholds.
+ *
+ * Override mechanism:
+ * At startup, `loadOverrides()` checks for `incident-types.override.json`
+ * (path from INCIDENT_TYPES_OVERRIDE_PATH env var or cwd default). Any
+ * entries in that file are deep-merged over the defaults so deployments
+ * can tune thresholds and enable/disable types without code changes.
+ * `upsertIncidentType()` writes changes back to that file at runtime.
+ *
+ * How it connects:
+ * - Imported by services and routes that validate or describe incident types
+ * - AI model names here must match models registered in the AI engine registry
+ * - alertThresholds are used by alerting rules in model monitoring
+ *
+ * Simple explanation:
+ * A central registry of every kind of emergency the system knows about,
+ * with configuration that controls how each one is tracked and displayed.
+ */
+
 import fs from 'fs'
 import path from 'path'
 import { logger } from '../services/logger.js'
@@ -28,6 +53,11 @@ export interface IncidentTypeConfig {
   alertThresholds: IncidentThresholds
 }
 
+// Built-in incident type catalogue. Each entry defines:
+// - fieldSchema: extra structured fields the UI collects for this incident type
+// - widgets: which dashboard panels activate when this type is active
+// - aiModel: the AI engine model used to score predictions for this type
+// - alertThresholds: confidence % at which advisory/warning/critical alerts fire
 const DEFAULT_INCIDENT_TYPES: Record<string, IncidentTypeConfig> = {
   flood: {
     id: 'flood', name: 'Flood', category: 'natural_disaster', enabled: true,
@@ -151,6 +181,8 @@ const DEFAULT_INCIDENT_TYPES: Record<string, IncidentTypeConfig> = {
   },
 }
 
+// Override file path: can be set by INCIDENT_TYPES_OVERRIDE_PATH env var.
+// If absent, defaults to incident-types.override.json in the process working directory.
 const overridePath = process.env.INCIDENT_TYPES_OVERRIDE_PATH
   ? path.resolve(process.env.INCIDENT_TYPES_OVERRIDE_PATH)
   : path.resolve(process.cwd(), 'incident-types.override.json')

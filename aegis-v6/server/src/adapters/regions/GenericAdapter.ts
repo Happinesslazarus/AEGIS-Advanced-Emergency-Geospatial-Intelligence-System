@@ -1,16 +1,11 @@
 /**
- * adapters/regions/GenericAdapter.ts — Global fallback region adapter
+ * Module: GenericAdapter.ts
  *
- * Uses globally available data sources (Open-Meteo, OpenWeatherMap) that
- * require no regional authority integration. This adapter works for any
- * location on Earth and serves as the default for regions without
- * dedicated flood authority APIs.
+ * Generic adapter server module.
  *
- * Data sources:
- * Weather: Open-Meteo (no API key) ? OpenWeatherMap (keyed)
- * Rainfall: Open-Meteo
- * River levels: Open-Meteo Flood API (global river discharge)
- * Flood warnings: GloFAS/Open-Meteo Flood API (if available)
+ * How it connects:
+ * - Used by services for external data fetching
+ *
  */
 
 import { BaseRegionAdapter } from './BaseRegionAdapter.js'
@@ -204,4 +199,4 @@ export class GenericAdapter extends BaseRegionAdapter {
     }
   }
 }
-
+

@@ -16,3 +16,12 @@ DO $$ BEGIN
     RAISE NOTICE 'Added oauth_provider column to citizens';
   END IF;
 END $$;
+
+-- GitHub OAuth
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'citizens' AND column_name = 'github_id') THEN
+    ALTER TABLE citizens ADD COLUMN github_id TEXT UNIQUE;
+    CREATE INDEX idx_citizens_github_id ON citizens(github_id) WHERE github_id IS NOT NULL;
+    RAISE NOTICE 'Added github_id column to citizens';
+  END IF;
+END $$;

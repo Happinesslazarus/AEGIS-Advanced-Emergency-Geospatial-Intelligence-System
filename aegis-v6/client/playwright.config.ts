@@ -1,3 +1,25 @@
+/**
+ * File: playwright.config.ts
+ *
+ * What this file does:
+ * Playwright end-to-end test configuration for the Aegis client. Runs
+ * all tests in ./e2e/ against Chromium and Firefox. In CI, tests run
+ * single-threaded with 2 retries; locally they run in parallel.
+ *
+ * Key settings:
+ * - baseURL: http://localhost:5173 (dev server) or E2E_BASE_URL env var
+ * - trace: on-first-retry    — captures Playwright trace on flaky retries
+ * - screenshot: only-on-failure — saves screenshots when a test fails
+ * - webServer              — in CI, starts `npm run preview` on port 4173
+ *
+ * How it connects:
+ * - Run with: npx playwright test (from aegis-v6/client/)
+ * - Test files in: client/e2e/
+ * - HTML report saved to client/playwright-report/
+ * - Requires the client and server both running (or CI Docker setup)
+ * - Learn more: https://playwright.dev/docs/test-configuration
+ */
+
 import { defineConfig, devices } from '@playwright/test'
 
 export default defineConfig({

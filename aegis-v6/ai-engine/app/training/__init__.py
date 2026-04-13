@@ -1,7 +1,8 @@
 """
-AEGIS Training Pipeline Module
-"""
+Module: training/__init__.py
 
+Package initialiser for the training module (makes Python treat this directory as an importable package).
+"""
 from .data_loaders import DataLoader, FeatureExtractor
 from .feature_engineering import FeatureEngineer
 from .training_pipeline import TrainingPipeline

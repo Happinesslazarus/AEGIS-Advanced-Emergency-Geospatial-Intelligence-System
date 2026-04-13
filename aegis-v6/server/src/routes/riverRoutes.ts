@@ -1,10 +1,25 @@
 /**
- * routes/riverRoutes.ts — River level monitoring API endpoints
+ * File: riverRoutes.ts
  *
- *   GET /api/rivers/levels             — Current levels for all stations
- *   GET /api/rivers/levels/:stationId  — Specific station with 24hr history
- *   GET /api/rivers/history/:stationId — Historical readings
- *   GET /api/rivers/config             — River configuration for active region
+ * What this file does:
+ * Live river level monitoring: current readings for all stations,
+ * individual station details with 24-hour history, and river
+ * configuration for the active region.
+ *
+ * How it connects:
+ * - Mounted at /api/rivers in index.ts
+ * - Uses riverLevelService which ingests SEPA data on a cron schedule
+ * - Real-time level changes broadcast via Socket.IO
+ * - Responses cached via cacheService
+ *
+ * Key endpoints:
+ * GET /api/rivers/levels             — All station levels
+ * GET /api/rivers/levels/:stationId  — Station with 24hr history
+ * GET /api/rivers/history/:stationId — Extended history
+ * GET /api/rivers/config             — Region river config
+ *
+ * Simple explanation:
+ * Live river level data for flood monitoring dashboards.
  */
 
 import { Router, Request, Response, NextFunction } from 'express'
@@ -15,7 +30,7 @@ import { remember, buildCacheKey, CACHE_TTL, type CacheResponseMeta } from '../s
 
 const router = Router()
 
- /**
+/**
  * GET /api/rivers/levels — Current levels for all stations in the active region
  */
 router.get('/levels', async (_req: Request, res: Response, next: NextFunction) => {
@@ -40,7 +55,7 @@ router.get('/levels', async (_req: Request, res: Response, next: NextFunction) =
   }
 })
 
- /**
+/**
  * GET /api/rivers/levels/:stationId — Specific station with 24hr history
  */
 router.get('/levels/:stationId', async (req: Request, res: Response, next: NextFunction) => {
@@ -69,7 +84,7 @@ router.get('/levels/:stationId', async (req: Request, res: Response, next: NextF
   }
 })
 
- /**
+/**
  * GET /api/rivers/history/:stationId — Historical readings for a station
  */
 router.get('/history/:stationId', async (req: Request, res: Response, next: NextFunction) => {
@@ -96,7 +111,7 @@ router.get('/history/:stationId', async (req: Request, res: Response, next: Next
   }
 })
 
- /**
+/**
  * GET /api/rivers/config — River configuration for the active region
  */
 router.get('/config', async (_req: Request, res: Response) => {
