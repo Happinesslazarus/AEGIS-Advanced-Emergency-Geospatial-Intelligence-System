@@ -1,7 +1,4 @@
 """
-File: build_heatwave_labels.py
-
-What this file does:
 Computes binary heatwave labels directly from the ERA5-Land temperature
 column in the master feature dataset — no external download needed.
 
@@ -25,7 +22,6 @@ Glossary:
   region threshold  = the Met Office's county-specific temperature value
                       above which daytime heat is considered dangerous
 
-How it connects:
   Input  ← data/processed/master_features_uk_2000_2024.parquet
               (must contain 'temperature' and 'date' columns)
   Output → data/labels/heatwave_labels.parquet

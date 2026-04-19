@@ -1,12 +1,9 @@
 """
-File: shap_explainer.py
-
 Generates SHAP (SHapley Additive exPlanations) feature importance values
 for any hazard prediction. Explains which weather or geographical features
 drove the model to its risk score so responders can understand and trust
 the prediction. Falls back gracefully if the shap package is unavailable.
 
-How it connects:
 - Called by all hazard predictors in ai-engine/app/hazards/
 - SHAP values returned as part of PredictionResponse.shap_features
 - shap package optionally installed (see ai-engine/requirements.txt)

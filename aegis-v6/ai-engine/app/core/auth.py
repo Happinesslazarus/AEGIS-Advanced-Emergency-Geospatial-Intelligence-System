@@ -1,13 +1,9 @@
 """
-File: auth.py
-
-What this file does:
 FastAPI dependency that verifies the X-API-Key header on protected routes.
 API keys are compared using HMAC-based constant-time comparison to prevent
 timing attacks. Also supports an internal HMAC signature scheme for
 server-to-server calls (matching server/src/middleware/internalAuth.ts).
 
-How it connects:
 - Used as a Depends() argument on sensitive routes in endpoints.py
 - API key value read from AI_API_KEY environment variable
 - Server calls this from server/src/services/aiAnalysisPipeline.ts

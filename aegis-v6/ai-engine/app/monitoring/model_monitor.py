@@ -1,13 +1,9 @@
 """
-File: model_monitor.py
-
-What this file does:
 Asyncpg-backed model health monitor that queries the aegis_predictions
 table to track prediction accuracy, confidence distributions, and error
 rates over time. Provides ModelHealth dataclass with drift_detected flag
 and retraining recommendations. Writes alerts to PostgreSQL model_alerts.
 
-How it connects:
 - Called from ai-engine/main.py background governance loop (every 5 min)
 - Reads aegis_predictions from the server's PostgreSQL database
 - Drift detection delegated to ai-engine/app/monitoring/drift.py

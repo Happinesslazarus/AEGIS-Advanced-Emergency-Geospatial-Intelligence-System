@@ -1,7 +1,4 @@
 """
-File: fusion_benchmark.py
-
-What this file does:
 End-to-end benchmark for the MultimodalFusionService.  Replays 50 realistic
 synthetic incident scenarios (known ground-truth hazard type) through the
 fusion pipeline and measures:
@@ -24,7 +21,6 @@ Output:
   reports/fusion_benchmark.csv
   reports/fusion_calibration.pdf   — reliability diagram
 
-How it connects:
   Uses ← app/services/multimodal_fusion.py
   Writes to → reports/
 

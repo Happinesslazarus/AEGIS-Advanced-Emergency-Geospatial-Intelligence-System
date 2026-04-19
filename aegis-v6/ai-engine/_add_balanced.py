@@ -1,6 +1,4 @@
 """
-Module: _add_balanced.py
-
 _add_balanced AI engine module.
 """
 

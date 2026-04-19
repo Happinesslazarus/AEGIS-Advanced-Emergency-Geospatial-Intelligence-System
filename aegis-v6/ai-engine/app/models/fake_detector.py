@@ -1,13 +1,9 @@
 """
-File: fake_detector.py
-
-What this file does:
 Rule-based report authenticity filter: flags likely false, duplicate, or
 spam reports before they enter the main pipeline. Checks for suspicious
 patterns (repeated submissions from same IP, implausible coordinates,
 known test phrases) and returns a fakeProbability score 0-1.
 
-How it connects:
 - Used by ai-engine/app/api/endpoints.py POST /fake-detection endpoint
 - Replaced by fake_detector_ml.py after sufficient labelled data exists
 - fakeProbability returned to server/src/services/aiAnalysisPipeline.ts

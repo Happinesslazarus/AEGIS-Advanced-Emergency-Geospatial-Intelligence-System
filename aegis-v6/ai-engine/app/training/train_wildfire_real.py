@@ -1,7 +1,4 @@
 """
-File: train_wildfire_real.py
-
-What this file does:
 Trains the wildfire fire-danger prediction model using real-world historical
 data from Open-Meteo and NASA FIRMS satellite active fire detection records.
 
@@ -37,7 +34,6 @@ Global fire-prone locations (GLOBAL_WILDFIRE_LOCATIONS: Iberian Peninsula,
 S France, Italy, Greece, Canary Islands, Morocco, and UK) provide sufficient
 positive samples.  UK alone would produce < 0.05% positive rate.
 
-How it connects:
 - Extends ai-engine/app/training/base_real_pipeline.py
 - Fetches weather via multi_location_weather.py (GLOBAL_WILDFIRE_LOCATIONS)
 - Labels from NASA FIRMS API (primary) with FWI-threshold fallback

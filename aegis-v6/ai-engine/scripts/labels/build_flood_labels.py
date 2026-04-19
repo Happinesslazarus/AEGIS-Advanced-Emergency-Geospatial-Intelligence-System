@@ -1,7 +1,4 @@
 """
-File: build_flood_labels.py
-
-What this file does:
 Generates binary flood labels (0 = no flood, 1 = flood) for every
 (lat, lon, date) row in the master feature dataset.  Four independent
 data sources are merged, then a consensus vote produces the final label.
@@ -26,7 +23,6 @@ Glossary:
   spatial join    = matching rows based on geographic proximity (point-in-polygon
                     or distance threshold)
 
-How it connects:
   Input  ← data/processed/master_features_uk_2000_2024.parquet
   Input  ← data/raw/labels/ea_flood_polygons.shp  (manual download)
   Input  ← data/raw/labels/sepa_flood_polygons.shp

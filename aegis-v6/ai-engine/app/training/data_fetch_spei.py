@@ -1,6 +1,4 @@
 """
-Module: data_fetch_spei.py
-
 CSIC SPEI Global Database loader for drought training labels.
 
 WHY SPEI OVER ERA5 SPI

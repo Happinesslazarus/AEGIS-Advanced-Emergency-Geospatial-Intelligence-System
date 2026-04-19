@@ -1,6 +1,4 @@
 """
-Module: run_training_all.py
-
 Run_training_all AI engine module.
 """
 

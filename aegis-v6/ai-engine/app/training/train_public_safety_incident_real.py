@@ -1,6 +1,4 @@
 """
-File: train_public_safety_incident_real.py
-
 Trains the public safety incident risk-prediction model using weather-related
 road accident records as independent training labels.
 
@@ -25,7 +23,6 @@ A station-day is POSITIVE when at least one adverse-weather accident occurred
 within 80km of the station on that day.  All hours in that day are labelled
 POSITIVE (consistent with daily police reporting frequency).
 
-How it connects:
 - Extends ai-engine/app/training/base_real_pipeline.py
 - Labels from data_fetch_road_accidents.py (Stats19 + NHTSA FARS)
 - Features from multi_location_weather.py (GLOBAL_SAFETY_LOCATIONS, 22 sites)

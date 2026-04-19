@@ -1,6 +1,4 @@
 """
-Module: profile_local_stack.py
-
 Profile_local_stack AI engine module.
 """
 

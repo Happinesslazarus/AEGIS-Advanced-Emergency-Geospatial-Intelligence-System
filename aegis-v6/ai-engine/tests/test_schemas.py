@@ -1,6 +1,4 @@
 """
-Module: test_schemas.py
-
 Test_schemas AI engine module.
 """
 

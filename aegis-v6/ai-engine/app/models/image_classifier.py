@@ -1,6 +1,4 @@
 """
-Module: image_classifier.py
-
 Image classification model (analyses disaster photos).
 """
 

@@ -1,6 +1,4 @@
 """
-Module: test_severity_predictor.py
-
 Test_severity_predictor AI engine module.
 """
 

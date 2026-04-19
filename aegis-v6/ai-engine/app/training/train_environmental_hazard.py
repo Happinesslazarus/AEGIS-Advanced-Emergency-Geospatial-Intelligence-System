@@ -1,12 +1,8 @@
 """
-File: train_environmental_hazard.py
-
-What this file does:
 Trains the environmental hazard risk-prediction model on synthetic/augmented data.
 Uses BaseHazardPipeline for the training loop. Useful as a quick
 bootstrap when real-world labelled data is unavailable.
 
-How it connects:
 - Extends ai-engine/app/training/base_hazard_pipeline.py
 - Synthetic feature generation via data_loaders.py and data_ingestion.py
 - Saves to model_registry/environmental_hazard/ via ModelRegistry

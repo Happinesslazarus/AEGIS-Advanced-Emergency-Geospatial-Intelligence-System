@@ -1,6 +1,4 @@
 """
-Module: data_fetch_emdat.py
-
 EM-DAT (Emergency Events Database) global disaster event catalog loader.
 
 WHY EM-DAT

@@ -1,6 +1,4 @@
 """
-Module: evaluate_model.py
-
 Evaluate_model AI engine module.
 """
 

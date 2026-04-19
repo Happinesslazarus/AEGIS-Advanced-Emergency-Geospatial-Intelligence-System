@@ -1,12 +1,8 @@
 """
-File: evaluator.py
-
-What this file does:
 Batch evaluator that runs evaluate.py across all trained hazard models,
 compares them against production baselines, and produces a summary report
 (JSON + HTML). Used in CI/CD to gate model promotion.
 
-How it connects:
 - Invoked by ai-engine/scripts/ evaluation scripts and CI workflows
 - Loads models from ModelRegistry, test data from data_ingestion.py
 - Results written to ai-engine/reports/

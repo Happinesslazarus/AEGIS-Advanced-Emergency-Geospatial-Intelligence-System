@@ -1,6 +1,4 @@
 """
-Module: clip_benchmark.py
-
 Clip_benchmark AI engine module.
 """
 

@@ -1,6 +1,4 @@
 """
-Module: region_registry.py
-
 Region_registry AI engine module.
 """
 

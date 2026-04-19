@@ -1,6 +1,4 @@
 """
-File: train_water_supply_disruption_real.py
-
 Trains the water supply disruption risk-prediction model using independent
 event records from two sources:
 
@@ -21,7 +19,6 @@ Label independence:
   Features = ERA5 meteorological variables from Open-Meteo
   → LeakageSeverity.NONE
 
-How it connects:
 - Extends ai-engine/app/training/base_real_pipeline.py
 - Labels from data_fetch_grdc.py (GRDC + static events)
 - Features from multi_location_weather.py (GLOBAL_WATER_LOCATIONS, 22 sites)

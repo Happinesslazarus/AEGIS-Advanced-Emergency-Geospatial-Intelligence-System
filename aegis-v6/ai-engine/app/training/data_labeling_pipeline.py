@@ -1,14 +1,10 @@
 """
-File: data_labeling_pipeline.py
-
-What this file does:
 Amploys rule-based and threshold heuristics to auto-label raw weather/
 sensor records with hazard event ground-truth. For example: labels a
 record as "flood=1" if river discharge exceeded the 95th-percentile
 historical value. Used to produce supervised training datasets from
 otherwise unlabelled historical records.
 
-How it connects:
 - Called by data_ingestion.py to add target labels to raw DataFrames
 - Labelling rules configurable in ai-engine/config.yaml per hazard type
 - Labelled output consumed by feature_engineering.py

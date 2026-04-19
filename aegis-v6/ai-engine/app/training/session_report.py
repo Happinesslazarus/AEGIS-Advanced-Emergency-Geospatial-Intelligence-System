@@ -1,6 +1,4 @@
 """
-Module: session_report.py
-
 Aggregates the results of a full training session (all 11 hazards) and writes
 a clean summary to disk in two formats:
 

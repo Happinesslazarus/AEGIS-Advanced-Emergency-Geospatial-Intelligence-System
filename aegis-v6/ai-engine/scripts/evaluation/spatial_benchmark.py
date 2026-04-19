@@ -1,7 +1,4 @@
 """
-File: spatial_benchmark.py
-
-What this file does:
 Benchmarks the AEGIS spatial analytics services against ground-truth
 data from past UK flood events to validate:
 
@@ -22,7 +19,6 @@ Output:
   reports/spatial_benchmark.csv
   reports/spatial_benchmark_summary.md
 
-How it connects:
   Uses ← app/services/satellite_flood_extent.py
        ← app/services/spatial_analytics.py
   Reads ← data/validation/

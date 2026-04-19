@@ -1,6 +1,4 @@
 """
-Module: test_moondream.py
-
 Test_moondream AI engine module.
 """
 

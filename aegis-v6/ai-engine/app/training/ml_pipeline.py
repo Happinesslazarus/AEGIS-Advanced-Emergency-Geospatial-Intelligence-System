@@ -1,13 +1,9 @@
 """
-File: ml_pipeline.py
-
-What this file does:
 Scikit-learn pipeline builder: assembles a preprocessing stage
 (StandardScaler + OneHotEncoder via ColumnTransformer) followed by a
 classifier step. Returns a ready-to-fit Pipeline object with consistent
 column handling regardless of which estimator is chosen.
 
-How it connects:
 - Called by model_trainer.py to construct the sklearn Pipeline
 - Feature column lists passed down from feature_engineering.py
 - Pipeline object passed to ModelRegistry.save() after fitting

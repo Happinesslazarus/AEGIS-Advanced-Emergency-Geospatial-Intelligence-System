@@ -1,13 +1,9 @@
 """
-File: drift.py
-
-What this file does:
 Statistical data-drift detection for ML models. Computes Population
 Stability Index (PSI) and Kolmogorov-Smirnov test on prediction
 distributions over rolling windows. Called periodically by the
 drift-check background loop and by model_monitor.py.
 
-How it connects:
 - Called by ai-engine/app/monitoring/model_monitor.py check_drift()
 - Results trigger retraining via ai-engine/main.py _drift_check_loop()
 - Uses only standard numpy/scipy (no external drift detection library)

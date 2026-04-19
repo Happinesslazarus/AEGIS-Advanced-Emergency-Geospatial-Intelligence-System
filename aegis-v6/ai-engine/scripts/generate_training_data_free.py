@@ -1,6 +1,4 @@
 """
-Module: generate_training_data_free.py
-
 Generate_training_data_free AI engine module.
 """
 

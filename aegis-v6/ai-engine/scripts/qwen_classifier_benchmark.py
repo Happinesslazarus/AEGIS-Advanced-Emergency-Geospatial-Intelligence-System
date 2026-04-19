@@ -1,6 +1,4 @@
 """
-Module: qwen_classifier_benchmark.py
-
 Qwen_classifier_benchmark AI engine module.
 """
 import json, base64, requests, time, sys

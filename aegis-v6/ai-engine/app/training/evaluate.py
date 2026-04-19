@@ -1,13 +1,9 @@
 """
-File: evaluate.py
-
-What this file does:
 Model evaluation functions: computes accuracy, precision, recall, F1,
 ROC-AUC, and calibration error on holdout data. Generates a classification
 report and confusion matrix, and flags models that fall below minimum
 performance thresholds for governance review.
 
-How it connects:
 - Called by training_pipeline.py after model_trainer.py completes fitting
 - Results logged to experiment_tracker.py (JSON) and governance.py (DB)
 - Minimum thresholds configured in ai-engine/config.yaml

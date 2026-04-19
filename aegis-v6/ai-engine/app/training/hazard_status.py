@@ -1,6 +1,4 @@
 """
-Module: hazard_status.py
-
 Defines the validation status system for all 11 hazard training pipelines.
 
 A hazard is only trained if its data and labels meet research-grade standards.

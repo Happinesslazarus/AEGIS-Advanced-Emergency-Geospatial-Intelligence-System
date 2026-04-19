@@ -1,13 +1,9 @@
 """
-File: feature_engineering.py
-
-What this file does:
 Feature engineering transforms for the training pipeline: rolling
 statistics (3h, 24h, 7d windows), cyclical time encoding (day-of-year,
 hour), anomaly z-scores, and the LeakagePrevention utility that strips
 future-looking columns from training data to prevent data leakage.
 
-How it connects:
 - Used by all training pipelines (base_hazard_pipeline, base_real_pipeline)
 - FeatureStore calls overlapping logic for live prediction features
 - LeakagePrevention used in train_*_real.py __init__ methods

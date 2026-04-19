@@ -1,13 +1,9 @@
 """
-File: infrastructure_damage.py
-
-What this file does:
 Bridges, roads, utilities, and critical structure damage hazard predictor. Loads a trained scikit-learn
 pipeline from the model registry, fetches live features from
 FeatureStore, and returns a risk score with confidence, explanation,
 and the top SHAP feature drivers (seismic score, age, flood depth, bridge load factor).
 
-How it connects:
 - Called by ai-engine/app/api/endpoints.py for infrastructure resilience monitoring
 - Model loaded from ai-engine/model_registry/infrastructure_damage/ via ModelRegistry
 - Live features from ai-engine/app/core/feature_store.py

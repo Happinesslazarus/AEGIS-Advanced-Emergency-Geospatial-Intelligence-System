@@ -1,13 +1,9 @@
 """
-File: validate_models.py
-
-What this file does:
 Post-training validation script that loads every model from the registry,
 runs a smoke-test prediction with dummy input, and asserts that predictions
 fall within expected ranges. Exits non-zero on any validation failure so
 CI can catch broken models before deployment.
 
-How it connects:
 - Called by CI workflows after train_all.py completes
 - Loads each model via ModelRegistry
 - Smoke-test inputs defined inline per hazard type

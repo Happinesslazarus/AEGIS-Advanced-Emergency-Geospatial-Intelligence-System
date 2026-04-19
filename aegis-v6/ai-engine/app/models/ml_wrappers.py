@@ -1,13 +1,9 @@
 """
-File: ml_wrappers.py
-
-What this file does:
 Standardised wrapper classes for all trained scikit-learn models. Each
 wrapper (ReportClassifierML, SeverityPredictorML, FakeDetectorML) handles
 input preparation, model loading from registry, inference, and fallback to
 the rule-based version if no trained model is available.
 
-How it connects:
 - Imported by ai-engine/app/api/endpoints.py for all ML inference calls
 - Loads models via ai-engine/app/core/model_registry.py ModelRegistry
 - Falls back to rule-based models in report_classifier.py etc.

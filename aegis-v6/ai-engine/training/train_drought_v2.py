@@ -1,7 +1,4 @@
 """
-File: train_drought_v2.py
-
-What this file does:
 Retrains the AEGIS drought prediction model using SPEI-3 labels from the
 Global SPEI dataset and ERA5-Land features from the master dataset.
 
@@ -25,7 +22,6 @@ Glossary:
                       window ending before its validation window — prevents
                       temporal data leakage while still using all the data
 
-How it connects:
   Input  ← data/processed/master_features_uk_2000_2024.parquet
   Input  ← data/labels/drought_labels.parquet
   Output → model_registry/drought/drought_uk_v2_spei_era5.pkl

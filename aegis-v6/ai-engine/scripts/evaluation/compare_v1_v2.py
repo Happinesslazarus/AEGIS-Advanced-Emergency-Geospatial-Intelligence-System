@@ -1,7 +1,4 @@
 """
-File: compare_v1_v2.py
-
-What this file does:
 Generates the before/after comparison table and visualisations required for
 the dissertation evaluation chapter.  Loads v1 model metadata from the
 existing ModelRegistry and v2 results from the new JSON metadata files, then
@@ -24,7 +21,6 @@ Glossary:
                    a well-calibrated model that says "70% flood probability"
                    should be right about 70% of the time
 
-How it connects:
   Reads from ← model_registry/<hazard>/*.json  (v1 and v2 metadata)
   Writes to  → reports/  (CSV, Markdown, PDF)
 

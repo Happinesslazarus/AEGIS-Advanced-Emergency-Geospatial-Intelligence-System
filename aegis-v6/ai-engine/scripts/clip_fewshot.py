@@ -1,6 +1,4 @@
 """
-Module: clip_fewshot.py
-
 Clip_fewshot AI engine module.
 """
 

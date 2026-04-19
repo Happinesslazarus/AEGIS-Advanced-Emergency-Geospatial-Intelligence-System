@@ -1,7 +1,4 @@
 """
-File: build_landslide_labels.py
-
-What this file does:
 Labels each master-dataset row as landslide-positive using two catalogues:
   1. NASA COOLR Global Landslide Catalogue (public CSV, ~11,000 global events)
   2. BGS National Landslide Database (UK-specific; request free academic access)
@@ -29,7 +26,6 @@ Download:
                 usually approved within 1-2 weeks
                 → save as data/raw/labels/bgs_nld.csv
 
-How it connects:
   Input  ← data/processed/master_features_uk_2000_2024.parquet
   Input  ← data/raw/labels/nasa_coolr.csv
   Input  ← data/raw/labels/bgs_nld.csv   (optional — more accurate)

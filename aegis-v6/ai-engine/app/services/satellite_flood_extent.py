@@ -1,7 +1,4 @@
 """
-File: satellite_flood_extent.py
-
-What this file does:
 Classifies flood extent from Sentinel-1 SAR (Synthetic Aperture Radar) or
 Sentinel-2 optical imagery using a lightweight CNN on top of pre-computed
 difference bands.  The output is a GeoJSON polygon of the flooded area.
@@ -31,7 +28,6 @@ Glossary:
   backscatter  = the amount of radar energy reflected back to the satellite;
                  water has very low backscatter (appears black in SAR images)
 
-How it connects:
   Called by  ← app/routers/predict.py after a flood incident is confirmed
              ← scripts/evaluation/spatial_benchmark.py for offline benchmarking
   Uses       ← Copernicus Hub (SENTINEL_USER / SENTINEL_PASS env vars)

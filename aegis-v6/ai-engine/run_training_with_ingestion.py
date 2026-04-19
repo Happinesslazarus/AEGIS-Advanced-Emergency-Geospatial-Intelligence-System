@@ -1,6 +1,4 @@
 """
-Module: run_training_with_ingestion.py
-
 Run_training_with_ingestion AI engine module.
 """
 

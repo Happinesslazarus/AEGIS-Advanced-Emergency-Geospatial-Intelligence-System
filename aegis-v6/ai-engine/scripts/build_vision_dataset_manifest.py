@@ -1,6 +1,4 @@
 """
-Module: build_vision_dataset_manifest.py
-
 Build_vision_dataset_manifest AI engine module.
 """
 

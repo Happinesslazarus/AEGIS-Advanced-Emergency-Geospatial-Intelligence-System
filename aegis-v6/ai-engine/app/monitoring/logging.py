@@ -1,13 +1,9 @@
 """
-File: logging.py
-
-What this file does:
 Configures loguru for the AI engine. Sets log format (level, file, line,
 message), rotation (10 MB), retention (7 days), and adds a JSON sink for
 structured log ingestion by tools like Loki. setup_logging() called once
 in ai-engine/main.py before any other module.
 
-How it connects:
 - setup_logging() called in ai-engine/main.py at the very top
 - All modules use: from loguru import logger
 - Log files written to ai-engine/logs/ (mapped as Docker volume)

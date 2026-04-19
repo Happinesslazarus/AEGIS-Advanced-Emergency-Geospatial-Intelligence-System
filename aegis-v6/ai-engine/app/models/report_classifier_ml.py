@@ -1,9 +1,6 @@
 """
-Module: report_classifier_ml.py
-
 ML report classifier (trained model for report categorisation).
 
-How it connects:
 - Called by endpoints.py for report classification (primary classifier)
 - Falls back to report_classifier.py if no trained model exists
 - Trained via the training pipeline

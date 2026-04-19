@@ -1,6 +1,4 @@
 """
-Module: data_fetch_grdc.py
-
 GRDC (Global Runoff Data Centre) river discharge data for water supply
 disruption training labels.
 

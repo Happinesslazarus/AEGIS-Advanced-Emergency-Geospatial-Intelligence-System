@@ -1,7 +1,4 @@
 """
-File: build_weak_labels.py
-
-What this file does:
 Generates weak (noisy) binary labels for the four AEGIS hazard types that
 lack clean ground-truth datasets:
 
@@ -39,7 +36,6 @@ Glossary:
   label noise      = the expected inaccuracy rate of weak labels; disclosed in
                      dissertation as a methodological limitation
 
-How it connects:
   Input  ← data/processed/master_features_uk_2000_2024.parquet
   Input  ← data/raw/labels/emdat_uk.csv
   Input  ← data/raw/labels/desinventar_uk.csv

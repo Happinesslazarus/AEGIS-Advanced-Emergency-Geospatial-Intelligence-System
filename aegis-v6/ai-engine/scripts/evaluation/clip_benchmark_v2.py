@@ -1,7 +1,4 @@
 """
-File: clip_benchmark_v2.py
-
-What this file does:
 Evaluates the fine-tuned CLIP model against the original zero-shot baseline
 on the 42-image AEGIS internal benchmark and (optionally) the full
 CrisisMMD validation set.
@@ -22,7 +19,6 @@ Output files:
   reports/clip_benchmark_v2.csv      — per-model, per-class metrics
   reports/clip_confusion_matrix.pdf  — confusion matrix chart
 
-How it connects:
   Reads from  ← model_registry/clip/clip_crisis_vit_b32.pt
               ← data/crisis/crisismmd/  (full val set if --full-eval)
               ← data/crisis/aegis_benchmark.csv  (42-image internal benchmark)

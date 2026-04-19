@@ -1,14 +1,10 @@
 """
-File: governance.py
-
-What this file does:
 ML model governance layer: records model version, training metrics, and
 approval status in the PostgreSQL model_governance table. Computes
 performance checksums to detect silent degradation, enforces a promotion
 workflow (shadow -> candidate -> active), and provides a retraining lock
 to prevent concurrent training runs.
 
-How it connects:
 - Called by ai-engine/main.py background governance loop
 - Called by ai-engine/app/api/endpoints.py for model status endpoints
 - Writes to the model_governance table (see server/sql/schema.sql)

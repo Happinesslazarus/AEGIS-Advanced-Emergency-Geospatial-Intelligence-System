@@ -1,13 +1,9 @@
 """
-File: finetune_crisis_nlp.py
-
-What this file does:
 Fine-tunes a small language model (e.g. distilbert-base-uncased) on
 crisis-domain text classification: flood alerts, emergency bulletins,
 SOS messages. Produces a custom embeddings model used by the report_
 classifier_ml.py for better semantic classification of free-text reports.
 
-How it connects:
 - Saves fine-tuned model checkpoint to ai-engine/model_registry/nlp/
 - Checkpoint loaded by models/report_classifier_ml.py at inference time
 - Training data from ai-engine/data/crisis_nlp_corpus/

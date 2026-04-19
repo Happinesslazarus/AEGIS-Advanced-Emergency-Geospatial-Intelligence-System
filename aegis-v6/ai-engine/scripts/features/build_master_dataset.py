@@ -1,7 +1,4 @@
 """
-File: build_master_dataset.py
-
-What this file does:
 Merges all per-chunk Parquet files produced by gee_extractor.py into a single
 gold-source Parquet file: data/processed/master_features_uk_2000_2024.parquet.
 Also computes the two derived features that GEE cannot provide directly:
@@ -26,7 +23,6 @@ Glossary:
   schema        = the agreed list of 28 AEGIS feature columns every row must
                   have (defined in the AEGIS spec)
 
-How it connects:
   Input  ← data/raw/gee/chunk_NNNN.parquet  (from gee_extractor.py)
   Output → data/processed/master_features_uk_2000_2024.parquet  (gold source)
   Used by← ai-engine/training/train_flood_v2.py and all other hazard trains

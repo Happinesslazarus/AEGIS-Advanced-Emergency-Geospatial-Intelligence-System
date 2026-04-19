@@ -1,20 +1,15 @@
 """
-File: data_providers.py
-
-What this file does:
 Async HTTP client wrappers for all external data feeds: Open-Meteo for
 weather (temperature, precipitation, wind, humidity), Open-Meteo flood API
 for river discharge, and UK Environment Agency for gauge readings. Results
 are cached in the FeatureStore to avoid re-fetching within the same
 prediction cycle.
 
-How it connects:
 - Called by ai-engine/app/core/feature_store.py to populate live features
 - Hazard predictors call FeatureStore which calls these providers internally
 - Open-Meteo API: https://api.open-meteo.com (free, no key required)
 - EA Flood API:   https://environment.data.gov.uk/flood-monitoring (free)
 
-Learn more:
 - ai-engine/app/core/feature_store.py  -- feature caching and engineering
 - ai-engine/app/training/data_fetch_open_meteo.py -- historical data fetcher
 """

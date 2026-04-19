@@ -1,6 +1,4 @@
 """
-File: train_severe_storm_real.py
-
 Trains the severe storm / tropical cyclone risk-prediction model using
 IBTrACS global storm track data as the primary label source, with the
 Met Office / Met Éireann Named Storm archive as a regional supplement.
@@ -26,7 +24,6 @@ Forecast horizon
 -----------------
 task_type = "forecast", lead_hours = 6.
 
-How it connects:
 - Extends ai-engine/app/training/base_real_pipeline.py
 - Weather features via multi_location_weather.py (GLOBAL_STORM_LOCATIONS, 28 sites)
 - IBTrACS labels from data_fetch_ibtracs.py

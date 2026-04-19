@@ -1,13 +1,9 @@
 """
-File: wildfire.py
-
-What this file does:
 Wildfire ignition risk and fire spread probability hazard predictor. Loads a trained scikit-learn
 pipeline from the model registry, fetches live features from
 FeatureStore, and returns a risk score with confidence, explanation,
 and the top SHAP feature drivers (temperature, vegetation dryness, wind speed, humidity).
 
-How it connects:
 - Called by ai-engine/app/api/endpoints.py for wildfire prediction and prevention
 - Model loaded from ai-engine/model_registry/wildfire/ via ModelRegistry
 - Live features from ai-engine/app/core/feature_store.py

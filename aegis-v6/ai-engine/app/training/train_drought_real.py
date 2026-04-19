@@ -1,6 +1,4 @@
 """
-File: train_drought_real.py
-
 Trains the drought risk-prediction model using CSIC SPEI-3 independent
 drought labels and ERA5 meteorological features from Open-Meteo.
 
@@ -17,7 +15,6 @@ Because labels and features come from ENTIRELY DIFFERENT underlying datasets
 ERA5-derived SPI can now be legitimately included as a FEATURE (it is no longer
 the same data source as the label).
 
-How it connects:
 - Extends ai-engine/app/training/base_real_pipeline.py
 - Labels via app/training/data_fetch_spei.py (CSIC SPEI NetCDF)
 - Features via app/training/multi_location_weather.py (ERA5 Open-Meteo)

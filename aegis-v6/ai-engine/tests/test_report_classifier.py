@@ -1,6 +1,4 @@
 """
-Module: test_report_classifier.py
-
 Test_report_classifier AI engine module.
 """
 

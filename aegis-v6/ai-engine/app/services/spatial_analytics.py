@@ -1,7 +1,4 @@
 """
-File: spatial_analytics.py
-
-What this file does:
 Provides advanced spatial analysis primitives for AEGIS incident response:
 
   1. Isochrone generation    — "which areas can be reached within 15 minutes?"
@@ -32,7 +29,6 @@ Glossary:
   PostGIS        = spatial extension for PostgreSQL enabling geographic queries
   GeoJSON        = open standard format for geographic data in JSON
 
-How it connects:
   Called by  ← app/routers/incidents.py (GET /api/incidents/{id}/spatial)
              ← scripts/evaluation/spatial_benchmark.py
   Reads from → OpenStreetMap Overpass API (facility lookup)

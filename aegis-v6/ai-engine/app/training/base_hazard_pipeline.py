@@ -1,13 +1,9 @@
 """
-File: base_hazard_pipeline.py
-
-What this file does:
 Abstract base class for all synthetic-data hazard training pipelines.
 Defines the train() interface, handles train/validation split, model
 persistence via ModelRegistry, and evaluation metric logging. Each
 train_HAZARD.py subclass overrides _build_features() and _build_model().
 
-How it connects:
 - Extended by ai-engine/app/training/train_*.py (synthetic data trainers)
 - Complemented by base_real_pipeline.py for real-world data trainers
 - Saves models via ai-engine/app/core/model_registry.py

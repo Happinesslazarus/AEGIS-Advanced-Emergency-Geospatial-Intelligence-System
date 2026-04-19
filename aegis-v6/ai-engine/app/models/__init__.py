@@ -1,6 +1,4 @@
 """
-Module: models/__init__.py
-
 Package initialiser for the models module (makes Python treat this directory as an importable package).
 """
 from .image_classifier import ImageClassifier

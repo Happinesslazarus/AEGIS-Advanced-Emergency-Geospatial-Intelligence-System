@@ -1,7 +1,4 @@
 """
-File: build_drought_labels.py
-
-What this file does:
 Assigns binary drought labels to the master feature dataset using the Global
 SPEI (Standardised Precipitation-Evapotranspiration Index) dataset.
 
@@ -27,7 +24,6 @@ Glossary:
                assuming a straight-line change — used here to match SPEI's
                monthly resolution to the daily master dataset
 
-How it connects:
   Input  ← data/processed/master_features_uk_2000_2024.parquet
   Input  ← data/raw/labels/spei03.nc  (download instructions below)
   Output → data/labels/drought_labels.parquet

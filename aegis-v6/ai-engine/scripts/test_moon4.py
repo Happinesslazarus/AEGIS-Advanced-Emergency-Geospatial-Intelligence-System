@@ -1,6 +1,4 @@
 """
-Module: test_moon4.py
-
 Test_moon4 AI engine module.
 """
 

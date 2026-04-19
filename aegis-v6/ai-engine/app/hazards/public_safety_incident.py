@@ -1,13 +1,9 @@
 """
-File: public_safety_incident.py
-
-What this file does:
 Crowd, violence, and major public safety events hazard predictor. Loads a trained scikit-learn
 pipeline from the model registry, fetches live features from
 FeatureStore, and returns a risk score with confidence, explanation,
 and the top SHAP feature drivers (event density, weather, historical incident rates).
 
-How it connects:
 - Called by ai-engine/app/api/endpoints.py for public safety prediction
 - Model loaded from ai-engine/model_registry/public_safety_incident/ via ModelRegistry
 - Live features from ai-engine/app/core/feature_store.py

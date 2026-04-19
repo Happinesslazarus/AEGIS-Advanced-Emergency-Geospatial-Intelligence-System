@@ -1,7 +1,4 @@
 """
-File: train_heatwave_real.py
-
-What this file does:
 Trains the heatwave risk-prediction model using real-world historical data from
 Open-Meteo and formally declared heatwave episode records from national
 meteorological services across Europe.
@@ -53,7 +50,6 @@ If the training window contains no declared heatwave episodes, the pipeline
 logs a warning.  The validator's min_positive_samples check will block
 training rather than producing a degenerate all-negative model.
 
-How it connects:
 - Extends ai-engine/app/training/base_real_pipeline.py
 - Fetches weather via multi_location_weather.py (GLOBAL_HEATWAVE_LOCATIONS)
 - Labels from data_fetch_events.OFFICIAL_HEATWAVES (static, no API call)

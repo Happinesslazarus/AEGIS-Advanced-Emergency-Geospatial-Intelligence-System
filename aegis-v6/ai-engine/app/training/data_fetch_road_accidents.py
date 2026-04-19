@@ -1,6 +1,4 @@
 """
-Module: data_fetch_road_accidents.py
-
 Weather-related road accident data for public_safety_incident training labels.
 
 WHY ROAD ACCIDENT DATA

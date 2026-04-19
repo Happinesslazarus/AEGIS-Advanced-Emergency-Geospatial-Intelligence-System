@@ -1,14 +1,10 @@
 """
-File: llm_engine.py
-
-What this file does:
 LLM-powered chat engine that answers citizen questions about live
 situational awareness. Builds a grounded context window from the
 FeatureStore (weather, river levels), ModelRegistry (current risk
 predictions), and recent incident reports before calling the language
 model. Applies safety filters to block off-topic or harmful prompts.
 
-How it connects:
 - Called by ai-engine/app/api/endpoints.py POST /chat endpoint
 - Context data from ai-engine/app/core/feature_store.py
 - Risk predictions from ai-engine/app/core/model_registry.py

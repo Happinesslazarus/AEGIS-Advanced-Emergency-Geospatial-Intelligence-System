@@ -1,12 +1,8 @@
 """
-File: data_ingestion.py
-
-What this file does:
 Data ingestion utilities: reads raw weather CSVs or API responses,
 validates schemas, handles missing values, merges hazard event labels,
 and produces a clean pandas DataFrame ready for feature engineering.
 
-How it connects:
 - Called by base_real_pipeline.py and training_pipeline.py
 - Input: raw files from data_fetch_open_meteo.py output directory
 - Output: labelled DataFrame fed into feature_engineering.py

@@ -1,20 +1,15 @@
 """
-File: endpoints.py
-
-What this file does:
 FastAPI router that exposes all AI prediction endpoints. Each route accepts
 a location and optional context, runs the appropriate hazard predictor, and
 returns a structured PredictionResponse. Also handles model status queries,
 manual retraining triggers, SHAP explanations, and the LLM chat endpoint.
 
-How it connects:
 - Mounted in ai-engine/main.py as the primary API router
 - Imports all 10 hazard predictors from ai-engine/app/hazards/
 - Input/output shapes validated by ai-engine/app/schemas/predictions.py
 - Rate limited by ai-engine/app/core/rate_limit.py (120 req/min default)
 - API key auth via ai-engine/app/core/auth.py (X-API-Key header)
 
-Key endpoints:
 - POST /predict               -- single hazard prediction
 - POST /predict/batch         -- multiple locations in one call
 - POST /classify              -- report category classification
@@ -24,7 +19,6 @@ Key endpoints:
 - POST /retrain/{hazard_type} -- trigger manual retraining
 - POST /chat                  -- LLM situational-awareness chat
 
-Learn more:
 - ai-engine/app/schemas/predictions.py          -- request/response models
 - server/src/services/aiAnalysisPipeline.ts     -- how server calls these routes
 """

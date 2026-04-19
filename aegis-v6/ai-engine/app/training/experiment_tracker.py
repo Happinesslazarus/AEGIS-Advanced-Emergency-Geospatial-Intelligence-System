@@ -1,13 +1,9 @@
 """
-File: experiment_tracker.py
-
-What this file does:
 Lightweight experiment tracker (no MLflow dependency). Saves training
 run metadata -- hyperparameters, metrics, model version, timestamp --
 as a JSON file per run in ai-engine/data/experiments/. Provides
 experiment comparison utilities for selecting the best run.
 
-How it connects:
 - Called by training_pipeline.py at the end of every training run
 - Experiment JSON files readable by evaluator.py for comparison
 - Results surfaced in Admin panel via server/src/routes/adminRoutes.ts

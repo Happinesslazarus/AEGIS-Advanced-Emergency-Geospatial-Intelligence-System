@@ -1,6 +1,4 @@
 """
-File: train_power_outage_real.py
-
 Trains the power outage risk-prediction model using independent outage
 event records from two sources:
 
@@ -19,7 +17,6 @@ Label independence:
   Features are ERA5 meteorological variables from Open-Meteo.
   There is no shared data source → LeakageSeverity.NONE.
 
-How it connects:
 - Extends ai-engine/app/training/base_real_pipeline.py
 - Labels from data_fetch_outages.py (UK storm records + EIA OE-417)
 - Features from multi_location_weather.py (GLOBAL_OUTAGE_LOCATIONS, 20 sites)

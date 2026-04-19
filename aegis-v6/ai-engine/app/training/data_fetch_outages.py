@@ -1,6 +1,4 @@
 """
-Module: data_fetch_outages.py
-
 Power outage data for training labels — two independent sources:
 
   1. EIA Form OE-417 (US Electric Emergency Incidents and Disturbances)

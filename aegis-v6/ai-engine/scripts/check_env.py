@@ -1,6 +1,4 @@
 """
-Module: check_env.py
-
 Check_env AI engine module.
 """
 import sys

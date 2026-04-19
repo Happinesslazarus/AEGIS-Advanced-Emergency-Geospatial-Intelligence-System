@@ -1,6 +1,4 @@
 """
-Module: train_aegis_llm.py
-
 Train_aegis_llm AI engine module.
 """
 

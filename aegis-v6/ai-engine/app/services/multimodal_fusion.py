@@ -1,7 +1,4 @@
 """
-File: multimodal_fusion.py
-
-What this file does:
 Fuses predictions from three independent signal sources into a single
 incident probability and structured alert for the AEGIS system:
 
@@ -38,7 +35,6 @@ Glossary:
   isotonic calibration      = a non-parametric method to convert raw model
                               scores into proper probabilities
 
-How it connects:
   Called by  ← app/routers/predict.py (REST endpoint POST /api/predict)
              ← app/routers/reports.py (community report analysis)
   Uses       → model_registry/clip/clip_crisis_vit_b32.pt

@@ -1,6 +1,4 @@
 """
-Module: generate_training_data.py
-
 Generate_training_data AI engine module.
 """
 

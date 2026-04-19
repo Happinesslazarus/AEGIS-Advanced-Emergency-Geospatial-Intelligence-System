@@ -1,6 +1,4 @@
 """
-Module: _fix_severity_labels.py
-
 _fix_severity_labels AI engine module.
 """
 

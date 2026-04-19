@@ -1,13 +1,9 @@
 """
-File: landslide.py
-
-What this file does:
 Slope instability and debris flow risk hazard predictor. Loads a trained scikit-learn
 pipeline from the model registry, fetches live features from
 FeatureStore, and returns a risk score with confidence, explanation,
 and the top SHAP feature drivers (soil saturation, slope angle, rainfall intensity).
 
-How it connects:
 - Called by ai-engine/app/api/endpoints.py for landslide early warning
 - Model loaded from ai-engine/model_registry/landslide/ via ModelRegistry
 - Live features from ai-engine/app/core/feature_store.py

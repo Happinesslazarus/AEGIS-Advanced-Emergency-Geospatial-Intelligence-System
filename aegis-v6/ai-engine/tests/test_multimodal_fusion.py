@@ -1,6 +1,4 @@
 """
-Module: test_multimodal_fusion.py
-
 Unit tests for the MultimodalFusionService — validates:
   • Bayesian log-odds fusion logic
   • Shannon entropy uncertainty bounds

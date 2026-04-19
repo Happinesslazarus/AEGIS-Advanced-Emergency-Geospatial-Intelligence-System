@@ -1,12 +1,8 @@
 """
-File: model_trainer.py
-
-What this file does:
 Wraps scikit-learn model fitting, cross-validation, and calibration.
 Supports RandomForest, GradientBoosting, and XGBoost estimators. Returns
 a fitted pipeline (preprocessor + classifier) ready for registration.
 
-How it connects:
 - Called by training_pipeline.py and base_hazard_pipeline.py
 - Receives pre-processed features from feature_engineering.py
 - Fitted model passed to ModelRegistry for persistence

@@ -1,14 +1,10 @@
 """
-File: feature_store.py
-
-What this file does:
 In-process feature store that fetches live weather, river discharge, and
 forecasting data, engineers derived features (rolling means, anomaly
 scores, day-of-year cyclical encoding), and caches results to avoid
 redundant API calls during a prediction cycle. Each hazard predictor
 calls FeatureStore.get_features(location) to get its input vector.
 
-How it connects:
 - Used by every hazard predictor in ai-engine/app/hazards/
 - Fetches live data via ai-engine/app/core/data_providers.py
 - Initialised as a global singleton in ai-engine/main.py

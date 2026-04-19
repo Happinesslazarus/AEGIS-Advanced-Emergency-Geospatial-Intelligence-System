@@ -1,6 +1,4 @@
 """
-Module: test_satellite_flood_extent.py
-
 Unit tests for the SatelliteFloodExtentService — validates:
   • NDWI computation logic
   • Population estimation fallback

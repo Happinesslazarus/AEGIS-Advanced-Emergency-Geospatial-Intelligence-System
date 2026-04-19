@@ -1,13 +1,9 @@
 """
-File: environmental_hazard.py
-
-What this file does:
 Chemical, pollution, and environmental health incidents hazard predictor. Loads a trained scikit-learn
 pipeline from the model registry, fetches live features from
 FeatureStore, and returns a risk score with confidence, explanation,
 and the top SHAP feature drivers (wind direction, distance to known hazard sites, humidity).
 
-How it connects:
 - Called by ai-engine/app/api/endpoints.py for environmental emergency response
 - Model loaded from ai-engine/model_registry/environmental_hazard/ via ModelRegistry
 - Live features from ai-engine/app/core/feature_store.py

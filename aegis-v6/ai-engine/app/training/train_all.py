@@ -1,14 +1,10 @@
 """
-File: train_all.py
-
-What this file does:
 Convenience script that runs all 11 hazard training pipelines in sequence.
 Useful for a clean re-training pass after new data arrives or model drift
 is detected.  All 11 hazards are now TRAINABLE with scientifically independent
 label sources (LeakageSeverity.NONE for 10/11; LOW for landslide).
 UNSUPPORTED_HAZARDS = frozenset() — no hazards are blocked.
 
-How it connects:
 - Imports and calls each train_*_real.py pipeline class
 - Can be invoked directly: python app/training/train_all.py
 - Also called by ai-engine/run_training_all.py at the project root

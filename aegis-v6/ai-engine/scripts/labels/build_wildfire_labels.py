@@ -1,7 +1,4 @@
 """
-File: build_wildfire_labels.py
-
-What this file does:
 Labels each master-dataset row as wildfire-positive if NASA FIRMS (Fire
 Information for Resource Management System) detected an active fire within
 5 km of that row's location in the 7 days following the row's date.
@@ -31,7 +28,6 @@ Download:
     → Format: CSV
   Save as: data/raw/labels/firms_uk.csv
 
-How it connects:
   Input  ← data/processed/master_features_uk_2000_2024.parquet
   Input  ← data/raw/labels/firms_uk.csv
   Output → data/labels/wildfire_labels.parquet

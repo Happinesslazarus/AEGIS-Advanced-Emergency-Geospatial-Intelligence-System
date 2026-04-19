@@ -1,6 +1,4 @@
 """
-Module: pipeline_benchmark.py
-
 Pipeline_benchmark AI engine module.
 """
 

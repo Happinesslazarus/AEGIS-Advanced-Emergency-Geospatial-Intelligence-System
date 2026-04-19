@@ -1,6 +1,4 @@
 """
-File: train_flood_real.py
-
 Trains the flood risk-prediction model using real-world historical
 data from Open-Meteo (ERA5 features) and EM-DAT global flood disaster
 records as independent labels. Subclasses BaseRealPipeline to handle data
@@ -19,7 +17,6 @@ Reference:
   Guha-Sapir, D. et al. EM-DAT: The Emergency Events Database.
   Universite catholique de Louvain (UCL) - CRED, Brussels.
 
-How it connects:
 - Extends ai-engine/app/training/base_real_pipeline.py
 - Fetches data via ai-engine/app/training/data_fetch_open_meteo.py
 - Labels via ai-engine/app/training/data_fetch_emdat.py

@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 """
-Module: prefetch_weather_cache.py
-
 Prefetch_weather_cache AI engine module.
 """
 import asyncio

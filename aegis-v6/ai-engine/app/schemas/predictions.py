@@ -1,13 +1,9 @@
 """
-File: predictions.py
-
-What this file does:
 All Pydantic models (request/response schemas) for the AI prediction API.
 Defines PredictionRequest (location, optional context), PredictionResponse
 (risk_level, confidence, explanation, SHAP features), HazardType enum,
 RiskLevel enum, ModelStatus, and RetrainRequest/Response.
 
-How it connects:
 - Imported by ai-engine/app/api/endpoints.py for all route I/O
 - Imported by all hazard predictors for typed return values
 - Response shapes documented in ai-engine/README.md API reference

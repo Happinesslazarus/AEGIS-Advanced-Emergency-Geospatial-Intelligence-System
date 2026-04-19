@@ -1,6 +1,4 @@
 """
-Module: train_efficientnet.py
-
 Train_efficientnet AI engine module.
 """
 

@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 """
-Module: evaluate_vision.py
-
 Evaluate_vision AI engine module.
 """
 

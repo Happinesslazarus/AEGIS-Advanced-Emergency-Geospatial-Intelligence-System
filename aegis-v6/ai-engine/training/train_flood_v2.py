@@ -1,7 +1,4 @@
 """
-File: train_flood_v2.py
-
-What this file does:
 Retrains the AEGIS flood prediction model using the new UK-wide CAMELS-GB +
 ERA5-Land master dataset instead of the previous 10-location Open-Meteo data.
 
@@ -46,7 +43,6 @@ Glossary:
   W&B           = Weights & Biases — experiment tracking platform; logs every run
                   to a web dashboard for comparison
 
-How it connects:
   Input  ← data/processed/master_features_uk_2000_2024.parquet
   Input  ← data/labels/flood_labels.parquet
   Output → model_registry/flood/flood_uk_v2_camels_era5.pkl

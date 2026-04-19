@@ -1,6 +1,4 @@
 """
-Module: test_spatial_analytics.py
-
 Unit tests for the SpatialAnalyticsService — validates:
   • Haversine distance computation
   • Evacuation corridor generation (bearing, compass, travel time)

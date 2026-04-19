@@ -1,7 +1,4 @@
 """
-File: ablation_study.py
-
-What this file does:
 Performs a systematic ablation study on the flood model — progressively
 adds feature groups to a LightGBM classifier and measures the ROC-AUC
 improvement at each stage.  The result is a publication-quality plot ideal
@@ -31,7 +28,6 @@ Glossary:
   SHAP            = Shapley Additive exPlanations — measures how much each
                     feature shifted the model's prediction away from the average
 
-How it connects:
   Reads from  ← data/processed/master_features_uk_2000_2024.parquet
               ← data/labels/flood_labels.parquet
   Writes to   → reports/flood_ablation.csv

@@ -1,6 +1,4 @@
 """
-Module: hazard_validator.py
-
 Core validation logic for all 11 hazard training pipelines.
 
 Runs before (and just after) the chronological split to decide whether a

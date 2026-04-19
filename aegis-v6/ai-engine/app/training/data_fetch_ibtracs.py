@@ -1,6 +1,4 @@
 """
-Module: data_fetch_ibtracs.py
-
 IBTrACS (International Best Track Archive for Climate Stewardship) global
 storm track data provider.
 

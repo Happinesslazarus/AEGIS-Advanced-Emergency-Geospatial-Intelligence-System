@@ -1,6 +1,4 @@
 """
-Module: train_example.py
-
 Train_example AI engine module.
 """
 

@@ -1,7 +1,4 @@
 """
-File: download_enso_oni.py
-
-What this file does:
 Downloads the NOAA Oceanic Niño Index (ONI) monthly time-series and saves it
 as data/processed/oni_monthly.csv.  The ONI is a 3-month running mean of
 sea-surface temperature anomaly in the Niño 3.4 region (5°N–5°S, 120°W–170°W)

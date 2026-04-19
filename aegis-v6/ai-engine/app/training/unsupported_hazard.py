@@ -1,6 +1,4 @@
 """
-File: unsupported_hazard.py  [DEPRECATED — kept for import compatibility only]
-
 Previously hosted stub pipeline classes for four hazards that were formally
 UNSUPPORTED because no scientifically valid training path existed with
 publicly available open data.

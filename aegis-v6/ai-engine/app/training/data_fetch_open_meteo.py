@@ -1,13 +1,9 @@
 """
-File: data_fetch_open_meteo.py
-
-What this file does:
 Bulk historical weather data fetcher using the Open-Meteo API. Downloads
 multi-year hourly weather records (temperature, precipitation, wind,
 humidity, soil moisture) for all configured regions and stores them locally
 for use in hazard model training.
 
-How it connects:
 - Called by base_real_pipeline.py to populate training datasets
 - Region list from ai-engine/registry/region_registry.py
 - Output CSV/JSON files consumed by data_ingestion.py

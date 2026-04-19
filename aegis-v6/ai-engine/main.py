@@ -1,14 +1,10 @@
 """
-File: main.py
-
-What this file does:
 FastAPI application entry point for the Aegis AI engine. Initialises the
 model registry and feature store, mounts all prediction routes, adds CORS
 and rate-limit middleware, and starts two background loops: a drift-check
 loop (checks every model for distribution shift) and a governance loop
 (logs model performance metrics to PostgreSQL).
 
-How it connects:
 - Started by uvicorn on port 8000 (see docker-compose.yml ai-engine service)
 - Prediction routes defined in ai-engine/app/api/endpoints.py
 - Model files loaded from ai-engine/model_registry/ via ModelRegistry
@@ -21,7 +17,6 @@ Key actions:
 - GET  /models             -- list loaded models and their status
 - POST /retrain/{hazard}   -- trigger manual model retraining
 
-Learn more:
 - ai-engine/app/api/endpoints.py     -- all route handlers
 - ai-engine/app/core/config.py       -- env variable settings
 - server/src/services/aiAnalysisPipeline.ts -- how the server calls this API

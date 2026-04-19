@@ -1,7 +1,4 @@
 """
-File: setup_pgrouting.py
-
-What this file does:
 Sets up the pgRouting extension and road network topology in the AEGIS
 PostGIS database.  pgRouting extends PostgreSQL with graph-based routing
 algorithms (Dijkstra, A*, Travelling Salesman etc.) which AEGIS uses for:
@@ -30,7 +27,6 @@ Glossary:
   osm2pgrouting = C++ converter from OSM XML → pgRouting-ready tables
                   (alternative if you have large datasets)
 
-How it connects:
   Reads from  ← .env or environment variables for DB connection
              ← Overpass API (downloads UK road network)
   Writes to  → road_network table (PostGIS + pgRouting)

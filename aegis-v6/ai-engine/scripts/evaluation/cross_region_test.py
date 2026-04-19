@@ -1,7 +1,4 @@
 """
-File: cross_region_test.py
-
-What this file does:
 Validates that the AEGIS flood model's features are geographically
 transferable — that a model trained on one UK region can make useful
 predictions in a completely held-out region it has never seen.
@@ -30,7 +27,6 @@ Outputs:
   reports/cross_region_results.csv    — all 9 runs
   reports/cross_region_heatmap.pdf    — source→target AUC heatmap
 
-How it connects:
   Reads from  ← data/processed/master_features_uk_2000_2024.parquet
               ← data/labels/flood_labels.parquet
   Writes to   → reports/

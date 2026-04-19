@@ -1,6 +1,4 @@
 """
-File: train_environmental_hazard_real.py
-
 Trains the environmental hazard risk-prediction model using real-world
 historical data. ERA5 meteorological features from Open-Meteo predict
 air quality exceedance events labelled from CAMS EAC4 atmospheric
@@ -15,7 +13,6 @@ Data sources:
   https://openaq.org/
   DEFRA Air Quality thresholds: PM2.5 >25 ug/m3, NO2 >200 ug/m3, O3 >120 ug/m3
 
-How it connects:
 - Extends ai-engine/app/training/base_real_pipeline.py
 - Fetches data via ai-engine/app/training/data_fetch_open_meteo.py
 - Saves to model_registry/environmental_hazard/ via ModelRegistry

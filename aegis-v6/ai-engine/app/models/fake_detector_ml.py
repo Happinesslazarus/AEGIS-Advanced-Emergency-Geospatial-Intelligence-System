@@ -1,9 +1,6 @@
 """
-Module: fake_detector_ml.py
-
 ML-based fake report detector (trained classifier for report authenticity).
 
-How it connects:
 - Called by endpoints.py for fake report detection (primary detector)
 - Falls back to fake_detector.py if no trained model exists
 - Trained via the training pipeline (train_all.py)

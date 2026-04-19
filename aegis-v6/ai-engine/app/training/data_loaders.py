@@ -1,13 +1,9 @@
 """
-File: data_loaders.py
-
-What this file does:
 Dataset loader utilities: reads CSV/Parquet training files, handles
 class imbalance with SMOTE or random oversampling, returns train/test
 splits as numpy arrays. Also provides the synthetic data generator
 (generate_synthetic_samples) used by base_hazard_pipeline.py.
 
-How it connects:
 - Called by base_hazard_pipeline.py and training_pipeline.py
 - SMOTE from imbalanced-learn (see ai-engine/requirements.txt)
 - Input files loaded from ai-engine/data/ directory

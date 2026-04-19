@@ -1,13 +1,9 @@
 """
-File: severity_predictor.py
-
-What this file does:
 Rule-based severity predictor used as a bootstrap fallback. Combines
 keyword signals, numeric counts (trapped_persons, injuries), and report
 context to produce a severity score (low / medium / high / critical)
 and estimated affected population.
 
-How it connects:
 - Used by ai-engine/app/api/endpoints.py POST /severity endpoint
 - Replaced by severity_predictor_ml.py once sufficient training data exists
 - Severity maps to database severity column (server/sql/schema.sql)

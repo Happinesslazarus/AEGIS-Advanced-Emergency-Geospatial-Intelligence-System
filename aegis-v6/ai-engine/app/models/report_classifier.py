@@ -1,13 +1,9 @@
 """
-File: report_classifier.py
-
-What this file does:
 Rule-based report category classifier used as a bootstrap fallback before
 the ML classifier is trained. Applies keyword matching and regex patterns
 to the free-text report description to assign one of 10 incident categories
 (flood, fire, road, etc.) and a confidence score.
 
-How it connects:
 - Used by ai-engine/app/api/endpoints.py POST /classify endpoint
 - Replaced by report_classifier_ml.py once training data is available
 - Category labels match server/src/services/incidentTypeService.ts values

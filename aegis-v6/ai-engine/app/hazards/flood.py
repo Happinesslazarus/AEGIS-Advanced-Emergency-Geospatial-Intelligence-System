@@ -1,13 +1,9 @@
 """
-File: flood.py
-
-What this file does:
 River flooding and surface water inundation hazard predictor. Loads a trained scikit-learn
 pipeline from the model registry, fetches live features from
 FeatureStore, and returns a risk score with confidence, explanation,
 and the top SHAP feature drivers (river discharge, rainfall intensity, soil saturation).
 
-How it connects:
 - Called by ai-engine/app/api/endpoints.py for flood forecasting and early warning
 - Model loaded from ai-engine/model_registry/flood/ via ModelRegistry
 - Live features from ai-engine/app/core/feature_store.py

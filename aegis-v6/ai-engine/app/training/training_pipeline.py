@@ -1,14 +1,10 @@
 """
-File: training_pipeline.py
-
-What this file does:
 Complete end-to-end training workflow orchestrator. Steps: data loading,
 validation, feature engineering, train/val split, optional hyperparameter
 tuning (Optuna), model training, evaluation, and model registration with
 governance metadata. Used as the unified entry point when training all
 hazard models in one pass.
 
-How it connects:
 - Invoked by ai-engine/run_training_all.py and train_all.py
 - Delegates data loading to training/data_loaders.py and data_ingestion.py
 - Feature engineering via training/feature_engineering.py

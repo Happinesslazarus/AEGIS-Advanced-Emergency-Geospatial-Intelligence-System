@@ -1,13 +1,9 @@
 """
-File: base_real_pipeline.py
-
-What this file does:
 Abstract base class for all real-world-data hazard training pipelines.
 Fetches historical weather and hazard data from Open-Meteo, runs feature
 engineering (LeakagePrevention, rolling statistics), trains with
 cross-validation, and registers the model with governance metadata.
 
-How it connects:
 - Extended by ai-engine/app/training/train_*_real.py scripts
 - Fetches data via ai-engine/app/training/data_fetch_open_meteo.py
 - Saves via ai-engine/app/core/model_registry.py

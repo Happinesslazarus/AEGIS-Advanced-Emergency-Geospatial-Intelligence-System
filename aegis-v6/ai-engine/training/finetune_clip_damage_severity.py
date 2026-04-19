@@ -1,7 +1,4 @@
 """
-File: finetune_clip_damage_severity.py
-
-What this file does:
 Fine-tunes a second CLIP head specifically for damage severity estimation —
 the sub-task of determining HOW BAD the damage is in a crisis image.
 
@@ -36,7 +33,6 @@ Glossary:
   CalibratedHead = adds temperature scaling so predicted probabilities match
                    empirical frequencies (improves alert reliability)
 
-How it connects:
   Reads from  ← model_registry/clip/clip_crisis_vit_b32.pt     (base weights)
               ← data/crisis/xbd/  (satellite pre/post images)
               ← data/crisis/crisismmd/ (severity-labelled subset)

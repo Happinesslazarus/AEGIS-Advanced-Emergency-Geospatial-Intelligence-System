@@ -1,7 +1,4 @@
 """
-File: build_storm_labels.py
-
-What this file does:
 Labels each master-dataset row as severe-storm-positive using two methods:
 
   Method 1 — ERA5 wind threshold:
@@ -27,7 +24,6 @@ Glossary:
   OR-combine      = the final label is 1 if EITHER method says 1; this
                     maximises recall, trading off some precision
 
-How it connects:
   Input  ← data/processed/master_features_uk_2000_2024.parquet
   Input  ← data/raw/labels/era5_wind_max.parquet  (optional; see below)
   Output → data/labels/storm_labels.parquet

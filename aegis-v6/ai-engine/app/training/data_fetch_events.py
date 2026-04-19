@@ -1,6 +1,4 @@
 """
-Module: data_fetch_events.py
-
 Independent event records used as training labels for severe_storm, heatwave,
 and wildfire hazard pipelines.
 

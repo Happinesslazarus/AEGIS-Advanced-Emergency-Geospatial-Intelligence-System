@@ -1,6 +1,4 @@
 """
-Module: data_fetch_openaq.py
-
 Fetches real hourly air quality measurements from the OpenAQ v3 public API
 and DEFRA UK-AIR to build INDEPENDENT environmental hazard labels.
 

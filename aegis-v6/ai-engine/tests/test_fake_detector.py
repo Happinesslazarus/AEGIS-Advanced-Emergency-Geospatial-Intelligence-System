@@ -1,6 +1,4 @@
 """
-Module: test_fake_detector.py
-
 Test_fake_detector AI engine module.
 """
 

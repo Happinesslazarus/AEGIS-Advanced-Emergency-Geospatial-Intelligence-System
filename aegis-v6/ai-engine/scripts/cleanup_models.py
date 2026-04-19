@@ -1,6 +1,4 @@
 """
-Module: cleanup_models.py
-
 Cleanup_models AI engine module.
 """
 

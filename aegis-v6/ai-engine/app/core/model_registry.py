@@ -1,20 +1,15 @@
 """
-File: model_registry.py
-
-What this file does:
 Disk-backed ML model registry: persists trained scikit-learn pipelines as
 joblib files and metadata as JSON under ai-engine/model_registry/. On
 startup loads all available models into an in-memory cache. Hazard
 predictors call registry.load(hazard_type) and registry.save(model).
 Supports model versioning (latest, previous, rollback).
 
-How it connects:
 - Initialised as a global singleton in ai-engine/main.py
 - All hazard predictors (ai-engine/app/hazards/*.py) use this to load/save
 - governance.py uses registry metadata to track model versions
 - Model files stored in ai-engine/model_registry/ (mapped as Docker volume)
 
-Learn more:
 - ai-engine/app/core/governance.py  -- model approval and versioning workflow
 """
 

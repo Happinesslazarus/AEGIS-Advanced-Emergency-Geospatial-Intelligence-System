@@ -1,7 +1,4 @@
 """
-File: generate_uk_grid.py
-
-What this file does:
 Generates a regular 10 km × 10 km spatial sampling grid covering the entire UK,
 then enriches it with all known SEPA (Scotland) and EA (England/Wales) river
 gauge locations.  The result is saved to data/labels/uk_sample_points.geojson
@@ -19,7 +16,6 @@ Glossary:
   GeoJSON       = JSON format for geographic features (points, polygons, etc.)
   CRS           = Coordinate Reference System
 
-How it connects:
   - Output → ai-engine/scripts/features/gee_extractor.py  (reads the GeoJSON)
   - Output → ai-engine/scripts/features/build_master_dataset.py (spatial join)
   - Run once; only re-run if boundary data changes

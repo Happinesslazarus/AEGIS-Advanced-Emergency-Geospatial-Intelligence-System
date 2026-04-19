@@ -1,6 +1,4 @@
 """
-File: train_infrastructure_damage_real.py
-
 Trains the infrastructure damage risk-prediction model using EM-DAT global
 disaster records as independent training labels.
 
@@ -29,7 +27,6 @@ Label independence:
   reports, UN OCHA, and peer-reviewed literature — entirely independent of
   ERA5 meteorological reanalysis used as features.
 
-How it connects:
 - Extends ai-engine/app/training/base_real_pipeline.py
 - Labels from data_fetch_emdat.py (EM-DAT export)
 - Features from multi_location_weather.py (GLOBAL_WILDFIRE_LOCATIONS used as

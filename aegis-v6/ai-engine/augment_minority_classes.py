@@ -1,6 +1,4 @@
 """
-Module: augment_minority_classes.py
-
 Augment_minority_classes AI engine module.
 """
 import asyncio

@@ -1,12 +1,8 @@
 """
-File: config.py
-
-What this file does:
 Pydantic BaseSettings class that loads all AI engine configuration from
 environment variables (or a .env file). Provides typed, validated settings
 for database connection, model paths, API keys, and server ports.
 
-How it connects:
 - Imported everywhere as: from app.core.config import settings
 - Values sourced from ai-engine/.env (see .env.example in project root)
 - MODEL_REGISTRY_PATH and FEATURE_STORE_PATH used by ModelRegistry/FeatureStore

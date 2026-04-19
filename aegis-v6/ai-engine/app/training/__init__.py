@@ -1,6 +1,4 @@
 """
-Module: training/__init__.py
-
 Package initialiser for the training module (makes Python treat this directory
 as an importable package).
 

@@ -1,6 +1,4 @@
 """
-Module: pipeline_v2.py
-
 Pipeline_v2 AI engine module.
 """
 

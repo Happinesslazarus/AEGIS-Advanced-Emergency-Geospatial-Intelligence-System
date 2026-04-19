@@ -1,7 +1,4 @@
 """
-File: train_landslide_real.py
-
-What this file does:
 Trains the landslide risk-prediction model using real-world historical data.
 Multi-region training (UK + Norway + Nepal + Colombia + Philippines + Japan +
 Italy) based on the NASA Global Landslide Catalog event distribution.
@@ -44,7 +41,6 @@ trigger approach but marks labels as data_validity='invalid' to prevent
 tautological training — the validator will then block training with a clear
 NOT_TRAINABLE reason rather than silently producing inflated metrics.
 
-How it connects:
 - Extends ai-engine/app/training/base_real_pipeline.py
 - Fetches weather via multi_location_weather.py (GLOBAL_LANDSLIDE_LOCATIONS)
 - Saves to model_registry/landslide/ via ModelRegistry

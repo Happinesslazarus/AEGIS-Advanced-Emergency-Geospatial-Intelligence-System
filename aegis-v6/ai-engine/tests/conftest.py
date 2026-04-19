@@ -1,6 +1,4 @@
 """
-Module: conftest.py
-
 Conftest AI engine module.
 """
 

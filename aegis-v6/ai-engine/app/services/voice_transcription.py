@@ -1,7 +1,4 @@
 """
-File: voice_transcription.py
-
-What this file does:
 Provides real-time voice-to-text transcription for AEGIS incident reports
 using a locally-running faster-whisper (CTranslate2 backend) model.
 
@@ -35,7 +32,6 @@ Glossary:
   ffmpeg          = open-source audio/video conversion tool; must be installed
                     separately (apt install ffmpeg / choco install ffmpeg)
 
-How it connects:
   Called by  ← app/routers/voice.py  (WebSocket ws://…/api/voice/stream)
              ← client/src/hooks/useVoiceInput.ts  (browser side)
   Uses       ← ~/.cache/huggingface/hub/  (model downloaded on first run)

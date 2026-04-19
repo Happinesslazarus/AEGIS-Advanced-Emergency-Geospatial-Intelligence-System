@@ -1,13 +1,9 @@
 """
-File: multi_location_weather.py
-
-What this file does:
 Fetches current weather for multiple regions concurrently using asyncio.
 Builds a lat/lon batch request to Open-Meteo, parses the response into
 a keyed dict, and caches results for the configured TTL. Used to populate
 the FeatureStore when prediction requests come in from multiple regions.
 
-How it connects:
 - Called by ai-engine/app/core/feature_store.py for multi-region updates
 - Region coordinates from ai-engine/registry/region_registry.py
 - Results merged into per-hazard feature vectors by FeatureStore

@@ -1,6 +1,4 @@
 """
-Module: bootstrap_vision_sources.py
-
 Bootstrap_vision_sources AI engine module.
 """
 

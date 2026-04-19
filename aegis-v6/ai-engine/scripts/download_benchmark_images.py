@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 """
-Module: download_benchmark_images.py
-
 Download_benchmark_images AI engine module.
 """
 

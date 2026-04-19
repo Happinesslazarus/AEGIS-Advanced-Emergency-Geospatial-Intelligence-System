@@ -1,7 +1,4 @@
 """
-File: train_all_hazards_v2.py
-
-What this file does:
 Orchestrator that runs the complete v2 training pipeline for all 11 AEGIS
 hazard types in dependency order, handling failures gracefully so a single
 broken label file doesn't abort the entire run.
@@ -40,7 +37,6 @@ Glossary:
                   the training labels are noisy (power/water/infra/safety);
                   displayed in the AEGIS operator dashboard as a confidence caveat
 
-How it connects:
   Calls       → training/train_flood_v2.py (subprocess or import)
   Calls       → training/train_drought_v2.py (subprocess or import)
   Reads from  ← data/processed/master_features_uk_2000_2024.parquet
