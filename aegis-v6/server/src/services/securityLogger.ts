@@ -1,17 +1,11 @@
-/**
- * File: securityLogger.ts
- *
+﻿/**
  * Security audit logger — writes security events to the security_events table
  * and detects suspicious patterns like credential stuffing or brute-force attempts.
  *
- * How it connects:
  * - Imported by auth, device trust, IP security, and other security services
  * - Writes to the security_events DB table (non-blocking, never throws)
  * - Increments the Prometheus securityEventsTotal counter
- *
- * Simple explanation:
- * Records every security-relevant action and spots patterns that look like attacks.
- */
+ * */
 
 import pool from '../models/db.js'
 import { logger } from './logger.js'

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Module: Sidebar.tsx
  *
  * Collapsible citizen navigation sidebar with desktop, tablet, and mobile modes.
@@ -23,7 +23,6 @@
  *   getBadge().  Badge dots render on the icon in both expanded and collapsed
  *   modes.
  *
- * How it connects:
  * - Rendered by AppLayout
  * - Reads auth state from CitizenAuthContext to show/hide items
  * - Calls onNavigate with a SidebarItem when the user picks a section */
@@ -131,7 +130,7 @@ export default function Sidebar({
     return 0
   }
 
-  const renderItem = (item: SidebarItem) => {
+  const renderItem = (item: SidebarItem, onClose?: () => void) => {
     const isActive = activeKey === item.key
     // isLocked: item requires authentication but user is a guest.
     // The button renders (so guests see all features) but is disabled.
@@ -142,7 +141,7 @@ export default function Sidebar({
     return (
       <button
         key={item.key}
-        onClick={() => { if (!isLocked) onNavigate(item) }}
+        onClick={() => { if (!isLocked) { onNavigate(item); onClose?.() } }}
         title={collapsed ? item.label : undefined}
         className={`w-full flex items-center gap-3 rounded-xl transition-all duration-200 group relative
           ${collapsed ? 'justify-center px-2 py-2.5 min-h-[44px]' : 'px-3 py-2.5 min-h-[40px]'}
@@ -212,13 +211,13 @@ export default function Sidebar({
              dashboard entry is visually separated above the public nav items. */}
         {isAuthenticated && (
           <div className="space-y-0.5 mb-1">
-            {items.filter(i => i.key === 'home').map(renderItem)}
+            {items.filter(i => i.key === 'home').map(item => renderItem(item))}
           </div>
         )}
 
         {/* Main navigation */}
         <div className="space-y-0.5">
-          {items.filter(i => !i.citizenOnly && i.key !== 'home').map(renderItem)}
+          {items.filter(i => !i.citizenOnly && i.key !== 'home').map(item => renderItem(item))}
         </div>
 
         {/* Citizen-only section (excludes Welcome which is above) */}
@@ -231,7 +230,7 @@ export default function Sidebar({
               )}
             </div>
             <div className="space-y-0.5">
-              {items.filter(i => i.citizenOnly && i.key !== 'home').map(renderItem)}
+              {items.filter(i => i.citizenOnly && i.key !== 'home').map(item => renderItem(item))}
             </div>
           </>
         )}
@@ -310,14 +309,20 @@ export default function Sidebar({
               </button>
             </div>
             <nav className="flex-1 overflow-y-auto py-2 px-2 space-y-0.5">
-              {items.filter(i => !i.citizenOnly).map(renderItem)}
+              {/* Home (Dashboard) pinned first for authenticated users, same as desktop */}
+              {isAuthenticated && (
+                <div className="space-y-0.5 mb-1">
+                  {items.filter(i => i.key === 'home').map(item => renderItem(item, () => setMobileOpen(false)))}
+                </div>
+              )}
+              {items.filter(i => !i.citizenOnly && i.key !== 'home').map(item => renderItem(item, () => setMobileOpen(false)))}
               {isAuthenticated && (
                 <>
                   <div className="my-3 mx-1">
                     <div className="h-px bg-gray-200 dark:bg-white/5" />
                     <span className="text-[9px] font-bold text-gray-400 dark:text-gray-300 uppercase tracking-widest mt-2 block px-1">{t('layout.sidebar.myAccount', lang)}</span>
                   </div>
-                  {items.filter(i => i.citizenOnly).map(renderItem)}
+                  {items.filter(i => i.citizenOnly && i.key !== 'home').map(item => renderItem(item, () => setMobileOpen(false)))}
                 </>
               )}
               {!isAuthenticated && (

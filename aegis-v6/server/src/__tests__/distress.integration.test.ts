@@ -1,6 +1,4 @@
-/**
- * File: distress.integration.test.ts
- *
+﻿/**
  * What it tests:
  * Integration tests for the SOS distress beacon endpoints.
   * Verifies one-active-per-citizen enforcement, real-time Socket.IO

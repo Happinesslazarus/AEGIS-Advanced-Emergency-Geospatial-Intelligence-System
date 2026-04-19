@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: SOSButton.tsx
  *
  * S o s button citizen component (public-facing UI element).
  *
- * How it connects:
  * - Rendered inside CitizenPage.tsx or CitizenDashboard.tsx */
 
 import { useState, useCallback, useRef, useEffect } from 'react'

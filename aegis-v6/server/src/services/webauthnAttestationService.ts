@@ -1,17 +1,19 @@
 /**
- * File: webauthnAttestationService.ts
+ * Pure-crypto WebAuthn attestation verifier -- no external WebAuthn libraries,
+ * only Node.js built-in crypto. Implements the W3C Web Authentication Level 2
+ * spec: https://www.w3.org/TR/webauthn-2/
  *
- * Pure-crypto WebAuthn attestation verifier — parses CBOR authenticator data,
- * validates attestation formats (none, packed, fido-u2f, apple), and extracts
- * COSE public keys (ES256, RS256, EdDSA). No external WebAuthn libraries.
+ * Parses CBOR-encoded authenticatorData (RFC 7049), validates the four
+ * attestation formats the spec defines (none, packed, fido-u2f, apple),
+ * extracts the COSE public key (ES256 / RS256 / EdDSA), and verifies the
+ * client data hash. verifyAuthenticationSignature() handles the assertion
+ * side -- counter anti-replay + signature verification.
  *
- * How it connects:
- * - Called by passkeysService during credential registration
- * - Uses only Node.js built-in crypto (no external deps)
- * - Validates that registrations came from real authenticators
+ * Called by passkeysService during credential registration and by
+ * adaptiveMFAService during passkey step-up challenges.
  *
- * Simple explanation:
- * Checks that a passkey registration is legit and came from a real device.
+ * FIDO CTAP2 spec: https://fidoalliance.org/specs/
+ * MDN reference: https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API
  */
 
 import crypto from 'crypto'

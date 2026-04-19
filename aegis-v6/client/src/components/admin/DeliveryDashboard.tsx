@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: DeliveryDashboard.tsx
  *
  * Resource delivery tracking dashboard (monitors supply distribution).
  *
- * How it connects:
  * - Rendered inside AdminPage.tsx based on active view */
 
 import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react'
@@ -99,9 +98,9 @@ const getChannelLabel = (ch: string, lang: string) => {
 }
 
 const SEV_BADGE: Record<string, string> = {
-  critical: 'bg-red-500/20 text-red-300 ring-1 ring-red-500/40',
-  warning:  'bg-amber-500/20 text-amber-300 ring-1 ring-amber-500/40',
-  info:     'bg-blue-500/20 text-blue-300 ring-1 ring-blue-500/40',
+  critical: 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-300 ring-1 ring-red-300 dark:ring-red-500/40',
+  warning:  'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 ring-1 ring-amber-300 dark:ring-amber-500/40',
+  info:     'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 ring-1 ring-blue-300 dark:ring-blue-500/40',
 }
 
 // Tiny helpers
@@ -110,9 +109,9 @@ function StatusBadge({ status }: { status: string }) {
   const lang = getLanguage()
   const ok = status === 'sent' || status === 'delivered'
   const fail = status === 'failed'
-  if (ok)   return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30"><CheckCircle className="w-2.5 h-2.5"/>{t(status === 'delivered' ? 'delivery.delivered' : 'common.sent', lang)}</span>
-  if (fail) return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/15 text-red-300 ring-1 ring-red-500/30"><XCircle className="w-2.5 h-2.5"/>{t('delivery.failed', lang)}</span>
-  return       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/30"><Clock className="w-2.5 h-2.5 animate-pulse"/>{t('delivery.pending', lang)}</span>
+  if (ok)   return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-300 dark:ring-emerald-500/30"><CheckCircle className="w-2.5 h-2.5"/>{t(status === 'delivered' ? 'delivery.delivered' : 'common.sent', lang)}</span>
+  if (fail) return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 dark:bg-red-500/15 text-red-700 dark:text-red-300 ring-1 ring-red-300 dark:ring-red-500/30"><XCircle className="w-2.5 h-2.5"/>{t('delivery.failed', lang)}</span>
+  return       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 ring-1 ring-amber-300 dark:ring-amber-500/30"><Clock className="w-2.5 h-2.5 animate-pulse"/>{t('delivery.pending', lang)}</span>
 }
 
 function ChanIcon({ ch, size = 'sm' }: { ch: string; size?: 'xs' | 'sm' | 'md' }) {
@@ -138,12 +137,16 @@ function DonutChart({ slices, size = 120 }: { slices: { value: number; color: st
     return { ...s, d: `M ${x1} ${y1} A ${r} ${r} 0 ${sweep > Math.PI ? 1 : 0} 1 ${x2} ${y2}` }
   })
   return (
-    <svg width={size} height={size} className="flex-shrink-0">
-      <circle cx={cx} cy={cy} r={r} fill="none" stroke="#1f2937" strokeWidth={sw + 2}/>
-      {arcs.map((a, i) => <path key={i} d={a.d} fill="none" stroke={a.color} strokeWidth={sw} strokeLinecap="round"/>)}
-      <text x={cx} y={cy - 5}  textAnchor="middle" fontSize="14" fontWeight="800" fill="white">{total}</text>
-      <text x={cx} y={cy + 9}  textAnchor="middle" fontSize="8"  fill="#6b7280">{t('delivery.total', getLanguage())}</text>
-    </svg>
+    <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="absolute inset-0">
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="#1f2937" strokeWidth={sw + 2}/>
+        {arcs.map((a, i) => <path key={i} d={a.d} fill="none" stroke={a.color} strokeWidth={sw} strokeLinecap="round"/>)}
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+        <span className="font-black text-gray-900 dark:text-white tabular-nums leading-none" style={{ fontSize: 14 }}>{total}</span>
+        <span className="text-gray-500" style={{ fontSize: 8 }}>{t('delivery.total', getLanguage())}</span>
+      </div>
+    </div>
   )
 }
 
@@ -267,7 +270,7 @@ function AlertGroupRow({ group, onRetry, onRetryAll, retrying }: {
           })}
           {hasFail && (
             <button onClick={e => { e.stopPropagation(); onRetryAll(group.alert_id) }}
-              className="ml-1 flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-500/20 ring-1 ring-amber-500/40 text-amber-300 text-[10px] font-bold hover:bg-amber-500/30 transition-colors whitespace-nowrap">
+              className="ml-1 flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-100 dark:bg-amber-500/20 ring-1 ring-amber-300 dark:ring-amber-500/40 text-amber-700 dark:text-amber-300 text-[10px] font-bold hover:bg-amber-200 dark:hover:bg-amber-500/30 transition-colors whitespace-nowrap">
               <RotateCcw className={`w-3 h-3 ${retrying.has('bulk-' + group.alert_id) ? 'animate-spin' : ''}`}/>
               {t('delivery.retryAll', lang)}
             </button>
@@ -644,7 +647,7 @@ export default function DeliveryDashboard() {
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`}/>{t('common.refresh', lang)}
           </button>
           <button onClick={handleExportCSV} disabled={exportingCSV}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600/20 ring-1 ring-emerald-500/30 text-emerald-300 text-xs font-semibold hover:bg-emerald-600/30 transition-all disabled:opacity-50">
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-100 dark:bg-emerald-600/20 ring-1 ring-emerald-300 dark:ring-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-semibold hover:bg-emerald-200 dark:hover:bg-emerald-600/30 transition-all disabled:opacity-50">
             {exportingCSV ? <Loader2 className="w-3.5 h-3.5 animate-spin"/> : <Download className="w-3.5 h-3.5"/>}
             {t('common.exportCSV', lang)}
           </button>
@@ -727,7 +730,7 @@ export default function DeliveryDashboard() {
       {/* Top Failures*/}
       {(stats?.top_failing?.length ?? 0) > 0 && (
         <div className="bg-white dark:bg-gray-900/60 ring-1 ring-red-500/15 rounded-2xl p-4 shadow-lg">
-          <h3 className="text-[11px] font-bold text-red-400/80 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+          <h3 className="text-[11px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
             <AlertTriangle className="w-3.5 h-3.5"/>{t('delivery.failed', lang)}
           </h3>
           <div className="flex flex-col gap-1.5">
@@ -738,7 +741,7 @@ export default function DeliveryDashboard() {
                 {f.severity && <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${SEV_BADGE[f.severity] || ''}`}>{f.severity}</span>}
                 <span className="text-xs font-black text-red-400 tabular-nums flex-shrink-0">{f.fail_count}—</span>
                 <button onClick={() => handleRetryAll(f.alert_id)}
-                  className="flex items-center gap-1 px-2 py-1 rounded-lg bg-red-500/15 ring-1 ring-red-500/25 text-red-300 text-[10px] font-bold hover:bg-red-500/25 transition-colors">
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg bg-red-100 dark:bg-red-500/15 ring-1 ring-red-300 dark:ring-red-500/25 text-red-700 dark:text-red-300 text-[10px] font-bold hover:bg-red-200 dark:hover:bg-red-500/25 transition-colors">
                   <RotateCcw className={`w-3 h-3 ${retrying.has('bulk-' + f.alert_id) ? 'animate-spin' : ''}`}/>{t('delivery.retry', lang)}
                 </button>
               </div>
@@ -784,7 +787,7 @@ export default function DeliveryDashboard() {
               className="px-2.5 py-2 text-xs bg-gray-100 dark:bg-gray-800/60 ring-1 ring-gray-200 dark:ring-white/8 rounded-xl text-gray-800 dark:text-gray-200 focus:ring-violet-500/50 focus:outline-none"/>
           </div>
           <button onClick={applyFilters}
-            className="px-4 py-2 rounded-xl bg-violet-600/30 ring-1 ring-violet-500/40 text-violet-200 text-xs font-bold hover:bg-violet-600/50 transition-all">
+            className="px-4 py-2 rounded-xl bg-violet-100 dark:bg-violet-600/30 ring-1 ring-violet-300 dark:ring-violet-500/40 text-violet-700 dark:text-violet-200 text-xs font-bold hover:bg-violet-200 dark:hover:bg-violet-600/50 transition-all">
             {t('common.apply', lang)}
           </button>
         </div>
@@ -858,7 +861,7 @@ export default function DeliveryDashboard() {
             {stats!.recent_errors.map((e, i) => {
               const cfg = chCfg(e.channel)
               return (
-                <div key={i} className="flex items-start gap-2.5 p-2.5 rounded-xl bg-red-950/15 ring-1 ring-red-500/10">
+                <div key={i} className="flex items-start gap-2.5 p-2.5 rounded-xl bg-red-50 dark:bg-red-950/15 ring-1 ring-red-200 dark:ring-red-500/10">
                   <ChanIcon ch={e.channel} size="xs"/>
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] text-gray-400 dark:text-gray-300 truncate">{e.error_message}</p>

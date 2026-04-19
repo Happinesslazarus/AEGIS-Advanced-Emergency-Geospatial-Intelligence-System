@@ -1,14 +1,10 @@
-/**
+﻿/**
  * Module: baseModule.ts
  *
  * Base incident module (abstract class all incident types extend).
  *
- * How it connects:
  * - Part of the incident module system, registered via incidents/registry.ts
- *
- * Simple explanation:
- * Defines the common interface and shared logic for every incident handler.
- */
+ * */
 
 import { Router, Request, Response } from 'express'
 import rateLimit from 'express-rate-limit'
@@ -138,7 +134,7 @@ export abstract class BaseIncidentModule implements IncidentModule {
     try {
       const result = await pool.query(
         `SELECT * FROM alerts
-         WHERE (incident_type = $1 OR category = $1)
+         WHERE incident_type = $1
            AND (expires_at IS NULL OR expires_at > NOW())
          ORDER BY created_at DESC
          LIMIT 50`,
@@ -224,7 +220,7 @@ export abstract class BaseIncidentModule implements IncidentModule {
     try {
       const result = await pool.query(
         `SELECT * FROM reports
-         WHERE (incident_type = $1 OR category = $1)
+         WHERE incident_type = $1
            AND created_at >= NOW() - ($2 || ' days')::interval
          ORDER BY created_at DESC
          LIMIT 200`,
@@ -244,7 +240,7 @@ export abstract class BaseIncidentModule implements IncidentModule {
       // for backward compatibility with pre-region data.
       const result = await pool.query(
         `SELECT * FROM reports
-         WHERE (incident_type = $1 OR category = $1)
+         WHERE incident_type = $1
            AND status NOT IN ('resolved', 'closed', 'rejected', 'archived')
            AND (region_id = $2 OR region_id IS NULL OR $2 = '')
          ORDER BY created_at DESC
@@ -257,7 +253,7 @@ export abstract class BaseIncidentModule implements IncidentModule {
       try {
         const result = await pool.query(
           `SELECT * FROM reports
-           WHERE (incident_type = $1 OR category = $1)
+           WHERE incident_type = $1
              AND status NOT IN ('resolved', 'closed', 'rejected', 'archived')
            ORDER BY created_at DESC
            LIMIT 100`,
@@ -299,9 +295,9 @@ export abstract class BaseIncidentModule implements IncidentModule {
     try {
       const result = await pool.query(
         `INSERT INTO reports (title, description, severity, latitude, longitude,
-         reporter_name, reporter_phone, incident_type, category, custom_fields,
+         reporter_name, reporter_phone, incident_type, custom_fields,
          region_id, status, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'pending', NOW())
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'pending', NOW())
          RETURNING *`,
         [
           validatedTitle,
@@ -312,7 +308,6 @@ export abstract class BaseIncidentModule implements IncidentModule {
           validatedName,
           validatedPhone,
           this.id,
-          this.registry.category,
           JSON.stringify(customFields || {}),
           validatedRegion,
         ]
@@ -330,7 +325,7 @@ export abstract class BaseIncidentModule implements IncidentModule {
         `SELECT severity, COUNT(*) as cnt,
                 AVG(EXTRACT(EPOCH FROM (NOW() - created_at))) as avg_age_seconds
          FROM reports
-         WHERE (incident_type = $1 OR category = $1)
+         WHERE incident_type = $1
            AND created_at >= NOW() - interval '48 hours'
            AND status NOT IN ('resolved', 'closed', 'rejected', 'archived')
          GROUP BY severity`,

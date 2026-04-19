@@ -1,22 +1,17 @@
-/**
- * File: GuestDashboard.tsx
- *
- * What this file does:
+﻿/**
  * Read-only public dashboard for visitors who want to see live data without
  * creating an account. Shows current alerts, the disaster map, recent reports
  * (anonymised), and regional risk information. No personal data is stored.
  *
- * How it connects:
  * - Routed by client/src/App.tsx at /guest
  * - Reads from AlertsContext and the public reports API endpoints
  * - Linked from LandingPage.tsx ("Continue as Guest" button)
  *
- * Learn more:
  * - client/src/pages/LandingPage.tsx — entry point that leads here
  * - client/src/pages/CitizenPage.tsx — a richer public view with form submission
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { t as ct } from '../utils/i18n'
@@ -30,7 +25,9 @@ import {
   Menu, X, Radio, Users, Lock, LogIn, ArrowRight,
   Siren, ChevronDown, Wifi, WifiOff, Zap, Heart, BarChart3,
   Phone, BookOpen, FileText, TrendingUp, Satellite, Signal,
-  ShieldCheck, Layers, Navigation, Compass, Search
+  ShieldCheck, Layers, Navigation, Compass, Search,
+  CloudRain, Wind, PhoneCall, Megaphone, AlertCircle, ScanEye,
+  Sparkles, Timer, Map, AlertOctagon
 } from 'lucide-react'
 import { useIncidents } from '../contexts/IncidentContext'
 import {
@@ -65,6 +62,141 @@ const SEVERITY_COLORS = SEVERITY_PILL
 
 // SEVERITY_BG imported from colorTokens
 
+/* ── Style injection for guest welcome animations ── */
+const GD_STYLE_ID = 'guest-dashboard-animations'
+function injectGuestAnimations() {
+  if (document.getElementById(GD_STYLE_ID)) return
+  const style = document.createElement('style')
+  style.id = GD_STYLE_ID
+  style.textContent = `
+    @keyframes gdFadeUp    { from { opacity:0; transform:translateY(24px) } to { opacity:1; transform:translateY(0) } }
+    @keyframes gdScaleIn   { from { opacity:0; transform:scale(.92) } to { opacity:1; transform:scale(1) } }
+    @keyframes gdFloat     { 0%,100% { transform:translateY(0) } 50% { transform:translateY(-12px) } }
+    @keyframes gdFloat2    { 0%,100% { transform:translateY(0) rotate(0deg) } 50% { transform:translateY(-8px) rotate(3deg) } }
+    @keyframes gdPulseRing { 0% { transform:scale(.8); opacity:.6 } 100% { transform:scale(2.2); opacity:0 } }
+    @keyframes gdShimmer   { from { background-position:-200% 0 } to { background-position:200% 0 } }
+    @keyframes gdGradient  { 0%,100% { background-position:0% 50% } 50% { background-position:100% 50% } }
+    @keyframes gdTyping    { from { width:0 } to { width:100% } }
+    @keyframes gdBlink     { 0%,100% { opacity:1 } 50% { opacity:0 } }
+    @keyframes gdOrbit     { from { transform:rotate(0deg) translateX(120px) rotate(0deg) } to { transform:rotate(360deg) translateX(120px) rotate(-360deg) } }
+    @keyframes gdSlideIn   { from { opacity:0; transform:translateX(-16px) } to { opacity:1; transform:translateX(0) } }
+    @keyframes gdCountUp   { from { opacity:0; transform:translateY(10px) } to { opacity:1; transform:translateY(0) } }
+    .gd-fade-up   { animation: gdFadeUp .7s cubic-bezier(.22,1,.36,1) both }
+    .gd-scale-in  { animation: gdScaleIn .6s cubic-bezier(.22,1,.36,1) both }
+    .gd-float     { animation: gdFloat 5s ease-in-out infinite }
+    .gd-float2    { animation: gdFloat2 7s ease-in-out infinite }
+    .gd-shimmer   { background:linear-gradient(90deg,transparent 30%,rgba(255,255,255,.15) 50%,transparent 70%); background-size:200% 100%; animation:gdShimmer 3s linear infinite }
+    .gd-gradient  { background-size:200% 200%; animation:gdGradient 6s ease infinite }
+    .gd-orbit     { animation: gdOrbit 20s linear infinite }
+    .gd-slide-in  { animation: gdSlideIn .5s cubic-bezier(.22,1,.36,1) both }
+    .gd-count-up  { animation: gdCountUp .4s ease-out both }
+  `
+  document.head.appendChild(style)
+}
+
+/* ── Animated counter ── */
+function AnimatedCounter({ value, duration = 1400, className = '' }: { value: number; duration?: number; className?: string }) {
+  const [display, setDisplay] = useState(0)
+  const prevRef = useRef(0)
+  useEffect(() => {
+    const from = prevRef.current
+    const diff = value - from
+    if (diff === 0) return
+    const steps = 40
+    const stepTime = duration / steps
+    let step = 0
+    const timer = setInterval(() => {
+      step++
+      const progress = step / steps
+      const eased = 1 - Math.pow(1 - progress, 3)
+      setDisplay(Math.round(from + diff * eased))
+      if (step >= steps) { setDisplay(value); clearInterval(timer); prevRef.current = value }
+    }, stepTime)
+    return () => clearInterval(timer)
+  }, [value, duration])
+  return <span className={`tabular-nums ${className}`}>{display.toLocaleString()}</span>
+}
+
+/* ── Typing text animation ── */
+function TypingText({ texts, speed = 60, pause = 2500, className = '' }: { texts: string[]; speed?: number; pause?: number; className?: string }) {
+  const [textIdx, setTextIdx] = useState(0)
+  const [charIdx, setCharIdx] = useState(0)
+  const [deleting, setDeleting] = useState(false)
+
+  useEffect(() => {
+    const current = texts[textIdx]
+    if (!deleting && charIdx < current.length) {
+      const t = setTimeout(() => setCharIdx(c => c + 1), speed)
+      return () => clearTimeout(t)
+    }
+    if (!deleting && charIdx === current.length) {
+      const t = setTimeout(() => setDeleting(true), pause)
+      return () => clearTimeout(t)
+    }
+    if (deleting && charIdx > 0) {
+      const t = setTimeout(() => setCharIdx(c => c - 1), speed / 2)
+      return () => clearTimeout(t)
+    }
+    if (deleting && charIdx === 0) {
+      setDeleting(false)
+      setTextIdx(i => (i + 1) % texts.length)
+    }
+  }, [charIdx, deleting, textIdx, texts, speed, pause])
+
+  return (
+    <span className={className}>
+      {texts[textIdx].slice(0, charIdx)}
+      <span className="inline-block w-[2px] h-[1em] bg-current ml-0.5 align-middle" style={{ animation: 'gdBlink 1s step-end infinite' }} />
+    </span>
+  )
+}
+
+/* ── Severity ring mini chart ── */
+function SeverityRing({ critical, high, medium, low }: { critical: number; high: number; medium: number; low: number }) {
+  const total = critical + high + medium + low
+  if (total === 0) return null
+  const segments = [
+    { pct: critical / total, color: '#ef4444', label: 'Critical' },
+    { pct: high / total, color: '#f97316', label: 'High' },
+    { pct: medium / total, color: '#eab308', label: 'Medium' },
+    { pct: low / total, color: '#22c55e', label: 'Low' },
+  ].filter(s => s.pct > 0)
+
+  let offset = 0
+  const r = 30, circumference = 2 * Math.PI * r
+  return (
+    <div className="flex items-center gap-3">
+      <svg width="72" height="72" viewBox="0 0 72 72" className="drop-shadow-lg">
+        <circle cx="36" cy="36" r={r} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="8" />
+        {segments.map((seg, i) => {
+          const dash = circumference * seg.pct
+          const gap = circumference - dash
+          const o = offset
+          offset += seg.pct
+          return (
+            <circle key={i} cx="36" cy="36" r={r} fill="none" stroke={seg.color} strokeWidth="8"
+              strokeDasharray={`${dash} ${gap}`}
+              strokeDashoffset={-circumference * o}
+              strokeLinecap="round"
+              transform="rotate(-90 36 36)"
+              className="transition-all duration-1000"
+            />
+          )
+        })}
+        <text x="36" y="36" textAnchor="middle" dominantBaseline="central" className="fill-white font-black text-sm">{total}</text>
+      </svg>
+      <div className="flex flex-col gap-1">
+        {segments.map((s, i) => (
+          <div key={i} className="flex items-center gap-1.5">
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }} />
+            <span className="text-[10px] text-white/70 font-medium">{s.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function GuestDashboard(): JSX.Element {
   const { t } = useTranslation(['common', 'incidents', 'alerts', 'dashboard'])
   const { registry, registryLoading } = useIncidents()
@@ -79,7 +211,26 @@ export default function GuestDashboard(): JSX.Element {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [signInOpen, setSignInOpen] = useState(false)
   const [navSearchOpen, setNavSearchOpen] = useState(false)
+  const [liveClock, setLiveClock] = useState(new Date())
+  const [mounted, setMounted] = useState(false)
   const signInRef = useRef<HTMLDivElement>(null)
+
+  // Inject animations on mount
+  useEffect(() => { injectGuestAnimations(); setMounted(true) }, [])
+
+  // Live clock update every second
+  useEffect(() => {
+    const iv = setInterval(() => setLiveClock(new Date()), 1000)
+    return () => clearInterval(iv)
+  }, [])
+
+  // Time-based greeting
+  const greeting = useMemo(() => {
+    const h = liveClock.getHours()
+    if (h < 12) return { text: 'Good Morning', icon: Sun, period: 'morning' }
+    if (h < 17) return { text: 'Good Afternoon', icon: CloudRain, period: 'afternoon' }
+    return { text: 'Good Evening', icon: Sparkles, period: 'evening' }
+  }, [liveClock.getHours()])
 
   // Close sign-in dropdown on outside click
   useEffect(() => {
@@ -130,6 +281,14 @@ export default function GuestDashboard(): JSX.Element {
   const threatColor = { SEVERE: 'text-red-500', ELEVATED: 'text-orange-500', GUARDED: 'text-amber-500', LOW: 'text-green-500' }[threatLevel]
   const threatBg = { SEVERE: 'bg-red-500/10 border-red-500/20', ELEVATED: 'bg-orange-500/10 border-orange-500/20', GUARDED: 'bg-amber-500/10 border-amber-500/20', LOW: 'bg-green-500/10 border-green-500/20' }[threatLevel]
 
+  // Severity distribution for ring
+  const sevCounts = useMemo(() => ({
+    critical: alerts.filter(a => a.severity === 'critical').length,
+    high: alerts.filter(a => a.severity === 'high').length,
+    medium: alerts.filter(a => a.severity === 'medium').length,
+    low: alerts.filter(a => a.severity === 'low').length,
+  }), [alerts])
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-aegis-50/30 dark:from-gray-950 dark:via-surface-ultra-dark dark:to-gray-950">
 
@@ -162,7 +321,6 @@ export default function GuestDashboard(): JSX.Element {
                   <div className="hidden sm:block leading-none">
                     <div className="flex items-center gap-2">
                       <span className="font-black text-base tracking-tight text-gray-900 dark:text-white">AEGIS</span>
-                      <span className="text-[8px] font-bold bg-aegis-100 dark:bg-aegis-900/40 text-aegis-700 dark:text-aegis-300 px-1.5 py-0.5 rounded tracking-widest">v6</span>
                     </div>
                     <span className="block text-[9px] text-gray-400 dark:text-gray-300 dark:text-white/60 font-medium tracking-[0.2em] uppercase mt-0.5">{ct('guest.emergencyIntelligence',lang)}</span>
                   </div>
@@ -401,52 +559,247 @@ export default function GuestDashboard(): JSX.Element {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
-        {/*  HERO OVERVIEW SECTION  */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-aegis-600 via-aegis-500 to-blue-600 dark:from-aegis-900 dark:via-aegis-800 dark:to-blue-900 p-6 sm:p-8 text-white shadow-2xl" style={{ boxShadow: '0 8px 40px rgba(var(--glow-color), 0.15)' }}>
-          <div className="absolute inset-0 opacity-[0.07]">
-            <svg width="100%" height="100%"><defs><pattern id="guestGrid" x="0" y="0" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" stroke="white" strokeWidth="0.5"/></pattern></defs><rect width="100%" height="100%" fill="url(#guestGrid)"/></svg>
+        {/*  ADVANCED HERO — Command Center Welcome Board  */}
+        <div className={`relative overflow-hidden rounded-3xl shadow-2xl transition-opacity duration-700 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
+          {/* Animated gradient background */}
+          <div className="absolute inset-0 bg-gradient-to-br from-aegis-700 via-aegis-600 to-blue-700 dark:from-gray-950 dark:via-aegis-950 dark:to-blue-950 gd-gradient" />
+
+          {/* Grid overlay pattern */}
+          <div className="absolute inset-0 opacity-[0.05]">
+            <svg width="100%" height="100%"><defs><pattern id="gdGrid" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="white" strokeWidth="0.5"/></pattern></defs><rect width="100%" height="100%" fill="url(#gdGrid)"/></svg>
           </div>
-          <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-56 h-56 bg-blue-400/10 rounded-full translate-y-1/2 -translate-x-1/4 blur-3xl" />
-          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-[10px] font-bold bg-white/15 backdrop-blur-sm px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5">
-                  <Globe className="w-3 h-3" /> {ct('guest.hero.badge',lang)}
-                </span>
-                <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${threatLevel === 'LOW' ? 'bg-green-500/30 text-green-200' : threatLevel === 'GUARDED' ? 'bg-amber-500/30 text-amber-200' : threatLevel === 'ELEVATED' ? 'bg-orange-500/30 text-orange-200' : 'bg-red-500/30 text-red-200'}`}>
-                  {threatLevel} {ct('guest.hero.threat',lang)}
-                </span>
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-black mb-1.5 leading-tight">{ct('guest.hero.title',lang)}</h1>
-              <p className="text-sm text-white/80 max-w-lg">{ct('guest.hero.description',lang)}</p>
+
+          {/* Floating animated orbs */}
+          <div className="absolute top-10 right-10 w-64 h-64 bg-aegis-400/10 rounded-full blur-[80px] gd-float" />
+          <div className="absolute bottom-0 left-10 w-48 h-48 bg-blue-400/10 rounded-full blur-[60px] gd-float2" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 rounded-full border border-white/[0.04] gd-orbit" />
+
+          {/* Orbiting dot */}
+          <div className="absolute top-1/2 left-1/2" style={{ transform: 'translate(-50%, -50%)' }}>
+            <div className="gd-orbit">
+              <div className="w-2 h-2 rounded-full bg-aegis-400/60 shadow-lg shadow-aegis-400/30" />
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Link to="/citizen" className="bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/20 px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all hover:scale-[1.02] shadow-lg">
-                <MapPin className="w-4 h-4" /> {ct('guest.hero.fullMapView',lang)}
-              </Link>
-              <Link to="/citizen/login" className="bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-black px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all hover:scale-[1.02] shadow-lg shadow-amber-500/30">
-                <Zap className="w-4 h-4" /> {ct('guest.hero.getPersonalAlerts',lang)}
-              </Link>
+          </div>
+
+          <div className="relative z-10 p-6 sm:p-8 lg:p-10">
+            {/* Top bar: greeting + clock + status */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 gd-fade-up" style={{ animationDelay: '0.1s' }}>
+              <div className="flex items-center gap-3 flex-wrap">
+                {/* Time greeting */}
+                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/10 px-3.5 py-2 rounded-xl">
+                  <greeting.icon className="w-4 h-4 text-amber-300" />
+                  <span className="text-sm font-bold text-white">{greeting.text}</span>
+                </div>
+
+                {/* Live clock */}
+                <div className="flex items-center gap-2 bg-white/[0.07] backdrop-blur-md border border-white/[0.08] px-3 py-2 rounded-xl">
+                  <Clock className="w-3.5 h-3.5 text-white/60" />
+                  <span className="text-xs font-mono font-bold text-white/90 tabular-nums">
+                    {liveClock.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                  </span>
+                  <span className="text-[10px] text-white/40 font-medium hidden sm:inline">
+                    {liveClock.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+                  </span>
+                </div>
+
+                {/* System status */}
+                <div className="flex items-center gap-1.5 bg-green-500/15 border border-green-500/20 px-2.5 py-2 rounded-xl">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400" />
+                  </span>
+                  <span className="text-[10px] font-bold text-green-300 uppercase tracking-wider">Systems Online</span>
+                </div>
+              </div>
+
+              {/* Threat level badge */}
+              <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border backdrop-blur-md ${
+                threatLevel === 'SEVERE' ? 'bg-red-500/20 border-red-500/30' :
+                threatLevel === 'ELEVATED' ? 'bg-orange-500/20 border-orange-500/30' :
+                threatLevel === 'GUARDED' ? 'bg-amber-500/20 border-amber-500/30' :
+                'bg-green-500/20 border-green-500/30'
+              }`}>
+                <Signal className={`w-4 h-4 ${threatColor}`} />
+                <div>
+                  <span className={`text-xs font-black ${threatColor}`}>THREAT: {threatLevel}</span>
+                  <p className="text-[9px] text-white/40 font-medium">Current assessment</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Main hero content */}
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
+              {/* Left: Title + typing subtitle + badges */}
+              <div className="flex-1 gd-fade-up" style={{ animationDelay: '0.25s' }}>
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="text-[10px] font-bold bg-white/15 backdrop-blur-sm px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5 text-white/90">
+                    <Globe className="w-3 h-3" /> {ct('guest.hero.badge', lang)}
+                  </span>
+                  <span className="text-[10px] font-bold bg-aegis-400/20 text-aegis-200 px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5">
+                    <ScanEye className="w-3 h-3" /> AI-Powered
+                  </span>
+                  <span className="text-[10px] font-bold bg-white/10 text-white/70 px-2.5 py-1 rounded-full uppercase tracking-wider hidden sm:inline-flex items-center gap-1">
+                    <Satellite className="w-3 h-3" /> Multi-Source
+                  </span>
+                </div>
+
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white mb-3 leading-[1.1] tracking-tight">
+                  {ct('guest.hero.title', lang)}
+                </h1>
+
+                <div className="text-base sm:text-lg text-white/70 mb-5 h-7">
+                  <TypingText
+                    texts={[
+                      'Real-time flood monitoring & AI predictions',
+                      'Multi-hazard early warning system',
+                      'Protecting communities across the UK',
+                      'Live satellite & river gauge intelligence',
+                    ]}
+                    speed={45}
+                    pause={3000}
+                    className="font-medium"
+                  />
+                </div>
+
+                {/* Quick stat pills */}
+                <div className="flex flex-wrap gap-2 mb-6">
+                  {[
+                    { icon: Activity, label: 'Incidents', value: activeIncidents.length, color: activeIncidents.length > 0 ? 'text-red-300 bg-red-500/15 border-red-500/20' : 'text-green-300 bg-green-500/15 border-green-500/20' },
+                    { icon: Bell, label: 'Alerts', value: alerts.length, color: alerts.length > 0 ? 'text-amber-300 bg-amber-500/15 border-amber-500/20' : 'text-green-300 bg-green-500/15 border-green-500/20' },
+                    { icon: TrendingUp, label: 'Forecasts', value: predictions.length, color: 'text-purple-300 bg-purple-500/15 border-purple-500/20' },
+                    { icon: Eye, label: 'Monitored', value: incidents.length || registry.length, color: 'text-blue-300 bg-blue-500/15 border-blue-500/20' },
+                  ].map((pill, i) => (
+                    <div key={pill.label} className={`flex items-center gap-1.5 border backdrop-blur-sm px-3 py-1.5 rounded-xl gd-slide-in ${pill.color}`} style={{ animationDelay: `${0.4 + i * 0.1}s` }}>
+                      <pill.icon className="w-3.5 h-3.5" />
+                      <AnimatedCounter value={loading ? 0 : pill.value} className="text-sm font-black" />
+                      <span className="text-[10px] font-medium opacity-70">{pill.label}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Hero CTAs */}
+                <div className="flex flex-wrap gap-3">
+                  <Link to="/citizen" className="group relative bg-white/15 hover:bg-white/25 backdrop-blur-md border border-white/20 hover:border-white/30 px-6 py-3 rounded-xl text-sm font-bold text-white flex items-center gap-2.5 transition-all hover:scale-[1.02] shadow-lg overflow-hidden">
+                    <div className="absolute inset-0 gd-shimmer" />
+                    <Map className="w-4.5 h-4.5 relative z-10" />
+                    <span className="relative z-10">{ct('guest.hero.fullMapView', lang)}</span>
+                    <ArrowRight className="w-3.5 h-3.5 relative z-10 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+                  </Link>
+                  <Link to="/citizen/login" className="group bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-black px-6 py-3 rounded-xl text-sm font-bold flex items-center gap-2.5 transition-all hover:scale-[1.02] shadow-xl shadow-amber-500/25">
+                    <Zap className="w-4.5 h-4.5" />
+                    {ct('guest.hero.getPersonalAlerts', lang)}
+                    <ArrowRight className="w-3.5 h-3.5 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+                  </Link>
+                  <a href="tel:999" className="bg-red-500/20 hover:bg-red-500/30 backdrop-blur-md border border-red-500/30 px-4 py-3 rounded-xl text-sm font-bold text-red-200 flex items-center gap-2 transition-all hover:scale-[1.02]">
+                    <PhoneCall className="w-4 h-4" />
+                    <span className="hidden sm:inline">999</span>
+                  </a>
+                </div>
+              </div>
+
+              {/* Right: Severity ring + key metrics panel */}
+              <div className="lg:w-80 flex-shrink-0 gd-fade-up" style={{ animationDelay: '0.4s' }}>
+                <div className="bg-white/[0.07] backdrop-blur-xl border border-white/[0.1] rounded-2xl p-5 space-y-5">
+                  {/* Severity distribution */}
+                  <div>
+                    <p className="text-[10px] text-white/40 font-bold uppercase tracking-[0.15em] mb-3">Alert Distribution</p>
+                    {alerts.length > 0 ? (
+                      <SeverityRing {...sevCounts} />
+                    ) : (
+                      <div className="flex items-center gap-3">
+                        <div className="w-[72px] h-[72px] rounded-full border-4 border-green-500/30 flex items-center justify-center">
+                          <ShieldCheck className="w-6 h-6 text-green-400" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-green-300">All Clear</p>
+                          <p className="text-[10px] text-white/40">No active alerts</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Divider */}
+                  <div className="border-t border-white/[0.08]" />
+
+                  {/* Key metrics */}
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { label: 'Active', value: activeIncidents.length, icon: AlertOctagon, color: 'text-red-400' },
+                      { label: 'Predictions', value: predictions.length, icon: Sparkles, color: 'text-purple-400' },
+                      { label: 'Regions', value: incidents.length || registry.length, icon: Layers, color: 'text-blue-400' },
+                      { label: 'Data Sources', value: 4, icon: Satellite, color: 'text-emerald-400' },
+                    ].map((m, i) => (
+                      <div key={m.label} className="bg-white/[0.05] rounded-xl p-3 gd-count-up" style={{ animationDelay: `${0.6 + i * 0.1}s` }}>
+                        <m.icon className={`w-4 h-4 ${m.color} mb-1.5`} />
+                        <AnimatedCounter value={loading ? 0 : m.value} className={`text-xl font-black text-white block`} />
+                        <p className="text-[9px] text-white/40 font-bold uppercase tracking-wider">{m.label}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Last update */}
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-[9px] text-white/30 flex items-center gap-1">
+                      <Timer className="w-3 h-3" />
+                      {lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString()}` : 'Connecting...'}
+                    </span>
+                    <button onClick={refresh} disabled={loading} className="text-[9px] text-aegis-300 hover:text-aegis-200 font-bold flex items-center gap-1 transition-colors">
+                      <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} /> Refresh
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        {/*  STATUS CARDS — Glassmorphic with glow  */}
+        {/*  QUICK EMERGENCY ACTIONS — Glass cards  */}
+        <div className={`grid grid-cols-2 sm:grid-cols-4 gap-3 transition-opacity duration-500 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
+          {[
+            { icon: Megaphone, label: 'Report Emergency', desc: 'Submit anonymous report', href: '/citizen', gradient: 'from-red-500 to-rose-600', shadow: 'shadow-red-500/20' },
+            { icon: Map, label: 'Live Disaster Map', desc: 'View real-time incidents', href: '/citizen', gradient: 'from-blue-500 to-indigo-600', shadow: 'shadow-blue-500/20' },
+            { icon: Bell, label: 'Subscribe Alerts', desc: 'Get early warnings', href: '/citizen/login', gradient: 'from-amber-500 to-orange-600', shadow: 'shadow-amber-500/20' },
+            { icon: Shield, label: 'Safe Zones', desc: 'Find nearest shelters', href: '/citizen', gradient: 'from-green-500 to-emerald-600', shadow: 'shadow-green-500/20' },
+          ].map((action, i) => (
+            <Link key={action.label} to={action.href}
+              className={`group glass-card rounded-2xl p-4 hover-lift transition-all duration-300 ${action.shadow} gd-scale-in`}
+              style={{ animationDelay: `${0.3 + i * 0.08}s` }}
+            >
+              <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${action.gradient} flex items-center justify-center shadow-lg mb-3 group-hover:scale-110 transition-transform`}>
+                <action.icon className="w-5.5 h-5.5 text-white" />
+              </div>
+              <p className="text-sm font-bold text-gray-900 dark:text-white mb-0.5">{action.label}</p>
+              <p className="text-[10px] text-gray-500 dark:text-white/40 font-medium">{action.desc}</p>
+              <ArrowRight className="w-3.5 h-3.5 text-gray-300 dark:text-white/20 mt-2 group-hover:text-aegis-500 group-hover:translate-x-1 transition-all" />
+            </Link>
+          ))}
+        </div>
+
+        {/*  STATUS CARDS — Glassmorphic with animated counters  */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 stagger-children">
           {[
-            { label: t('dashboard:incidents.active', 'Active Incidents'), value: activeIncidents.length, icon: Activity, gradient: 'from-blue-500 to-indigo-600', shadow: 'shadow-blue-500/15', iconBg: 'bg-blue-500/10' },
-            { label: t('alerts:totalAlerts', 'Total Alerts'), value: alerts.length, icon: Bell, gradient: 'from-amber-500 to-orange-600', shadow: 'shadow-amber-500/15', iconBg: 'bg-amber-500/10' },
-            { label: t('dashboard:incidents.monitoring', 'Types Monitored'), value: incidents.length || registry.length, icon: Eye, gradient: 'from-green-500 to-emerald-600', shadow: 'shadow-green-500/15', iconBg: 'bg-green-500/10' },
-            { label: t('dashboard:predictions.active', 'Predictions'), value: predictions.length, icon: TrendingUp, gradient: 'from-purple-500 to-violet-600', shadow: 'shadow-purple-500/15', iconBg: 'bg-purple-500/10' },
-          ].map(({ label, value, icon: Icon, gradient, shadow, iconBg }) => (
-            <div key={label} className={`glass-card rounded-2xl p-5 hover-lift transition-all duration-300 ${shadow}`}>
+            { label: t('dashboard:incidents.active', 'Active Incidents'), value: activeIncidents.length, icon: Activity, gradient: 'from-blue-500 to-indigo-600', shadow: 'shadow-blue-500/15', iconBg: 'bg-blue-500/10', trend: activeIncidents.length > 0 ? 'up' : null },
+            { label: t('alerts:totalAlerts', 'Total Alerts'), value: alerts.length, icon: Bell, gradient: 'from-amber-500 to-orange-600', shadow: 'shadow-amber-500/15', iconBg: 'bg-amber-500/10', trend: criticalAlerts.length > 0 ? 'critical' : null },
+            { label: t('dashboard:incidents.monitoring', 'Types Monitored'), value: incidents.length || registry.length, icon: Eye, gradient: 'from-green-500 to-emerald-600', shadow: 'shadow-green-500/15', iconBg: 'bg-green-500/10', trend: null },
+            { label: t('dashboard:predictions.active', 'Predictions'), value: predictions.length, icon: TrendingUp, gradient: 'from-purple-500 to-violet-600', shadow: 'shadow-purple-500/15', iconBg: 'bg-purple-500/10', trend: predictions.length > 3 ? 'up' : null },
+          ].map(({ label, value, icon: Icon, gradient, shadow, trend }, idx) => (
+            <div key={label} className={`glass-card rounded-2xl p-5 hover-lift transition-all duration-300 ${shadow} gd-scale-in`} style={{ animationDelay: `${0.15 + idx * 0.08}s` }}>
               <div className="flex items-center justify-between mb-3">
                 <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center shadow-lg`}>
                   <Icon className="w-5 h-5 text-white" />
                 </div>
+                {trend === 'critical' && (
+                  <span className="flex items-center gap-1 text-[9px] font-bold text-red-500 bg-red-50 dark:bg-red-500/10 px-2 py-0.5 rounded-full animate-pulse">
+                    <AlertCircle className="w-3 h-3" /> Active
+                  </span>
+                )}
+                {trend === 'up' && (
+                  <span className="flex items-center gap-1 text-[9px] font-bold text-amber-500 bg-amber-50 dark:bg-amber-500/10 px-2 py-0.5 rounded-full">
+                    <TrendingUp className="w-3 h-3" /> Rising
+                  </span>
+                )}
               </div>
-              <p className="text-3xl font-black text-gray-900 dark:text-white tabular-nums">{loading ? '—' : value}</p>
+              <AnimatedCounter value={loading ? 0 : value} className="text-3xl font-black text-gray-900 dark:text-white" />
               <p className="text-[10px] text-gray-500 dark:text-gray-300 font-bold uppercase tracking-wider mt-1">{label}</p>
             </div>
           ))}
@@ -634,6 +987,26 @@ export default function GuestDashboard(): JSX.Element {
           </div>
         </div>
 
+        {/*  DATA SOURCES TRUST STRIP  */}
+        <div className="glass-card rounded-2xl p-5 shadow-lg">
+          <p className="text-[10px] text-gray-400 dark:text-white/30 font-bold uppercase tracking-[0.2em] text-center mb-4">Trusted Data Sources</p>
+          <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-10">
+            {[
+              { name: 'Environment Agency', icon: Droplets, color: 'text-blue-500' },
+              { name: 'Met Office', icon: CloudRain, color: 'text-sky-500' },
+              { name: 'SEPA Scotland', icon: Shield, color: 'text-indigo-500' },
+              { name: 'OpenStreetMap', icon: Globe, color: 'text-green-500' },
+              { name: 'ERA5 Satellite', icon: Satellite, color: 'text-purple-500' },
+              { name: 'River Gauges', icon: BarChart3, color: 'text-cyan-500' },
+            ].map(source => (
+              <div key={source.name} className="flex items-center gap-2 opacity-60 hover:opacity-100 transition-opacity group cursor-default">
+                <source.icon className={`w-4 h-4 ${source.color}`} />
+                <span className="text-xs font-semibold text-gray-500 dark:text-white/50 group-hover:text-gray-700 dark:group-hover:text-white/80 transition-colors">{source.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/*  CTA — Polished sign-in prompt  */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 dark:from-gray-800 dark:via-gray-900 dark:to-gray-800 p-8 text-center shadow-2xl">
           <div className="absolute inset-0 opacity-10">
@@ -667,7 +1040,7 @@ export default function GuestDashboard(): JSX.Element {
               <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-aegis-500 to-aegis-700 flex items-center justify-center">
                 <Shield className="w-3.5 h-3.5 text-white" />
               </div>
-              <span className="text-xs text-gray-500 dark:text-gray-300 dark:text-white/40 font-medium">{t('common:app.name')} v6 — {t('common:app.fullName')}</span>
+              <span className="text-xs text-gray-500 dark:text-gray-300 dark:text-white/40 font-medium">{t('common:app.name')} — {t('common:app.fullName')}</span>
             </div>
             <div className="flex items-center gap-5 text-xs text-gray-400 dark:text-gray-300 dark:text-white/30">
               <Link to="/about" className="hover:text-gray-600 dark:hover:text-white/60 transition-colors">{t('common:about', 'About')}</Link>

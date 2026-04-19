@@ -93,6 +93,7 @@ wandb>=0.19.1
 
 # CLIP fine-tuning
 open-clip-torch>=2.29.0
+ftfy>=6.1.1
 
 # Voice transcription
 faster-whisper>=1.1.1

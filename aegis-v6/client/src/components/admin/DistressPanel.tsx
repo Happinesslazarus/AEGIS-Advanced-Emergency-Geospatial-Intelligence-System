@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: DistressPanel.tsx
  *
  * Distress signal management panel (SOS alerts from citizens).
  *
- * How it connects:
  * - Rendered inside AdminPage.tsx based on active view */
 
 import { useState, useEffect, useCallback, useRef, memo } from 'react'

@@ -1,18 +1,12 @@
-/**
- * File: requestCoalescing.ts
- *
+﻿/**
  * Request de-duplication — if multiple callers request the same data
  * simultaneously, only one query runs and all callers share the result.
  * Also provides a DataLoader for batching individual lookups into bulk queries.
  *
- * How it connects:
  * - Wraps service/database calls with coalescing logic (keyed by MD5)
  * - Exposes Prometheus counters for coalesced request tracking
  * - Pre-built loaders available for users and reports tables
- *
- * Simple explanation:
- * If 100 users ask for the same thing at once, only one query runs.
- */
+ * */
 
 import crypto from 'crypto'
 import client from 'prom-client'

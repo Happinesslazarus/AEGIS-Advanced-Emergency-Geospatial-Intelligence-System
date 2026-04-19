@@ -1,21 +1,12 @@
-/**
- * File: AppError.ts
- *
- * What this file does:
+﻿/**
  * Custom error class for HTTP errors with status codes, error codes,
  * and optional detail payloads. Factory methods provide clean shortcuts
  * for common errors (400, 401, 403, 404, 409, 429, 500, etc.)
  *
- * How it connects:
  * - Thrown by route handlers and services when something goes wrong
  * - Caught by errorHandler.ts middleware which sends the structured response
  * - The errorCode field maps to frontend error handling logic
- *
- * Simple explanation:
- * A structured way to throw errors with proper HTTP status codes.
- * Instead of throwing random Error objects, routes throw AppError.badRequest()
- * or AppError.notFound() and the error handler formats them consistently.
- */
+ * */
 
 export class AppError extends Error {
   public readonly statusCode: number

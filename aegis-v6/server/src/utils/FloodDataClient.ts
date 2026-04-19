@@ -1,19 +1,12 @@
-/**
- * File: FloodDataClient.ts
- *
- * What this file does:
+﻿/**
  * API client for flood data services (SEPA, Environment Agency, NRW, NIEA).
  * Fetches river gauge readings, flood warnings, and watch/warning GeoJSON
  * from regional authorities.
  *
- * How it connects:
  * - Used by dataRoutes.ts and riverLevelService for flood data ingestion
  * - Each region has its own API URLs configured via RegionApiConfig
  * - Data is cached by cacheService to reduce external API load
- *
- * Simple explanation:
- * Talks to government flood APIs to get river levels and flood warnings.
- */
+ * */
 
 export interface RegionApiConfig {
   regionId: string

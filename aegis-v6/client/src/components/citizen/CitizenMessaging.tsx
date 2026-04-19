@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: CitizenMessaging.tsx
  *
  * Citizen messaging citizen component (public-facing UI element).
  *
- * How it connects:
  * - Rendered inside CitizenPage.tsx or CitizenDashboard.tsx */
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'

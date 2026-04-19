@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: IncomingAlertsWidget.tsx
  *
  * Incoming alerts widget shared component (reusable UI element used across pages).
  *
- * How it connects:
  * - Used across both admin and citizen interfaces */
 
 import { useState, useEffect, useRef } from 'react'

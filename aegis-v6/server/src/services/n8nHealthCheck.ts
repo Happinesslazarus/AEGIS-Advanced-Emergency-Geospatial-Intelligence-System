@@ -1,18 +1,12 @@
-/**
- * File: n8nHealthCheck.ts
- *
+﻿/**
  * n8n workflow server health monitor — pings n8n every 60 seconds and
  * activates fallback cron jobs after 3 consecutive failures. Deactivates
  * fallbacks when n8n reconnects.
  *
- * How it connects:
  * - Pings the n8n server at N8N_HOST on a 60-second interval
  * - Calls activateFallbackJobs/deactivateFallbackJobs from cronJobs
  * - Triggers workflow re-registration via n8nWorkflowService on reconnect
- *
- * Simple explanation:
- * Checks if the n8n automation server is alive and switches to backup jobs if it's not.
- */
+ * */
 
 import { activateFallbackJobs, deactivateFallbackJobs } from './cronJobs.js'
 import { tryRegisterWorkflows, resetRegistration } from './n8nWorkflowService.js'

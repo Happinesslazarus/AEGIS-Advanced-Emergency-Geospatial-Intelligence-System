@@ -1,18 +1,12 @@
-/**
- * File: hibpService.ts
- *
+﻿/**
  * Have I Been Pwned password checker — uses the HIBP Pwned Passwords API
  * with k-Anonymity (only sends the first 5 chars of the SHA-1 hash).
  * Caches results for 24 hours and gracefully degrades if HIBP is unavailable.
  *
- * How it connects:
  * - Called during password creation and password change flows
  * - Hits the HIBP API with a 5-char SHA-1 prefix (k-Anonymity)
  * - Returns breach count so the UI can warn the user
- *
- * Simple explanation:
- * Warns users if their chosen password has appeared in known data breaches.
- */
+ * */
 
 import crypto from 'crypto'
 

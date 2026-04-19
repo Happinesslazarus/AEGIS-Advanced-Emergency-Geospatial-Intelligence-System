@@ -1,19 +1,12 @@
-/**
- * File: docsRoutes.ts
- *
- * What this file does:
+﻿/**
  * Serves interactive Swagger UI documentation at /api/docs. Builds the
  * OpenAPI spec from  Zod validation schemas so the docs stay in sync
  * with the actual request/response shapes.
  *
- * How it connects:
  * - Mounted at /api/docs in index.ts
  * - Reads Zod schemas from validate.ts to generate the spec dynamically
  * - Public endpoint (no auth required)
- *
- * Simple explanation:
- * Lets developers browse and test the API through a Swagger web page.
- */
+ * */
 
 import { Router, Request, Response } from 'express'
 import swaggerUi from 'swagger-ui-express'

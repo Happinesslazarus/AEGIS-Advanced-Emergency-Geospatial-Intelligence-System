@@ -1,7 +1,4 @@
-/**
- * File: embeddingRouter.ts
- *
- * What this file does:
+﻿/**
  * Multi-provider vector embedding router for Retrieval-Augmented Generation (RAG).
  * Converts text into numeric vectors so semantically similar documents can be
  * found by comparing vector distances. Tries providers in priority order:
@@ -16,16 +13,11 @@
  * rate-limited or currently in a back-off window. On success it resets the
  * consecutive-error counter; on failure it increments it (capping backoff at 2 min).
  *
- * How it connects:
  * - Called by server/src/services/chatService.ts for RAG context retrieval
  * - Called by server/src/services/ragExpansionService.ts to embed queries
  * - embedText() is a thin convenience wrapper around generateEmbeddings()
  * - Vectors are stored in Postgres pgvector columns for cosine similarity search
- *
- * Simple explanation:
- * Turns text into number vectors so the system can find similar knowledge base
- * documents to include in the AI's context before answering a question.
- */
+ * */
 
 import type { EmbeddingRequest, EmbeddingResponse } from '../types/index.js'
 import { devLog } from '../utils/logger.js'

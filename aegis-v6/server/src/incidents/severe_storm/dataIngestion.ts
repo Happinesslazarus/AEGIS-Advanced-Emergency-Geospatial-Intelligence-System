@@ -1,14 +1,10 @@
-/**
+﻿/**
  * Module: dataIngestion.ts
  *
  * Severe weather and storm systems incident module (handles severe storm specific logic).
  *
- * How it connects:
  * - Part of the incident module system, registered via incidents/registry.ts
- *
- * Simple explanation:
- * Manages detection, assessment, and response for severe storm events.
- */
+ * */
 
 import { logger } from '../../services/logger.js'
 

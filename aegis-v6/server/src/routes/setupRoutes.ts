@@ -1,19 +1,12 @@
-/**
- * File: setupRoutes.ts
- *
- * What this file does:
+﻿/**
  * First-run setup wizard for new AEGIS installations. Checks whether
  * the platform has been configured, guides admin through initial setup
  * (create first admin account, select region, configure features).
  *
- * How it connects:
  * - Mounted at /api/admin/setup in index.ts
  * - Reads/writes system_config table for setup state
  * - After setup, the wizard endpoints return "already configured"
- *
- * Simple explanation:
- * Walks new installations through the initial configuration steps.
- */
+ * */
 
 import { Router, Request, Response, NextFunction } from 'express'
 import pool from '../models/db.js'

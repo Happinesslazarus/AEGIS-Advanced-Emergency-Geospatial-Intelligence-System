@@ -1,30 +1,20 @@
-/**
- * File: LandingPage.tsx
- *
- * What this file does:
+﻿/**
  * The public-facing homepage for AEGIS. Shows an animated hero section,
  * feature highlights, stats counters, disaster type overviews, and call-to-action
  * buttons pointing to citizen login, operator login, and guest access.
  * No authentication required to view this page.
  *
- * How it connects:
  * - Routed by client/src/App.tsx at /
  * - Links direct to /citizen/auth (citizen login), /admin (operator login),
  *   /guest (read-only dashboard), and /about
  * - ThemeSelector and LanguageSelector in the header allow global preferences
  * - Uses useReveal() (IntersectionObserver) for scroll-triggered animations
  *
- * Learn more:
  * - client/src/pages/CitizenAuthPage.tsx  — where the citizen login button leads
  * - client/src/pages/AdminPage.tsx        — where the operator login button leads
  * - client/src/pages/GuestDashboard.tsx   — read-only public map view
  * - client/src/utils/i18n.ts              — translations used throughout this page
- *
- * Simple explanation:
- * The front door to AEGIS. Public-facing, no login needed. Explains what the
- * system does and lets users choose whether they're a citizen, an operator, or
- * just browsing.
- */
+ * */
 
 import { Link } from 'react-router-dom'
 import { usePageTitle } from '../hooks/usePageTitle'

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Module: TwoFactor.test.tsx
  *
  * Tests for the two-factor authentication (2FA) UI components:
@@ -46,7 +46,6 @@
  *                           can use 'twofa.title' instead of the translated string
  *   .animate-spin         = Tailwind class added to loading spinners
  *
- * How it connects:
  * - Run by the test runner (Vitest) with `vitest run` or `vitest watch`
  */
 

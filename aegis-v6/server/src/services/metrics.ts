@@ -1,18 +1,12 @@
-/**
- * File: metrics.ts
- *
+﻿/**
  * Core Prometheus metrics — defines histograms and counters for HTTP requests,
  * WebSocket connections, distress events, alert delivery, AI predictions, and
  * report submissions. Also collects default Node.js process metrics.
  *
- * How it connects:
  * - Imported by middleware, routes, and services to record observations
  * - Exposes a /metrics endpoint handler for Prometheus scraping
  * - Separate from cacheMetrics.ts which covers cache-specific metrics
- *
- * Simple explanation:
- * Tracks how fast, how often, and how reliably everything in the server is working.
- */
+ * */
 
 import { Request, Response, NextFunction } from 'express'
 import client from 'prom-client'

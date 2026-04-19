@@ -1,21 +1,13 @@
-/**
- * File: communityRoutes.ts
- *
- * What this file does:
+﻿/**
  * Community hub endpoints: posts, comments, likes, and hazard updates.
  * Citizens can share information, request help, and coordinate during
  * disasters through a forum-style interface.
  *
- * How it connects:
  * - Mounted at /api/community in index.ts
  * - Uses communityRealtime service for live updates via Socket.IO
  * - File uploads for community post images go through Multer
  * - Moderation handled by adminCommunityRoutes.ts
- *
- * Simple explanation:
- * The social features — lets citizens post updates, comment, and
- * coordinate with each other during emergencies.
- */
+ * */
 
 import express, { Request, Response, NextFunction } from 'express'
 import rateLimit from 'express-rate-limit'

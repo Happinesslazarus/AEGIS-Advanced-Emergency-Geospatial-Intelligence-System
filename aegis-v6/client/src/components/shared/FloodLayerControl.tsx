@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: FloodLayerControl.tsx
  *
  * Flood layer control shared component (reusable UI element used across pages).
  *
- * How it connects:
  * - Used across both admin and citizen interfaces */
 
 import { useState, useMemo } from 'react'

@@ -1,18 +1,12 @@
-/**
- * File: imageAnalysisService.ts
- *
+﻿/**
  * Disaster photo analyser — processes uploaded images through HuggingFace
  * vision models (ViT for classification, DETR for object detection), extracts
  * EXIF metadata (GPS, timestamps), and estimates flood damage severity.
  *
- * How it connects:
  * - Called by aiAnalysisPipeline when a report includes photos
  * - Calls HuggingFace Vision APIs (ViT, DETR) for classification/detection
  * - Parses EXIF data with the exifr library for geolocation and timestamps
- *
- * Simple explanation:
- * Looks at uploaded disaster photos and figures out what happened and how bad it is.
- */
+ * */
 
 import pool from '../models/db.js'
 import * as fs from 'fs'

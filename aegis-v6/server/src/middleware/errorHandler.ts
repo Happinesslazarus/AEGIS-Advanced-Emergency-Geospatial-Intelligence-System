@@ -1,23 +1,14 @@
-/**
- * File: errorHandler.ts
- *
- * What this file does:
+﻿/**
  * Centralised Express error handler. Catches all unhandled errors from route
  * handlers and middleware, logs them appropriately, and sends clean JSON
  * responses to the client.
  *
- * How it connects:
  * - Registered last in the middleware chain (index.ts), after all routes
  * - Catches errors from express-async-errors, Zod validation, JWT failures,
  *   PostgreSQL constraint violations, Multer uploads, and generic exceptions
  * - Uses AppError for intentional HTTP errors thrown by route handlers
  * - Redacts sensitive fields (passwords, tokens) before logging
- *
- * Simple explanation:
- * When something goes wrong in any API endpoint, this file catches the error,
- * logs it for developers, and sends a clean error message back to the user
- * without leaking internal details.
- */
+ * */
 
 import { Request, Response, NextFunction } from 'express'
 import { ZodError } from 'zod'

@@ -1,22 +1,14 @@
-/**
- * File: twoFactorCrypto.ts
- *
- * What this file does:
+﻿/**
  * Cryptographic functions for TOTP 2FA: encrypts/decrypts TOTP secrets
  * at rest using AES-256-GCM, generates human-readable backup recovery
  * codes, and provides temp token and TOTP code hashing for replay
  * prevention.
  *
- * How it connects:
  * - Used by twoFactorRoutes.ts and citizenTwoFactorRoutes.ts
  * - Encryption key comes from TWO_FACTOR_ENCRYPTION_KEY env variable
  * - In dev, falls back to a key derived from JWT_SECRET
  * - TOTP secrets are stored encrypted in the database
- *
- * Simple explanation:
- * Keeps 2FA secrets safe in the database by encrypting them, and
- * generates the recovery codes users can print as a backup.
- */
+ * */
 
 import crypto from 'crypto'
 import { logger } from '../services/logger.js'

@@ -1,11 +1,7 @@
-/**
- * File: NotFoundPage.tsx
- *
- * What this file does:
+﻿/**
  * 404 page shown when a user navigates to a URL that doesn't match any route.
  * Shows a friendly message with a link back to the home page.
  *
- * How it connects:
  * - Routed as the catch-all in client/src/App.tsx (path="*")
  */
 
@@ -158,7 +154,7 @@ export default function NotFoundPage() {
       </main>
 
       <footer className="py-4 text-center text-xs text-gray-400 dark:text-gray-600">
-        AEGIS V6 — Emergency Management Platform
+        AEGIS — Emergency Management Platform
       </footer>
     </div>
   )

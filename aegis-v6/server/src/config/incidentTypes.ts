@@ -1,7 +1,4 @@
-/**
- * File: incidentTypes.ts
- *
- * What this file does:
+﻿/**
  * Defines the canonical list of incident types the system can handle,
  * including their display names, AI model assignments, severity levels,
  * custom field schemas, dashboard widgets, and alert thresholds.
@@ -13,15 +10,10 @@
  * can tune thresholds and enable/disable types without code changes.
  * `upsertIncidentType()` writes changes back to that file at runtime.
  *
- * How it connects:
  * - Imported by services and routes that validate or describe incident types
  * - AI model names here must match models registered in the AI engine registry
  * - alertThresholds are used by alerting rules in model monitoring
- *
- * Simple explanation:
- * A central registry of every kind of emergency the system knows about,
- * with configuration that controls how each one is tracked and displayed.
- */
+ * */
 
 import fs from 'fs'
 import path from 'path'

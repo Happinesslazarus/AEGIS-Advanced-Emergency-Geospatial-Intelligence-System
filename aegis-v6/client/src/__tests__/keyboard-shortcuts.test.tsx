@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Module: keyboard-shortcuts.test.tsx
  *
  * Tests for the useKeyboardShortcuts hook, which registers global keyboard
@@ -37,7 +37,6 @@
  *                             used to render the keyboard shortcut help panel
  *   bubbles: true           = makes the event travel up the DOM tree (required for window to catch it)
  *
- * How it connects:
  * - Run by the test runner (Vitest) with `vitest run` or `vitest watch`
  */
 

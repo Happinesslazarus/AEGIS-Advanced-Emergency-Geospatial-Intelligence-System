@@ -1,6 +1,4 @@
-/**
- * File: chat.safety.test.ts
- *
+﻿/**
  * What it tests:
  * Unit tests for prompt-injection detection in the chat pipeline.
   * Verifies that known injection patterns (role-playing, jailbreak,

@@ -1,11 +1,7 @@
-/**
- * File: PrivacyPage.tsx
- *
- * What this file does:
+﻿/**
  * Privacy policy page for AEGIS. Describes what data is collected,
  * how it is used, and user rights. Static legal content, no API calls.
  *
- * How it connects:
  * - Routed by client/src/App.tsx at /privacy
  * - Linked from LandingPage.tsx and cookie consent banner
  */

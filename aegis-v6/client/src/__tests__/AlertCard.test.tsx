@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Module: AlertCard.test.tsx
  *
  * Tests for the AlertCard component — a visual card that displays a single
@@ -35,7 +35,6 @@
  *   container.firstChild    = the raw DOM node of the root element rendered by render()
  *   t: (key) => key         = i18n mock that returns the raw key; assertions check keys directly
  *
- * How it connects:
  * - Run by the test runner (Vitest) with `vitest run` or `vitest watch`
  */
 

@@ -1,13 +1,9 @@
-/**
- * File: AdminPage.tsx
- *
- * What this file does:
+﻿/**
  * The main operator and admin dashboard. Displays live incident reports, alert
  * management, analytics, the interactive map, messaging, and user management.
  * Operators log in here (or via the embedded LoginPage) and manage everything
  * from a single tabbed interface.
  *
- * How it connects:
  * - Routed by client/src/App.tsx at /admin
  * - Protected: redirects unauthenticated users to the LoginPage embedded here
  * - Reads reports from client/src/contexts/ReportsContext.tsx
@@ -26,18 +22,12 @@
  * - Distress     — active SOS beacon map
  * - Users        — operator and citizen account management
  *
- * Learn more:
  * - client/src/contexts/ReportsContext.tsx   — shared report state for all components
  * - client/src/utils/api.ts                  — all API call functions used here
  * - client/src/components/admin/             — sub-components for each panel
  * - server/src/routes/reportRoutes.ts        — the backend these panels read from
  * - server/src/routes/adminAiRoutes.ts       — AI management used in analytics panel
- *
- * Simple explanation:
- * The control room for emergency responders. All operators and admins live in
- * this page. They see reports as they come in, triage them, send alerts to the
- * public, chat with citizens, and track where resources are deployed.
- */
+ * */
 
 /* AdminPage.tsx ? Operator dashboard with reports, alerts, analytics, and messaging. */
 
@@ -65,6 +55,7 @@ import { exportReportsCSV, exportReportJSON as exportReportsJSON } from '../util
 import { apiLogActivity, apiCreateAlert, apiGetAuditLog, apiAuditLog, apiGetPredictions, apiSendPreAlert, apiGetDeployments, apiDeployResources, apiRecallResources, apiRunPrediction, apiGetHeatmapData, apiGetUsers, apiUpdateUser, apiSuspendUser, apiActivateUser, apiResetUserPassword, apiDeleteUser, apiGetCommandCenterAnalytics, apiBulkUpdateReportStatus, apiUpdateProfile, apiUpdateReportNotes, getToken } from '../utils/api'
 import ReportCard from '../components/shared/ReportCard'
 import LoginPage from '../components/admin/LoginPage'
+import FirstAdminSetup from '../components/admin/FirstAdminSetup'
 import TwoFactorSettings from '../components/admin/TwoFactorSettings'
 import SetupWizard from './SetupWizard'
 import { useSetupStatus } from '../hooks/useSetupStatus'
@@ -168,9 +159,16 @@ export default function AdminPage(): JSX.Element {
   const [notesSaving, setNotesSaving] = useState(false)
   // Listen for global logout events and clear stored user
   React.useEffect(() => {
-    const handler = () => setUser(null)
+    const handler = () => { setUser(null); setAdminTokenReady(false) }
     window.addEventListener('ae:logout', handler)
     return () => window.removeEventListener('ae:logout', handler)
+  }, [])
+  // Token arrives asynchronously from the silent refresh — flip adminTokenReady so
+  // the notification socket effect re-runs and can connect using the fresh JWT.
+  React.useEffect(() => {
+    const handler = () => setAdminTokenReady(true)
+    window.addEventListener('ae:token-set', handler)
+    return () => window.removeEventListener('ae:token-set', handler)
   }, [])
   // Audit section state
   const [recentSort, setRecentSort] = useState<'newest'|'oldest'|'severity'|'ai-high'|'ai-low'>('newest')
@@ -195,6 +193,8 @@ export default function AdminPage(): JSX.Element {
   const [socketConnected, setSocketConnected] = useState(false)
   const [activityShowAll, setActivityShowAll] = useState(false)
   const [bulkProgress, setBulkProgress] = useState<{ current: number; total: number } | null>(null)
+  // Tracks when the admin JWT is ready (may lag behind user state during silent refresh)
+  const [adminTokenReady, setAdminTokenReady] = useState(() => !!getToken())
 
   const predictionAreaOptions = useMemo(() => {
     const map = new globalThis.Map<string, { area: string; lat: number; lng: number; regionId: string }>()
@@ -307,7 +307,7 @@ export default function AdminPage(): JSX.Element {
       notifSocketRef.current = null
       setSocketConnected(false)
     }
-  }, [user?.id, loadCommandCenter, refreshReports])
+  }, [user?.id, adminTokenReady, loadCommandCenter, refreshReports])
 
   useEffect(() => {
     if (!predictionAreaOptions.length) return
@@ -581,6 +581,11 @@ export default function AdminPage(): JSX.Element {
     return () => window.removeEventListener('keydown', handler)
   }, [])
 
+  // First-ever boot: allow creating the initial admin account before anyone has logged in
+  if (!user && setupStatus && !setupStatus.hasAdmin) {
+    return <FirstAdminSetup onComplete={u => setUser(u)} />
+  }
+
   if(!user) return <LoginPage onLogin={u=>setUser(u)}/>
 
   // Role guard: only admin/operator roles may access this page
@@ -647,7 +652,7 @@ export default function AdminPage(): JSX.Element {
                 ? <img src={user.avatarUrl} alt="" className="w-12 h-12 rounded-xl object-cover border-2 border-white/40 shadow-lg"/>
                 : <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center text-white text-lg font-extrabold border-2 border-white/30">{user.displayName?.charAt(0)}</div>
               }
-              <div className="text-slate-900 dark:text-white">
+              <div className="text-white">
                 <p className="font-bold text-sm leading-tight">{user.displayName}</p>
                 <p className="text-[10px] text-white/70 mt-0.5">{user.email}</p>
                 <span className="inline-flex mt-1 items-center bg-white/15 text-white text-[9px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide">{user.department || user.role}</span>
@@ -1091,7 +1096,7 @@ export default function AdminPage(): JSX.Element {
                   {[
                     {label:t('admin.detail.aiConfidence',lang),value:`${selReport.confidence||0}%`,color:(selReport.confidence||0)>=80?'text-green-600':(selReport.confidence||0)>=50?'text-aegis-600':'text-red-600'},
                     {label:t('admin.detail.aiPanic',lang),value:selReport.aiAnalysis?.panicLevel||selReport.aiAnalysis?.panic_level||'N/A',color:'text-gray-800 dark:text-gray-200'},
-                    {label:t('admin.detail.aiFakeRisk',lang),value:`${selReport.aiAnalysis?.fakeProbability||selReport.aiAnalysis?.fake_probability||0}%`,color:(selReport.aiAnalysis?.fakeProbability||selReport.aiAnalysis?.fake_probability||0)>50?'text-red-600':'text-green-600'},
+                    {label:t('admin.detail.aiFakeRisk',lang),value:`${((selReport.aiAnalysis?.fakeProbability??selReport.aiAnalysis?.fake_probability??0)*100).toFixed(1)}%`,color:((selReport.aiAnalysis?.fakeProbability??selReport.aiAnalysis?.fake_probability??0)*100)>50?'text-red-600':'text-green-600'},
                     {label:t('admin.detail.aiSentiment',lang),value:selReport.aiAnalysis?.sentimentScore?`${(selReport.aiAnalysis.sentimentScore*100).toFixed(0)}%`:'N/A',color:'text-gray-800 dark:text-gray-200'},
                     {label:t('admin.detail.aiPhoto',lang),value:selReport.aiAnalysis?.photoVerified||selReport.aiAnalysis?.photo_verified?t('admin.detail.aiVerified',lang):t('admin.detail.aiPending',lang),color:selReport.aiAnalysis?.photoVerified||selReport.aiAnalysis?.photo_verified?'text-green-600':'text-aegis-500'},
                     {label:t('admin.detail.aiDepth',lang),value:selReport.aiAnalysis?.estimatedWaterDepth||selReport.aiAnalysis?.water_depth||'N/A',color:'text-gray-800 dark:text-gray-200'},
@@ -1322,7 +1327,7 @@ export default function AdminPage(): JSX.Element {
 
       {/* CONFIRMATION MODAL */}
       {confirmModal&&(
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[90]">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[10000]">
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm p-5 space-y-4">
             <h3 className="font-bold text-sm">{confirmModal.title}</h3>
             <p className="text-xs text-gray-600 dark:text-gray-300">{confirmModal.message}</p>
@@ -1358,7 +1363,14 @@ export default function AdminPage(): JSX.Element {
       {/* FLOATING AI CHATBOT */}
       {showChatbot && (
         <div className="fixed bottom-20 right-4 z-[70] w-[380px] max-w-[calc(100vw-2rem)] animate-fade-in">
-          <Chatbot onClose={() => setShowChatbot(false)} lang={lang} anchor="right" adminMode />
+          <Chatbot
+            onClose={() => setShowChatbot(false)}
+            lang={lang}
+            anchor="right"
+            adminMode
+            authToken={getToken()}
+            citizenName={user?.displayName}
+          />
         </div>
       )}
       <button onClick={() => setShowChatbot(v => !v)} title="AEGIS Command AI"

@@ -1,6 +1,4 @@
-/**
- * File: cronJobs.real.test.ts
- *
+﻿/**
  * What it tests:
  * Tests for the exported scheduler surface of cronJobs.ts.
   * Verifies that all scheduled jobs can be started and stopped cleanly

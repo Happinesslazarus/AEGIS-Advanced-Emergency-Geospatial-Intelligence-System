@@ -1,18 +1,12 @@
-/**
- * File: ipSecurityService.ts
- *
+﻿/**
  * IP blocklist/allowlist middleware — maintains in-memory lists synced from
  * PostgreSQL (ip_blocklist, ip_allowlist, geo_restrictions) and auto-blocks
  * IPs after 20 failed attempts.
  *
- * How it connects:
  * - Express middleware that runs before route handlers
  * - Creates and manages three DB tables on init
  * - Periodically cleans expired block entries
- *
- * Simple explanation:
- * Controls which IP addresses can access the system and blocks bad actors.
- */
+ * */
 
 import { Request, Response, NextFunction } from 'express'
 import pool from '../models/db.js'

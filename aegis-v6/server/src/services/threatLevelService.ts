@@ -1,18 +1,12 @@
-/**
- * File: threatLevelService.ts
- *
+﻿/**
  * Regional flood threat assessor — combines river levels, verified incident
  * reports, and flood predictions into a GREEN/AMBER/RED/CRITICAL assessment.
  * Estimates at-risk properties, affected population, and evacuation routes.
  *
- * How it connects:
  * - Pulls current levels from riverLevelService
  * - Reads reports, flood_predictions, and evacuation_routes from the DB
  * - Emits Socket.IO events when the threat level changes
- *
- * Simple explanation:
- * Calculates how dangerous the flood situation is for a given region right now.
- */
+ * */
 
 import { getCurrentLevels } from './riverLevelService.js'
 import { getActiveCityRegion } from '../config/regions/index.js'

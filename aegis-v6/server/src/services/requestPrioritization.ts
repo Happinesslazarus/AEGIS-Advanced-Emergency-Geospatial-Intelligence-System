@@ -1,18 +1,12 @@
-/**
- * File: requestPrioritization.ts
- *
+﻿/**
  * QoS middleware — Express middleware implementing multi-tier quality of service
  * with 5 priority levels (CRITICAL → BEST_EFFORT). Queues requests when
  * concurrency exceeds the limit and auto-escalates stuck requests.
  *
- * How it connects:
  * - Express middleware applied before route handlers
  * - Tracks queue depth and wait time via Prometheus
  * - Routes like /distress get CRITICAL priority by default
- *
- * Simple explanation:
- * Makes sure emergency requests get through even when the server is busy.
- */
+ * */
 
 import { Request, Response, NextFunction } from 'express'
 import client from 'prom-client'

@@ -1,7 +1,6 @@
 """
 File: shap_explainer.py
 
-What this file does:
 Generates SHAP (SHapley Additive exPlanations) feature importance values
 for any hazard prediction. Explains which weather or geographical features
 drove the model to its risk score so responders can understand and trust
@@ -12,6 +11,15 @@ How it connects:
 - SHAP values returned as part of PredictionResponse.shap_features
 - shap package optionally installed (see ai-engine/requirements.txt)
 - Explanation text surfaced in the Admin AI panel (client AdminPage.tsx)
+
+References:
+- Lundberg, S.M. & Lee, S.I. (2017) "A Unified Approach to Interpreting
+  Model Predictions." NeurIPS 2017. https://arxiv.org/abs/1705.07874
+- Lundberg, S.M. et al. (2020) "From local explanations to global
+  understanding with explainable AI for trees."
+  Nature Machine Intelligence 2, 56-67.
+  https://doi.org/10.1038/s42256-019-0138-9
+- SHAP Python library: https://shap.readthedocs.io/en/latest/
 """
 
 from __future__ import annotations

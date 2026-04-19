@@ -132,6 +132,9 @@ export function setToken(t: string): void {
   _accessToken = t        // store the new JWT in memory
   _redirecting = false    // reset redirect guard so any future 401 can redirect again
   scheduleTokenRefresh(t) // schedule background renewal before it expires
+  // Notify SocketContext to reconnect the sharedSocket using the new admin token.
+  // The storage event only fires in OTHER tabs, so we use a custom event here.
+  window.dispatchEvent(new CustomEvent('ae:token-set'))
 }
 
 export function clearToken(): void {
@@ -497,6 +500,14 @@ export async function apiFetch<T = unknown>(path: string, opts: RequestInit = {}
   if (!res.ok) {
     let body: any = {}
     try { body = await res.json() } catch { /* non-JSON response */ }
+
+    // CSRF mismatch: stale cookie from a previous server session.
+    // Auto-reload to get a fresh CSRF cookie — prevents the stuck error banner.
+    if (res.status === 403 && body?.code === 'CSRF_INVALID') {
+      window.location.reload()
+      return new Promise(() => {}) as Promise<T>
+    }
+
     console.error('[API] Request failed:', res.status, body)
 
     // Prefer the server's own message, then fall back to status-code translations
@@ -619,7 +630,24 @@ export async function apiGetDepartments(): Promise<{ id: string; name: string }[
 
 /* SUBSCRIPTIONS — alert subscription management (email / SMS / Telegram) */
 export async function apiSubscribe(data: SubscriptionPayload): Promise<{ id: string }> {
-  return apiFetch('/api/subscriptions', { method: 'POST', body: JSON.stringify(data) })
+  // Prefer citizen token (signed-in citizen), then operator token, then unauthenticated.
+  // This lets the server store citizen_id and differentiate anonymous vs authenticated.
+  const token = getCitizenToken() || getToken()
+  const csrfToken = document.cookie.split('; ').find(c => c.startsWith('aegis_csrf='))?.split('=')[1]
+  const h: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (token) h['Authorization'] = `Bearer ${token}`
+  if (csrfToken) h['X-CSRF-Token'] = csrfToken
+  const res = await fetchWithTimeout(`${BASE}/api/subscriptions`, { method: 'POST', body: JSON.stringify(data), headers: h }, API_TIMEOUT_MS)
+  if (!res.ok) {
+    const e = await res.json().catch(() => ({}))
+    throw new Error(
+      typeof e.error === 'string' ? e.error :
+      typeof e.error?.message === 'string' ? e.error.message :
+      typeof e.message === 'string' ? e.message :
+      'Subscription failed. Please try again.'
+    )
+  }
+  return res.json()
 }
 
 export async function apiGetSubscriptions(email: string): Promise<{ id: string; channels: string[] }[]> {
@@ -829,9 +857,12 @@ export const apiCheckAvailability = (fields: { email?: string; phone?: string })
 
 export const apiGetNews = (fresh = false, page = 1) => {
   const params = new URLSearchParams()
-  if (fresh) params.set('fresh', 'true')
+  if (fresh) {
+    params.set('fresh', 'true')
+    params.set('_t', String(Date.now())) // bypass browser HTTP cache on force-refresh
+  }
   if (page > 1) params.set('page', String(page))
-  params.set('pageSize', '30') // always request 30 items per page
+  params.set('pageSize', '50') // request 50 items per page
   return apiFetch<{ items: NewsItem[]; fetched_at: string; total: number; page: number; totalPages: number }>(`/api/news?${params.toString()}`)
 }
 

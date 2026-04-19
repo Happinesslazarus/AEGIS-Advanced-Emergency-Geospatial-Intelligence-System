@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: IncidentCommandConsole.tsx
  *
  * Incident command console (manage active incidents).
  *
- * How it connects:
  * - Rendered inside AdminPage.tsx based on active view */
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'

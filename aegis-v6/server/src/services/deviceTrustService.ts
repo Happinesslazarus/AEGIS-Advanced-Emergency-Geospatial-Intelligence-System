@@ -1,18 +1,12 @@
-/**
- * File: deviceTrustService.ts
- *
+﻿/**
  * Device fingerprinting and trust management — generates SHA-256 fingerprints
  * from User-Agent + IP subnet + operator ID and tracks trusted devices with
  * 30-day expiry (max 10 per user).
  *
- * How it connects:
  * - Called by auth routes during login to check/register devices
  * - Reads/writes the trusted_devices table
  * - Logs trust events through securityLogger
- *
- * Simple explanation:
- * Remembers which devices a user has logged in from and flags unfamiliar ones.
- */
+ * */
 
 import crypto from 'crypto'
 import pool from '../models/db.js'
@@ -25,15 +19,15 @@ const MAX_TRUSTED_DEVICES = 10
 
 /**
  * Generate a deterministic device fingerprint hash.
- * Components: user-agent + IP /24 subnet + operator ID
+ * Components: user-agent + operator ID (IP excluded so trust persists across
+ * dynamic IPs, VPNs, and network changes — consistent with browser "remember me").
  */
 export function generateDeviceFingerprint(
   userAgent: string,
-  ipAddress: string,
+  _ipAddress: string,
   operatorId: string
 ): string {
-  const subnet = extractSubnet(ipAddress)
-  const raw = `${userAgent}|${subnet}|${operatorId}`
+  const raw = `${userAgent}|${operatorId}`
   return crypto.createHash('sha256').update(raw).digest('hex')
 }
 

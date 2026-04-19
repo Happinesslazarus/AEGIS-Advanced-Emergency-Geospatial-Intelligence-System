@@ -1,21 +1,13 @@
-/**
- * File: telegramRoutes.ts
- *
- * What this file does:
+﻿/**
  * Telegram bot integration: receives webhook updates from the Telegram
  * Bot API, handles /start commands to capture chat IDs, and links
  * Telegram accounts to citizen profiles for alert delivery.
  *
- * How it connects:
  * - Mounted at /api/telegram in index.ts
  * - Receives POST webhooks from Telegram's Bot API
  * - Links Telegram chat IDs to citizen accounts in the database
  * - The notification service uses these chat IDs to send alerts
- *
- * Simple explanation:
- * Connects AEGIS to Telegram so citizens can receive disaster alerts
- * through the Telegram app.
- */
+ * */
 
 import { Router, Request, Response, NextFunction } from 'express'
 import rateLimit from 'express-rate-limit'

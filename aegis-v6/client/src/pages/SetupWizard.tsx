@@ -1,18 +1,13 @@
-/**
- * File: SetupWizard.tsx
- *
- * What this file does:
+﻿/**
  * The first-run onboarding wizard for new AEGIS installations. Walks the
  * first administrator through initial configuration: region settings,
  * notification channels (email, SMS, Telegram), map source selection,
  * and admin account creation. Calls the setup API which seeds the database.
  *
- * How it connects:
  * - Routed by client/src/App.tsx at /admin (shown when setup is incomplete)
  * - Calls GET /api/admin/setup/status and POST /api/admin/setup/complete
  * - After completion, reloads to the main AdminPage dashboard
  *
- * Learn more:
  * - server/src/routes/setupRoutes.ts  — the setup completion API endpoints
  * - server/src/utils/setupDatabase.ts — database seeding logic
  */

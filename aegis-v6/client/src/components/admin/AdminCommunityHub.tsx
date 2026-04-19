@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: AdminCommunityHub.tsx
  *
  * Community hub management panel (moderate forums and resources).
  *
- * How it connects:
  * - Rendered inside AdminPage.tsx based on active view */
 
 import React, { useState, useEffect, useCallback } from 'react'

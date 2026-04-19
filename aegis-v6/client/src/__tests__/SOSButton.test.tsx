@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Module: SOSButton.test.tsx
  *
  * Tests for the SOSButton component — the floating red emergency distress button
@@ -40,7 +40,6 @@
  *   acknowledgedBy          = name/ID of the operator who accepted the distress signal
  *   resolution              = outcome message when the situation has been resolved
  *
- * How it connects:
  * - Run by the test runner (Vitest) with `vitest run` or `vitest watch`
  */
 

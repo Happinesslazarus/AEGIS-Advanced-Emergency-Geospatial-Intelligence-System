@@ -1,11 +1,7 @@
-/**
- * File: TermsPage.tsx
- *
- * What this file does:
+﻿/**
  * Terms of Service page. Static legal content explaining usage rules,
  * liability limitations, and the platform's intended purpose.
  *
- * How it connects:
  * - Routed by client/src/App.tsx at /terms
  * - Linked from the registration form and footer
  */

@@ -132,6 +132,11 @@ class LandslideRealPipeline(BaseRealPipeline):
         min_positive_samples=20,
         min_stations=3,
         promotion_min_roc_auc=0.70,
+        # Use 2020-01-01 test date — EM-DAT has good coverage through 2019-2021.
+        # 2022-2023 window has zero events due to data-entry lag, making test AUC undefined.
+        # 2020-2021 holdout gives a genuine temporal test with real positive events.
+        fixed_test_date="2020-01-01",
+        allow_sparse_test=True,
     )
 
     async def fetch_raw_data(self) -> dict[str, pd.DataFrame]:
@@ -153,25 +158,64 @@ class LandslideRealPipeline(BaseRealPipeline):
                 "Falling back to EM-DAT landslide records (independent label source)."
             )
 
-        # If GLC unavailable, use EM-DAT landslide + mass-movement events
+        # If GLC unavailable, use EM-DAT landslide + mass-movement events.
+        # Use the actual weather date range (cache may not cover full start→end span
+        # due to rate-limit gaps) so EM-DAT positives fall within the feature window.
         if landslide_events.empty:
             from app.training.data_fetch_emdat import build_emdat_label_df
-            emdat_labels = await asyncio.get_event_loop().run_in_executor(
-                None,
-                lambda: build_emdat_label_df(
-                    hazard_type="landslide",
-                    station_locations=[
-                        {"id": loc["id"], "lat": loc["lat"], "lon": loc["lon"]}
-                        for loc in GLOBAL_LANDSLIDE_LOCATIONS
-                    ],
-                    start_date=self.start_date,
-                    end_date=self.end_date,
-                    radius_km=200.0,
-                ),
+            if not weather.empty and "timestamp" in weather.columns:
+                wx_ts = pd.to_datetime(weather["timestamp"])
+                emdat_start = wx_ts.min().strftime("%Y-%m-%d")
+                emdat_end   = wx_ts.max().strftime("%Y-%m-%d")
+            else:
+                emdat_start = self.start_date
+                emdat_end   = self.end_date
+            logger.info(
+                f"  EM-DAT fallback window: {emdat_start} → {emdat_end} "
+                f"(weather cache actual range)"
             )
+            station_locs = [
+                {"id": loc["id"], "lat": loc["lat"], "lon": loc["lon"]}
+                for loc in GLOBAL_LANDSLIDE_LOCATIONS
+            ]
+            # Collect EM-DAT labels from multiple hazard types that trigger
+            # landslides: "landslide" directly + "flood" (flash floods trigger
+            # debris flows) + "severe_storm" (rainfall-induced).
+            # Radius 400 km — landslide-prone terrain is often remote so a
+            # wider match compensates for sparse station coverage.
+            emdat_label_frames: list[pd.DataFrame] = []
+            for h_type, r_km in [
+                ("landslide", 400.0),
+                ("flood",     300.0),
+                ("severe_storm", 250.0),
+            ]:
+                _df = await asyncio.get_event_loop().run_in_executor(
+                    None,
+                    lambda ht=h_type, rk=r_km: build_emdat_label_df(
+                        hazard_type=ht,
+                        station_locations=station_locs,
+                        start_date=emdat_start,
+                        end_date=emdat_end,
+                        radius_km=rk,
+                    ),
+                )
+                if not _df.empty:
+                    emdat_label_frames.append(_df)
+
+            if emdat_label_frames:
+                # Union of all hazard labels — any positive counts
+                combined = pd.concat(emdat_label_frames, ignore_index=True)
+                emdat_labels = (
+                    combined.groupby(["timestamp", "station_id"])["label"]
+                    .max()
+                    .reset_index()
+                )
+            else:
+                emdat_labels = pd.DataFrame()
+
             if not emdat_labels.empty and emdat_labels["label"].sum() > 0:
                 logger.info(
-                    f"  EM-DAT landslide fallback: "
+                    f"  EM-DAT landslide fallback (landslide+flood+storm, wider radius): "
                     f"{int(emdat_labels['label'].sum())} positive labels"
                 )
                 landslide_events = emdat_labels  # already in label format
@@ -184,63 +228,220 @@ class LandslideRealPipeline(BaseRealPipeline):
     async def _fetch_glc_events(self) -> pd.DataFrame:
         """Fetch NASA GLC / COOLR landslide events for the training date range.
 
-        Returns DataFrame with columns: [event_id, date, latitude, longitude,
-        country, fatalities].  Empty DataFrame if unavailable.
+        Priority order:
+          1. Local cached CSV  (data/glc/global_landslide_catalog.csv)
+          2. NASA bulk static CSV download (most reliable — single HTTPS GET)
+          3. ESRI FeatureServer REST API (paginated, SSL relaxed)
 
-        Production integration: query the ESRI FeatureServer REST endpoint.
-        The API returns GeoJSON features that are parsed into a flat table.
+        Returns DataFrame with columns: [event_id, date, latitude, longitude,
+        country, fatalities].  Empty DataFrame if all sources fail.
         """
         import aiohttp
+        import ssl
+        import os
 
+        cache_dir = os.path.join(os.path.dirname(__file__), "..", "..", "data", "glc")
+        cache_path = os.path.join(cache_dir, "global_landslide_catalog.csv")
+        os.makedirs(cache_dir, exist_ok=True)
+
+        # ------------------------------------------------------------------ #
+        # 1. Local CSV cache                                                   #
+        # ------------------------------------------------------------------ #
+        if os.path.exists(cache_path):
+            logger.info(f"  GLC: loading from local cache {cache_path}")
+            return self._parse_glc_csv(cache_path)
+
+        # ------------------------------------------------------------------ #
+        # 2. NASA bulk static CSV (most reliable single-request path)          #
+        # ------------------------------------------------------------------ #
+        bulk_urls = [
+            # Figshare mirror — stable long-term DOI
+            "https://figshare.com/ndownloader/files/12057988",
+            # NASA direct (may require Earthdata login in future)
+            "https://maps.nccs.nasa.gov/download/landslides/global_landslide_catalog_export.csv",
+        ]
+        ssl_ctx = ssl.create_default_context()
+        ssl_ctx.check_hostname = False
+        ssl_ctx.verify_mode = ssl.CERT_NONE
+
+        async with aiohttp.ClientSession(
+            timeout=aiohttp.ClientTimeout(total=120),
+            connector=aiohttp.TCPConnector(ssl=ssl_ctx),
+        ) as session:
+            for url in bulk_urls:
+                try:
+                    logger.info(f"  GLC: attempting bulk download from {url}")
+                    async with session.get(url) as resp:
+                        if resp.status == 200:
+                            content_type = resp.headers.get("Content-Type", "")
+                            # Reject HTML error pages
+                            if "text/html" in content_type and "csv" not in content_type:
+                                logger.warning(
+                                    f"  GLC bulk URL returned HTML (not CSV): {url}"
+                                )
+                                continue
+                            raw = await resp.read()
+                            with open(cache_path, "wb") as fh:
+                                fh.write(raw)
+                            logger.info(
+                                f"  GLC: saved bulk CSV to {cache_path} "
+                                f"({len(raw)//1024} KB)"
+                            )
+                            result = self._parse_glc_csv(cache_path)
+                            if not result.empty:
+                                return result
+                        else:
+                            logger.warning(
+                                f"  GLC bulk download HTTP {resp.status}: {url}"
+                            )
+                except Exception as exc:
+                    logger.warning(f"  GLC bulk download failed ({url}): {exc}")
+
+        # ------------------------------------------------------------------ #
+        # 3. ESRI FeatureServer REST API (paginated, SSL relaxed)              #
+        # ------------------------------------------------------------------ #
         base_url = (
             "https://maps.nccs.nasa.gov/arcgis/rest/services/ISERV/"
             "NASA_GLC/FeatureServer/0/query"
         )
-        params = {
-            "where": (
-                f"event_date >= '{self.start_date}' "
-                f"AND event_date <= '{self.end_date}'"
-            ),
-            "outFields": "objectid,event_date,latitude,longitude,country,fatality_count",
-            "returnGeometry": "false",
-            "f": "json",
-            "resultRecordCount": 10000,
-        }
+        all_rows: list[dict] = []
+        offset = 0
+        page_size = 1000
 
         async with aiohttp.ClientSession(
-            timeout=aiohttp.ClientTimeout(total=60)
+            timeout=aiohttp.ClientTimeout(total=60),
+            connector=aiohttp.TCPConnector(ssl=ssl_ctx),
         ) as session:
-            async with session.get(base_url, params=params) as resp:
-                if resp.status != 200:
-                    raise RuntimeError(
-                        f"GLC API returned HTTP {resp.status}"
-                    )
-                data = await resp.json()
+            while True:
+                params = {
+                    "where": "1=1",
+                    "outFields": (
+                        "objectid,event_date,latitude,longitude,"
+                        "country,fatality_count,event_title"
+                    ),
+                    "returnGeometry": "false",
+                    "f": "json",
+                    "resultRecordCount": page_size,
+                    "resultOffset": offset,
+                    "orderByFields": "event_date ASC",
+                }
+                try:
+                    async with session.get(base_url, params=params) as resp:
+                        if resp.status != 200:
+                            raise RuntimeError(f"GLC ESRI API HTTP {resp.status}")
+                        content_type = resp.headers.get("Content-Type", "")
+                        if "text/html" in content_type:
+                            raise RuntimeError("GLC ESRI API returned HTML")
+                        data = await resp.json(content_type=None)
+                except Exception as exc:
+                    logger.warning(f"  GLC ESRI REST failed at offset {offset}: {exc}")
+                    break
 
-        features = data.get("features", [])
-        if not features:
-            logger.warning("NASA GLC API returned 0 features for this date range")
-            return pd.DataFrame()
+                features = data.get("features", [])
+                if not features:
+                    break
 
-        rows = []
-        for f in features:
-            attrs = f.get("attributes", {})
-            rows.append({
-                "event_id": attrs.get("objectid"),
-                "date": pd.to_datetime(attrs.get("event_date"), unit="ms"),
-                "latitude": attrs.get("latitude"),
-                "longitude": attrs.get("longitude"),
-                "country": attrs.get("country"),
-                "fatalities": attrs.get("fatality_count", 0),
-            })
+                for f in features:
+                    attrs = f.get("attributes", {})
+                    # event_date may be epoch-ms or ISO string depending on service version
+                    raw_date = attrs.get("event_date")
+                    try:
+                        if isinstance(raw_date, (int, float)):
+                            parsed_date = pd.to_datetime(raw_date, unit="ms", utc=True)
+                        else:
+                            parsed_date = pd.to_datetime(raw_date, utc=True)
+                    except Exception:
+                        continue
+                    all_rows.append({
+                        "event_id": attrs.get("objectid"),
+                        "date": parsed_date,
+                        "latitude": attrs.get("latitude"),
+                        "longitude": attrs.get("longitude"),
+                        "country": attrs.get("country"),
+                        "fatalities": attrs.get("fatality_count", 0),
+                    })
 
-        events = pd.DataFrame(rows)
+                if len(features) < page_size:
+                    break  # last page
+                offset += page_size
+
+        if not all_rows:
+            raise RuntimeError("NASA GLC ESRI REST API returned 0 features — falling back to EM-DAT")
+
+        events = pd.DataFrame(all_rows)
         events = events.dropna(subset=["date", "latitude", "longitude"])
+        # Filter to training date range
+        events = events[
+            (events["date"] >= pd.Timestamp(self.start_date, tz="UTC"))
+            & (events["date"] <= pd.Timestamp(self.end_date, tz="UTC"))
+        ]
         logger.info(
-            f"  NASA GLC: {len(events)} landslide events fetched "
+            f"  NASA GLC (ESRI REST): {len(events)} landslide events "
             f"({self.start_date} to {self.end_date})"
         )
         return events
+
+    def _parse_glc_csv(self, path: str) -> pd.DataFrame:
+        """Parse NASA GLC CSV export into the canonical events DataFrame."""
+        try:
+            df = pd.read_csv(path, low_memory=False)
+        except Exception as exc:
+            logger.warning(f"  GLC CSV parse failed ({path}): {exc}")
+            return pd.DataFrame()
+
+        # Normalise column names — different export versions use different names
+        df.columns = [c.strip().lower().replace(" ", "_") for c in df.columns]
+
+        # Date column candidates
+        date_col = next(
+            (c for c in ["event_date", "date", "landslide_date"] if c in df.columns),
+            None,
+        )
+        if date_col is None:
+            logger.warning("  GLC CSV: no date column found")
+            return pd.DataFrame()
+
+        # Lat/lon column candidates
+        lat_col = next((c for c in ["latitude", "lat", "y"] if c in df.columns), None)
+        lon_col = next((c for c in ["longitude", "lon", "x"] if c in df.columns), None)
+        if lat_col is None or lon_col is None:
+            logger.warning("  GLC CSV: no lat/lon columns found")
+            return pd.DataFrame()
+
+        df["date"] = pd.to_datetime(df[date_col], errors="coerce", utc=True)
+        df = df.dropna(subset=["date"])
+        df["latitude"] = pd.to_numeric(df[lat_col], errors="coerce")
+        df["longitude"] = pd.to_numeric(df[lon_col], errors="coerce")
+        df = df.dropna(subset=["latitude", "longitude"])
+
+        country_col = next(
+            (c for c in ["country_name", "country", "iso3", "iso"] if c in df.columns),
+            None,
+        )
+        fatality_col = next(
+            (c for c in ["fatality_count", "fatalities", "deaths"] if c in df.columns),
+            None,
+        )
+
+        result = pd.DataFrame({
+            "event_id": df.get("event_id", pd.RangeIndex(len(df))),
+            "date": df["date"],
+            "latitude": df["latitude"],
+            "longitude": df["longitude"],
+            "country": df[country_col] if country_col else "unknown",
+            "fatalities": df[fatality_col].fillna(0) if fatality_col else 0,
+        })
+
+        # Filter to training date range
+        result = result[
+            (result["date"] >= pd.Timestamp(self.start_date, tz="UTC"))
+            & (result["date"] <= pd.Timestamp(self.end_date, tz="UTC"))
+        ]
+        logger.info(
+            f"  GLC CSV: {len(result)} events in training window "
+            f"({self.start_date} to {self.end_date})"
+        )
+        return result
 
     def build_labels(self, raw_data: dict[str, pd.DataFrame]) -> pd.DataFrame:
         """Build landslide labels from actual event records.

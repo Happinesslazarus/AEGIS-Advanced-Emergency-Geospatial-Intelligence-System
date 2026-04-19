@@ -1,11 +1,9 @@
-/**
+﻿/**
  * Module: RiverDataAdapter.ts
  *
  * River data adapter server module.
  *
- * How it connects:
  * - Used by services for external data fetching
- *
  */
 
 export interface RiverReading {

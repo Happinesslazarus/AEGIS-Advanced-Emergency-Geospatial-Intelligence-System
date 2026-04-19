@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: ErrorBoundary.tsx
  *
  * Error boundary shared component (reusable UI element used across pages).
  *
- * How it connects:
  * - Used across both admin and citizen interfaces */
 
 import { Component, type ErrorInfo, type ReactNode, createRef } from 'react'

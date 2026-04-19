@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: RiskAssessment.tsx
  *
  * Risk assessment citizen component (public-facing UI element).
  *
- * How it connects:
  * - Rendered inside CitizenPage.tsx or CitizenDashboard.tsx */
 
 /* RiskAssessment.tsx — Professional Location-Aware Hazard Assessment

@@ -1,18 +1,11 @@
-/**
- * File: validateEnv.ts
- *
- * What this file does:
+﻿/**
  * Validates and logs environment variable configuration at startup.
  * Checks for required variables, warns about missing optional ones,
  * and provides a summary of the server's configuration state.
  *
- * How it connects:
  * - Called early in server startup (index.ts)
  * - Uses logger.ts for structured output
- *
- * Simple explanation:
- * Checks that all required settings are configured before the server starts.
- */
+ * */
 
 import { devLog, auditLog } from './logger.js'
 

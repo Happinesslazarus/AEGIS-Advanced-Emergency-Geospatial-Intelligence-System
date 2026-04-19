@@ -1,18 +1,12 @@
-/**
- * File: emailService.ts
- *
+﻿/**
  * Transactional email service — sends verification, password reset, and alert
  * emails via SMTP in production. In dev mode, logs emails and stores them in
  * a dev_emails table for inspection. Enforces HTTPS links in production.
  *
- * How it connects:
  * - Called by auth routes (verification, password reset) and alert services
  * - Uses nodemailer for SMTP delivery
  * - Stores dev emails in the dev_emails DB table for testing
- *
- * Simple explanation:
- * Handles all outgoing emails: verification, alerts, and password resets.
- */
+ * */
 
 import nodemailer from 'nodemailer'
 import pool from '../models/db.js'

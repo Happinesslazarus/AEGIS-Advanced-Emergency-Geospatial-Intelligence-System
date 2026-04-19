@@ -1,12 +1,8 @@
-/**
- * File: SkipLinks.tsx
- *
- * What this file does:
+﻿/**
  * Keyboard-accessible skip-to-content links rendered at the very top of
  * each page. Normally hidden off-screen but visible on :focus so keyboard
  * and screen-reader users can jump straight to main content.
  *
- * How it connects:
  * - Rendered in client/src/App.tsx above all other content
  * - Targets #main-content, #navigation, and any custom IDs passed as props
  * - Accessibility requirement: WCAG 2.4.1 (Bypass Blocks)

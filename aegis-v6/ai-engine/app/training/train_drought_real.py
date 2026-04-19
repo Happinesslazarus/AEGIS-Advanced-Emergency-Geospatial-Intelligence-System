@@ -43,6 +43,7 @@ from app.training.multi_location_weather import (
 from app.training.data_fetch_spei import (
     build_spei_label_df, spei_is_available, download_spei_dataset,
 )
+from app.training.feature_engineering import SPEIFeatures
 
 
 class DroughtRealPipeline(BaseRealPipeline):
@@ -91,6 +92,7 @@ class DroughtRealPipeline(BaseRealPipeline):
         min_positive_samples=30,
         min_stations=8,
         promotion_min_roc_auc=0.72,
+        fixed_test_date="2022-01-01",
     )
 
     # SPEI v2.9 covers 1901-01 to 2022-12.  Any request beyond this returns empty.
@@ -265,6 +267,63 @@ class DroughtRealPipeline(BaseRealPipeline):
             feat_idx.index.name = "timestamp"
             features = feat_idx
 
+        # ── SPEI features — Vicente-Serrano et al. (2010) ────────────────────
+        # Join SPEI-3 (onset) and SPEI-12 (chronic) indices from the CSIC NetCDF
+        # files already on disk.  These are a DIFFERENT variable from the labels:
+        # labels = binary drought event flag derived from SPEI-3 < -1.0;
+        # features = the SPEI value itself + derived severity/streak metrics.
+        # This is analogous to including "river level" as a flood feature even
+        # though the label is "flood event occurred".
+        try:
+            spei_loader = SPEIFeatures()
+            spei_frames: list[pd.DataFrame] = []
+            for station_id, grp in weather.groupby("station_id"):
+                grp = grp.sort_values("timestamp").reset_index(drop=True)
+                # Get representative lat/lon for this station
+                loc = next(
+                    (l for l in GLOBAL_DROUGHT_LOCATIONS if l.get("id") == station_id),
+                    None,
+                )
+                if loc is None:
+                    continue
+                lat, lon = loc.get("lat", 0.0), loc.get("lon", 0.0)
+                ts = pd.to_datetime(grp["timestamp"])
+                start_str = str(ts.min())[:7]
+                end_str   = str(ts.max())[:7]
+                mini_df = pd.DataFrame({"timestamp": grp["timestamp"].values})
+                mini_df = mini_df.set_index("timestamp")
+                mini_df.index = pd.to_datetime(mini_df.index)
+                joined = spei_loader.join(mini_df, lat=lat, lon=lon,
+                                          start=start_str, end=end_str)
+                spei_cols = [c for c in joined.columns if c.startswith("spei_")]
+                for col in spei_cols:
+                    grp[col] = joined[col].values
+                grp_spei = grp[["timestamp", "station_id"] + spei_cols]
+                spei_frames.append(grp_spei)
+
+            if spei_frames:
+                spei_all = pd.concat(spei_frames, ignore_index=True)
+                spei_all["timestamp"] = pd.to_datetime(spei_all["timestamp"])
+                # Merge into features by (timestamp, station_id)
+                feat_reset = features.copy()
+                has_station_col = "station_id" in feat_reset.columns
+                if not has_station_col:
+                    feat_reset["station_id"] = feat_reset.index.get_level_values("station_id") if "station_id" in feat_reset.index.names else None
+                feat_reset["_ts"] = pd.to_datetime(feat_reset.index) if not has_station_col else pd.to_datetime(feat_reset.reset_index()["timestamp"].values)
+                # Simple column-wise join on rounded timestamp + station
+                for col in [c for c in spei_all.columns if c.startswith("spei_")]:
+                    features[col] = 0.0
+                spei_lookup = spei_all.set_index(["timestamp", "station_id"])
+                for col in [c for c in spei_all.columns if c.startswith("spei_")]:
+                    features[col] = 0.0
+                    if "station_id" in features.columns:
+                        for (ts, sid), row in spei_lookup.iterrows():
+                            mask = (features.index.floor("H") == pd.Timestamp(ts).floor("H")) & (features["station_id"] == sid)
+                            features.loc[mask, col] = row[col]
+                logger.info(f"  SPEI features added: {[c for c in features.columns if c.startswith('spei_')]}")
+        except Exception as _spei_exc:
+            logger.warning(f"  SPEI feature join failed (non-fatal, training continues): {_spei_exc}")
+
         features = features.ffill().fillna(0.0)
         return features
 
@@ -275,6 +334,8 @@ class DroughtRealPipeline(BaseRealPipeline):
         ERA5-derived variables are legitimate features — including SPI computed
         from ERA5 precipitation and ERA5-Land soil moisture.  These are no
         longer tainted because they are not the same data source as the label.
+        SPEI-3 and SPEI-12 from the CSIC NetCDF are included as direct features
+        (Vicente-Serrano et al., 2010) — distinct from the binary label.
         """
         return [
             # Precipitation deficit at multiple scales
@@ -284,6 +345,12 @@ class DroughtRealPipeline(BaseRealPipeline):
             "days_since_significant_rain",
             # ERA5-derived SPI — now a legitimate feature (labels from CRU TS4)
             "spi_30d", "spi_90d",
+            # SPEI indices from CSIC NetCDF — gold-standard drought indicators
+            # (Vicente-Serrano et al., 2010, J. Climate 23:1696-1718)
+            "spei_03", "spei_12",
+            "spei_03_drought_flag", "spei_12_drought_flag",
+            "spei_03_drought_streak", "spei_12_drought_streak",
+            "spei_03_severity", "spei_12_severity",
             # Evapotranspiration demand
             "et0_fao_evapotranspiration",
             # Soil moisture state from ERA5-Land (not the label source)

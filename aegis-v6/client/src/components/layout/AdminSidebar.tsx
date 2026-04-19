@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Module: AdminSidebar.tsx
  *
  * Collapsible admin navigation sidebar with desktop and mobile modes.
@@ -26,7 +26,6 @@
  *   pulsing red pill on the nav item; in collapsed mode the pill shifts to an
  *   absolute corner position so it stays visible on the icon rail.
  *
- * How it connects:
  * - Rendered by AdminLayout
  * - Calls onNavigate to switch the active admin view
  * - Uses i18n utility for translated labels */

@@ -1,19 +1,13 @@
-/**
- * File: dataIngestionService.ts
- *
+﻿/**
  * Public API data pipeline — fetches, normalises, and stores data from EA
  * Flood Monitoring, SEPA, Open-Meteo, NASA POWER, NewsAPI, and more.
  * Includes per-source rate limiting, retry with exponential backoff, and
  * region-aware city resolution.
  *
- * How it connects:
  * - Called by cronJobs on a schedule for data refresh
  * - Uses region adapters to resolve monitored cities
  * - Writes normalised data to the database for downstream services
- *
- * Simple explanation:
- * Pulls data from weather and flood APIs and stores it for the system to use.
- */
+ * */
 
 import pool from '../models/db.js'
 import { regionRegistry } from '../adapters/regions/RegionRegistry.js'

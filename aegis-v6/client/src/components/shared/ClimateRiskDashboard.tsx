@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: ClimateRiskDashboard.tsx
  *
  * Climate risk dashboard shared component (reusable UI element used across pages).
  *
- * How it connects:
  * - Used across both admin and citizen interfaces */
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
@@ -255,9 +254,9 @@ export default function ClimateRiskDashboard({ className = '' }: Props): JSX.Ele
 
       {/* Risk Score Card */}
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
-        <div className="flex items-start gap-5">
+        <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-5">
           {/* Risk gauge */}
-          <div className="flex-shrink-0 text-center">
+          <div className="flex-shrink-0 text-center self-center sm:self-start">
             <div className="relative w-20 h-20">
               <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90" role="img" aria-label={`${t('dashboard.overallRisk', lang)}: ${risk.score}/100`}>
                 <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" strokeWidth="8" className="text-gray-200 dark:text-gray-700" />

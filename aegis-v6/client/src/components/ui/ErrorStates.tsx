@@ -1,14 +1,10 @@
-/**
+﻿/**
  * Module: ErrorStates.tsx
  *
  * Error states UI primitive (low-level UI building block).
  *
- * How it connects:
  * - Wraps route-level components as error boundaries
  * - Used inline for fetch failures and empty data states
- * Simple explanation:
- * Reusable error and empty-state UI with retry support. */
-
 import React, { Component, memo, useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 

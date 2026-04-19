@@ -52,7 +52,7 @@ export interface RiverGauge {
   warningLevel: number;  // flooding may begin above this level
   alertLevel: number;    // property/road risk level
   status: 'normal' | 'rising' | 'warning' | 'alert'
-  lastUpdated: string; source: 'sepa' | 'ea'
+  lastUpdated: string; source: 'sepa' | 'ea' | 'open-meteo'
 }
 
 /** One historical data point from the gauge timeseries */
@@ -182,15 +182,13 @@ const KNOWN_GAUGES: Record<string, { stations: { id: string; name: string; river
 export async function fetchRiverLevels(locationKey: string, userLat?: number, userLng?: number): Promise<RiverGauge[]> {
   const normalizedKey = locationKey.toLowerCase().replace(/[\s-]+/g, '_') // normalise to snake_case
   const locEntry = LOCATION_CENTERS[normalizedKey]
+  // Default to London when location is global/unknown (world, generic, etc.)
+  const DEFAULT_CENTER = { lat: 51.5074, lng: -0.1278, region: 'england' }
   const selectedCenter = userLat != null && userLng != null
-    ? { lat: userLat, lng: userLng }  // explicit GPS coordinates from the user's device
+    ? { lat: userLat, lng: userLng }
     : locEntry
-      ? { lat: locEntry.lat, lng: locEntry.lng } // resolved from LOCATION_CENTERS table
-      : null
-
-  if (!selectedCenter) {
-    throw new Error(`No river monitoring data available for "${locationKey}". Try selecting a UK location.`)
-  }
+      ? { lat: locEntry.lat, lng: locEntry.lng }
+      : DEFAULT_CENTER
 
   // Determine whether to query SEPA (Scotland) or EA (England) first
   const region = userLat != null ? detectRegion(userLat) : (locEntry?.region || detectRegion(selectedCenter.lat))
@@ -290,7 +288,82 @@ export async function fetchRiverLevels(locationKey: string, userLat?: number, us
     if (sepaRetry.length > 0) return sepaRetry
   }
 
-  throw new Error('No live gauge data available — check your connection.')
+  // --- Step 4: Global fallback — Open-Meteo Flood API ---
+  // Free, no API key, covers the whole world using GloFAS reanalysis
+  return fetchOpenMeteoRiver(selectedCenter.lat, selectedCenter.lng, locationKey)
+}
+
+/**
+ * Global river discharge data from Open-Meteo Flood API (GloFAS reanalysis).
+ * Free, no API key, covers the entire world.
+ * Returns 1–3 synthetic gauge objects representing the modelled discharge at the given point.
+ *
+ * Open-Meteo returns daily values for current + next 7 days and historical ensemble data.
+ * We use today's value plus the 30-year climatology (mean/median) to compute thresholds.
+ * Discharge is in m³/s; we normalise thresholds from historical percentiles.
+ */
+async function fetchOpenMeteoRiver(lat: number, lng: number, locationKey: string): Promise<RiverGauge[]> {
+  try {
+    // daily=river_discharge gives current forecast; also request mean/median for thresholds
+    const url = `https://flood-api.open-meteo.com/v1/flood?latitude=${lat}&longitude=${lng}` +
+      `&daily=river_discharge,river_discharge_mean,river_discharge_median` +
+      `&forecast_days=7&past_days=7`
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
+    if (!res.ok) return []
+    const data = await res.json()
+
+    const times: string[] = data.daily?.time || []
+    const discharges: number[] = data.daily?.river_discharge || []
+    const means: number[] = data.daily?.river_discharge_mean || []
+    const medians: number[] = data.daily?.river_discharge_median || []
+
+    if (discharges.length === 0) return []
+
+    // Find today's index
+    const today = new Date().toISOString().slice(0, 10)
+    let todayIdx = times.findIndex(t => t === today)
+    if (todayIdx < 0) todayIdx = Math.floor(times.length / 2)
+
+    const current = discharges[todayIdx] ?? discharges[discharges.length - 1] ?? 0
+    const mean = means[todayIdx] ?? current
+    const median = medians[todayIdx] ?? current
+
+    // Build thresholds from climatology
+    const normal   = Math.max(median * 0.8, 1)
+    const warning  = Math.max(mean * 1.5, normal * 1.8)
+    const alert    = Math.max(mean * 3.0, warning * 2.0)
+
+    // Derive trend from previous 2 days vs today
+    const prev = todayIdx > 1 ? (discharges[todayIdx - 2] ?? current) : current
+    const levelTrend: RiverGauge['levelTrend'] =
+      current > prev * 1.05 ? 'rising' : current < prev * 0.95 ? 'falling' : 'steady'
+
+    // Derive status
+    let status: RiverGauge['status'] = 'normal'
+    if (current >= alert) status = 'alert'
+    else if (current >= warning) status = 'warning'
+    else if (levelTrend === 'rising' && current > normal) status = 'rising'
+
+    // For the gauge name, use a friendly capitalised location name
+    const locLabel = locationKey.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+
+    return [{
+      id: `openmeteo-${lat.toFixed(2)}-${lng.toFixed(2)}`,
+      name: `${locLabel} River Basin`,
+      river: `${locLabel} Watercourse`,
+      location: locLabel,
+      level: Math.round(current * 10) / 10,        // m³/s displayed as "level"
+      levelTrend,
+      normalLevel: Math.round(normal * 10) / 10,
+      warningLevel: Math.round(warning * 10) / 10,
+      alertLevel: Math.round(alert * 10) / 10,
+      status,
+      lastUpdated: new Date().toISOString(),
+      source: 'open-meteo',
+    }]
+  } catch {
+    return []
+  }
 }
 
 /**

@@ -1,7 +1,4 @@
-/**
- * File: ResourceDeploymentConsole.tsx
- *
- * What this file does:
+﻿/**
  * Operator field-resource management console. Manages deployment zones with
  * a 5-stage pipeline (Requested → Staging → Transit → On-Site → De-Mob),
  * AI-generated resource recommendations per hazard type, mutual-aid partner
@@ -10,15 +7,10 @@
  *
  * State is owned by AdminPage.tsx and passed as props + API helpers.
  *
- * How it connects:
  * - Rendered inside AdminPage.tsx when the Resources view is active
  * - Uses apiGetDeployments, apiDeployResources, apiRecallResources, etc.
  * - DisasterMap lazy-loaded to avoid blocking the initial admin page render
- *
- * Simple explanation:
- * The command console for moving ambulances, fire engines, and rescue boats
- * to the right place at the right time during an emergency.
- */
+ * */
 
 import React, { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react'
 import {

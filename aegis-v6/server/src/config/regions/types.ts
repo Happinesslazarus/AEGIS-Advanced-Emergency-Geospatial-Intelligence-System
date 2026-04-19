@@ -1,11 +1,9 @@
-/**
+﻿/**
  * Module: types.ts
  *
  * Types server module.
  *
- * How it connects:
  * - Imported by services and components that need this configuration
- *
  */
 
 export interface RiverStation {

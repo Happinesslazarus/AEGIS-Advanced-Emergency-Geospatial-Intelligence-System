@@ -1,18 +1,12 @@
-/**
- * File: floodFingerprinting.ts
- *
+﻿/**
  * Flood event fingerprinting — builds multi-dimensional feature vectors for
  * current conditions and matches them against historical flood patterns using
  * cosine similarity to predict probability, risk level, and propagation areas.
  *
- * How it connects:
  * - Consumes multi-source fusion data from fusionEngine
  * - Reads/writes fingerprint vectors in the database
  * - Used by flood prediction and alert pipelines
- *
- * Simple explanation:
- * Compares what's happening now to past floods to predict what comes next.
- */
+ * */
 
 import pool from '../models/db.js'
 import { runFusion, gatherFusionData, type FusionResult } from './fusionEngine.js'

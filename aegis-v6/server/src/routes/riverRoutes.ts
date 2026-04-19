@@ -1,26 +1,18 @@
-/**
- * File: riverRoutes.ts
- *
- * What this file does:
+﻿/**
  * Live river level monitoring: current readings for all stations,
  * individual station details with 24-hour history, and river
  * configuration for the active region.
  *
- * How it connects:
  * - Mounted at /api/rivers in index.ts
  * - Uses riverLevelService which ingests SEPA data on a cron schedule
  * - Real-time level changes broadcast via Socket.IO
  * - Responses cached via cacheService
  *
- * Key endpoints:
  * GET /api/rivers/levels             — All station levels
  * GET /api/rivers/levels/:stationId  — Station with 24hr history
  * GET /api/rivers/history/:stationId — Extended history
  * GET /api/rivers/config             — Region river config
- *
- * Simple explanation:
- * Live river level data for flood monitoring dashboards.
- */
+ * */
 
 import { Router, Request, Response, NextFunction } from 'express'
 import { getCurrentLevels, getStationWithHistory, getStationHistory } from '../services/riverLevelService.js'

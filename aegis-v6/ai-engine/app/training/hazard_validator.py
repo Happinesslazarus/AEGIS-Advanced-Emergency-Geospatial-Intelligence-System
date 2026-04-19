@@ -211,6 +211,23 @@ class HazardValidator:
                 "retrain using the primary event-record label path."
             )
 
+        if hazard_type == "environmental_hazard" and provenance_category == "weather_proxy_fallback":
+            result.status = HazardStatus.NOT_TRAINABLE
+            result.label_integrity = "tautology"
+            result.reasons.append(
+                "Environmental hazard labels are a weather-proxy fallback "
+                "(wind < 2 m/s AND precip < 0.1 mm/h) — OpenAQ real AQ data "
+                "was unavailable.  wind_speed_10m and rainfall_1h appear in both "
+                "the label criterion and the feature set, creating a trivial "
+                "tautology.  The model would learn the threshold, not atmospheric physics."
+            )
+            result.recommended_fix = (
+                "Ensure internet access and retry so build_labels() can obtain "
+                "real OpenAQ DEFRA AURN measurements.  "
+                "Manual cache: from app.training.data_fetch_openaq import "
+                "build_openaq_label_df; build_openaq_label_df(cache=True)"
+            )
+
         # Check 4: data_validity — reject if explicitly 'invalid'
         if data_validity == "invalid":
             result.status = HazardStatus.NOT_TRAINABLE
@@ -321,6 +338,7 @@ class HazardValidator:
         y_train: np.ndarray,
         y_val: np.ndarray,
         y_test: np.ndarray,
+        allow_sparse_test: bool = False,
     ) -> ValidationResult:
         """Post-split validation.  Checks for degenerate folds.
 
@@ -362,17 +380,32 @@ class HazardValidator:
             )
 
         if n_test_pos == 0:
-            # A degenerate test set makes evaluation meaningless — hard block.
-            result.status = HazardStatus.NOT_TRAINABLE
-            result.reasons.append(
-                f"Degenerate test set: 0 positive samples in the test fold.  "
-                f"ROC-AUC is undefined, and any reported metrics would be "
-                f"misleading (a model that always predicts 0 looks perfect).  "
-                f"This is a chronological distribution problem — the positive "
-                f"class events do not occur in the most recent 15% of the "
-                f"date range.  Use a longer date range or seasonal-stratified "
-                f"splitting for this hazard."
-            )
+            if allow_sparse_test:
+                # Temporal clustering of labels (e.g. EM-DAT fallback with events
+                # concentrated in early years) — downgrade to PARTIAL, don't block.
+                # Metrics will be CV-based on training data only.
+                if result.status == HazardStatus.TRAINABLE:
+                    result.status = HazardStatus.PARTIAL
+                result.warnings.append(
+                    f"Degenerate test set: 0 positive samples in test fold.  "
+                    f"allow_sparse_test=True — training continues as PARTIAL.  "
+                    f"Reported AUC is from cross-validation on training data, "
+                    f"not from a held-out test set.  This is expected when label "
+                    f"events are temporally clustered (e.g. EM-DAT fallback with "
+                    f"events only in 2019-2021 and test window in 2022-2023)."
+                )
+            else:
+                # A degenerate test set makes evaluation meaningless — hard block.
+                result.status = HazardStatus.NOT_TRAINABLE
+                result.reasons.append(
+                    f"Degenerate test set: 0 positive samples in the test fold.  "
+                    f"ROC-AUC is undefined, and any reported metrics would be "
+                    f"misleading (a model that always predicts 0 looks perfect).  "
+                    f"This is a chronological distribution problem — the positive "
+                    f"class events do not occur in the most recent 15% of the "
+                    f"date range.  Use a longer date range or seasonal-stratified "
+                    f"splitting for this hazard."
+                )
 
         self._log_result(result, phase="splits")
         return result

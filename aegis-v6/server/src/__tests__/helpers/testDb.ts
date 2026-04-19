@@ -1,11 +1,9 @@
-/**
+﻿/**
  * Module: testDb.ts
  *
  * Test db server module.
  *
- * How it connects:
  * - Run by the test runner (Vitest or Jest)
- *
  */
 
 import pg from 'pg'

@@ -1,7 +1,0 @@
-{
-  "title": "Mapa",
-  "layers": { "title": "Capas", "base": "Mapa Base", "flood": "Inundaciones", "wildfire": "Incendios", "heatwave": "Ola de Calor", "storm": "Tormentas", "infrastructure": "Infraestructura", "reports": "Reportes", "evacuation": "Evacuación", "shelters": "Refugios", "sensors": "Sensores", "satellite": "Satélite" },
-  "controls": { "zoomIn": "Acercar", "zoomOut": "Alejar", "myLocation": "Mi Ubicación", "fullscreen": "Pantalla Completa", "layerControl": "Capas", "measure": "Medir", "draw": "Dibujar" },
-  "legend": { "title": "Leyenda", "low": "Riesgo Bajo", "medium": "Riesgo Medio", "high": "Riesgo Alto", "critical": "Riesgo Crítico", "activeIncident": "Incidente Activo", "resolvedIncident": "Resuelto" },
-  "popup": { "incidentType": "Tipo", "severity": "Severidad", "reportedAt": "Reportado", "lastUpdate": "Actualización", "viewDetails": "Ver Detalles", "navigate": "Navegar" }
-}

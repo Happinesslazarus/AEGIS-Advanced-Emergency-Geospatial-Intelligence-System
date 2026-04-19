@@ -1,12 +1,11 @@
-/**
+﻿/**
  * Module: SocketContext.tsx
  *
  * Socket context React context provider (shares state across components).
  *
- * How it connects:
  * - Wraps components in App.tsx via AppProviders */
 
-import { createContext, useContext, useEffect, useCallback, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, type ReactNode } from 'react'
 import { useSocket, type SocketState } from '../hooks/useSocket'
 import { getToken } from '../utils/api'
 import { getCitizenToken } from './CitizenAuthContext'
@@ -56,11 +55,50 @@ export function SocketProvider({ children }: { children: ReactNode }): JSX.Eleme
     return () => window.removeEventListener('storage', handleStorageChange)
   }, [socketState.connect])
 
+  // Same-tab admin login sync: `ae:token-set` fires in api.ts when setToken() is
+  // called (after operator login or silent JWT refresh). This reconnects the
+  // sharedSocket with the operator token so ReportsContext socket listeners fire.
+  useEffect(() => {
+    const handleTokenSet = () => {
+      const token = getPersistedToken()
+      if (token) socketState.connect(token)
+    }
+    window.addEventListener('ae:token-set', handleTokenSet)
+    return () => window.removeEventListener('ae:token-set', handleTokenSet)
+  }, [socketState.connect])
+
   useEffect(() => {
     return () => {
       socketState.disconnect()
     }
   }, [socketState.disconnect])
+
+  // Proactive agent: forward critical socket alerts to chatbot via localStorage
+  useEffect(() => {
+    const socket = socketState.socket
+    if (!socket) return
+
+    const handleAlert = (payload: any) => {
+      if (payload?.riskLevel === 'critical' || payload?.riskLevel === 'high' || payload?.severity === 'Critical' || payload?.severity === 'Warning') {
+        localStorage.setItem('aegis-latest-alert', JSON.stringify({
+          severity: payload.severity || payload.riskLevel || 'Warning',
+          title: payload.title || payload.incidentType || 'New alert',
+          description: payload.description || payload.details || '',
+          location_text: payload.location_text || payload.regionId || '',
+          timestamp: Date.now(),
+        }))
+      }
+    }
+
+    socket.on('incident:alert', handleAlert)
+    socket.on('alert:new', handleAlert)
+    socket.on('alert:update', handleAlert)
+    return () => {
+      socket.off('incident:alert', handleAlert)
+      socket.off('alert:new', handleAlert)
+      socket.off('alert:update', handleAlert)
+    }
+  }, [socketState.socket])
 
   return <SocketContext.Provider value={socketState}>{children}</SocketContext.Provider>
 }

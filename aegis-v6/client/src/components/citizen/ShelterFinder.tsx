@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: ShelterFinder.tsx
  *
  * Shelter finder citizen component (public-facing UI element).
  *
- * How it connects:
  * - Rendered inside CitizenPage.tsx or CitizenDashboard.tsx */
 
 /* ShelterFinder.tsx - AEGIS Safe-Zone Command Centre - Real Overpass API data, global coverage */
@@ -549,97 +548,9 @@ function getCountryResources(countryCode?: string): { name: string; url: string;
   return COUNTRY_RESOURCES[countryCode.toUpperCase()] || COUNTRY_RESOURCES['__DEFAULT__']
 }
 
-/*  Overpass API fetch - parallel mirror racing + smart area queries          */
+/*  Shelter data — all fetched via server, browser NEVER calls Overpass      */
 
-const OVERPASS_ENDPOINTS = [
-  'https://overpass-api.de/api/interpreter',
-  'https://overpass.kumi.systems/api/interpreter',
-  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
-  'https://overpass.openstreetmap.ru/api/interpreter',
-]
-
-/** Race all mirrors in parallel - first successful response wins */
-async function queryOverpass(query: string): Promise<any | null> {
-  const controllers: AbortController[] = []
-
-  const racePromises = OVERPASS_ENDPOINTS.map(async (endpoint) => {
-    const controller = new AbortController()
-    controllers.push(controller)
-    const timeoutId = setTimeout(() => controller.abort(), 20000)
-    try {
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        body: `data=${encodeURIComponent(query)}`,
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        signal: controller.signal,
-      })
-      clearTimeout(timeoutId)
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const data = await res.json()
-      // Cancel other in-flight requests
-      controllers.forEach((c) => { try { c.abort() } catch {} })
-      return data
-    } catch (err) {
-      clearTimeout(timeoutId)
-      throw err
-    }
-  })
-
-  try {
-    return await Promise.any(racePromises)
-  } catch {
-    return null
-  }
-}
-
-function buildRadiusQuery(lat: number, lng: number, radius: number): string {
-  return `[out:json][timeout:15];(
-    node["amenity"="hospital"](around:${radius},${lat},${lng});
-    node["amenity"="fire_station"](around:${radius},${lat},${lng});
-    node["amenity"="community_centre"](around:${radius},${lat},${lng});
-    node["amenity"="shelter"](around:${radius},${lat},${lng});
-    node["social_facility"="shelter"](around:${radius},${lat},${lng});
-    node["amenity"="school"](around:${radius},${lat},${lng});
-    way["amenity"="hospital"](around:${radius},${lat},${lng});
-    way["amenity"="fire_station"](around:${radius},${lat},${lng});
-    way["amenity"="community_centre"](around:${radius},${lat},${lng});
-  );out center body 40;`
-}
-
-/**
- * For country-level searches we restrict the Overpass query to the geocoded
- * bounding box returned by Nominatim (clamped to prevent enormous queries),
- * with no secondary Nominatim lookups that can return wrong places.
- */
-function buildBboxFromNominatim(
-  lat: number,
-  lng: number,
-  bbox: [number, number, number, number] | undefined,
-  halfDeg: number,
-): string {
-  // If Nominatim gave us a bounding box, shrink it to the halfDeg window centred
-  // on the returned lat/lng so we stay within the right country.
-  const s = lat - halfDeg
-  const n = lat + halfDeg
-  const w = lng - halfDeg
-  const e = lng + halfDeg
-  // Clamp to the Nominatim bbox when available so we never spill outside the country
-  const south = bbox ? Math.max(s, bbox[0]) : s
-  const north = bbox ? Math.min(n, bbox[1]) : n
-  const west  = bbox ? Math.max(w, bbox[2]) : w
-  const east  = bbox ? Math.min(e, bbox[3]) : e
-  return `[out:json][timeout:15];(
-    node["amenity"="hospital"](${south},${west},${north},${east});
-    node["amenity"="fire_station"](${south},${west},${north},${east});
-    node["amenity"="community_centre"](${south},${west},${north},${east});
-    node["amenity"="shelter"](${south},${west},${north},${east});
-    node["social_facility"="shelter"](${south},${west},${north},${east});
-    node["amenity"="school"](${south},${west},${north},${east});
-    way["amenity"="hospital"](${south},${west},${north},${east});
-    way["amenity"="fire_station"](${south},${west},${north},${east});
-    way["amenity"="community_centre"](${south},${west},${north},${east});
-  );out center body 40;`
-}
+const API_BASE = import.meta.env.VITE_API_URL || ''
 
 interface FetchSheltersOptions {
   lat: number
@@ -648,85 +559,67 @@ interface FetchSheltersOptions {
   isArea?: boolean
 }
 
+/**
+ * Call the server's smart /shelters/near endpoint.
+ * The server handles: PostgreSQL cache → Overpass proxy → stale cache → PostGIS DB.
+ * Returns normalised shelters ready for the component, or null on network error.
+ */
+async function queryServerNear(
+  lat: number, lng: number, radius: number,
+  bbox?: { south: number; north: number; west: number; east: number },
+): Promise<{ items: Omit<Shelter, 'distance'>[]; source: string } | null> {
+  try {
+    const p = new URLSearchParams({ lat: String(lat), lng: String(lng), radius: String(radius) })
+    if (bbox) {
+      p.set('south', String(bbox.south)); p.set('north', String(bbox.north))
+      p.set('west',  String(bbox.west));  p.set('east',  String(bbox.east))
+    }
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), 35_000)
+    const res = await fetch(`${API_BASE}/api/config/shelters/near?${p}`, { signal: ctrl.signal })
+    clearTimeout(timer)
+    if (!res.ok) return null
+    const data = await res.json()
+    return { items: (data.shelters || []) as Omit<Shelter, 'distance'>[], source: data.source || 'server' }
+  } catch {
+    return null
+  }
+}
+
 async function fetchRealShelters(opts: FetchSheltersOptions): Promise<{ items: Omit<Shelter, 'distance'>[]; sourceAvailable: boolean; radiusUsed: number }> {
   const { lat, lng, bbox, isArea } = opts
 
-  // Area-level (country/region): use Nominatim bbox clamping, no secondary geocoding
   if (isArea) {
-    // Progressive window sizes: ~55km â†’ ~165km â†’ ~330km
+    // Progressive bbox window: ~55 km → ~165 km → ~330 km
     const halfDegs = [0.5, 1.5, 3.0]
     for (const halfDeg of halfDegs) {
-      const query = buildBboxFromNominatim(lat, lng, bbox, halfDeg)
-      const data = await queryOverpass(query)
-      if (!data) return { items: [], sourceAvailable: false, radiusUsed: Math.round(halfDeg * 111000) }
-      const items = parseOverpassElements(data.elements || [])
-      if (items.length >= 3 || halfDeg === halfDegs[halfDegs.length - 1]) {
-        return { items, sourceAvailable: true, radiusUsed: Math.round(halfDeg * 111000) }
+      const s = lat - halfDeg, n = lat + halfDeg, w = lng - halfDeg, e = lng + halfDeg
+      const bboxObj = {
+        south: bbox ? Math.max(s, bbox[0]) : s,
+        north: bbox ? Math.min(n, bbox[1]) : n,
+        west:  bbox ? Math.max(w, bbox[2]) : w,
+        east:  bbox ? Math.min(e, bbox[3]) : e,
+      }
+      const radiusM = Math.round(halfDeg * 111000)
+      const result = await queryServerNear(lat, lng, radiusM, bboxObj)
+      if (!result) return { items: [], sourceAvailable: false, radiusUsed: radiusM }
+      if (result.items.length >= 3 || halfDeg === halfDegs[halfDegs.length - 1]) {
+        return { items: result.items, sourceAvailable: true, radiusUsed: radiusM }
       }
     }
     return { items: [], sourceAvailable: true, radiusUsed: 330000 }
   }
 
-  // Point-level: progressive radius 5km â†’ 15km â†’ 50km
-  const radii = [5000, 15000, 50000]
+  // Point-level: progressive radius 20 km → 50 km
+  const radii = [20000, 50000]
   for (const radius of radii) {
-    const query = buildRadiusQuery(lat, lng, radius)
-    const data = await queryOverpass(query)
-    if (!data) return { items: [], sourceAvailable: false, radiusUsed: radius }
-    const items = parseOverpassElements(data.elements || [])
-    if (items.length >= 3 || radius === radii[radii.length - 1]) {
-      return { items, sourceAvailable: true, radiusUsed: radius }
+    const result = await queryServerNear(lat, lng, radius)
+    if (!result) return { items: [], sourceAvailable: false, radiusUsed: radius }
+    if (result.items.length >= 3 || radius === radii[radii.length - 1]) {
+      return { items: result.items, sourceAvailable: true, radiusUsed: radius }
     }
   }
   return { items: [], sourceAvailable: true, radiusUsed: 50000 }
-}
-
-function parseOverpassElements(elements: any[]): Omit<Shelter, 'distance'>[] {
-  const seen = new Set<string>()
-  return elements
-    .slice(0, 40)
-    .map((el, i) => {
-      const elLat = Number(el.lat ?? el.center?.lat)
-      const elLng = Number(el.lon ?? el.center?.lon)
-      if (!Number.isFinite(elLat) || !Number.isFinite(elLng)) return null
-
-      const tags = el.tags || {}
-      const amenity = tags.amenity || tags.social_facility || ''
-
-      let type: Shelter['type'] = 'shelter'
-      if (amenity === 'hospital') type = 'hospital'
-      else if (amenity === 'fire_station') type = 'fire_station'
-      else if (amenity === 'community_centre') type = 'community_centre'
-      else if (amenity === 'school') type = 'school'
-
-      const name = tags.name || tags['name:en'] || TYPE_CONFIG[type].label || 'Safe Zone'
-      const street = tags['addr:street'] || ''
-      const houseNumber = tags['addr:housenumber'] || ''
-      const city = tags['addr:city'] || tags['addr:town'] || tags['addr:village'] || ''
-      const address = [houseNumber, street, city].filter(Boolean).join(', ') || `${elLat.toFixed(4)}, ${elLng.toFixed(4)}`
-      const dedupeKey = `${name.toLowerCase().trim()}|${Math.round(elLat * 10000)}|${Math.round(elLng * 10000)}`
-      if (seen.has(dedupeKey)) return null
-      seen.add(dedupeKey)
-
-      return {
-        id: `osm-${el.id || i}`,
-        name,
-        type,
-        lat: elLat,
-        lng: elLng,
-        address,
-        phone: tags.phone || tags['contact:phone'] || undefined,
-        capacity: parseInt(tags.capacity || '0', 10) || (type === 'hospital' ? 200 : 100),
-        occupancy: 0,
-        amenities: [
-          ...(type === 'hospital' ? ['medical', 'food'] : []),
-          ...(tags.internet_access === 'wlan' || tags.internet_access === 'yes' ? ['wifi'] : []),
-          ...(type === 'shelter' || type === 'community_centre' ? ['beds', 'food'] : []),
-        ],
-        isOpen: tags.opening_hours !== 'closed',
-      }
-    })
-    .filter(Boolean) as Omit<Shelter, 'distance'>[]
 }
 
 /*  Component                                                                */
@@ -1203,8 +1096,8 @@ export default function ShelterFinder(): JSX.Element {
                   <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-950/40 dark:to-teal-950/40" />
                   <Loader2 className="absolute inset-0 m-auto w-8 h-8 text-emerald-500 animate-spin" />
                 </div>
-                <p className="text-sm font-bold text-gray-700 dark:text-gray-200">Scanning live data...</p>
-                <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 max-w-[220px] mx-auto">Querying 4 OpenStreetMap mirrors in parallel - hospitals, shelters, fire stations, community centres</p>
+                <p className="text-sm font-bold text-gray-700 dark:text-gray-200">Finding safe zones near you...</p>
+                <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 max-w-[220px] mx-auto">Loading hospitals, shelters, fire stations and community centres</p>
                 <div className="flex items-center justify-center gap-1.5 mt-3">
                   {[0, 1, 2, 3].map((i) => (
                     <div key={i} className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-bounce" style={{ animationDelay: `${i * 150}ms` }} />
@@ -1215,11 +1108,11 @@ export default function ShelterFinder(): JSX.Element {
               <div className="py-12 text-center space-y-4 px-4">
                 <div className="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/30 flex items-center justify-center mx-auto"><AlertTriangle className="w-7 h-7 text-amber-500" /></div>
                 <div>
-                  <p className="text-sm font-bold text-gray-700 dark:text-gray-200">OpenStreetMap temporarily unavailable</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">All 4 mirror servers were queried. Network issue - try again.</p>
+                  <p className="text-sm font-bold text-gray-700 dark:text-gray-200">Safe zone data temporarily unavailable</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Could not reach the data service. Check your connection and try again.</p>
                 </div>
                 <button onClick={() => origin ? loadShelters(origin) : requestGPS()} className="inline-flex items-center gap-1.5 text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-white px-5 py-2.5 rounded-xl transition-all shadow-md">
-                  <RefreshCw className="w-3.5 h-3.5" /> Retry All Mirrors
+                  <RefreshCw className="w-3.5 h-3.5" /> Retry
                 </button>
               </div>
             ) : !origin ? (

@@ -1,11 +1,9 @@
-/**
+﻿/**
  * Module: regions.ts
  *
  * Regions server module.
  *
- * How it connects:
  * - Imported by services and components that need this configuration
- *
  */
 
 import type { RegionConfig } from '../types/index.js'

@@ -1,6 +1,4 @@
-/**
- * File: upload.magic-bytes.test.ts
- *
+﻿/**
  * Unit tests for validateMagicBytes middleware in middleware/upload.ts.
  *
  * Covers:

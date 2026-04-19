@@ -1,14 +1,10 @@
-/**
+﻿/**
  * Module: routes.ts
  *
  * Ground movement and landslides incident module (handles landslide specific logic).
  *
- * How it connects:
  * - Part of the incident module system, registered via incidents/registry.ts
- *
- * Simple explanation:
- * Manages detection, assessment, and response for landslide events.
- */
+ * */
 
 import { Router, Request, Response } from 'express'
 import { regionRegistry } from '../../adapters/regions/RegionRegistry.js'

@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: DisasterMap.tsx
  *
  * Disaster map shared component (reusable UI element used across pages).
  *
- * How it connects:
  * - Used across both admin and citizen interfaces */
 
 import { useMemo, useEffect, useState, useCallback, useRef } from 'react'
@@ -581,14 +580,14 @@ export default function DisasterMap({
         eventHandlers={{ click: () => onReportClick?.(r) }}
       >
         <Popup>
-          <div className="min-w-[200px]">
-            <div className="flex items-center gap-2 mb-1">
+          <div style={{ minWidth: 200, fontFamily: 'inherit' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
               <span className={`badge ${getSeverityClass(r.severity)}`}>{r.severity}</span>
-              <span className="text-xs font-mono text-gray-500 dark:text-gray-300">{r.id.slice(0, 8)}</span>
+              <span style={{ fontSize: 11, fontFamily: 'monospace', color: '#374151' }}>{r.id.slice(0, 8)}</span>
             </div>
-            <p className="font-semibold text-sm text-gray-900 mb-1">{r.type}</p>
-            <p className="text-xs text-gray-600 mb-1 line-clamp-2">{r.description}</p>
-            <p className="text-xs text-gray-400 dark:text-gray-300">{r.location}</p>
+            <p style={{ fontWeight: 600, fontSize: 13, color: '#111827', margin: '0 0 4px' }}>{r.type}</p>
+            <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 4px', lineHeight: 1.4 }}>{r.description}</p>
+            <p style={{ fontSize: 11, color: '#4b5563', margin: 0 }}>{r.location}</p>
           </div>
         </Popup>
       </Marker>
@@ -635,11 +634,11 @@ export default function DisasterMap({
             pathOptions={{ color, weight: 2, fillColor: color, fillOpacity, dashArray }}
           >
             <Popup>
-              <div className="min-w-[220px]">
-                <p className="font-semibold text-sm">{incident.incident_type.replace(/_/g, ' ')} {t('dmap.incident', lang)}</p>
-                <p className="text-xs text-gray-600">{t('dmap.state', lang)}: {incident.lifecycle_state.toUpperCase()}</p>
-                <p className="text-xs text-gray-600">{t('dmap.confidence', lang)}: {Math.round(confidence * 100)}%</p>
-                <p className="text-xs text-gray-600">{t('dmap.evidence', lang)}: {incident.evidence_count} — {t('dmap.window', lang)}: {incident.time_window_minutes} {t('dmap.min', lang)}</p>
+              <div style={{ minWidth: 220 }}>
+                <p style={{ fontWeight: 600, fontSize: 13, color: '#111827', margin: '0 0 4px' }}>{incident.incident_type.replace(/_/g, ' ')} {t('dmap.incident', lang)}</p>
+                <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 2px' }}>{t('dmap.state', lang)}: {incident.lifecycle_state.toUpperCase()}</p>
+                <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 2px' }}>{t('dmap.confidence', lang)}: {Math.round(confidence * 100)}%</p>
+                <p style={{ fontSize: 12, color: '#1f2937', margin: 0 }}>{t('dmap.evidence', lang)}: {incident.evidence_count} — {t('dmap.window', lang)}: {incident.time_window_minutes} {t('dmap.min', lang)}</p>
               </div>
             </Popup>
           </Circle>
@@ -692,11 +691,11 @@ export default function DisasterMap({
           pathOptions={{ color: stroke, weight: 2.5, fillColor: stroke, fillOpacity: 0.12, dashArray: confidence >= 0.75 ? undefined : '8 6' }}
         >
           <Popup>
-            <div className="min-w-[220px]">
-              <p className="font-semibold text-sm">{cluster.incident_type} {t('dmap.cluster', lang)}</p>
-              <p className="text-xs text-gray-600">{t('dmap.reports', lang)}: {cluster.reports} — {t('dmap.radius', lang)}: {cluster.radius_m}m</p>
-              <p className="text-xs text-gray-600">{t('dmap.timeWindow', lang)}: {cluster.time_window_minutes} {t('dmap.min', lang)}</p>
-              <p className="text-xs text-gray-600">{t('dmap.confidence', lang)}: {Math.round(confidence * 100)}%</p>
+            <div style={{ minWidth: 220 }}>
+              <p style={{ fontWeight: 600, fontSize: 13, color: '#111827', margin: '0 0 4px' }}>{cluster.incident_type} {t('dmap.cluster', lang)}</p>
+              <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 2px' }}>{t('dmap.reports', lang)}: {cluster.reports} — {t('dmap.radius', lang)}: {cluster.radius_m}m</p>
+              <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 2px' }}>{t('dmap.timeWindow', lang)}: {cluster.time_window_minutes} {t('dmap.min', lang)}</p>
+              <p style={{ fontSize: 12, color: '#1f2937', margin: 0 }}>{t('dmap.confidence', lang)}: {Math.round(confidence * 100)}%</p>
             </div>
           </Popup>
         </Circle>
@@ -710,8 +709,8 @@ export default function DisasterMap({
     return (location.floodZones || []).map((z, i) => (
       <Circle key={i} center={z.coords} radius={500} pathOptions={ZS[z.risk] || ZS.low}>
         <Popup>
-          <p className="font-semibold text-sm">{z.name}</p>
-          <p className="text-xs">{t('dmap.risk', lang)}: {z.risk.toUpperCase()}</p>
+          <p style={{ fontWeight: 600, fontSize: 13, color: '#111827', margin: '0 0 2px' }}>{z.name}</p>
+          <p style={{ fontSize: 12, color: '#1f2937', margin: 0 }}>{t('dmap.risk', lang)}: {z.risk.toUpperCase()}</p>
         </Popup>
       </Circle>
     ))
@@ -763,21 +762,21 @@ export default function DisasterMap({
     return shelters.map((s) => (
       <Marker key={s.id} position={[s.lat, s.lng]} icon={shelterIcon}>
         <Popup>
-          <div className="min-w-[200px]">
-            <p className="font-semibold text-sm">{s.name}</p>
-            <p className="text-xs text-gray-600 mb-1">{s.address}</p>
-            <p className="text-xs">
+          <div style={{ minWidth: 200 }}>
+            <p style={{ fontWeight: 600, fontSize: 13, color: '#111827', margin: '0 0 2px' }}>{s.name}</p>
+            <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 4px' }}>{s.address}</p>
+            <p style={{ fontSize: 12, color: '#1f2937', margin: 0 }}>
               {t('dmap.capacity', lang)}: {s.current_occupancy}/{s.capacity} |
               {t('dmap.type', lang)}: {s.shelter_type}
             </p>
             {s.amenities.length > 0 && (
-              <p className="text-xs text-gray-500 dark:text-gray-300 mt-1">
+              <p style={{ fontSize: 11, color: '#374151', marginTop: 4 }}>
                 {t('dmap.amenities', lang)}: {s.amenities.join(', ')}
               </p>
             )}
             {s.phone && (
-              <p className="text-xs mt-1">
-                <a href={`tel:${s.phone}`} className="text-blue-600">{s.phone}</a>
+              <p style={{ fontSize: 11, marginTop: 4 }}>
+                <a href={`tel:${s.phone}`} style={{ color: '#2563eb' }}>{s.phone}</a>
               </p>
             )}
           </div>
@@ -819,11 +818,11 @@ export default function DisasterMap({
       return (
         <Marker key={`distress-${b.id || i}`} position={[lat, lng]} icon={dIcon}>
           <Popup>
-            <div className="min-w-[180px]">
-              <p className="font-bold text-red-600 text-sm mb-1">🚨 {t('dmap.distressBeacon', lang)}</p>
-              <p className="text-xs font-semibold">{b.citizenName || b.citizen_name || t('dmap.citizen', lang)}</p>
-              <p className="text-xs text-gray-600">{b.message || t('dmap.emergencyAssistance', lang)}</p>
-              {b.isVulnerable && <p className="text-xs text-orange-600 mt-1">⚠️ {t('dmap.vulnerablePerson', lang)}</p>}
+            <div style={{ minWidth: 180 }}>
+              <p style={{ fontWeight: 700, color: '#dc2626', fontSize: 13, margin: '0 0 4px' }}>🚨 {t('dmap.distressBeacon', lang)}</p>
+              <p style={{ fontSize: 12, fontWeight: 600, color: '#111827', margin: '0 0 2px' }}>{b.citizenName || b.citizen_name || t('dmap.citizen', lang)}</p>
+              <p style={{ fontSize: 12, color: '#1f2937', margin: 0 }}>{b.message || t('dmap.emergencyAssistance', lang)}</p>
+              {b.isVulnerable && <p style={{ fontSize: 11, color: '#d97706', marginTop: 4 }}>⚠️ {t('dmap.vulnerablePerson', lang)}</p>}
             </div>
           </Popup>
         </Marker>
@@ -843,28 +842,28 @@ export default function DisasterMap({
       return (
         <Polyline key={`evac-${route.id || i}`} positions={latlngs} pathOptions={{ color: route.isBlocked ? '#ef4444' : '#22c55e', weight: 4, opacity: 0.8, dashArray: route.isBlocked ? '4 8' : '10 6' }}>
           <Popup>
-            <div className="min-w-[220px]">
-              <p className="font-semibold text-sm">{route.name || t('dmap.evacuationRoute', lang)}</p>
-              {route.description && <p className="text-xs text-gray-600">{route.description}</p>}
+            <div style={{ minWidth: 220 }}>
+              <p style={{ fontWeight: 600, fontSize: 13, color: '#111827', margin: '0 0 4px' }}>{route.name || t('dmap.evacuationRoute', lang)}</p>
+              {route.description && <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 2px' }}>{route.description}</p>}
               {typeof route.recommendationScore === 'number' && (
-                <p className="text-xs text-gray-600">{t('dmap.recommendation', lang)}: {Math.round(route.recommendationScore * 100)}% — {t('dmap.risk', lang)}: {Math.round((route.riskScore || 0) * 100)}%</p>
+                <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 2px' }}>{t('dmap.recommendation', lang)}: {Math.round(route.recommendationScore * 100)}% — {t('dmap.risk', lang)}: {Math.round((route.riskScore || 0) * 100)}%</p>
               )}
               {typeof route.etaConfidence === 'number' && (
-                <p className="text-xs text-gray-600">{t('dmap.etaConfidence', lang)}: {Math.round(route.etaConfidence * 100)}%{route.closureProximityM ? ` — ${t('dmap.closureProximity', lang)} ${route.closureProximityM}m` : ''}</p>
+                <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 2px' }}>{t('dmap.etaConfidence', lang)}: {Math.round(route.etaConfidence * 100)}%{route.closureProximityM ? ` — ${t('dmap.closureProximity', lang)} ${route.closureProximityM}m` : ''}</p>
               )}
               {route.explanation?.scoreBreakdown && (
-                <p className="text-xs text-gray-500 mt-1">{t('dmap.profile', lang)}: {route.explanation.scoreBreakdown.profile} — {t('dmap.time', lang)} {Math.round(route.explanation.scoreBreakdown.timeScore * 100)} — {t('dmap.riskPenalty', lang)} {Math.round(route.explanation.scoreBreakdown.riskPenalty * 100)}</p>
+                <p style={{ fontSize: 11, color: '#374151', marginTop: 4 }}>{t('dmap.profile', lang)}: {route.explanation.scoreBreakdown.profile} — {t('dmap.time', lang)} {Math.round(route.explanation.scoreBreakdown.timeScore * 100)} — {t('dmap.riskPenalty', lang)} {Math.round(route.explanation.scoreBreakdown.riskPenalty * 100)}</p>
               )}
               {route.explanation?.blockedSegments?.length ? (
-                <div className="mt-1">
-                  <p className="text-[11px] font-semibold text-red-700">{t('dmap.blockedSegments', lang)}</p>
-                  <p className="text-xs text-gray-600">{route.explanation.blockedSegments.length} {t('dmap.segmentsAffected', lang)} {Math.min(...route.explanation.blockedSegments.map((segment) => segment.hazardDistanceM))}m</p>
+                <div style={{ marginTop: 4 }}>
+                  <p style={{ fontSize: 11, fontWeight: 600, color: '#b91c1c' }}>{t('dmap.blockedSegments', lang)}</p>
+                  <p style={{ fontSize: 12, color: '#1f2937' }}>{route.explanation.blockedSegments.length} {t('dmap.segmentsAffected', lang)} {Math.min(...route.explanation.blockedSegments.map((segment) => segment.hazardDistanceM))}m</p>
                 </div>
               ) : null}
               {route.explanation?.topHazards?.length ? (
-                <div className="mt-1">
-                  <p className="text-[11px] font-semibold text-gray-800">{t('dmap.topHazards', lang)}</p>
-                  <p className="text-xs text-gray-600">{route.explanation.topHazards.slice(0, 2).map((h) => `${h.severity} ${h.distanceM}m${h.reason ? ` (${h.reason})` : ''}`).join(' — ')}</p>
+                <div style={{ marginTop: 4 }}>
+                  <p style={{ fontSize: 11, fontWeight: 600, color: '#111827' }}>{t('dmap.topHazards', lang)}</p>
+                  <p style={{ fontSize: 12, color: '#1f2937' }}>{route.explanation.topHazards.slice(0, 2).map((h) => `${h.severity} ${h.distanceM}m${h.reason ? ` (${h.reason})` : ''}`).join(' — ')}</p>
                 </div>
               ) : null}
             </div>
@@ -894,13 +893,13 @@ export default function DisasterMap({
         <Circle key={`pred-${i}`} center={coords} radius={800 + prob * 1200}
           pathOptions={{ color: colour, weight: 1.5, fillColor: colour, fillOpacity: 0.15 }}>
           <Popup>
-            <div className="min-w-[200px]">
-              <p className="font-bold text-sm">{p.area}</p>
-              <p className="text-xs">{t('dmap.floodProbability', lang)}: <span className="font-bold" style={{ color: colour }}>{Math.round(prob * 100)}%</span></p>
-              <p className="text-xs text-gray-500 dark:text-gray-300">{t('dmap.severity', lang)}: {p.severity} — {t('dmap.confidence', lang)}: {p.confidence}%</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{t('dmap.uncertaintyBand', lang)}: {Math.max(0, Math.round((Number(p.probability || 0) - (100 - Number(p.confidence || 0)) / 200) * 100))}% - {Math.min(100, Math.round((Number(p.probability || 0) + (100 - Number(p.confidence || 0)) / 200) * 100))}%</p>
-              {p.time_to_flood && <p className="text-xs text-gray-500 dark:text-gray-300">{t('dmap.timeToFlood', lang)}: {p.time_to_flood}</p>}
-              <p className="text-xs text-gray-400 dark:text-gray-300 mt-1">{p.model_version}</p>
+            <div style={{ minWidth: 200 }}>
+              <p style={{ fontWeight: 700, fontSize: 13, color: '#111827', margin: '0 0 4px' }}>{p.area}</p>
+              <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 2px' }}>{t('dmap.floodProbability', lang)}: <span style={{ fontWeight: 700, color: colour }}>{Math.round(prob * 100)}%</span></p>
+              <p style={{ fontSize: 12, color: '#1f2937', margin: '0 0 2px' }}>{t('dmap.severity', lang)}: {p.severity} — {t('dmap.confidence', lang)}: {p.confidence}%</p>
+              <p style={{ fontSize: 12, color: '#374151', margin: '0 0 2px' }}>{t('dmap.uncertaintyBand', lang)}: {Math.max(0, Math.round((Number(p.probability || 0) - (100 - Number(p.confidence || 0)) / 200) * 100))}% - {Math.min(100, Math.round((Number(p.probability || 0) + (100 - Number(p.confidence || 0)) / 200) * 100))}%</p>
+              {p.time_to_flood && <p style={{ fontSize: 12, color: '#374151', margin: '0 0 2px' }}>{t('dmap.timeToFlood', lang)}: {p.time_to_flood}</p>}
+              <p style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>{p.model_version}</p>
             </div>
           </Popup>
         </Circle>
@@ -1270,7 +1269,7 @@ export default function DisasterMap({
             <div className="w-px h-4 bg-white/20 mx-0.5" />
             <button
               onClick={() => setFocusMode(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-white/90 hover:text-white hover:bg-white/10 transition-colors"
               title="Focus mode — hide controls"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 flex-shrink-0">
@@ -1280,7 +1279,7 @@ export default function DisasterMap({
             </button>
             <button
               onClick={toggleFullscreen}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-white/90 hover:text-white hover:bg-white/10 transition-colors"
               title={isFullscreen ? 'Exit fullscreen' : 'View fullscreen'}
             >
               {isFullscreen ? (

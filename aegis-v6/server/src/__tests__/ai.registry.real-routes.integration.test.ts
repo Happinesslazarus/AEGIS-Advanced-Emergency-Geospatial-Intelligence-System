@@ -1,6 +1,4 @@
-/**
- * File: ai.registry.real-routes.integration.test.ts
- *
+﻿/**
  * What it tests:
  * Integration tests for the AI model governance routes.
   * Covers model status queries, retraining triggers, and the governance

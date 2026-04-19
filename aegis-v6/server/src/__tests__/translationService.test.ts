@@ -1,6 +1,4 @@
-/**
- * File: translationService.test.ts
- *
+﻿/**
  * What it tests:
  * Unit tests for the translation service (LibreTranslate adapter).
   * Verifies language detection, translation caching, retry on 429,

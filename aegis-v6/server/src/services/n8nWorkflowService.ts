@@ -1,18 +1,12 @@
-/**
- * File: n8nWorkflowService.ts
- *
+﻿/**
  * n8n workflow registrar — loads JSON workflow definitions from the
  * n8n-workflows/ directory and registers (or updates) them in a connected
  * n8n instance via its REST API. Tracks registration state to avoid duplicates.
  *
- * How it connects:
  * - Called by n8nHealthCheck when the n8n server comes online
  * - Reads workflow JSON files from disk
  * - Pushes workflows to n8n via its REST API
- *
- * Simple explanation:
- * Automatically sets up automation workflows in n8n when the server starts.
- */
+ * */
 
 import { readFileSync, readdirSync } from 'fs'
 import { join, dirname } from 'path'

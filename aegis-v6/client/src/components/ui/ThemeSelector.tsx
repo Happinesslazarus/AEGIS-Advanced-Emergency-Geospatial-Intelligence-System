@@ -1,12 +1,8 @@
-/**
- * File: ThemeSelector.tsx
- *
- * What this file does:
+﻿/**
  * Dropdown button to switch between light, dark, and system-default
  * themes. Reads and writes theme preference via ThemeContext so the
  * change is reflected everywhere instantly.
  *
- * How it connects:
  * - Consumes client/src/contexts/ThemeContext.tsx (theme, setTheme)
  * - Embedded in the top nav bar and accessibility panel
  * - Theme preference persisted to localStorage by ThemeContext

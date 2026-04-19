@@ -1,14 +1,10 @@
-/**
+﻿/**
  * Module: routes.ts
  *
  * Wildfire and bushfire events incident module (handles wildfire specific logic).
  *
- * How it connects:
  * - Part of the incident module system, registered via incidents/registry.ts
- *
- * Simple explanation:
- * Manages detection, assessment, and response for wildfire events.
- */
+ * */
 
 import { Router, Request, Response } from 'express'
 import { regionRegistry } from '../../adapters/regions/RegionRegistry.js'

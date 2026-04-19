@@ -1,20 +1,12 @@
-/**
- * File: fetchWithTimeout.ts
- *
- * What this file does:
+﻿/**
  * A fetch() wrapper that adds timeout support and SSRF protection.
  * Blocks requests to private/internal IP ranges by default to prevent
  * server-side request forgery attacks.
  *
- * How it connects:
  * - Used by services that call external APIs (weather, SEPA, AI engine)
  * - SSRF checks prevent attackers from using the server as a proxy
  *   to reach internal services
- *
- * Simple explanation:
- * Like fetch() but with a timeout and protection against requests to
- * internal networks.
- */
+ * */
 
 export interface FetchWithTimeoutOptions extends RequestInit {
   timeout?: number

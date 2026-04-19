@@ -1,6 +1,4 @@
-/**
- * File: chat.stream.test.ts
- *
+﻿/**
  * What it tests:
  * Integration tests for the SSE streaming chat endpoint.
   * Verifies that POST /api/chat/stream emits incremental text chunks,

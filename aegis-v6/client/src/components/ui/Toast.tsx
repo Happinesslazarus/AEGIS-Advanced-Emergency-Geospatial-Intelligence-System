@@ -1,14 +1,10 @@
-/**
+﻿/**
  * Module: Toast.tsx
  *
  * Toast UI primitive (low-level UI building block).
  *
- * How it connects:
  * - Provides ToastContext consumed via useToast() hook
  * - Uses useReducedMotion for animation preferences
- * Simple explanation:
- * Shows temporary popup messages (success, error, info) that dismiss automatically. */
-
 import React, { createContext, useContext, useReducer, useCallback, useEffect, memo } from 'react'
 import { useReducedMotion } from '../../hooks/useReducedMotion'
 import { visuallyHiddenStyles } from '../../utils/accessibility'

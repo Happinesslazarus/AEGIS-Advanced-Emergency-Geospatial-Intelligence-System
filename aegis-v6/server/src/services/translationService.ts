@@ -1,7 +1,4 @@
-/**
- * File: translationService.ts
- *
- * What this file does:
+﻿/**
  * Multi-provider translation service — supports Azure Cognitive Translator,
  * DeepL, and LibreTranslate. Uses a three-tier caching strategy (process memory
  * → PostgreSQL → live API call) with inflight request deduplication to avoid
@@ -17,16 +14,11 @@
  *    stopping at the first success. Failed providers get a cooldown period.
  * 6. Store successful result in both memory and DB caches for future requests.
  *
- * How it connects:
  * - Called by server/src/routes/translationRoutes.ts (POST /api/translate)
  * - Called by server/src/services/chatService.ts to auto-translate LLM replies
  * - Requires environment variables: AZURE_TRANSLATOR_KEY, DEEPL_API_KEY, LIBRE_TRANSLATE_ENDPOINT
  * - translations_cache table in PostgreSQL stores results across restarts
- *
- * Simple explanation:
- * Translates text between languages, trying multiple services until one works.
- * Remembers translations so we don't pay for the same translation twice.
- */
+ * */
 
 import crypto from 'crypto'
 import pool from '../models/db.js'

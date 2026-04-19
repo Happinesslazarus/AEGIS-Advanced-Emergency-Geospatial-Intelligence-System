@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Module: EnglandAdapter.ts
  *
  * Region adapter for England and Wales, drawing data from the Environment
@@ -17,7 +17,6 @@
  *     to Open-Meteo as a key-free fallback.
  *   getRainfallData()   — Open-Meteo hourly precipitation: past 24 h + next 6 h.
  *
- * How it connects:
  * - Used by services for external data fetching */
 
 import { BaseRegionAdapter } from './BaseRegionAdapter.js'

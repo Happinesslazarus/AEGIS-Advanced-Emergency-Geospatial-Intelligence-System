@@ -1,18 +1,12 @@
-/**
- * File: notificationService.ts
- *
+﻿/**
  * Multi-channel notification dispatcher — initialises and manages SMTP email
  * (nodemailer), SMS/WhatsApp (Twilio), Telegram Bot API, and Web Push (VAPID)
  * with graceful degradation when credentials are not configured.
  *
- * How it connects:
  * - Called by alert, auth, and admin routes to send notifications
  * - Configures channels based on available environment variables
  * - Uses logger for delivery status and errors
- *
- * Simple explanation:
- * Sends alerts and notifications through email, SMS, Telegram, or push — whatever's available.
- */
+ * */
 
 import nodemailer from 'nodemailer'
 import twilio from 'twilio'
@@ -160,6 +154,7 @@ export interface DeliveryResult {
   messageId?: string
   error?: string
   expired?: boolean  // true when push subscription is gone (410/404) - should be deactivated
+  statusCode?: number
   timestamp: Date
 }
 
@@ -244,6 +239,125 @@ export async function sendEmailAlert(
   }
 }
 
+/**
+ * Converts the structured plain-text alert message into clean HTML.
+ *
+ * alert.message is a SINGLE LINE string (no real newlines) using these inline conventions:
+ *   --- SECTION NAME ---   → appears as delimiter between sections
+ *   1. text 2. text 3.     → numbered items separated only by spaces
+ *   - text - text - text   → bullet items separated only by " - "
+ *
+ * The preamble before the first --- (duplicates info in the header table) is stripped.
+ */
+function formatAlertMessageHTML(message: string, accentColor: string): string {
+  const sectionColors: Record<string, string> = {
+    'SITUATION ASSESSMENT':    '#1e40af',
+    'IMPACT ANALYSIS':         '#b45309',
+    'PROTECTIVE ACTIONS':      '#dc2626',
+    'EVACUATION GUIDANCE':     '#7c3aed',
+    'HEALTH & SAFETY RISKS':   '#b45309',
+    'HEALTH AND SAFETY RISKS': '#b45309',
+    'RECOVERY TIMELINE':       '#065f46',
+    'CONTEXT':                 '#4b5563',
+  }
+
+  // Strip everything before the first section marker — that preamble just
+  // repeats location / severity / ref which are already in the header table.
+  const firstMarker = message.indexOf('---')
+  const body = firstMarker > 0 ? message.substring(firstMarker) : message
+
+  // Split on --- SECTION NAME --- tokens (keep the markers via capture group)
+  const parts = body.split(/(---[^-]+---)/g)
+  const html: string[] = []
+
+  for (const part of parts) {
+    const trimmed = part.trim()
+    if (!trimmed) continue
+
+    // --- SECTION HEADING ---
+    const sectionMatch = trimmed.match(/^---\s*(.+?)\s*---$/)
+    if (sectionMatch) {
+      const label = sectionMatch[1].trim()
+      if (label.toUpperCase() === 'END OF ALERT') continue
+      const sColor = Object.entries(sectionColors)
+        .find(([k]) => label.toUpperCase().includes(k))?.[1] ?? accentColor
+      html.push(
+        `<div style="margin:18px 0 6px 0;padding-bottom:5px;border-bottom:2px solid ${sColor}30">` +
+        `<span style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:${sColor}">${escapeHtml(label)}</span>` +
+        `</div>`
+      )
+      continue
+    }
+
+    // CONTENT BLOCK — the text between section markers.
+    // It is a single line; parse in priority order: numbered list → bullet list → paragraph.
+    html.push(renderInlineContent(trimmed))
+  }
+
+  return html.join('\n') ||
+    `<p style="font-size:13px;color:#374151;line-height:1.7;margin:0 0 8px 0">${escapeHtml(message)}</p>`
+}
+
+/**
+ * Renders a single content block as HTML, handling three inline formats:
+ *
+ * Numbered list  – "1. text 2. text 3. text"
+ *   split on whitespace immediately before a lone digit+dot/paren+space
+ *
+ * Bullet list    – "- text - text - text"  (starts with "- ")
+ *   split on " - " (space-hyphen-space)
+ *
+ * Paragraph      – everything else, rendered as a single <p>
+ */
+function renderInlineContent(text: string): string {
+  const t = text.trim()
+  if (!t) return ''
+
+  // ── Numbered list ────────────────────────────────────────────────────────
+  // Match "1. text 2. text …" — split just before each new "N. " or "N) "
+  // The lookbehind (?<!\d) prevents splitting inside numbers like "2-10km"
+  const numParts = t.split(/\s+(?=\d+[.)]\s)/).map(s => s.trim()).filter(Boolean)
+  const numItems = numParts.filter(s => /^\d+[.)]\s/.test(s))
+  if (numItems.length >= 2) {
+    const preamble = numParts.filter(s => !/^\d+[.)]\s/.test(s))
+    const rows = numItems.map(s => s.replace(/^\d+[.)]\s+/, ''))
+    const lines: string[] = []
+    if (preamble.length) {
+      lines.push(`<p style="font-size:13px;color:#374151;line-height:1.7;margin:0 0 8px 0">${escapeHtml(preamble.join(' '))}</p>`)
+    }
+    lines.push(`<ol style="margin:4px 0 14px 0;padding-left:22px;font-size:13px;color:#374151;line-height:1.7">`)
+    rows.forEach(r => lines.push(`  <li style="margin-bottom:6px">${escapeHtml(r)}</li>`))
+    lines.push(`</ol>`)
+    return lines.join('\n')
+  }
+
+  // ── Bullet list ─────────────────────────────────────────────────────────
+  // Convention: section content starts with "- item - item - item"
+  if (t.startsWith('- ')) {
+    // Split on " - " (space-hyphen-space); the first chunk starts with "- " so strip it
+    const bParts = t.split(/ - /).map(s => s.replace(/^-\s*/, '').trim()).filter(Boolean)
+    if (bParts.length >= 2) {
+      const lines: string[] = []
+      lines.push(`<ul style="margin:4px 0 14px 0;padding-left:22px;font-size:13px;color:#374151;line-height:1.7;list-style-type:disc">`)
+      bParts.forEach(r => lines.push(`  <li style="margin-bottom:6px">${escapeHtml(r)}</li>`))
+      lines.push(`</ul>`)
+      return lines.join('\n')
+    }
+  }
+
+  // ── Plain paragraph ──────────────────────────────────────────────────────
+  return `<p style="font-size:13px;color:#374151;line-height:1.7;margin:0 0 12px 0">${escapeHtml(t)}</p>`
+}
+
+/** Minimal HTML entity escaping — prevent XSS in email body */
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
 function generateEmailHTML(alert: Alert): string {
   const severityColors: Record<string, string> = {
     critical: '#dc2626',
@@ -308,7 +422,7 @@ function generateEmailHTML(alert: Alert): string {
 
     <!-- Message Body -->
     <div style="padding: 0 24px 20px 24px;">
-      <p style="font-size: 14px; color: #374151; margin: 0 0 16px 0; line-height: 1.7;">${alert.message}</p>
+      ${formatAlertMessageHTML(alert.message, color)}
 
       ${alert.actionRequired ? `
       <div style="background-color: #fef3c7; border-left: 4px solid #d97706; padding: 14px 16px; margin: 16px 0; border-radius: 6px;">
@@ -371,7 +485,7 @@ Severity: ${alert.severity.toUpperCase()}
 ${recipient.line}
 Date & Time: ${timestamp}
 
-${alert.message}
+${formatAlertMessagePlainText(alert.message)}
 ${alert.actionRequired ? `\nACTION REQUIRED\n${alert.actionRequired}\n` : ''}${alert.expiresAt ? `\nThis alert expires: ${new Date(alert.expiresAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}\n` : ''}
 Stay safe. Follow official guidance and monitor updates.
 
@@ -379,6 +493,99 @@ AEGIS Emergency Management System
 For assistance, contact ${SUPPORT_EMAIL} or call your local emergency services.
 To unsubscribe, reply with "unsubscribe".
   `.trim()
+}
+
+// ─── Plain-text / channel-specific message formatters ────────────────────────
+
+/**
+ * Formats the raw alert.message string for plain-text channels (SMS, WhatsApp,
+ * email plain-text fallback).
+ *
+ * The raw message is a single line containing inline markers:
+ *   "--- SECTION NAME ---"  → section header
+ *   "1. text 2. text …"    → numbered list (space-separated)
+ *   "- item - item …"      → bullet list (' - ' separated)
+ *   text before first '---' = preamble (stripped)
+ */
+function formatAlertMessagePlainText(message: string): string {
+  // Strip preamble before first --- marker
+  const firstMarker = message.indexOf('---')
+  const body = firstMarker >= 0 ? message.slice(firstMarker) : message
+
+  // Split on --- SECTION NAME --- delimiters
+  const parts = body.split(/(---[^-]+---)/)
+
+  const lines: string[] = []
+  let inSection = false
+
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i].trim()
+    if (!part) continue
+
+    // Section header
+    const sectionMatch = part.match(/^---\s*(.+?)\s*---$/)
+    if (sectionMatch) {
+      const sectionName = sectionMatch[1].trim()
+      if (sectionName === 'END OF ALERT') break
+      if (inSection) lines.push('')
+      lines.push(`— ${sectionName} —`)
+      inSection = true
+      continue
+    }
+
+    const text = part.trim()
+    if (!text) continue
+
+    // Detect inline numbered list: "1. text 2. text 3. text"
+    if (/\d+[.)]\s/.test(text)) {
+      const items = text.split(/\s+(?=\d+[.)]\s)/).filter(Boolean)
+      if (items.length > 1) {
+        for (const item of items) lines.push(item.trim())
+        continue
+      }
+    }
+
+    // Detect inline bullet list: "- item - item" or "item - item - item"
+    if (text.startsWith('- ') || text.split(' - ').length > 2) {
+      const items = text.split(' - ')
+      for (const item of items) {
+        const trimmed = item.trim()
+        if (trimmed) lines.push(`• ${trimmed}`)
+      }
+      continue
+    }
+
+    lines.push(text)
+  }
+
+  return lines.join('\n').trim()
+}
+
+/**
+ * Formats alert.message for Telegram (MarkdownV2).
+ * Builds the plain structure first then applies escaping, keeping
+ * section headers bold.
+ */
+function formatAlertMessageTelegram(message: string): string {
+  const plain = formatAlertMessagePlainText(message)
+  return plain
+    .split('\n')
+    .map(line => {
+      if (line.startsWith('— ') && line.endsWith(' —')) {
+        return `*${escapeMdV2(line)}*`
+      }
+      return escapeMdV2(line)
+    })
+    .join('\n')
+}
+
+/**
+ * Extracts a short summary of the alert message suitable for a push
+ * notification body (browser push bodies are typically limited to ~120 chars).
+ */
+function extractAlertSummary(message: string, maxLen = 120): string {
+  const clean = message.replace(/---[^-]+---/g, ' ').replace(/\s+/g, ' ').trim()
+  return clean.length > maxLen ? clean.substring(0, maxLen - 1) + '…' : clean
 }
 
 // SMS Delivery (Twilio)
@@ -445,7 +652,7 @@ function generateSMSText(alert: Alert): string {
   const refId = alert.id.substring(0, 8).toUpperCase()
   const recipient = resolveRecipientIdentity(alert)
   const name = recipient.name ? `${recipient.name}, ` : ''
-  return `AEGIS ${alert.severity.toUpperCase()} ALERT\n${name}${alert.title}\n${recipient.line}\nLocation: ${alert.area}\nType: ${alert.type.replace(/_/g, ' ')}\n${ts} | Ref: ${refId}\n\n${alert.message}${alert.actionRequired ? `\n\nACTION: ${alert.actionRequired}` : ''}${alert.expiresAt ? `\nExpires: ${new Date(alert.expiresAt).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}` : ''}`
+  return `AEGIS ${alert.severity.toUpperCase()} ALERT\n${name}${alert.title}\n${recipient.line}\nLocation: ${alert.area}\nType: ${alert.type.replace(/_/g, ' ')}\n${ts} | Ref: ${refId}\n\n${formatAlertMessagePlainText(alert.message)}${alert.actionRequired ? `\n\nACTION: ${alert.actionRequired}` : ''}${alert.expiresAt ? `\nExpires: ${new Date(alert.expiresAt).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}` : ''}`
 }
 
 // WhatsApp Delivery (Twilio)
@@ -525,7 +732,7 @@ Severity: ${alert.severity.toUpperCase()}
 ${recipient.line}
 Date & Time: ${timestamp}
 
-${alert.message}
+${formatAlertMessagePlainText(alert.message)}
 ${alert.actionRequired ? `\n*ACTION REQUIRED*\n${alert.actionRequired}\n` : ''}${alert.expiresAt ? `\n_Expires: ${new Date(alert.expiresAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}_\n` : ''}
 Stay safe and follow official guidance.
 _AEGIS Emergency Management System_`
@@ -641,7 +848,7 @@ function escapeMdV2(text: string): string {
 function generateTelegramText(alert: Alert): string {
   const title = escapeMdV2(alert.title)
   const area = escapeMdV2(alert.area)
-  const message = escapeMdV2(alert.message)
+  const message = formatAlertMessageTelegram(alert.message)
   const severity = escapeMdV2(alert.severity.toUpperCase())
   const type = escapeMdV2(alert.type.replace(/_/g, ' '))
   const issuedAt = alert.issuedAt || new Date()
@@ -696,7 +903,7 @@ export async function sendWebPushAlert(
 
     const payload = JSON.stringify({
       title: `AEGIS ${severityLabel}: ${alert.title}`,
-      body: `${namePrefix}${alert.area}\n${alert.type.replace(/_/g, ' ')}\n${recipient.line}\n${issuedAt.toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}\n\n${alert.message}${alert.actionRequired ? '\n\nAction Required: ' + alert.actionRequired : ''}`,
+      body: `${namePrefix}${alert.area} — ${alert.type.replace(/_/g, ' ')} — ${issuedAt.toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}\n${extractAlertSummary(alert.message)}${alert.actionRequired ? ' | ' + alert.actionRequired : ''}`,
       icon: '/icons/icon-192x192.png',
       badge: '/icons/icon-96x96.png',
       tag: alert.id,
@@ -730,6 +937,7 @@ export async function sendWebPushAlert(
       success: false,
       error: error.message,
       expired,
+      statusCode,   // expose so callers can make finer-grained deactivation decisions
       timestamp: new Date(),
     }
   }

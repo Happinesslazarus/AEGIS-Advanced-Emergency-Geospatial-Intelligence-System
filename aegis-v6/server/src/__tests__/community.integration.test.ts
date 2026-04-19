@@ -1,6 +1,4 @@
-/**
- * File: community.integration.test.ts
- *
+﻿/**
  * What it tests:
  * Integration tests for the community help-request and chat endpoints.
   * Verifies post creation, moderation, upvoting, and real-time

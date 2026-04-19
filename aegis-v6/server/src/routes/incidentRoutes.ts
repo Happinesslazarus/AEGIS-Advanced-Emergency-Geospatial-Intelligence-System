@@ -1,22 +1,14 @@
-/**
- * File: incidentRoutes.ts
- *
- * What this file does:
+﻿/**
  * Unified API for the multi-incident module system. Dynamically mounts
  * routes for all 11 hazard types (flood, wildfire, earthquake, etc.)
  * and provides cross-incident queries, dashboard summaries, and
  * module health status.
  *
- * How it connects:
  * - Mounted at /api/v1/incidents in index.ts
  * - Loads incident modules from the incidents/ directory at startup
  * - Each module registers its own sub-routes under /api/v1/incidents/:type
  * - The dashboard endpoint aggregates data across all active modules
- *
- * Simple explanation:
- * A single API that works across all disaster types — flood, fire,
- * earthquake, etc. — instead of separate endpoints for each.
- */
+ * */
 
 import { Router, Request, Response, NextFunction } from 'express'
 import { authMiddleware } from '../middleware/auth.js'

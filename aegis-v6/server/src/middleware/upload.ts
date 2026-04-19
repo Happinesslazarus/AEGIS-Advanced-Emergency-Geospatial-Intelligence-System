@@ -1,26 +1,17 @@
-/**
- * File: upload.ts
- *
- * What this file does:
+﻿/**
  * Handles file uploads (evidence images, avatars) using Multer. After the file
  * is saved to disk, validateMagicBytes checks that the file's actual content
  * matches its declared extension — preventing attackers from uploading
  * disguised executables as .jpg files.
  *
- * How it connects:
  * - Used by reportRoutes.ts (evidence uploads) and uploadRoutes.ts (general uploads)
  * - Files are stored in server/uploads/ with UUID filenames to prevent collisions
  * - The static file server in index.ts serves uploaded files to the frontend
  *
- * Key exports:
  * - uploadEvidence — Multer middleware for up to 3 evidence images/videos (10 MB each)
  * - uploadAvatar — Multer middleware for a single avatar image (2 MB)
  * - validateMagicBytes — post-upload middleware that verifies file content
- *
- * Simple explanation:
- * Securely handles file uploads. Checks both the file extension and the
- * actual file content to make sure nobody uploads something dangerous.
- */
+ * */
 
 import multer from 'multer'
 import path from 'path'

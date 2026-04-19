@@ -1,18 +1,12 @@
-/**
- * File: zeroDowntime.ts
- *
+﻿/**
  * Graceful deployment lifecycle manager — handles STARTING → HEALTHY →
  * DRAINING → TERMINATING → TERMINATED transitions with connection draining,
  * priority-ordered shutdown hooks, and Kubernetes health endpoints.
  *
- * How it connects:
  * - Registers SIGTERM/SIGINT handlers for graceful shutdown
  * - Provides liveness, readiness, and startup probe handlers
  * - Tracks active connections to drain before terminating
- *
- * Simple explanation:
- * Lets the server shut down gracefully without dropping active requests.
- */
+ * */
 
 import { Server } from 'http'
 import { Pool } from 'pg'

@@ -1,13 +1,9 @@
-/**
- * File: global.d.ts
- *
- * What this file does:
+﻿/**
  * TypeScript ambient declaration that merges our custom user type into the
  * Express.Request interface. Overrides the @types/passport augmentation so
  * that req.user is typed as our own AuthRequest.user shape throughout the
  * server codebase — no more type assertions needed on route handlers.
  *
- * How it connects:
  * - Included automatically when TypeScript compiles server/src/ (tsconfig)
  * - Keeps type safety aligned with server/src/middleware/auth.ts
  */

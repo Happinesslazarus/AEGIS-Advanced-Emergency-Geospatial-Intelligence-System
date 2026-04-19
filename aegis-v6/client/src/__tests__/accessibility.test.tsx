@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Module: accessibility.test.tsx
  *
  * Automated WCAG (Web Content Accessibility Guidelines) compliance tests for
@@ -38,7 +38,6 @@
  *                             must announce itself as "busy" via aria-busy="true"
  *   expect.extend()         = registers a custom matcher (toHaveNoViolations) with Vitest
  *
- * How it connects:
  * - Run by the test runner (Vitest) with `vitest run` or `vitest watch`
  */
 

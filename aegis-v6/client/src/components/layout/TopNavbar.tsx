@@ -1,16 +1,12 @@
-/**
+﻿/**
  * Module: TopNavbar.tsx
  *
  * Top navbar React component.
  *
- * How it connects:
  * - Rendered by AppLayout
  * - Reads auth state from CitizenAuthContext
  * - Reads alerts from AlertsContext to derive risk level
  * - Uses LocationContext for the active region
- * Simple explanation:
- * The top navbar citizens see with login, region picker, and status. */
-
 import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {

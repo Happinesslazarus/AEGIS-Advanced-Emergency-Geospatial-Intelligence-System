@@ -1,7 +1,4 @@
-/**
- * File: CitizenTwoFactorSettings.tsx
- *
- * What this file does:
+﻿/**
  * Self-service 2FA management for logged-in citizens. Covers the full
  * TOTP lifecycle: setup (QR code + manual key), verification, disable,
  * backup code display/download, and backup code regeneration.
@@ -13,14 +10,9 @@
  * 4. Disable      — POST /api/citizen/2fa/disable → requires password + TOTP/backup code
  * 5. Regen codes  — POST /api/citizen/2fa/regenerate-backup-codes → requires password + TOTP
  *
- * How it connects:
  * - Rendered inside CitizenPage account settings panel
  * - Uses apiCitizen2FA* helpers from utils/api.ts
- *
- * Simple explanation:
- * Lets citizens protect their account with an authenticator app, and
- * gives them backup codes to use if they lose access to the app.
- */
+ * */
 
 import { useState, useEffect, useRef } from 'react'
 import {

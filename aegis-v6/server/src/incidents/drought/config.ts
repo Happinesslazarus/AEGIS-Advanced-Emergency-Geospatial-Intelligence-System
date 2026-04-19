@@ -1,14 +1,10 @@
-/**
+﻿/**
  * Module: config.ts
  *
  * Extended drought conditions incident module (handles drought specific logic).
  *
- * How it connects:
  * - Part of the incident module system, registered via incidents/registry.ts
- *
- * Simple explanation:
- * Manages detection, assessment, and response for drought events.
- */
+ * */
 
 import type { IncidentRegistryEntry } from '../types.js'
 

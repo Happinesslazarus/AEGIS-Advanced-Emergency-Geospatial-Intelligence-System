@@ -1,18 +1,17 @@
 /**
- * File: ragExpansionService.ts
+ * RAG (Retrieval-Augmented Generation) knowledge base for the AEGIS chatbot,
+ * following the architecture from Lewis et al. (2020) NeurIPS:
+ * https://arxiv.org/abs/2005.11401
  *
- * RAG knowledge base manager — chunks documents semantically (paragraph/header
- * boundaries with overlap), stores them with embeddings in rag_documents, and
- * retrieves relevant context using BM25 scoring, query expansion via disaster
- * synonyms, and result re-ranking.
+ * Documents are chunked at paragraph/header boundaries with configurable
+ * overlap and stored with vector embeddings in the rag_documents table via
+ * pgvector (https://github.com/pgvector/pgvector). Retrieval uses BM25 keyword
+ * scoring (Robertson & Zaragoza, 2009) expanded with disaster-domain synonyms,
+ * then re-ranks the top candidates by embedding cosine similarity.
  *
- * How it connects:
- * - Stores/retrieves from the rag_documents PostgreSQL table
- * - Uses embeddingRouter for vector embeddings (dynamic import)
- * - Consumed by chatService for context retrieval before LLM calls
- *
- * Simple explanation:
- * Manages the knowledge base the chatbot searches through to answer questions.
+ * ingestDocument() chunks and stores a document. retrieveRelevantContext() is
+ * called by chatService before every LLM prompt to ground the answer in local
+ * knowledge rather than the model's training data alone.
  */
 
 import pool from '../models/db.js'

@@ -1,14 +1,10 @@
-/**
+﻿/**
  * Module: alertRules.ts
  *
  * Ground movement and landslides incident module (handles landslide specific logic).
  *
- * How it connects:
  * - Part of the incident module system, registered via incidents/registry.ts
- *
- * Simple explanation:
- * Manages detection, assessment, and response for landslide events.
- */
+ * */
 
 import type { AlertRuleContext, AlertRuleResult } from '../types.js'
 

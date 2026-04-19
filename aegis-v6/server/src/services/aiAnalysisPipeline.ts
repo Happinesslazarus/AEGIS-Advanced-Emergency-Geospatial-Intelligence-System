@@ -1,35 +1,24 @@
-/**
- * File: aiAnalysisPipeline.ts
- *
- * What this file does:
+﻿/**
  * Orchestrates every AI quality check on a newly submitted incident report.
  * Runs sentiment analysis, fake detection, severity scoring, category prediction,
  * urgency assessment, image analysis, and cross-referencing all in parallel.
  * Writes the combined results back to the reports table.
  *
- * How it connects:
  * - Called by server/src/routes/reportRoutes.ts immediately after a report INSERT
  * - Fans out to classifierRouter.ts (ML classification), llmRouter.ts (LLM reasoning),
  *   imageAnalysisService.ts (vision model), and governanceEngine.ts (policy checks)
  * - On completion, updates the reports table with {severity, category, sentiment, ...}
  * - Operators see AI scores in client/src/pages/AdminPage.tsx (Incident Queue)
  *
- * Key exports:
  * - analyseReport(reportId)   — full pipeline for a fresh report
  * - reanalyseReport(reportId) — re-trigger pipeline on an updated report (operator action)
  *
- * Learn more:
  * - server/src/services/classifierRouter.ts    — routes to ONNX classifiers
  * - server/src/services/llmRouter.ts           — LLM-based reasoning for severity
  * - server/src/services/imageAnalysisService.ts — vision analysis for evidence photos
  * - server/src/services/governanceEngine.ts    — policy / content moderation rules
  * - server/src/routes/reportRoutes.ts          — triggers this pipeline on new submissions
- *
- * Simple explanation:
- * When someone files a disaster report, this runs every AI check on it at once.
- * By the time an operator opens the report, they already have a severity score,
- * category prediction, and a flag if the report looks suspicious.
- */
+ * */
 
 import pool from '../models/db.js'
 import { classify } from './classifierRouter.js'

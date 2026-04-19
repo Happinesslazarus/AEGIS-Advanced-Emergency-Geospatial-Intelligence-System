@@ -1,20 +1,12 @@
-/**
- * File: db.ts
- *
- * What this file does:
+﻿/**
  * Creates and exports a PostgreSQL connection pool with automatic retry
  * and exponential backoff. Every database query in the application goes
  * through this pool.
  *
- * How it connects:
  * - Imported by every route handler and service that needs database access
  * - PostGIS spatial queries also go through this pool (same Postgres instance)
  * - Wrapped with query logging via queryLogger.ts for observability
- *
- * Simple explanation:
- * The shared database connection that everything else uses to talk to Postgres.
- * If the database is temporarily unavailable, it retries automatically.
- */
+ * */
 
 import pg from 'pg'
 import dotenv from 'dotenv'

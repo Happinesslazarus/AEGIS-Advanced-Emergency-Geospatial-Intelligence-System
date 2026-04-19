@@ -1,13 +1,9 @@
-/**
- * File: reportRoutes.ts
- *
- * What this file does:
+﻿/**
  * CRUD endpoints for emergency incident reports. Citizens submit disaster
  * reports (with optional photo/video evidence), and operators review,
  * triage, and update them. New reports are automatically sent through the
  * AI analysis pipeline for severity classification and image analysis.
  *
- * How it connects:
  * - Mounted at /api/reports in server/src/index.ts
  * - Evidence files processed by server/src/middleware/upload.ts (Multer + magic-byte check)
  * - Each new report triggers server/src/services/aiAnalysisPipeline.ts for severity scoring
@@ -15,7 +11,6 @@
  * - Admin dashboard (client/src/pages/AdminPage.tsx) reads from GET /api/reports
  * - Citizens submit from client/src/pages/CitizenDashboard.tsx or ReportPage
  *
- * Key endpoints:
  * POST /api/reports              — Submit a new report (citizen or public)
  * GET  /api/reports              — List reports (operator-filtered view)
  * GET  /api/reports/:id          — Fetch a single report
@@ -23,16 +18,11 @@
  * DELETE /api/reports/:id        — Archive a report (operator)
  * POST /api/reports/:id/reanalyse — Trigger AI re-analysis (operator)
  *
- * Learn more:
  * - server/src/services/aiAnalysisPipeline.ts  — automated severity scoring
  * - server/src/services/imageAnalysisService.ts — vision model for evidence images
  * - server/src/middleware/upload.ts             — file upload & magic byte validation
  * - server/src/services/socket.ts              — real-time notifications to operators
- *
- * Simple explanation:
- * Where disaster reports come in, get scored by AI, and get managed by operators.
- * Think of it as the triage desk for the whole system.
- */
+ * */
 
 import { Router, Request, Response, NextFunction } from 'express'
 import rateLimit from 'express-rate-limit'
@@ -249,8 +239,31 @@ router.get('/', validate({ query: paginationSchema }), async (req: Request, res:
       }))
       res.json({ data: reports, total, page, limit })
     } else {
-      // Public/citizen access: redacted fields, no media details
-      const reports = result.rows.map((row: any) => formatReportPublic(row))
+      // Public/citizen access: include media thumbnails but redact operator-only fields
+      const reportIds = result.rows.map((r: any) => r.id)
+      let mediaMap: Record<string, any[]> = {}
+      if (reportIds.length > 0) {
+        const mediaResult = await pool.query(
+          `SELECT id, report_id, file_url, file_type, file_size, original_filename
+           FROM report_media WHERE report_id = ANY($1) ORDER BY created_at`,
+          [reportIds]
+        )
+        for (const m of mediaResult.rows) {
+          if (!mediaMap[m.report_id]) mediaMap[m.report_id] = []
+          mediaMap[m.report_id].push({
+            id: m.id,
+            url: m.file_url,
+            file_url: m.file_url,
+            fileType: m.file_type,
+            fileSize: m.file_size,
+            originalFilename: m.original_filename,
+          })
+        }
+      }
+      const reports = result.rows.map((row: any) => ({
+        ...formatReportPublic(row),
+        media: mediaMap[row.id] || [],
+      }))
       res.json({ data: reports, total, page, limit })
     }
   } catch (err) {
@@ -1332,8 +1345,21 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction): Prom
       }))
       res.json({ ...formatReport(result.rows[0]), media })
     } else {
-      // Public access: redacted fields
-      res.json(formatReportPublic(result.rows[0]))
+      // Public access: include media but redact operator-only fields
+      const mediaResult = await pool.query(
+        `SELECT id, file_url, file_type, file_size, original_filename
+         FROM report_media WHERE report_id = $1 ORDER BY created_at`,
+        [req.params.id]
+      )
+      const media = mediaResult.rows.map(m => ({
+        id: m.id,
+        url: m.file_url,
+        file_url: m.file_url,
+        fileType: m.file_type,
+        fileSize: m.file_size,
+        originalFilename: m.original_filename,
+      }))
+      res.json({ ...formatReportPublic(result.rows[0]), media })
     }
   } catch (err) {
     next(err)
@@ -1464,7 +1490,7 @@ router.post('/', reportSubmitLimiter, uploadEvidence, validateMagicBytes, async 
     // Build media URL if evidence was uploaded (support up to 3 files)
     const files = (req as any).files as Express.Multer.File[] | undefined
     const hasFiles = Array.isArray(files) && files.length > 0
-    const mediaUrl = hasFiles ? `/uploads/${files[0].filename}` : null
+    const mediaUrl = hasFiles ? `/uploads/evidence/${files![0].filename}` : null
     const hasMedia = hasFiles
     const mediaType = hasFiles
       ? (files.some(f => f.mimetype.startsWith('video/')) ? 'video' : 'photo')
@@ -1498,10 +1524,10 @@ router.post('/', reportSubmitLimiter, uploadEvidence, validateMagicBytes, async 
         `INSERT INTO reports
          (report_number, incident_category, incident_subtype, display_type,
           description, severity, trapped_persons, location_text, coordinates,
-          has_media, media_type, media_url, reporter_name, ai_confidence, ai_analysis, custom_fields)
+          has_media, media_type, media_url, reporter_name, ai_confidence, ai_analysis, custom_fields, citizen_id)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8,
-                 ST_SetSRID(ST_MakePoint($10, $9), 4326),
-                 $11, $12, $13, $14, $15, $16, $17)
+           ST_SetSRID(ST_MakePoint($10, $9), 4326),
+           $11, $12, $13, $14, $15, $16, $17, $18)
          RETURNING id, report_number, created_at`,
         [
           reportNumber,
@@ -1512,20 +1538,21 @@ router.post('/', reportSubmitLimiter, uploadEvidence, validateMagicBytes, async 
           submitter?.displayName || 'Anonymous Citizen',
           aiResult.confidence, JSON.stringify(aiResult.analysis),
           JSON.stringify(customFields),
+          submitter?.id || null,
         ]
       )
     } catch (colErr: any) {
       // Fallback: custom_fields column may not exist on un-migrated DBs
       if (colErr.message?.includes('custom_fields') || colErr.code === '42703') {
         result = await pool.query(
-          `INSERT INTO reports
-           (report_number, incident_category, incident_subtype, display_type,
-            description, severity, trapped_persons, location_text, coordinates,
-            has_media, media_type, media_url, reporter_name, ai_confidence, ai_analysis)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8,
-                   ST_SetSRID(ST_MakePoint($10, $9), 4326),
-                   $11, $12, $13, $14, $15, $16)
-           RETURNING id, report_number, created_at`,
+            `INSERT INTO reports
+             (report_number, incident_category, incident_subtype, display_type,
+              description, severity, trapped_persons, location_text, coordinates,
+              has_media, media_type, media_url, reporter_name, ai_confidence, ai_analysis, citizen_id)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8,
+               ST_SetSRID(ST_MakePoint($10, $9), 4326),
+               $11, $12, $13, $14, $15, $16, $17)
+             RETURNING id, report_number, created_at`,
           [
             reportNumber,
             incidentCategory, incidentSubtype || '', displayType || '',
@@ -1534,7 +1561,8 @@ router.post('/', reportSubmitLimiter, uploadEvidence, validateMagicBytes, async 
             hasMedia, mediaType, mediaUrl,
             submitter?.displayName || 'Anonymous Citizen',
             aiResult.confidence, JSON.stringify(aiResult.analysis),
-          ]
+              submitter?.id || null,
+            ]
         )
       } else {
         throw colErr
@@ -1550,7 +1578,7 @@ router.post('/', reportSubmitLimiter, uploadEvidence, validateMagicBytes, async 
         await pool.query(
           `INSERT INTO report_media (report_id, file_url, file_type, file_size, original_filename)
            VALUES ($1, $2, $3, $4, $5)`,
-          [report.id, `/uploads/${file.filename}`, file.mimetype, file.size, file.originalname]
+          [report.id, `/uploads/evidence/${file.filename}`, file.mimetype, file.size, file.originalname]
         )
       }
     }
@@ -1585,8 +1613,8 @@ router.post('/', reportSubmitLimiter, uploadEvidence, validateMagicBytes, async 
           }),
           media: hasFiles ? files!.map(f => ({
             id: null,
-            url: `/uploads/${f.filename}`,
-            file_url: `/uploads/${f.filename}`,
+            url: `/uploads/evidence/${f.filename}`,
+            file_url: `/uploads/evidence/${f.filename}`,
             fileType: f.mimetype,
             fileSize: f.size,
             originalFilename: f.originalname,
@@ -2246,10 +2274,12 @@ function formatReportPublic(row: any): any {
       Math.round(parseFloat(row.lng) * 100) / 100,
     ],
     hasMedia: row.has_media,
+    mediaType: row.media_type,
+    mediaUrl: row.media_url,
     confidence: row.ai_confidence,
     timestamp: row.created_at,
     updatedAt: row.updated_at,
-    // Explicitly omitted: reporter, mediaUrl, mediaType, aiAnalysis, operatorNotes
+    // Explicitly omitted: reporter, aiAnalysis, operatorNotes
   }
 }
 

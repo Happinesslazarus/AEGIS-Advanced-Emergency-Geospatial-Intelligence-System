@@ -1,11 +1,9 @@
-/**
+﻿/**
  * Module: BaseRegionAdapter.ts
  *
  * Base region adapter server module.
  *
- * How it connects:
  * - Used by services for external data fetching
- *
  */
 
 import { readFileSync } from 'fs'

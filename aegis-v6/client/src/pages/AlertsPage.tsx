@@ -1,18 +1,13 @@
-/**
- * File: AlertsPage.tsx
- *
- * What this file does:
+﻿/**
  * Dedicated page for viewing all active and recent emergency alerts. Supports
  * filtering by hazard type, severity, and region. Alert subscriptions (email,
  * SMS, push) can be managed from here too.
  *
- * How it connects:
  * - Routed by client/src/App.tsx at /alerts
  * - Alert data from client/src/contexts/AlertsContext.tsx
  * - Also calls GET /api/alerts directly for extended history
  * - AlertSubscribe component handles push/email notification opt-in
  *
- * Learn more:
  * - client/src/contexts/AlertsContext.tsx       — real-time alert state
  * - client/src/components/shared/AlertCard.tsx  — individual alert display card
  * - server/src/routes/dataRoutes.ts             — alerts API endpoints

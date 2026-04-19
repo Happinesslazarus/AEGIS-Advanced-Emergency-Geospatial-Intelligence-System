@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: AdminMessaging.tsx
  *
  * Operator messaging panel (internal team communication).
  *
- * How it connects:
  * - Rendered inside AdminPage.tsx based on active view */
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'

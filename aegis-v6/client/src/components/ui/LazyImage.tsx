@@ -1,12 +1,8 @@
-/**
- * File: LazyImage.tsx
- *
- * What this file does:
+﻿/**
  * Deferred image loading via IntersectionObserver. Shows a placeholder
  * (blur-up effect optional) until the image scrolls into view, then
  * fetches and fades in the real image. Falls back gracefully on error.
  *
- * How it connects:
  * - Used by community post galleries and media evidence thumbnails
  * - rootMargin defaults to 200px so images load just before they appear
  */

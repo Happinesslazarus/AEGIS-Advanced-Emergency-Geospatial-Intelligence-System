@@ -1,6 +1,4 @@
-/**
- * File: distress.real-routes.integration.test.ts
- *
+﻿/**
  * What it tests:
  * Real-route integration tests for the SOS distress endpoints.
   * Runs full HTTP + auth + DB stack to verify rate limiting, CSRF

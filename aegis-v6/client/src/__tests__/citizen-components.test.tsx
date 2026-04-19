@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Module: citizen-components.test.tsx
  *
  * Tests for the <SafetyCheckIn> citizen component — a UI panel that asks citizens
@@ -38,7 +38,6 @@
  *   t: key => key           = i18n mock that returns the raw translation key string
  *   document.activeElement  = the DOM element currently holding keyboard focus
  *
- * How it connects:
  * - Run by the test runner (Vitest) with `vitest run` or `vitest watch`
  */
 

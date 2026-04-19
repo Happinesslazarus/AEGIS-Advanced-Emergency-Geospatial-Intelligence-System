@@ -1,14 +1,10 @@
-/**
+﻿/**
  * Module: LoadingStates.tsx
  *
  * Loading states UI primitive (low-level UI building block).
  *
- * How it connects:
  * - Used by data-fetching components as placeholder content
  * - Respects useReducedMotion for animation preferences
- * Simple explanation:
- * Reusable loading indicators with reduced-motion support. */
-
 import React, { memo } from 'react'
 import { useReducedMotion } from '../../hooks/useReducedMotion'
 import { visuallyHiddenStyles } from '../../utils/accessibility'

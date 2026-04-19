@@ -1,20 +1,15 @@
-/**
- * File: CitizenAuthPage.tsx
- *
- * What this file does:
+﻿/**
  * The citizen login and registration page. Handles both flows with a
  * toggled form — sign up (name, email, phone, location, password) or
  * sign in (email + password). On success, navigates to CitizenDashboard.
  * Also supports Google OAuth and shows 2FA challenge when applicable.
  *
- * How it connects:
  * - Routed by client/src/App.tsx at /citizen/auth
  * - Auth state written to client/src/contexts/CitizenAuthContext.tsx
  * - Calls POST /api/citizen-auth/register and POST /api/citizen-auth/login
  * - On 2FA required, renders TwoFactorChallenge component inline
  * - Redirects to /citizen/dashboard after successful login
  *
- * Learn more:
  * - server/src/routes/citizenAuthRoutes.ts    — the backend login/register endpoints
  * - client/src/contexts/CitizenAuthContext.tsx — token storage and auth state
  * - client/src/pages/CitizenDashboard.tsx     — destination after login
@@ -27,7 +22,7 @@ import {
   Shield, Mail, Lock, User, Phone, MapPin, Eye, EyeOff,
   ArrowRight, ArrowLeft, AlertCircle, CheckCircle, Loader2,
   Globe, Calendar, Heart, Building2, Camera, FileText, Home,
-  ChevronRight, ChevronDown, Menu, Users, Info, Github, Fingerprint, QrCode, Wand2,
+  ChevronRight, ChevronDown, Menu, Users, Info, Github, Fingerprint, QrCode,
   Smartphone
 } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
@@ -83,6 +78,8 @@ export default function CitizenAuthPage(): JSX.Element {
 
   const [searchParams, setSearchParams] = useSearchParams()
   const sessionExpired = searchParams.get('session') === 'expired'
+  const authError = searchParams.get('error')
+  const socialEmail = searchParams.get('social_email')
   const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login')
   const [regStep, setRegStep] = useState(1)
   const [submitting, setSubmitting] = useState(false)
@@ -92,11 +89,34 @@ export default function CitizenAuthPage(): JSX.Element {
   const [forgotEmail, setForgotEmail] = useState('')
   const [forgotSent, setForgotSent] = useState(false)
   const [navDropdownOpen, setNavDropdownOpen] = useState(false)
-  const [magicLinkEmail, setMagicLinkEmail] = useState('')
-  const [magicLinkSent, setMagicLinkSent] = useState(false)
-  const [magicLinkLoading, setMagicLinkLoading] = useState(false)
-  const [showMagicLink, setShowMagicLink] = useState(false)
   const [showMoreAuth, setShowMoreAuth] = useState(false)
+
+  useEffect(() => {
+    if (!authError) return
+
+    const oauthErrorMap: Record<string, string> = {
+      oauth_account_not_found: 'No account found for this email. Please register first, then use social sign-in.',
+      oauth_failed: 'Social sign-in failed. Please try again.',
+      oauth_not_configured: 'Social sign-in is not configured right now. Please use email and password.',
+    }
+
+    const message = oauthErrorMap[authError]
+    if (message) {
+      if (authError === 'oauth_account_not_found') {
+        setMode('register')
+        if (socialEmail) setEmail(socialEmail)
+      } else {
+        setMode('login')
+      }
+      setError('')
+      setNotification({ message, type: 'warning' })
+
+      const nextParams = new URLSearchParams(searchParams)
+      nextParams.delete('error')
+      nextParams.delete('social_email')
+      setSearchParams(nextParams, { replace: true })
+    }
+  }, [authError, searchParams, setSearchParams, socialEmail])
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -155,7 +175,14 @@ export default function CitizenAuthPage(): JSX.Element {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && !loading) {
-      navigate('/citizen/dashboard', { replace: true })
+      const returnTo = sessionStorage.getItem('aegis_qr_return_to')
+      if (returnTo) {
+        sessionStorage.removeItem('aegis_qr_return_to')
+        sessionStorage.setItem('aegis_qr_just_logged_in', '1')
+        navigate(returnTo, { replace: true })
+      } else {
+        navigate('/citizen/dashboard', { replace: true })
+      }
     }
   }, [isAuthenticated, loading, navigate])
 
@@ -377,20 +404,19 @@ export default function CitizenAuthPage(): JSX.Element {
     return true
   }
 
-  const handleMagicLink = async () => {
-    if (!magicLinkEmail) return
-    setMagicLinkLoading(true)
-    try {
-      const res = await fetch(`${API_BASE}/api/auth/magic-link/send`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: magicLinkEmail }),
-      })
-      const data = await res.json()
-      if (data.success) setMagicLinkSent(true)
-      else setError(data.error || 'Failed to send magic link')
-    } catch { setError('Failed to send magic link') }
-    finally { setMagicLinkLoading(false) }
+  // Translates raw server/network error messages into user-friendly text.
+  // Catches CSRF token mismatch and auto-reloads the page so the user never sees
+  // a technical security error — they just get a fresh session cookie automatically.
+  const sanitizeError = (msg: string): string | null => {
+    if (!msg) return null
+    if (msg.includes('CSRF') || msg.includes('Security token') || msg.includes('token mismatch')) {
+      // Auto-reload will get a fresh CSRF cookie — no need to show anything
+      window.location.reload()
+      return null
+    }
+    if (msg === 'Request failed' || msg === 'Failed to fetch') return 'Could not reach the server. Please check your connection and try again.'
+    if (msg.includes('[object')) return 'An unexpected error occurred. Please try again.'
+    return msg
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -438,7 +464,8 @@ export default function CitizenAuthPage(): JSX.Element {
           }
           setTimeout(() => navigate('/citizen/dashboard', { replace: true }), 500)
         } else {
-          const errorMsg = result.error || t('citizen.auth.error.registrationFailed', lang)
+          const raw = result.error || t('citizen.auth.error.registrationFailed', lang)
+          const errorMsg = sanitizeError(raw) ?? t('citizen.auth.error.registrationFailed', lang)
           setError(errorMsg)
           setNotification({ message: errorMsg, type: 'error' })
           setRegStep(1) // Go back to step 1 if it's an account error
@@ -453,15 +480,22 @@ export default function CitizenAuthPage(): JSX.Element {
           setTimeout(() => twoFactorInputRef.current?.focus(), 100)
         } else if (result.success) {
           setNotification({ message: t('citizen.auth.success.login', lang), type: 'success' })
-          setTimeout(() => navigate('/citizen/dashboard', { replace: true }), 300)
+          const returnTo = sessionStorage.getItem('aegis_qr_return_to')
+          if (returnTo) {
+            sessionStorage.removeItem('aegis_qr_return_to')
+            sessionStorage.setItem('aegis_qr_just_logged_in', '1')
+          }
+          setTimeout(() => navigate(returnTo || '/citizen/dashboard', { replace: true }), 300)
         } else {
-          const errorMsg = result.error || t('citizen.auth.error.loginFailed', lang)
+          const raw = result.error || t('citizen.auth.error.loginFailed', lang)
+          const errorMsg = sanitizeError(raw) ?? t('citizen.auth.error.loginFailed', lang)
           setError(errorMsg)
           setNotification({ message: errorMsg, type: 'error' })
         }
       }
     } catch (err: any) {
-      const errorMsg = err.message || t('citizen.auth.error.generic', lang)
+      const raw = err.message || t('citizen.auth.error.generic', lang)
+      const errorMsg = sanitizeError(raw) ?? t('citizen.auth.error.generic', lang)
       setError(errorMsg)
       setNotification({ message: errorMsg, type: 'error' })
     } finally {
@@ -481,9 +515,14 @@ export default function CitizenAuthPage(): JSX.Element {
     setTwoFactorLoading(true)
     try {
       const res = await apiCitizen2FAAuthenticate(tempToken, trimmed, rememberDevice)
+      const returnTo = sessionStorage.getItem('aegis_qr_return_to')
+      if (returnTo) {
+        sessionStorage.removeItem('aegis_qr_return_to')
+        sessionStorage.setItem('aegis_qr_just_logged_in', '1')
+      }
       complete2FA(res.token, res.user as CitizenUser, res.preferences as CitizenPreferences | undefined)
       setNotification({ message: t('citizen.auth.success.login', lang), type: 'success' })
-      setTimeout(() => navigate('/citizen/dashboard', { replace: true }), 300)
+      setTimeout(() => navigate(returnTo || '/citizen/dashboard', { replace: true }), 300)
     } catch (err: any) {
       const msg = err.message || 'Verification failed.'
       if (msg.includes('expired') || msg.includes('log in again')) {
@@ -534,7 +573,6 @@ export default function CitizenAuthPage(): JSX.Element {
           <div className="hidden sm:block leading-none">
             <div className="flex items-center gap-2">
               <span className="font-black text-sm tracking-wide"><span className="text-aegis-600 dark:text-aegis-400">AEGIS</span></span>
-              <span className="text-[7px] font-bold bg-aegis-100 dark:bg-aegis-900/40 text-aegis-700 dark:text-aegis-300 px-1.5 py-0.5 rounded tracking-widest">v6</span>
             </div>
             <span className="block text-[9px] text-gray-400 dark:text-aegis-300 tracking-[0.2em] uppercase mt-0.5">{t('citizen.auth.citizenPortal', lang)}</span>
           </div>
@@ -575,11 +613,22 @@ export default function CitizenAuthPage(): JSX.Element {
                   <Link to="/" onClick={() => setNavDropdownOpen(false)}
                     className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 transition-all duration-150 group cursor-pointer">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200/80 dark:from-white/10 dark:to-white/5 flex items-center justify-center group-hover:from-aegis-100 group-hover:to-aegis-200/80 dark:group-hover:from-aegis-500/15 dark:group-hover:to-aegis-600/10 transition-all duration-150 flex-shrink-0">
-                      <Globe className="w-[18px] h-[18px] text-gray-500 dark:text-white/60 group-hover:text-aegis-600 dark:group-hover:text-aegis-400 transition-colors duration-150" />
+                      <Home className="w-[18px] h-[18px] text-gray-500 dark:text-white/60 group-hover:text-aegis-600 dark:group-hover:text-aegis-400 transition-colors duration-150" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[13px] font-bold text-gray-900 dark:text-white group-hover:text-aegis-700 dark:group-hover:text-aegis-300 transition-colors">Home</p>
                       <p className="text-[10px] text-gray-400 dark:text-white/40 mt-0.5 leading-tight">Return to the main landing page</p>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-gray-300 dark:text-white/15 group-hover:text-aegis-500 dark:group-hover:text-aegis-400 group-hover:translate-x-1 transition-all duration-150 flex-shrink-0" />
+                  </Link>
+                  <Link to="/citizen" onClick={() => setNavDropdownOpen(false)}
+                    className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-aegis-50/70 dark:hover:bg-aegis-500/5 transition-all duration-150 group cursor-pointer">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-aegis-50 to-aegis-100/80 dark:from-aegis-500/10 dark:to-aegis-600/5 flex items-center justify-center group-hover:from-aegis-100 group-hover:to-aegis-200/80 dark:group-hover:from-aegis-500/20 dark:group-hover:to-aegis-600/10 transition-all duration-150 flex-shrink-0">
+                      <MapPin className="w-[18px] h-[18px] text-aegis-500 dark:text-aegis-400 group-hover:text-aegis-600 dark:group-hover:text-aegis-300 transition-colors duration-150" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-bold text-gray-900 dark:text-white group-hover:text-aegis-700 dark:group-hover:text-aegis-300 transition-colors">Disaster Map</p>
+                      <p className="text-[10px] text-gray-400 dark:text-white/40 mt-0.5 leading-tight">Live incident map &amp; public alerts</p>
                     </div>
                     <ArrowRight className="w-4 h-4 text-gray-300 dark:text-white/15 group-hover:text-aegis-500 dark:group-hover:text-aegis-400 group-hover:translate-x-1 transition-all duration-150 flex-shrink-0" />
                   </Link>
@@ -912,18 +961,30 @@ export default function CitizenAuthPage(): JSX.Element {
                     <button type="button"
                       onClick={async () => {
                         try {
-                          if (!window.PublicKeyCredential) { setError('Passkeys not supported on this device'); return }
-                          const res = await fetch(`${API_BASE}/api/security/passkeys/auth-options`, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
-                          const { data } = await res.json()
+                          if (!window.PublicKeyCredential) { setError('Passkeys are not supported on this device or browser.'); return }
+                          const csrfToken = document.cookie.split('; ').find(c => c.startsWith('aegis_csrf='))?.split('=')[1]
+                          const passkeyHeaders: Record<string, string> = { 'Content-Type': 'application/json' }
+                          if (csrfToken) passkeyHeaders['X-CSRF-Token'] = csrfToken
+                          const res = await fetch(`${API_BASE}/api/security/passkeys/auth-options`, { method: 'POST', headers: passkeyHeaders, credentials: 'include' })
+                          const resJson = await res.json()
+                          if (!resJson.success) {
+                            const errMsg = typeof resJson.error === 'string' ? resJson.error : resJson.error?.message || 'No passkeys registered. Sign in with email first, then add a passkey from Settings.'
+                            setError(errMsg); return
+                          }
+                          const data = resJson.data
+                          if (!data || !data.challenge) { setError('Server error generating passkey challenge. Please try again.'); return }
                           const credential = await navigator.credentials.get({ publicKey: { ...data, challenge: Uint8Array.from(atob(data.challenge.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)), allowCredentials: (data.allowCredentials || []).map((c: any) => ({ ...c, id: Uint8Array.from(atob(c.id.replace(/-/g, '+').replace(/_/g, '/')), ch => ch.charCodeAt(0)) })) } }) as PublicKeyCredential
                           const authRes = credential.response as AuthenticatorAssertionResponse
                           const toBase64Url = (buf: ArrayBuffer) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
-                          const verifyRes = await fetch(`${API_BASE}/api/security/passkeys/auth-verify`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: credential.id, rawId: toBase64Url(credential.rawId), response: { authenticatorData: toBase64Url(authRes.authenticatorData), clientDataJSON: toBase64Url(authRes.clientDataJSON), signature: toBase64Url(authRes.signature) }, type: 'public-key' }) })
+                          const verifyRes = await fetch(`${API_BASE}/api/security/passkeys/auth-verify`, { method: 'POST', headers: passkeyHeaders, credentials: 'include', body: JSON.stringify({ id: credential.id, rawId: toBase64Url(credential.rawId), response: { authenticatorData: toBase64Url(authRes.authenticatorData), clientDataJSON: toBase64Url(authRes.clientDataJSON), signature: toBase64Url(authRes.signature) }, type: 'public-key' }) })
                           const verifyData = await verifyRes.json()
                           if (verifyData.success && verifyData.token) {
-                            login({ token: verifyData.token, user: verifyData.user })
+                            complete2FA(verifyData.token, verifyData.user)
                             navigate('/citizen/dashboard')
-                          } else { setError(verifyData.error || 'Passkey authentication failed') }
+                          } else {
+                            const errMsg = typeof verifyData.error === 'string' ? verifyData.error : verifyData.error?.message || 'Passkey authentication failed'
+                            setError(errMsg)
+                          }
                         } catch (err: any) { setError(err?.message || 'Passkey authentication failed') }
                       }}
                       className="w-full flex items-center gap-3 py-2.5 px-4 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 transition text-sm text-gray-700 dark:text-gray-200 shadow-sm">
@@ -935,47 +996,6 @@ export default function CitizenAuthPage(): JSX.Element {
                         <p className="text-[11px] text-gray-400 dark:text-gray-500">Face ID, fingerprint, or security key</p>
                       </div>
                     </button>
-
-                    {/* Magic Link */}
-                    {!showMagicLink ? (
-                      <button type="button" onClick={() => setShowMagicLink(true)}
-                        className="w-full flex items-center gap-3 py-2.5 px-4 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 transition text-sm text-gray-700 dark:text-gray-200 shadow-sm">
-                        <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center flex-shrink-0">
-                          <Wand2 className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                        </div>
-                        <div className="text-left min-w-0">
-                          <p className="font-medium text-sm">Magic Link</p>
-                          <p className="text-[11px] text-gray-400 dark:text-gray-500">Passwordless sign-in via email</p>
-                        </div>
-                      </button>
-                    ) : magicLinkSent ? (
-                      <div className="w-full p-3 rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/30 text-center">
-                        <CheckCircle className="w-5 h-5 text-green-500 mx-auto mb-1" />
-                        <p className="text-sm font-medium text-green-700 dark:text-green-300">Check your email!</p>
-                        <p className="text-xs text-green-600 dark:text-green-400 mt-0.5">We sent a sign-in link to {magicLinkEmail}</p>
-                      </div>
-                    ) : (
-                      <div className="w-full p-3 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/20 space-y-2">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Wand2 className="w-4 h-4 text-amber-500" />
-                          <span className="text-xs font-semibold text-amber-700 dark:text-amber-300">Magic Link</span>
-                        </div>
-                        <div className="relative">
-                          <Mail className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-                          <input type="email" value={magicLinkEmail} onChange={e => setMagicLinkEmail(e.target.value)}
-                            placeholder="Enter email for magic link" className="w-full pl-10 pr-3 py-2.5 text-sm bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-amber-500 focus:border-transparent transition" />
-                        </div>
-                        <div className="flex gap-2">
-                          <button type="button" onClick={() => setShowMagicLink(false)}
-                            className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 transition">Cancel</button>
-                          <button type="button" onClick={handleMagicLink} disabled={magicLinkLoading || !magicLinkEmail}
-                            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-xs font-semibold text-white transition">
-                            {magicLinkLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
-                            <span>Send Link</span>
-                          </button>
-                        </div>
-                      </div>
-                    )}
 
                     {/* Emergency QR */}
                     <Link to="/citizen/qr-auth"

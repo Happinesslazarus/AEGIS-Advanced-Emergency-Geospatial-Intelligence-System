@@ -1,14 +1,10 @@
-/**
- * File: socket.ts
- *
- * What this file does:
+﻿/**
  * Sets up and manages the Socket.IO WebSocket server. Handles real-time
  * features: community chat rooms, admin broadcast alerts, distress beacon
  * updates, and operator live notifications. Includes per-connection JWT
  * authentication, rate limiting (Redis-backed, in-memory fallback), and
  * automatic escalation detection in chat messages.
  *
- * How it connects:
  * - Initialised by server/src/index.ts (initSocketServer) at startup
  * - The returned io instance is shared with route handlers via app.set('io', io)
  * - setRiverIO / setThreatIO / setCommunityRealtimeIo in index.ts share the io
@@ -24,17 +20,11 @@
  * - community rooms — per-community-group chat rooms
  * - distress room   — live SOS updates for operators
  *
- * Learn more:
  * - server/src/services/communityRealtime.ts  — community-specific realtime events
  * - server/src/services/riverLevelService.ts  — emits river gauge updates through socket
  * - server/src/services/threatLevelService.ts — emits threat level changes through socket
  * - client/src/contexts/SocketContext.tsx     — how the browser connects & subscribes
- *
- * Simple explanation:
- * The live connection layer. When something important happens — a new report,
- * a distress beacon, a flood alert — this service pushes it to the right
- * connected browsers instantly without them needing to refresh.
- */
+ * */
 
 import { Server as HttpServer } from 'http'
 import { Server, Socket } from 'socket.io'
@@ -203,6 +193,32 @@ export function broadcastIncidentAlert(payload: IncidentAlertPayload): void {
     _io.to('admins').emit('incident:alert:priority', payload)
   }
   devLog(`[Socket] broadcast incident:alert ${payload.incidentType}@${payload.regionId} risk=${payload.riskLevel}`)
+}
+
+export interface OperatorAlertPayload {
+  id: string
+  type: string      // e.g. flood, safe_zone, transit_metro, general
+  severity: 'critical' | 'warning' | 'info'
+  title: string
+  message: string
+  area: string
+  actionRequired?: string
+  issuedAt: string
+}
+
+/**
+ * Broadcast an operator-issued alert to ALL connected Socket.IO clients.
+ * This is the fastest possible delivery (< 50 ms) for users who have
+ * the app open and is a better complement to web push (which can take
+ * several seconds to arrive through the push service).
+ */
+export function broadcastAlert(payload: OperatorAlertPayload): void {
+  if (!_io) return
+  _io.emit('alert:new', payload)
+  if (payload.severity === 'critical') {
+    _io.to('admins').emit('alert:new:critical', payload)
+  }
+  devLog(`[Socket] broadcast alert:new type=${payload.type} severity=${payload.severity}`)
 }
 
  /*

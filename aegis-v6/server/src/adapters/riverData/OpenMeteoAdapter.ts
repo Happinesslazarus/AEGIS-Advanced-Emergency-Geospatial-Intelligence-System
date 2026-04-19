@@ -1,11 +1,9 @@
-/**
+﻿/**
  * Module: OpenMeteoAdapter.ts
  *
  * Open meteo adapter server module.
  *
- * How it connects:
  * - Used by services for external data fetching
- *
  */
 
 import type { RiverDataAdapter, RiverReading, RiverHistory } from './RiverDataAdapter.js'

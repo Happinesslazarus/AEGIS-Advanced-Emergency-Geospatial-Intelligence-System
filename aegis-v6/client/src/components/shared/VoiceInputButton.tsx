@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Module: VoiceInputButton.tsx
  *
  * Record button component for adding voice-to-text to any AEGIS form field.
@@ -16,7 +16,6 @@
  *    placeholder="Hold to record your incident description"
  *  />
  *
- * How it connects:
  *  - Uses useVoiceInput hook → WebSocket → voice_transcription.py
  *  - Hazard output feeds into the incident report classification pipeline
  *  - Positioned inside citizen/ReportIncidentForm.tsx and

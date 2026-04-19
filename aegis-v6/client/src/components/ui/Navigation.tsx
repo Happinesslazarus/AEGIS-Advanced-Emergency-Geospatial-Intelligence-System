@@ -1,14 +1,10 @@
-/**
+﻿/**
  * Module: Navigation.tsx
  *
  * Navigation UI primitive (low-level UI building block).
  *
- * How it connects:
  * - Uses useResponsive for breakpoint detection
  * - Uses useFocusTrap for mobile drawer accessibility
- * Simple explanation:
- * Top-level nav bar and mobile menu components, WCAG 2.1 AA compliant. */
-
 import React, { memo, useState, useCallback } from 'react'
 import { useResponsive } from '../../hooks/useResponsive'
 import { useReducedMotion } from '../../hooks/useReducedMotion'

@@ -1,6 +1,4 @@
-/**
- * File: ai.real-routes.integration.test.ts
- *
+﻿/**
  * What it tests:
  * Integration tests for the AI engine proxy routes with real HTTP calls.
   * Verifies that /api/ai/* endpoints forward correctly to the AI engine

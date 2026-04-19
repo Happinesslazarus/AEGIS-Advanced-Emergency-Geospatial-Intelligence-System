@@ -1,18 +1,12 @@
-/**
- * File: apiGateway.ts
- *
+﻿/**
  * API gateway layer — manages API key registration/validation with per-key
  * rate limits and daily quotas, API versioning with deprecation sunset
  * tracking, standard JSON response envelopes, and HMAC webhook verification.
  *
- * How it connects:
  * - Express middleware applied before route handlers
  * - Works alongside JWT auth for API key-based access
  * - Tracks usage and deprecation metrics via Prometheus
- *
- * Simple explanation:
- * Validates, transforms, and meters all incoming API requests.
- */
+ * */
 
 import crypto from 'crypto'
 import { Request, Response, NextFunction } from 'express'

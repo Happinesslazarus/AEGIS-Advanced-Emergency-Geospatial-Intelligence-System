@@ -1,14 +1,10 @@
-/**
+﻿/**
  * Module: index.ts
  *
  * Regions barrel export (re-exports module contents).
  *
- * How it connects:
  * - Imported by services and components that need this configuration
- *
- * Simple explanation:
- * Gathers and re-exports everything from the regions directory.
- */
+ * */
 
 import type { CityRegionConfig } from './types.js'
 import aberdeen from './aberdeen.js'

@@ -1,12 +1,8 @@
-/**
- * File: ErrorPage.tsx
- *
- * What this file does:
+﻿/**
  * Generic error page shown when something goes seriously wrong during
  * navigation or rendering. Displayed by ErrorBoundary when a route-level
  * error is caught. Shows a friendly message and a refresh/home link.
  *
- * How it connects:
  * - Used by client/src/components/shared/ErrorBoundary.tsx
  * - Not directly routed — rendered programmatically on fatal errors
  */
@@ -247,7 +243,7 @@ export default function ErrorPage({
       </main>
 
       <footer className="py-4 text-center text-xs text-gray-400 dark:text-gray-600">
-        AEGIS V6 — Emergency Management Platform
+        AEGIS — Emergency Management Platform
       </footer>
     </div>
   )

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Module: contexts.test.tsx
  *
  * Tests for React context providers. Currently covers ThemeContext, which
@@ -35,7 +35,6 @@
  *                             calls inside the hook can read the provided value
  *   toggleDarkMode          = alias for toggle(); exists for backward-compatibility
  *
- * How it connects:
  * - Run by the test runner (Vitest) with `vitest run` or `vitest watch`
  */
 

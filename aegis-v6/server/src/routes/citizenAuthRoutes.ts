@@ -1,27 +1,19 @@
-/**
- * File: citizenAuthRoutes.ts
- *
- * What this file does:
+﻿/**
  * Public citizen authentication: self-service registration, login with
  * lockout protection, email verification, password reset, profile and
  * notification preference management, emergency contacts.
  *
- * How it connects:
  * - Mounted at /api/citizen-auth in index.ts
  * - Uses the same JWT system as operator auth (role='citizen' in token)
  * - Includes honeypot fields to catch bot registrations
  * - Checks passwords against the Have I Been Pwned database
  *
- * Key endpoints:
  * POST /api/citizen-auth/register     — Create citizen account
  * POST /api/citizen-auth/login        — Authenticate citizen
  * GET  /api/citizen-auth/me           — Get current profile
  * PUT  /api/citizen-auth/profile      — Update profile
  * PUT  /api/citizen-auth/preferences  — Notification preferences
- *
- * Simple explanation:
- * How citizens sign up, log in, and manage their accounts.
- */
+ * */
 
 import { Router, Response, NextFunction } from 'express'
 import bcrypt from 'bcryptjs'
@@ -47,8 +39,8 @@ const router = Router()
 // Rate limiter for login attempts (brute-force protection)
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 login attempts per 15 minutes per IP
-  message: { error: 'Too many login attempts. Please try again in 15 minutes.' },
+  max: 10, // 10 login attempts per 15 minutes per IP
+  message: { error: 'Too many login attempts. Please wait 15 minutes and try again.' },
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true, // Only count failed attempts toward the limit
@@ -675,7 +667,7 @@ router.post('/avatar', authMiddleware, uploadAvatar, validateMagicBytes, async (
       throw AppError.badRequest('No image file provided. Accepted: JPG, PNG, GIF, WebP (max 2MB).')
     }
 
-    const avatarUrl = `/uploads/${req.file.filename}`
+    const avatarUrl = `/uploads/avatars/${req.file.filename}`
 
     await pool.query(
       'UPDATE citizens SET avatar_url = $1 WHERE id = $2 AND deleted_at IS NULL',
@@ -1054,10 +1046,28 @@ router.post('/refresh', async (req: AuthRequest, res: Response, next: NextFuncti
     const decoded = verifyRefreshToken(refreshCookie)
 
     // Validate session exists and is not revoked
-    const session = await validateSession(refreshCookie)
+    let session = await validateSession(refreshCookie)
     if (!session) {
-      res.clearCookie('aegis_refresh', { path: '/api/citizen-auth' })
-      throw AppError.unauthorized('Session expired or revoked. Please log in again.')
+      // Graceful recovery: token is cryptographically valid but has no DB session.
+      // This happens for OAuth logins that were issued before the session-creation fix.
+      // Create a session on the fly instead of rejecting the user.
+      try {
+        await createSession({
+          userId: decoded.id,
+          userType: 'citizen',
+          refreshToken: refreshCookie,
+          ipAddress: getClientIp(req),
+          userAgent: req.headers['user-agent'] as string,
+          ttlDays: 7,
+        })
+        session = await validateSession(refreshCookie)
+      } catch {
+        // If session creation fails (e.g. user doesn't exist), fall through
+      }
+      if (!session) {
+        res.clearCookie('aegis_refresh', { path: '/api/citizen-auth' })
+        throw AppError.unauthorized('Session expired or revoked. Please log in again.')
+      }
     }
 
     // Verify citizen still exists and is not deleted

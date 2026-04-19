@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: AITransparencyConsole.tsx
  *
  * AI transparency console (shows AI decision explanations and confidence scores).
  *
- * How it connects:
  * - Rendered inside AdminPage.tsx based on active view */
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
@@ -468,8 +467,8 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                 <div className="flex items-center gap-2 mt-0.5">
                   <div className={`w-2 h-2 rounded-full flex-shrink-0 ${predictionRunning ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400 animate-pulse'}`} />
                   <span className="text-xs text-gray-400">{loc.name || t('common.global', lang)}</span>
-                  <span className="text-gray-700">·</span>
-                  <span className="text-xs font-mono text-gray-500">{zuluTime}</span>
+                  <span className="text-gray-500">·</span>
+                  <span className="text-xs font-mono text-gray-400">{zuluTime}</span>
                 </div>
               </div>
             </div>
@@ -503,7 +502,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                 <kpi.icon className={`w-4 h-4 ${kpi.color} flex-shrink-0`} />
                 <div className="min-w-0">
                   <p className={`text-sm font-bold tabular-nums ${kpi.color}`}>{kpi.value}</p>
-                  <p className="text-[10px] text-gray-500 uppercase tracking-wide truncate">{kpi.label}</p>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wide truncate">{kpi.label}</p>
                 </div>
               </div>
             ))}
@@ -524,7 +523,7 @@ export default function AITransparencyConsole(props: AITransparencyConsoleProps)
                 className={`flex items-center gap-1.5 px-4 py-3 text-xs font-semibold whitespace-nowrap border-b-2 transition-all ${
                   consoleTab === tab.id
                     ? 'border-indigo-400 text-indigo-300 bg-white/5'
-                    : 'border-transparent text-gray-500 hover:text-gray-300 hover:bg-white/[0.03]'
+                    : 'border-transparent text-gray-400 hover:text-gray-200 hover:bg-white/[0.03]'
                 }`}
               >
                 <tab.icon className="w-3.5 h-3.5" />

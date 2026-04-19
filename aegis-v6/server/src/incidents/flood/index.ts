@@ -1,14 +1,10 @@
-/**
+﻿/**
  * Module: index.ts
  *
  * River and surface water flooding incident module (handles flood specific logic).
  *
- * How it connects:
  * - Part of the incident module system, registered via incidents/registry.ts
- *
- * Simple explanation:
- * Manages detection, assessment, and response for flood events.
- */
+ * */
 
 import { Request, Response } from 'express'
 import { BaseIncidentModule } from '../baseModule.js'

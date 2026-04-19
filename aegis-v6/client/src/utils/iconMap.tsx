@@ -1,6 +1,4 @@
-/**
- * File: iconMap.tsx
- *
+﻿/**
  * Maps incident-type string names (as stored in the database) to Lucide React
  * icon components, providing a single lookup table so every part of the UI
  * renders the same icon for the same incident type.
@@ -20,7 +18,6 @@
  *   className prop   = optional Tailwind/CSS class string applied to the <svg>;
  *                      defaults to 'w-4 h-4' (16 × 16 px)
  *
- * How it connects:
  * - Used by ReportCard, AlertCard, and any incident list component
  * - Icon names come from server/src/services/incidentTypeService.ts
  * - Icons sourced from the lucide-react package (see client/package.json)

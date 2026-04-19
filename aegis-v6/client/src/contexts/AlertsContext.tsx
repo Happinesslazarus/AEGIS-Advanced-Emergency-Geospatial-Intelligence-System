@@ -1,14 +1,15 @@
-/**
+﻿/**
  * Module: AlertsContext.tsx
  *
  * Alerts context React context provider (shares state across components).
  *
- * How it connects:
  * - Wraps components in App.tsx via AppProviders */
 
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, ReactNode } from 'react'
 import { apiGetAlerts } from '../utils/api'
 import type { Alert, Notification } from '../types'
+import { io as ioConnect } from 'socket.io-client'
+import { SOCKET_URL } from '../hooks/useSocket'
 
 interface AlertsContextType {
   alerts: Alert[]; activeAlerts: Alert[]; notifications: Notification[]
@@ -87,6 +88,48 @@ export function AlertsProvider({ children }: { children: ReactNode }): JSX.Eleme
     const interval = setInterval(refreshAlerts, 60000)
     return () => clearInterval(interval)
   }, [refreshAlerts])
+
+  // Real-time Socket.IO listener — receives operator-issued alerts instantly
+  // without waiting for the 60-second polling cycle.
+  useEffect(() => {
+    const socket = ioConnect(SOCKET_URL, { transports: ['websocket'], autoConnect: true, reconnectionAttempts: 5 })
+
+    socket.on('alert:new', (payload: {
+      id: string; type: string; severity: 'critical' | 'warning' | 'info';
+      title: string; message: string; area: string;
+      actionRequired?: string; issuedAt: string
+    }) => {
+      // Map server severity ('warning'/'info') to client AlertSeverity type
+      const severityMap: Record<string, Alert['severity']> = {
+        critical: 'critical', warning: 'medium', info: 'low',
+      }
+      const newAlert: Alert = {
+        id: payload.id,
+        title: payload.title,
+        message: payload.message,
+        severity: severityMap[payload.severity] ?? 'low',
+        timestamp: payload.issuedAt,
+        displayTime: 'Just now',
+        area: payload.area,
+        source: 'operator',
+        channels: [],
+        disasterType: payload.type,
+        expiresAt: null,
+        active: true,
+      }
+      setAlerts(prev => {
+        // Avoid duplicates if polling also picked it up
+        if (prev.some(a => a.id === payload.id)) return prev
+        return [newAlert, ...prev]
+      })
+      // Haptic feedback on mobile for critical alerts
+      if (navigator.vibrate && payload.severity === 'critical') {
+        navigator.vibrate([100, 50, 100])
+      }
+    })
+
+    return () => { socket.disconnect() }
+  }, [])
 
   const addAlert = useCallback((input: Omit<Alert, 'id' | 'timestamp' | 'displayTime' | 'active'>): Alert => {
     const a: Alert = { ...input, id: `ALT-${Date.now()}`, timestamp: new Date().toISOString(), displayTime: 'Just now', active: true }

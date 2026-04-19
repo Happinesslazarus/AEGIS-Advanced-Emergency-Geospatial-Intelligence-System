@@ -1,11 +1,9 @@
-/**
+﻿/**
  * Module: RegionAdapter.interface.ts
  *
  * Region adapter.interface server module.
  *
- * How it connects:
  * - Used by services for external data fetching
- *
  */
 
 // Return types

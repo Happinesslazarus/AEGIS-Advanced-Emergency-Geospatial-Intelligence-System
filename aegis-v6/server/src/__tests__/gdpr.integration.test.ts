@@ -1,6 +1,4 @@
-/**
- * File: gdpr.integration.test.ts
- *
+﻿/**
  * What it tests:
  * Integration tests for GDPR data-subject rights endpoints.
   * Verifies data export (Article 20), erasure request (Article 17),

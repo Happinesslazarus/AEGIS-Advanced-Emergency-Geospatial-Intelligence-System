@@ -1,13 +1,9 @@
-/**
- * File: RiskAssessment.tsx
- *
- * What this file does:
+﻿/**
  * Large composite component that renders the full public citizen portal
  * view: live threat level, active alerts, incident map, community help
  * requests, flood data, and preparedness guides. Pulls from multiple
  * contexts and API endpoints and updates in real time via sockets.
  *
- * How it connects:
  * - Rendered by client/src/pages/CitizenPage.tsx
  * - Report data from client/src/contexts/ReportsContext.tsx
  * - Alert data from client/src/contexts/AlertsContext.tsx

@@ -1,13 +1,9 @@
-/**
- * File: cronJobs.ts
- *
- * What this file does:
+﻿/**
  * Runs all scheduled background tasks for the AEGIS platform. These include
  * ingesting live river level data from SEPA and EA APIs, recalculating threat
  * levels, running AI hazard predictions, monitoring model drift, and cleaning
  * up expired sessions and stale cache entries.
  *
- * How it connects:
  * - Started at server boot from server/src/index.ts (startCronJobs)
  * - Calls server/src/services/riverLevelService.ts on schedule for river data
  * - Calls server/src/services/threatLevelService.ts to recalculate threat level
@@ -23,16 +19,11 @@
  * - Model drift:    every 6 hours (detects degrading model accuracy)
  * - Session cleanup: every 1 hour (removes expired auth sessions)
  *
- * Learn more:
  * - server/src/services/riverLevelService.ts   — river gauge ingestion and broadcasts
  * - server/src/services/threatLevelService.ts  — how threat level is calculated
  * - server/src/services/modelMonitoringService.ts — model performance drift detection
  * - server/src/services/aiClient.ts            — HTTP client for the AI engine
- *
- * Simple explanation:
- * The scheduled task runner. Keeps AEGIS data fresh without anyone having to
- * click a button — river levels, forecasts, and threat scores update automatically.
- */
+ * */
 
 import cron from 'node-cron'
 import pool from '../models/db.js'

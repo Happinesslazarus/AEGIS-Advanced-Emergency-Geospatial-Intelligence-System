@@ -1,11 +1,9 @@
-/**
+﻿/**
  * Module: GenericAdapter.ts
  *
  * Generic adapter server module.
  *
- * How it connects:
  * - Used by services for external data fetching
- *
  */
 
 import { BaseRegionAdapter } from './BaseRegionAdapter.js'

@@ -1,11 +1,7 @@
-/**
- * File: AccessibilityPage.tsx
- *
- * What this file does:
+﻿/**
  * Describes AEGIS's accessibility features and WCAG compliance statement.
  * Provides contact information for accessibility feedback. Static page.
  *
- * How it connects:
  * - Routed by client/src/App.tsx at /accessibility
  * - Linked from the footer across all pages
  */

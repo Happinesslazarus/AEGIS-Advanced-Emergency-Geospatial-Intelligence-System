@@ -1,22 +1,13 @@
-/**
- * File: SystemHealthPanel.tsx
- *
- * What this file does:
+﻿/**
  * Real-time dashboard card showing the operational health of all AEGIS backend services.
  * Displays a computed health score (0-100), server uptime, memory usage, and per-service
  * status cards for database, AI engine, scheduler (n8n), and circuit breakers.
  * Auto-refreshes every 30 seconds; also supports keyboard shortcut R to refresh.
  *
- * How it connects:
  * - Fetches from GET /api/internal/health/system (server/src/routes/internalRoutes.ts)
  * - Rendered inside AdminDashboard.tsx as the "System Health" section
  * - Uses apiFetch() from client/src/utils/api.ts (attaches auth token automatically)
- *
- * Simple explanation:
- * The ops dashboard for the admin. Shows whether the database, AI engine, and
- * automation workflows are running, how fast they are, and if any circuit breakers
- * have tripped. Refreshes automatically every 30 seconds.
- */
+ * */
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import {

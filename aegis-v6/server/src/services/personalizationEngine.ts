@@ -1,19 +1,13 @@
-/**
- * File: personalizationEngine.ts
- *
+﻿/**
  * Citizen personalisation engine — provides cross-session memory for chat
  * interactions: loads past memories from citizen_chat_memory, extracts new
  * ones via pattern matching, and uses LLM completions to tailor messaging
  * to individual user profiles.
  *
- * How it connects:
  * - Called by chatService before and after each conversation turn
  * - Reads/writes the citizen_chat_memory table
  * - Uses llmRouter for LLM-powered response personalisation
- *
- * Simple explanation:
- * Remembers what each citizen has told the chatbot and personalises future answers.
- */
+ * */
 
 import pool from '../models/db.js'
 import { devLog } from '../utils/logger.js'

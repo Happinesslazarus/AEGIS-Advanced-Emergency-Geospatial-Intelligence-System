@@ -1,14 +1,10 @@
-/**
+﻿/**
  * Module: types.ts
  *
  * Types incident component.
  *
- * How it connects:
  * - Part of the incident module system, registered via incidents/registry.ts
- *
- * Simple explanation:
- * Part of the incident management system.
- */
+ * */
 
 import type { Router } from 'express'
 

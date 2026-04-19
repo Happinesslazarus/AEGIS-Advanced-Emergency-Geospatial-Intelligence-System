@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: TwoFactorChallenge.tsx
  *
  * Two factor challenge admin component (operator dashboard panel).
  *
- * How it connects:
  * - Rendered inside AdminPage.tsx based on active view */
 
 import { useState, useRef, useEffect } from 'react'

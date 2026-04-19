@@ -1,11 +1,7 @@
-/**
- * File: AboutPage.tsx
- *
- * What this file does:
+﻿/**
  * Static informational page describing the AEGIS project, its mission,
  * technology stack, and team. No API calls — purely presentational.
  *
- * How it connects:
  * - Routed by client/src/App.tsx at /about
  * - Linked from LandingPage.tsx footer
  */

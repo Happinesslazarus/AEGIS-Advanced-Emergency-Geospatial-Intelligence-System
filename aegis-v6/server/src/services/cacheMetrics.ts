@@ -1,18 +1,12 @@
-/**
- * File: cacheMetrics.ts
- *
+﻿/**
  * Prometheus metric definitions for the caching layer — counters for hits,
  * misses, sets, invalidations, errors, and stale serves, plus a histogram
  * for operation duration. Pure definitions, no business logic.
  *
- * How it connects:
  * - Imported by cacheService.ts to instrument cache operations
  * - Scraped by Prometheus alongside other metrics
  * - Separated from metrics.ts to avoid circular imports
- *
- * Simple explanation:
- * Defines the numbers Prometheus tracks about cache performance.
- */
+ * */
 
 import client from 'prom-client'
 

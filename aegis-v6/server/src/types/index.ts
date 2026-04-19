@@ -1,13 +1,9 @@
-/**
- * File: index.ts  (server types)
- *
- * What this file does:
+﻿/**
  * Master TypeScript type definitions for the Aegis server: OperatorRole,
  * Report, Alert, DistressSignal, ChatMessage, User, and all associated
  * request/response payloads. All routes and services import their types
  * from here to ensure consistent shapes across the codebase.
  *
- * How it connects:
  * - Imported by every route, service, and middleware file in server/src/
  * - DB column names in these types must match server/sql/schema.sql columns
  * - Client-side equivalent: client/src/types/index.ts
@@ -577,6 +573,7 @@ export interface ImageAnalysisResult {
 export interface ChatCompletionRequest {
   sessionId?: string
   message: string
+  language?: string
   citizenId?: string
   operatorId?: string
   adminMode?: boolean

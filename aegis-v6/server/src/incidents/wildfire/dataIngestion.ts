@@ -1,14 +1,10 @@
-/**
+﻿/**
  * Module: dataIngestion.ts
  *
  * Wildfire and bushfire events incident module (handles wildfire specific logic).
  *
- * How it connects:
  * - Part of the incident module system, registered via incidents/registry.ts
- *
- * Simple explanation:
- * Manages detection, assessment, and response for wildfire events.
- */
+ * */
 
 import { NASA_FIRMS_CONFIG } from './config.js'
 import { logger } from '../../services/logger.js'

@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: CommunityHelp.tsx
  *
  * Community help citizen component (public-facing UI element).
  *
- * How it connects:
  * - Rendered inside CitizenPage.tsx or CitizenDashboard.tsx */
 
 /* CommunityHelp.tsx — Community mutual aid board for citizens to offer/request help. */
@@ -260,6 +259,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
   const [userCoords, setUserCoords] = useState<{lat: number; lng: number} | null>(null)
   const [detectedCity, setDetectedCity] = useState<string>('generic')
   const [detectedCountryCode, setDetectedCountryCode] = useState<string>('')
+  const [findaHelplineUrl, setFindaHelplineUrl] = useState<string | null>(null)
   const [nearbyRadius, setNearbyRadius] = useState(5)
   const [submitting, setSubmitting] = useState(false)
   const [loadingPosts, setLoadingPosts] = useState(false)
@@ -294,7 +294,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
     const loadPosts = async () => {
       setLoadingPosts(true)
       try {
-        const data = await authFetch('/api/extended/community?status=active')
+        const data = await authFetch('/api/community?status=active')
         if (!cancelled && Array.isArray(data)) {
           const apiPosts: Post[] = data.map((item: any) => ({
             id: item.id || Date.now(),
@@ -389,6 +389,17 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
       ...RESOURCES.generic,
     ]
   }, [detectedCountryCode])
+
+  // Check findahelpline.com for the detected country and store the URL if a page exists
+  useEffect(() => {
+    if (!detectedCountryCode) { setFindaHelplineUrl(null); return }
+    const cc = detectedCountryCode.toLowerCase()
+    const url = `https://findahelpline.com/countries/${cc}`
+    fetch(url, { method: 'HEAD' })
+      .then(r => setFindaHelplineUrl(r.ok ? url : null))
+      .catch(() => setFindaHelplineUrl(null))
+  }, [detectedCountryCode])
+
   const resources = (locationKey && RESOURCES[locationKey]) ? RESOURCES[locationKey] : countryResources
   const filtered = (filter === 'all' ? resources : resources.filter(r => r.type === filter))
     .filter(r => !searchTerm || r.name.toLowerCase().includes(searchTerm.toLowerCase()) || r.address.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -503,7 +514,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
 
     setSubmitting(true)
     try {
-      const result = await authFetch('/api/extended/community', {
+      const result = await authFetch('/api/community', {
         method: 'POST',
         body: JSON.stringify({
           type: 'offer',
@@ -538,7 +549,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
 
     setSubmitting(true)
     try {
-      await authFetch('/api/extended/community', {
+      await authFetch('/api/community', {
         method: 'POST',
         body: JSON.stringify({
           type: 'request',
@@ -773,6 +784,19 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
                     <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">{t('communityHelp.noResourcesMatch', lang)}</p>
                     <p className="text-xs text-gray-400 dark:text-gray-500">Try a different search term or clear your filter</p>
                   </div>
+                )}
+                {findaHelplineUrl && (
+                  <a href={findaHelplineUrl} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-3 p-3 bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800 rounded-xl hover:bg-purple-100 dark:hover:bg-purple-950/30 transition-colors group">
+                    <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center flex-shrink-0">
+                      <Heart className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-purple-900 dark:text-purple-200">Find verified mental health &amp; crisis helplines</p>
+                      <p className="text-[10px] text-purple-600 dark:text-purple-400">findahelpline.com — free, verified support lines for {detectedCountryCode.toUpperCase()}</p>
+                    </div>
+                    <ExternalLink className="w-3.5 h-3.5 text-purple-400 group-hover:text-purple-600 flex-shrink-0" />
+                  </a>
                 )}
                 {filtered.map((r, i) => (
                   <div key={i} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 hover:shadow-md transition-all group">

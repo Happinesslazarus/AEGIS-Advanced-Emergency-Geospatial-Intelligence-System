@@ -1,6 +1,4 @@
-/**
- * File: internalRoutes.rate-limit.test.ts
- *
+﻿/**
  * Integration test verifying that POST /api/internal/errors/frontend is
  * rate-limited to 20 requests per minute per IP.
  *

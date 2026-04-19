@@ -1,19 +1,13 @@
-/**
- * File: classifierRouter.ts
- *
+﻿/**
  * HuggingFace text classifier — routes classification requests (sentiment,
  * severity, fake-detection, language, urgency) to HF Inference API models.
  * Implements a circuit-breaker pattern: 3 consecutive failures disable a
  * model for 60 seconds.
  *
- * How it connects:
  * - Calls HuggingFace Inference API via fetchWithTimeout
  * - Consumed by aiAnalysisPipeline and chatService
  * - Supports batch, ensemble, and cached classification modes
- *
- * Simple explanation:
- * Sends text to HuggingFace AI models and brings back classifications.
- */
+ * */
 
 import crypto from 'node:crypto'
 import type { ClassifierRequest, ClassifierResponse } from '../types/index.js'

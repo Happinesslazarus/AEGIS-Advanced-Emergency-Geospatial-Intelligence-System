@@ -1,19 +1,12 @@
-/**
- * File: uploadRoutes.ts
- *
- * What this file does:
+﻿/**
  * General-purpose file upload endpoints for community post images,
  * chat attachments, and other user media. Validates file types via
  * both extension and magic bytes.
  *
- * How it connects:
  * - Mounted at /api in index.ts (POST /api/upload/...)
  * - Uses Multer for multipart handling + validateMagicBytes for security
  * - Uploaded files served by the static handler in index.ts
- *
- * Simple explanation:
- * Handles image and file uploads for community posts and chat messages.
- */
+ * */
 
 import express, { Request, Response, NextFunction } from 'express'
 import multer from 'multer'

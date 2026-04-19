@@ -1,17 +1,17 @@
 /**
- * File: bulkhead.ts
+ * Bulkhead concurrency isolator -- caps concurrent executions per named
+ * compartment with priority-based queuing and per-call timeouts. Based on
+ * the ship-bulkhead stability pattern from Nygard (2007) "Release It!" Ch.4:
+ * a burst in one subsystem (e.g. AI predictions) cannot starve another
+ * (e.g. alert broadcasting).
+ * https://learn.microsoft.com/en-us/azure/architecture/patterns/bulkhead
  *
- * Bulkhead concurrency limiter — isolates subsystems by capping concurrent
- * executions per named compartment with priority-based queuing and timeouts.
- * Prevents one overloaded subsystem from consuming all resources.
+ * Each compartment has a fixed slot pool and a bounded wait queue. When all
+ * slots are occupied, lower-priority calls queue; if the queue is also full
+ * they are rejected immediately with a 503. Active count, queue depth, and
+ * cumulative rejections are tracked as Prometheus gauges.
  *
- * How it connects:
- * - Wraps service calls with concurrency limits
- * - Exposes Prometheus gauges for active count, queue size, rejections
- * - Pre-configured compartments initialised at startup via initBulkheads
- *
- * Simple explanation:
- * Like ship bulkheads — a failure in one compartment doesn't flood the rest.
+ * Pre-configured compartments are registered by initBulkheads() at startup.
  */
 
 import client from 'prom-client'

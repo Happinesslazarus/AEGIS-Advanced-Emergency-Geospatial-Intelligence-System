@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: ConfirmDialog.tsx
  *
  * Confirm dialog shared component (reusable UI element used across pages).
  *
- * How it connects:
  * - Used across both admin and citizen interfaces */
 
 import { AlertTriangle } from 'lucide-react'

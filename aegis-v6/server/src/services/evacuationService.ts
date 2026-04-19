@@ -1,6 +1,4 @@
-/**
- * File: evacuationService.ts
- *
+﻿/**
  * Evacuation route calculator — finds safe routes from a starting point to
  * shelters or high ground, scoring them by safety and distance while factoring
  * in live road closures, flood zones, and risk signals.
@@ -13,16 +11,11 @@
  * 3. All routes are ranked via `rankEvacuationRoutes` which blends time score
  *    with risk score according to the optimizeFor profile (fastest/safest/balanced).
  *
- * How it connects:
  * - Called by evacuation routes when users request escape paths
  * - Uses incidentIntelligenceCore for live risk data and route risk masks
  * - Reads shelter locations from the DB (PostGIS spatial queries)
  * - Feeds into the front-end EvacuationPanel map overlay
- *
- * Simple explanation:
- * Calculates the safest way to get from here to safety during a flood,
- * preferring dynamic live-routing but always having a fallback.
- */
+ * */
 
 import { getActiveCityRegion } from '../config/regions/index.js'
 import pool from '../models/db.js'

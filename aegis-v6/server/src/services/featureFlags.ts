@@ -1,18 +1,12 @@
-/**
- * File: featureFlags.ts
- *
+﻿/**
  * In-memory feature flag engine — supports percentage-based rollouts,
  * multi-attribute targeting rules (role, region, userId), A/B test variants
  * with weighted distribution, and kill switches. Refreshes from DB every 30s.
  *
- * How it connects:
  * - Reads flag definitions from the database on a 30-second interval
  * - Express middleware available to gate endpoints behind flags
  * - Bootstrap defaults provided for core AEGIS features
- *
- * Simple explanation:
- * Lets you turn features on/off for specific users or percentages without redeploying.
- */
+ * */
 
 import crypto from 'crypto'
 import { logger } from './logger.js'

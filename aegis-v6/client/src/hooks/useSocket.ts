@@ -128,6 +128,9 @@ export function useSocket(): SocketState {
   // Track all registered socket event names for proper cleanup
   const registeredEventsRef = useRef<string[]>([])
 
+  // Debounce guard for fetchCitizenThreads - prevent render-loop flooding
+  const fetchThreadsPendingRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   // Active thread ref - updated synchronously to avoid race conditions
   const activeThreadRef = useRef<ChatThread | null>(null)
   useEffect(() => { activeThreadRef.current = activeThread }, [activeThread])
@@ -818,50 +821,43 @@ export function useSocket(): SocketState {
   }, [])
 
   const fetchCitizenThreads = useCallback(async () => {
-    console.log('[Socket] fetchCitizenThreads called')
+    // Guard: skip if no auth token available (e.g. after logout)
+    const token = getCitizenToken() || getToken()
+    if (!token) return
+
+    // Debounce: cancel any pending REST fallback from a previous call
+    if (fetchThreadsPendingRef.current) {
+      clearTimeout(fetchThreadsPendingRef.current)
+      fetchThreadsPendingRef.current = null
+    }
+
     // Primary: use socket (real-time); fallback: REST after 2s delay
     socketRef.current?.emit('citizen:get_threads')
-    console.log('[Socket] Emitted citizen:get_threads event')
 
     // Delayed REST fallback only if socket didn't deliver
-    const timer = setTimeout(async () => {
-      console.log('[Socket] REST fallback triggered after 2s')
+    fetchThreadsPendingRef.current = setTimeout(async () => {
+      fetchThreadsPendingRef.current = null
       try {
-        const token = getCitizenToken() || getToken()
-        if (!token) {
-          console.error('[Socket] No token for REST fallback')
-          return
-        }
+        const tkn = getCitizenToken() || getToken()
+        if (!tkn) return
 
-        console.log('[Socket] Fetching /api/citizen/threads via REST')
         const res = await fetch('/api/citizen/threads', {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${tkn}` }
         })
 
-        if (!res.ok) {
-          console.error('[Socket] REST fallback failed:', res.status, res.statusText)
-          return
-        }
+        if (!res.ok) return
 
         const data = await res.json()
-        console.log('[Socket] REST response received:', data)
         const threadList: ChatThread[] = Array.isArray(data) ? data : (Array.isArray(data?.threads) ? data.threads : [])
-        console.log('[Socket] Parsed threadList:', threadList.length, 'threads')
         // Only apply REST data if socket hasn't already populated threads
         setThreads(prev => {
-          if (prev.length === 0 && threadList.length > 0) {
-            console.log('[Socket] Applying REST data (socket was empty)')
-            return threadList
-          }
-          console.log('[Socket] Ignoring REST data (socket already has', prev.length, 'threads)')
+          if (prev.length === 0 && threadList.length > 0) return threadList
           return prev
         })
       } catch (err) {
         console.error('[Socket] REST fallback error:', err)
       }
     }, 2000)
-
-    return () => clearTimeout(timer)
   }, [])
 
   const assignThread = useCallback((threadId: string, operatorId: string) => {
@@ -925,6 +921,12 @@ export function useSocket(): SocketState {
       if (heartbeatIntervalRef.current) {
         clearInterval(heartbeatIntervalRef.current)
         heartbeatIntervalRef.current = null
+      }
+
+      // Cancel pending REST fallback
+      if (fetchThreadsPendingRef.current) {
+        clearTimeout(fetchThreadsPendingRef.current)
+        fetchThreadsPendingRef.current = null
       }
 
       // Remove all registered event listeners before disconnecting

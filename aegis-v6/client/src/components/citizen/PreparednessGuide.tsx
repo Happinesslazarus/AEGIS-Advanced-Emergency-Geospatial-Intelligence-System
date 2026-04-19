@@ -1,7 +1,4 @@
-/**
- * File: PreparednessGuide.tsx
- *
- * What this file does:
+﻿/**
  * Interactive citizen preparedness trainer with five tabs:
  * - Tips: per-hazard safety advice cards with expand/collapse
  * - Scenarios: guided step-by-step drills with a live countdown timer
@@ -12,15 +9,10 @@
  * State persistence: four localStorage keys track progress across sessions
  * so users don't lose their readiness score on page reload.
  *
- * How it connects:
  * - Rendered by CitizenPage.tsx / CitizenDashboard.tsx
  * - Reads preparedness data from client/src/data/preparedness.ts
  * - Uses AlertsContext to push congratulatory notifications on achievements
- *
- * Simple explanation:
- * Teaches citizens what to do before, during, and after emergencies
- * through checklists, quizzes, and timed drills that track their progress.
- */
+ * */
 
 import { useState, useEffect, useRef } from 'react'
 import { X, BookOpen, Shield, ChevronDown, ChevronUp, CheckCircle, AlertTriangle, Play, RotateCcw, Trophy, Users, Clock, Star, Flame, Waves, Wind, Zap, Thermometer, AlertCircle, Filter, Timer, Award, Target, Heart, ArrowRight, Sparkles, ThumbsUp, Droplets, Package, Flashlight, Cross, Pill, BatteryCharging, FileText, Banknote, Radio, Shirt, Volume2, Hand, CloudRain, Glasses, Wrench, Map, Box, Baby, PawPrint, Phone, Globe, Crown, Backpack, Lock, type LucideIcon } from 'lucide-react'

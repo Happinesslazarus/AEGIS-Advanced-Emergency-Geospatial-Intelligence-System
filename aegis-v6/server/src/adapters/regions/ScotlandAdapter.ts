@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Module: ScotlandAdapter.ts
  *
  * RegionAdapter implementation for Scotland. Fetches live data from SEPA
@@ -17,7 +17,6 @@
  * Maps SEPA numeric levels (1–4) and text labels to this 4-point scale.
  * Max 50 warnings returned per request to prevent unbounded payloads.
  *
- * How it connects:
  * - Registered automatically in RegionRegistry.ensureBuiltIns()
  * - Consumed via RegionRegistry.getActiveRegion() in cronJobs, flood services,
  *   and every BaseIncidentModule instance when REGION_ID=scotland

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Module: WeatherPanel.tsx
  *
  * Advanced weather intelligence panel — fetches live data from the Open-Meteo API
@@ -6,7 +6,6 @@
  * feels-like temperature, UV index, pressure, dew point, wind direction compass,
  * sunrise/sunset, and multi-level warning system.
  *
- * How it connects:
  * - Used across both admin and citizen interfaces */
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'

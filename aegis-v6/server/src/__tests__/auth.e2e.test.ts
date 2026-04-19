@@ -1,6 +1,4 @@
-/**
- * File: auth.e2e.test.ts
- *
+﻿/**
  * What it tests:
  * End-to-end tests for the full authentication flow.
   * Covers registration → email verification → login → token refresh

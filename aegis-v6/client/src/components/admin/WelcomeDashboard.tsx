@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: WelcomeDashboard.tsx
  *
  * Welcome dashboard admin component (operator dashboard panel).
  *
- * How it connects:
  * - Rendered inside AdminPage.tsx based on active view */
 
 import { useMemo, useState, useEffect, useRef } from 'react'

@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: ActivityLog.tsx
  *
  * Operator activity log viewer (shows who did what and when).
  *
- * How it connects:
  * - Rendered inside AdminPage.tsx based on active view */
 
 /// AEGIS Admin - Activity Log Component

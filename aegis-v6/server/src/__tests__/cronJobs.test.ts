@@ -1,6 +1,4 @@
-/**
- * File: cronJobs.test.ts
- *
+﻿/**
  * What it tests:
  * Schema regression tests for the safety-reminder cron job.
   * Confirms the job produces correctly shaped notification objects

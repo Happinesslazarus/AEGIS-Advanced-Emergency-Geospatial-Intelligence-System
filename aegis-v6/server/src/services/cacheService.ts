@@ -1,19 +1,13 @@
-/**
- * File: cacheService.ts
- *
+﻿/**
  * Enterprise cache abstraction — namespace-scoped, versioned keys with
  * stale-while-revalidate grace periods and LRU eviction (5000 entries).
  * Full Prometheus instrumentation via cacheMetrics. Exports the shared
  * Redis instance and redisReady flag for other services.
  *
- * How it connects:
  * - Imports cache metric counters/histograms from cacheMetrics.ts
  * - Exports the shared redis client and redisReady flag
  * - Used by socket.ts, cronJobs, and route handlers
- *
- * Simple explanation:
- * The main caching layer — keeps hot data in memory so the DB doesn't get hammered.
- */
+ * */
 
 import Redis from 'ioredis'
 import crypto from 'crypto'
@@ -507,7 +501,7 @@ export const CACHE_TTL = {
   /* Spatial queries: shelters, risk zones */
   SPATIAL: 60 * 60,          // 1 hour
   /* RSS / emergency news feeds */
-  NEWS: 30 * 60,             // 30 minutes
+  NEWS: 10 * 60,             // 10 minutes (was 30 — more feeds now so fresher data)
   /* Flood data from EA/SEPA/NRW APIs */
   FLOOD_DATA: 10 * 60,       // 10 minutes
   /* Alert list (short because alerts are time-sensitive) */

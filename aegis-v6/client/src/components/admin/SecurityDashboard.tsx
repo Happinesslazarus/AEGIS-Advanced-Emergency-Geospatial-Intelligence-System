@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: SecurityDashboard.tsx
  *
  * Security monitoring dashboard (threat indicators and alerts).
  *
- * How it connects:
  * - Rendered inside AdminPage.tsx based on active view */
 
 import { useState, useEffect, useCallback } from 'react'

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Module: ReportForm.test.tsx
  *
  * Tests for the <ReportForm> citizen component — a multi-step wizard that lets
@@ -35,7 +35,6 @@
  *   t: key => key           = i18n mock that returns the raw translation key (not translated text)
  *   Object.defineProperty() = replaces a non-writable browser property with a test stub
  *
- * How it connects:
  * - Run by the test runner (Vitest) with `vitest run` or `vitest watch`
  */
 

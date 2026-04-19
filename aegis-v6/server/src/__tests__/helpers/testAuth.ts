@@ -1,11 +1,9 @@
-/**
+﻿/**
  * Module: testAuth.ts
  *
  * Test auth server module.
  *
- * How it connects:
  * - Run by the test runner (Vitest or Jest)
- *
  */
 
 import jwt, { type SignOptions } from 'jsonwebtoken'

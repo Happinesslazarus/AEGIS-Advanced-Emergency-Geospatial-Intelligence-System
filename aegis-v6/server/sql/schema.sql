@@ -536,6 +536,7 @@ CREATE INDEX IF NOT EXISTS idx_community_help_category
 
 CREATE TABLE IF NOT EXISTS alert_subscriptions (
     id                  UUID            PRIMARY KEY DEFAULT uuid_generate_v4(),
+    citizen_id          UUID            REFERENCES citizens(id) ON DELETE SET NULL,
     email               TEXT,
     phone               TEXT,
     telegram_id         TEXT,
@@ -555,7 +556,9 @@ CREATE TABLE IF NOT EXISTS alert_subscriptions (
 );
 
 -- Look up subscriptions by email (unsubscribe flow)
-CREATE INDEX IF NOT EXISTS idx_alert_subscriptions_email
+-- Partial unique index — one confirmed subscription per email address;
+-- null emails (web-push-only subscribers) are excluded from the constraint.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_alert_subscriptions_email
     ON alert_subscriptions (email)
     WHERE email IS NOT NULL;
 

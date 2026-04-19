@@ -1,14 +1,10 @@
-/**
+﻿/**
  * Module: schema.ts
  *
  * Infrastructure damage assessment incident module (handles infrastructure damage specific logic).
  *
- * How it connects:
  * - Part of the incident module system, registered via incidents/registry.ts
- *
- * Simple explanation:
- * Manages detection, assessment, and response for infrastructure damage events.
- */
+ * */
 
 export interface InfrastructureDamageCustomFields {
   damageType?: 'Building' | 'Bridge' | 'Road' | 'Railway' | 'Other'

@@ -1,13 +1,9 @@
-/**
- * File: runChatEvals.ts
- *
- * What this file does:
+﻿/**
  * Off-line evaluation harness for the AI chat assistant. Loads a JSON
  * scenario file, sends each prompt to the LLM router, measures response
  * latency and quality against expected keywords, and writes a detailed
  * JSON report to server/reports/. Run via: npm run eval:chat.
  *
- * How it connects:
  * - Calls server/src/services/llmRouter.ts directly (no HTTP overhead)
  * - Reads eval scenarios from server/scripts/chat-eval-scenarios.json
  * - Writes results to server/reports/chat-eval-<timestamp>.json

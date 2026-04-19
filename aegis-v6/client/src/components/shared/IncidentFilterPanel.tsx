@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: IncidentFilterPanel.tsx
  *
  * Incident filter panel shared component (reusable UI element used across pages).
  *
- * How it connects:
  * - Used across both admin and citizen interfaces */
 
 import { type ElementType } from 'react'

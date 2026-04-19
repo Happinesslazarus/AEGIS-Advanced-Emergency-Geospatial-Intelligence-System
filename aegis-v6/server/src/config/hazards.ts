@@ -1,21 +1,13 @@
-/**
- * File: hazards.ts
- *
- * What this file does:
+﻿/**
  * Defines the set of hazard types the platform monitors, including their
  * display config (icon, colour), enabled data sources, trigger thresholds,
  * and AI model names. `wildfire` is currently disabled (enabled: false)
  * because the satellite hot-spot feed integration is not yet live.
  *
- * How it connects:
  * - Imported by aiRoutes.ts and prediction services that filter by hazard type
  * - `getEnabledHazards()` drives the hazard selector in the admin dashboard
  * - Threshold values are referenced by the AI engine when deciding alert levels
- *
- * Simple explanation:
- * A lookup table of every natural hazard the system can monitor,
- * with the configuration that tells it when to raise an alert.
- */
+ * */
 
 import type { HazardConfig } from '../types/index.js'
 

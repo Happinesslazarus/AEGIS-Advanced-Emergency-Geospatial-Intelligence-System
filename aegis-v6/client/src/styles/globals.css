@@ -392,15 +392,19 @@
   option { color: #0f172a; background-color: #ffffff; }
   .dark option { color: #f8fafc; background-color: #1e293b; }
 
-  /*  Light theme global text fixes  */
-  :not(.dark) h1,:not(.dark) h2,:not(.dark) h3,:not(.dark) h4,:not(.dark) h5,:not(.dark) h6 { color: #0f172a; }
+  /*  Light theme global text fixes
+     SCOPED: only applies to headings WITHOUT an explicit Tailwind text-* class.
+     Headings inside always-dark gradient containers keep their text-white intact.
+     The :not([class*="text-"]) guard prevents overriding component-level colors. */
+  :not(.dark) h1:not([class*="text-"]):not([class*="!"]),:not(.dark) h2:not([class*="text-"]):not([class*="!"]),:not(.dark) h3:not([class*="text-"]):not([class*="!"]),:not(.dark) h4:not([class*="text-"]):not([class*="!"]),:not(.dark) h5:not([class*="text-"]):not([class*="!"]),:not(.dark) h6:not([class*="text-"]):not([class*="!"]) { color: #0f172a; }
   :not(.dark) td,:not(.dark) th { color: #0f172a; }
 
     /* Ensure headings are readable in dark mode (belt-and-suspenders).
       Some components forget to add dark: variants — enforce bright
-      heading colors in dark and dark text in light mode. */
-    html.dark h1, html.dark h2, html.dark h3, html.dark h4 { color: #ffffff !important; }
-    html:not(.dark) h1, html:not(.dark) h2, html:not(.dark) h3, html:not(.dark) h4 { color: #0f172a; }
+      heading colors in dark and dark text in light mode.
+      SCOPED: only applies to headings WITHOUT an explicit Tailwind text-* class. */
+    html.dark h1:not([class*="text-"]), html.dark h2:not([class*="text-"]), html.dark h3:not([class*="text-"]), html.dark h4:not([class*="text-"]) { color: #ffffff !important; }
+    html:not(.dark) h1:not([class*="text-"]), html:not(.dark) h2:not([class*="text-"]), html:not(.dark) h3:not([class*="text-"]), html:not(.dark) h4:not([class*="text-"]) { color: #0f172a; }
 
   /*  Input / select text safety
      Only set background on elements that DON'T have an explicit Tailwind
@@ -746,14 +750,30 @@
   /* Ensure all fixed/absolute dropdowns don't exceed viewport */
   [class*="absolute"][class*="w-"] { max-width: calc(100vw - 1rem); }
 
-  /* Touch-friendly tap targets: ensure interactive elements meet 44px min */
+  /* Touch-friendly tap targets: WCAG 2.5.5 minimum 44×44px */
   button, a, [role="button"], select {
-    min-height: 32px;
+    min-height: 44px;
+  }
+
+  /* Prevent iOS Safari from auto-zooming on input focus (requires font-size ≥ 16px) */
+  input:not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+  select,
+  textarea {
+    font-size: 16px !important;
   }
 
   /* Better table handling on mobile */
   table { font-size: 0.7rem; }
   th, td { padding: 0.375rem 0.5rem; }
+
+  /* Scrollable tab bars — snap for better swipe feel */
+  .tab-bar-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+  .tab-bar-scroll::-webkit-scrollbar { display: none; }
 }
 
 /* Disable tap highlight for cleaner mobile UX */
@@ -917,6 +937,77 @@
 .glass-nav {
   backdrop-filter: blur(20px) saturate(200%);
   -webkit-backdrop-filter: blur(20px) saturate(200%);
+}
+
+/* ═══ Hero animated aurora gradient ═══ */
+@keyframes aurora {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+.hero-aurora {
+  background: linear-gradient(
+    -45deg,
+    rgb(var(--aegis-800)),
+    rgb(var(--aegis-600)),
+    rgb(var(--aegis-700)),
+    rgb(var(--aegis-500))
+  );
+  background-size: 300% 300%;
+  animation: aurora 12s ease infinite;
+}
+.dark .hero-aurora {
+  background: linear-gradient(
+    -45deg,
+    rgb(var(--aegis-950)),
+    rgb(var(--aegis-900)),
+    rgb(var(--aegis-800)),
+    rgb(var(--aegis-950))
+  );
+  background-size: 300% 300%;
+  animation: aurora 12s ease infinite;
+}
+
+/* ═══ Gradient text for hero headings ═══ */
+.hero-gradient-text {
+  background: linear-gradient(135deg, #ffffff 0%, rgba(255,255,255,0.8) 50%, #ffffff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ═══ Stat card hover glow ═══ */
+.stat-card-glow {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.stat-card-glow:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(var(--aegis-500), 0.08);
+}
+.dark .stat-card-glow:hover {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3), 0 0 24px rgba(var(--aegis-500), 0.12);
+}
+
+/* ═══ Action card shine sweep ═══ */
+.action-shine {
+  position: relative;
+  overflow: hidden;
+}
+.action-shine::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.06) 45%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.06) 55%, transparent 60%);
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
+  pointer-events: none;
+}
+.action-shine:hover::after {
+  transform: translateX(100%);
+}
+
+/* ═══ Active tab glow ═══ */
+.tab-active-glow {
+  box-shadow: 0 4px 20px rgba(var(--aegis-600), 0.35), 0 0 0 1px rgba(var(--aegis-500), 0.15);
 }
 
 /*  Gold glass card — add text anchor  */
@@ -1312,4 +1403,38 @@ html.dark .skeleton-shimmer {
 }
 .btn-press:active {
   transform: scale(0.97);
+}
+
+/* ═══ AEGIS Chatbot — Advanced Animations ═══ */
+
+/* Waveform typing indicator */
+@keyframes waveform {
+  0%, 100% { height: 30%; opacity: 0.4; }
+  50%      { height: 100%; opacity: 1; }
+}
+
+/* Cursor blink for streaming */
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0; }
+}
+
+/* Smooth message reveal */
+@keyframes messageReveal {
+  0%   { opacity: 0; transform: translateY(8px) scale(0.98); filter: blur(2px); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+
+/* Glow ring pulse for online status */
+@keyframes glowRing {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.4); }
+  50%      { box-shadow: 0 0 0 4px rgba(52, 211, 153, 0); }
+}
+
+/* Reduced motion: disable all chatbot animations */
+@media (prefers-reduced-motion: reduce) {
+  @keyframes waveform   { 0%, 100% { height: 60%; opacity: 0.7; } }
+  @keyframes cursorBlink { 0%, 100% { opacity: 1; } }
+  @keyframes messageReveal { 0%, 100% { opacity: 1; transform: none; filter: none; } }
+  @keyframes glowRing { 0%, 100% { box-shadow: none; } }
 }

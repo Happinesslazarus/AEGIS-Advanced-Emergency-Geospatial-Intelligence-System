@@ -1,19 +1,12 @@
-/**
- * File: dataRoutes.ts
- *
- * What this file does:
+﻿/**
  * Data-centric API routes: emergency alerts CRUD, operator activity logs,
  * AI model metrics, weather proxying (OpenWeatherMap / Open-Meteo),
  * flood zone checks (PostGIS), and SEPA river gauge data.
  *
- * How it connects:
  * - Mounted at /api in index.ts (e.g. GET /api/alerts, /api/weather/:lat/:lng)
  * - Weather data proxied from external APIs to avoid CORS and key exposure
  * - Flood zone checks use PostGIS spatial queries on the local database
- *
- * Simple explanation:
- * The main data endpoints — alerts, weather, flood zones, and operator logs.
- */
+ * */
 
 import { Router, Request, Response, NextFunction } from 'express'
 import rateLimit from 'express-rate-limit'
@@ -559,16 +552,39 @@ router.get('/news', async (_req: Request, res: Response, next: NextFunction): Pr
 
     // Global feeds — always included (verified reliable, CORS-free server-fetch)
     const feeds: { source: string; url: string }[] = [
+      // GDACS — all hazard type sub-feeds (much higher volume than combined feed)
       { source: 'GDACS',                           url: 'https://www.gdacs.org/xml/rss.xml' },
+      { source: 'GDACS Earthquakes',               url: 'https://www.gdacs.org/xml/rss_eq.xml' },
+      { source: 'GDACS Floods',                    url: 'https://www.gdacs.org/xml/rss_fl.xml' },
+      { source: 'GDACS Tropical Cyclones',         url: 'https://www.gdacs.org/xml/rss_tc.xml' },
+      { source: 'GDACS Volcanoes',                 url: 'https://www.gdacs.org/xml/rss_vo.xml' },
+      { source: 'GDACS Droughts',                  url: 'https://www.gdacs.org/xml/rss_dr.xml' },
+      // USGS — M2.5+ weekly gives hundreds of fresh earthquake entries
+      { source: 'USGS Earthquakes',                url: 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_week.atom' },
+      { source: 'USGS Significant',                url: 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_month.atom' },
+      // ReliefWeb — disasters feed is much higher volume than headlines
       { source: 'ReliefWeb',                       url: 'https://reliefweb.int/headlines/rss.xml' },
+      { source: 'ReliefWeb Disasters',             url: 'https://reliefweb.int/disasters/rss.xml' },
+      // FloodList — dedicated flood news, updated daily
+      { source: 'FloodList',                       url: 'https://floodlist.com/feed' },
+      // The Guardian — disaster & environment verticals
       { source: 'The Guardian Natural Disasters',  url: 'https://www.theguardian.com/world/natural-disasters/rss' },
       { source: 'The Guardian Environment',        url: 'https://www.theguardian.com/environment/rss' },
       { source: 'The Guardian World',              url: 'https://www.theguardian.com/world/rss' },
       { source: 'The Guardian Global Development', url: 'https://www.theguardian.com/global-development/rss' },
-      { source: 'The Guardian Science',            url: 'https://www.theguardian.com/science/rss' },
+      { source: 'The Guardian Climate Crisis',     url: 'https://www.theguardian.com/environment/climate-crisis/rss' },
+      // BBC
       { source: 'BBC World News',                  url: 'https://feeds.bbci.co.uk/news/world/rss.xml' },
-      { source: 'USGS Earthquakes',                url: 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_month.atom' },
+      { source: 'BBC Science & Environment',       url: 'https://feeds.bbci.co.uk/news/science_and_environment/rss.xml' },
+      // UN
       { source: 'UN Humanitarian',                 url: 'https://news.un.org/feed/subscribe/en/news/topic/humanitarian-aid/feed/rss.xml' },
+      { source: 'UN Climate',                      url: 'https://news.un.org/feed/subscribe/en/news/topic/climate-change/feed/rss.xml' },
+      // NASA Earth Observatory — satellite imagery of disasters
+      { source: 'NASA Earth Observatory',          url: 'https://earthobservatory.nasa.gov/feeds/earth-observatory.rss' },
+      // WHO — disease & health emergencies
+      { source: 'WHO',                             url: 'https://www.who.int/rss-feeds/news-english.xml' },
+      // Copernicus Emergency Management
+      { source: 'Copernicus Emergency',            url: 'https://emergency.copernicus.eu/mapping/list-of-components/EMSR/rss' },
     ]
 
     // Regional feeds — appended when deployment region matches
@@ -850,8 +866,16 @@ async function dispatchAlertDeliveries(
       status = delivery.success ? 'sent' : 'failed'
       error = delivery.success ? undefined : (delivery.error || 'web_push_failed')
 
-      // Auto-deactivate expired/unregistered subscriptions (410 Gone, 404 Not Found)
-      if (!delivery.success && (delivery as any).expired) {
+      // Auto-deactivate subscriptions that are permanently invalid.
+      // 410 Gone / 404 Not Found  → FCM explicitly says endpoint is gone.
+      // 400 Bad Request           → subscription object is malformed/unrecognised by FCM.
+      // Do NOT deactivate on 401 (VAPID mismatch = our server config issue, not the endpoint's fault)
+      // or 5xx/429 (transient server-side errors — endpoint may recover).
+      const statusCode = (delivery as any).statusCode as number | undefined
+      const permanentlyInvalid =
+        (delivery as any).expired ||                  // 410 / 404 (set in notificationService)
+        statusCode === 400                             // malformed subscription
+      if (!delivery.success && permanentlyInvalid) {
         pool.query(`UPDATE push_subscriptions SET active = false WHERE endpoint = $1`, [sub.endpoint]).catch(() => {})
       }
 
@@ -1001,6 +1025,33 @@ router.get('/notifications/status', async (_req: Request, res: Response, next: N
 })
 
  /*
+ * GET /api/notifications/verify-subscription?endpoint=<url>
+ * Check whether a push endpoint is registered and active in the database.
+ * Used by the client to detect stale browser subscriptions that need renewal.
+ */
+router.get('/notifications/verify-subscription', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const endpoint = req.query.endpoint as string | undefined
+    if (!endpoint) {
+      res.json({ active: false, exists: false })
+      return
+    }
+    const result = await pool.query(
+      `SELECT active FROM push_subscriptions WHERE endpoint = $1 LIMIT 1`,
+      [endpoint]
+    )
+    if (result.rows.length === 0) {
+      res.json({ active: false, exists: false })
+    } else {
+      res.json({ active: result.rows[0].active === true, exists: true })
+    }
+  } catch {
+    // If the table doesn't exist yet, treat as not active
+    res.json({ active: false, exists: false })
+  }
+})
+
+ /*
  * POST /api/notifications/subscribe
  * Save browser push subscription for authenticated user or guest
  * Stores endpoint, p256dh, and auth in push_subscriptions table
@@ -1033,7 +1084,12 @@ router.post('/notifications/subscribe', pushSubscriptionLimiter, async (req: Req
       await pool.query(
         `INSERT INTO push_subscriptions (endpoint, p256dh, auth, subscription_data)
          VALUES ($1, $2, $3, $4)
-         ON CONFLICT (endpoint) DO UPDATE SET p256dh = EXCLUDED.p256dh, auth = EXCLUDED.auth, subscription_data = EXCLUDED.subscription_data`,
+         ON CONFLICT (endpoint) DO UPDATE SET
+           p256dh = EXCLUDED.p256dh,
+           auth = EXCLUDED.auth,
+           subscription_data = EXCLUDED.subscription_data,
+           active = true,
+           updated_at = CURRENT_TIMESTAMP`,
         [subscription.endpoint, subscription.keys.p256dh, subscription.keys.auth, JSON.stringify(subscription)]
       )
     } catch (err: any) {
@@ -1055,7 +1111,12 @@ router.post('/notifications/subscribe', pushSubscriptionLimiter, async (req: Req
         await pool.query(
           `INSERT INTO push_subscriptions (endpoint, p256dh, auth, subscription_data)
            VALUES ($1, $2, $3, $4)
-           ON CONFLICT (endpoint) DO UPDATE SET p256dh = EXCLUDED.p256dh, auth = EXCLUDED.auth, subscription_data = EXCLUDED.subscription_data`,
+           ON CONFLICT (endpoint) DO UPDATE SET
+             p256dh = EXCLUDED.p256dh,
+             auth = EXCLUDED.auth,
+             subscription_data = EXCLUDED.subscription_data,
+             active = true,
+             updated_at = CURRENT_TIMESTAMP`,
           [subscription.endpoint, subscription.keys.p256dh, subscription.keys.auth, JSON.stringify(subscription)]
         )
       } else {

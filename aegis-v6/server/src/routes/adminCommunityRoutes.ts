@@ -1,19 +1,12 @@
-/**
- * File: adminCommunityRoutes.ts
- *
- * What this file does:
+﻿/**
  * Admin moderation endpoints for community content. Admins and operators
  * can review flagged posts, ban users, and manage community guidelines.
  *
- * How it connects:
  * - Mounted at /api/admin/community in index.ts
  * - Reads from the same community tables as communityRoutes.ts
  * - Emits real-time moderation events via communityRealtime service
  * - Requires admin or operator authentication
- *
- * Simple explanation:
- * Gives admins tools to moderate community posts and manage users.
- */
+ * */
 import { Router, Response, NextFunction } from 'express'
 import pool from '../models/db.js'
 import { authMiddleware, operatorOnly, AuthRequest } from '../middleware/auth.js'

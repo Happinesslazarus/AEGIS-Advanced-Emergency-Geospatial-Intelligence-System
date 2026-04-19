@@ -1,10 +1,9 @@
-#!/usr/bin/env ts-node
+﻿#!/usr/bin/env ts-node
 /**
  * Module: seedAdmin.ts
  *
  * Initial admin account seeder (creates the first admin user on fresh installs).
  *
- * How it connects:
  * - Run manually or on first startup to create the initial admin user
  * - Reads DATABASE_URL from .env to connect to PostgreSQL
  * Two modes:
@@ -15,10 +14,7 @@
  * INITIAL_ADMIN_EMAIL=x INITIAL_ADMIN_PASSWORD=y node dist/scripts/seedAdmin.js
  * Idempotent — if an operator with the given email already exists the script
  * logs a clear message and exits 0.
- *
- * Simple explanation:
- * Ensures there is always an admin account to log in with after setup.
- */
+ * */
 
 import dotenv from 'dotenv'
 import path from 'path'

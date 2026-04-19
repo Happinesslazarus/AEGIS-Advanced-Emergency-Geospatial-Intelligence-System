@@ -1,12 +1,8 @@
-/**
- * File: logger.ts (utils)
- *
- * What this file does:
+﻿/**
  * Simple development logging helpers. devLog prints to console only in
  * non-production environments. auditLog writes structured JSON entries
  * for audit-sensitive operations.
  *
- * How it connects:
  * - devLog used throughout the codebase for debug output
  * - auditLog used by admin routes (cache, community) to record actions
  * - In production, auditLog writes JSON to stdout for log aggregation

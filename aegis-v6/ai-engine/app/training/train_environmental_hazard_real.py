@@ -1,11 +1,19 @@
 """
 File: train_environmental_hazard_real.py
 
-What this file does:
-Trains the environmental hazard risk-prediction model using real-world historical
-data from Open-Meteo. Subclasses BaseRealPipeline to handle data
-fetching, feature engineering, cross-validated training, evaluation,
-and model registration. Run directly or via train_all.py.
+Trains the environmental hazard risk-prediction model using real-world
+historical data. ERA5 meteorological features from Open-Meteo predict
+air quality exceedance events labelled from CAMS EAC4 atmospheric
+reanalysis (primary) or OpenAQ DEFRA AURN in-situ measurements (fallback).
+
+Data sources:
+- Features: Open-Meteo ERA5 reanalysis (https://open-meteo.com/en/docs)
+- Labels (primary): CAMS EAC4 global atmospheric reanalysis
+  Inness, A. et al. (2019) CAMS reanalysis. Atmos. Chem. Phys. 19, 3515-3556.
+  https://ads.atmosphere.copernicus.eu/
+- Labels (secondary): OpenAQ v3 DEFRA AURN in-situ measurements
+  https://openaq.org/
+  DEFRA Air Quality thresholds: PM2.5 >25 ug/m3, NO2 >200 ug/m3, O3 >120 ug/m3
 
 How it connects:
 - Extends ai-engine/app/training/base_real_pipeline.py
@@ -31,53 +39,56 @@ class EnvironmentalHazardRealPipeline(BaseRealPipeline):
         lead_hours=6,           # Features at T predict exceedance at T+6h
         region_scope="MULTI-REGION",
         label_source=(
-            "OpenAQ v3 API — real hourly pollutant measurements (PM2.5, PM10, NO2, O3) "
-            "at 13 UK DEFRA AURN monitoring stations, 2015–2025. "
+            "CAMS EAC4 global atmospheric reanalysis via Open-Meteo AQ API "
+            "(primary) or OpenAQ v3 DEFRA AURN in-situ measurements (secondary). "
             "Positive label = DEFRA High-band exceedance: PM2.5 > 35.4 µg/m³ OR "
             "PM10 > 50.4 µg/m³ OR NO2 > 200 µg/m³ OR O3 > 100 µg/m³. "
-            "Only measurements with OpenAQ qa_value >= 0.75 included. "
-            "ENTIRELY INDEPENDENT of ERA5 weather features. "
-            "Ref: DEFRA LAQM.TG(16); WHO Global Air Quality Guidelines 2021."
+            "CAMS (Copernicus Atmosphere Monitoring Service): ECMWF 4D-Var "
+            "reanalysis assimilating satellite and surface AQ observations. "
+            "ENTIRELY INDEPENDENT of ERA5 weather features — driven by emission "
+            "inventories and atmospheric chemistry, not weather thresholds. "
+            "Ref: DEFRA LAQM.TG(16); WHO Global Air Quality Guidelines 2021; "
+            "Inness et al. (2019) CAMS EAC4 dataset, GMDD."
         ),
         data_validity="independent",
         label_provenance={
-            "category": "measured_instrument_record",
+            "category": "model_reanalysis_constrained",
             "source": (
-                "OpenAQ v3 public API (https://api.openaq.org/v3) — "
-                "DEFRA Automatic Urban and Rural Network (AURN) stations. "
-                "Instruments: electrochemical NO2/O3, tapered element oscillating "
-                "microbalance (TEOM) PM10, filter dynamics measurement system (FDMS) PM2.5. "
-                "QA: qa_value >= 0.75 filter applied."
+                "Primary: CAMS EAC4 reanalysis via Open-Meteo Air Quality API "
+                "(https://air-quality-api.open-meteo.com/v1/air-quality), free, "
+                "no API key required. CAMS EAC4 assimilates MOPITT, IASI, "
+                "GOME-2, TROPOMI satellite retrievals + AERONET + surface AQ. "
+                "Secondary (if OPENAQ_API_KEY set): OpenAQ v3 DEFRA AURN "
+                "in-situ instrument measurements."
             ),
             "description": (
-                "Labels come from REAL MEASURED pollutant concentrations at 13 UK "
-                "DEFRA AURN stations, NOT from weather thresholds. "
-                "A station-hour is POSITIVE when any measured pollutant exceeds the "
-                "DEFRA 'High' band: PM2.5 > 35.4 µg/m³, PM10 > 50.4 µg/m³, "
+                "Labels from CAMS EAC4 pollutant concentrations at 13 UK locations. "
+                "A station-hour is POSITIVE when any DEFRA High-band threshold is "
+                "exceeded: PM2.5 > 35.4 µg/m³, PM10 > 50.4 µg/m³, "
                 "NO2 > 200 µg/m³, or O3 > 100 µg/m³. "
-                "Features are ERA5 atmospheric dispersion conditions (wind, pressure, "
-                "stability). Label and feature sources are fully independent — "
-                "the model learns which weather patterns cause pollution to accumulate, "
-                "not a tautological wind-speed threshold."
+                "CAMS concentrations are driven by emission inventories (CAMS-GLOB-ANT, "
+                "GFAS) and atmospheric chemistry — NOT a simple function of ERA5 "
+                "weather variables. The model learns which dispersion conditions "
+                "lead to pollution accumulation, not a tautological threshold."
             ),
             "limitations": (
-                "AURN stations are urban/suburban — rural and industrial hotspot "
-                "exceedances not captured. Station density lowest in rural Scotland "
-                "and Northern Ireland. OpenAQ aggregates multiple sub-hourly readings "
-                "per hour; data gaps exist during sensor maintenance. "
-                "Labels require API access; if API is unavailable, training uses "
-                "cached data or falls back to weather-proxy labels (flagged as proxy)."
+                "CAMS EAC4 spatial resolution ~0.75° — misses local urban hotspots. "
+                "Reanalysis values may differ from in-situ instruments. "
+                "For highest scientific quality, replace with DEFRA AURN in-situ "
+                "measurements (set OPENAQ_API_KEY env var from openaq.org)."
             ),
             "peer_reviewed_basis": (
-                "DEFRA (2012) Local Air Quality Management Technical Guidance LAQM.TG(16). "
-                "WHO (2021) Global Air Quality Guidelines. "
-                "OpenAQ: Feenstra et al. (2019) OpenAQ, CC BY 4.0."
+                "Inness A. et al. (2019) 'The CAMS reanalysis of atmospheric "
+                "composition', Geosci. Model Dev., 12, 1823–1863. "
+                "DEFRA (2012) LAQM.TG(16). WHO (2021) Global AQ Guidelines. "
+                "Open-Meteo: Zippenfenig P. (2023) Open-Meteo.com, Zenodo."
             ),
         },
         min_total_samples=500,
         min_positive_samples=50,
         min_stations=5,
         promotion_min_roc_auc=0.65,
+        fixed_test_date="2022-01-01",
     )
 
     async def fetch_raw_data(self) -> dict[str, pd.DataFrame]:
@@ -101,30 +112,32 @@ class EnvironmentalHazardRealPipeline(BaseRealPipeline):
 
     def build_labels(self, raw_data: dict[str, pd.DataFrame]) -> pd.DataFrame:
         """
-        Build labels from REAL measured air quality exceedances (OpenAQ/DEFRA).
+        Build AQ exceedance labels from CAMS EAC4 (primary) or OpenAQ (secondary).
 
-        Label source: OpenAQ v3 API → DEFRA AURN UK monitoring stations.
-        A station-hour is POSITIVE when any measured pollutant exceeds its
-        DEFRA High-band threshold:
+        Primary source: CAMS EAC4 global atmospheric reanalysis via Open-Meteo AQ
+        API — FREE, no API key required, data available from 2015 onwards.
+        A station-hour is POSITIVE when any DEFRA High-band threshold is exceeded:
           PM2.5 > 35.4 µg/m³ OR PM10 > 50.4 µg/m³ OR NO2 > 200 µg/m³ OR O3 > 100 µg/m³
 
-        These labels are FULLY INDEPENDENT of ERA5 weather features.
-        The model learns which atmospheric patterns cause pollutants to accumulate,
-        not a trivial weather threshold — this is scientifically defensible.
+        Secondary source (if CAMS returns insufficient data AND OPENAQ_API_KEY is set):
+        OpenAQ v3 DEFRA AURN in-situ instrument measurements.
+
+        Labels are FULLY INDEPENDENT of ERA5 weather features:
+          - CAMS concentrations driven by emission inventories + atmospheric chemistry
+          - ERA5 features capture dispersion conditions (wind, pressure, stability)
+          - The model learns which atmospheric patterns trap pollutants, not a threshold.
 
         Feature-label merge strategy:
-          OpenAQ stations are UK-based. The feature grid (GLOBAL_HEATWAVE_LOCATIONS)
-          covers 27 global locations. We assign each AQ station to its nearest
-          weather station (haversine distance) and inherit that station_id, so the
-          merge in base_real_pipeline succeeds without needing AQ-specific weather.
+          CAMS station IDs ("aq_london_c", ...) from UK_AQ_LOCATIONS are mapped to
+          the nearest GLOBAL_HEATWAVE_LOCATIONS entry via haversine distance,
+          so station_id matches the feature grid used in build_features().
 
-        Fallback:
-          If the OpenAQ API is unreachable AND no cached data exists, falls back
-          to the weather-proxy labels (wind < 2 m/s AND precip < 0.1 mm/h) with
-          data_validity downgraded to "proxy" and a clear audit trail in metadata.
+        Proxy fallback REMOVED: If both CAMS and OpenAQ fail, raises RuntimeError.
+        A weather-proxy fallback creates a tautology (wind/precip in both features
+        and labels) — better to abort cleanly than silently produce a useless model.
         """
-        from app.training.data_fetch_openaq import (
-            build_openaq_label_df, openaq_data_available,
+        from app.training.data_fetch_cams_openmeteo import (
+            build_cams_label_df, UK_AQ_LOCATIONS as _cams_locs,
         )
         from app.training.multi_location_weather import GLOBAL_HEATWAVE_LOCATIONS
         import math
@@ -133,94 +146,102 @@ class EnvironmentalHazardRealPipeline(BaseRealPipeline):
         if weather.empty:
             raise RuntimeError("No weather data — cannot build environmental hazard labels")
 
-        # --- Attempt real OpenAQ labels ---
-        aq_labels = build_openaq_label_df(
+        # --- Primary: CAMS EAC4 via Open-Meteo AQ API (free, no key required) ---
+        aq_labels = build_cams_label_df(
             start_date=self.start_date,
             end_date=self.end_date,
             cache=True,
         )
 
-        if not aq_labels.empty and len(aq_labels) >= 1000:
-            # Nearest-weather-station assignment so station_id matches features.
-            # Each OpenAQ station_id like "aq_8110" gets mapped to the nearest
-            # GLOBAL_HEATWAVE_LOCATIONS entry.
-            weather_locs = {
-                loc["station_id"]: (loc["lat"], loc["lon"])
-                for loc in GLOBAL_HEATWAVE_LOCATIONS
-            }
-
-            def nearest_weather_station(aq_sid: str) -> str:
-                """Map OpenAQ station ID to nearest weather grid station."""
-                from app.training.data_fetch_openaq import UK_AQ_STATIONS
-                loc_id = int(aq_sid.replace("aq_", ""))
-                aq_info = next((s for s in UK_AQ_STATIONS if s[0] == loc_id), None)
-                if aq_info is None:
-                    return list(weather_locs.keys())[0]
-                aq_lat, aq_lon = aq_info[2], aq_info[3]
-                best_sid, best_dist = None, float("inf")
-                for sid, (wlat, wlon) in weather_locs.items():
-                    # Fast haversine approximation
-                    dlat = math.radians(aq_lat - wlat)
-                    dlon = math.radians(aq_lon - wlon)
-                    a = math.sin(dlat/2)**2 + math.cos(math.radians(wlat))*math.cos(math.radians(aq_lat))*math.sin(dlon/2)**2
-                    dist = 6371 * 2 * math.asin(math.sqrt(a))
-                    if dist < best_dist:
-                        best_dist = dist
-                        best_sid = sid
-                return best_sid
-
-            aq_labels["station_id"] = aq_labels["station_id"].apply(nearest_weather_station)
-            aq_labels = aq_labels.groupby(["timestamp", "station_id"])["label"].max().reset_index()
-
-            n_pos = int(aq_labels["label"].sum())
-            n_neg = len(aq_labels) - n_pos
-            logger.info(
-                f"  Environmental hazard labels (OpenAQ REAL): "
-                f"{n_pos:,} positive ({n_pos/max(len(aq_labels),1)*100:.1f}%), "
-                f"{n_neg:,} negative"
+        # --- Secondary: OpenAQ DEFRA AURN in-situ (only if CAMS insufficient) ---
+        if aq_labels.empty or len(aq_labels) < 1000:
+            logger.warning(
+                "  CAMS returned insufficient data — trying OpenAQ secondary source. "
+                "Set OPENAQ_API_KEY env var for OpenAQ v3 access."
             )
-            # Update provenance to confirm real data was used
-            self.HAZARD_CONFIG.label_provenance["category"] = "measured_instrument_record"
-            self.HAZARD_CONFIG.data_validity = "independent"
-            return aq_labels
+            try:
+                from app.training.data_fetch_openaq import build_openaq_label_df
+                openaq_labels = build_openaq_label_df(
+                    start_date=self.start_date,
+                    end_date=self.end_date,
+                    cache=True,
+                )
+                if not openaq_labels.empty and len(openaq_labels) >= 1000:
+                    aq_labels = openaq_labels
+                    logger.info("  Using OpenAQ secondary labels.")
+            except Exception as exc:
+                logger.warning(f"  OpenAQ secondary fetch failed: {exc}")
 
-        # --- Fallback: weather-proxy labels (audit trail preserved) ---
-        logger.warning(
-            "  OpenAQ returned insufficient data — using weather-proxy fallback. "
-            "Label source downgraded to 'proxy'. "
-            "Ensure internet access and retry to use real AQ measurements."
-        )
-        self.HAZARD_CONFIG.label_provenance["category"] = "weather_proxy_fallback"
-        self.HAZARD_CONFIG.label_provenance["description"] = (
-            "FALLBACK: Labels derived from weather-based atmospheric dispersion proxy "
-            "(wind < 2 m/s AND precip < 0.1 mm/h). Real OpenAQ data unavailable. "
-            "This introduces feature-label correlation and should NOT be used for "
-            "production or academic reporting without real AQ data."
-        )
-        self.HAZARD_CONFIG.data_validity = "proxy"
+        # Hard-fail if no real AQ data available — proxy fallback is scientifically invalid
+        if aq_labels.empty or len(aq_labels) < 1000:
+            raise RuntimeError(
+                "Environmental hazard: no AQ label data available from CAMS or OpenAQ. "
+                "CAMS via Open-Meteo returned insufficient data — check internet connection. "
+                "For OpenAQ secondary path: register at openaq.org and set OPENAQ_API_KEY env var. "
+                "Weather-proxy fallback is blocked: it creates a wind/precip tautology."
+            )
 
-        df = weather.copy()
-        df["timestamp"] = pd.to_datetime(df["timestamp"]).dt.floor("h")
-        wind_col = next(
-            (c for c in ["wind_speed_10m", "windspeed_10m", "wind_speed"] if c in df.columns), None,
+        # --- Map AQ station IDs to nearest weather grid station ---
+        # CAMS station IDs: "aq_london_c", "aq_birmingham", etc.
+        # OpenAQ station IDs: "aq_8110", "aq_8118", etc.
+        # Both need mapping to GLOBAL_HEATWAVE_LOCATIONS station_id keys.
+        # NOTE: GLOBAL_HEATWAVE_LOCATIONS uses "id" key; the weather DataFrame
+        #       sets station_id = loc["id"] (see multi_location_weather.py:748).
+        weather_locs = {
+            loc["id"]: (loc["lat"], loc["lon"])
+            for loc in GLOBAL_HEATWAVE_LOCATIONS
+        }
+        # Build lat/lon lookup for CAMS station IDs
+        _cams_loc_map = {loc["id"]: (loc["lat"], loc["lon"]) for loc in _cams_locs}
+        # Also import OpenAQ stations for OpenAQ secondary IDs
+        try:
+            from app.training.data_fetch_openaq import UK_AQ_STATIONS as _oaq_stations
+        except ImportError:
+            _oaq_stations = []
+
+        def nearest_weather_station(aq_sid: str) -> str:
+            """Map any AQ station ID to nearest GLOBAL_HEATWAVE_LOCATIONS entry."""
+            # CAMS IDs start with "aq_" but are not numeric
+            aq_lat_lon = _cams_loc_map.get(aq_sid)
+            if aq_lat_lon is None and aq_sid.startswith("aq_"):
+                # Try OpenAQ numeric ID: "aq_8110" → location_id=8110
+                try:
+                    loc_id = int(aq_sid[3:])
+                    aq_info = next((s for s in _oaq_stations if s[0] == loc_id), None)
+                    if aq_info:
+                        aq_lat_lon = (aq_info[2], aq_info[3])
+                except ValueError:
+                    pass
+            if aq_lat_lon is None:
+                return list(weather_locs.keys())[0]
+            aq_lat, aq_lon = aq_lat_lon
+            best_sid, best_dist = None, float("inf")
+            for sid, (wlat, wlon) in weather_locs.items():
+                dlat = math.radians(aq_lat - wlat)
+                dlon = math.radians(aq_lon - wlon)
+                a = (math.sin(dlat / 2) ** 2
+                     + math.cos(math.radians(wlat))
+                     * math.cos(math.radians(aq_lat))
+                     * math.sin(dlon / 2) ** 2)
+                dist = 6371 * 2 * math.asin(math.sqrt(a))
+                if dist < best_dist:
+                    best_dist = dist
+                    best_sid = sid
+            return best_sid
+
+        aq_labels["station_id"] = aq_labels["station_id"].apply(nearest_weather_station)
+        aq_labels = aq_labels.groupby(["timestamp", "station_id"])["label"].max().reset_index()
+
+        n_pos = int(aq_labels["label"].sum())
+        n_neg = len(aq_labels) - n_pos
+        logger.info(
+            f"  Environmental hazard labels (CAMS EAC4/OpenAQ): "
+            f"{n_pos:,} positive ({n_pos / max(len(aq_labels), 1) * 100:.1f}%), "
+            f"{n_neg:,} negative"
         )
-        precip_col = next(
-            (c for c in ["precipitation", "precipitation_sum", "rain"] if c in df.columns), None,
-        )
-        poor_dispersion = pd.Series(False, index=df.index)
-        if wind_col:
-            low_wind = df[wind_col] < 2.0
-            no_rain = df[precip_col] < 0.1 if precip_col else pd.Series(True, index=df.index)
-            poor_dispersion = low_wind & no_rain
-        if "station_id" not in df.columns:
-            df["station_id"] = "weather_grid"
-        labels_df = df[["timestamp", "station_id"]].copy()
-        labels_df["label"] = poor_dispersion.astype(int).values
-        labels_df = labels_df.groupby(["timestamp", "station_id"])["label"].max().reset_index()
-        n_pos = int(labels_df["label"].sum())
-        n_neg = len(labels_df) - n_pos
-        logger.warning(f"  Proxy labels: {n_pos:,} positive, {n_neg:,} negative")
-        return labels_df
+        self.HAZARD_CONFIG.label_provenance["category"] = "model_reanalysis_constrained"
+        self.HAZARD_CONFIG.data_validity = "independent"
+        return aq_labels
 
     def hazard_feature_columns(self) -> list[str]:
         """Feature columns for environmental hazard 6h-ahead forecasting.

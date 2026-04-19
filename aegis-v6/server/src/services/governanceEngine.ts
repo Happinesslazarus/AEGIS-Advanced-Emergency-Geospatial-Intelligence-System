@@ -1,17 +1,20 @@
 /**
- * File: governanceEngine.ts
+ * AI governance layer -- explainability, human-in-the-loop routing, drift
+ * detection, and audit logging for every prediction that leaves the system.
  *
- * AI governance layer — implements explainable AI (SHAP-like feature importance),
- * human-in-the-loop review routing, model drift detection, and execution audit
- * logging. Determines whether predictions require manual review.
+ * Low-confidence predictions are flagged for human review before being surfaced
+ * to operators. Feature importance uses a SHAP-style additive decomposition
+ * (Lundberg & Lee, 2017 NeurIPS -- https://arxiv.org/abs/1705.07874). Drift is
+ * detected by comparing rolling accuracy metrics against a PSI threshold.
+ * Every governance decision is written to the governance_audit table.
  *
- * How it connects:
- * - Called by aiAnalysisPipeline after predictions are generated
- * - Reads model metrics from the database for drift detection
- * - Routes low-confidence predictions to human reviewers
+ * Designed around the EU AI Act (2024) Arts. 13-14 transparency and human
+ * oversight requirements for high-risk AI systems:
+ * https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32024R1689
  *
- * Simple explanation:
- * Makes sure AI decisions are explainable and flags ones that need human review.
+ * NIST AI RMF 1.0 (2023): https://www.nist.gov/system/files/documents/2023/01/26/NIST.AI.100-1.pdf
+ *
+ * Called by aiAnalysisPipeline after every prediction batch.
  */
 
 import pool from '../models/db.js'

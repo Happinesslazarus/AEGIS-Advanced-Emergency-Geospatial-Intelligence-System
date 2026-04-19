@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Module: ui-components.test.tsx
  *
  * Tests for the shared low-level UI primitives used everywhere in the AEGIS client:
@@ -51,7 +51,6 @@
  *   useReducedMotion        = mocked to return prefersReduced:false (animations enabled)
  *   visuallyHiddenStyles    = CSS that hides content visually but keeps it for screen readers
  *
- * How it connects:
  * - Run by the test runner (Vitest) with `vitest run` or `vitest watch`
  */
 

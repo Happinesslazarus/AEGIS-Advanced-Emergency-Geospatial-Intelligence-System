@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: useOfflineFirst.tsx
  *
  * useOfflineFirst custom React hook (offline first logic).
  *
- * How it connects:
  * - Used by React components that need this functionality */
 
 import { useCallback, useEffect, useState, useRef } from 'react'

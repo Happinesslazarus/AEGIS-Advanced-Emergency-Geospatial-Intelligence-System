@@ -1,7 +1,4 @@
-/**
- * File: LoginPage.tsx
- *
- * What this file does:
+﻿/**
  * Operator login page with three auth flows:
  * 1. Standard email/password → calls apiLogin(), stores JWT on success
  * 2. Two-factor auth → if the API returns requires2FA=true, swaps in TwoFactorChallenge
@@ -9,20 +6,15 @@
  * 3. Google OAuth → hard link to /api/auth/google (server-side redirect flow)
  * Also has an inline "forgot password" handler that triggers a reset email.
  *
- * How it connects:
  * - onLogin(user) callback passed in from AdminPage.tsx updates parent auth state
  * - apiLogin() / apiForgotPassword() live in client/src/utils/api.ts
  * - session=expired search param is set by the auth interceptor when a JWT expires
  * - TwoFactorChallenge.tsx handles TOTP/SMS code entry and completes the sign-in
- *
- * Simple explanation:
- * The operator login screen. Handles passwords, 2FA, Google sign-in, and
- * session expiry messages, then hands a verified user object to the parent.
- */
+ * */
 
 import { useState, useRef, useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Shield, Lock, Mail, LogIn, CheckCircle, Eye, EyeOff, X as XIcon, Check, ArrowLeft, Home, Loader2, AlertCircle, Fingerprint, Radio, Zap, ChevronDown, ChevronRight, Users, ArrowRight, Globe, Info, Menu, X, Github, QrCode, Wand2 } from 'lucide-react'
+import { Shield, Lock, Mail, LogIn, CheckCircle, Eye, EyeOff, X as XIcon, Check, ArrowLeft, Home, Loader2, AlertCircle, Fingerprint, Radio, Zap, ChevronDown, ChevronRight, Users, ArrowRight, Globe, Info, Menu, X, QrCode, Wand2 } from 'lucide-react'
 import { apiLogin, apiForgotPassword, setToken, setUser } from '../../utils/api'
 import type { Operator } from '../../types'
 import LanguageSelector from '../shared/LanguageSelector'
@@ -146,9 +138,7 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
             <div className="flex items-center gap-2">
               <span className="font-black text-sm tracking-wide">
                 <span className="text-aegis-600 dark:text-aegis-400">AEGIS</span>
-                {' '}<span className="text-gray-500 dark:text-white/80">OPS</span>
               </span>
-              <span className="text-[7px] font-bold bg-aegis-100 dark:bg-aegis-900/40 text-aegis-700 dark:text-aegis-300 px-1.5 py-0.5 rounded tracking-widest">v6</span>
             </div>
             <span className="block text-[9px] text-gray-400 dark:text-aegis-300 tracking-[0.2em] uppercase mt-0.5">{t('admin.portal.title', lang)}</span>
           </div>
@@ -371,19 +361,7 @@ export default function LoginPage({ onLogin }: Props): JSX.Element {
             </div>
           </div>
 
-          {/* Primary quick options — 2-col grid, always visible */}
-          <div className="grid grid-cols-2 gap-2">
-            <a href={`${API_BASE}/api/auth/google`}
-              className="flex items-center justify-center gap-2 py-2.5 px-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 transition text-sm font-medium text-gray-700 dark:text-gray-200 shadow-sm">
-              <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-              <span className="truncate">Google</span>
-            </a>
-            <a href={`${API_BASE}/api/auth/github`}
-              className="flex items-center justify-center gap-2 py-2.5 px-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 transition text-sm font-medium text-white shadow-sm">
-              <Github className="w-4 h-4 flex-shrink-0" />
-              <span className="truncate">GitHub</span>
-            </a>
-          </div>
+          {/* Admin sign-in does not support social OAuth. */}
 
           {/* Expandable advanced methods */}
           <button type="button" onClick={() => setShowMoreAuth(prev => !prev)}

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Module: error-boundary.test.tsx
  *
  * Tests for the ErrorBoundary component — a React class component that wraps any
@@ -45,7 +45,6 @@
  *   ThrowOnClick            = helper component that throws only after a button click;
  *                             simulates a runtime interaction error
  *
- * How it connects:
  * - Run by the test runner (Vitest) with `vitest run` or `vitest watch`
  */
 

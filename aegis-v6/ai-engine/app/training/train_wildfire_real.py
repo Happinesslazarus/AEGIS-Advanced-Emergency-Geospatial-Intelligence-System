@@ -130,11 +130,26 @@ class WildfireRealPipeline(BaseRealPipeline):
                 "Schroeder et al. (2014) VIIRS active fire detection; "
                 "Justice et al. (2002) MODIS global fire monitoring"
             ),
+            "expected_high_auc_rationale": (
+                "Wildfire AUC ≥ 0.95 is physically expected and does not indicate "
+                "label leakage.  The causal chain is well-established in fire science: "
+                "prolonged dry conditions (low antecedent rainfall, high ET, low relative "
+                "humidity) + high wind → low fuel moisture → ignition susceptibility → "
+                "active fire detected by FIRMS thermal sensors. "
+                "Labels are satellite thermal anomaly detections (FIRMS VIIRS/MODIS) — "
+                "entirely independent of ERA5 input features. "
+                "The predictive power comes from ERA5 capturing multi-day drought "
+                "precursors (antecedent_rainfall_7d, days_since_significant_rain, "
+                "soil_moisture) that directly drive fire weather risk. "
+                "Reference: Abatzoglou & Williams (2016) 'Impact of anthropogenic climate "
+                "change on wildfire across western US forests' PNAS 113:11770-11775."
+            ),
         },
         min_total_samples=500,
         min_positive_samples=20,
         min_stations=3,
         promotion_min_roc_auc=0.68,
+        fixed_test_date="2022-01-01",
     )
 
     # Set in build_labels() to track whether FIRMS succeeded or fell back

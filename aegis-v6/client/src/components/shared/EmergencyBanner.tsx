@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: EmergencyBanner.tsx
  *
  * Emergency banner shared component (reusable UI element used across pages).
  *
- * How it connects:
  * - Used across both admin and citizen interfaces */
 
 import { useState, useCallback, useEffect } from 'react'

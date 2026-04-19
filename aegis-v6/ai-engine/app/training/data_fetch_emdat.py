@@ -54,6 +54,7 @@ EM-DAT COLUMNS USED
 
 from __future__ import annotations
 
+import calendar as _cal
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
@@ -254,12 +255,10 @@ def load_emdat_export(file_path: Optional[Path] = None) -> pd.DataFrame:
     # Normalise column names (EM-DAT uses spaces and mixed case)
     df.columns = [c.strip().replace(" ", "_").lower() for c in df.columns]
 
-    # Normalise key date columns
-    for col in ("year", "month", "start_day", "end_day"):
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors="coerce")
-
-    # Map alternative column names from different EM-DAT export versions
+    # Map alternative column names from different EM-DAT export versions.
+    # IMPORTANT: date aliases must be resolved BEFORE numeric coercion below
+    # because current EM-DAT exports use "start_year"/"start_month" instead
+    # of the legacy "year"/"month" column names.
     col_aliases = {
         "disaster_type": ["disaster_type", "type", "hazard"],
         "disaster_subtype": ["disaster_subtype", "subtype"],
@@ -268,7 +267,25 @@ def load_emdat_export(file_path: Optional[Path] = None) -> pd.DataFrame:
         "latitude": ["latitude", "lat", "event_latitude"],
         "longitude": ["longitude", "lon", "long", "event_longitude"],
         "total_deaths": ["total_deaths", "deaths", "total_deaths_adjusted"],
+        # Date column aliases — current EM-DAT exports (2022+) use start_year/start_month
+        "year":      ["year", "start_year", "event_year"],
+        "month":     ["month", "start_month", "event_month"],
+        "start_day": ["start_day", "event_start_day", "day"],
+        "end_day":   ["end_day", "event_end_day"],
+        "end_year":  ["end_year", "event_end_year"],
+        "end_month": ["end_month", "event_end_month"],
     }
+    for canonical, alternatives in col_aliases.items():
+        if canonical not in df.columns:
+            for alt in alternatives:
+                if alt in df.columns:
+                    df[canonical] = df[alt]
+                    break
+
+    # Normalise key date columns to numeric after alias resolution
+    for col in ("year", "month", "start_day", "end_day", "end_year", "end_month"):
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
     for canonical, alternatives in col_aliases.items():
         if canonical not in df.columns:
             for alt in alternatives:
@@ -364,6 +381,7 @@ def build_emdat_label_df(
     radius_km: float = 300.0,
     min_deaths: int = 0,
     emdat_file: Optional[Path] = None,
+    precursor_days: int = 0,
 ) -> pd.DataFrame:
     """Build hourly disaster labels from EM-DAT event records.
 
@@ -371,8 +389,22 @@ def build_emdat_label_df(
       1. If the event has lat/lon: haversine match within radius_km.
       2. If only country ISO is available: use _COUNTRY_ISO_TO_REGION lookup.
 
-    A station-day is positive if any matching EM-DAT event spans that day.
-    The daily label is broadcast to all hours within the day.
+    Label window strategy (controlled by ``precursor_days``):
+
+      precursor_days = 0 (default, backward-compatible):
+        A station-day is positive if any matching EM-DAT event spans that day.
+        Labels cover the FULL event duration (ev_start → ev_end).
+
+      precursor_days > 0 (PhD-grade forecast label):
+        Labels the ATMOSPHERIC PRECURSOR WINDOW rather than the event duration.
+        Positive days = [ev_start - precursor_days, ev_start + 1].
+        This teaches the model which weather conditions PRECEDE a disaster
+        onset, which is the correct target for a forecast model (Alfieri et
+        al., 2013 GloFAS; Smith et al., 2004).
+        The full event duration (after ev_start+1) is EXCLUDED because mid-
+        and late-event conditions (e.g. clearing skies on day 20 of a flood)
+        are unrelated to the precursor atmospheric drivers — including them
+        inverts the rainfall-risk signal and produces AUC < 0.5.
 
     Parameters
     ----------
@@ -383,6 +415,7 @@ def build_emdat_label_df(
     radius_km         : match radius for events with coordinates (default 300km)
     min_deaths        : filter out events with fewer total deaths (default 0 = all)
     emdat_file        : path to EM-DAT export; auto-detected if None
+    precursor_days    : if > 0, label only the N days before event onset (default 0)
 
     Returns
     -------
@@ -431,28 +464,40 @@ def build_emdat_label_df(
         year  = _safe_int(ev.get("year"),      dt_start.year)
         month = _safe_int(ev.get("month"),     1)
         sday  = _safe_int(ev.get("start_day"), 1)
-        eday  = _safe_int(ev.get("end_day"),   28)
+        # End date: use end_year/end_month if available, otherwise same as start
+        end_year  = _safe_int(ev.get("end_year"),  year)
+        end_month = _safe_int(ev.get("end_month"), month)
+        eday      = _safe_int(ev.get("end_day"),   sday)
 
         try:
             ev_start = datetime(year, month, max(1, sday))
         except ValueError:
             ev_start = datetime(year, month, 1)
         try:
-            eday_clamped = min(eday, 31)
-            ev_end = datetime(year, month, eday_clamped)
+            eday_clamped = min(eday, _cal.monthrange(end_year, end_month)[1])
+            ev_end = datetime(end_year, end_month, max(1, eday_clamped))
         except ValueError:
-            import calendar
-            ev_end = datetime(year, month, calendar.monthrange(year, month)[1])
+            ev_end = datetime(end_year, end_month, _cal.monthrange(end_year, end_month)[1])
+
+        # Build the positive label window.
+        # precursor_days > 0: label N days BEFORE onset + 1 day of onset.
+        # precursor_days = 0: label the full event duration (backward-compat).
+        if precursor_days > 0:
+            window_start = ev_start - timedelta(days=precursor_days)
+            window_end   = ev_start + timedelta(days=1)  # onset day only
+        else:
+            window_start = ev_start
+            window_end   = ev_end
 
         # Clamp to training window
-        ev_start = max(ev_start, dt_start)
-        ev_end   = min(ev_end,   dt_end)
-        if ev_start > ev_end:
+        window_start = max(window_start, dt_start)
+        window_end   = min(window_end,   dt_end)
+        if window_start > window_end:
             continue
 
         event_dates = [
-            (ev_start + timedelta(days=d)).date()
-            for d in range((ev_end - ev_start).days + 1)
+            (window_start + timedelta(days=d)).date()
+            for d in range((window_end - window_start).days + 1)
         ]
 
         # Determine matching stations

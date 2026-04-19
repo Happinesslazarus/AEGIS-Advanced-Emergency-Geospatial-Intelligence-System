@@ -1,18 +1,14 @@
-/**
+﻿/**
  * Module: AdminCrowdDensity.tsx
  *
  * Crowd density monitoring panel (shows real-time crowd levels).
  *
- * How it connects:
  * - Pulls spatial density data from the backend API
  * - Falls back to report-derived zones when density data is missing
  * - Renders the admin view used by operations staff
  * Endpoints:
  * GET /api/spatial/density
- * GET /api/reports
- * Simple explanation:
- * This is the admin screen for seeing where crowd pressure is building up. */
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+ * GET /api/reportsimport { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import {
   Users, Activity, TrendingUp, TrendingDown, MapPin, RefreshCw, Loader2,
   AlertTriangle, Clock, ChevronDown, ChevronUp, Search, BarChart3,

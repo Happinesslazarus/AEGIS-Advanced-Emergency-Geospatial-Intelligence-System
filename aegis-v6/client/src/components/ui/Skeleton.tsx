@@ -1,12 +1,8 @@
-/**
- * File: Skeleton.tsx
- *
- * What this file does:
+﻿/**
  * Shimmer skeleton placeholders for loading states. Provides Skeleton
  * (single bar), SkeletonCard, SkeletonList, and SkeletonTable variants.
  * Uses animate-pulse, and disables animation for users with reduced-motion.
  *
- * How it connects:
  * - Used by page-level components while data loads from the API
  * - Motion behaviour controlled by motion-reduce Tailwind modifier
  */

@@ -1,12 +1,8 @@
-/**
- * File: idempotency.ts
- *
- * What this file does:
+﻿/**
  * Prevents duplicate operations when clients retry POST/PUT/PATCH requests.
  * Clients include an Idempotency-Key header; the middleware caches the
  * response and replays it on subsequent requests with the same key.
  *
- * How it connects:
  * - Registered globally in index.ts for all mutation endpoints
  * - Uses an in-memory LRU cache (5000 keys, 24h TTL)
  * - In distributed deployments, should be backed by Redis instead
@@ -15,11 +11,7 @@
  * 1. Key exists + completed → return cached response (Idempotent-Replayed: true)
  * 2. Key exists + processing → return 409 Conflict (request in flight)
  * 3. New key → process request normally, cache the result if successful
- *
- * Simple explanation:
- * If a user accidentally sends the same request twice (e.g. double-click),
- * this makes sure the action only happens once.
- */
+ * */
 
 import { Request, Response, NextFunction } from 'express'
 import crypto from 'crypto'

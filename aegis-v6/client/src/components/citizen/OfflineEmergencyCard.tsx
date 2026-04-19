@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: OfflineEmergencyCard.tsx
  *
  * Offline emergency card citizen component (public-facing UI element).
  *
- * How it connects:
  * - Rendered inside CitizenPage.tsx or CitizenDashboard.tsx */
 
 /* OfflineEmergencyCard.tsx - Location-aware emergency survival card

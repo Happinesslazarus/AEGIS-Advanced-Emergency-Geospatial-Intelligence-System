@@ -1,19 +1,13 @@
-/**
- * File: externalApiWrapper.ts
- *
+﻿/**
  * Unified outbound HTTP wrapper — all external API calls (SEPA, Met Office,
  * OpenWeatherMap, HuggingFace, LLM) go through this wrapper which provides
  * retry with timeout, PostgreSQL-backed response caching, and an in-memory
  * circuit breaker (opens after 10 failures, 5-min cooldown).
  *
- * How it connects:
  * - Called by data ingestion, AI, and weather services
  * - Caches responses in the database to survive restarts
  * - Falls back to stale cache when the circuit is open
- *
- * Simple explanation:
- * Wraps every outbound API call with retry, caching, and circuit breaking.
- */
+ * */
 
 import pool from '../models/db.js'
 import { logger } from './logger.js'

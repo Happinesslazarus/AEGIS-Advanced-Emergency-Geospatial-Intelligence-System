@@ -1,7 +1,4 @@
-/**
- * File: UserAccessManagement.tsx
- *
- * What this file does:
+﻿/**
  * Full operator account management console for admins. Four tabs:
  * - Directory: searchable user table with inline edit, suspend, role change
  * - Audit: immutable event trail of all account actions
@@ -11,15 +8,10 @@
  * State is owned by the parent (AdminPage.tsx) and passed down as props +
  * API helpers, keeping this component stateless except for UI.
  *
- * How it connects:
  * - Rendered inside AdminPage.tsx
  * - All API calls delegated to props (apiGetUsers, apiUpdateUser, etc.)
  * - Role constants and permissions are i18n-translated at render time
- *
- * Simple explanation:
- * Gives admins a single console to manage who can access the system,
- * what they can do, and a complete audit trail of every change.
- */
+ * */
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import {
@@ -454,7 +446,7 @@ export default function UserAccessManagement({
                   <Shield className="w-7 h-7 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-slate-900 dark:text-white font-extrabold text-xl tracking-tight">{t('users.identityAccessMgmt', lang)}</h2>
+                  <h2 className="text-white font-extrabold text-xl tracking-tight">{t('users.identityAccessMgmt', lang)}</h2>
                   <div className="text-blue-300/80 text-sm mt-0.5 flex items-center gap-2 flex-wrap">
                     <span>{t('users.subtitle', lang)}</span>
                     <span aria-hidden="true" className="w-1 h-1 rounded-full bg-blue-300/60" />
@@ -490,7 +482,7 @@ export default function UserAccessManagement({
               ].map((s, i) => (
                 <div key={i} className="bg-white/[0.06] backdrop-blur-sm rounded-xl px-3 py-2.5 border border-white/[0.08] hover:bg-white/[0.1] transition-colors">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[9px] text-blue-300/70 uppercase tracking-widest font-bold">{s.label}</span>
+                    <span className="text-[9px] text-blue-200/85 uppercase tracking-widest font-bold">{s.label}</span>
                     <s.icon className={`w-3 h-3 ${s.color} opacity-60`} />
                   </div>
                   <p className={`text-lg font-extrabold tabular-nums ${s.color}`}>{s.value}</p>
@@ -508,7 +500,7 @@ export default function UserAccessManagement({
             { id: 'roles' as Tab, label: t('users.rolesPermissions', lang), icon: Shield },
             { id: 'sessions' as Tab, label: t('users.accessOverview', lang), icon: Fingerprint },
           ]).map(item => (
-            <button key={item.id} onClick={() => setTab(item.id)} className={`flex items-center gap-2 px-4 py-3 text-xs font-bold transition-all border-b-2 ${tab === item.id ? 'text-white border-white' : 'text-blue-300/50 border-transparent hover:text-blue-200/80 hover:border-white/30'}`}>
+            <button key={item.id} onClick={() => setTab(item.id)} className={`flex items-center gap-2 px-4 py-3 text-xs font-bold transition-all border-b-2 ${tab === item.id ? 'text-white border-white' : 'text-blue-200/75 border-transparent hover:text-white hover:border-white/30'}`}>
               <item.icon className="w-3.5 h-3.5" /> {item.label}
             </button>
           ))}

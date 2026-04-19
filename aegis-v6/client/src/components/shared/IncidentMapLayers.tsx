@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: IncidentMapLayers.tsx
  *
  * Incident map layers shared component (reusable UI element used across pages).
  *
- * How it connects:
  * - Used across both admin and citizen interfaces */
 
 import { useEffect, useState, useMemo, useCallback } from 'react'

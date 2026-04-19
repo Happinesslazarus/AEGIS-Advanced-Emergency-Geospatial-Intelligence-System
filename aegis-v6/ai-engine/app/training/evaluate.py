@@ -134,6 +134,7 @@ class ModelEvaluator:
         y_test: pd.Series | np.ndarray,
         feature_names: list[str],
         threshold: float = 0.5,
+        base_model: Any = None,
     ) -> dict:
         """Run the complete evaluation suite on a fitted model.
 
@@ -217,7 +218,48 @@ class ModelEvaluator:
                 results["roc_auc"] = 0.0
 
         # Brier score
-        results["brier_score"] = float(brier_score_loss(y_arr, y_prob))
+        brier = float(brier_score_loss(y_arr, y_prob))
+        results["brier_score"] = brier
+
+        # Brier Skill Score (BSS) — meaningful ONLY when base_rate > ~5%.
+        # For extreme rare events (landslide=0.03%, power_outage=0.24%) the
+        # climatology Brier is so small that ANY non-trivial predicted probability
+        # produces BSS << 0 — this is a known property of BSS for rare events,
+        # not a model flaw (see Wilks 2011 §8.4; Mason 2004 BAMS).
+        # When base_rate < 0.05, ignore BSS and rely on AUC + recall@FPR metrics.
+        base_rate = float(y_arr.mean()) if len(y_arr) > 0 else 0.5
+        brier_clim = base_rate * (1.0 - base_rate)
+        bss = float(1.0 - brier / brier_clim) if brier_clim > 0 else 0.0
+        results["brier_skill_score"] = bss
+        results["brier_skill_score_reliable"] = base_rate >= 0.05
+        # Annotate unreliable BSS so metadata readers don't misinterpret it
+        if not results["brier_skill_score_reliable"]:
+            results["brier_skill_score_note"] = (
+                f"BSS unreliable: base_rate={base_rate:.4f} < 0.05.  "
+                "Use AUC and recall@FPR metrics for rare-event evaluation. "
+                "See Wilks (2011) §8.4, Mason (2004) BAMS."
+            )
+
+        # Recall at fixed false-positive rates — the operationally meaningful metric
+        # for rare-event hazards.  "If we allow 1% of non-events to trigger alerts,
+        # what fraction of real events do we detect?"
+        # This is independent of class imbalance and directly answers the alerting
+        # system design question.
+        if not single_class:
+            try:
+                fpr_arr, tpr_arr, _ = roc_curve(y_arr, y_prob)
+                # Recall (TPR) at FPR ≤ 10%
+                mask10 = fpr_arr <= 0.10
+                results["recall_at_fpr10"] = float(tpr_arr[mask10].max()) if mask10.any() else 0.0
+                # Recall (TPR) at FPR ≤ 1%
+                mask01 = fpr_arr <= 0.01
+                results["recall_at_fpr01"] = float(tpr_arr[mask01].max()) if mask01.any() else 0.0
+            except Exception:
+                results["recall_at_fpr10"] = None
+                results["recall_at_fpr01"] = None
+        else:
+            results["recall_at_fpr10"] = None
+            results["recall_at_fpr01"] = None
 
         # Log loss
         y_prob_clipped = np.clip(y_prob, 1e-15, 1 - 1e-15)
@@ -241,16 +283,47 @@ class ModelEvaluator:
         results["pr_curve"] = self._safe_pr_curve(y_arr, y_prob, single_class)
         results["calibration_curve"] = self._safe_calibration_curve(y_arr, y_prob)
 
-        # SHAP feature importance (graceful fallback)
+        # SHAP feature importance — use the underlying tree estimator, not the
+        # calibration wrapper (PlattWrapper / CalibratedClassifierCV), because
+        # shap.TreeExplainer requires direct access to the tree structure.
+        shap_model = base_model if base_model is not None else model
+        # Unwrap sklearn CalibratedClassifierCV
+        if hasattr(shap_model, "estimator"):
+            shap_model = shap_model.estimator
+        elif hasattr(shap_model, "base_estimator"):
+            shap_model = shap_model.base_estimator
+        # Unwrap PlattWrapper
+        if hasattr(shap_model, "_base"):
+            shap_model = shap_model._base
         results["shap_feature_importance"] = self._compute_shap_importance(
-            model, X_arr, feature_names
+            shap_model, X_arr, feature_names
         )
 
+        # Bootstrap AUC confidence interval (200 iterations, 95% CI).
+        # Resamples the test set with replacement to quantify uncertainty in the AUC
+        # point estimate — standard practice in clinical/geoscience ML evaluation.
+        # A wide CI (e.g. ±0.05) indicates the test set is too small for a reliable
+        # estimate; a narrow CI confirms the AUC is well-determined.
+        if not single_class:
+            results["bootstrap_auc_ci"] = self._bootstrap_auc_ci(
+                y_arr, y_prob, n_iterations=200, ci=0.95, seed=42
+            )
+        else:
+            results["bootstrap_auc_ci"] = {
+                "mean": 0.5, "std": 0.0,
+                "ci_lower": 0.5, "ci_upper": 0.5,
+                "n_iterations": 0,
+                "note": "single-class test set — bootstrap skipped",
+            }
+
         logger.success(
-            "Full evaluation complete: accuracy={:.4f}, f1_macro={:.4f}, roc_auc={:.4f}",
+            "Full evaluation complete: accuracy={:.4f}, f1_macro={:.4f}, "
+            "roc_auc={:.4f}  95% CI [{:.4f}, {:.4f}]",
             results["accuracy"],
             results["f1_macro"],
             results["roc_auc"],
+            results["bootstrap_auc_ci"]["ci_lower"],
+            results["bootstrap_auc_ci"]["ci_upper"],
         )
         return results
 
@@ -263,6 +336,7 @@ class ModelEvaluator:
         feature_engineer: Any,
         feature_names: list[str],
         known_events: list[dict],
+        optimal_threshold: float = 0.5,
     ) -> list[dict]:
         """Backtest model against known historical events.
 
@@ -340,9 +414,11 @@ class ModelEvaluator:
                     results.append(entry)
                     continue
 
-                # Predict
+                # Predict — use the cost-optimal threshold derived from the val
+                # set PR curve, not a hardcoded 0.5 (which would be systematically
+                # wrong for rare-event hazards where optimal_threshold << 0.5).
                 prob = self._get_positive_probs(model, event_features)[0]
-                predicted_positive = bool(prob >= 0.5)
+                predicted_positive = bool(prob >= optimal_threshold)
 
                 entry["predicted_probability"] = round(float(prob), 6)
                 entry["predicted_positive"] = predicted_positive
@@ -620,13 +696,86 @@ class ModelEvaluator:
     # Private helpers
 
     @staticmethod
+    def _bootstrap_auc_ci(
+        y_true: np.ndarray,
+        y_prob: np.ndarray,
+        n_iterations: int = 200,
+        ci: float = 0.95,
+        seed: int = 42,
+    ) -> dict:
+        """Bootstrap 95% CI for ROC-AUC on the test set.
+
+        Resamples (y_true, y_prob) with replacement n_iterations times and
+        computes AUC on each resample.  Reports mean, std, and percentile CI.
+
+        Parameters
+        ----------
+        y_true : array of shape (n_samples,)
+            True binary labels.
+        y_prob : array of shape (n_samples,)
+            Model predicted probabilities for the positive class.
+        n_iterations : int
+            Number of bootstrap resamples (200 is sufficient for 95% CI).
+        ci : float
+            Confidence level, default 0.95 → 2.5th / 97.5th percentiles.
+        seed : int
+            Random seed for reproducibility.
+
+        Returns
+        -------
+        dict with keys: mean, std, ci_lower, ci_upper, n_iterations
+        """
+        rng = np.random.default_rng(seed)
+        n = len(y_true)
+        auc_samples: list[float] = []
+
+        for _ in range(n_iterations):
+            idx = rng.integers(0, n, size=n)
+            y_b = y_true[idx]
+            p_b = y_prob[idx]
+            # Skip resamples that happen to contain only one class
+            if len(np.unique(y_b)) < 2:
+                continue
+            try:
+                auc_samples.append(float(roc_auc_score(y_b, p_b)))
+            except Exception:
+                continue
+
+        if not auc_samples:
+            return {
+                "mean": float(roc_auc_score(y_true, y_prob)),
+                "std": 0.0,
+                "ci_lower": float(roc_auc_score(y_true, y_prob)),
+                "ci_upper": float(roc_auc_score(y_true, y_prob)),
+                "n_iterations": 0,
+                "note": "all resamples were single-class; CI not computable",
+            }
+
+        arr = np.array(auc_samples)
+        alpha = 1.0 - ci
+        lower = float(np.percentile(arr, 100 * alpha / 2))
+        upper = float(np.percentile(arr, 100 * (1 - alpha / 2)))
+        return {
+            "mean": float(arr.mean()),
+            "std": float(arr.std()),
+            "ci_lower": lower,
+            "ci_upper": upper,
+            "n_iterations": len(auc_samples),
+        }
+
+    @staticmethod
     def _get_positive_probs(model: Any, X: np.ndarray) -> np.ndarray:
         """Extract P(positive) from a model, handling both binary and multi-class."""
         try:
             proba = model.predict_proba(X)
             if proba.ndim == 2 and proba.shape[1] >= 2:
-                return proba[:, 1]
-            return proba.ravel()
+                scores = proba[:, 1]
+            else:
+                scores = proba.ravel()
+            # LightGBM focal objective returns raw logits — apply sigmoid
+            if scores.min() < 0.0 or scores.max() > 1.0:
+                scores = 1.0 / (1.0 + np.exp(-scores))
+            return scores
         except AttributeError:
             # Fallback: use decision_function or predict
             try:

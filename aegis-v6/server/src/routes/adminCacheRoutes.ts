@@ -1,25 +1,17 @@
-/**
- * File: adminCacheRoutes.ts
- *
- * What this file does:
+﻿/**
  * Admin cache management: flush the entire cache, clear a specific
  * namespace, delete individual keys, and view cache diagnostics.
  * All operations are audit-logged.
  *
- * How it connects:
  * - Mounted at /api/admin/cache in index.ts
  * - Uses cacheService for the actual cache operations
  * - Requires admin authentication
  *
- * Key endpoints:
  * POST /api/admin/cache/clear           — Flush entire cache
  * POST /api/admin/cache/clear-namespace — Flush one namespace
  * POST /api/admin/cache/clear-key       — Delete a single key
  * GET  /api/admin/cache/stats           — Cache diagnostics
- *
- * Simple explanation:
- * Gives admins control over the server cache for troubleshooting.
- */
+ * */
 
 import { Router, Response, NextFunction } from 'express'
 import { authMiddleware, adminOnly, AuthRequest } from '../middleware/auth.js'

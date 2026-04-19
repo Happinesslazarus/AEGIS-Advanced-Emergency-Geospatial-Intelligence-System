@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: LiveIncidentMapPanel.tsx
  *
  * Live incident map panel citizen component (public-facing UI element).
  *
- * How it connects:
  * - Rendered inside CitizenPage.tsx or CitizenDashboard.tsx */
 
 import { useState, useEffect, useMemo, useRef, useCallback, lazy, Suspense, Component } from 'react'
@@ -460,7 +459,7 @@ export default function LiveIncidentMapPanel({ reports, userPosition, center, zo
                     <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-2">
                       <Shield className="w-4 h-4 text-green-500" />
                     </div>
-                    <p className="text-[10px] font-bold text-gray-700 dark:text-gray-200">{t('incident.allClear', lang)}</p>
+                    <p className="text-[10px] font-bold text-gray-700 dark:text-gray-200">{t('alerts.allClear', lang)}</p>
                     <p className="text-[9px] text-gray-400 dark:text-gray-300 mt-0.5">No incidents reported in this area</p>
                   </div>
                 </div>

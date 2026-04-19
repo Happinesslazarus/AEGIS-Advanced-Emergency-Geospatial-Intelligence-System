@@ -60,8 +60,14 @@ DEFRA_THRESHOLDS = {
     "o3":    100.0,  # µg/m³  — O3 High band (8h equivalent hourly proxy)
 }
 
-# OpenAQ v3 public API — no key required for 10 req/min; free API key → 60/min
+# OpenAQ v3 API — REQUIRES a free API key (as of 2025).
+# Register at https://openaq.org/register and set the environment variable:
+#   OPENAQ_API_KEY=your_key_here
+# Without a key every request returns HTTP 401 Unauthorized.
+# Rate limits: 10 req/min (free tier), 60 req/min (with key).
+import os as _os
 OPENAQ_API_BASE = "https://api.openaq.org/v3"
+_OPENAQ_API_KEY = _os.environ.get("OPENAQ_API_KEY", "")
 
 # UK monitoring stations matched to GLOBAL_HEATWAVE_LOCATIONS grid.
 # Sourced from DEFRA UK-AIR station list (https://uk-air.defra.gov.uk/networks/network-info?view=aurn)
@@ -102,7 +108,15 @@ async def fetch_openaq_station_hours(
     """Fetch hourly means for one parameter at one station."""
     import aiohttp
 
+    if not _OPENAQ_API_KEY:
+        logger.debug(
+            "  OPENAQ_API_KEY not set — OpenAQ v3 requires a free API key. "
+            "Register at https://openaq.org/register then set env OPENAQ_API_KEY=<key>."
+        )
+        return pd.DataFrame(columns=["timestamp", "value"])
+
     url = f"{OPENAQ_API_BASE}/measurements"
+    headers = {"X-API-Key": _OPENAQ_API_KEY}
     all_rows = []
     page = 1
     while True:
@@ -115,7 +129,16 @@ async def fetch_openaq_station_hours(
             "page": page,
         }
         try:
-            async with session.get(url, params=params, timeout=aiohttp.ClientTimeout(total=30)) as resp:
+            async with session.get(
+                url, params=params, headers=headers,
+                timeout=aiohttp.ClientTimeout(total=30),
+            ) as resp:
+                if resp.status == 401:
+                    logger.warning(
+                        "  OpenAQ 401 Unauthorized — API key invalid or missing. "
+                        "Set OPENAQ_API_KEY env var with a valid key from openaq.org"
+                    )
+                    break
                 if resp.status == 429:
                     await asyncio.sleep(60)
                     continue
@@ -155,6 +178,16 @@ async def _fetch_all_stations(
 ) -> pd.DataFrame:
     """Fetch all UK stations for all DEFRA parameters, return merged DataFrame."""
     import aiohttp
+
+    if not _OPENAQ_API_KEY:
+        logger.warning(
+            "  OPENAQ_API_KEY env var not set — cannot fetch air quality data. "
+            "Register free at https://openaq.org/register and set the key:\n"
+            "    set OPENAQ_API_KEY=your_key_here  (Windows)\n"
+            "    export OPENAQ_API_KEY=your_key_here  (Linux/macOS)\n"
+            "Then rerun environmental_hazard training."
+        )
+        return pd.DataFrame()
 
     rows = []
     async with aiohttp.ClientSession() as session:

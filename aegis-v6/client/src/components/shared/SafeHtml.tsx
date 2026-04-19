@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: SafeHtml.tsx
  *
  * Safe html shared component (reusable UI element used across pages).
  *
- * How it connects:
  * - Used across both admin and citizen interfaces */
 
 import React from 'react'

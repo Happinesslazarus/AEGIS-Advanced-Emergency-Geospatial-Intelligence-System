@@ -1,6 +1,4 @@
-/**
- * File: cacheService.test.ts
- *
+﻿/**
  * What it tests:
  * Unit tests for the cacheService (in-memory LRU + Redis adapter).
   * Verifies get/set/delete, TTL expiry, Redis fallback logic,

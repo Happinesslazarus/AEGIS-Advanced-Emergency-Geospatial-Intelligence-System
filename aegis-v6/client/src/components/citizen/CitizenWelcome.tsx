@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Module: CitizenWelcome.tsx
  *
  * Personalised welcome dashboard shown at the top of the citizen area for
@@ -23,7 +23,6 @@
  *   section is staggered using delay(i) which offsets animationDelay by 100ms
  *   per index so sections reveal in a cascade.
  *
- * How it connects:
  * - Rendered inside CitizenPage.tsx or CitizenDashboard.tsx */
 
 import { useState, useEffect, useMemo, useRef } from 'react'
@@ -95,12 +94,13 @@ interface CitizenWelcomeProps {
   setActiveTab: (tab: string) => void
   onReportEmergency: () => void
   onCommunityHelp: () => void
+  onSubscribe?: () => void
   submitSafetyCheckIn: (status: 'safe' | 'help' | 'unsure') => Promise<any>
 }
 
 export default function CitizenWelcome({
   user, reportStats, totalUnread, emergencyContacts, recentSafety, threads,
-  setActiveTab, onReportEmergency, onCommunityHelp, submitSafetyCheckIn
+  setActiveTab, onReportEmergency, onCommunityHelp, onSubscribe, submitSafetyCheckIn
 }: CitizenWelcomeProps) {
   const lang = useLanguage()
   const [mounted, setMounted] = useState(false)
@@ -399,7 +399,7 @@ export default function CitizenWelcome({
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               {[
                 { label: 'Report Emergency', desc: 'Submit an incident report', icon: AlertTriangle, color: 'from-red-500 to-rose-600', textColor: 'text-red-600 dark:text-red-400', hoverBorder: 'hover:border-red-300 dark:hover:border-red-700', action: onReportEmergency },
-                { label: 'Subscribe to Alerts', desc: 'Get real-time notifications', icon: Bell, color: 'from-purple-500 to-violet-600', textColor: 'text-purple-600 dark:text-purple-400', hoverBorder: 'hover:border-purple-300 dark:hover:border-purple-700', action: () => setActiveTab('alerts') },
+                { label: 'Subscribe to Alerts', desc: 'Get real-time notifications', icon: Bell, color: 'from-purple-500 to-violet-600', textColor: 'text-purple-600 dark:text-purple-400', hoverBorder: 'hover:border-purple-300 dark:hover:border-purple-700', action: () => onSubscribe?.() },
                 { label: 'Community Support', desc: 'Volunteer or request aid', icon: Heart, color: 'from-pink-500 to-rose-500', textColor: 'text-pink-600 dark:text-pink-400', hoverBorder: 'hover:border-pink-300 dark:hover:border-pink-700', action: onCommunityHelp },
                 { label: 'Safety Check-In', desc: 'Mark yourself safe', icon: ShieldAlert, color: 'from-emerald-500 to-teal-600', textColor: 'text-emerald-600 dark:text-emerald-400', hoverBorder: 'hover:border-emerald-300 dark:hover:border-emerald-700', action: () => setActiveTab('safety') },
                 { label: 'Live Map', desc: 'See incidents in real time', icon: MapPin, color: 'from-blue-500 to-cyan-600', textColor: 'text-blue-600 dark:text-blue-400', hoverBorder: 'hover:border-blue-300 dark:hover:border-blue-700', action: () => setActiveTab('livemap') },

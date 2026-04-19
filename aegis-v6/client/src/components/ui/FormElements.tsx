@@ -1,14 +1,10 @@
-/**
+﻿/**
  * Module: FormElements.tsx
  *
  * Form elements UI primitive (low-level UI building block).
  *
- * How it connects:
  * - Used by any form across the app
  * - Wired to InlineError from ErrorStates for validation messages
- * Simple explanation:
- * Accessible, reusable form controls with built-in validation feedback. */
-
 import React, { forwardRef, memo, useState, useId } from 'react'
 import { useTranslation } from 'react-i18next'
 import { InlineError } from './ErrorStates'

@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: AdminHistoricalIntelligence.tsx
  *
  * Historical intelligence dashboard (past incident analysis).
  *
- * How it connects:
  * - Rendered inside AdminPage.tsx based on active view */
 
 import { useState, useMemo, useEffect, useRef, lazy, Suspense } from 'react'
@@ -282,8 +281,8 @@ export default function AdminHistoricalIntelligence() {
                 <History className="w-6 h-6 text-cyan-300" />
               </div>
               <div>
-                <h2 className="text-slate-900 dark:text-white font-bold text-xl tracking-tight">{t('historical.title', lang)}</h2>
-                <p className="text-gray-400 dark:text-gray-300 text-sm">{t('historical.subtitle', lang)} &middot; {loc.name || t('historical.allRegions', lang)} &middot; {getYearRange(HISTORICAL_EVENTS)}</p>
+                <h2 className="text-white font-bold text-xl tracking-tight">{t('historical.title', lang)}</h2>
+                <p className="text-gray-300 text-sm">{t('historical.subtitle', lang)} &middot; {loc.name || t('historical.allRegions', lang)} &middot; {getYearRange(HISTORICAL_EVENTS)}</p>
               </div>
               {/* Data source indicator */}
               <span
@@ -318,7 +317,7 @@ export default function AdminHistoricalIntelligence() {
               <div key={i} className={`bg-gradient-to-br ${s.accent} rounded-xl p-3 border border-white/5 hover:border-white/10 transition-colors`}>
                 <div className="flex items-center gap-2 mb-1">
                   <s.icon className={`w-3.5 h-3.5 ${s.color} opacity-70`} />
-                  <p className="text-[10px] text-gray-500 dark:text-gray-300 uppercase tracking-wider font-semibold">{s.label}</p>
+                  <p className="text-[10px] text-gray-300 uppercase tracking-wider font-semibold">{s.label}</p>
                 </div>
                 <p className={`text-lg font-bold ${s.color}`}>{s.value}</p>
               </div>
@@ -327,14 +326,14 @@ export default function AdminHistoricalIntelligence() {
 
           {/* Event type distribution */}
           <div className="mt-4 flex items-center gap-3 flex-wrap">
-            <span className="text-[10px] text-gray-500 dark:text-gray-300 uppercase tracking-wider font-semibold">{t('historical.distribution', lang)}:</span>
+            <span className="text-[10px] text-gray-300 uppercase tracking-wider font-semibold">{t('historical.distribution', lang)}:</span>
             {typeDist.map(([type, count]) => {
               const pct = Math.round((count / HISTORICAL_EVENTS.length) * 100)
               return (
                 <div key={type} className="flex items-center gap-2">
                   <div className="flex items-center gap-1.5">
                     {type === 'Storm' ? <Waves className="w-3 h-3 text-purple-400" /> : <Droplets className="w-3 h-3 text-blue-400" />}
-                    <span className="text-xs text-gray-300 dark:text-gray-300 font-medium">{type}</span>
+                    <span className="text-xs text-gray-300 font-medium">{type}</span>
                   </div>
                   <div className="w-20 h-1.5 bg-white/5 rounded-full overflow-hidden">
                     <div
@@ -342,7 +341,7 @@ export default function AdminHistoricalIntelligence() {
                       style={{ width: `${pct}%` }}
                     />
                   </div>
-                  <span className="text-[10px] text-gray-500 dark:text-gray-300">{pct}%</span>
+                  <span className="text-[10px] text-gray-300">{pct}%</span>
                 </div>
               )
             })}

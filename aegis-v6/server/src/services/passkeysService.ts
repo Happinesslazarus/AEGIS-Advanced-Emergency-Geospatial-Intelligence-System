@@ -1,18 +1,12 @@
-/**
- * File: passkeysService.ts
- *
+﻿/**
  * WebAuthn/FIDO2 passkey service — handles the full passkey lifecycle:
  * registration options, credential storage in passkey_credentials, and
  * authentication challenges with a 5-minute in-memory TTL.
  *
- * How it connects:
  * - Called by auth routes for passkey registration and login
  * - Reads/writes the passkey_credentials table (FK to users)
  * - Uses AppError for validation failures
- *
- * Simple explanation:
- * Lets users log in with passkeys (fingerprint, face, security key) instead of passwords.
- */
+ * */
 
 import crypto from 'crypto'
 import pool from '../models/db.js'
@@ -78,7 +72,7 @@ export interface PasskeyCredential {
 const config = {
   rpName: process.env.WEBAUTHN_RP_NAME || 'AEGIS Platform',
   rpId: process.env.WEBAUTHN_RP_ID || 'localhost',
-  origin: process.env.WEBAUTHN_ORIGIN || 'http://localhost:5175',
+  origin: process.env.WEBAUTHN_ORIGIN || 'http://localhost:5173',
   challengeTimeoutMs: 5 * 60 * 1000, // 5 minutes
   attestation: 'none' as const, // 'none' for privacy, 'direct' for enterprise
 }
@@ -100,7 +94,8 @@ export async function initPasskeys(): Promise<void> {
       CREATE TABLE IF NOT EXISTS passkey_credentials (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         credential_id TEXT UNIQUE NOT NULL,
-        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        user_id UUID NOT NULL,
+        user_type VARCHAR(20) NOT NULL DEFAULT 'citizen',
         public_key TEXT NOT NULL,
         counter INTEGER NOT NULL DEFAULT 0,
         transports TEXT[] DEFAULT '{}',

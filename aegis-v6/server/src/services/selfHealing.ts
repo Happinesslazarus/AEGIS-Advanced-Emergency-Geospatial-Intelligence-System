@@ -1,19 +1,13 @@
-/**
- * File: selfHealing.ts
- *
+﻿/**
  * Self-healing health monitor — watches 7 components (database, cache,
  * ai_engine, external_apis, websocket, memory, event_loop) with weighted
  * health scores and executes automatic recovery actions when degradation
  * is detected.
  *
- * How it connects:
  * - Checks resilienceLayer circuit breakers, DB pool, and cache health
  * - Emits status-change events consumed by monitoring
  * - Exposes a composite health score via Prometheus gauge
- *
- * Simple explanation:
- * Detects when parts of the system are sick and tries to fix them automatically.
- */
+ * */
 
 import { EventEmitter } from 'events'
 import { logger } from './logger.js'

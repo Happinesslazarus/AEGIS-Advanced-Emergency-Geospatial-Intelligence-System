@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: TwoFactorSettings.tsx
  *
  * Two factor settings admin component (operator dashboard panel).
  *
- * How it connects:
  * - Rendered inside AdminPage.tsx based on active view */
 
 import { useState, useEffect, useRef } from 'react'

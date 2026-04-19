@@ -1,11 +1,7 @@
-/**
- * File: CreatorPage.tsx
- *
- * What this file does:
+﻿/**
  * Attribution and credits page listing the project creators, contributors,
  * and open-source libraries used. Static page with no API dependencies.
  *
- * How it connects:
  * - Routed by client/src/App.tsx (credits/creator route)
  * - Linked from LandingPage footer
  */

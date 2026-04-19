@@ -1,18 +1,12 @@
-/**
- * File: adaptiveRateLimiting.ts
- *
+﻿/**
  * Load-aware rate limiter — Express middleware that dynamically adjusts
  * per-tier rate limits (internal, admin, operator, citizen) based on
  * real-time CPU, memory, and event loop lag.
  *
- * How it connects:
  * - Express middleware applied in the global middleware stack
  * - Exposes Prometheus counters/gauges for limit hits and effective limits
  * - Tiers configured per user role with baseline and minimum rates
- *
- * Simple explanation:
- * Tightens rate limits automatically when the server is under heavy load.
- */
+ * */
 
 import { Request, Response, NextFunction } from 'express'
 import client from 'prom-client'
@@ -305,8 +299,17 @@ export function adaptiveRateLimitMiddleware(
   res: Response,
   next: NextFunction
 ): void {
-  // Skip for health checks and metrics
-  if (req.path === '/api/health' || req.path === '/metrics') {
+  // Skip critical bootstrap/auth routes so sign-in and socket handshake
+  // are not blocked by load-adaptive throttling.
+  const skipPrefixes = [
+    '/api/health',
+    '/metrics',
+    '/api/auth/',
+    '/api/citizen-auth/',
+    '/socket.io/',
+  ]
+
+  if (skipPrefixes.some((prefix) => req.path.startsWith(prefix))) {
     next()
     return
   }

@@ -1,14 +1,10 @@
-/**
+﻿/**
  * Module: AppLayout.tsx
  *
  * App layout React component.
  *
- * How it connects:
  * - Used by CitizenPage and CitizenDashboard to wrap citizen views
  * - Reads alert count from AlertsContext for the navbar badge
- * Simple explanation:
- * The page frame for citizen/public-facing pages. */
-
 import { useState, useCallback } from 'react'
 import TopNavbar from './TopNavbar'
 import Sidebar, { type SidebarItem } from './Sidebar'

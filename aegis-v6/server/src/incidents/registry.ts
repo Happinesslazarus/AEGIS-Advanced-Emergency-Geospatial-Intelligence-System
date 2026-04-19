@@ -1,14 +1,10 @@
-/**
+﻿/**
  * Module: registry.ts
  *
  * Incident module registry (central lookup for all 11 incident types).
  *
- * How it connects:
  * - Part of the incident module system, registered via incidents/registry.ts
- *
- * Simple explanation:
- * Maps incident type names to their handler modules.
- */
+ * */
 
 import type { IncidentModule, IncidentRegistryEntry, IncidentOperationalStatus } from './types.js'
 

@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: LiveOperationsMap.tsx
  *
  * Live operations map (real-time geospatial situational awareness).
  *
- * How it connects:
  * - Rendered inside AdminPage.tsx based on active view */
 
 import React, { useState, useCallback, useEffect, useRef, useMemo, lazy, Suspense, memo } from 'react'

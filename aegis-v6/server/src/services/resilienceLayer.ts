@@ -1,19 +1,13 @@
-/**
- * File: resilienceLayer.ts
- *
+﻿/**
  * Three-in-one resilience module — LRU caches with TTL (for API, embedding,
  * and LLM responses), token-bucket rate limiters for 8 external providers,
  * and a circuit breaker. Exports resilientFetch which wraps HTTP calls with
  * all three protections.
  *
- * How it connects:
  * - Used by llmRouter, embeddingRouter, and external API wrappers
  * - Rate limits pre-configured for Gemini, Groq, HuggingFace, etc.
  * - selfHealing reads circuit breaker state for health scoring
- *
- * Simple explanation:
- * Prevents cascading failures when external services go down.
- */
+ * */
 
 import { logger } from './logger.js'
 

@@ -1,21 +1,13 @@
-/**
- * File: requestTimeout.ts
- *
- * What this file does:
+﻿/**
  * Sets a timeout on every HTTP request. If the handler doesn't finish
  * in time, the middleware sends a 504 Gateway Timeout and logs a warning.
  * Different route patterns get different limits (uploads get 2 min,
  * AI calls get 1 min, health checks get 5 sec, everything else 30 sec).
  *
- * How it connects:
  * - Registered early in the middleware chain (index.ts)
  * - Prevents slow or hanging handlers from exhausting the connection pool
  * - The timeout is cleared automatically when the response completes
- *
- * Simple explanation:
- * Kills requests that take too long so they don't pile up and slow
- * down the server for everyone.
- */
+ * */
 
 import { Request, Response, NextFunction } from 'express'
 import { logger } from '../services/logger.js'

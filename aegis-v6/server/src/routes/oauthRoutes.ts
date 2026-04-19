@@ -1,36 +1,60 @@
-/**
- * File: oauthRoutes.ts
- *
- * What this file does:
+﻿/**
  * OAuth 2.0 social login (Google). Redirects users to Google's consent
  * screen, handles the callback, and exchanges the auth code for AEGIS
  * JWT tokens using a secure code-exchange pattern.
  *
- * How it connects:
  * - Mounted at /api/auth in index.ts (adds Google OAuth sub-routes)
  * - Uses Passport.js with the Google OAuth2 strategy
- * - Creates or links citizen accounts in the database
+ * - Logs in existing citizens and links Google ID when needed
  * - Returns JWT + refresh token like the regular login flow
  *
- * Key endpoints:
  * GET  /api/auth/google          — Redirect to Google consent
  * GET  /api/auth/google/callback — Google callback handler
  * POST /api/auth/oauth/exchange  — Exchange code for JWT
- *
- * Simple explanation:
- * "Sign in with Google" — lets citizens log in using their Google account.
- */
+ * */
 
 import { Router, Request, Response, NextFunction } from 'express'
 import passport from 'passport'
 import { Strategy as GoogleStrategy, Profile } from 'passport-google-oauth20'
 import crypto from 'crypto'
+import bcrypt from 'bcryptjs'
 import pool from '../models/db.js'
-import { generateToken, generateRefreshToken } from '../middleware/auth.js'
+import { generateToken, generateRefreshToken, createSession } from '../middleware/auth.js'
+import { getClientIp } from '../utils/securityUtils.js'
 import { AppError } from '../utils/AppError.js'
 import { logger } from '../services/logger.js'
 
 const router = Router()
+
+/**
+ * Short-lived map: OAuth state → return base URL
+ * Allows OAuth flows initiated from a LAN IP (e.g. phone via Vite proxy)
+ * to redirect back to that LAN IP after auth completes.
+ */
+const pendingReturnUrls = new Map<string, string>()
+setInterval(() => {
+  const now = Date.now()
+  for (const [k, v] of pendingReturnUrls) {
+    // Entries are keyed to a state that lasts ~2 min at most
+    // We don't store expiry separately; just keep max 200 entries
+    if (pendingReturnUrls.size > 200) pendingReturnUrls.delete(k)
+    else break
+  }
+}, 60_000)
+
+/** Allow redirect only to localhost or RFC 1918 LAN addresses (dev-safe) */
+function isAllowedOrigin(url: string): boolean {
+  try {
+    const { hostname } = new URL(url)
+    return (
+      hostname === 'localhost' ||
+      /^127\./.test(hostname) ||
+      /^10\./.test(hostname) ||
+      /^192\.168\./.test(hostname) ||
+      /^172\.(1[6-9]|2[0-9]|3[01])\./.test(hostname)
+    )
+  } catch { return false }
+}
 
 // Secure token exchange storage (short-lived, one-time codes)
 // In production with multiple instances, use Redis instead
@@ -39,6 +63,7 @@ interface PendingOAuthExchange {
   email: string
   role: string
   displayName: string
+  avatarUrl: string | null
   expiresAt: number
 }
 const pendingExchanges = new Map<string, PendingOAuthExchange>()
@@ -81,63 +106,60 @@ if (oauthEnabled) {
         _accessToken: string,
         _refreshToken: string,
         profile: Profile,
-        done: (err: any, user?: any) => void,
+        done: (err: any, user?: any, info?: any) => void,
       ) => {
         try {
-          const email = profile.emails?.[0]?.value
-          if (!email) return done(new Error('Google account has no email'))
+          const rawEmail = profile.emails?.find((entry: any) => entry?.verified)?.value
+            || profile.emails?.[0]?.value
+          if (!rawEmail) return done(new Error('Google account has no email'))
+          const email = String(rawEmail).trim().toLowerCase()
 
           const googleId = profile.id
           const displayName = profile.displayName || email.split('@')[0]
           const avatarUrl = profile.photos?.[0]?.value || null
 
-          // 1. Check if user already exists (by google_id or email)
+          // 1. Check if a user already exists (by google_id or email)
           let result = await pool.query(
             `SELECT id, email, display_name, role, avatar_url, preferred_region,
-                    email_verified, is_active, google_id
-             FROM citizens WHERE google_id = $1 OR LOWER(email) = LOWER($2)
+                    email_verified, is_active, google_id, deleted_at
+             FROM citizens
+             WHERE (google_id = $1 OR LOWER(TRIM(email)) = LOWER(TRIM($2)))
              LIMIT 1`,
             [googleId, email],
           )
 
-          let citizen = result.rows[0]
+          const citizen = result.rows[0]
 
-          if (citizen) {
-            // Link Google ID if not yet linked
-            if (!citizen.google_id) {
-              await pool.query(
-                `UPDATE citizens SET google_id = $1, email_verified = true WHERE id = $2`,
-                [googleId, citizen.id],
-              )
-            }
-            // Update avatar if missing
-            if (!citizen.avatar_url && avatarUrl) {
-              await pool.query(
-                `UPDATE citizens SET avatar_url = $1 WHERE id = $2`,
-                [avatarUrl, citizen.id],
-              )
-            }
-            // Update last login
-            await pool.query(
-              `UPDATE citizens SET last_login = NOW(), login_count = login_count + 1 WHERE id = $1`,
-              [citizen.id],
-            )
-          } else {
-            // 2. Create new citizen from Google profile
-            const insertResult = await pool.query(
-              `INSERT INTO citizens (email, display_name, password_hash, avatar_url, google_id, email_verified, is_active, role)
-               VALUES ($1, $2, $3, $4, $5, true, true, 'citizen')
-               RETURNING id, email, display_name, role, avatar_url, preferred_region, email_verified`,
-              [email, displayName, 'OAUTH_NO_PASSWORD', avatarUrl, googleId],
-            )
-            citizen = insertResult.rows[0]
+          // No account found — require manual registration first.
+          // Redirect to registration page with email pre-filled.
+          if (!citizen) {
+            return done(null, false, { code: 'ACCOUNT_NOT_FOUND', email })
+          }
 
-            // Create default preferences
+          // Account exists but soft-deleted or inactive — reject.
+          if (!citizen.is_active || citizen.deleted_at) {
+            return done(null, false, { code: 'ACCOUNT_NOT_FOUND', email })
+          }
+
+          // Link Google ID if not yet linked (user registered first, now signing in with Google)
+          if (!citizen.google_id) {
             await pool.query(
-              `INSERT INTO citizen_preferences (citizen_id) VALUES ($1) ON CONFLICT DO NOTHING`,
-              [citizen.id],
+              `UPDATE citizens SET google_id = $1, oauth_provider = 'google', email_verified = true WHERE id = $2`,
+              [googleId, citizen.id],
             )
           }
+          // Update avatar if missing
+          if (!citizen.avatar_url && avatarUrl) {
+            await pool.query(
+              `UPDATE citizens SET avatar_url = $1 WHERE id = $2`,
+              [avatarUrl, citizen.id],
+            )
+          }
+          // Update last login
+          await pool.query(
+            `UPDATE citizens SET last_login = NOW(), login_count = login_count + 1 WHERE id = $1`,
+            [citizen.id],
+          )
 
           done(null, citizen)
         } catch (err) {
@@ -166,15 +188,32 @@ function requireOAuthConfigured(_req: Request, res: Response, next: NextFunction
 }
 
 // GET /api/auth/google — Initiate Google OAuth flow
+// Optional ?next=<url> param: if the request comes from a LAN IP (e.g. a phone
+// on the local network), pass the current page URL so the OAuth callback can
+// redirect back to that LAN address rather than hardcoded localhost:5173.
 
 router.get(
   '/google',
   requireOAuthConfigured,
-  passport.authenticate('google', {
-    scope: ['profile', 'email'],
-    session: false,
-    prompt: 'select_account',
-  }),
+  (req: Request, res: Response, next: NextFunction) => {
+    const nextParam = req.query.next as string | undefined
+    let customState: string | undefined
+    if (nextParam) {
+      try {
+        const origin = new URL(nextParam).origin
+        if (isAllowedOrigin(origin)) {
+          customState = crypto.randomBytes(16).toString('hex')
+          pendingReturnUrls.set(customState, origin)
+        }
+      } catch { /* invalid URL — ignore */ }
+    }
+    passport.authenticate('google', {
+      scope: ['profile', 'email'],
+      session: false,
+      prompt: 'select_account',
+      ...(customState ? { state: customState } : {}),
+    } as any)(req, res, next)
+  },
 )
 
 // GET /api/auth/google/callback — Handle Google redirect
@@ -183,9 +222,17 @@ router.get(
   '/google/callback',
   requireOAuthConfigured,
   (req: Request, res: Response, next: NextFunction) => {
-    passport.authenticate('google', { session: false, failureRedirect: `${CLIENT_URL}/citizen/login?error=oauth_failed` }, (err: any, user: any) => {
+    passport.authenticate('google', { session: false, failureRedirect: `${CLIENT_URL}/citizen/login?error=oauth_failed` }, (err: any, user: any, info: any) => {
       if (err || !user) {
-        logger.error({ err }, '[OAuth] Google callback error')
+        if (info?.code === 'ACCOUNT_NOT_FOUND') {
+          logger.info({ info }, '[OAuth] Account not found for Google login')
+          const params = new URLSearchParams({ error: 'oauth_account_not_found' })
+          if (typeof info?.email === 'string' && info.email) {
+            params.set('social_email', info.email)
+          }
+          return res.redirect(`${CLIENT_URL}/citizen/login?${params.toString()}`)
+        }
+        logger.error({ err, info }, '[OAuth] Google callback error')
         return res.redirect(`${CLIENT_URL}/citizen/login?error=oauth_failed`)
       }
 
@@ -204,6 +251,7 @@ router.get(
         email: user.email,
         role: user.role || 'citizen',
         displayName: user.display_name,
+        avatarUrl: user.avatar_url || null,
         expiresAt: Date.now() + 60 * 1000, // 60 second expiry
       })
 
@@ -212,7 +260,16 @@ router.get(
       // 1. Code is one-time use (deleted after exchange)
       // 2. Code expires in 60 seconds
       // 3. Token is returned via POST response body, not URL
-      res.redirect(`${CLIENT_URL}/citizen/oauth/callback?code=${exchangeCode}`)
+
+      // Use LAN-aware redirect base: if this OAuth flow was started with a
+      // ?next=<lan-url> param (e.g. from a phone on the same WiFi), redirect
+      // back to that address so the phone can receive the exchange callback.
+      const returnedState = req.query.state as string | undefined
+      const lanOrigin = returnedState ? pendingReturnUrls.get(returnedState) : undefined
+      if (returnedState && lanOrigin) pendingReturnUrls.delete(returnedState)
+      const redirectBase = lanOrigin || CLIENT_URL
+
+      res.redirect(`${redirectBase}/citizen/oauth/callback?code=${exchangeCode}`)
     })(req, res, next)
   },
 )
@@ -220,7 +277,7 @@ router.get(
 // POST /api/auth/oauth/exchange — Exchange one-time code for JWT tokens
 // This is the secure token exchange endpoint
 
-router.post('/oauth/exchange', (req: Request, res: Response) => {
+router.post('/oauth/exchange', async (req: Request, res: Response) => {
   const { code } = req.body
   
   if (!code || typeof code !== 'string') {
@@ -262,6 +319,16 @@ router.post('/oauth/exchange', (req: Request, res: Response) => {
   })
   const refreshToken = generateRefreshToken({ id: pending.userId, role: pending.role })
   
+  // Store session in DB so refresh tokens can be validated later
+  await createSession({
+    userId: pending.userId,
+    userType: 'citizen',
+    refreshToken,
+    ipAddress: getClientIp(req),
+    userAgent: req.headers['user-agent'] as string,
+    ttlDays: 7,
+  })
+  
   // Set refresh cookie
   res.cookie('aegis_refresh', refreshToken, {
     httpOnly: true,
@@ -281,6 +348,7 @@ router.post('/oauth/exchange', (req: Request, res: Response) => {
         email: pending.email,
         role: pending.role,
         displayName: pending.displayName,
+        avatarUrl: pending.avatarUrl,
       },
     },
   })

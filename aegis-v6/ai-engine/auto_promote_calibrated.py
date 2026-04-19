@@ -25,6 +25,7 @@ HAZARDS = [
     ("power_outage",             "uk-default"),
     ("severe_storm",             "uk-default"),
     ("public_safety_incident",   "uk-default"),
+    ("water_supply_disruption",  "uk-default"),
 ]
 
 MIN_AUC = 0.60
@@ -65,7 +66,7 @@ for hazard, region in HAZARDS:
             else:
                 promotions[key] = version
                 updated += 1
-                print(f"  PROMOTED   {key}: {old} → {version}  AUC={auc:.4f}  thr={thr:.4f}")
+                print(f"  PROMOTED   {key}: {old} -> {version}  AUC={auc:.4f}  thr={thr:.4f}")
             found = True
             break
         else:

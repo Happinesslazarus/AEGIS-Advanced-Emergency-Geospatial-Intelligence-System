@@ -1,7 +1,4 @@
-/**
- * File: aiClient.ts
- *
- * What this file does:
+﻿/**
  * HTTP client for the Python AI Engine (FastAPI, port 8000). Wraps all calls
  * to the AI service with abort-controller timeouts, auth headers, JSON error
  * unwrapping, and graceful 'unavailable' handling. Caches the model-status
@@ -14,19 +11,13 @@
  * 3. Attaches X-API-Key + Authorization headers for inter-service auth
  * 4. Parses the JSON error body on failure and re-throws with a clean message
  *
- * How it connects:
  * - Used by server/src/services/floodPredictionService.ts
  * - Used by server/src/services/aiAnalysisPipeline.ts
  * - Used by server/src/routes/aiRoutes.ts (admin model management)
  * - Talks to ai-engine/app/api/endpoints.py over HTTP
  * - AI_ENGINE_URL defaults to http://localhost:8000
  * - AI_ENGINE_API_KEY must match the key configured in the Python service
- *
- * Simple explanation:
- * Sends data to the Python AI prediction engine and brings results back safely.
- * If the AI engine is down, calls here fail with a human-readable error message
- * rather than crashing the whole server.
- */
+ * */
 
 import { devLog } from '../utils/logger.js'
 import { logger } from './logger.js'

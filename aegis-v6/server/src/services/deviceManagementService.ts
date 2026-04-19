@@ -1,18 +1,12 @@
-/**
- * File: deviceManagementService.ts
- *
+﻿/**
  * Device registry manager — tracks trusted devices per user with fingerprints,
  * user agents, locations, and trust expiry. Sends security alert emails on
  * new-device or suspicious logins.
  *
- * How it connects:
  * - Uses emailService for first-login and suspicious-device notifications
  * - Uses securityLogger for audit trail of device events
  * - Reads/writes device records in the database
- *
- * Simple explanation:
- * Keeps a registry of trusted devices and alerts users when something looks off.
- */
+ * */
 
 import crypto from 'crypto'
 import pool from '../models/db.js'

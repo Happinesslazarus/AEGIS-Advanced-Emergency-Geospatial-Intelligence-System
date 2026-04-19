@@ -1,18 +1,12 @@
-/**
- * File: riverLevelService.ts
- *
+﻿/**
  * River gauge monitoring service — fetches real-time readings using provider
  * adapters with fallback support, caches them in memory (5-min TTL), calculates
  * flood status and trends, and broadcasts updates via Socket.IO.
  *
- * How it connects:
  * - Polled by cronJobs on a schedule for each active region
  * - Consumed by floodPredictionService and threatLevelService
  * - Broadcasts level updates to connected clients via Socket.IO
- *
- * Simple explanation:
- * Polls river gauges and triggers flood warnings when thresholds are exceeded.
- */
+ * */
 
 import pool from '../models/db.js'
 import { getActiveCityRegion } from '../config/regions/index.js'

@@ -1,20 +1,13 @@
-/**
- * File: twoFactorRoutes.ts
- *
- * What this file does:
+﻿/**
  * TOTP two-factor authentication for operator accounts. Handles setup
  * (generates secret + QR code), verification, login completion with
  * 2FA codes, and backup code management.
  *
- * How it connects:
  * - Mounted at /api/auth/2fa in index.ts
  * - Works with auth.ts for the two-step login flow
  * - Uses twoFactorCrypto for secret encryption at rest
  * - Requires authentication (operators only)
- *
- * Simple explanation:
- * Lets operators add an authenticator app as a second login step.
- */
+ * */
 
 import { Router, Response, NextFunction } from 'express'
 import bcrypt from 'bcryptjs'
@@ -202,7 +195,7 @@ router.post('/setup', authMiddleware, twoFactorSetupLimiter, async (req: AuthReq
 
     // Check if 2FA is already enabled
     const opResult = await pool.query(
-      'SELECT two_factor_enabled, email FROM operators WHERE id = $1',
+      'SELECT two_factor_enabled, email, two_factor_secret FROM operators WHERE id = $1',
       [operatorId]
     )
     if (opResult.rows.length === 0) {
@@ -213,21 +206,38 @@ router.post('/setup', authMiddleware, twoFactorSetupLimiter, async (req: AuthReq
     }
 
     const email = opResult.rows[0].email
+    const existingEncryptedSecret = opResult.rows[0].two_factor_secret
+    let secret: string
+    let reusedExistingSecret = false
 
-    // Generate new TOTP secret
-    const secret = generateSecret({ length: 20 }) // 160-bit secret
+    if (existingEncryptedSecret) {
+      try {
+        // Reuse pending setup secret so users can keep using the same authenticator entry.
+        secret = decrypt2FASecret(existingEncryptedSecret)
+        reusedExistingSecret = true
+      } catch {
+        // If stored secret is invalid/corrupt, rotate to a fresh one.
+        secret = generateSecret({ length: 20 })
+        const encryptedSecret = encrypt2FASecret(secret)
+        await pool.query(
+          `UPDATE operators
+           SET two_factor_secret = $1, two_factor_enabled = false
+           WHERE id = $2`,
+          [encryptedSecret, operatorId]
+        )
+      }
+    } else {
+      secret = generateSecret({ length: 20 }) // 160-bit secret
+      const encryptedSecret = encrypt2FASecret(secret)
+      await pool.query(
+        `UPDATE operators
+         SET two_factor_secret = $1, two_factor_enabled = false
+         WHERE id = $2`,
+        [encryptedSecret, operatorId]
+      )
+    }
+
     const otpAuthUrl = generateOTPAuthURI(email, secret)
-
-    // Encrypt secret before storing
-    const encryptedSecret = encrypt2FASecret(secret)
-
-    // Store encrypted secret (pending verification — 2FA not yet enabled)
-    await pool.query(
-      `UPDATE operators
-       SET two_factor_secret = $1, two_factor_enabled = false
-       WHERE id = $2`,
-      [encryptedSecret, operatorId]
-    )
 
     // Generate QR code as data URL
     const qrCodeDataUrl = await QRCode.toDataURL(otpAuthUrl, {
@@ -246,6 +256,7 @@ router.post('/setup', authMiddleware, twoFactorSetupLimiter, async (req: AuthReq
       manualKey: secret,
       otpAuthUrl,
       qrCodeDataUrl,
+      reusedExistingSecret,
     })
   } catch (err) {
     next(err)

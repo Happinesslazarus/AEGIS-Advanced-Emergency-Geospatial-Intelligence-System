@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: AppProviders.tsx
  *
  * App providers React context provider (shares state across components).
  *
- * How it connects:
  * - Wraps components in App.tsx via AppProviders */
 
 import { type ReactNode, type ComponentType, type FC } from 'react'

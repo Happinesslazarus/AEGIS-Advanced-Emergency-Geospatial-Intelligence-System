@@ -100,10 +100,19 @@ class FeatureEngineer:
             shift_6h = _periods(6)
             out["rate_of_rise_6h"] = g["level_m"] - g["level_m"].shift(shift_6h)
 
-            # Percentile rank within station history
+            # Percentile rank — causal expanding rank (never uses future data).
+            # Using .rank(pct=True) on the full series would give the final
+            # percentile at each point (leaks test distribution into training
+            # features). Expanding rank at time T uses only observations [0, T].
             full_history = g["level_m"].dropna()
             if len(full_history) > 0:
-                out["level_percentile"] = g["level_m"].rank(pct=True) * 100
+                min_obs = max(2, int(len(full_history) * 0.01))
+                out["level_percentile"] = (
+                    g["level_m"]
+                    .expanding(min_periods=min_obs)
+                    .rank(pct=True) * 100
+                )
+                out["level_percentile"] = out["level_percentile"].fillna(50.0)
             else:
                 out["level_percentile"] = np.nan
 
@@ -112,9 +121,23 @@ class FeatureEngineer:
             rolling_mean_30d = g["level_m"].rolling(p30d, min_periods=1).mean()
             out["level_anomaly"] = g["level_m"] - rolling_mean_30d
 
-            # Above typical range (> 90th percentile)
-            pct90 = full_history.quantile(0.90) if len(full_history) > 0 else np.inf
-            out["is_above_typical_range"] = g["level_m"] > pct90
+            # Above typical range (> 90th percentile of seen history).
+            # Causal: expanding quantile so training samples are never ranked
+            # against test-period observations.
+            if len(full_history) > 0:
+                min_obs = max(10, int(len(full_history) * 0.01))
+                expanding_pct90 = (
+                    g["level_m"]
+                    .expanding(min_periods=min_obs)
+                    .quantile(0.90)
+                    .shift(1)  # exclude current row from its own threshold
+                )
+                expanding_pct90 = expanding_pct90.fillna(
+                    g["level_m"].expanding(min_periods=1).quantile(0.90)
+                )
+                out["is_above_typical_range"] = (g["level_m"] > expanding_pct90).astype(int)
+            else:
+                out["is_above_typical_range"] = 0
 
             # Flow max 24 h
             out["flow_max_24h"] = (
@@ -180,7 +203,7 @@ class FeatureEngineer:
             )
 
             # Antecedent rainfall (previous N days, excluding current hour)
-            for days in (7, 14, 30):
+            for days in (7, 14, 30, 60, 90):
                 p = _p(days * 24)
                 out[f"antecedent_rainfall_{days}d"] = (
                     g["rainfall_mm"].shift(1).rolling(p, min_periods=1).sum()
@@ -199,9 +222,21 @@ class FeatureEngineer:
                 hourly_rate.rolling(_p(24), min_periods=1).max()
             )
 
-            # Monthly climatology anomaly
-            g_monthly_mean = g["rainfall_mm"].groupby(g.index.month).transform("mean")
-            out["rainfall_anomaly_monthly"] = g["rainfall_mm"] - g_monthly_mean
+            # Monthly climatology anomaly — causal expanding mean to prevent leakage.
+            # Using full-dataset .transform("mean") would include val/test months in the
+            # monthly climatology, leaking future information into training features.
+            # Causal fix: for each calendar month, compute the expanding mean of only the
+            # observations that occurred BEFORE the current timestamp (shift(1) ensures
+            # the current value is not included in its own climatology estimate).
+            # fillna(x.mean()) seeds the first occurrence of each month with its own value
+            # (unavoidable for month 1, but affects <1% of samples).
+            out["rainfall_anomaly_monthly"] = g["rainfall_mm"] - (
+                g["rainfall_mm"]
+                .groupby(g.index.month)
+                .transform(
+                    lambda x: x.expanding().mean().shift(1).fillna(x.expanding().mean())
+                )
+            )
 
             results.append(out)
 
@@ -256,24 +291,25 @@ class FeatureEngineer:
         rolling_temp_mean = df["temperature_2m"].rolling(p30d, min_periods=1).mean()
         df["temperature_anomaly"] = df["temperature_2m"] - rolling_temp_mean
 
-        # Consecutive hot days (daily max temp > 25 —C)
+        # Consecutive hot days (daily max temp > 25 °C).
+        # reindex().ffill() replaces deprecated reindex(method="ffill") (pandas 2.x).
         daily_max = df["temperature_2m"].resample("D").max()
         hot_days = (daily_max > 25).astype(int)
         hot_streak = hot_days.groupby(
             (hot_days != hot_days.shift()).cumsum()
         ).cumsum() * hot_days
         df["consecutive_hot_days"] = (
-            hot_streak.reindex(df.index, method="ffill").fillna(0).astype(int)
+            hot_streak.reindex(df.index).ffill().fillna(0).astype(int)
         )
 
-        # Consecutive frost days (daily min temp < 0 —C)
+        # Consecutive frost days (daily min temp < 0 °C).
         daily_min = df["temperature_2m"].resample("D").min()
         frost_days = (daily_min < 0).astype(int)
         frost_streak = frost_days.groupby(
             (frost_days != frost_days.shift()).cumsum()
         ).cumsum() * frost_days
         df["consecutive_frost_days"] = (
-            frost_streak.reindex(df.index, method="ffill").fillna(0).astype(int)
+            frost_streak.reindex(df.index).ffill().fillna(0).astype(int)
         )
 
         # Freeze-thaw cycles in last 48 h (zero-crossings)
@@ -891,4 +927,185 @@ class LeakagePrevention:
             "Leakage check passed: {} rows, all features precede labels",
             len(feat_times),
         )
+
+
+class SPEIFeatures:
+    """Load and join SPEI drought indices to a weather feature DataFrame.
+
+    SPEI (Standardised Precipitation-Evapotranspiration Index) is the
+    UN-endorsed gold-standard drought indicator (Vicente-Serrano et al., 2010,
+    J. Climate 23:1696-1718).  It accounts for both precipitation deficit and
+    evaporative demand — superior to SPI (precipitation-only) for predicting
+    flash drought onset and water supply disruption.
+
+    Data: SPEI-3 (3-month timescale, drought onset) and SPEI-12 (12-month,
+    chronic drought) from the SPEI Global Drought Monitor .nc files stored in
+    ai-engine/data/spei/.
+
+    Usage:
+        spei = SPEIFeatures("/path/to/data/spei")
+        df = spei.join(weather_df, lat_col="lat", lon_col="lon")
+    """
+
+    _SPEI_DIR_DEFAULT = None  # set at runtime
+
+    def __init__(self, spei_dir: str | None = None):
+        import os
+        if spei_dir is None:
+            # Default: ai-engine/data/spei relative to this file
+            here = os.path.dirname(os.path.abspath(__file__))
+            spei_dir = os.path.normpath(os.path.join(here, "..", "..", "data", "spei"))
+        self.spei_dir = spei_dir
+        self._cache: dict = {}
+
+    def _load_nc(self, scale: int) -> "tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]":
+        """Load SPEI-{scale} NetCDF. Returns (times, lats, lons, spei_array)."""
+        import os
+        import numpy as np
+        key = f"spei{scale:02d}"
+        if key in self._cache:
+            return self._cache[key]
+        path = os.path.join(self.spei_dir, f"spei{scale:02d}.nc")
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"SPEI-{scale} file not found: {path}")
+        try:
+            import netCDF4 as nc
+            ds = nc.Dataset(path)
+            # Variable name varies: 'spei', 'SPEI', or scale-named
+            spei_var = next(
+                (v for v in ds.variables if v.lower().startswith("spei")), None
+            )
+            if spei_var is None:
+                raise KeyError(f"No SPEI variable in {path}. Variables: {list(ds.variables)}")
+            spei_data = ds[spei_var][:]  # shape (time, lat, lon) or (time, lon, lat)
+            time_var = ds["time"]
+            import netCDF4 as _nc
+            times = _nc.num2date(time_var[:], time_var.units)
+            times = np.array([np.datetime64(str(t)[:10], "D") for t in times])
+            lats = ds["lat"][:] if "lat" in ds.variables else ds["latitude"][:]
+            lons = ds["lon"][:] if "lon" in ds.variables else ds["longitude"][:]
+            ds.close()
+        except ImportError:
+            # Fallback: xarray
+            import xarray as xr
+            ds = xr.open_dataset(path)
+            spei_var = next((v for v in ds.data_vars if "spei" in v.lower()), None)
+            if spei_var is None:
+                raise KeyError(f"No SPEI variable found in {path}")
+            da = ds[spei_var]
+            lat_dim = next((d for d in da.dims if "lat" in d.lower()), da.dims[-2])
+            lon_dim = next((d for d in da.dims if "lon" in d.lower()), da.dims[-1])
+            lats = da[lat_dim].values
+            lons = da[lon_dim].values
+            times = da["time"].values.astype("datetime64[D]")
+            spei_data = da.values
+            ds.close()
+
+        result = (times, np.asarray(lats), np.asarray(lons), np.ma.filled(spei_data, np.nan))
+        self._cache[key] = result
+        return result
+
+    def extract_point(
+        self,
+        scale: int,
+        lat: float,
+        lon: float,
+        start: str,
+        end: str,
+    ) -> pd.Series:
+        """Extract a monthly SPEI time series for a lat/lon point.
+
+        Parameters
+        scale : int   3 or 12
+        lat, lon : float   Decimal degrees
+        start, end : str   ISO date strings (e.g. '2016-01', '2023-12')
+
+        Returns
+        pd.Series indexed by month-start dates, values = SPEI index.
+        """
+        times, lats, lons, data = self._load_nc(scale)
+
+        # Nearest-neighbour spatial lookup
+        lat_idx = int(np.argmin(np.abs(lats - lat)))
+        lon_idx = int(np.argmin(np.abs(lons - lon)))
+
+        start_dt = np.datetime64(start[:7], "M").astype("datetime64[D]")
+        end_dt   = np.datetime64(end[:7],   "M").astype("datetime64[D]") + np.timedelta64(31, "D")
+
+        mask = (times >= start_dt) & (times <= end_dt)
+        sel_times = times[mask]
+
+        # data shape may be (time, lat, lon) or (time, lon, lat) — detect by comparing sizes
+        if data.ndim == 3:
+            if data.shape[1] == len(lats):
+                vals = data[mask, lat_idx, lon_idx]
+            else:
+                vals = data[mask, lon_idx, lat_idx]
+        else:
+            vals = data[mask]
+
+        idx = pd.to_datetime([str(t) for t in sel_times])
+        return pd.Series(vals.astype(float), index=idx, name=f"spei_{scale:02d}")
+
+    def join(
+        self,
+        df: pd.DataFrame,
+        lat: float,
+        lon: float,
+        start: str,
+        end: str,
+        scales: tuple[int, ...] = (3, 12),
+    ) -> pd.DataFrame:
+        """Merge SPEI features into a feature DataFrame indexed by timestamp.
+
+        SPEI is monthly — each month's value is forward-filled to hourly rows
+        within that month (causal: no future data leaks in).
+
+        Parameters
+        df : pd.DataFrame   Feature DataFrame with DatetimeIndex or 'timestamp' column.
+        lat, lon : float    Station coordinates.
+        start, end : str    Date range (matches df coverage).
+        scales : tuple      SPEI timescales to include (default: 3-month + 12-month).
+
+        Returns
+        pd.DataFrame   df with added spei_03, spei_12 columns (and derived features).
+        """
+        out = df.copy()
+        has_ts_col = "timestamp" in out.columns and not isinstance(out.index, pd.DatetimeIndex)
+        if has_ts_col:
+            out = out.set_index("timestamp")
+        if not isinstance(out.index, pd.DatetimeIndex):
+            out.index = pd.to_datetime(out.index)
+
+        for scale in scales:
+            try:
+                spei_monthly = self.extract_point(scale, lat, lon, start, end)
+                # Reindex to hourly: forward-fill within month (no future leakage)
+                spei_reindexed = spei_monthly.reindex(out.index, method="ffill")
+                col = f"spei_{scale:02d}"
+                out[col] = spei_reindexed.values
+
+                # Derived features
+                # Consecutive months below threshold — severity accumulation
+                out[f"spei_{scale:02d}_drought_flag"] = (out[col] < -1.0).astype(float)
+                # Running consecutive drought months (causal)
+                streak = (out[f"spei_{scale:02d}_drought_flag"]
+                          .groupby((out[f"spei_{scale:02d}_drought_flag"] == 0).cumsum())
+                          .cumsum())
+                out[f"spei_{scale:02d}_drought_streak"] = streak.values
+                # Severity class: 0=normal, 1=moderate(<-1), 2=severe(<-1.5), 3=extreme(<-2)
+                out[f"spei_{scale:02d}_severity"] = np.select(
+                    [out[col] < -2.0, out[col] < -1.5, out[col] < -1.0],
+                    [3.0, 2.0, 1.0], default=0.0,
+                )
+                logger.info(f"  SPEI-{scale:02d}: joined {(~spei_reindexed.isna()).sum()} non-null rows for lat={lat:.2f} lon={lon:.2f}")
+            except Exception as e:
+                logger.warning(f"  SPEI-{scale:02d} join failed (non-fatal): {e}")
+                for col in [f"spei_{scale:02d}", f"spei_{scale:02d}_drought_flag",
+                            f"spei_{scale:02d}_drought_streak", f"spei_{scale:02d}_severity"]:
+                    out[col] = 0.0
+
+        if has_ts_col:
+            out = out.reset_index().rename(columns={"index": "timestamp"})
+        return out.ffill().fillna(0.0)
 

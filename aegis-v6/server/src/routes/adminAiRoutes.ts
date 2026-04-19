@@ -1,26 +1,18 @@
-/**
- * File: adminAiRoutes.ts
- *
- * What this file does:
+﻿/**
  * Admin AI management: token usage analytics, LLM provider health
  * monitoring, chat session analytics, and canned reply templates
  * for admin messaging.
  *
- * How it connects:
  * - Mounted at /api/admin/ai in index.ts
  * - Reads AI analytics from the database and LLM provider APIs
  * - Requires admin authentication
  *
- * Key endpoints:
  * GET  /api/admin/ai/token-usage     — Token usage stats
  * GET  /api/admin/ai/provider-health — LLM provider statuses
  * GET  /api/admin/ai/analytics       — Session analytics
  * CRUD /api/admin/ai/canned-replies  — Canned reply management
  * POST /api/admin/ai/draft-reply     — AI-drafted reply
- *
- * Simple explanation:
- * Admin dashboard for monitoring AI usage and managing response templates.
- */
+ * */
 
 import { Router, Response, NextFunction } from 'express'
 import pool from '../models/db.js'

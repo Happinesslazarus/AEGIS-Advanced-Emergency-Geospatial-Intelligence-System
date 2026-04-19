@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: AlertCaptionOverlay.tsx
  *
  * Alert caption overlay shared component (reusable UI element used across pages).
  *
- * How it connects:
  * - Used across both admin and citizen interfaces */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
@@ -22,7 +21,7 @@ interface CaptionItem {
 interface AlertCaptionOverlayProps {
   enabled: boolean
   position?: 'top' | 'bottom'
-  fontSize?: 'small' | 'medium' | 'large'
+  fontSize?: 'small' | 'medium' | 'large' | 'xlarge'
   autoHideMs?: number
   onSpeak?: (text: string) => void
 }
@@ -84,7 +83,7 @@ export default function AlertCaptionOverlay({
 
   if (!enabled || captions.length === 0) return null
 
-  const fontSizeMap = { small: 'text-xs', medium: 'text-sm', large: 'text-base' }
+  const fontSizeMap = { small: 'text-xs', medium: 'text-sm', large: 'text-base', xlarge: 'text-lg' }
   const positionClass = position === 'top' ? 'top-20' : 'bottom-24'
 
   return (

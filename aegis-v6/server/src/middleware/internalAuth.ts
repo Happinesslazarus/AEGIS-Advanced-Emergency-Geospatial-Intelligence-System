@@ -1,27 +1,18 @@
-/**
- * File: internalAuth.ts
- *
- * What this file does:
+﻿/**
  * Authenticates internal service-to-service requests and n8n webhook calls.
  * Supports three authentication methods: API key header, HMAC webhook
  * signatures, and internal IP bypass (development only).
  *
- * How it connects:
  * - Used by internalRoutes.ts for inter-service communication
  * - Used by incident module routes for n8n workflow integration
  * - Works alongside auth.ts (which handles user-facing authentication)
  * - n8n workflows sign requests with HMAC-SHA256 via X-N8N-Signature header
  *
- * Key exports:
  * - internalApiKeyAuth — validates X-Internal-API-Key header
  * - n8nWebhookAuth — validates HMAC signature from n8n workflows
  * - internalAuth — combined: accepts API key OR webhook signature
  * - adminOnly / operatorOnly — role-based gates for internal routes
- *
- * Simple explanation:
- * Makes sure only trusted internal services (not random users) can call
- * internal API endpoints. Uses secret keys and cryptographic signatures.
- */
+ * */
 
 import { Request, Response, NextFunction } from 'express'
 import crypto from 'crypto'

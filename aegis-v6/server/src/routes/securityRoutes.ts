@@ -1,25 +1,17 @@
-/**
- * File: securityRoutes.ts
- *
- * What this file does:
+﻿/**
  * Security management endpoints: trusted devices, passkey registration,
  * IP allow/deny lists, security event logs, and per-operator security
  * dashboards.
  *
- * How it connects:
  * - Mounted at /api/security in index.ts
  * - Uses deviceTrustService, riskAuthService, and securityAlertService
  * - Requires authentication (operator/admin)
- *
- * Simple explanation:
- * Lets operators manage their security settings — trusted devices,
- * passkeys, and view security alerts.
- */
+ * */
 
 import { Router, Request, Response, NextFunction } from 'express'
 import rateLimit from 'express-rate-limit'
 import pool from '../models/db.js'
-import { authMiddleware, AuthRequest, generateToken } from '../middleware/auth.js'
+import { authMiddleware, AuthRequest, generateToken, generateRefreshToken, createSession } from '../middleware/auth.js'
 import { listTrustedDevices, revokeDevice, revokeAllDevices } from '../services/deviceTrustService.js'
 import { getOperatorSecuritySummary } from '../services/riskAuthService.js'
 import {
@@ -34,12 +26,12 @@ import deviceManagement from '../services/deviceManagementService.js'
 
 const router = Router()
 
-// 30 requests/15 min: generous enough for dashboard refreshes and device
-// management without blocking legitimate operators during an active incident.
+// 100 requests/15 min: generous enough for dashboard refreshes, device
+// management, and passkey auth attempts without blocking legitimate users.
 const securityLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 30,
-  message: { error: 'Too many requests. Please try again later.' },
+  max: 100,
+  message: { error: 'Too many requests. Please try again in a few minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
 })
@@ -326,6 +318,12 @@ router.delete('/passkeys/:id', authMiddleware, securityLimiter, async (req: Auth
  */
 router.post('/passkeys/auth-options', securityLimiter, async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
+    // Check if any passkeys have been registered at all
+    const countResult = await pool.query('SELECT COUNT(*) FROM passkey_credentials')
+    if (parseInt(countResult.rows[0].count) === 0) {
+      res.status(404).json({ success: false, error: 'No passkeys registered yet. Sign in first (via Google or any method), then go to Security settings to add a passkey.' })
+      return
+    }
     const options = await passkeysService.generateAuthenticationOptions()
     res.json({ success: true, data: options })
   } catch (err) {
@@ -340,22 +338,50 @@ router.post('/passkeys/auth-verify', securityLimiter, async (req: Request, res: 
       res.status(401).json({ success: false, error: result.error || 'Authentication failed' })
       return
     }
-    // Look up user to generate token
-    const userResult = await pool.query(
-      `SELECT id, email, display_name, role, department FROM users WHERE id = $1`,
+    // Look up user — try citizens first, then operators/users
+    let user: any = null
+    const citizenResult = await pool.query(
+      `SELECT id, email, display_name, role, avatar_url FROM citizens WHERE id = $1 AND deleted_at IS NULL`,
       [result.userId]
     )
-    if (userResult.rows.length === 0) {
+    if (citizenResult.rows.length > 0) {
+      user = citizenResult.rows[0]
+    } else {
+      const userResult = await pool.query(
+        `SELECT id, email, display_name, role, department FROM users WHERE id = $1`,
+        [result.userId]
+      )
+      if (userResult.rows.length > 0) {
+        user = userResult.rows[0]
+      }
+    }
+    if (!user) {
       res.status(401).json({ success: false, error: 'User not found' })
       return
     }
-    const user = userResult.rows[0]
     const token = generateToken({
       id: user.id,
       email: user.email,
       role: user.role,
       displayName: user.display_name,
       department: user.department,
+    })
+    const userType = user.department ? 'operator' : 'citizen'
+    const refreshToken = generateRefreshToken({ id: user.id, role: user.role })
+    await createSession({
+      userId: user.id,
+      userType: userType as 'citizen' | 'operator',
+      refreshToken,
+      ipAddress: getClientIp(req),
+      userAgent: req.headers['user-agent'] as string,
+      ttlDays: 7,
+    })
+    res.cookie('aegis_refresh', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: userType === 'citizen' ? '/api/citizen-auth' : '/api/auth',
     })
     res.json({
       success: true,

@@ -1,25 +1,17 @@
-/**
- * File: citizenTwoFactorRoutes.ts
- *
- * What this file does:
+﻿/**
  * TOTP two-factor authentication for citizen accounts. Mirrors the
  * operator 2FA flow (twoFactorRoutes.ts) but scoped to citizens.
  *
- * How it connects:
  * - Mounted at /api/citizen-auth/2fa in index.ts
  * - Works with citizenAuthRoutes.ts for the two-step login flow
  * - Uses twoFactorCrypto for secret encryption at rest
  *
- * Key endpoints:
  * POST /api/citizen-auth/2fa/setup           — Generate secret + QR code
  * POST /api/citizen-auth/2fa/verify          — Confirm and enable 2FA
  * POST /api/citizen-auth/2fa/authenticate    — Complete login with code
  * POST /api/citizen-auth/2fa/disable         — Turn off 2FA
  * POST /api/citizen-auth/2fa/regenerate-backup-codes — New recovery codes
- *
- * Simple explanation:
- * Lets citizens add an authenticator app as a second login step.
- */
+ * */
 
 import { Router, Response, NextFunction } from 'express'
 import bcrypt from 'bcryptjs'
@@ -147,22 +139,39 @@ router.post('/setup', authMiddleware, setupLimiter, async (req: AuthRequest, res
     const clientIp = getClientIp(req)
     const userAgent = req.headers['user-agent'] as string
 
-    const cResult = await pool.query('SELECT two_factor_enabled, email FROM citizens WHERE id = $1', [citizenId])
+    const cResult = await pool.query('SELECT two_factor_enabled, email, two_factor_secret FROM citizens WHERE id = $1', [citizenId])
     if (cResult.rows.length === 0) throw AppError.notFound('Account not found.')
     if (cResult.rows[0].two_factor_enabled) throw AppError.conflict('Two-factor authentication is already enabled. Disable it first to reconfigure.')
 
     const email = cResult.rows[0].email
-    const secret = generateSecret({ length: 20 })
-    const otpAuthUrl = generateOTPAuthURI(email, secret)
-    const encryptedSecret = encrypt2FASecret(secret)
+    const existingEncryptedSecret = cResult.rows[0].two_factor_secret
+    let secret: string
+    let reusedExistingSecret = false
 
-    await pool.query(`UPDATE citizens SET two_factor_secret = $1, two_factor_enabled = false WHERE id = $2`, [encryptedSecret, citizenId])
+    if (existingEncryptedSecret) {
+      try {
+        // Reuse pending setup secret so users can keep their original authenticator entry.
+        secret = decrypt2FASecret(existingEncryptedSecret)
+        reusedExistingSecret = true
+      } catch {
+        // If stored secret is invalid/corrupt, rotate to a fresh one.
+        secret = generateSecret({ length: 20 })
+        const encryptedSecret = encrypt2FASecret(secret)
+        await pool.query(`UPDATE citizens SET two_factor_secret = $1, two_factor_enabled = false WHERE id = $2`, [encryptedSecret, citizenId])
+      }
+    } else {
+      secret = generateSecret({ length: 20 })
+      const encryptedSecret = encrypt2FASecret(secret)
+      await pool.query(`UPDATE citizens SET two_factor_secret = $1, two_factor_enabled = false WHERE id = $2`, [encryptedSecret, citizenId])
+    }
+
+    const otpAuthUrl = generateOTPAuthURI(email, secret)
 
     const qrCodeDataUrl = await QRCode.toDataURL(otpAuthUrl, { width: 256, margin: 2, color: { dark: '#000000', light: '#ffffff' } })
 
     await logSecurityEvent({ userId: citizenId, userType: 'citizen', eventType: '2fa_setup_initiated', ipAddress: clientIp, userAgent })
 
-    res.json({ success: true, manualKey: secret, otpAuthUrl, qrCodeDataUrl })
+    res.json({ success: true, manualKey: secret, otpAuthUrl, qrCodeDataUrl, reusedExistingSecret })
   } catch (err) { next(err) }
 })
 

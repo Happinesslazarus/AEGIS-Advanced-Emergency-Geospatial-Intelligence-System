@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Module: routes.ts  (flood/routes.ts)
  *
  * Flood-specific supplementary routes mounted on top of the standard
@@ -9,15 +9,12 @@
  *   GET /flood-warnings — active EA/SEPA flood warnings (stub — see TODO below)
  *   GET /river-levels  — current river level readings (stub — see TODO below)
  *
- * NOTE: All three endpoints currently return empty arrays with a
- * "...integration pending" message. The live data for these routes is already
- * available via ScotlandAdapter / EnglandAdapter in the region adapter layer
- * (adapters/regions/) — it just needs to be wired here by calling
- * regionRegistry.getActiveRegion().getFloodWarnings() etc. and returning the
- * result. This was intentionally deferred until the adapter layer was
- * stabilised. See the TODO comments in each handler below.
+ * NOTE: All three endpoints are implemented and call the active region adapter
+ * (ScotlandAdapter / EnglandAdapter) via regionRegistry.getActiveRegion() to
+ * fetch live data. The adapter layer was stabilised in v6.5; this file was
+ * updated to call adapter.getRiverLevels() and adapter.getFloodWarnings()
+ * directly rather than returning stub empty arrays.
  *
- * How it connects:
  * - Called from incidents/flood/service.ts (FloodModule.setupCustomRoutes)
  * - Depends on: RegionRegistry, RegionAdapter interface
  * - Will depend on: ScotlandAdapter.getFloodWarnings(), .getRiverLevels()

@@ -1,14 +1,10 @@
-/**
+﻿/**
  * Module: AdminLayout.tsx
  *
  * Admin layout React component.
  *
- * How it connects:
  * - Used by AdminPage to wrap all admin views
  * - Composes AdminNavbar and AdminSidebar with SkipLinks for a11y
- * Simple explanation:
- * The page frame for the operator/admin dashboard. */
-
 import { useState, useCallback } from 'react'
 import AdminNavbar from './AdminNavbar'
 import AdminSidebar from './AdminSidebar'

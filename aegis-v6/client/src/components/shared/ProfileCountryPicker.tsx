@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: ProfileCountryPicker.tsx
  *
  * Profile country picker shared component (reusable UI element used across pages).
  *
- * How it connects:
  * - Used across both admin and citizen interfaces */
 
 import { useState, useRef, useEffect, useMemo } from 'react'

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Module: form-elements.test.tsx
  *
  * Tests for the shared form UI components used throughout the AEGIS client:
@@ -54,7 +54,6 @@
  *                             count when it changes without interrupting the current utterance
  *   t: key => key           = react-i18next mock returning raw translation keys
  *
- * How it connects:
  * - Run by the test runner (Vitest) with `vitest run` or `vitest watch`
  */
 

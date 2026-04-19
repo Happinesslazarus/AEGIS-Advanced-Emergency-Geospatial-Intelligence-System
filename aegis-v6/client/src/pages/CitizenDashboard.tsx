@@ -1,13 +1,9 @@
-/**
- * File: CitizenDashboard.tsx
- *
- * What this file does:
+﻿/**
  * The authenticated citizen's personal dashboard. Provides access to their
  * submitted reports, messaging with operators, the SOS distress button,
  * community feeds, preparedness guides, safety check-ins, and profile settings.
  * Citizens log in via CitizenAuthPage and land here after successful auth.
  *
- * How it connects:
  * - Routed by client/src/App.tsx at /citizen/dashboard
  * - Protected: redirects unauthenticated users to /citizen (CitizenPage)
  * - Authenticated user context from client/src/contexts/CitizenAuthContext.tsx
@@ -24,19 +20,14 @@
  * - Preparedness — guides, checklists, risk scores
  * - Profile      — account settings and 2FA
  *
- * Learn more:
  * - client/src/contexts/CitizenAuthContext.tsx — authenticated citizen state
  * - client/src/components/citizen/SOSButton.tsx — the emergency distress trigger
  * - client/src/hooks/useDistress.ts             — distress beacon state management
  * - server/src/routes/citizenRoutes.ts          — citizen-specific API endpoints
  * - server/src/routes/distressRoutes.ts         — SOS beacon backend
- *
- * Simple explanation:
- * The citizen's home base. After logging in, this is where they report emergencies,
- * check on their reports, chat with responders, and access safety resources.
- */
+ * */
 
-import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { createPortal } from 'react-dom'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
@@ -51,7 +42,7 @@ import {
   Search, ArrowUpDown, Crosshair, BookOpen, Newspaper, ExternalLink,
   Play, BookMarked, Printer, Share2, Bot, HelpCircle, Info, Filter,
   Smartphone, Wifi, Flame, Video, Droplets, Waves,
-  CloudLightning, ShieldCheck, Languages
+  CloudLightning, ShieldCheck, Languages, Fingerprint
 } from 'lucide-react'
 import { useCitizenAuth, getCitizenToken } from '../contexts/CitizenAuthContext'
 import { type ChatThread, type ChatMessage } from '../hooks/useSocket'
@@ -65,8 +56,7 @@ import { t, setLanguage, getLanguage, isRtl } from '../utils/i18n'
 import { useLanguage } from '../hooks/useLanguage'
 import { TRANSLATION_LANGUAGES, buildTranslationMap, clearTranslationCache } from '../utils/translateService'
 import { useWebPush } from '../hooks/useWebPush'
-import { apiSubscribe, apiGetNews, type NewsItem } from '../utils/api'
-import { COUNTRY_CODES, type CountryCode, formatPhoneWithCountry } from '../data/countryCodes'
+import { apiGetNews, type NewsItem } from '../utils/api'
 import ALL_COUNTRY_CODES from '../data/allCountryCodes'
 import { REGION_MAP } from '../data/allCountries'
 import ProfileCountryPicker from '../components/shared/ProfileCountryPicker'
@@ -79,6 +69,8 @@ import ReportCard from '../components/shared/ReportCard'
 import CitizenTwoFactorSettings from '../components/citizen/CitizenTwoFactorSettings'
 import ErrorBoundary from '../components/shared/ErrorBoundary'
 import AlertsPanel from '../components/shared/AlertsPanel'
+import AlertCaptionOverlay, { showAlertCaption } from '../components/shared/AlertCaptionOverlay'
+import { useAudioAlerts } from '../hooks/useAudioAlerts'
 
 // Code-split heavy components (loaded on demand per tab)
 const Chatbot = lazy(() => import('../components/citizen/Chatbot'))
@@ -89,7 +81,6 @@ const IntelligenceDashboard = lazy(() => import('../components/shared/Intelligen
 const ReportForm = lazy(() => import('../components/citizen/ReportForm'))
 const CommunityHelp = lazy(() => import('../components/citizen/CommunityHelp'))
 const PreparednessGuide = lazy(() => import('../components/citizen/PreparednessGuide'))
-const PublicSafetyMode = lazy(() => import('../components/shared/PublicSafetyMode'))
 const FamilyCheckIn = lazy(() => import('../components/citizen/FamilyCheckIn'))
 const ClimateRiskDashboard = lazy(() => import('../components/shared/ClimateRiskDashboard'))
 const LiveIncidentMapPanel = lazy(() => import('../components/citizen/LiveIncidentMapPanel'))
@@ -102,12 +93,13 @@ import MessageStatusIcon from '../components/ui/MessageStatusIcon'
 import { useAnnounce } from '../hooks/useAnnounce'
 import { usePullToRefresh } from '../hooks/usePullToRefresh'
 import { useSwipeGesture } from '../hooks/useSwipeGesture'
-import CountrySearch from '../components/shared/CountrySearch'
+import SubscribeModal from '../components/shared/SubscribeModal'
 import ThemeSelector from '../components/ui/ThemeSelector'
 import { EmptyMessages, EmptyReports, EmptySafety } from '../components/ui/EmptyState'
 import { SkeletonCard, SkeletonStat, SkeletonList, Skeleton } from '../components/ui/Skeleton'
 import AppLayout from '../components/layout/AppLayout'
 import type { SidebarItem } from '../components/layout/Sidebar'
+import SessionExpiryHandler from '../components/shared/SessionExpiryHandler'
 
 // Use relative paths so Vite's proxy handles API requests (avoids CORS)
 // API_BASE imported from ../utils/helpers
@@ -209,6 +201,19 @@ export default function CitizenDashboard(): JSX.Element {
   const { status: webPushStatus, subscribe: subscribeToWebPush, loading: webPushLoading } = useWebPush()
   const announce = useAnnounce()
 
+  const handleRefreshSession = useCallback(async (): Promise<boolean> => {
+    try {
+      const res = await fetch(`${API_BASE}/api/citizen-auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      })
+      return res.ok
+    } catch {
+      return false
+    }
+  }, [])
+
   const VALID_TABS = useMemo(() => new Set(TABS.map(t => t.key)), [])
   const tabFromUrl = searchParams.get('tab')
   const initialTab = (tabFromUrl && VALID_TABS.has(tabFromUrl as TabKey)) ? tabFromUrl as TabKey : 'overview'
@@ -225,23 +230,22 @@ export default function CitizenDashboard(): JSX.Element {
   const [showCommunityHelp, setShowCommunityHelp] = useState(false)
   const [showPreparednessGuide, setShowPreparednessGuide] = useState(false)
   const [showSubscribe, setShowSubscribe] = useState(false)
-  const [showSafetyMode, setShowSafetyMode] = useState(false)
   const [showFamilyCheckIn, setShowFamilyCheckIn] = useState(false)
   const [selectedReport, setSelectedReport] = useState<any>(null)
   const [selectedAlert, setSelectedAlert] = useState<any>(null)
   const [reportSearchTerm, setReportSearchTerm] = useState('')
   const [reportSortField, setReportSortField] = useState('timestamp')
   const [reportSortOrder, setReportSortOrder] = useState('desc')
-  const [newsItems, setNewsItems] = useState<NewsItem[]>([])
-  const [newsRefreshing, setNewsRefreshing] = useState(false)
+  const [newsPool, setNewsPool] = useState<NewsItem[]>([])
+  const [newsOffset, setNewsOffset] = useState(0)
+  const [newsServerPage, setNewsServerPage] = useState(1)
   const [newsTotalPages, setNewsTotalPages] = useState(1)
+  const [newsTotal, setNewsTotal] = useState(0)
+  const [newsRefreshing, setNewsRefreshing] = useState(false)
   const [newsLastFetched, setNewsLastFetched] = useState<Date | null>(null)
-  const [subChannels, setSubChannels] = useState<string[]>([])
-  const [subEmail, setSubEmail] = useState('')
-  const [subPhone, setSubPhone] = useState('')
-  const [subTelegramId, setSubTelegramId] = useState('')
-  const [selectedCountry, setSelectedCountry] = useState<CountryCode>(ALL_COUNTRY_CODES.find(c => c.code === 'GB') || ALL_COUNTRY_CODES[0])
-  const [subTopics, setSubTopics] = useState<string[]>(['flood', 'fire', 'storm', 'earthquake', 'heatwave', 'tsunami', 'general'])
+  const [newsHazardFilter, setNewsHazardFilter] = useState('all')
+  const newsLoadingRef = useRef(false)
+
   const [userPosition, setUserPosition] = useState<[number,number]|null>(null)
 
   // Connect socket on mount
@@ -254,30 +258,12 @@ export default function CitizenDashboard(): JSX.Element {
     }
   }, [token])
 
-  // Sync saved user preferences (language, dark mode, compact view) on load
-  useEffect(() => {
-    if (preferences) {
-      if (preferences.language && preferences.language !== getLanguage()) {
-        setLanguage(preferences.language)
-      }
-      if (typeof preferences.dark_mode === 'boolean') {
-        setTheme(preferences.dark_mode ? 'default' : 'light')
-      }
-      if (typeof preferences.compact_view === 'boolean') {
-        document.documentElement.classList.toggle('compact-view', preferences.compact_view)
-      }
-      if (preferences.caption_font_size) {
-        document.documentElement.setAttribute('data-caption-size', preferences.caption_font_size)
-      }
-    }
-  }, [preferences])
-
   // Fetch citizen threads when socket connects
   useEffect(() => {
     if (socket.connected) {
       socket.fetchCitizenThreads()
     }
-  }, [socket.connected, socket])
+  }, [socket.connected])
 
   // Track community chat + post notifications when NOT on community tab
   useEffect(() => {
@@ -323,26 +309,88 @@ export default function CitizenDashboard(): JSX.Element {
     }
   }, [loading, isAuthenticated, navigate])
 
-  // Load news from API — pass fresh=true to bust server cache on manual refresh
-  const loadNews = useCallback(async (notify = false, page = 1) => {
+  // Load news from API — pool-based with batch pagination
+  const loadNews = useCallback(async (forceRefresh = false): Promise<void> => {
+    if (newsLoadingRef.current) return
+    newsLoadingRef.current = true
     setNewsRefreshing(true)
     try {
-      // When user explicitly refreshes (notify=true), pass fresh=true so server bypasses its cache
-      const payload = await apiGetNews(notify, page)
+      const payload = await apiGetNews(forceRefresh, 1)
       if (Array.isArray(payload?.items) && payload.items.length > 0) {
-        setNewsItems(prev => page > 1 ? [...prev, ...payload.items] : payload.items)
+        setNewsPool(payload.items)
+        setNewsOffset(0)
+        setNewsServerPage(1)
         setNewsTotalPages(payload.totalPages ?? 1)
+        setNewsTotal(payload.total ?? payload.items.length)
         setNewsLastFetched(new Date())
-        if (notify && page === 1) pushNotification?.(t('cdash.newsRefreshed', lang), 'success')
-      } else if (notify) {
-        pushNotification?.(t('cdash.noFreshNews', lang), 'warning')
       }
-    } catch {
-      if (notify) pushNotification?.(t('cdash.unableToLoadNews', lang), 'warning')
-    } finally {
+    } catch { /* silent */ } finally {
       setNewsRefreshing(false)
+      newsLoadingRef.current = false
     }
-  }, [lang, pushNotification])
+  }, [])
+
+  const NEWS_BATCH = 10
+  const hasNextBatchInPool = newsOffset + NEWS_BATCH < newsPool.length
+  const hasMoreFromServer = newsServerPage < newsTotalPages
+
+  const nextNews = useCallback(async (): Promise<void> => {
+    if (newsLoadingRef.current) return
+    if (newsOffset + NEWS_BATCH < newsPool.length) {
+      setNewsOffset(o => o + NEWS_BATCH)
+      return
+    }
+    if (newsServerPage < newsTotalPages) {
+      newsLoadingRef.current = true
+      setNewsRefreshing(true)
+      try {
+        const next = newsServerPage + 1
+        const payload = await apiGetNews(false, next)
+        if (Array.isArray(payload?.items) && payload.items.length > 0) {
+          setNewsPool(prev => [...prev, ...payload.items])
+          setNewsOffset(o => o + NEWS_BATCH)
+          setNewsServerPage(next)
+          setNewsTotalPages(payload.totalPages ?? 1)
+        }
+      } catch { /* silent */ } finally {
+        setNewsRefreshing(false)
+        newsLoadingRef.current = false
+      }
+      return
+    }
+    // Wrap around — fetch fresh from server
+    newsLoadingRef.current = true
+    setNewsRefreshing(true)
+    try {
+      const payload = await apiGetNews(true, 1)
+      if (Array.isArray(payload?.items) && payload.items.length > 0) {
+        setNewsPool(payload.items)
+        setNewsOffset(0)
+        setNewsServerPage(1)
+        setNewsTotalPages(payload.totalPages ?? 1)
+        setNewsTotal(payload.total ?? payload.items.length)
+        setNewsLastFetched(new Date())
+      }
+    } catch { /* silent */ } finally {
+      setNewsRefreshing(false)
+      newsLoadingRef.current = false
+    }
+  }, [newsOffset, newsPool.length, newsServerPage, newsTotalPages])
+
+  const newsItems = newsPool.slice(newsOffset, newsOffset + NEWS_BATCH)
+
+  const filteredNewsItems = useMemo(() => {
+    if (newsHazardFilter === 'all') return newsItems
+    const KWMAP: Record<string, string[]> = {
+      flood:      ['flood', 'flooding', 'river', 'surge', 'inundation'],
+      earthquake: ['earthquake', 'quake', 'seismic', 'tremor', 'magnitude'],
+      storm:      ['storm', 'hurricane', 'cyclone', 'tornado', 'typhoon', 'wind'],
+      wildfire:   ['wildfire', 'fire', 'blaze', 'bushfire', 'burn'],
+      drought:    ['drought', 'heatwave', 'heat wave', 'dry', 'arid'],
+    }
+    const kws = KWMAP[newsHazardFilter] || []
+    return newsItems.filter(n => kws.some(k => (n.title + ' ' + n.source).toLowerCase().includes(k)))
+  }, [newsItems, newsHazardFilter])
 
   // Pull-to-refresh for mobile
   const handlePullRefresh = useCallback(async () => {
@@ -420,44 +468,12 @@ export default function CitizenDashboard(): JSX.Element {
     }
   }, [searchParams, activeTab, VALID_TABS]) // activeTab needed to avoid stale comparison in urlTab !== activeTab check
 
-  const handleSubscribe = async () => {
-    if (subChannels.length === 0) return
-    try {
-      const normalizedChannels = subChannels.map(ch => ch === 'webpush' ? 'web' : ch)
-      const formattedPhone = subPhone ? formatPhoneWithCountry(selectedCountry, subPhone) : ''
-      if (subChannels.includes('webpush') && webPushStatus.enabled) {
-        try {
-          await subscribeToWebPush(subEmail)
-          pushNotification?.(t('cdash.webPushEnabled', lang), 'success')
-        } catch (err: any) {
-          const msg: string = err?.message || ''
-          if (!msg.includes('not configured') && !msg.includes('public key')) {
-            pushNotification?.(`${t('cdash.webPushFailed', lang)}: ${msg}`, 'warning')
-          }
-        }
-      }
-      await apiSubscribe({
-        email: subEmail,
-        phone: formattedPhone,
-        whatsapp: formattedPhone,
-        telegram_id: subTelegramId || undefined,
-        channels: normalizedChannels,
-        severity_filter: ['critical', 'warning', 'info'],
-        topic_filter: subTopics,
-      })
-      pushNotification?.(`${t('cdash.subscribedTo', lang)}: ${normalizedChannels.join(', ')}`, 'success')
-      setShowSubscribe(false)
-    } catch (err: any) {
-      pushNotification?.(err?.message || t('cdash.subscriptionFailed', lang), 'error')
-    }
-  }
-
   const handlePrintReport = (report: any) => {
     const printWindow = window.open('', '_blank')
     if (!printWindow) return
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>AEGIS Report ${report.id}</title>
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>AEGIS Report ${report.reportNumber || report.id}</title>
       <style>body{font-family:system-ui,sans-serif;max-width:800px;margin:40px auto;padding:20px;line-height:1.6}.header{border-bottom:3px solid #1e40af;padding-bottom:20px;margin-bottom:20px}.logo{font-size:24px;font-weight:bold;color:#1e40af}.badge{display:inline-block;padding:4px 12px;border-radius:4px;font-size:12px;font-weight:600;margin-right:8px}.severity-high{background:#fee;color:#c00}.severity-medium{background:#ffc;color:#860}.severity-low{background:#efe;color:#060}@media print{body{margin:0}}</style></head>
-      <body><div class="header"><div class="logo">${t('cdash.print.aegisTitle', lang)}</div><div>${t('cdash.print.reportId', lang)}: ${report.id}</div></div>
+      <body><div class="header"><div class="logo">${t('cdash.print.aegisTitle', lang)}</div><div>${t('cdash.print.reportId', lang)}: ${report.reportNumber || report.id}</div></div>
       <div><span class="badge severity-${report.severity?.toLowerCase()}">${report.severity}</span><span class="badge">${report.status}</span></div>
       <h2>${report.type}</h2><div><div>${report.location}</div><div>${report.displayTime || new Date(report.timestamp).toLocaleString()}</div></div>
       <div><h3>${t('cdash.print.description', lang)}</h3><p>${report.description}</p></div>
@@ -529,6 +545,11 @@ export default function CitizenDashboard(): JSX.Element {
 
   return (
     <AppLayout activeKey={activeTab === 'livemap' ? 'map' : activeTab === 'overview' ? 'home' : activeTab === 'alerts' ? 'alerts' : activeTab} onNavigate={handleSidebarNav} unreadMessages={totalUnread} communityUnread={communityUnread}>
+      <SessionExpiryHandler
+        isAuthenticated={isAuthenticated}
+        onRefresh={handleRefreshSession}
+        onExpire={logout}
+      />
       {/* Email verification banner (#23) */}
       {user && !user.emailVerified && (
         <EmailVerificationBanner token={token} lang={lang} announce={announce} />
@@ -553,15 +574,15 @@ export default function CitizenDashboard(): JSX.Element {
           )}
           <ErrorBoundary name="TabContent" fallback={<div className="flex items-center justify-center py-12 text-sm text-gray-500 dark:text-gray-400">Failed to load this section. Please refresh.</div>}>
           <Suspense fallback={<div className="space-y-4 p-4 animate-enter"><SkeletonCard /><SkeletonCard /><SkeletonList count={3} /></div>}>
-          {activeTab === 'overview' && <CitizenWelcome user={user} threads={socket.threads} recentSafety={recentSafety} emergencyContacts={emergencyContacts} totalUnread={totalUnread} setActiveTab={(tab: string) => setActiveTab(tab as TabKey)} reportStats={reportStats} onReportEmergency={() => setShowReportForm(true)} onCommunityHelp={() => setShowCommunityHelp(true)} submitSafetyCheckIn={submitSafetyCheckIn} />}
+          {activeTab === 'overview' && <CitizenWelcome user={user} threads={socket.threads} recentSafety={recentSafety} emergencyContacts={emergencyContacts} totalUnread={totalUnread} setActiveTab={(tab: string) => handleTabChange(tab as TabKey)} reportStats={reportStats} onReportEmergency={() => setShowReportForm(true)} onCommunityHelp={() => setShowCommunityHelp(true)} onSubscribe={() => setShowSubscribe(true)} submitSafetyCheckIn={submitSafetyCheckIn} />}
           {activeTab === 'livemap' && <LiveMapTab reports={reports} loc={loc} userPosition={userPosition} detectLocation={detectLocation} alerts={alerts} setSelectedAlert={setSelectedAlert} />}
           {activeTab === 'alerts' && <AlertsPanel />}
           {activeTab === 'reports' && <ReportsTab reports={sortedReports} loading={reportsLoading} searchTerm={reportSearchTerm} setSearchTerm={setReportSearchTerm} sortField={reportSortField} setSortField={setReportSortField} sortOrder={reportSortOrder} setSortOrder={setReportSortOrder} onViewReport={setSelectedReport} onPrintReport={handlePrintReport} onShareReport={handleShareReport} lang={lang} />}
           {activeTab === 'messages' && <MessagesTab socket={socket} user={user} />}
           {activeTab === 'community' && <CommunitySection parentSocket={socket.socket} />}
           {activeTab === 'prepare' && <PreparednessTab lang={lang} onOpenGuide={() => setShowPreparednessGuide(true)} />}
-          {activeTab === 'news' && <NewsTab newsItems={newsItems} newsRefreshing={newsRefreshing} loadNews={loadNews} refreshReports={refreshReports} totalPages={newsTotalPages} lastFetched={newsLastFetched} />}
-          {activeTab === 'safety' && <SafetyTab submitSafetyCheckIn={submitSafetyCheckIn} recentSafety={recentSafety} onEnterSafetyMode={() => setShowSafetyMode(true)} onFamilyCheckIn={() => setShowFamilyCheckIn(true)} />}
+          {activeTab === 'news' && <NewsTab newsPool={newsPool} newsOffset={newsOffset} setNewsOffset={setNewsOffset} NEWS_BATCH={NEWS_BATCH} filteredNewsItems={filteredNewsItems} newsHazardFilter={newsHazardFilter} setNewsHazardFilter={setNewsHazardFilter} newsRefreshing={newsRefreshing} loadNews={loadNews} nextNews={nextNews} newsTotal={newsTotal} hasNextBatchInPool={hasNextBatchInPool} hasMoreFromServer={hasMoreFromServer} lastFetched={newsLastFetched} />}
+          {activeTab === 'safety' && <SafetyTab submitSafetyCheckIn={submitSafetyCheckIn} recentSafety={recentSafety} onFamilyCheckIn={() => setShowFamilyCheckIn(true)} />}
           {activeTab === 'shelters' && <ShelterFinder />}
           {activeTab === 'risk' && <RiskAssessment />}
           {activeTab === 'emergency' && <OfflineEmergencyCard />}
@@ -584,7 +605,13 @@ export default function CitizenDashboard(): JSX.Element {
       {showAssistant && (
         <ErrorBoundary name="Chatbot" fallback={null}>
           <Suspense fallback={<div className="fixed bottom-4 left-4 z-50 bg-white dark:bg-gray-900 rounded-xl p-4 shadow-2xl w-80 space-y-3"><Skeleton className="h-4 w-32" /><Skeleton className="h-3 w-full" /><Skeleton className="h-3 w-3/4" /></div>}>
-            <Chatbot onClose={() => setShowAssistant(false)} anchor="left" />
+            <Chatbot
+              onClose={() => setShowAssistant(false)}
+              anchor="left"
+              authToken={token}
+              citizenName={user?.displayName}
+              alertCount={alerts.length}
+            />
           </Suspense>
         </ErrorBoundary>
       )}
@@ -598,7 +625,6 @@ export default function CitizenDashboard(): JSX.Element {
           {showReportForm && <ReportForm onClose={() => setShowReportForm(false)} />}
           {showCommunityHelp && <CommunityHelp onClose={() => setShowCommunityHelp(false)} />}
           {showPreparednessGuide && <PreparednessGuide onClose={() => setShowPreparednessGuide(false)} lang={lang} />}
-          {showSafetyMode && <PublicSafetyMode onClose={() => setShowSafetyMode(false)} />}
           {showFamilyCheckIn && <FamilyCheckIn onClose={() => setShowFamilyCheckIn(false)} userName={user?.displayName || 'Citizen'} />}
         </Suspense>
       </ErrorBoundary>
@@ -623,7 +649,7 @@ export default function CitizenDashboard(): JSX.Element {
                 <div className="flex items-center gap-2 text-sm"><MapPin className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" /><span className="text-gray-700 dark:text-gray-400">{selectedReport.location}</span></div>
                 <div className="flex items-center gap-2 text-sm"><Clock className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" /><span className="text-gray-700 dark:text-gray-400">{selectedReport.displayTime || new Date(selectedReport.timestamp).toLocaleString()}</span></div>
                 {selectedReport.reporter && <div className="flex items-center gap-2 text-sm"><User className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" /><span className="text-gray-700 dark:text-gray-400">{selectedReport.reporter}</span></div>}
-                <div className="flex items-center gap-2 text-sm"><Info className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" /><span className="text-gray-500 dark:text-gray-400 font-mono text-xs">ID: {selectedReport.id}</span></div>
+                <div className="flex items-center gap-2 text-sm"><Info className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" /><span className="text-gray-500 dark:text-gray-400 font-mono text-xs">ID: {selectedReport.reportNumber || selectedReport.id}</span></div>
               </div>
               {selectedReport.aiAnalysis && (
                 <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 space-y-2">
@@ -635,6 +661,36 @@ export default function CitizenDashboard(): JSX.Element {
                     {selectedReport.aiAnalysis.fakeProbability != null && <div><span className="text-blue-600 dark:text-blue-400 font-medium">{t('cdash.fakeRisk', lang)}:</span> {(selectedReport.aiAnalysis.fakeProbability * 100).toFixed(0)}%</div>}
                   </div>
                   {selectedReport.aiAnalysis.vulnerablePersonAlert && <div className="flex items-center gap-1.5 text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200 px-3 py-1.5 rounded-lg mt-1"><AlertTriangle className="w-3.5 h-3.5" /> {t('cdash.vulnerablePersonAlert', lang)}</div>}
+                </div>
+              )}
+              {/* Media Attachments */}
+              {(selectedReport.media?.length > 0 || selectedReport.mediaUrl) && (
+                <div className="space-y-2">
+                  <h5 className="font-semibold text-sm text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                    <Eye className="w-4 h-4" /> Media Attachments
+                  </h5>
+                  <div className="grid grid-cols-2 gap-2">
+                    {selectedReport.media?.map((file: any, i: number) => (
+                      <a key={file.id || i} href={file.url || file.file_url} target="_blank" rel="noopener noreferrer" className="group relative rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 hover:border-aegis-500 transition-colors">
+                        {file.type === 'video' ? (
+                          <video src={file.url || file.file_url} className="w-full h-32 object-cover" />
+                        ) : (
+                          <img src={file.url || file.file_url} alt={file.originalFilename || `Attachment ${i + 1}`} className="w-full h-32 object-cover" loading="lazy" />
+                        )}
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                          <Eye className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                      </a>
+                    ))}
+                    {!selectedReport.media?.length && selectedReport.mediaUrl && (
+                      <a href={selectedReport.mediaUrl} target="_blank" rel="noopener noreferrer" className="group relative rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 hover:border-aegis-500 transition-colors">
+                        <img src={selectedReport.mediaUrl} alt="Report attachment" className="w-full h-32 object-cover" loading="lazy" />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                          <Eye className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                      </a>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -678,63 +734,12 @@ export default function CitizenDashboard(): JSX.Element {
         </div>
       )}
 
-      {/* Subscribe Modal */}
-      {showSubscribe && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={() => setShowSubscribe(false)}>
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-              <h3 className="font-bold flex items-center gap-2"><Bell className="w-5 h-5 text-blue-600" /> {t('citizen.subscribe.subscribeTo', lang)}</h3>
-              <button onClick={() => setShowSubscribe(false)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"><X className="w-5 h-5" /></button>
-            </div>
-            <div className="p-4 space-y-3">
-              <p className="text-xs text-gray-500 dark:text-gray-400">{t('citizen.subscribe.chooseChannels', lang)}</p>
-              {[
-                { key: 'email', label: t('cdash.sub.email', lang), icon: Mail, color: 'text-red-500' },
-                { key: 'sms', label: t('cdash.sub.sms', lang), icon: Smartphone, color: 'text-green-500' },
-                { key: 'telegram', label: t('cdash.sub.telegram', lang), icon: Send, color: 'text-blue-500' },
-                { key: 'whatsapp', label: t('cdash.sub.whatsapp', lang), icon: MessageSquare, color: 'text-green-600' },
-                { key: 'webpush', label: t('cdash.sub.webpush', lang), icon: Wifi, color: 'text-purple-500' },
-              ].map(ch => (
-                <button key={ch.key} onClick={() => setSubChannels(p => p.includes(ch.key) ? p.filter(c => c !== ch.key) : [...p, ch.key])}
-                  className={`w-full p-3 rounded-xl border-2 flex items-center gap-3 transition-all ${subChannels.includes(ch.key) ? 'border-aegis-500 bg-aegis-50 dark:bg-aegis-950/20' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'}`}>
-                  <ch.icon className={`w-5 h-5 ${ch.color}`} /><span className="text-sm font-medium flex-1 text-left">{ch.label}</span>
-                  {subChannels.includes(ch.key) && <CheckCircle className="w-5 h-5 text-aegis-500" />}
-                </button>
-              ))}
-              {subChannels.includes('email') && <input className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-gray-800 rounded-lg border-none" placeholder={t('cdash.sub.emailPlaceholder', lang)} value={subEmail} onChange={e => setSubEmail(e.target.value)} />}
-              {(subChannels.includes('sms') || subChannels.includes('whatsapp')) && (
-                <div className="space-y-2">
-                  <div className="flex gap-2">
-                    <CountrySearch countries={ALL_COUNTRY_CODES} selected={selectedCountry} onChange={setSelectedCountry} />
-                    <input className="flex-1 px-3 py-2 text-sm bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700" placeholder={selectedCountry.format} value={subPhone} onChange={e => setSubPhone(e.target.value)} type="tel" />
-                  </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Example: {selectedCountry.dial} {selectedCountry.format}</p>
-                </div>
-              )}
-              {subChannels.includes('telegram') && <input className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-gray-800 rounded-lg border-none" placeholder={t('cdash.sub.telegramPlaceholder', lang)} value={subTelegramId} onChange={e => setSubTelegramId(e.target.value)} />}
-              {/* Topic filter */}
-              <div>
-                <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">{t('citizen.subscribe.alertTopics', lang) || 'Alert Topics'}</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {(['flood', 'fire', 'storm', 'earthquake', 'heatwave', 'tsunami', 'general'] as const).map(topic => (
-                    <button key={topic} onClick={() => setSubTopics(p => p.includes(topic) ? p.filter(t => t !== topic) : [...p, topic])}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all ${
-                        subTopics.includes(topic)
-                          ? 'border-aegis-500 bg-aegis-50 dark:bg-aegis-950/20 text-aegis-700 dark:text-aegis-300'
-                          : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-300'
-                      }`}>
-                      {topic.charAt(0).toUpperCase() + topic.slice(1)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <button onClick={handleSubscribe} disabled={subChannels.length === 0} className="w-full bg-aegis-600 hover:bg-aegis-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-2.5 rounded-xl font-semibold text-sm transition-all">
-                {webPushLoading ? t('citizen.subscribe.settingUp', lang) : t('citizen.subscribe.subscribeTo', lang)}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <SubscribeModal
+        isOpen={showSubscribe}
+        onClose={() => setShowSubscribe(false)}
+        user={user}
+        pushNotification={pushNotification}
+      />
 
       {/* Toasts */}
       <div className="fixed top-16 right-4 z-50 space-y-2">
@@ -1049,219 +1054,157 @@ function PreparednessTab({ lang, onOpenGuide }: { lang: string; onOpenGuide: () 
   )
 }
 
-// TAB: NEWS — Live news from API with category filters, pagination, auto-refresh
+// TAB: NEWS — Live news with hazard filters, batch pagination, Prev/Next, WhatsApp share
 
-const NEWS_TYPE_CONFIG: Record<string, { color: string; bg: string; dot: string; textColor: string; label: string }> = {
-  disaster:  { color: 'bg-rose-600',    bg: 'bg-rose-50 dark:bg-rose-950/20',    dot: 'bg-rose-600',    textColor: 'text-rose-600 dark:text-rose-400',    label: 'Disaster' },
-  alert:     { color: 'bg-red-500',     bg: 'bg-red-50 dark:bg-red-950/20',     dot: 'bg-red-500',     textColor: 'text-red-600 dark:text-red-400',     label: 'Alert' },
-  warning:   { color: 'bg-amber-500',   bg: 'bg-amber-50 dark:bg-amber-950/20',   dot: 'bg-amber-500',   textColor: 'text-amber-600 dark:text-amber-400',   label: 'Warning' },
-  community: { color: 'bg-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950/20', dot: 'bg-emerald-500', textColor: 'text-emerald-600 dark:text-emerald-400', label: 'Community' },
-  tech:      { color: 'bg-violet-500',  bg: 'bg-violet-50 dark:bg-violet-950/20',  dot: 'bg-violet-500',  textColor: 'text-violet-600 dark:text-violet-400',  label: 'Tech' },
-  info:      { color: 'bg-blue-500',    bg: 'bg-blue-50 dark:bg-blue-950/20',    dot: 'bg-blue-500',    textColor: 'text-blue-600 dark:text-blue-400',    label: 'Info' },
-}
-
-function NewsTab({ newsItems, newsRefreshing, loadNews, refreshReports, totalPages, lastFetched }: {
-  newsItems: NewsItem[]
+function NewsTab({ newsPool, newsOffset, setNewsOffset, NEWS_BATCH, filteredNewsItems, newsHazardFilter, setNewsHazardFilter, newsRefreshing, loadNews, nextNews, newsTotal, hasNextBatchInPool, hasMoreFromServer, lastFetched }: {
+  newsPool: NewsItem[]
+  newsOffset: number
+  setNewsOffset: React.Dispatch<React.SetStateAction<number>>
+  NEWS_BATCH: number
+  filteredNewsItems: NewsItem[]
+  newsHazardFilter: string
+  setNewsHazardFilter: (f: string) => void
   newsRefreshing: boolean
-  loadNews: (notify: boolean, page?: number) => Promise<void>
-  refreshReports?: () => void
-  totalPages: number
+  loadNews: (forceRefresh?: boolean) => Promise<void>
+  nextNews: () => Promise<void>
+  newsTotal: number
+  hasNextBatchInPool: boolean
+  hasMoreFromServer: boolean
   lastFetched: Date | null
 }) {
   const lang = useLanguage()
-  const [activeFilter, setActiveFilter] = useState<string>('all')
-  const [currentPage, setCurrentPage] = useState(1)
-  const [newItemsCount, setNewItemsCount] = useState<number | null>(null)
 
   // Auto-refresh every 15 minutes silently
   useEffect(() => {
-    const interval = setInterval(() => { loadNews(false, 1).catch(() => {}) }, 15 * 60 * 1000)
+    const interval = setInterval(() => { loadNews(false).catch(() => {}) }, 15 * 60 * 1000)
     return () => clearInterval(interval)
   }, [loadNews])
 
-  const handleManualRefresh = async () => {
-    const prevUrls = new Set(newsItems.map(n => n.url))
-    setCurrentPage(1)
-    setActiveFilter('all')
-    setNewItemsCount(null)
-    await loadNews(true, 1)
-    // After load, compare new items — but newsItems state updates async so we rely on push notification
-    // Count new items once updated
-    const newCount = newsItems.filter(n => !prevUrls.has(n.url)).length
-    setNewItemsCount(newCount)
-    setTimeout(() => setNewItemsCount(null), 6000) // hide after 6s
-    refreshReports?.()
+  const typeConfig: Record<string, { color: string; bg: string; label: string }> = {
+    alert:     { color: 'bg-red-500',    bg: 'bg-red-50 dark:bg-red-950/20 border-red-200/50 dark:border-red-800/50',        label: t('cdash.news.alert', lang) || 'Alert' },
+    warning:   { color: 'bg-amber-500',  bg: 'bg-amber-50 dark:bg-amber-950/20 border-amber-200/50 dark:border-amber-800/50',  label: t('cdash.news.warning', lang) || 'Warning' },
+    disaster:  { color: 'bg-rose-600',   bg: 'bg-rose-50 dark:bg-rose-950/20 border-rose-200/50 dark:border-rose-800/50',      label: 'Disaster' },
+    community: { color: 'bg-green-500',  bg: 'bg-green-50 dark:bg-green-950/20 border-green-200/50 dark:border-green-800/50',  label: t('cdash.news.community', lang) || 'Community' },
+    tech:      { color: 'bg-purple-500', bg: 'bg-purple-50 dark:bg-purple-950/20 border-purple-200/50 dark:border-purple-800/50', label: t('cdash.news.tech', lang) || 'Tech' },
+    info:      { color: 'bg-blue-500',   bg: 'bg-blue-50 dark:bg-blue-950/20 border-blue-200/50 dark:border-blue-800/50',      label: t('cdash.news.info', lang) || 'Info' },
   }
 
-  const handleLoadMore = async () => {
-    const next = currentPage + 1
-    setCurrentPage(next)
-    await loadNews(false, next)
-  }
-
-  // Count per type for filter badges
-  const typeCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: newsItems.length }
-    for (const n of newsItems) counts[n.type] = (counts[n.type] || 0) + 1
-    return counts
-  }, [newsItems])
-
-  const filteredItems = useMemo(() => {
-    if (activeFilter === 'all') return newsItems
-    return newsItems.filter(n => n.type === activeFilter)
-  }, [newsItems, activeFilter])
-
-  const filterTypes = ['all', 'disaster', 'alert', 'warning', 'community', 'info', 'tech']
-
-  const lastFetchedLabel = lastFetched
-    ? `Updated ${lastFetched.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-    : null
+  const hazardFilters = [
+    { id: 'all',        label: 'All',        icon: Globe },
+    { id: 'flood',      label: 'Flood',      icon: Waves },
+    { id: 'earthquake', label: 'Earthquake', icon: AlertCircleIcon },
+    { id: 'storm',      label: 'Storm',      icon: CloudLightning },
+    { id: 'wildfire',   label: 'Wildfire',   icon: Flame },
+    { id: 'drought',    label: 'Drought',    icon: Droplets },
+  ]
 
   return (
     <div className="max-w-4xl mx-auto space-y-4 animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-extrabold text-gray-900 dark:text-white flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-aegis-500 to-aegis-700 flex items-center justify-center shadow-md">
-              <Newspaper className="w-4 h-4 text-white" />
-            </div>
-            {t('citizen.news.newsResources', lang)}
-          </h2>
-          {lastFetchedLabel && (
-            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5 ml-[42px]">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block mr-1 align-middle" />
-              {lastFetchedLabel} &middot; Auto-refreshes every 15 min
-            </p>
-          )}
-        </div>
-        <button
-          onClick={handleManualRefresh}
-          disabled={newsRefreshing}
-          className="flex items-center gap-2 text-xs text-aegis-600 hover:text-aegis-700 bg-aegis-50/80 dark:bg-aegis-950/30 border border-aegis-200/80 dark:border-aegis-800/50 px-3.5 py-2 rounded-xl transition-all hover:shadow-sm disabled:opacity-60 font-semibold"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${newsRefreshing ? 'animate-spin' : ''}`} />
-          {newsRefreshing ? 'Refreshing...' : t('citizen.news.refresh', lang)}
-        </button>
-      </div>
-
-      {/* New-items banner */}
-      {newItemsCount !== null && (
-        <div className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold border ${
-          newItemsCount > 0
-            ? 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300 border-emerald-200/60 dark:border-emerald-800/40'
-            : 'bg-gray-50 dark:bg-gray-800/40 text-gray-500 dark:text-gray-400 border-gray-200/60 dark:border-gray-700/40'
-        }`}>
-          {newItemsCount > 0
-            ? <><CheckCircle className="w-3.5 h-3.5" /> {newItemsCount} new {newItemsCount === 1 ? 'story' : 'stories'} loaded</>
-            : <><Info className="w-3.5 h-3.5" /> No new stories yet — feeds update hourly</>}
-        </div>
-      )}
-
-      {/* Category filter pills */}
-      {newsItems.length > 0 && (
-        <div className="flex gap-1.5 flex-wrap">
-          {filterTypes.map(type => {
-            const count = typeCounts[type] || 0
-            if (type !== 'all' && type !== 'disaster' && count === 0) return null
-            const cfg = type === 'all' ? null : NEWS_TYPE_CONFIG[type]
-            const isActive = activeFilter === type
-            return (
-              <button
-                key={type}
-                onClick={() => setActiveFilter(type)}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all border ${
-                  isActive
-                    ? type === 'all'
-                      ? 'bg-gray-800 dark:bg-white text-white dark:text-gray-900 border-gray-800 dark:border-white'
-                      : `${cfg!.color.replace('bg-', 'bg-').replace('-500', '-500')} text-white border-transparent`
-                    : 'bg-white dark:bg-gray-800/60 text-gray-500 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                }`}
-              >
-                {cfg && <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-white' : cfg.dot}`} />}
-                {type === 'all' ? 'All' : cfg!.label}
-                <span className={`text-[9px] px-1 py-0.5 rounded ${
-                  isActive ? 'bg-black/20' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
-                }`}>{count}</span>
-              </button>
-            )
-          })}
-        </div>
-      )}
-
-      {/* News list */}
-      {newsRefreshing && newsItems.length === 0 ? (
-        <div className="glass-card rounded-2xl p-8 text-center">
-          <Loader2 className="w-6 h-6 text-aegis-500 mx-auto mb-2 animate-spin" />
-          <p className="text-xs text-gray-500 dark:text-gray-400">Fetching latest news...</p>
-        </div>
-      ) : filteredItems.length === 0 ? (
-        <div className="glass-card rounded-2xl p-12 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-4">
-            <Newspaper className="w-8 h-8 text-gray-300 dark:text-gray-600" />
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <h2 className="font-bold text-lg flex items-center gap-2.5 text-gray-900 dark:text-white">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-aegis-400 to-aegis-600 flex items-center justify-center">
+            <Newspaper className="w-4 h-4 text-white" />
           </div>
-          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-            {activeFilter === 'all' ? t('citizen.news.noNews', lang) : `No ${NEWS_TYPE_CONFIG[activeFilter]?.label ?? activeFilter} items`}
-          </p>
-          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{t('cdash.news.checkBackLater', lang)}</p>
-          {activeFilter !== 'all' && (
-            <button onClick={() => setActiveFilter('all')} className="mt-3 text-xs text-aegis-600 dark:text-aegis-400 font-semibold hover:underline">Show all</button>
+          {t('citizen.tab.news', lang) || 'News'}
+          {newsPool.length > 0 && (
+            <span className="text-xs font-normal text-gray-400 dark:text-gray-500">({newsTotal || newsPool.length} articles)</span>
           )}
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {filteredItems.map((n, i) => {
-            const cfg = NEWS_TYPE_CONFIG[n.type] || NEWS_TYPE_CONFIG.info
-            return (
-              <div key={`${n.url}-${i}`} className="glass-card rounded-2xl p-4 hover-lift transition-all">
-                <div className="flex items-start gap-3.5">
-                  <div className={`w-10 h-10 rounded-xl ${cfg.bg} flex items-center justify-center flex-shrink-0`}>
-                    <div className={`w-2.5 h-2.5 rounded-full ${cfg.dot}`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                      <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md ${cfg.bg} ${cfg.textColor}`}>
-                        {cfg.label}
-                      </span>
-                      <span className="text-[10px] text-gray-400 dark:text-gray-500">{n.time}</span>
-                      <span className="text-[10px] text-gray-400 dark:text-gray-500 truncate max-w-[120px]">{n.source}</span>
-                    </div>
-                    <a
-                      href={n.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm font-semibold text-gray-900 dark:text-white hover:text-aegis-600 dark:hover:text-aegis-400 transition-colors leading-snug block"
-                    >
-                      {n.title}
-                    </a>
-                  </div>
-                  <a
-                    href={n.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-[10px] text-aegis-600 hover:text-aegis-700 dark:text-aegis-400 dark:hover:text-aegis-300 bg-aegis-50/80 dark:bg-aegis-950/30 border border-aegis-200/60 dark:border-aegis-800/40 px-2.5 py-1.5 rounded-lg flex-shrink-0 transition-colors font-medium"
-                    aria-label={`Read: ${n.title}`}
-                  >
-                    <ExternalLink className="w-3 h-3" />
-                    <span className="hidden sm:inline">{t('cdash.news.read', lang)}</span>
-                  </a>
-                </div>
-              </div>
-            )
-          })}
-
-          {/* Load more */}
-          {activeFilter === 'all' && currentPage < totalPages && (
+        </h2>
+        <div className="flex items-center gap-2">
+          {newsPool.length > 0 && (
+            <span className="text-xs text-gray-400 dark:text-gray-500">
+              {Math.floor(newsOffset / NEWS_BATCH) + 1}/{Math.ceil(newsPool.length / NEWS_BATCH)}
+              {lastFetched && ` · ${lastFetched.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+            </span>
+          )}
+          {newsOffset > 0 && (
             <button
-              onClick={handleLoadMore}
-              disabled={newsRefreshing}
-              className="w-full py-3 text-xs font-bold text-aegis-600 dark:text-aegis-400 bg-white dark:bg-gray-800/60 border border-aegis-200/60 dark:border-aegis-800/40 rounded-2xl hover:bg-aegis-50/80 dark:hover:bg-aegis-950/20 transition-all disabled:opacity-50"
+              onClick={() => setNewsOffset(o => Math.max(0, o - NEWS_BATCH))}
+              className="flex items-center gap-1 text-xs text-gray-500 hover:text-aegis-600 bg-gray-100/80 dark:bg-gray-800/60 border border-gray-200/60 dark:border-gray-700/60 px-3 py-2 rounded-xl transition-all hover:scale-[1.02] font-bold"
             >
-              {newsRefreshing ? <span className="flex items-center justify-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading...</span> : `Load more (page ${currentPage + 1} of ${totalPages})`}
+              ← Prev
             </button>
           )}
+          <button
+            onClick={nextNews}
+            disabled={newsRefreshing}
+            className="flex items-center gap-1.5 text-xs text-aegis-600 hover:text-aegis-700 bg-aegis-50/80 dark:bg-aegis-950/30 border border-aegis-200/60 dark:border-aegis-800/60 px-4 py-2 rounded-xl transition-all disabled:opacity-60 hover:scale-[1.02] active:scale-95 font-bold backdrop-blur-sm"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 transition-transform duration-500 ${newsRefreshing ? 'animate-spin' : ''}`} />
+            {newsRefreshing ? 'Loading…' : hasNextBatchInPool || hasMoreFromServer ? 'Next →' : 'Refresh ↺'}
+          </button>
         </div>
-      )}
+      </div>
+
+      {/* Hazard filter chips */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {hazardFilters.map(f => (
+          <button key={f.id} onClick={() => setNewsHazardFilter(f.id)}
+            className={`flex items-center gap-1 text-[11px] font-bold px-3 py-1.5 rounded-xl border transition-all hover:scale-[1.02] ${newsHazardFilter === f.id ? 'bg-aegis-600 text-white border-aegis-600 shadow-sm' : 'bg-white dark:bg-gray-800/60 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-aegis-300'}`}
+          >
+            <f.icon className="w-3 h-3" /> {f.label}
+          </button>
+        ))}
+        {newsHazardFilter !== 'all' && <span className="text-[11px] text-gray-400">{filteredNewsItems.length} matching</span>}
+      </div>
+
+      {/* News list */}
+      <div key={`${newsOffset}-${newsHazardFilter}`} className="space-y-2.5 animate-fade-in">
+        {newsRefreshing && newsPool.length === 0 && (
+          <div className="space-y-2.5">
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i} className="glass-card rounded-2xl p-4 flex items-start gap-3.5 animate-pulse">
+                <div className="w-3 h-3 rounded-full bg-gray-200 dark:bg-gray-700 flex-shrink-0 mt-1.5" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-16" />
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
+                  <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-32" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {!newsRefreshing && filteredNewsItems.length === 0 && (
+          <div className="glass-card rounded-2xl p-8 text-center">
+            <Newspaper className="w-10 h-10 text-gray-300 dark:text-gray-400 mx-auto mb-3" />
+            <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+              {newsHazardFilter !== 'all' ? `No ${newsHazardFilter} articles in this batch — try Next ↺` : t('citizenPage.noNewsAvailable', lang)}
+            </p>
+          </div>
+        )}
+        {filteredNewsItems.map((n, i) => {
+          const cfg = typeConfig[n.type] || typeConfig.info
+          const waUrl = `https://wa.me/?text=${encodeURIComponent(`🚨 ${n.title}\n${n.url}`)}`
+          return (
+            <div key={i} className="glass-card rounded-2xl p-4 hover:shadow-lg transition-all duration-300 flex items-start gap-3.5 group hover-lift">
+              <div className={`w-3 h-3 rounded-full flex-shrink-0 mt-1.5 ${cfg.color}`} />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`text-[8px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full ${cfg.bg} border`}>{cfg.label}</span>
+                </div>
+                <a href={n.url} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold hover:text-aegis-600 transition-colors block">{n.title}</a>
+                <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">{n.source} · {n.time}</p>
+              </div>
+              <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-all">
+                <a href={waUrl} target="_blank" rel="noopener noreferrer" title="Share on WhatsApp"
+                  className="w-7 h-7 flex items-center justify-center rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200/60 dark:border-green-800/60 hover:bg-green-100 transition-colors">
+                  <Share2 className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
+                </a>
+                <a href={n.url} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-[10px] text-aegis-600 hover:text-aegis-700 bg-aegis-50 dark:bg-aegis-950/20 border border-aegis-200/60 dark:border-aegis-800/60 px-3 py-1.5 rounded-xl transition-all font-bold">
+                  <ExternalLink className="w-3 h-3" /> {t('citizen.news.source', lang)}
+                </a>
+              </div>
+            </div>
+          )
+        })}
+        {newsPool.length > NEWS_BATCH && (
+          <div className="flex items-center justify-center gap-2 pt-1 text-xs text-gray-400">
+            <span>{newsOffset + 1}–{Math.min(newsOffset + NEWS_BATCH, newsPool.length)} of {newsTotal || newsPool.length} articles</span>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -1927,7 +1870,7 @@ function MessagesTab({ socket, user }: { socket: any; user: any }) {
   if (!activeThread) {
     return (
       <div className="max-w-3xl mx-auto">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <h2 className="text-lg font-bold text-gray-900 dark:text-white">{t('citizen.messages.title', lang)}</h2>
           <div className="flex items-center gap-2">
             {!socket.connected && (
@@ -2237,7 +2180,7 @@ function MessagesTab({ socket, user }: { socket: any; user: any }) {
 
 // TAB 3: SAFETY CHECK-IN
 
-function SafetyTab({ submitSafetyCheckIn, recentSafety, onEnterSafetyMode, onFamilyCheckIn }: any) {
+function SafetyTab({ submitSafetyCheckIn, recentSafety, onFamilyCheckIn }: any) {
   const lang = useLanguage()
   const [status, setStatus] = useState<'safe' | 'help' | 'unsure'>('safe')
   const [message, setMessage] = useState('')
@@ -2342,21 +2285,6 @@ function SafetyTab({ submitSafetyCheckIn, recentSafety, onEnterSafetyMode, onFam
           </div>
         )}
       </div>
-
-      {/* Public Safety Mode — Prominent CTA */}
-      <button onClick={onEnterSafetyMode}
-        className="w-full glass-card rounded-2xl p-5 text-left transition-all duration-300 group hover-lift border-2 border-transparent hover:border-red-300 dark:hover:border-red-800">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 bg-gradient-to-br from-red-500 to-rose-600 rounded-2xl flex items-center justify-center text-white group-hover:scale-110 transition-transform shadow-lg shadow-red-200/50 dark:shadow-red-900/30">
-            <ShieldAlert className="w-7 h-7" />
-          </div>
-          <div className="flex-1">
-            <p className="text-base font-bold text-red-700 dark:text-red-300 group-hover:text-red-600">{t('cdash.safety.publicSafetyMode', lang)}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t('cdash.safety.publicSafetyModeDesc', lang)}</p>
-          </div>
-          <ChevronRight className="w-5 h-5 text-gray-300 dark:text-gray-400 group-hover:text-red-400 group-hover:translate-x-1 transition-all" />
-        </div>
-      </button>
 
       {/* Family Check-In CTA */}
       {onFamilyCheckIn && (
@@ -2740,6 +2668,214 @@ function ProfileTab({ user, updateProfile, uploadAvatar, refreshProfile }: any) 
 
 // TAB 5: SECURITY — Change Password
 
+// WebAuthn base64url helpers used by PasskeySection
+function _base64urlToBuffer(b64: string): ArrayBuffer {
+  const pad = b64.length % 4 === 0 ? '' : '='.repeat(4 - (b64.length % 4))
+  const bin = atob(b64.replace(/-/g, '+').replace(/_/g, '/') + pad)
+  const buf = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i)
+  return buf.buffer
+}
+function _bufferToBase64url(buf: ArrayBuffer): string {
+  return btoa(String.fromCharCode(...new Uint8Array(buf)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
+}
+
+function PasskeySection() {
+  const { token } = useCitizenAuth()
+  const [passkeys, setPasskeys] = useState<Array<{ id: string; deviceName: string; createdAt: string; lastUsedAt: string | null }>>([])
+  const [loading, setLoading] = useState(true)
+  const [registering, setRegistering] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+  const [supportsWebAuthn, setSupportsWebAuthn] = useState(false)
+
+  useEffect(() => {
+    setSupportsWebAuthn(typeof window !== 'undefined' && !!window.PublicKeyCredential)
+    loadPasskeys()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const loadPasskeys = async () => {
+    const tok = getCitizenToken()
+    if (!tok) { setLoading(false); return }
+    setLoading(true)
+    try {
+      const res = await fetch('/api/security/passkeys', {
+        headers: { Authorization: `Bearer ${tok}` },
+        credentials: 'include',
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setPasskeys(data.passkeys || [])
+      }
+    } catch {}
+    setLoading(false)
+  }
+
+  const registerPasskey = async () => {
+    const tok = getCitizenToken()
+    if (!tok) return
+    setRegistering(true)
+    setError('')
+    setSuccess('')
+    try {
+      // Step 1: get registration challenge
+      const optRes = await fetch('/api/security/passkeys/register', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${tok}`, 'Content-Type': 'application/json' },
+        credentials: 'include',
+      })
+      if (!optRes.ok) {
+        const e = await optRes.json().catch(() => ({}))
+        const msg = (e as any).error?.message || (e as any).message || (typeof (e as any).error === 'string' ? (e as any).error : null) || 'Failed to get registration options'
+        throw new Error(msg)
+      }
+      const { options } = await optRes.json()
+
+      // Step 2: browser WebAuthn registration ceremony
+      const publicKey: PublicKeyCredentialCreationOptions = {
+        ...options,
+        challenge: _base64urlToBuffer(options.challenge),
+        user: { ...options.user, id: _base64urlToBuffer(options.user.id) },
+        excludeCredentials: (options.excludeCredentials || []).map((c: any) => ({
+          ...c, id: _base64urlToBuffer(c.id),
+        })),
+      }
+      const cred = await navigator.credentials.create({ publicKey }) as PublicKeyCredential
+      const attest = cred.response as AuthenticatorAttestationResponse
+
+      // Step 3: send attestation to server
+      const verifyRes = await fetch('/api/security/passkeys/verify', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${tok}`, 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          credential: {
+            id: cred.id,
+            rawId: _bufferToBase64url(cred.rawId),
+            type: cred.type,
+            response: {
+              clientDataJSON: _bufferToBase64url(attest.clientDataJSON),
+              attestationObject: _bufferToBase64url(attest.attestationObject),
+            },
+          },
+          deviceName: /Mobi|Android/i.test(navigator.userAgent) ? 'Mobile Device' : 'This Device',
+        }),
+      })
+      if (!verifyRes.ok) {
+        const e = await verifyRes.json().catch(() => ({}))
+        const msg = (e as any).error?.message || (e as any).message || (typeof (e as any).error === 'string' ? (e as any).error : null) || 'Passkey registration failed'
+        throw new Error(msg)
+      }
+      setSuccess('Passkey registered! You can now sign in with this device.')
+      loadPasskeys()
+    } catch (e: any) {
+      if (e?.name === 'NotAllowedError') {
+        setError('Registration was cancelled. Try again.')
+      } else {
+        setError(e?.message || 'Failed to register passkey')
+      }
+    }
+    setRegistering(false)
+  }
+
+  const deletePasskey = async (id: string) => {
+    const tok = getCitizenToken()
+    if (!tok) return
+    setDeletingId(id)
+    try {
+      const res = await fetch(`/api/security/passkeys/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${tok}` },
+        credentials: 'include',
+      })
+      if (res.ok) loadPasskeys()
+    } catch {}
+    setDeletingId(null)
+  }
+
+  const fmtDate = (iso: string) =>
+    new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+
+  return (
+    <div className="glass-card rounded-2xl p-6 space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center shadow-md">
+            <Fingerprint className="w-4 h-4 text-white" />
+          </div>
+          <div>
+            <h3 className="font-bold text-gray-900 dark:text-white text-sm">Passkeys</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Sign in with Face ID, Touch ID, or device PIN</p>
+          </div>
+        </div>
+        {supportsWebAuthn && (
+          <button
+            onClick={registerPasskey}
+            disabled={registering}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-indigo-600/20 hover:scale-[1.02] active:scale-[0.98]"
+          >
+            {registering ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+            {registering ? 'Registering…' : 'Add Passkey'}
+          </button>
+        )}
+      </div>
+
+      {!supportsWebAuthn && (
+        <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-3">
+          Your browser does not support passkeys. Try Chrome, Safari, Firefox, or Edge.
+        </div>
+      )}
+      {error && (
+        <div className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl p-3 flex items-center gap-2">
+          <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" /> {error}
+        </div>
+      )}
+      {success && (
+        <div className="text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl p-3 flex items-center gap-2">
+          <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" /> {success}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="flex justify-center py-4">
+          <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
+        </div>
+      ) : passkeys.length === 0 ? (
+        <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-2">No passkeys yet. Click “Add Passkey” to register this device.</p>
+      ) : (
+        <ul className="space-y-2">
+          {passkeys.map(pk => (
+            <li key={pk.id} className="flex items-center justify-between bg-gray-50 dark:bg-gray-800/60 rounded-xl px-4 py-3">
+              <div className="flex items-center gap-2.5">
+                <Fingerprint className="w-4 h-4 text-indigo-500 flex-shrink-0" />
+                <div>
+                  <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">{pk.deviceName}</p>
+                  <p className="text-[10px] text-gray-400">
+                    Added {fmtDate(pk.createdAt)}{pk.lastUsedAt ? ` · Last used ${fmtDate(pk.lastUsedAt)}` : ''}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => deletePasskey(pk.id)}
+                disabled={deletingId === pk.id}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors disabled:opacity-50"
+                title="Remove passkey"
+              >
+                {deletingId === pk.id
+                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  : <Trash2 className="w-3.5 h-3.5" />}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 function SecurityTab({ changePassword }: any) {
   const lang = useLanguage()
   const [currentPw, setCurrentPw] = useState('')
@@ -2879,6 +3015,9 @@ function SecurityTab({ changePassword }: any) {
       <div className="glass-card rounded-2xl p-6">
         <CitizenTwoFactorSettings />
       </div>
+
+      {/* Passkeys */}
+      <PasskeySection />
     </div>
   )
 }
@@ -2889,6 +3028,12 @@ function SettingsTab({ preferences, updatePreferences }: any) {
   const lang = useLanguage()
   const { token, logout } = useCitizenAuth()
   const { setTheme } = useTheme()
+  const { speakAlert, stop, speaking } = useAudioAlerts({
+    enabled: true,
+    volume: 0.8,
+    autoPlayCritical: true,
+    voice: preferences?.audio_voice ?? 'default',
+  })
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
   const [msgType, setMsgType] = useState<'success' | 'error'>('success')
@@ -2989,10 +3134,30 @@ function SettingsTab({ preferences, updatePreferences }: any) {
     }))
   }, [form.audioAlertsEnabled, form.audioVolume, form.autoPlayCritical])
 
+  const handlePreviewAlert = useCallback(() => {
+    showAlertCaption({
+      id: 'settings-preview-alert',
+      title: 'Flood warning preview',
+      message: 'River levels are rising near your selected region. Review your route and prepare to move to higher ground.',
+      severity: form.autoPlayCritical ? 'critical' : 'warning',
+    })
+
+    if (form.audioAlertsEnabled) {
+      speakAlert({
+        id: 'settings-preview-alert',
+        title: 'Flood warning preview',
+        message: 'River levels are rising near your selected region. Review your route and prepare to move to higher ground.',
+        severity: form.autoPlayCritical ? 'critical' : 'warning',
+      })
+    } else {
+      stop()
+    }
+  }, [form.audioAlertsEnabled, form.autoPlayCritical, speakAlert, stop])
+
   // Fetch account deletion status
   useEffect(() => {
     if (!token) return
-    fetch('/api/citizens/deletion-status', {
+    fetch('/api/citizen/deletion-status', {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(r => r.ok ? r.json() : null)
@@ -3005,7 +3170,7 @@ function SettingsTab({ preferences, updatePreferences }: any) {
     setDeletionLoading(true)
     try {
       const csrfTok2 = document.cookie.split('; ').find(c => c.startsWith('aegis_csrf='))?.split('=')[1]
-      const res = await fetch('/api/citizens/request-deletion', {
+      const res = await fetch('/api/citizen/request-deletion', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(csrfTok2 ? { 'X-CSRF-Token': csrfTok2 } : {}) }
       })
@@ -3030,7 +3195,7 @@ function SettingsTab({ preferences, updatePreferences }: any) {
     setDeletionLoading(true)
     try {
       const csrfTok3 = document.cookie.split('; ').find(c => c.startsWith('aegis_csrf='))?.split('=')[1]
-      const res = await fetch('/api/citizens/cancel-deletion', {
+      const res = await fetch('/api/citizen/cancel-deletion', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(csrfTok3 ? { 'X-CSRF-Token': csrfTok3 } : {}) }
       })
@@ -3046,6 +3211,13 @@ function SettingsTab({ preferences, updatePreferences }: any) {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
+      <AlertCaptionOverlay
+        enabled={form.captionsEnabled}
+        position="top"
+        fontSize={form.captionFontSize === 'xlarge' ? 'xlarge' : form.captionFontSize === 'large' ? 'large' : form.captionFontSize === 'small' ? 'small' : 'medium'}
+        onSpeak={form.audioAlertsEnabled ? (text) => speakAlert({ title: 'Preview', message: text }) : undefined}
+      />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -3160,6 +3332,19 @@ function SettingsTab({ preferences, updatePreferences }: any) {
           <p className="caption-size-preview mt-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg text-gray-700 dark:text-gray-300 italic">
             Caption preview text — emergency alert overlay
           </p>
+          <div className="mt-3 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handlePreviewAlert}
+              className="inline-flex items-center gap-2 rounded-xl bg-aegis-50 px-3 py-2 text-xs font-semibold text-aegis-700 transition hover:bg-aegis-100 dark:bg-aegis-950/40 dark:text-aegis-300 dark:hover:bg-aegis-950/60"
+            >
+              {speaking ? <Volume2 className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+              Preview current alert settings
+            </button>
+            <span className="text-[11px] text-gray-500 dark:text-gray-400">
+              Tests caption size, overlay visibility, and audio playback together.
+            </span>
+          </div>
         </div>
       </div>
 

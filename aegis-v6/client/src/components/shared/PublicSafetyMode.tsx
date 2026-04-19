@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: PublicSafetyMode.tsx
  *
  * Public safety mode shared component (reusable UI element used across pages).
  *
- * How it connects:
  * - Used across both admin and citizen interfaces */
 
 import { useState, useEffect, useCallback } from 'react'

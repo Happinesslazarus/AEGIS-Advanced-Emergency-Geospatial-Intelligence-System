@@ -1,17 +1,11 @@
-/**
- * File: riskAuthService.ts
- *
+﻿/**
  * Login risk scorer — evaluates each login attempt on a 0–100 scale using
  * known IPs, recent failures, User-Agent history, and time-of-day heuristics.
  *
- * How it connects:
  * - Called by auth routes before issuing tokens
  * - Reads login history from the security_events table via securityLogger
  * - Sets require2FA / alertAdmin flags based on computed risk level
- *
- * Simple explanation:
- * Decides whether a login looks suspicious and whether to force 2FA or alert an admin.
- */
+ * */
 
 import pool from '../models/db.js'
 import { logSecurityEvent } from './securityLogger.js'

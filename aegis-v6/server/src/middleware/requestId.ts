@@ -1,21 +1,13 @@
-/**
- * File: requestId.ts
- *
- * What this file does:
+﻿/**
  * Assigns a unique correlation ID (UUID v4) to every incoming request.
  * If the client or upstream proxy already set X-Request-ID, that value
  * is preserved. Otherwise a new one is generated.
  *
- * How it connects:
  * - Registered early in the middleware chain (index.ts) before the logger
  * - The request ID appears in all log entries, error responses, and the
  *   X-Request-ID response header, making it easy to trace a single request
  *   across services and logs
- *
- * Simple explanation:
- * Every request gets a unique ID so you can find all log entries for
- * that request when debugging.
- */
+ * */
 
 import { Request, Response, NextFunction } from 'express'
 import crypto from 'crypto'

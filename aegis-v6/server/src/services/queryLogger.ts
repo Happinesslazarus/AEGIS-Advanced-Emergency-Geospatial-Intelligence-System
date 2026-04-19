@@ -1,18 +1,12 @@
-/**
- * File: queryLogger.ts
- *
+﻿/**
  * Instrumented PostgreSQL query wrapper — wraps pg Pool to detect slow
  * queries, extract SQL operation/table names, fingerprint queries for
  * aggregation, and record Prometheus histograms for duration and pool usage.
  *
- * How it connects:
  * - Wraps the pg Pool used by all database queries
  * - Records query_duration_seconds Prometheus histogram
  * - Can run EXPLAIN in dev mode for slow query diagnosis
- *
- * Simple explanation:
- * Watches every database query and flags the slow ones.
- */
+ * */
 
 import { Pool, PoolClient, QueryResult, QueryResultRow } from 'pg'
 import client from 'prom-client'

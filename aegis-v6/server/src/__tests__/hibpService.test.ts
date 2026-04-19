@@ -1,6 +1,4 @@
-/**
- * File: hibpService.test.ts
- *
+﻿/**
  * Unit tests for the HIBP (Have I Been Pwned) k-Anonymity password breach checker.
  *
  * Covers:

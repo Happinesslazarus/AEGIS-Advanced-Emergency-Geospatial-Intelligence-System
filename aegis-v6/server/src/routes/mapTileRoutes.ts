@@ -1,22 +1,14 @@
-/**
- * File: mapTileRoutes.ts
- *
- * What this file does:
+﻿/**
  * Same-origin proxy for map tile providers (OSM, Carto, ESRI, OpenTopo).
  * The frontend fetches tiles from our server instead of directly from
  * third-party CDNs, avoiding ad-blocker interference and mixed-content
  * issues.
  *
- * How it connects:
  * - Mounted at /api/map-tiles in index.ts
  * - Called by the Leaflet map components in the frontend
  * - No authentication (tiles are public, high-traffic)
  * - Rate limiting is skipped for this route (handled by tile providers)
- *
- * Simple explanation:
- * Fetches map tiles from external providers through our server so the
- * maps always load, even behind ad-blockers.
- */
+ * */
 import { Router, type Request, type Response, NextFunction } from 'express'
 import { AppError } from '../utils/AppError.js'
 

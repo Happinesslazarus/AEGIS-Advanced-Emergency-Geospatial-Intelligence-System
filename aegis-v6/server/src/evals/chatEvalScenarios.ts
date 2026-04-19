@@ -1,18 +1,11 @@
-/**
+﻿/**
  * Module: chatEvalScenarios.ts
  *
  * Chat eval scenarios (AI quality evaluation definitions).
  *
- * How it connects:
  * - Used by scripts/runChatEvals.ts to run automated chat quality tests
  * - Tests cover anonymous, citizen, and operator auth modes
- * - Checks verify content relevance, safety (no leaked reasoning), and personalization
- * Simple explanation:
- * Test cases that make sure the AI chatbot gives good answers to emergency questions.
- *
- * Simple explanation:
- * Defines test scenarios for measuring AI response quality.
- */
+ * - Checks verify content relevance, safety (no leaked reasoning), and personalization * */
 
 // Which auth level the test scenario runs under
 export type ChatEvalAuthMode = 'anonymous' | 'citizen' | 'operator'

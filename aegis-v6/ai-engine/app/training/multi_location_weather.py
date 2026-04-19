@@ -17,20 +17,97 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import tempfile
+import zipfile
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from pathlib import Path
 
-import aiohttp
+import numpy as np
 import pandas as pd
 from loguru import logger
 
-# Open-Meteo Archive API
+try:
+    import cdsapi  # type: ignore
+    import xarray as xr  # type: ignore
+    _CDS_AVAILABLE = True
+except ImportError:
+    _CDS_AVAILABLE = False
+    logger.warning("cdsapi/xarray not installed — ERA5 fetcher disabled")
+
+_CACHE_DIR = Path(__file__).resolve().parent.parent.parent / "data" / "cache" / "multi_location_weather"
+_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+# Per-location-year parquet cache — persists across ALL training runs regardless
+# of batch parameters (location list, date range, var set changes).
+# Each file: {loc_id}_{year}_{vars_hash8}.parquet
+_PER_LOC_CACHE_DIR = _CACHE_DIR / "per_loc_year"
+_PER_LOC_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+# ---------------------------------------------------------------------------
+# Open-Meteo archive configuration (primary training data source)
+# ---------------------------------------------------------------------------
+_OM_MAX_CONCURRENT   = 1     # strictly sequential — avoids 429 cascades
+_OM_INTER_REQ_SLEEP  = 3.0   # ~0.33 req/sec — comfortable free-tier margin
+_OM_RETRY_429_SLEEP  = 180   # 3 min initial back-off after a 429 (was 60s)
+_OM_MAX_RETRIES      = 2     # fewer retries — 2×3min = 6min max wait per chunk (was 4×60+...)
+
+# Global 429 cooldown: when a 429 is received, ALL coroutines pause until this
+# asyncio.Event is set.  This prevents a thundering-herd of concurrent retries
+# all hammering the same rate-limited endpoint simultaneously.
+_OM_GLOBAL_COOLDOWN_EVENT: asyncio.Event | None = None
+_OM_GLOBAL_COOLDOWN_UNTIL: float = 0.0  # epoch seconds
+
+# ---------------------------------------------------------------------------
+# ERA5 / CDS configuration  (kept for optional override / reference)
+# ---------------------------------------------------------------------------
+_CDS_DATASET = "reanalysis-era5-single-levels"
+_ERA5_MAX_CONCURRENT = 2        # parallel CDS requests (server-side queue limits)
+_ERA5_INTER_REQUEST_SLEEP = 1.0 # seconds between launching requests
+
+# ERA5 variables to request (CDS long names)
+_ERA5_VARIABLES = [
+    "2m_temperature",
+    "2m_dewpoint_temperature",
+    "10m_u_component_of_wind",
+    "10m_v_component_of_wind",
+    "10m_wind_gust_since_previous_post_processing",
+    "mean_sea_level_pressure",
+    "surface_pressure",
+    "total_precipitation",
+    "total_snowfall",
+    "snow_depth",
+    "total_cloud_cover",
+    "surface_solar_radiation_downwards",
+    "soil_temperature_level_1",
+    "volumetric_soil_water_layer_1",
+    "volumetric_soil_water_layer_2",
+]
+
+# ERA5 NetCDF short-name → our standard column name
+_ERA5_COL_MAP: dict[str, str] = {
+    "t2m":   "temperature_2m",           # K
+    "d2m":   "dewpoint_2m",              # K
+    "u10":   "_wind_u",                  # m/s (component)
+    "v10":   "_wind_v",                  # m/s (component)
+    "i10fg": "wind_gusts_10m",           # m/s (GRIB short name)
+    "fg10":  "wind_gusts_10m",           # m/s (NetCDF short name — CDS v2 API)
+    "msl":   "pressure_msl",             # Pa → hPa
+    "sp":    "surface_pressure",         # Pa → hPa
+    "tp":    "precipitation",            # m → mm
+    "sf":    "snowfall",                 # m → mm
+    "sd":    "snow_depth",               # m (keep as-is)
+    "tcc":   "cloud_cover",              # fraction → %
+    "ssrd":  "shortwave_radiation",      # J/m² → W/m²
+    "stl1":  "soil_temperature_0_to_7cm", # K → °C
+    "swvl1": "soil_moisture_0_to_7cm",   # m³/m³ (keep as-is)
+    "swvl2": "soil_moisture_7_to_28cm",  # m³/m³ (keep as-is)
+}
+
+# Fallback Open-Meteo (for recent/live data or if CDS unavailable)
+import aiohttp  # noqa: E402 — kept for live-prediction fallback
 _ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
 _MAX_CHUNK_DAYS = 365
-_REQUEST_DELAY = 3.0        # seconds between each API call (avoid 429)
-_MAX_RETRIES = 8            # retries on HTTP 429 (was 5; 8 allows up to ~53min per chunk)
-_BACKOFF_BASE = 15.0        # initial backoff seconds, doubles each retry
-_CACHE_DIR = Path(__file__).resolve().parent.parent.parent / "data" / "cache" / "multi_location_weather"
 
 # UK grid — 13 locations spanning SE England (dry/warm) to N Scotland
 #
@@ -381,145 +458,376 @@ EXTENDED_HOURLY_VARS = (
 
 # Public API
 
+def _process_era5_ds(ds: "xr.Dataset", lat: float, lon: float) -> "pd.DataFrame":
+    """Select nearest grid cell, apply unit conversions, and derive secondary variables."""
+    # Select nearest grid cell to the requested point
+    sel_kwargs: dict = {}
+    if "latitude" in ds.dims:
+        sel_kwargs["latitude"] = lat
+    if "longitude" in ds.dims:
+        sel_kwargs["longitude"] = lon
+    if sel_kwargs:
+        ds = ds.sel(**sel_kwargs, method="nearest")
+
+    df: pd.DataFrame = ds.to_dataframe().reset_index()
+    ds.close()
+
+    # Normalise timestamp column (ERA5 uses 'valid_time' in newer files)
+    for tc in ("valid_time", "time"):
+        if tc in df.columns:
+            df = df.rename(columns={tc: "timestamp"})
+            break
+
+    # Rename ERA5 short names → our standard column names
+    df = df.rename(columns=_ERA5_COL_MAP)
+
+    # --- Unit conversions ---
+    for col in ("temperature_2m", "dewpoint_2m", "soil_temperature_0_to_7cm"):
+        if col in df.columns:
+            df[col] = df[col] - 273.15                  # K → °C
+
+    for col in ("pressure_msl", "surface_pressure"):
+        if col in df.columns:
+            df[col] = df[col] / 100.0                   # Pa → hPa
+
+    if "precipitation" in df.columns:
+        df["precipitation"] = (df["precipitation"] * 1000.0).clip(lower=0.0)  # m → mm
+
+    if "snowfall" in df.columns:
+        df["snowfall"] = (df["snowfall"] * 1000.0).clip(lower=0.0)  # m → mm
+
+    if "cloud_cover" in df.columns:
+        df["cloud_cover"] = (df["cloud_cover"] * 100.0).clip(0.0, 100.0)  # fraction → %
+
+    if "shortwave_radiation" in df.columns:
+        df["shortwave_radiation"] = (df["shortwave_radiation"] / 3600.0).clip(lower=0.0)  # J/m² → W/m²
+
+    # --- Derived variables ---
+    if "_wind_u" in df.columns and "_wind_v" in df.columns:
+        df["wind_speed_10m"] = np.sqrt(df["_wind_u"] ** 2 + df["_wind_v"] ** 2)
+        df["wind_direction_10m"] = (
+            np.degrees(np.arctan2(-df["_wind_u"], -df["_wind_v"])) % 360
+        )
+        df.drop(columns=["_wind_u", "_wind_v"], inplace=True)
+
+    # Relative humidity from T and Td (Magnus formula, ±0.4% accurate)
+    if "temperature_2m" in df.columns and "dewpoint_2m" in df.columns:
+        T  = df["temperature_2m"]
+        Td = df["dewpoint_2m"]
+        df["relative_humidity_2m"] = (
+            100.0
+            * np.exp(17.625 * Td / (243.04 + Td))
+            / np.exp(17.625 * T  / (243.04 + T))
+        ).clip(0.0, 100.0)
+
+    # Apparent temperature (Steadman simplified)
+    if "temperature_2m" in df.columns and "relative_humidity_2m" in df.columns:
+        T  = df["temperature_2m"]
+        RH = df["relative_humidity_2m"]
+        e  = (RH / 100.0) * 6.105 * np.exp(17.27 * T / (237.7 + T))
+        df["apparent_temperature"] = T + 0.33 * e - 4.0
+
+    # Drop ERA5 coordinate/metadata columns that aren't features
+    _drop = {"latitude", "longitude", "number", "step", "surface",
+              "level", "expver", "edition", "class", "stream", "type"}
+    df.drop(columns=[c for c in df.columns if c in _drop], inplace=True, errors="ignore")
+
+    return df
+
+
+def _fetch_era5_location_year(
+    lat: float,
+    lon: float,
+    year: int,
+    loc_id: str,
+) -> pd.DataFrame | None:
+    """Download one year of ERA5 for a single point.  Runs in a thread pool.
+
+    Fetches one calendar month at a time to stay within the CDS free-tier
+    request-size limit (~120,000 fields per request).  Each monthly request
+    is 15 vars × 31 days × 24 hours × 4 grid cells ≈ 44,640 fields.
+    The 12 monthly DataFrames are concatenated before returning.
+    """
+    buf = 0.4  # degrees — ensures ≥ 1 ERA5 grid cell on each side
+    area = [lat + buf, lon - buf, lat - buf, lon + buf]  # N W S E
+    days  = [f"{d:02d}" for d in range(1, 32)]
+    times = [f"{h:02d}:00" for h in range(24)]
+
+    client = cdsapi.Client(quiet=True)
+    monthly_frames: list[pd.DataFrame] = []
+
+    for month in range(1, 13):
+        month_str = f"{month:02d}"
+        tmp_path = None
+        try:
+            with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tmp:
+                tmp_path = tmp.name
+
+            logger.info(f"    ERA5 → {loc_id} {year}-{month_str} (queuing CDS…)")
+            client.retrieve(
+                _CDS_DATASET,
+                {
+                    "product_type": "reanalysis",
+                    "variable": _ERA5_VARIABLES,
+                    "year": str(year),
+                    "month": month_str,
+                    "day": days,
+                    "time": times,
+                    "area": area,
+                    "format": "netcdf",
+                },
+                tmp_path,
+            )
+
+            # CDS v2 API wraps NetCDF(s) in a zip archive.
+            # ERA5 splits instant vars (t2m, wind…) and accumulated vars (tp, sf…)
+            # into separate nc files — extract all and merge on timestamp.
+            if zipfile.is_zipfile(tmp_path):
+                nc_paths_extracted: list[str] = []
+                with zipfile.ZipFile(tmp_path, "r") as zf:
+                    nc_names = [n for n in zf.namelist() if n.endswith(".nc")]
+                    if not nc_names:
+                        raise RuntimeError(f"No .nc file inside zip for {loc_id} {year}-{month_str}")
+                    for i, nc_name in enumerate(nc_names):
+                        extracted = tmp_path.replace(".zip", f"_{i}.nc")
+                        with zf.open(nc_name) as src, open(extracted, "wb") as dst:
+                            dst.write(src.read())
+                        nc_paths_extracted.append(extracted)
+
+                frames_from_zip: list[pd.DataFrame] = []
+                for nc_p in nc_paths_extracted:
+                    ds = xr.open_dataset(nc_p, engine="netcdf4")
+                    frames_from_zip.append(_process_era5_ds(ds, lat, lon))
+                    Path(nc_p).unlink(missing_ok=True)
+
+                # Merge instant + accum DataFrames on timestamp (outer join keeps all hours)
+                if len(frames_from_zip) == 1:
+                    df_month = frames_from_zip[0]
+                else:
+                    df_month = frames_from_zip[0]
+                    for extra_df in frames_from_zip[1:]:
+                        # Only merge columns that aren't already present
+                        new_cols = [c for c in extra_df.columns if c not in df_month.columns]
+                        if "timestamp" in extra_df.columns and new_cols:
+                            df_month = df_month.merge(
+                                extra_df[["timestamp"] + new_cols],
+                                on="timestamp", how="outer",
+                            )
+            else:
+                ds = xr.open_dataset(tmp_path, engine="netcdf4")
+                df_month = _process_era5_ds(ds, lat, lon)
+
+            monthly_frames.append(df_month)
+
+        except Exception as exc:
+            logger.warning(f"    ERA5 fetch failed — {loc_id} {year}-{month_str}: {exc}")
+        finally:
+            if tmp_path:
+                Path(tmp_path).unlink(missing_ok=True)
+
+    if not monthly_frames:
+        logger.warning(f"    ERA5: no months retrieved for {loc_id} {year}")
+        return None
+
+    return pd.concat(monthly_frames, ignore_index=True)
+
+
+def _per_loc_cache_path(loc_id: str, year: int, hourly_vars: str) -> Path:
+    """Return per-(location, year) parquet cache path."""
+    vars_hash = hashlib.md5(hourly_vars.encode()).hexdigest()[:8]
+    return _PER_LOC_CACHE_DIR / f"{loc_id}_{year}_{vars_hash}.parquet"
+
+
+async def _fetch_om_location_year(
+    session: "aiohttp.ClientSession",
+    loc: dict,
+    year: int,
+    hourly_vars: str,
+) -> pd.DataFrame | None:
+    """Fetch one calendar year of Open-Meteo archive data for a single location.
+
+    Checks a per-(location, year) parquet cache before making any network
+    request — this means previously-fetched data is reused across ALL training
+    runs even when the overall batch parameters (date range, location list)
+    change.  A 429 from the server triggers a global cooldown that pauses ALL
+    pending requests for 3 minutes, avoiding thundering-herd re-retries on the
+    same rate-limited endpoint.
+    """
+    import time as _time
+    global _OM_GLOBAL_COOLDOWN_EVENT, _OM_GLOBAL_COOLDOWN_UNTIL
+
+    # --- Per-location-year disk cache check ---
+    cache_path = _per_loc_cache_path(loc["id"], year, hourly_vars)
+    if cache_path.exists():
+        try:
+            df = pd.read_parquet(cache_path)
+            logger.debug(f"    ✓ cache hit: {loc['id']} {year}")
+            return df
+        except Exception:
+            cache_path.unlink(missing_ok=True)  # corrupted — re-fetch
+
+    # --- Global cooldown: wait if a recent 429 hit ---
+    if _OM_GLOBAL_COOLDOWN_UNTIL > _time.monotonic():
+        remaining = _OM_GLOBAL_COOLDOWN_UNTIL - _time.monotonic()
+        logger.info(f"    Waiting {remaining:.0f}s (global 429 cooldown) for {loc['id']} {year}")
+        await asyncio.sleep(max(0.0, remaining))
+
+    start = f"{year}-01-01"
+    end   = f"{year}-12-31"
+    params = {
+        "latitude":   loc["lat"],
+        "longitude":  loc["lon"],
+        "start_date": start,
+        "end_date":   end,
+        "hourly":     hourly_vars,
+        "timezone":   "UTC",
+    }
+
+    for attempt in range(_OM_MAX_RETRIES):
+        try:
+            async with session.get(
+                _ARCHIVE_URL, params=params,
+                timeout=aiohttp.ClientTimeout(total=120),
+            ) as resp:
+                if resp.status == 429:
+                    # Set global cooldown so ALL other pending requests pause too
+                    cooldown = _OM_RETRY_429_SLEEP * (2 ** attempt)
+                    _OM_GLOBAL_COOLDOWN_UNTIL = _time.monotonic() + cooldown
+                    logger.warning(
+                        f"    Open-Meteo 429 for {loc['id']} {year} — "
+                        f"global cooldown {cooldown}s (attempt {attempt+1}/{_OM_MAX_RETRIES})"
+                    )
+                    await asyncio.sleep(cooldown)
+                    continue
+                resp.raise_for_status()
+                data = await resp.json()
+        except asyncio.TimeoutError:
+            logger.warning(f"    Open-Meteo timeout for {loc['id']} {year} (attempt {attempt+1})")
+            await asyncio.sleep(15 * (attempt + 1))
+            continue
+        except Exception as exc:
+            if attempt < _OM_MAX_RETRIES - 1:
+                await asyncio.sleep(15)
+                continue
+            logger.warning(f"    Open-Meteo failed for {loc['id']} {year}: {exc}")
+            return None
+
+        hourly = data.get("hourly", {})
+        if not hourly or "time" not in hourly:
+            logger.warning(f"    Open-Meteo: empty response for {loc['id']} {year}")
+            return None
+
+        df = pd.DataFrame(hourly)
+        df = df.rename(columns={"time": "timestamp"})
+        df["timestamp"] = pd.to_datetime(df["timestamp"], utc=False)
+
+        # Write per-location-year cache
+        try:
+            df.to_parquet(cache_path, index=False)
+        except Exception as exc:
+            logger.debug(f"    Per-loc cache write failed for {loc['id']} {year}: {exc}")
+
+        return df
+
+    logger.warning(f"    Open-Meteo: exhausted retries for {loc['id']} {year}")
+    return None
+
+
 async def fetch_multi_location_weather(
     locations: list[dict] | None = None,
     start_date: str = "2015-01-01",
     end_date: str = "2025-12-31",
     hourly_vars: str | None = None,
 ) -> pd.DataFrame:
-    """Fetch hourly weather from Open-Meteo Archive for multiple UK locations.
+    """Fetch hourly historical weather for multiple locations via Open-Meteo archive.
 
-    Results are cached to disk so subsequent training runs (e.g. different
-    hazard models) reuse the same data without hitting the API again.
+    Uses the Open-Meteo ERA5-backed archive API (archive-api.open-meteo.com)
+    with conservative rate limiting (≤2 concurrent, 0.35s inter-request sleep,
+    exponential back-off on 429) to reliably stay within the free-tier limits.
+
+    One request is made per (location, calendar year), so for 27 locations ×
+    8 years = 216 requests.  At 2 concurrent with ~2s average response time,
+    the total fetch time is roughly 216 / 2 × 2s ≈ 4 minutes.
 
     Parameters
+    ----------
     locations : list[dict], optional
-        List of dicts with keys ``id``, ``lat``, ``lon``, ``region``.
-        Defaults to :data:`UK_GRID_LOCATIONS` (13 UK grid points).
+        Dicts with keys ``id``, ``lat``, ``lon``, ``region``.
+        Defaults to UK_GRID_LOCATIONS.
     start_date, end_date : str
-        Date range in ``YYYY-MM-DD`` format.
+        Date range ``YYYY-MM-DD``.
     hourly_vars : str, optional
         Comma-separated Open-Meteo hourly variable names.
-        Defaults to :data:`EXTENDED_HOURLY_VARS`.
-
-    Returns
-    pd.DataFrame
-        Columns: ``timestamp, station_id, region, latitude, longitude``
-        plus all requested hourly weather variables.
+        Defaults to EXTENDED_HOURLY_VARS.
     """
     if locations is None:
         locations = UK_GRID_LOCATIONS
     if hourly_vars is None:
         hourly_vars = EXTENDED_HOURLY_VARS
 
-    # Check disk cache
+    # --- Disk cache ---
     cache_key = hashlib.md5(
-        f"{sorted([l['id'] for l in locations])}|{start_date}|{end_date}|{hourly_vars}".encode()
+        f"om|{sorted(l['id'] for l in locations)}|{start_date}|{end_date}|{hourly_vars}".encode()
     ).hexdigest()[:12]
     cache_path = _CACHE_DIR / f"weather_{cache_key}.csv"
 
     if cache_path.exists():
-        logger.info(f"  Loading cached weather from {cache_path}")
+        logger.info(f"  Cache hit: {cache_path.name}")
         cached = pd.read_csv(cache_path, parse_dates=["timestamp"])
-        logger.info(f"  Cached: {len(cached):,} rows from {cached['station_id'].nunique()} locations")
+        logger.info(f"  Cached: {len(cached):,} rows / {cached['station_id'].nunique()} stations")
         return cached
 
-    var_names = [v.strip() for v in hourly_vars.split(",") if v.strip()]
-    all_frames: list[pd.DataFrame] = []
-
-    # Build lat/lon arrays for batch request (all locations in one API call)
-    lats = ",".join(str(loc["lat"]) for loc in locations)
-    lons = ",".join(str(loc["lon"]) for loc in locations)
-    chunks = _date_chunks(start_date, end_date)
-    n_locs = len(locations)
+    start_year = int(start_date[:4])
+    end_year   = int(end_date[:4])
+    years      = list(range(start_year, end_year + 1))
+    n_jobs     = len(locations) * len(years)
 
     logger.info(
-        f"  Batch-fetching {n_locs} locations — {len(chunks)} year-chunks "
-        f"= {len(chunks)} API calls"
+        f"  Open-Meteo: {len(locations)} locations × {len(years)} years "
+        f"= {n_jobs} requests (≤{_OM_MAX_CONCURRENT} concurrent)"
     )
 
-    async with aiohttp.ClientSession(
-        timeout=aiohttp.ClientTimeout(total=300)
-    ) as session:
-        for chunk_idx, (chunk_start, chunk_end) in enumerate(chunks):
-            # Inter-chunk pause — lets the Open-Meteo rate-limit window (1 min)
-            # reset between year-chunks so we never send bursts back-to-back.
-            if chunk_idx > 0:
-                await asyncio.sleep(90.0)
-            params = {
-                "latitude": lats,
-                "longitude": lons,
-                "start_date": chunk_start,
-                "end_date": chunk_end,
-                "hourly": hourly_vars,
-            }
+    semaphore  = asyncio.Semaphore(_OM_MAX_CONCURRENT)
+    all_frames: list[pd.DataFrame] = []
 
-            # Retry loop with exponential backoff for rate limits
-            raw = None
-            for attempt in range(_MAX_RETRIES + 1):
-                try:
-                    async with session.get(_ARCHIVE_URL, params=params) as resp:
-                        if resp.status == 429:
-                            wait = _BACKOFF_BASE * (2 ** attempt)
-                            logger.warning(
-                                f"  chunk {chunk_start}: HTTP 429 — "
-                                f"backing off {wait:.0f}s (attempt {attempt+1}/{_MAX_RETRIES+1})"
-                            )
-                            await asyncio.sleep(wait)
-                            continue
-                        if resp.status != 200:
-                            logger.warning(f"  chunk {chunk_start}: HTTP {resp.status}")
-                            break
-                        raw = await resp.json()
-                        break
-                except Exception as exc:
-                    logger.warning(f"  chunk {chunk_start}: {exc}")
-                    break
-
-            if raw is None:
-                await asyncio.sleep(_REQUEST_DELAY)
-                continue
-
-            # Parse batch response — returns a list for multiple locations
-            results_list = raw if isinstance(raw, list) else [raw]
-
-            for idx, loc_data in enumerate(results_list):
-                if idx >= n_locs:
-                    break
-                loc = locations[idx]
-                hourly = loc_data.get("hourly", {})
-                if not hourly or "time" not in hourly:
-                    continue
-
-                df = pd.DataFrame({"timestamp": pd.to_datetime(hourly["time"])})
-                for var in var_names:
-                    if var in hourly:
-                        df[var] = hourly[var]
-
+    async def fetch_one(loc: dict, year: int) -> None:
+        async with semaphore:
+            await asyncio.sleep(_OM_INTER_REQ_SLEEP)
+            df = await _fetch_om_location_year(session, loc, year, hourly_vars)
+            if df is not None and not df.empty:
                 df["station_id"] = loc["id"]
-                df["region"] = loc.get("region", "unknown")
-                df["latitude"] = loc["lat"]
-                df["longitude"] = loc["lon"]
+                df["region"]     = loc.get("region", "unknown")
+                df["latitude"]   = loc["lat"]
+                df["longitude"]  = loc["lon"]
                 all_frames.append(df)
+                logger.info(f"    ✓ {loc['id']} {year} — {len(df):,} rows")
 
-            logger.info(f"  chunk {chunk_start} ? {chunk_end}: OK ({len(results_list)} locations)")
-            await asyncio.sleep(_REQUEST_DELAY)
+    connector = aiohttp.TCPConnector(limit=_OM_MAX_CONCURRENT)
+    async with aiohttp.ClientSession(connector=connector) as session:
+        tasks = [fetch_one(loc, yr) for loc in locations for yr in years]
+        await asyncio.gather(*tasks)
 
     if not all_frames:
+        logger.error("Open-Meteo fetch returned no data for any location.")
         return pd.DataFrame()
 
     result = pd.concat(all_frames, ignore_index=True)
-    unique_stations = result["station_id"].nunique()
+
+    result["timestamp"] = pd.to_datetime(result["timestamp"], errors="coerce")
+    result = result.dropna(subset=["timestamp"])
+    mask = (
+        (result["timestamp"] >= pd.Timestamp(start_date))
+        & (result["timestamp"] <= pd.Timestamp(end_date) + pd.Timedelta(days=1))
+    )
+    result = result[mask].sort_values("timestamp").reset_index(drop=True)
+
     logger.info(
-        f"Multi-location weather: {len(result):,} total rows "
-        f"from {unique_stations} locations"
+        f"  Fetch complete: {len(result):,} rows from {result['station_id'].nunique()} stations"
     )
 
-    # Save to disk cache
     try:
-        _CACHE_DIR.mkdir(parents=True, exist_ok=True)
         result.to_csv(cache_path, index=False)
-        logger.info(f"  Weather cached to {cache_path}")
+        logger.info(f"  Cached → {cache_path.name}")
     except Exception as exc:
         logger.warning(f"  Cache write failed: {exc}")
 
@@ -606,6 +914,87 @@ def build_per_station_features(
                 f"No precipitation column found for station {station_id} — "
                 "rainfall_* features will be absent. Tag: partial_features."
             )
+
+        # FAO-56 Penman-Monteith ET0 — derived from ERA5 variables so the feature
+        # is always physically correct regardless of whether Open-Meteo provided it.
+        # If Open-Meteo already supplied et0_fao_evapotranspiration it is used directly;
+        # otherwise we compute it from T, RH, wind, radiation, and pressure.
+        if "et0_fao_evapotranspiration" not in combined.columns or (
+            combined["et0_fao_evapotranspiration"].abs().max() < 1e-9
+        ):
+            try:
+                T   = grp["temperature_2m"].values.astype(np.float64)
+                RH  = grp.get("relative_humidity_2m", pd.Series(np.full(len(grp), 60.0))).values.astype(np.float64)
+                u10 = grp.get("wind_speed_10m", pd.Series(np.full(len(grp), 2.0))).values.astype(np.float64)
+                Rs  = grp.get("shortwave_radiation", pd.Series(np.zeros(len(grp)))).values.astype(np.float64)
+                # Pressure → kPa.  ERA5 cache stores pressure in hPa (÷100 from Pa).
+                # Open-Meteo also returns hPa. Detect unit by magnitude:
+                #   Pa:  ~100000  (mean > 2000)
+                #   hPa: ~1013    (mean 900–1100)
+                #   kPa: ~101.3   (mean < 200)
+                if "surface_pressure" in grp.columns:
+                    _p_raw = grp["surface_pressure"].values.astype(np.float64)
+                elif "pressure_msl" in grp.columns:
+                    _p_raw = grp["pressure_msl"].values.astype(np.float64)
+                else:
+                    _p_raw = np.full(len(grp), 101300.0)  # default Pa
+                _pmean = float(np.nanmean(_p_raw))
+                if _pmean > 2000:        # Pa → kPa
+                    P = _p_raw / 1000.0
+                elif _pmean > 200:       # hPa → kPa
+                    P = _p_raw / 10.0
+                else:                    # already kPa
+                    P = _p_raw
+                P = np.clip(P, 60.0, 110.0)  # physically valid range (kPa)
+
+                RH  = np.clip(RH, 1.0, 100.0)
+                u10 = np.maximum(u10, 0.0)
+                Rs  = np.maximum(Rs, 0.0)
+
+                # Wind speed at 2 m from 10 m (FAO-56 log-profile correction)
+                u2 = u10 * (4.87 / np.log(67.8 * 10.0 - 5.42))  # ≈ 0.748 * u10
+
+                # Saturation vapour pressure (kPa) at temperature T
+                es = 0.6108 * np.exp(17.27 * T / (T + 237.3))
+                # Actual vapour pressure from relative humidity
+                ea = es * RH / 100.0
+
+                # Slope of saturation vapour pressure curve (kPa/°C)
+                delta = 4098.0 * es / (T + 237.3) ** 2
+
+                # Psychrometric constant (kPa/°C): γ = 0.000665 × P (FAO-56 eq. 8)
+                gamma = 0.000665 * P
+
+                # Net shortwave radiation: Rns = (1 − 0.23) × Rs [MJ/m²/h]
+                Rs_mj = Rs * 0.0036   # W/m² × 3600 s/h × 1e-6 MJ/J → MJ/m²/h
+                Rns = 0.77 * Rs_mj
+
+                # Net long-wave radiation (FAO-56 eq. 39, simplified for hourly)
+                sigma_h = 2.042e-10   # Stefan-Boltzmann constant MJ/K⁴/m²/h
+                T_K = T + 273.16
+                ea_safe = np.maximum(ea, 0.001)
+                Rnl = sigma_h * T_K ** 4 * (0.34 - 0.14 * np.sqrt(ea_safe))
+                # Cloud correction: Rs_so (clear-sky) ≈ (0.75 + 2e-5 × 0) × Ra
+                # Simplified: clamp Rnl to reasonable range
+                Rnl = np.clip(Rnl, 0.0, 0.5)
+
+                # Net radiation
+                Rn = Rns - Rnl
+
+                # Soil heat flux G (FAO-56 eq. 45–46): day=0.1·Rn, night=0.5·Rn
+                G = np.where(Rs > 0, 0.1 * Rn, 0.5 * Rn)
+
+                # ET0 (mm/h) — FAO-56 Penman-Monteith (hourly form, eq. 53)
+                T_safe = T + 273.0
+                numerator   = (0.408 * delta * (Rn - G)
+                               + gamma * (37.0 / T_safe) * u2 * (es - ea))
+                denominator = delta + gamma * (1.0 + 0.34 * u2)
+                et0 = np.where(denominator > 1e-9, numerator / denominator, 0.0)
+                et0 = np.maximum(et0, 0.0)   # ET0 is non-negative
+
+                combined["et0_fao_evapotranspiration"] = et0
+            except Exception as _et0_err:
+                logger.warning(f"ET0 computation failed for {station_id}: {_et0_err}")
 
         # Pass through extended columns that FeatureEngineer doesn't know about
         grp_ts = grp.set_index(pd.to_datetime(grp["timestamp"])).sort_index()

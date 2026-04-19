@@ -1,19 +1,12 @@
-/**
- * File: spatialRoutes.ts
- *
- * What this file does:
+﻿/**
  * PostGIS spatial analysis endpoints: heatmaps, clustering, buffer zones,
  * proximity searches, and spatial statistics for the disaster map.
  *
- * How it connects:
  * - Mounted at /api/spatial in index.ts
  * - Runs PostGIS queries against the main database (db.ts)
  * - Results are GeoJSON consumed by the Leaflet map frontend
  * - Responses cached via cacheService
- *
- * Simple explanation:
- * Geographic analysis tools that power the disaster map overlays.
- */
+ * */
 
 import { Router, Request, Response, NextFunction } from 'express'
 import pool from '../models/db.js'

@@ -1,14 +1,13 @@
-/**
+﻿/**
  * Module: CitizenAuthContext.tsx
  *
  * Citizen auth context React context provider (shares state across components).
  *
- * How it connects:
  * - Wraps components in App.tsx via AppProviders */
 
 import { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from 'react'
 import { API_BASE } from '../utils/helpers'
-import { notifySocketAuthChange } from './SocketContext'
+// notifySocketAuthChange inlined below to avoid circular import with SocketContext
 
 // ─── In-memory citizen access token ────────────────────────────────────────
 // The access token is stored ONLY in JavaScript memory (never localStorage).
@@ -107,7 +106,7 @@ interface CitizenAuthContextType {
   isAuthenticated: boolean
   // Auth actions
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string; requires2FA?: boolean; tempToken?: string }>
-  complete2FA: (token: string, user: CitizenUser, preferences?: CitizenPreferences) => void
+  complete2FA: (token: string, user: CitizenUser, preferences?: CitizenPreferences) => Promise<void>
   register: (data: RegisterData) => Promise<{ success: boolean; error?: string }>
   oauthLogin: (token: string) => Promise<{ success: boolean; error?: string }>
   logout: () => void
@@ -192,6 +191,13 @@ async function apiFetch(path: string, options: RequestInit = {}) {
     }
 
     if (!res.ok) {
+      // CSRF mismatch: stale cookie from a previous server session.
+      // The safest recovery is a full page reload which fetches a fresh CSRF cookie.
+      if (res.status === 403 && data?.code === 'CSRF_INVALID') {
+        window.location.reload()
+        // Return a never-settling promise so callers don't render stale error state.
+        return new Promise(() => {})
+      }
       const errMsg = typeof data?.error === 'string' ? data.error : data?.error?.message || 'Request failed'
       const error: any = new Error(errMsg)
       error.status = res.status
@@ -267,7 +273,8 @@ export function CitizenAuthProvider({ children }: { children: ReactNode }): JSX.
   const saveToken = useCallback((t: string) => {
     _citizenAccessToken = t
     setToken(t)
-    notifySocketAuthChange()
+    // Notify SocketContext to reconnect — inline to avoid circular import
+    window.dispatchEvent(new StorageEvent('storage', { key: 'aegis-citizen-token', newValue: t }))
   }, [])
 
   const saveUser = useCallback((u: CitizenUser | null) => {
@@ -297,7 +304,8 @@ export function CitizenAuthProvider({ children }: { children: ReactNode }): JSX.
     setEmergencyContacts([])
     setRecentSafety([])
     setUnreadMessages(0)
-    notifySocketAuthChange()
+    // Notify SocketContext to disconnect — inline to avoid circular import
+    window.dispatchEvent(new StorageEvent('storage', { key: 'aegis-citizen-token', newValue: null }))
     // Clear server-side refresh cookie (#25)
     fetch(`${API_BASE}/api/citizen-auth/logout`, { method: 'POST', credentials: 'include' })
       .catch(err => console.warn('[CitizenAuth] Logout sync failed:', err))
@@ -367,6 +375,17 @@ export function CitizenAuthProvider({ children }: { children: ReactNode }): JSX.
       saveToken(data.token)
       saveUser(data.user)
       setPreferences(data.preferences)
+      // Auto-approve pending QR session (phone browser without 2FA)
+      const pendingQr = sessionStorage.getItem('aegis_pending_qr_session')
+      if (pendingQr) {
+        sessionStorage.removeItem('aegis_pending_qr_session')
+        fetch('/api/auth/qr/approve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${data.token}` },
+          body: JSON.stringify({ sessionId: pendingQr }),
+          credentials: 'include',
+        }).catch(() => {})
+      }
       return { success: true }
     } catch (err: any) {
       return { success: false, error: err.message }
@@ -389,10 +408,34 @@ export function CitizenAuthProvider({ children }: { children: ReactNode }): JSX.
   }, [saveToken])
 
   // Complete 2FA — called after successful 2FA challenge to save auth state
-  const complete2FA = useCallback((authToken: string, authUser: CitizenUser, prefs?: CitizenPreferences) => {
+  // Also loads the full profile (preferences, contacts, etc.) so the dashboard
+  // doesn't appear empty/blank compared to Google OAuth login.
+  const complete2FA = useCallback(async (authToken: string, authUser: CitizenUser, prefs?: CitizenPreferences) => {
     saveToken(authToken)
     saveUser(authUser)
     if (prefs) setPreferences(prefs)
+    // Load full profile just like oauthLogin does
+    try {
+      const data = await apiFetch('/api/citizen-auth/me')
+      saveUser(data.user)
+      setPreferences(data.preferences)
+      setEmergencyContacts(data.emergencyContacts || [])
+      setRecentSafety(data.recentSafetyCheckIns || [])
+      setUnreadMessages(data.unreadMessages || 0)
+    } catch {
+      // Non-fatal: user is still logged in with basic auth data
+    }
+    // Auto-approve pending QR session (phone browser email+password flow)
+    const pendingQr = sessionStorage.getItem('aegis_pending_qr_session')
+    if (pendingQr) {
+      sessionStorage.removeItem('aegis_pending_qr_session')
+      fetch('/api/auth/qr/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({ sessionId: pendingQr }),
+        credentials: 'include',
+      }).catch(() => {})
+    }
   }, [saveToken, saveUser])
 
   // OAuth login — use token from Google OAuth redirect hash
@@ -437,6 +480,8 @@ export function CitizenAuthProvider({ children }: { children: ReactNode }): JSX.
   // Logout
   const logout = useCallback(() => {
     clearAuth()
+    // Redirect to login; window.location ensures full state reset
+    try { window.location.href = '/citizen/login' } catch {}
   }, [clearAuth])
 
   // Listen for global logout events (from shared logout util) and clear auth state
@@ -503,7 +548,8 @@ export function CitizenAuthProvider({ children }: { children: ReactNode }): JSX.
       })
       setPreferences(result)
       return true
-    } catch {
+    } catch (err: any) {
+      console.error('[CitizenAuth] updatePreferences failed:', err?.message || err)
       return false
     }
   }, [])
@@ -572,7 +618,7 @@ const CITIZEN_AUTH_DEFAULTS: CitizenAuthContextType = {
   loading: true,
   isAuthenticated: false,
   login: async () => ({ success: false, error: 'Auth not initialised' }),
-  complete2FA: () => {},
+  complete2FA: async () => {},
   register: async () => ({ success: false, error: 'Auth not initialised' }),
   oauthLogin: async () => ({ success: false, error: 'Auth not initialised' }),
   logout: () => {},

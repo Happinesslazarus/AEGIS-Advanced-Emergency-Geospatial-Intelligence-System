@@ -1,38 +1,27 @@
-/**
- * File: llmRouter.ts
- *
- * What this file does:
+﻿/**
  * Routes every AI completion request to the best available LLM provider.
  * Prefers local Ollama models (free, fast, runs on-device), falling back to
  * cloud APIs (Gemini, Groq, OpenRouter, HuggingFace) when local is unavailable
  * or the query needs a stronger model. Tracks provider health, rate limits,
  * token usage, and latency history so it can make smart routing decisions.
  *
- * How it connects:
  * - Called by server/src/services/chatService.ts for all chat completions
  * - Called by server/src/services/aiAnalysisPipeline.ts for report severity scoring
  * - Calls Ollama at http://localhost:11434 (or AI_ENGINE_URL) for local models
  * - Calls cloud APIs using keys from env: GEMINI_API_KEY, GROQ_API_KEY, etc.
  * - startModelWarmup() is triggered at server startup (index.ts)
  *
- * Key exports:
  * - chatCompletion()        — single-call LLM request, returns JSON response
  * - chatCompletionStream()  — same but streams tokens via callback
  * - classifyQuery()         — lightweight classification of query intent
  * - getProviderStatus()     — health of all registered providers (used by GET /api/chat/status)
  * - startModelWarmup()      — pre-loads the primary model at startup
  *
- * Learn more:
  * - server/src/services/chatService.ts       — main caller of chatCompletion()
  * - server/src/services/aiAnalysisPipeline.ts — uses classifyQuery() for report scoring
  * - server/src/services/embeddingRouter.ts   — similar router but for embeddings
  * - ai-engine/main.py                        — the FastAPI AI engine (separate process)
- *
- * Simple explanation:
- * The traffic controller for AI requests. It knows which model is healthy,
- * which is cheapest, which is fastest for a given question, and sends the
- * request to the right place. Local models keep costs near zero.
- */
+ * */
 
 import type { LLMRequest, LLMResponse, LLMProvider } from '../types/index.js'
 import { devLog } from '../utils/logger.js'
@@ -218,16 +207,28 @@ export async function preloadModelForClassification(classification: QueryClassif
 /* Ollama non-streaming chat */
 async function callOllama(config: LLMProvider, req: LLMRequest): Promise<LLMResponse> {
   const start = Date.now()
+  const isQwen3 = config.model.toLowerCase().includes('qwen3')
 
-  const body = {
+  // For qwen3 models: disable thinking mode to prevent German/wrong-language outputs
+  // and prepend /no_think to system message as fallback
+  const messages = isQwen3
+    ? req.messages.map((m, i) => (
+        i === 0 && m.role === 'system'
+          ? { ...m, content: '/no_think\n\n' + m.content }
+          : m
+      ))
+    : req.messages
+
+  const body: Record<string, unknown> = {
     model: config.model,
-    messages: req.messages,
+    messages,
     stream: false,
     options: {
       temperature: req.temperature ?? 0.7,
       num_predict: req.maxTokens || config.maxTokens,
     },
   }
+  if (isQwen3) (body as any).think = false
 
   const res = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
     method: 'POST',
@@ -241,7 +242,9 @@ async function callOllama(config: LLMProvider, req: LLMRequest): Promise<LLMResp
   }
 
   const data = await res.json() as any
-  const text = data.message?.content || ''
+  // Strip <think>...</think> blocks (qwen3 thinking mode leaks wrong-language reasoning)
+  const raw = data.message?.content || ''
+  const text = raw.replace(/<think>[\s\S]*?<\/think>/g, '').trim()
   const tokensUsed = (data.eval_count || 0) + (data.prompt_eval_count || 0)
 
   logTokenUsage({ provider: config.name, model: config.model, tokensUsed, timestamp: Date.now(), isLocal: true })
@@ -261,16 +264,27 @@ async function callOllamaStream(config: LLMProvider, req: LLMRequest, handlers: 
   const start = Date.now()
   let content = ''
   let tokensUsed = 0
+  const isQwen3 = config.model.toLowerCase().includes('qwen3')
 
-  const body = {
+  // For qwen3 models: disable thinking mode to prevent German/wrong-language outputs
+  const messages = isQwen3
+    ? req.messages.map((m, i) => (
+        i === 0 && m.role === 'system'
+          ? { ...m, content: '/no_think\n\n' + m.content }
+          : m
+      ))
+    : req.messages
+
+  const body: Record<string, unknown> = {
     model: config.model,
-    messages: req.messages,
+    messages,
     stream: true,
     options: {
       temperature: req.temperature ?? 0.7,
       num_predict: req.maxTokens || config.maxTokens,
     },
   }
+  if (isQwen3) (body as any).think = false
 
   const res = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
     method: 'POST',
@@ -303,7 +317,9 @@ async function callOllamaStream(config: LLMProvider, req: LLMRequest, handlers: 
         const data = JSON.parse(line)
         if (data.message?.content) {
           content += data.message.content
-          await handlers.onToken(data.message.content)
+          // Strip <think>...</think> tokens from stream — qwen3 thinking leaks wrong-language text
+          const cleaned = data.message.content.replace(/<think>[\s\S]*?<\/think>/g, '')
+          if (cleaned) await handlers.onToken(cleaned)
         }
         if (data.done && data.eval_count) {
           tokensUsed = (data.eval_count || 0) + (data.prompt_eval_count || 0)
@@ -392,44 +408,44 @@ function initProviders(): void {
     )
   }
 
-  // Cloud fallbacks (free tiers)
+  // Cloud fallbacks (free tiers) — upgraded April 2026 to most powerful free models
   defs.push(
     {
       name: 'gemini',
-      model: process.env.GEMINI_MODEL || 'gemini-2.0-flash',
+      model: process.env.GEMINI_MODEL || 'gemini-2.5-pro',           // Google's BEST model — free tier 25 RPD
       apiKey: process.env.GEMINI_API_KEY || '',
       baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
-      maxTokens: 8192,
+      maxTokens: 65536,
       priority: 10,
-      rateLimit: { requests: 15, windowMs: 60_000 },
+      rateLimit: { requests: 10, windowMs: 60_000 },     // 2.5 Pro free: ~10 RPM
       enabled: !!process.env.GEMINI_API_KEY,
     },
     {
       name: 'groq',
-      model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
+      model: process.env.GROQ_MODEL || 'qwen/qwen3-32b',            // Qwen3 32B — powerful reasoning on Groq
       apiKey: process.env.GROQ_API_KEY || '',
       baseUrl: 'https://api.groq.com/openai/v1',
-      maxTokens: 8192,
+      maxTokens: 32768,
       priority: 11,
       rateLimit: { requests: 30, windowMs: 60_000 },
       enabled: !!process.env.GROQ_API_KEY,
     },
     {
       name: 'openrouter',
-      model: process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.1-8b-instruct:free',
+      model: process.env.OPENROUTER_MODEL || 'nvidia/nemotron-3-super-120b-a12b:free', // 120B MoE — top free model
       apiKey: process.env.OPENROUTER_API_KEY || '',
       baseUrl: 'https://openrouter.ai/api/v1',
-      maxTokens: 4096,
+      maxTokens: 32768,
       priority: 12,
       rateLimit: { requests: 20, windowMs: 60_000 },
       enabled: !!process.env.OPENROUTER_API_KEY,
     },
     {
       name: 'huggingface',
-      model: process.env.HF_LLM_MODEL || 'mistralai/Mistral-7B-Instruct-v0.3',
+      model: process.env.HF_LLM_MODEL || 'meta-llama/Meta-Llama-3-8B-Instruct',
       apiKey: process.env.HF_API_KEY || '',
       baseUrl: 'https://router.huggingface.co/hf-inference',
-      maxTokens: 2048,
+      maxTokens: 4096,
       priority: 13,
       rateLimit: { requests: 10, windowMs: 60_000 },
       enabled: !!process.env.HF_API_KEY,
@@ -997,7 +1013,7 @@ export type QueryClassification =
 // Enhanced Pattern Detection (multi-signal classification)
 
 const LIFE_THREAT_PATTERNS = [
-  /\b(drowning|can'?t breathe|heart attack|not breathing|choking|bleeding out|dying)\b/i,
+  /\b(drowning|can'?t breathe|heart attack|not breathing|choking|bleeding out|dying|dieing|dyin)\b/i,
   /\b(trapped|pinned|building collapsed|on fire|swept away)\b/i,
   /\b(overdose|seizure|unconscious|stroke|anaphyla)/i,
   /\b(electrocuted|hypotherm|frostbite|impaled|crush(ed|ing))\b/i,
@@ -1018,6 +1034,21 @@ const TRAUMA_PATTERNS = [
   /\b(scared|terrified|panic attack|anxiety|depressed|hopeless|suicid)/i,
   /\b(grief|griev|mourn|overwhelm|crying|can'?t cope|breaking down)\b/i,
   /\b(alone|isolated|no one to talk|don'?t know what to do)\b/i,
+  // Mental health crisis — route to primary model for best quality
+  /\b(kill myself|want to die|end it all|self.?harm|cutting|overdose)\b/i,
+  /\b(don'?t want to live|no reason to live|better off dead|worth ?less)\b/i,
+  /\b(therap|counsel|psycholog|mental health|mental illness)\b/i,
+  /\b(domestic violence|abuse|abused|abusive|assault|raped?)\b/i,
+  /\b(eating disorder|anorexia|bulimia|addict|substance abuse)\b/i,
+  /\b(panic|dissociat|hyperventilat|intrusive thoughts|voices|paranoi)\b/i,
+  /\b(hate myself|self loath|nobody cares|no one cares|unwanted|rejected)\b/i,
+  /\b(empty|numb|falling apart|can'?t go on|giving up|no hope)\b/i,
+  // Misspellings & variants people actually type in distress
+  /\b(feel like dying|feel like dieing|wanna die|gonna die|ready to die)\b/i,
+  /\b(di+e+i?n?g?|sui+ci+d|sel+f[- ]?ha?r+m|over ?dos)\b/i,
+  /\b(hurt myself|hurting myself|harm myself|harming myself|end my life)\b/i,
+  /\b(can'?t do this anymore|can'?t take this|don'?t care anymore)\b/i,
+  /\b(life is not worth|what'?s the point|no point in living|tired of living)\b/i,
 ]
 
 const COMPLEX_PATTERNS = [
@@ -1038,9 +1069,14 @@ const ABOUT_AEGIS_PATTERNS = [
   /\b(what (is|are) (you|aegis))\b/i,
   /\b(about (you|aegis|this (platform|system|app|chatbot)))\b/i,
   /\b(your (creator|maker|developer|founder))\b/i,
-  /\b(happiness|lazarus|shabana|robert gordon)\b/i,
+  /\b(happiness|lazarus|shahana|robert gordon)\b/i,
   /\b(how (do|does|can) (i|we) use)\b/i,
   /\b(features?|capabilities|what can you do)\b/i,
+  /\b(fav(ou?rite)?\s*(quote|saying|motto))\b/i,
+  /\b(supervisor|dr\.?\s*shahana|shahana\s*bano)\b/i,
+  /\b(who\s*(is|was)\s*(your|the)\s*(creator|maker|supervisor))\b/i,
+  /\b(how old|age|birthday|born|nationality)\b/i,
+  /\b(know (aegis|you|happiness))\b/i,
 ]
 
 /**
@@ -1089,8 +1125,13 @@ export function classifyQuery(message: string): QueryClassification {
   if (capsRatio > 0.5 && len > 10) scores.EMERGENCY += 1.5
 
   // Emotional language boosts TRAUMA
-  const emotionalWords = lower.match(/\b(feel|feeling|felt|scared|afraid|worried|anxious|sad|empty|broken|numb)\b/g)
+  const emotionalWords = lower.match(/\b(feel|feeling|felt|scared|afraid|worried|anxious|sad|empty|broken|numb|hopeless|helpless|desperate|miserable|suicidal)\b/g)
   if (emotionalWords) scores.TRAUMA += emotionalWords.length * 0.8
+
+  // Crisis language safety net — dying/dieing/die with distress context
+  if (/\b(die|dying|dieing|dyin|kill|suicid|harm|hurt)\b/i.test(lower) && /\b(i|my|me|myself|feel|want|gonna|wanna|going to)\b/i.test(lower)) {
+    scores.TRAUMA += 5
+  }
 
   // Long analytical queries boost REASONING/COMPLEX
   if (len > 150) {
@@ -1131,8 +1172,8 @@ function getRecommendedProviders(classification: QueryClassification): string[] 
       // Quality + speed — primary local, cloud for overflow
       return ['ollama-primary', 'gemini', 'groq', 'ollama-specialist']
     case 'TRAUMA':
-      // Warmth + expertise — primary is tuned for this, cloud as backup
-      return ['ollama-primary', 'gemini', 'ollama-specialist', 'groq']
+      // Warmth + expertise — needs the BEST model, never a small/fast one
+      return ['ollama-primary', 'gemini', 'groq', 'openrouter', 'ollama-specialist']
     case 'REASONING':
       // Deep analysis — deepseek-r1 excels here with think-tokens
       return ['ollama-specialist', 'ollama-primary', 'gemini', 'groq']
@@ -1140,8 +1181,8 @@ function getRecommendedProviders(classification: QueryClassification): string[] 
       // Multi-step — specialist first, then primary, then cloud
       return ['ollama-specialist', 'ollama-primary', 'gemini', 'openrouter']
     case 'ABOUT_AEGIS':
-      // Platform questions — primary knows its identity, fast as backup
-      return ['ollama-primary', 'ollama-fast', 'ollama-specialist']
+      // Platform/creator/identity questions — MUST use primary (8b) model for full system prompt understanding
+      return ['ollama-primary', 'ollama-specialist', 'gemini', 'groq']
     case 'CONVERSATIONAL':
       // Balanced conversation — qwen3 handles well, ultrafast as backup
       return ['ollama-fast', 'ollama-ultrafast', 'groq', 'ollama-primary']
@@ -1435,10 +1476,10 @@ const PROVIDER_INPUT_LIMITS: Record<string, number> = {
   'ollama-fast': 32_000,
   'ollama-specialist': 32_000,
   'ollama-ultrafast': 8_000,
-  'gemini': 30_000,
-  'groq': 12_000,       // llama-3.3-70b: 128K context, but free TPM is limited — keep reasonable
-  'openrouter': 16_000, // Free vision models (gemma-3, nemotron) support 16K+
-  'huggingface': 4_000, // Mistral-7B has 8K but HF free tier limits
+  'gemini': 100_000,    // Gemini 2.5 Pro: 1M context — use generous budget
+  'groq': 30_000,       // Qwen3-32B / Llama-3.3-70B: 131K context on Groq
+  'openrouter': 30_000, // Nemotron-3 Super 120B: 262K context, free
+  'huggingface': 6_000, // Llama-3-8B: 8K context on HF Inference
 }
 
 /* Condensed system prompt for token-constrained cloud providers */
@@ -1463,8 +1504,8 @@ function condenseSystemPrompt(fullPrompt: string): string {
   const emergencyMatch = fullPrompt.match(/\n\n.{0,4}EMERGENCY DETECTED:[\s\S]*?(?=\n\n|$)/)
   if (emergencyMatch) preservedSections.push(emergencyMatch[0])
 
-  // Preserve language instruction
-  const langMatch = fullPrompt.match(/\n\nIMPORTANT: The user is writing in language code[\s\S]*?(?=\n\n|$)/)
+  // Preserve language instruction (both old and new format)
+  const langMatch = fullPrompt.match(/\n\n=== LANGUAGE RULE ===[\s\S]*?===/) || fullPrompt.match(/\n\nIMPORTANT:.*(?:language code|respond.*English)[\s\S]*?(?=\n\n|$)/)
   if (langMatch) preservedSections.push(langMatch[0])
 
   const rAdapter = regionRegistry.getActiveRegion()

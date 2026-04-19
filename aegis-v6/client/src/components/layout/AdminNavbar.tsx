@@ -1,15 +1,11 @@
-/**
+﻿/**
  * Module: AdminNavbar.tsx
  *
  * Admin navbar React component.
  *
- * How it connects:
  * - Rendered by AdminLayout
  * - Reads alerts from AlertsContext for the notification dropdown
  * - Calls onViewChange to switch the active admin view
- * Simple explanation:
- * The top navbar operators see with search, alerts, and quick actions. */
-
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import {
@@ -156,14 +152,13 @@ export default function AdminNavbar({
             <Menu className="w-5 h-5 text-gray-600 dark:text-gray-300" />
           </button>
 
-          <Link to="/" className="flex items-center gap-2 group" aria-label="AEGIS OPS Home">
+          <Link to="/" className="flex items-center gap-2 group" aria-label="AEGIS Home">
             <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-aegis-500 to-aegis-700 flex items-center justify-center shadow-lg shadow-aegis-500/40 group-hover:shadow-aegis-400/60 transition-all group-hover:scale-105">
               <Shield className="w-5 h-5 text-white drop-shadow-sm" />
             </div>
             <div className="hidden sm:block leading-none">
               <span className="font-black text-sm tracking-wide">
-                <span className="text-aegis-600 dark:text-aegis-400">AEGIS</span>{' '}
-                <span className="text-gray-500 dark:text-gray-300 dark:text-white/80">OPS</span>
+                <span className="text-aegis-600 dark:text-aegis-400">AEGIS</span>
               </span>
               <span className="block text-[9px] text-gray-400 dark:text-gray-300 dark:text-aegis-300 tracking-widest uppercase">
                 {t('admin.operatorDashboard', lang)}

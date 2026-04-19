@@ -48,13 +48,15 @@ export const useWebPush = () => {
           return
         }
 
-        // Fetch the VAPID public key from our server so we can pass it to
-        // PushManager.subscribe() when the user opts in.
+        // Fetch the VAPID public key from our server. Keep it in a local variable
+        // so we can use it for silent auto-renewal later in this same function.
+        let pubKey: string | undefined
         try {
           const response = await fetch('/api/notifications/status')
           const data = await response.json()
           if (data.web?.publicKey) {
-            setStatus(prev => ({ ...prev, enabled: true, publicKey: data.web.publicKey }))
+            pubKey = data.web.publicKey
+            setStatus(prev => ({ ...prev, enabled: true, publicKey: pubKey }))
           } else {
             console.warn('Web Push public key not available from server')
           }
@@ -64,12 +66,56 @@ export const useWebPush = () => {
 
         // Check if the user already has an active push subscription from a
         // previous session.  pushManager.getSubscription() returns null if not.
+        // Also verify server-side that the endpoint is still active — FCM can
+        // silently invalidate endpoints while the browser still holds a stale
+        // PushSubscription object, causing broadcasts to find 0 active subs.
         try {
           // navigator.serviceWorker.ready waits until the service worker is
           // installed and activated (may be immediate if called after registration).
           const reg = await navigator.serviceWorker.ready
           const subscription = await reg.pushManager.getSubscription()
-          setStatus(prev => ({ ...prev, subscribed: !!subscription }))
+          if (subscription) {
+            try {
+              const verifyResp = await fetch(
+                `/api/notifications/verify-subscription?endpoint=${encodeURIComponent(subscription.endpoint)}`
+              )
+              const verifyData = await verifyResp.json()
+
+              if (verifyData.active === true) {
+                // Subscription is healthy — nothing to do.
+                setStatus(prev => ({ ...prev, subscribed: true }))
+              } else if (Notification.permission === 'granted' && pubKey) {
+                // Subscription is stale (FCM expired it) AND user already granted
+                // notification permission → silently re-register in the background
+                // without requiring any user interaction.
+                try {
+                  await subscription.unsubscribe()
+                  const newSub = await reg.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(pubKey) as BufferSource,
+                  })
+                  const renewResp = await fetch('/api/notifications/subscribe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ subscription: newSub.toJSON(), email: null, user_id: null }),
+                  })
+                  // Mark subscribed regardless of server response — new endpoint is live
+                  setStatus(prev => ({ ...prev, subscribed: renewResp.ok }))
+                } catch {
+                  // Silent renewal failed — show Subscribe button so user can retry
+                  setStatus(prev => ({ ...prev, subscribed: false }))
+                }
+              } else {
+                // No permission or no VAPID key — can't auto-renew, show Subscribe button
+                setStatus(prev => ({ ...prev, subscribed: false }))
+              }
+            } catch {
+              // Network error verifying — optimistically trust the browser subscription
+              setStatus(prev => ({ ...prev, subscribed: true }))
+            }
+          } else {
+            setStatus(prev => ({ ...prev, subscribed: false }))
+          }
         } catch {
           // Service worker not ready yet, that's okay
         }

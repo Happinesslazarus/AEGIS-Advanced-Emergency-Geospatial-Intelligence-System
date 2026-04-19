@@ -1,26 +1,18 @@
-/**
- * File: adminMessagingRoutes.ts
- *
- * What this file does:
+﻿/**
  * Admin-side messaging: operators view citizen message threads, send
  * replies, and mark conversations as read. This is the operator half
  * of the citizen ↔ admin messaging system.
  *
- * How it connects:
  * - Mounted at /api/admin/messages in index.ts
  * - Citizens send messages via citizenRoutes.ts; operators reply here
  * - Real-time notifications pushed via Socket.IO
  * - Requires operator or admin authentication
  *
- * Key endpoints:
  * GET  /api/admin/threads           — List all threads
  * GET  /api/admin/threads/:id       — Get thread with messages
  * POST /api/admin/threads/:id/messages — Send reply
  * PUT  /api/admin/threads/:id/read  — Mark as read
- *
- * Simple explanation:
- * How operators reply to citizen messages.
- */
+ * */
 
 import { Router, Response, NextFunction } from 'express'
 import pool from '../models/db.js'

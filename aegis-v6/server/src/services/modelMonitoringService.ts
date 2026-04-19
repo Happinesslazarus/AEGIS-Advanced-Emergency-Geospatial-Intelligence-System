@@ -1,18 +1,12 @@
-/**
- * File: modelMonitoringService.ts
- *
+﻿/**
  * Deployed model health monitor — collects rolling stats (average confidence,
  * drift scores, prediction positive rates) from recent ai_predictions rows
  * and exposes them via Prometheus metrics. Converts health to alert levels.
  *
- * How it connects:
  * - Reads recent predictions from the ai_predictions table
  * - Checks AI Engine health via aiClient
  * - Exposes model health as Prometheus gauges for dashboards
- *
- * Simple explanation:
- * Watches deployed AI models and flags when their accuracy starts drifting.
- */
+ * */
 
 import pool from '../models/db.js'
 import { aiClient } from './aiClient.js'

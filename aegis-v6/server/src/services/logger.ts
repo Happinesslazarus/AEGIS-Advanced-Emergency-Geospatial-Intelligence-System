@@ -1,18 +1,12 @@
-/**
- * File: logger.ts
- *
+﻿/**
  * Structured logging service — Pino-based logger with pretty-printing in dev
  * and JSON output in production. Exports a requestLogger() middleware that
  * logs method, URL, status, duration, and IP for every HTTP request.
  *
- * How it connects:
  * - Imported by virtually every file in the server
  * - requestLogger() middleware is applied globally in index.ts
  * - Redacts sensitive query params (token, password, key)
- *
- * Simple explanation:
- * The main logger — every important server event goes through here.
- */
+ * */
 
 import pino from 'pino'
 

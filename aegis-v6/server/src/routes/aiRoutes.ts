@@ -1,7 +1,4 @@
-/**
- * File: aiRoutes.ts
- *
- * What this file does:
+﻿/**
  * Proxies AI prediction requests from the frontend to the Python FastAPI
  * engine. Operators can trigger hazard predictions, view model status,
  * and manage AI pipeline configuration. Also exposes model governance
@@ -21,15 +18,11 @@
  * - GET  /api/ai/drift           — drift detection report
  * - POST /api/ai/registry/*      — on-disk model registry management
  *
- * How it connects:
  * - Mounted at /api/ai in index.ts
  * - Forwards requests to the AI engine via aiClient service
  * - Uses imageAnalysisService for image-based predictions
  * - Operator/admin authenticated endpoints
- *
- * Simple explanation:
- * The bridge between the web API and the Python AI prediction engine.
- */
+ * */
 
 import { Router, Request, Response, NextFunction } from 'express'
 import crypto from 'crypto'
@@ -50,6 +43,7 @@ import {
 import { AppError } from '../utils/AppError.js'
 import { logger } from '../services/logger.js'
 import { regionRegistry } from '../adapters/regions/index.js'
+import { adaptiveMFAMiddleware } from '../services/adaptiveMFAService.js'
 
 const router = Router()
 
@@ -341,7 +335,7 @@ router.get('/hazard-types', async (_req: Request, res: Response, next: NextFunct
  * POST /api/ai/retrain
  * Trigger model retraining (admin only)
  */
-router.post('/retrain', authMiddleware, adminOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+router.post('/retrain', authMiddleware, adminOnly, adaptiveMFAMiddleware('admin:ai:retrain'), async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { hazard_type, region_id } = req.body
 
@@ -540,7 +534,7 @@ router.get('/models/:modelName/versions', authMiddleware, operatorOnly, async (r
  * POST /api/ai/models/rollback
  * Roll back a model to its previous stable version (admin only)
  */
-router.post('/models/rollback', authMiddleware, adminOnly, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+router.post('/models/rollback', authMiddleware, adminOnly, adaptiveMFAMiddleware('admin:ai:rollback'), async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { model_name, target_version } = req.body
 

@@ -1,6 +1,4 @@
-/**
- * File: incidentRegistry.test.ts
- *
+﻿/**
  * What it tests:
  * Unit tests for the incident-type registry (in-memory config).
   * Confirms that all 10 hazard types are registered, that upsertIncidentType

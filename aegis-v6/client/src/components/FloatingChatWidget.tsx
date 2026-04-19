@@ -1,12 +1,8 @@
-/**
- * File: FloatingChatWidget.tsx
- *
- * What this file does:
+﻿/**
  * Persistent collapsible chat widget shown on every authenticated page.
  * Lets citizens browse message threads, open a conversation, and send
  * messages in real time without leaving the current page.
  *
- * How it connects:
  * - Mounted globally in client/src/App.tsx (always rendered for auth users)
  * - Real-time messages via client/src/contexts/SocketContext.tsx
  * - Auth state from client/src/contexts/CitizenAuthContext.tsx

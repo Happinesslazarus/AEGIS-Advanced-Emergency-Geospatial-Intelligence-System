@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: ReportsContext.tsx
  *
  * Reports context React context provider (shares state across components).
  *
- * How it connects:
  * - Wraps components in App.tsx via AppProviders */
 
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, type ReactNode } from 'react'
@@ -172,6 +171,15 @@ export function ReportsProvider({ children }: { children: ReactNode }): JSX.Elem
     fetchReports()
   }, [fetchReports])
 
+  // Polling fallback: re-fetch every 30s when the socket is not connected.
+  // This ensures anonymous users and users whose socket hasn't yet authenticated
+  // (latent silent-refresh) still see live counts without needing a socket event.
+  useEffect(() => {
+    if (sharedSocket.connected) return   // socket is live — no need to poll
+    const id = setInterval(fetchReports, 30_000)
+    return () => clearInterval(id)
+  }, [sharedSocket.connected, fetchReports])
+
   useEffect(() => {
     let cancelled = false
 
@@ -198,7 +206,21 @@ export function ReportsProvider({ children }: { children: ReactNode }): JSX.Elem
       } as Record<string, unknown>)
 
       setRawReports((prev) => {
-        if (prev.some((existing) => existing.id === newReport.id)) return prev
+        const existingIdx = prev.findIndex((r) => r.id === newReport.id)
+        if (existingIdx !== -1) {
+          // Report already exists (optimistic update or prior fetch).
+          // Merge in media data from the socket broadcast — the socket version
+          // carries the authoritative media URLs that the public API omits.
+          const existing = prev[existingIdx]
+          const hasNewMedia = (newReport.media?.length ?? 0) > 0 || !!newReport.mediaUrl
+          const hasCachedMedia = (existing.media?.length ?? 0) > 0 || !!existing.mediaUrl
+          if (hasNewMedia && !hasCachedMedia) {
+            const updated = [...prev]
+            updated[existingIdx] = { ...existing, media: newReport.media, mediaUrl: newReport.mediaUrl, hasMedia: true }
+            return updated
+          }
+          return prev
+        }
         return [newReport, ...prev]
       })
     })

@@ -1,20 +1,13 @@
-/**
- * File: internalRoutes.ts
- *
- * What this file does:
+﻿/**
  * Internal service endpoints: n8n WebSocket bridge, frontend error
  * logging (React error boundaries POST here), system health status,
  * live region configuration, and circuit breaker states.
  *
- * How it connects:
  * - Mounted at /api/internal in index.ts
  * - Protected by internalAuth middleware (API key / webhook signature)
  * - n8n automation workflows call these endpoints
  * - Frontend error boundaries log client errors here
- *
- * Simple explanation:
- * Backend-only endpoints for automation workflows and internal monitoring.
- */
+ * */
 
 import { Router, Request, Response, NextFunction } from 'express'
 import rateLimit from 'express-rate-limit'

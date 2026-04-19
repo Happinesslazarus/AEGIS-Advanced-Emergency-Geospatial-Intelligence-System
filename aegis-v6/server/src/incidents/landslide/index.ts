@@ -1,14 +1,10 @@
-/**
+﻿/**
  * Module: index.ts
  *
  * Ground movement and landslides incident module (handles landslide specific logic).
  *
- * How it connects:
  * - Part of the incident module system, registered via incidents/registry.ts
- *
- * Simple explanation:
- * Manages detection, assessment, and response for landslide events.
- */
+ * */
 
 import { BaseIncidentModule } from '../baseModule.js'
 import type { IncidentRegistryEntry, IncidentPrediction } from '../types.js'

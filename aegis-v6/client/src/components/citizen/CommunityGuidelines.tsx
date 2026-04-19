@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: CommunityGuidelines.tsx
  *
  * Community guidelines citizen component (public-facing UI element).
  *
- * How it connects:
  * - Rendered inside CitizenPage.tsx or CitizenDashboard.tsx */
 
 import React, { useState, useMemo, useEffect, useRef } from 'react'

@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: LiveMap.tsx
  *
  * Live map shared component (reusable UI element used across pages).
  *
- * How it connects:
  * - Used across both admin and citizen interfaces */
 
 import { useRef, useEffect, useState, useCallback } from 'react'
@@ -616,9 +615,9 @@ export default function LiveMap({
                 <div style="height:100%;width:${pctLabel};background:${colour};border-radius:99px;"></div>
               </div>
             </div>
-            <div style="font-size:9px;color:#9ca3af;margin-bottom:4px;">⏰ ${p.time_to_flood || 'Unknown'}</div>
-            <div style="font-size:9px;color:#60a5fa;margin-bottom:4px;">🔍 ${p.matched_pattern || ''}</div>
-            ${p.next_areas?.length ? `<div style="font-size:9px;color:#fbbf24;">➡️ ${t('map.downstream', lang)}: ${p.next_areas.join(', ')}</div>` : ''}
+            <div style="font-size:9px;color:#9ca3af;margin-bottom:4px;display:flex;align-items:center;gap:3px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${p.time_to_flood || 'Unknown'}</div>
+            <div style="font-size:9px;color:#60a5fa;margin-bottom:4px;display:flex;align-items:center;gap:3px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" style="flex-shrink:0;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>${p.matched_pattern || ''}</div>
+            ${p.next_areas?.length ? `<div style="font-size:9px;color:#fbbf24;display:flex;align-items:center;gap:3px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" style="flex-shrink:0;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>${t('map.downstream', lang)}: ${p.next_areas.join(', ')}</div>` : ''}
             <div style="border-top:1px solid #374151;padding-top:4px;margin-top:4px;font-size:8px;color:#6b7280;">
               ${t('map.confidence', lang)}: ${p.confidence}% — ${p.model_version}
             </div>

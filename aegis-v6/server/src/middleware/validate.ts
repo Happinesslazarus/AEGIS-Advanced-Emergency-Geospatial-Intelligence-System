@@ -1,12 +1,8 @@
-/**
- * File: validate.ts
- *
- * What this file does:
+﻿/**
  * Zod schema validation middleware. Validates request body, query params,
  * and URL params against schemas before the request reaches route handlers.
  * Also exports shared validation schemas used across multiple routes.
  *
- * How it connects:
  * - Route files use validate(schema) as middleware before their handlers
  * - Common schemas (pagination, UUID params) are imported by many route files
  * - On failure, returns 400 with structured error details listing each field
@@ -14,11 +10,7 @@
  * Usage:
  *   router.post('/reports', validate(createReportSchema), handler)
  *   router.get('/list', validate({ query: paginationSchema }), handler)
- *
- * Simple explanation:
- * Checks that incoming data has the right shape and values before processing.
- * If something is wrong, the request is rejected with a clear explanation.
- */
+ * */
 
 import { Request, Response, NextFunction } from 'express'
 import { z, ZodSchema, ZodError } from 'zod'
@@ -133,7 +125,8 @@ export const createAlertSchema = z.object({
 })
 
 export const chatMessageSchema = z.object({
-  message: z.string().min(1, 'Message is required').max(2000),
+  message: z.string().min(1, 'Message is required').max(50000),
+  fileContent: z.string().max(50000).optional(),
   sessionId: z.string().uuid().optional(),
   preferredProvider: z.string().optional(),
 })

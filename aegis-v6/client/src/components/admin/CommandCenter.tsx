@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: CommandCenter.tsx
  *
  * Command center dashboard (real-time operational overview).
  *
- * How it connects:
  * - Rendered inside AdminPage.tsx based on active view */
 
 import React, { useState, useEffect, useMemo, memo } from 'react'

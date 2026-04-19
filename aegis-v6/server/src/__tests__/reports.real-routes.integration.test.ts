@@ -1,6 +1,4 @@
-/**
- * File: reports.real-routes.integration.test.ts
- *
+﻿/**
  * What it tests:
  * Real-route integration tests for the reports API with DB and auth.
   * Covers citizen vs admin permission boundaries, pagination,

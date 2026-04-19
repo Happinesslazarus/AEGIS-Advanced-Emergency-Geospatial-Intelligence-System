@@ -1,15 +1,9 @@
-/**
- * File: generateVapidKeys.ts
- *
- * What this file does:
+﻿/**
  * CLI script that generates VAPID key pairs for Web Push notifications.
  * Run this once during setup, then copy the keys into your .env file.
  *
  * Usage: npx ts-node src/utils/generateVapidKeys.ts
- *
- * Simple explanation:
- * Generates the keys needed for browser push notifications.
- */
+ * */
 
 import webPush from 'web-push'
 

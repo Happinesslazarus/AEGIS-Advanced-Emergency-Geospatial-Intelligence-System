@@ -1,13 +1,9 @@
-/**
- * File: App.tsx
- *
- * What this file does:
+﻿/**
  * The root React component. Defines every client-side URL route, wraps the
  * whole app in the global Context provider tree (auth, socket, alerts, theme,
  * etc.), and renders persistent UI layers (chat widget, cookie banner, offline
  * indicator, accessibility panel) that should be visible on every page.
  *
- * How it connects:
  * - Rendered by client/src/main.tsx (mounted into #root div)
  * - Wraps children in client/src/contexts/AppProviders.tsx (all Context providers)
  * - All pages are lazy-loaded (code-split by Vite) for faster initial load
@@ -23,18 +19,12 @@
  * /alerts              — AlertsPage (live alert feed)
  * /guest               — GuestDashboard (read-only view without login)
  *
- * Learn more:
  * - client/src/contexts/AppProviders.tsx      — all Context providers in one place
  * - client/src/components/shared/RouteGuards.tsx — role-based route protection
  * - client/src/pages/AdminPage.tsx            — the main operator dashboard
  * - client/src/pages/CitizenDashboard.tsx     — the citizen safety dashboard
  * - client/src/components/FloatingChatWidget  — the persistent chat button/panel
- *
- * Simple explanation:
- * The skeleton of the frontend. All pages slot into this file's route table,
- * and all shared services (auth, socket, theme) are wrapped around everything
- * from here so any component can access them.
- */
+ * */
 
 import { Routes, Route } from 'react-router-dom'
 import { useEffect, lazy, Suspense } from 'react'
@@ -61,7 +51,9 @@ const OAuthCallback = lazy(() => import('./pages/OAuthCallback'))
 const QRAuthPage = lazy(() => import('./pages/QRAuthPage'))
 const MagicLinkCallback = lazy(() => import('./pages/MagicLinkCallback'))
 import AccessibilityPanel from './components/shared/AccessibilityPanel'
+import CitizenPreferencesBridge from './components/shared/CitizenPreferencesBridge'
 import FloatingChatWidget from './components/FloatingChatWidget'
+import ScrollFab from './components/shared/ScrollFab'
 import LanguagePreferenceDialog from './components/shared/LanguagePreferenceDialog'
 import OfflineIndicator from './components/shared/OfflineIndicator'
 import CookieConsent from './components/shared/CookieConsent'
@@ -98,11 +90,13 @@ export default function App(): JSX.Element {
     <ErrorBoundary name="App" fullPage>
       <AppProviders>
         <RtlEnforcer />
+        <CitizenPreferencesBridge />
         <Suspense fallback={<SuspenseFallback />}>
           <PageTransition>
             <Routes>
               <Route path="/" element={<LandingPage />} />
               <Route path="/citizen/login" element={<CitizenAuthPage />} />
+              <Route path="/citizen/auth" element={<CitizenAuthPage />} />
               <Route path="/citizen/oauth/callback" element={<OAuthCallback />} />
               <Route path="/citizen/qr-auth" element={<QRAuthPage />} />
               <Route path="/citizen/magic-link" element={<MagicLinkCallback />} />
@@ -139,6 +133,7 @@ export default function App(): JSX.Element {
         <LanguagePreferenceDialog />
         <AccessibilityPanel />
         <FloatingChatWidget />
+        <ScrollFab />
         <OfflineIndicator />
         <CookieConsent />
       </AppProviders>

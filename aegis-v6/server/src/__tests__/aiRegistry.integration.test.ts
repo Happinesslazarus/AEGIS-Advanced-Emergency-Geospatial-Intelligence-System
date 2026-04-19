@@ -1,6 +1,4 @@
-/**
- * File: aiRegistry.integration.test.ts
- *
+﻿/**
  * What it tests:
  * Integration tests for the AI Model Governance service.
   * Verifies model registration, approval workflow, drift detection,

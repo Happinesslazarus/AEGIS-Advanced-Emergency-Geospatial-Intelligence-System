@@ -1,18 +1,12 @@
-/**
- * File: floodPredictionService.ts
- *
+﻿/**
  * Flood prediction engine — combines current river levels, rainfall forecasts
  * (OpenWeatherMap with Open-Meteo fallback), GeoJSON flood extents, and
  * catchment response profiles to predict flood risk for each river.
  *
- * How it connects:
  * - Pulls live levels from riverLevelService, forecasts from weather APIs
  * - Optionally boosts predictions via the Python AI Engine (aiClient)
  * - Loads GeoJSON flood polygons from disk for extent mapping
- *
- * Simple explanation:
- * Predicts how likely each river is to flood based on water levels and weather.
- */
+ * */
 
 import { getCurrentLevels } from './riverLevelService.js'
 import { getActiveCityRegion } from '../config/regions/index.js'

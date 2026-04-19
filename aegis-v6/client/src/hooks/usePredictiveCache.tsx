@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: usePredictiveCache.tsx
  *
  * usePredictiveCache custom React hook (predictive cache logic).
  *
- * How it connects:
  * - Used by React components that need this functionality */
 
 import { useCallback, useEffect, useRef, useMemo } from 'react'

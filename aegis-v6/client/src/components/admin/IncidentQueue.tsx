@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: IncidentQueue.tsx
  *
  * Incident queue (prioritised list of pending incidents).
  *
- * How it connects:
  * - Rendered inside AdminPage.tsx based on active view */
 
 /* IncidentQueue.tsx — Incident Assignment / Response Queue for admin dashboard */

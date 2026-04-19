@@ -1,18 +1,12 @@
-/**
- * File: mlTrainingPipeline.ts
- *
+﻿/**
  * ML model retraining entry point — reads historical fusion data from
  * PostgreSQL, calls the Python AI Engine via aiClient to retrain, and
  * stores metrics (accuracy, F1, AUC) back for admin dashboards.
  *
- * How it connects:
  * - Reads training data from the database
  * - Calls the Python AI Engine through aiClient for training runs
  * - Writes model metrics to ai_model_metrics for auditing
- *
- * Simple explanation:
- * Sends data to the AI engine for retraining and saves the results.
- */
+ * */
 
 import pool from '../models/db.js'
 import { aiClient } from './aiClient.js'

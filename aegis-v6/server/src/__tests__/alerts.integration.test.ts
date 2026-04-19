@@ -1,6 +1,4 @@
-/**
- * File: alerts.integration.test.ts
- *
+﻿/**
  * What it tests:
  * Integration tests for the alerts and push-subscription endpoints.
   * Verifies alert creation, retrieval, push subscription registration,

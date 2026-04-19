@@ -1,21 +1,13 @@
-/**
- * File: securityUtils.ts
- *
- * What this file does:
+﻿/**
  * Security helper functions: password strength validation (enterprise policy),
  * account lockout tracking, password history to prevent reuse, secure token
  * generation, timing-safe comparisons, and client IP extraction.
  *
- * How it connects:
  * - Used by authRoutes.ts and citizenAuthRoutes.ts for login/registration
  * - Password policy enforces 12+ chars, mixed case, digits, symbols, entropy
  * - Lockout state stored in the operators/citizens tables
  * - Password history checked against the last 5 hashes
- *
- * Simple explanation:
- * The security toolbox — validates passwords, tracks failed login attempts,
- * and provides crypto helpers that the auth system relies on.
- */
+ * */
 
 import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
@@ -30,7 +22,7 @@ export const MIN_PASSWORD_LENGTH = 12
 export const PASSWORD_HISTORY_DEPTH = 5
 
 /* Max failed login attempts before account lockout */
-export const MAX_LOGIN_ATTEMPTS = 5
+export const MAX_LOGIN_ATTEMPTS = 10
 
 /* Lockout duration in minutes */
 export const LOCKOUT_DURATION_MINUTES = 15

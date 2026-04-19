@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Module: routeGuards.test.tsx
  *
  * Tests for the route-guard components and utilities that control page access
@@ -48,7 +48,6 @@
  *   fallback prop           = React node to render instead of redirecting when access is denied
  *   roles prop              = array of role strings that are allowed to view the page
  *
- * How it connects:
  * - Run by the test runner (Vitest) with `vitest run` or `vitest watch`
  */
 

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Module: hooks.test.tsx
  *
  * Tests for five shared React hooks used throughout the client:
@@ -61,7 +61,6 @@
  *                             screen reader re-detects the change (changing text immediately
  *                             after clearing it is sometimes missed by readers)
  *
- * How it connects:
  * - Run by the test runner (Vitest) with `vitest run` or `vitest watch`
  */
 

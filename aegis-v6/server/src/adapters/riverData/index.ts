@@ -1,14 +1,10 @@
-/**
+﻿/**
  * Module: index.ts
  *
  * Riverdata barrel export (re-exports module contents).
  *
- * How it connects:
  * - Used by services for external data fetching
- *
- * Simple explanation:
- * Gathers and re-exports everything from the riverData directory.
- */
+ * */
 
 import type { RiverDataAdapter, RiverReading, RiverHistory } from './RiverDataAdapter.js'
 import { SEPAAdapter } from './SEPAAdapter.js'

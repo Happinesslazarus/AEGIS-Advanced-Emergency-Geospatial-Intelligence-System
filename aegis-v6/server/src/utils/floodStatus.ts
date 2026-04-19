@@ -1,20 +1,12 @@
-/**
- * File: floodStatus.ts
- *
- * What this file does:
+﻿/**
  * Calculates flood status for a river station by comparing current
  * water level against configured thresholds (normal, alert, warning,
  * severe, extreme).
  *
- * How it connects:
  * - Used by riverLevelService and floodPredictionService
  * - Station thresholds defined in region config (config/regions/)
  * - Returns a FloodStatus enum value used by the frontend map
- *
- * Simple explanation:
- * Looks at how high the river is and decides if it's normal,
- * at alert level, or in flood.
- */
+ * */
 
 import type { FloodStatus } from '../config/regions/types.js'
 import type { RiverStation } from '../config/regions/types.js'

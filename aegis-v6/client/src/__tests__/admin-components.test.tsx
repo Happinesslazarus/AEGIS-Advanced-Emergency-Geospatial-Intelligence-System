@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Module: admin-components.test.tsx
  *
  * Tests for the <ActivityLog> admin component and its companion utilities:
@@ -38,7 +38,6 @@
  *   Set                 = JavaScript built-in that holds only unique values; used to check IDs are unique
  *   Date.now()          = milliseconds since Unix epoch; used to bracket timestamp validity
  *
- * How it connects:
  * - Run by the test runner (Vitest) with `vitest run` or `vitest watch`
  */
 

@@ -1,14 +1,10 @@
-/**
+﻿/**
  * Module: schema.ts
  *
  * Public safety incidents incident module (handles public safety specific logic).
  *
- * How it connects:
  * - Part of the incident module system, registered via incidents/registry.ts
- *
- * Simple explanation:
- * Manages detection, assessment, and response for public safety events.
- */
+ * */
 
 export interface PublicSafetyCustomFields {
   incidentType?: 'Suspicious Activity' | 'Hazmat' | 'Civil Disturbance' | 'Missing Person' | 'Other'

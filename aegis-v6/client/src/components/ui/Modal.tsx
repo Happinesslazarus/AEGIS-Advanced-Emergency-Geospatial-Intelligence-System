@@ -1,14 +1,10 @@
-/**
+﻿/**
  * Module: Modal.tsx
  *
  * Modal UI primitive (low-level UI building block).
  *
- * How it connects:
  * - Renders via React portal to document body
  * - Uses useFocusTrap and useReducedMotion hooks
- * Simple explanation:
- * Accessible modal overlay used throughout the app, WCAG 2.1 AA compliant. */
-
 import React, { useEffect, useCallback, useRef, memo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useReducedMotion } from '../../hooks/useReducedMotion'

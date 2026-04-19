@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Module: RegionRegistry.ts
  *
  * Singleton registry that holds all RegionAdapter instances and tracks which
@@ -11,7 +11,6 @@
  * access so the module is safe to import before the rest of the app starts.
  * Third-party adapters can be registered dynamically via registerRegion().
  *
- * How it connects:
  * - Consumed by: cronJobs.ts, floodPredictionService.ts, riverLevelService.ts,
  *   threatLevelService.ts, and every BaseIncidentModule subclass via
  *   getRequestRegion()

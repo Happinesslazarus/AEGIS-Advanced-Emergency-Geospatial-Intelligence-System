@@ -1,26 +1,18 @@
-/**
- * File: citizenRoutes.ts
- *
- * What this file does:
+﻿/**
  * Citizen-specific features: safety check-ins, message threads with
  * operators, and the citizen dashboard with personalised alerts.
  *
- * How it connects:
  * - Mounted at /api/citizen in index.ts
  * - Citizens authenticate via citizenAuthRoutes.ts
  * - Messages are the citizen half of admin messaging (adminMessagingRoutes.ts)
  * - Real-time message notifications via Socket.IO
  *
- * Key endpoints:
  * POST /api/citizen/safety          — Submit safety check-in
  * GET  /api/citizen/safety/history  — Check-in history
  * GET  /api/citizen/threads         — List message threads
  * POST /api/citizen/threads         — Start new conversation
  * POST /api/citizen/threads/:id/messages — Send message
- *
- * Simple explanation:
- * Citizen features: safety check-ins, messaging with operators, and alerts.
- */
+ * */
 
 import { Router, Response, NextFunction } from 'express'
 import rateLimit from 'express-rate-limit'
@@ -556,13 +548,16 @@ router.delete('/data-erasure', async (req: AuthRequest, res: Response, next: Nex
     await client.query(`DELETE FROM emergency_contacts WHERE citizen_id = $1`, [userId])
     await client.query(`DELETE FROM citizen_preferences WHERE citizen_id = $1`, [userId])
 
-    // Anonymise community content (keep for community value but remove PII)
+    // Hide authored community posts while preserving moderation history.
     await client.query(
-      `UPDATE community_posts SET author_id = NULL WHERE author_id = $1`,
+      `UPDATE community_posts SET deleted_at = NOW() WHERE author_id = $1`,
       [userId]
     ).catch(() => {})
     await client.query(
-      `UPDATE community_chat_messages SET sender_name = 'Deleted User', sender_id = '00000000-0000-0000-0000-000000000000' WHERE sender_id = $1`,
+      `UPDATE community_chat_messages
+       SET sender_id = '00000000-0000-0000-0000-000000000000',
+           sender_type = 'deleted'
+       WHERE sender_id = $1`,
       [userId]
     ).catch(() => {})
 
@@ -571,7 +566,6 @@ router.delete('/data-erasure', async (req: AuthRequest, res: Response, next: Nex
       `UPDATE reports SET
          citizen_id = NULL,
          reporter_name = 'Anonymised',
-         reporter_contact = NULL,
          description = regexp_replace(description, '(\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}\\b|\\b\\d{5,}\\b)', '[REDACTED]', 'g')
        WHERE citizen_id = $1`,
       [userId]

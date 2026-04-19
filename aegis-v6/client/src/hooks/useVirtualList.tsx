@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: useVirtualList.tsx
  *
  * useVirtualList custom React hook (virtual list logic).
  *
- * How it connects:
  * - Used by React components that need this functionality */
 
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react'

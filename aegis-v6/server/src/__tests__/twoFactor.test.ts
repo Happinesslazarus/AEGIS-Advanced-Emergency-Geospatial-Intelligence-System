@@ -1,6 +1,4 @@
-/**
- * File: twoFactor.test.ts
- *
+﻿/**
  * What it tests:
  * Unit tests for the AES-256-GCM 2FA secret encryption layer.
   * Verifies encrypt/decrypt round-trips, IV uniqueness, tamper

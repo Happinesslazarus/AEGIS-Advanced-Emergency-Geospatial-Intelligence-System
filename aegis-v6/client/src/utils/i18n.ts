@@ -298,7 +298,7 @@ const en = {
   'citizen.reports.reportsCount': 'reports',
   'citizen.reports.shareReport': 'Share Report', 'citizen.reports.printReport': 'Print Report',
   'citizen.prep.description': 'Learn how to prepare for, survive, and recover from natural disasters. Verified resources from national agencies and trusted organisations.',
-  'citizen.news.refresh': 'Refresh', 'citizen.news.source': 'Source',
+  'citizen.news.refresh': 'Refresh', 'citizen.news.fetched': 'Updated', 'citizen.news.source': 'Source',
   'citizen.footer.platform': 'Platform', 'citizen.footer.contact': 'Contact',
   'citizen.sos.aria': 'Emergency SOS', 'citizen.sos.active': 'SOS Active',
   'citizen.sos.sendingIn': 'Sending in', 'citizen.sos.tapCancel': 'tap to cancel',
@@ -3319,6 +3319,7 @@ const en = {
   //  Chat keys
   'chat.welcomeMessage': "Hello! I'm the AEGIS Emergency Assistant. I can help with safety guidance for **all disaster types** — floods, storms, heatwaves, wildfires, landslides, power outages, water supply issues, infrastructure damage, public safety, and environmental hazards.\n\nI can also help you:\n• **Report incidents** and check active alerts\n• Find **evacuation routes** and shelters\n• Get **real-time predictions** from our AI models\n\nI understand multiple languages — feel free to ask in yours.\n\nWhat do you need help with?",
   'chat.offlineMode': 'Offline mode — local responses',
+  'chat.typing': 'Thinking…',
   'chat.messageLabel': 'Message',
   'chat.sendLabel': 'Send',
   'chat.noResponse': 'I could not generate a response.',
@@ -9662,7 +9663,6 @@ function getInitialLanguage(): string {
     return normalizeLanguageCode(
       localStorage.getItem('aegis_lang')
       || localStorage.getItem('aegis-language')
-      || window.navigator?.language
       || 'en',
     )
   } catch {

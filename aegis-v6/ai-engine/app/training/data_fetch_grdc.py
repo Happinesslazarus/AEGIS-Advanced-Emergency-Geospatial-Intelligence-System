@@ -221,10 +221,51 @@ WATER_SUPPLY_DISRUPTION_EVENTS: list[dict] = [
         "description": "Iran Khuzestan water crisis 2015-16 — Karun river near zero flow; industrial shut-downs",
         "source": "WRMA Iran water report 2015",
     },
+    # NOTE on Iraq events and ERA5 predictability:
+    # Tigris-Euphrates low-flow crises have TWO drivers:
+    #   1. Upstream Turkish/Syrian dam operations (Atatürk, Tabqa, Mosul dams) —
+    #      NOT predictable from local ERA5 meteorology at the Baghdad grid point.
+    #   2. Below-normal winter rainfall in the headwaters (Taurus/Zagros mountains) —
+    #      IS partially predictable from antecedent_rainfall and soil_moisture features.
+    # Model prediction quality for these events depends on which driver dominates.
+    # The events are retained because they represent documented real-world disruptions,
+    # but their contribution to training AUC may be limited where dam-release policy
+    # (not weather) is the primary cause.  Geographic holdout evaluation (see
+    # geographic_holdout.json) will reveal whether Middle East cluster AUC is lower
+    # than Europe/Americas — which is the expected and scientifically honest result.
+    {
+        "start": datetime(2018, 5, 1),   "end": datetime(2018, 11, 30),
+        "lat": 33.34, "lon": 44.40,
+        "description": (
+            "Iraq 2018 water crisis — Tigris and Euphrates at historic low flows "
+            "due to upstream Turkish/Syrian dams and below-normal winter rainfall; "
+            "Basra protests over water contamination and shortages; agricultural "
+            "collapse in southern Iraq.  Driver: mixed (dam operations + rainfall "
+            "deficit); local ERA5 variables partially capture the rainfall component."
+        ),
+        "source": "FAO Iraq water crisis July 2018; UN OCHA Iraq water situation 2018; Human Rights Watch water rights Iraq 2019",
+    },
+    {
+        "start": datetime(2019, 5, 1),   "end": datetime(2019, 10, 31),
+        "lat": 33.34, "lon": 44.40,
+        "description": (
+            "Iraq 2019 water stress — second consecutive year of critically low "
+            "Tigris-Euphrates discharge; government declared Euphrates water emergency; "
+            "agricultural irrigation cuts in Anbar and Diyala.  Driver: predominantly "
+            "upstream dam operations and reduced Taurus-Zagros snowpack; local ERA5 "
+            "rainfall features will have limited predictive power for this event."
+        ),
+        "source": "FAO Iraq water report 2019; UN OCHA Iraq humanitarian snapshot Aug 2019; Reuters Iraq water crisis Aug 2019",
+    },
     {
         "start": datetime(2022, 3, 1),   "end": datetime(2022, 8, 31),
         "lat": 33.3, "lon": 44.4,
-        "description": "Iraq water crisis 2022 — Tigris/Euphrates at historic lows; agricultural and domestic shortages",
+        "description": (
+            "Iraq water crisis 2022 — Tigris/Euphrates at historic lows; agricultural "
+            "and domestic shortages.  Driver: compound — upstream dam policy and "
+            "severe 2021-22 winter rainfall deficit across headwaters.  In test period "
+            "(Apr 2022 – May 2023) so model must predict this without seeing it in training."
+        ),
         "source": "FAO Iraq water situation report June 2022",
     },
     # Australia
@@ -233,6 +274,58 @@ WATER_SUPPLY_DISRUPTION_EVENTS: list[dict] = [
         "lat": -33.9, "lon": 151.2,
         "description": "Millennium Drought successor — NSW storage <50%; Stanthorpe (QLD) nearly ran out of water entirely",
         "source": "NSW DPIE water situation report 2019; BOM Drought monitor",
+    },
+    {
+        "start": datetime(2019, 3, 1),   "end": datetime(2020, 2, 28),
+        "lat": -34.92, "lon": 138.6,
+        "description": "South Australia 2019-20 drought — Murray-Darling inflows at record lows; Adelaide desalination plant at full capacity",
+        "source": "SA Water annual report 2019-20; MDBA drought monitoring bulletin",
+    },
+    {
+        "start": datetime(2019, 3, 1),   "end": datetime(2019, 12, 31),
+        "lat": -31.95, "lon": 115.86,
+        "description": "Western Australia 2019 drought — Perth dam storage below 20% of capacity; level 1-2 restrictions",
+        "source": "Water Corporation Perth water storage dashboard 2019; BOM drought monitor",
+    },
+    # Middle East — recurring crises (fill temporal gap)
+    {
+        "start": datetime(2021, 4, 1),   "end": datetime(2021, 10, 31),
+        "lat": 31.95, "lon": 35.93,
+        "description": "Jordan 2021 water crisis — Zarqa and Yarmouk River flows at historic lows; severe urban rationing in Amman",
+        "source": "MWI Jordan Annual Report 2021; ReliefWeb Jordan water shortages Jul 2021",
+    },
+    # Peru / South America
+    {
+        "start": datetime(2016, 4, 1),   "end": datetime(2016, 11, 30),
+        "lat": -12.04, "lon": -77.04,
+        "description": "Peru Lima water crisis 2016 — El Niño mudslides contaminated Chillón/Rímac intakes; 1.5M without supply",
+        "source": "SEDAPAL Lima emergency report Apr 2016; INDECI disaster bulletin",
+    },
+    {
+        "start": datetime(2017, 1, 1),   "end": datetime(2017, 5, 31),
+        "lat": -12.04, "lon": -77.04,
+        "description": "Peru Lima 2017 huaico floods — Niño Costero event contaminated all three Lima water intakes; 5-day supply interruption",
+        "source": "SEDAPAL emergency report Mar 2017; ANA Peru flood bulletin",
+    },
+    # Germany / Rhine drought (fills 2018 gap in Central Europe)
+    {
+        "start": datetime(2018, 6, 1),   "end": datetime(2018, 10, 31),
+        "lat": 51.5, "lon": 7.5,
+        "description": "Rhine/Elbe low flow 2018 — driest summer since records; industrial water use restricted; drinking water concerns in NRW",
+        "source": "BfG Rhine hydrological drought report 2018; DWD summer 2018 analysis",
+    },
+    {
+        "start": datetime(2019, 6, 1),   "end": datetime(2019, 10, 31),
+        "lat": 48.87, "lon": 2.35,
+        "description": "France drought 2019 — lowest river levels since 1959 in places; prefectural water restrictions in 77 departments",
+        "source": "Météo-France summer 2019 review; French government drought decree bulletins",
+    },
+    # Additional African event
+    {
+        "start": datetime(2019, 1, 1),   "end": datetime(2019, 9, 30),
+        "lat": -1.29, "lon": 36.82,
+        "description": "Kenya 2019 drought — Nairobi dams (Sasumua, Ruiru) at <20%; NCWSC rationing across the capital",
+        "source": "NCWSC Nairobi water levels 2019; Kenya Meteorological Dept drought advisory",
     },
 ]
 

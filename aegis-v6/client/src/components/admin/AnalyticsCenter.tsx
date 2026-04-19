@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: AnalyticsCenter.tsx
  *
  * Analytics center (charts, metrics, and data visualisation).
  *
- * How it connects:
  * - Rendered inside AdminPage.tsx based on active view */
 
 import React, { useState, useMemo, useEffect } from 'react'

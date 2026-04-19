@@ -1,18 +1,12 @@
-/**
- * File: openApiGenerator.ts
- *
+﻿/**
  * OpenAPI 3.1.0 specification builder — programmatically generates the full
  * API spec from Express route metadata including schemas, security definitions,
  * tags, and examples. Feeds Swagger UI and ReDoc documentation endpoints.
  *
- * How it connects:
  * - Reads route metadata from the Express API layer
  * - Merges schemas, security definitions, and examples into one spec
  * - Serves the spec via documentation routes for Swagger UI and ReDoc
- *
- * Simple explanation:
- * Turns the backend route definitions into the API docs developers read.
- */
+ * */
 
 import { Router, Request, Response } from 'express'
 import { createHash } from 'crypto'

@@ -1,29 +1,19 @@
-/**
- * File: auth.ts
- *
- * What this file does:
+﻿/**
  * JWT authentication and session management for the AEGIS API.
  * Verifies access tokens, enforces role-based permissions, and manages
  * refresh token sessions with rotation and revocation.
  *
- * How it connects:
  * - Every protected route uses authMiddleware to verify the caller's identity
  * - requireRole() gates admin, operator, and citizen-specific endpoints
  * - Session functions (createSession, validateSession, rotateRefreshToken)
  *   are called by authRoutes.ts and citizenAuthRoutes.ts during login/refresh
  * - Tokens are generated here and returned to clients via auth route handlers
  *
- * Key exports:
  * - authMiddleware — verifies Bearer token on each request
  * - requireRole() / adminOnly / operatorOnly / citizenOnly — role gates
  * - generateToken() / generateRefreshToken() — issue JWTs
  * - createSession() / validateSession() / rotateRefreshToken() — session lifecycle
- *
- * Simple explanation:
- * This is the lock on every API door. It checks your key (JWT token),
- * makes sure you're allowed in (role check), and keeps track of your
- * login sessions so they can be revoked if needed.
- */
+ * */
 
 import { Request, Response, NextFunction } from 'express'
 import jwt from 'jsonwebtoken'

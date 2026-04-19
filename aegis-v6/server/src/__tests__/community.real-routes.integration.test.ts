@@ -1,6 +1,4 @@
-/**
- * File: community.real-routes.integration.test.ts
- *
+﻿/**
  * What it tests:
  * Real-route integration tests for the community endpoints.
   * Runs HTTP requests against a real Express+PostgreSQL stack

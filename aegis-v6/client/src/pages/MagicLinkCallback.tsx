@@ -15,7 +15,7 @@ import { API_BASE } from '../utils/helpers'
 export default function MagicLinkCallback() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const { login } = useCitizenAuth()
+  const { oauthLogin } = useCitizenAuth()
   const [status, setStatus] = useState<'verifying' | 'success' | 'error'>('verifying')
   const [error, setError] = useState('')
 
@@ -34,8 +34,8 @@ export default function MagicLinkCallback() {
         const data = await res.json()
         if (data.success && data.token) {
           setStatus('success')
+          await oauthLogin(data.token)
           setTimeout(() => {
-            login({ token: data.token, user: data.user })
             navigate('/citizen/dashboard', { replace: true })
           }, 1500)
         } else {
@@ -49,7 +49,7 @@ export default function MagicLinkCallback() {
     }
 
     verify()
-  }, [searchParams, navigate, login])
+  }, [searchParams, navigate, oauthLogin])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950 dark:to-gray-900 flex items-center justify-center p-4">

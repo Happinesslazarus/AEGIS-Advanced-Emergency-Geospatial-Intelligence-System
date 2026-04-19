@@ -1,23 +1,15 @@
 """
 Module: training/__init__.py
 
-Package initialiser for the training module (makes Python treat this directory as an importable package).
-"""
-from .data_loaders import DataLoader, FeatureExtractor
-from .feature_engineering import FeatureEngineer
-from .training_pipeline import TrainingPipeline
-from .experiment_tracker import ExperimentTracker
-from .hyperparameter_tuner import HyperparameterTuner
-from .model_trainer import ModelTrainer
-from .evaluator import ModelEvaluator
-"""
-AEGIS Training Pipeline Module
+Package initialiser for the training module (makes Python treat this directory
+as an importable package).
+
+Lazy-guard: sub-modules depend on heavyweight runtime packages (asyncpg, mlflow,
+etc.) that may not be installed in all environments.  Importing them here is
+optional; individual training scripts import what they need directly.
 """
 
-# Lazy-guard: some sub-modules depend on heavyweight runtime packages
-# (asyncpg, mlflow, etc.) that may not be installed in all environments.
-# Importing them here is optional; the core training scripts and
-# validate_models.py import what they need directly.
+# Lazy-guard imports — silently skip if optional dependencies are absent.
 try:
     from .data_loaders import DataLoader, FeatureExtractor
 except ImportError:

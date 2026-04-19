@@ -1,6 +1,4 @@
-/**
- * File: cache.ts
- *
+﻿/**
  * DEPRECATED — All cache operations now go through cacheService.ts, which
  * provides namespacing, metrics, stale-while-revalidate, and LRU eviction.
  *

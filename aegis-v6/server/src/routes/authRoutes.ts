@@ -1,12 +1,8 @@
-/**
- * File: authRoutes.ts
- *
- * What this file does:
+﻿/**
  * Operator/admin authentication: invite-based registration, login with
  * lockout protection, JWT token refresh with rotation, password reset
  * via email, profile management, and email verification.
  *
- * How it connects:
  * - Mounted at /api/auth in index.ts
  * - Uses auth.ts middleware for JWT verification and session management
  * - Passwords hashed with bcrypt (12 rounds)
@@ -21,10 +17,7 @@
  * PUT  /api/auth/profile   — Update profile
  * POST /api/auth/forgot-password   — Request password reset email
  * POST /api/auth/reset-password    — Reset password with token
- *
- * Simple explanation:
- * Login, signup, and account management for operators and admins.
- */
+ * */
 
 import { Router, Response, NextFunction } from 'express'
 import bcrypt from 'bcryptjs'
@@ -116,7 +109,7 @@ router.post('/invite', authMiddleware, adminOnly, registerLimiter, uploadAvatar,
     const passwordHash = await bcrypt.hash(password, 12)
 
     // Build avatar URL if a file was uploaded
-    const avatarUrl = req.file ? `/uploads/${req.file.filename}` : null
+    const avatarUrl = req.file ? `/uploads/avatars/${req.file.filename}` : null
 
     // Only allow 'operator' or 'manager' roles via invite. Admin promotion is a separate action.
     const allowedRoles = ['operator', 'manager']
@@ -635,7 +628,7 @@ router.get('/me', authMiddleware, async (req: AuthRequest, res: Response, next: 
 router.put('/profile', authMiddleware, uploadAvatar, validateMagicBytes, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { displayName, department, phone } = req.body
-    const avatarUrl = req.file ? `/uploads/${req.file.filename}` : undefined
+    const avatarUrl = req.file ? `/uploads/avatars/${req.file.filename}` : undefined
 
     // Build dynamic update query based on which fields were provided
     const sets: string[] = []
@@ -842,6 +835,112 @@ router.post('/resend-verification', authMiddleware, operatorResendLimiter, async
     })
 
     res.json({ success: true, message: 'Verification email has been sent.' })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// POST /api/auth/bootstrap
+// Creates the very first admin account on fresh installs — no auth required.
+// Self-locking: returns 403 the instant any admin exists in the database.
+// Rate-limited aggressively to prevent brute-force on first-boot window.
+const bootstrapLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5,
+  message: { error: 'Too many bootstrap attempts. Please try again in 1 hour.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+})
+
+router.post('/bootstrap', bootstrapLimiter, async (req: any, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    // Hard gate: only works when zero admins exist
+    const { rows } = await pool.query(
+      `SELECT COUNT(*)::int AS c FROM operators WHERE role = 'admin' AND deleted_at IS NULL`,
+    )
+    if ((rows[0]?.c || 0) > 0) {
+      res.status(403).json({ error: 'An admin account already exists. Use the login page.' })
+      return
+    }
+
+    const { email, password, displayName } = req.body
+
+    if (!email || !password || !displayName) {
+      res.status(400).json({ error: 'Email, password, and your name are required.' })
+      return
+    }
+
+    const normalizedEmail = String(email).trim().toLowerCase()
+
+    const emailErr = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
+      ? null : 'Please enter a valid email address.'
+    if (emailErr) { res.status(400).json({ error: emailErr }); return }
+
+    const pwResult = validatePasswordStrength(password, normalizedEmail)
+    if (!pwResult.valid) {
+      res.status(400).json({ error: pwResult.errors[0] })
+      return
+    }
+
+    const passwordHash = await bcrypt.hash(password, 12)
+
+    const insert = await pool.query(
+      `INSERT INTO operators (email, password_hash, display_name, role, department, is_active, email_verified)
+       VALUES ($1, $2, $3, 'admin', 'Command', true, true)
+       RETURNING id, email, display_name, role, department, avatar_url`,
+      [normalizedEmail, passwordHash, String(displayName).trim()],
+    )
+    const newAdmin = insert.rows[0]
+
+    // Log the bootstrap event
+    try {
+      await pool.query(
+        `INSERT INTO activity_log (action, action_type, operator_name)
+         VALUES ($1, $2, $3)`,
+        ['First admin account created via setup wizard', 'bootstrap', newAdmin.display_name],
+      )
+    } catch { /* activity_log not critical */ }
+
+    // Issue a JWT so the user is immediately logged in
+    const token = generateToken({
+      id: newAdmin.id,
+      email: newAdmin.email,
+      role: newAdmin.role,
+      displayName: newAdmin.display_name,
+      department: newAdmin.department,
+    })
+    const refreshToken = generateRefreshToken({ id: newAdmin.id, role: newAdmin.role })
+    await createSession({
+      userId: newAdmin.id,
+      userType: 'operator',
+      refreshToken,
+      ipAddress: getClientIp(req),
+      userAgent: req.headers['user-agent'] as string,
+      ttlDays: 30,
+    }).catch(() => {})
+
+    logger.info(`[bootstrap] First admin created: ${newAdmin.email}`)
+
+    // Set refresh token as httpOnly cookie (matches the login endpoint)
+    res.cookie('aegis_refresh', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+      path: '/api/auth',
+    })
+
+    res.status(201).json({
+      token,
+      user: {
+        id: newAdmin.id,
+        email: newAdmin.email,
+        displayName: newAdmin.display_name,
+        role: newAdmin.role,
+        department: newAdmin.department,
+        avatarUrl: newAdmin.avatar_url ?? null,
+      },
+    })
   } catch (err) {
     next(err)
   }

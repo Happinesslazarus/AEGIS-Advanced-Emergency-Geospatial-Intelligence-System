@@ -1,18 +1,12 @@
-/**
- * File: securityAlertService.ts
- *
+﻿/**
  * Operator security alert dispatcher — sends alerts (2FA disabled, new device,
  * backup code used, account locked, etc.) based on per-operator notification
  * preferences stored in operator_security_preferences.
  *
- * How it connects:
  * - Called by auth and security services when notable events occur
  * - Reads notification preferences from operator_security_preferences table
  * - Sends alerts via emailService and logs via securityLogger
- *
- * Simple explanation:
- * Notifies operators about security events like new logins or disabled 2FA.
- */
+ * */
 
 import pool from '../models/db.js'
 import { logSecurityEvent } from './securityLogger.js'

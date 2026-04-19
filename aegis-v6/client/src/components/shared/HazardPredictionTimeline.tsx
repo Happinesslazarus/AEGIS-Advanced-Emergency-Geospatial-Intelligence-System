@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: HazardPredictionTimeline.tsx
  *
  * Hazard prediction timeline shared component (reusable UI element used across pages).
  *
- * How it connects:
  * - Used across both admin and citizen interfaces */
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'

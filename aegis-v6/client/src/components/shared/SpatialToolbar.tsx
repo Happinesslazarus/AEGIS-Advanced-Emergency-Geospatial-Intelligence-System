@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: SpatialToolbar.tsx
  *
  * Spatial toolbar shared component (reusable UI element used across pages).
  *
- * How it connects:
  * - Used across both admin and citizen interfaces */
 
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
@@ -497,7 +496,7 @@ export default function SpatialToolbar({ reports = [], open, hideToggle }: Props
     if (fmt === 'csv') {
       const header = 'id,type,severity,status,location,latitude,longitude,confidence,timestamp\n'
       const rows = visibleReports.map(r =>
-        `"${r.id}","${r.type || ''}","${r.severity}","${r.status}","${(r.location || '').replace(/"/g, '""')}",${r.coordinates?.[0] || ''},${r.coordinates?.[1] || ''},${r.confidence || 0},"${r.timestamp || ''}"`
+        `"${r.reportNumber || r.id}","${r.type || ''}","${r.severity}","${r.status}","${(r.location || '').replace(/"/g, '""')}",${r.coordinates?.[0] || ''},${r.coordinates?.[1] || ''},${r.confidence || 0},"${r.timestamp || ''}"`
       ).join('\n')
       blob = new Blob([header + rows], { type: 'text/csv' })
       ext = 'csv'

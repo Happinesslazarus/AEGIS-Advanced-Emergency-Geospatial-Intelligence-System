@@ -1,13 +1,9 @@
-/**
- * File: Polish.tsx
- *
- * What this file does:
+﻿/**
  * Collection of micro-interaction components: AnimatedPresence (mount/
  * unmount with animation), LoadingSpinner, ParticleEffect, and other
  * polish primitives. Keeps animation logic in one place so it stays
  * consistent across the UI.
  *
- * How it connects:
  * - AnimatedPresence used by modals, dropdowns, and toast notifications
  * - LoadingSpinner used by async data-fetching components
  * - Respects prefers-reduced-motion via Tailwind motion-reduce: classes

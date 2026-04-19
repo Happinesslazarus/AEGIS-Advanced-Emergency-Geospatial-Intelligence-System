@@ -1,22 +1,29 @@
-/**
- * File: adaptiveMFAService.ts
+﻿/**
+ * Adaptive MFA service -- evaluates request risk against NIST SP 800-63B
+ * Authenticator Assurance Levels (AAL1-AAL3) to decide whether step-up
+ * authentication is required before a sensitive operation proceeds.
+ * https://pages.nist.gov/800-63-3/sp800-63b.html
  *
- * Adaptive MFA service — evaluates risk context (IP, device fingerprint,
- * geolocation, risk score) against NIST SP 800-63B assurance levels (AAL1–AAL3)
- * to determine whether step-up authentication is required.
+ * Risk accumulates from: anomaly detection base score, new-device flag (+20),
+ * new-location flag (+15), and session age. If risk >= 60 or the resource's
+ * required AAL exceeds the session's current AAL, the caller receives HTTP 403
+ * with allowed methods and a challengeId. On success the session AAL is
+ * elevated in-place.
  *
- * How it connects:
- * - Called by auth middleware before sensitive operations
- * - Reads risk signals from the database and request context
- * - Decides which MFA methods to offer based on assurance level
+ * TOTP lookup checks admin (user_mfa table) first, then citizens
+ * (citizens.two_factor_secret). Passkeys use webauthnAttestationService for
+ * the cryptographic assertion. Every attempt is logged to mfa_step_up_history.
  *
- * Simple explanation:
- * Asks for stronger proof of identity when something looks risky.
+ * OWASP MFA Cheat Sheet:
+ * https://cheatsheetseries.owasp.org/cheatsheets/Multifactor_Authentication_Cheat_Sheet.html
  */
 
 import crypto from 'crypto'
+import { verifySync } from 'otplib'
 import pool from '../models/db.js'
 import { logger } from '../services/logger.js'
+import { decrypt2FASecret } from '../utils/twoFactorCrypto.js'
+import { verifyAuthenticationSignature } from './webauthnAttestationService.js'
 
 // Authenticator Assurance Levels (AAL) per NIST SP 800-63B
 export enum AuthenticatorAssuranceLevel {
@@ -223,6 +230,20 @@ function registerDefaultProtectedResources(): void {
       requiredAAL: AuthenticatorAssuranceLevel.AAL3,
       reauthTimeout: 300,
     },
+    // AI model retrain (admin) — requires step-up: destructive and safety-critical
+    {
+      resourceId: 'admin:ai:retrain',
+      resourceType: 'api',
+      requiredAAL: AuthenticatorAssuranceLevel.AAL2,
+      reauthTimeout: 600,
+    },
+    // AI model rollback (admin)
+    {
+      resourceId: 'admin:ai:rollback',
+      resourceType: 'api',
+      requiredAAL: AuthenticatorAssuranceLevel.AAL2,
+      reauthTimeout: 600,
+    },
   ]
   
   for (const resource of defaults) {
@@ -274,22 +295,34 @@ function calculateContextRisk(context: AuthenticationContext): number {
 }
 
 /**
- * Determine available MFA methods for user
+ * Determine available MFA methods for user — handles both admins (user_mfa table)
+ * and citizens (citizens.two_factor_secret column).
  */
 async function getAvailableMFAMethods(userId: string): Promise<MFAMethod[]> {
   const methods: MFAMethod[] = ['password'] // Always available
   
   try {
-    // Check if user has TOTP enabled
-    const totpResult = await pool.query(
+    // Check admin TOTP (user_mfa table)
+    const adminTotpResult = await pool.query(
       'SELECT 1 FROM user_mfa WHERE user_id = $1 AND type = $2 AND enabled = TRUE',
       [userId, 'totp']
     )
-    if ((totpResult.rowCount ?? 0) > 0) {
+    if ((adminTotpResult.rowCount ?? 0) > 0) {
       methods.push('totp')
     }
+
+    // Check citizen TOTP (stored directly on citizens row)
+    if (!methods.includes('totp')) {
+      const citizenTotpResult = await pool.query(
+        'SELECT 1 FROM citizens WHERE id = $1 AND two_factor_enabled = TRUE AND two_factor_secret IS NOT NULL',
+        [userId]
+      )
+      if ((citizenTotpResult.rowCount ?? 0) > 0) {
+        methods.push('totp')
+      }
+    }
     
-    // Check for passkeys
+    // Check for passkeys (shared table, both user types)
     const passkeyResult = await pool.query(
       'SELECT 1 FROM passkey_credentials WHERE user_id = $1',
       [userId]
@@ -298,17 +331,17 @@ async function getAvailableMFAMethods(userId: string): Promise<MFAMethod[]> {
       methods.push('passkey', 'hardware_key')
     }
     
-    // Check for backup methods
-    const userResult = await pool.query(
+    // Check for backup contact methods — try users table first, then citizens
+    const adminResult = await pool.query(
       'SELECT email, phone FROM users WHERE id = $1',
       [userId]
     )
-    if (userResult.rows[0]?.email) {
-      methods.push('email_otp')
-    }
-    if (userResult.rows[0]?.phone) {
-      methods.push('sms_otp')
-    }
+    const contactRow = adminResult.rows[0] || (
+      await pool.query('SELECT email, phone FROM citizens WHERE id = $1', [userId])
+    ).rows[0]
+
+    if (contactRow?.email) methods.push('email_otp')
+    if (contactRow?.phone) methods.push('sms_otp')
   } catch {}
   
   return methods
@@ -598,21 +631,76 @@ export async function verifyStepUpChallenge(
 }
 
 /**
- * Verify TOTP code (placeholder - would use actual TOTP service)
+ * Verify TOTP code against the user's stored encrypted secret.
+ * Checks admin (user_mfa table) first, then citizen (citizens table).
  */
 async function verifyTOTP(userId: string, code: string): Promise<boolean> {
-  // Would call actual TOTP verification
-  // For now, placeholder
-  return code.length === 6 && /^\d+$/.test(code)
+  try {
+    const token = code.replace(/\s/g, '')
+    const opts = { token, digits: 6, period: 30, window: 1 } as any
+
+    // Admin path: user_mfa table
+    const adminResult = await pool.query(
+      'SELECT secret FROM user_mfa WHERE user_id = $1 AND type = $2 AND enabled = TRUE LIMIT 1',
+      [userId, 'totp']
+    )
+    if (adminResult.rows[0]) {
+      const secret = decrypt2FASecret(adminResult.rows[0].secret)
+      const result = verifySync({ ...opts, secret })
+      return result.valid
+    }
+
+    // Citizen path: two_factor_secret column on citizens
+    const citizenResult = await pool.query(
+      'SELECT two_factor_secret FROM citizens WHERE id = $1 AND two_factor_enabled = TRUE AND two_factor_secret IS NOT NULL LIMIT 1',
+      [userId]
+    )
+    if (citizenResult.rows[0]) {
+      const secret = decrypt2FASecret(citizenResult.rows[0].two_factor_secret)
+      const result = verifySync({ ...opts, secret })
+      return result.valid
+    }
+
+    return false
+  } catch (error: any) {
+    logger.warn('[AdaptiveMFA] TOTP verification error:', error.message)
+    return false
+  }
 }
 
 /**
- * Verify passkey/WebAuthn assertion (placeholder)
+ * Verify passkey/WebAuthn assertion against stored credential
  */
-async function verifyPasskey(userId: string, assertion: string, challenge: string): Promise<boolean> {
-  // Would call passkeysService.verifyAuthentication
-  // For now, placeholder
-  return assertion.length > 0
+async function verifyPasskey(userId: string, assertionJSON: string, challenge: string): Promise<boolean> {
+  try {
+    const assertion = JSON.parse(assertionJSON)
+    const credResult = await pool.query(
+      'SELECT credential_id, public_key, counter FROM passkey_credentials WHERE user_id = $1 AND credential_id = $2 LIMIT 1',
+      [userId, assertion.rawId]
+    )
+    if (!credResult.rows[0]) return false
+    const cred = credResult.rows[0]
+    const rpId = process.env.WEBAUTHN_RP_ID || new URL(process.env.CLIENT_URL || 'http://localhost:5173').hostname
+    const result = verifyAuthenticationSignature(
+      assertion.response.authenticatorData,
+      assertion.response.clientDataJSON,
+      assertion.response.signature,
+      cred.public_key,
+      challenge,
+      rpId,
+      cred.counter
+    )
+    if (result.verified) {
+      await pool.query(
+        'UPDATE passkey_credentials SET counter = $1, last_used_at = NOW() WHERE credential_id = $2',
+        [result.newCounter, assertion.rawId]
+      )
+    }
+    return result.verified
+  } catch (error: any) {
+    logger.warn('[AdaptiveMFA] Passkey verification error:', error.message)
+    return false
+  }
 }
 
 /**

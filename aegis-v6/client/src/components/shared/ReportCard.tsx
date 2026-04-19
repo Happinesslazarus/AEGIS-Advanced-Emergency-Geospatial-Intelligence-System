@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: ReportCard.tsx
  *
  * Report card shared component (reusable UI element used across pages).
  *
- * How it connects:
  * - Used across both admin and citizen interfaces */
 
 import { memo, useState } from 'react'
@@ -39,7 +38,7 @@ export default memo(function ReportCard({ report, onClick, showActions = false, 
 
   return (
     <div className="card-hover p-4 cursor-pointer" onClick={() => onClick?.(report)} role="button" tabIndex={0}
-      aria-label={`Report ${report.id}: ${report.type}, ${report.severity} severity`}
+      aria-label={`Report ${report.reportNumber || report.id}: ${report.type}, ${report.severity} severity`}
       onKeyDown={(e) => e.key === 'Enter' && onClick?.(report)}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
@@ -56,7 +55,7 @@ export default memo(function ReportCard({ report, onClick, showActions = false, 
           <div className="flex items-center gap-4 mt-2 text-xs text-gray-500 dark:text-gray-300">
             <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{truncate(report.location, 40)}</span>
             <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{report.displayTime}</span>
-            <span className="font-mono">{report.id}</span>
+            <span className="font-mono">{report.reportNumber || report.id}</span>
           </div>
         </div>
         {showActions && (

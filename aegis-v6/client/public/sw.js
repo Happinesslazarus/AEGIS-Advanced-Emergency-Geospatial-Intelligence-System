@@ -8,7 +8,7 @@
  * Sync:      offline report queue with background sync
   */
 
-const CACHE_VERSION = 'aegis-v6.9.0'
+const CACHE_VERSION = 'aegis-v6.9.1'
 const STATIC_CACHE = `${CACHE_VERSION}-static`
 const DATA_CACHE = `${CACHE_VERSION}-data`
 const IMAGE_CACHE = `${CACHE_VERSION}-images`
@@ -329,17 +329,29 @@ self.addEventListener('notificationclick', (event) => {
 
   if (event.action === 'dismiss') return
 
-  const targetUrl = event.notification.data?.url || '/'
+  const relativePath = event.notification.data?.url || '/'
+  // openWindow() requires an absolute URL in all browsers
+  const targetUrl = relativePath.startsWith('http')
+    ? relativePath
+    : self.location.origin + relativePath
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // Focus existing window if open
+      // Focus an existing window that is already on the same path
       for (const client of clientList) {
-        if (new URL(client.url).pathname === targetUrl && 'focus' in client) {
-          return client.focus()
-        }
+        try {
+          const clientPath = new URL(client.url).pathname + new URL(client.url).search
+          if ((clientPath === relativePath || client.url === targetUrl) && 'focus' in client) {
+            client.navigate(targetUrl)
+            return client.focus()
+          }
+        } catch { /* ignore malformed URLs */ }
       }
-      // Open new window
+      // Nothing matched — focus any open AEGIS tab and navigate it, or open a new one
+      if (clientList.length > 0 && 'navigate' in clientList[0]) {
+        clientList[0].navigate(targetUrl)
+        return clientList[0].focus()
+      }
       return self.clients.openWindow(targetUrl)
     })
   )

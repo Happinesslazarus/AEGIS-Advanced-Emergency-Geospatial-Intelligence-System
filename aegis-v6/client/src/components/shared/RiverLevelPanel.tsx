@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: RiverLevelPanel.tsx
  *
  * River level panel shared component (reusable UI element used across pages).
  *
- * How it connects:
  * - Used across both admin and citizen interfaces */
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
@@ -55,10 +54,12 @@ export default function RiverLevelPanel({ socket, collapsed: initialCollapsed = 
   const [readings, setReadings] = useState<RiverReading[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [attemptCount, setAttemptCount] = useState(0)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [collapsed, setCollapsed] = useState(initialCollapsed)
   const [expandedStation, setExpandedStation] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const fetchLevels = useCallback(async (retries = 2) => {
     abortRef.current?.abort()
@@ -81,16 +82,29 @@ export default function RiverLevelPanel({ socket, collapsed: initialCollapsed = 
       const data = await res.json()
       setReadings(data.levels || data.readings || [])
       setLastUpdated(new Date())
+      setAttemptCount(0)
     } catch (err: any) {
-      if (err?.name !== 'AbortError') setError(err.message || 'Failed to fetch river levels')
+      if (err?.name !== 'AbortError') {
+        setAttemptCount(n => {
+          const next = n + 1
+          // Only show error UI after 2 failed attempts — first fail is silent with auto-retry
+          if (next >= 2) setError(err.message || 'Temporarily unavailable')
+          return next
+        })
+      }
     }
     setLoading(false)
   }, [])
 
-  // Initial fetch + cleanup
+  // Initial fetch + auto-retry on first failure + cleanup
   useEffect(() => {
     fetchLevels()
-    return () => { abortRef.current?.abort() }
+    // Silent auto-retry after 15s covers cold-start external API delays
+    retryTimerRef.current = setTimeout(() => fetchLevels(), 15000)
+    return () => {
+      abortRef.current?.abort()
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current)
+    }
   }, [fetchLevels])
 
   // Socket.IO live updates
@@ -140,19 +154,19 @@ export default function RiverLevelPanel({ socket, collapsed: initialCollapsed = 
   }
 
   return (
-    <div className={`bg-gray-900/95 backdrop-blur-md border border-gray-700/60 rounded-xl shadow-2xl overflow-hidden transition-all duration-300 ${className}`}>
+    <div className={`bg-white dark:bg-gray-900/95 backdrop-blur-md border border-gray-200 dark:border-gray-700/60 rounded-xl shadow-2xl overflow-hidden transition-all duration-300 ${className}`}>
       {/* Header */}
       <button
         onClick={toggle}
-        className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-800/50 transition-colors"
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors"
       >
         <div className="flex items-center gap-2">
           <div className={`p-1.5 rounded-lg ${statusCfg.bg} ${statusCfg.pulse ? 'animate-pulse' : ''}`}>
             <Waves className={`w-4 h-4 ${statusCfg.text}`} />
           </div>
           <div className="text-left">
-            <h3 className="text-sm font-bold text-white">{t('river.riverLevels', lang)}</h3>
-            <p className="text-[10px] text-gray-400 dark:text-gray-300">
+            <h3 className="text-sm font-bold text-gray-900 dark:text-white">{t('river.riverLevels', lang)}</h3>
+            <p className="text-[10px] text-gray-500 dark:text-gray-400">
               {readings.length} station{readings.length !== 1 ? 's' : ''} — {lastUpdated ? `${Math.round((Date.now() - lastUpdated.getTime()) / 60000)}m ago` : 'Loading...'}
             </p>
           </div>
@@ -161,37 +175,38 @@ export default function RiverLevelPanel({ socket, collapsed: initialCollapsed = 
           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${statusCfg.bg} ${statusCfg.text}`}>
             {statusCfg.label}
           </span>
-          {collapsed ? <ChevronDown className="w-4 h-4 text-gray-400 dark:text-gray-300" /> : <ChevronUp className="w-4 h-4 text-gray-400 dark:text-gray-300" />}
+          {collapsed ? <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400" /> : <ChevronUp className="w-4 h-4 text-gray-500 dark:text-gray-400" />}
         </div>
       </button>
 
       {/* Body */}
       {!collapsed && (
-        <div className="border-t border-gray-700/40">
+        <div className="border-t border-gray-200 dark:border-gray-700/40">
           {/* Refresh bar */}
-          <div className="px-4 py-2 flex items-center justify-between border-b border-gray-700/30">
-            <span className="text-[10px] text-gray-500 dark:text-gray-300 dark:text-blue-300 flex items-center gap-1">
+          <div className="px-4 py-2 flex items-center justify-between border-b border-gray-100 dark:border-gray-700/30">
+            <span className="text-[10px] text-blue-600 dark:text-blue-300 flex items-center gap-1">
               <Activity className="w-3 h-3" /> {t('river.liveMonitoring', lang)}
             </span>
             <button
               onClick={() => fetchLevels()}
               disabled={loading}
-              className="text-[10px] text-blue-400 hover:text-blue-300 flex items-center gap-1 disabled:opacity-50"
+              className="text-[10px] text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1 disabled:opacity-50"
             >
               <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} /> {t('common.refresh', lang)}
             </button>
           </div>
 
-          {error && (
-            <div className="mx-3 my-2 px-3 py-2 bg-red-900/30 border border-red-700/40 rounded-lg text-xs text-red-300">
-              {error}
+          {error && attemptCount >= 2 && (
+            <div className="mx-3 my-2 px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 rounded-lg text-xs text-amber-700 dark:text-amber-300 flex items-center gap-2">
+              <RefreshCw className="w-3 h-3 flex-shrink-0 cursor-pointer hover:animate-spin" onClick={() => fetchLevels()} />
+              River data temporarily unavailable — <button className="underline" onClick={() => fetchLevels()}>retry</button>
             </div>
           )}
 
           {loading && readings.length === 0 ? (
             <div className="px-4 py-8 text-center">
               <RefreshCw className="w-6 h-6 text-blue-400 animate-spin mx-auto mb-2" />
-              <p className="text-xs text-gray-400 dark:text-gray-300">{t('river.fetchingRiverData', lang)}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t('river.fetchingRiverData', lang)}</p>
             </div>
           ) : (
             <div>
@@ -203,11 +218,11 @@ export default function RiverLevelPanel({ socket, collapsed: initialCollapsed = 
                 return (
                   <div
                     key={reading.stationId}
-                    className="border-b border-gray-700/20 last:border-b-0"
+                    className="border-b border-gray-100 dark:border-gray-700/20 last:border-b-0"
                   >
                     <button
                       onClick={() => setExpandedStation(isExpanded ? null : reading.stationId)}
-                      className="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-gray-800/40 transition-colors text-left"
+                      className="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-gray-800/40 transition-colors text-left"
                     >
                       {/* Status dot */}
                       <div className={`w-2 h-2 rounded-full flex-shrink-0 ${reading.status === 'CRITICAL' ? 'bg-red-500 animate-pulse' : reading.status === 'HIGH' ? 'bg-orange-500' : reading.status === 'ELEVATED' ? 'bg-amber-400' : 'bg-blue-500'}`} />
@@ -215,16 +230,16 @@ export default function RiverLevelPanel({ socket, collapsed: initialCollapsed = 
                       {/* Info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-semibold text-white truncate">{reading.riverName}</span>
+                          <span className="text-xs font-semibold text-gray-900 dark:text-white truncate">{reading.riverName}</span>
                           <TrendIcon trend={reading.trend} />
                         </div>
-                        <p className="text-[10px] text-gray-400 dark:text-gray-300 truncate">{reading.stationName}</p>
+                        <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{reading.stationName}</p>
                       </div>
 
                       {/* Level + gauge */}
                       <div className="text-right flex-shrink-0">
-                        <div className="text-sm font-mono font-bold text-white">{reading.levelMetres.toFixed(2)}m</div>
-                        <div className="w-16 h-1.5 bg-gray-700 rounded-full mt-0.5 overflow-hidden">
+                        <div className="text-sm font-mono font-bold text-gray-900 dark:text-white">{reading.levelMetres.toFixed(2)}m</div>
+                        <div className="w-16 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full mt-0.5 overflow-hidden">
                           <div
                             className={`h-full rounded-full transition-all duration-700 ${getGaugeColour(reading.status)}`}
                             style={{ width: `${gaugePercent}%` }}
@@ -235,17 +250,17 @@ export default function RiverLevelPanel({ socket, collapsed: initialCollapsed = 
 
                     {/* Expanded details */}
                     {isExpanded && (
-                      <div className="px-4 pb-3 bg-gray-800/30 space-y-2">
+                      <div className="px-4 pb-3 bg-gray-50 dark:bg-gray-800/30 space-y-2">
                         <div className="grid grid-cols-2 gap-2 text-[10px]">
-                          <div className="flex items-center gap-1 text-gray-400 dark:text-gray-300">
+                          <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
                             <Droplets className="w-3 h-3" />
                             <span>{t('river.flow', lang)}: {reading.flowCumecs != null ? `${reading.flowCumecs.toFixed(1)} m³/s` : 'N/A'}</span>
                           </div>
-                          <div className="flex items-center gap-1 text-gray-400 dark:text-gray-300">
+                          <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
                             <Clock className="w-3 h-3" />
                             <span>{new Date(reading.timestamp).toLocaleTimeString()}</span>
                           </div>
-                          <div className="flex items-center gap-1 text-gray-400 dark:text-gray-300">
+                          <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
                             <Navigation className="w-3 h-3" />
                             <span>{t('river.source', lang)}: {reading.dataSource}</span>
                           </div>
@@ -260,8 +275,8 @@ export default function RiverLevelPanel({ socket, collapsed: initialCollapsed = 
                         {/* Threshold bars */}
                         {reading.thresholds && (
                           <div className="space-y-1">
-                            <p className="text-[10px] font-medium text-gray-300 dark:text-gray-300">{t('river.thresholds', lang)}</p>
-                            <div className="relative w-full h-4 bg-gray-700 rounded-full overflow-hidden">
+                            <p className="text-[10px] font-medium text-gray-700 dark:text-gray-300">{t('river.thresholds', lang)}</p>
+                            <div className="relative w-full h-4 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                               {/* Threshold markers */}
                               <div className="absolute inset-y-0 left-0 bg-blue-600/60 rounded-l-full" style={{ width: `${(reading.thresholds.normal / reading.thresholds.critical) * 100}%` }} />
                               <div className="absolute inset-y-0 bg-amber-500/40" style={{ left: `${(reading.thresholds.normal / reading.thresholds.critical) * 100}%`, width: `${((reading.thresholds.elevated - reading.thresholds.normal) / reading.thresholds.critical) * 100}%` }} />
@@ -273,7 +288,7 @@ export default function RiverLevelPanel({ socket, collapsed: initialCollapsed = 
                                 style={{ left: `${Math.min(100, (reading.levelMetres / reading.thresholds.critical) * 100)}%` }}
                               />
                             </div>
-                            <div className="flex justify-between text-[9px] text-gray-500 dark:text-gray-300">
+                            <div className="flex justify-between text-[9px] text-gray-500 dark:text-gray-400">
                               <span>0m</span>
                               <span>{reading.thresholds.normal}m</span>
                               <span>{reading.thresholds.elevated}m</span>
@@ -289,7 +304,7 @@ export default function RiverLevelPanel({ socket, collapsed: initialCollapsed = 
               })}
 
               {sorted.length === 0 && !loading && (
-                <div className="px-4 py-6 text-center text-xs text-gray-400 dark:text-gray-300">
+                <div className="px-4 py-6 text-center text-xs text-gray-500 dark:text-gray-400">
                   {t('river.noStationsConfigured', lang)}
                 </div>
               )}

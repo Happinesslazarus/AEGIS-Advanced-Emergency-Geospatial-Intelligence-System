@@ -1,12 +1,8 @@
-/**
- * File: SocketDebugBar.tsx
- *
- * What this file does:
+﻿/**
  * Developer-only overlay bar that shows the current Socket.IO connection
  * status, the active server URL, and the authenticated user identity.
  * Hidden in production (gated by import.meta.env.DEV).
  *
- * How it connects:
  * - Socket state from client/src/contexts/SocketContext.tsx
  * - Auth state from client/src/contexts/CitizenAuthContext.tsx
  * - Session token from client/src/utils/auth.ts getSession()

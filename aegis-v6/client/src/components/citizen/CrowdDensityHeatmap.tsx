@@ -1,7 +1,4 @@
-/**
- * File: CrowdDensityHeatmap.tsx
- *
- * What this file does:
+﻿/**
  * Citizen-facing crowd density dashboard. Generates pseudo-real-time crowd
  * density estimates for nearby zones, including sparkline trend history,
  * capacity model, and risk-level classification.
@@ -12,15 +9,10 @@
  * sensor integration. In production, `generateZones()` would be replaced
  * by a live API call.
  *
- * How it connects:
  * - Rendered inside CitizenPage.tsx / CitizenDashboard.tsx
  * - Uses locationUtils for geocoding the user's position
  * - No real sensor data — uses hour-seeded pseudo-random generation
- *
- * Simple explanation:
- * Shows citizens how crowded nearby public areas are, so they can plan
- * evacuation routes or avoid congested zones during emergencies.
- */
+ * */
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import {

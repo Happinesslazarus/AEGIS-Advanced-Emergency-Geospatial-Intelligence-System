@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: Map3D.tsx
  *
  * Map3 d shared component (reusable UI element used across pages).
  *
- * How it connects:
  * - Used across both admin and citizen interfaces */
 
 import { useRef, useEffect, useState, useCallback } from 'react'

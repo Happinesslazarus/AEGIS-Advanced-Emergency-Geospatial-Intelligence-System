@@ -1,34 +1,20 @@
 /**
- * File: circuitBreaker.ts
+ * Circuit breaker for external service calls -- CLOSED / OPEN / HALF_OPEN
+ * state machine, based on the stability pattern in Nygard (2007) "Release It!"
+ * Ch.5 and Fowler's write-up: https://martinfowler.com/bliki/CircuitBreaker.html
  *
- * What this file does:
- * Implements the Circuit Breaker pattern for all external dependency calls.
- * Tracks failures per named circuit and transitions through three states:
- * CLOSED (normal) → OPEN (rejecting calls while service recovers) →
- * HALF_OPEN (allowing one test call to see if recovery succeeded).
- * Exposes Prometheus metrics for state transitions and rejection counts.
+ * Once the failure threshold is exceeded the circuit opens and rejects all calls
+ * for resetTimeout ms. After that window a single HALF_OPEN probe is allowed;
+ * success closes the circuit, another failure re-opens it. Every transition is
+ * recorded as a Prometheus gauge so the ops dashboard shows live circuit state.
  *
- * How it connects:
- * - Circuits are initialised at startup via initCircuits() in server/src/index.ts
- * - Used by server/src/services/externalApiWrapper.ts (all outbound HTTP requests)
- * - Used by server/src/services/resilienceLayer.ts (DB and AI engine calls)
- * - getAllStatus() is exposed by GET /api/internal/circuits (admin introspection)
+ * initCircuits() registers the default set (DB, AI engine, external APIs) and is
+ * called from index.ts at startup. externalApiWrapper.ts routes every outbound
+ * HTTP call through a circuit; resilienceLayer.ts wraps DB and AI engine calls.
+ * GET /api/internal/circuits exposes getAllStatus() for admin introspection.
  *
- * Key exports:
- * - initCircuits()    — registers default circuits for DB, AI engine, external APIs
- * - Circuits enum     — named constants for all managed circuit names
- * - CircuitBreaker class — the core state-machine implementation
- * - getAllStatus()    — current state of all registered circuits (for monitoring)
- *
- * Learn more:
- * - server/src/services/resilienceLayer.ts    — uses circuit breakers to protect DB calls
- * - server/src/services/externalApiWrapper.ts — wraps all outbound API calls with circuits
- * - server/src/services/selfHealing.ts        — can reset circuits when services recover
- *
- * Simple explanation:
- * If an external service starts failing (DB, AI engine, weather API), the circuit
- * breaker trips open and stops calling it for a reset period. This prevents one
- * failing service from cascading into total system failure.
+ * Azure pattern reference:
+ * https://learn.microsoft.com/en-us/azure/architecture/patterns/circuit-breaker
  */
 
 import client from 'prom-client'

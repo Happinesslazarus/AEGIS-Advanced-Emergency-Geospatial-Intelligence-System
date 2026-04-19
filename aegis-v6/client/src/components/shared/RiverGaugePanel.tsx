@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Module: RiverGaugePanel.tsx
  *
  * Advanced river level intelligence panel displaying live gauge readings from
@@ -7,7 +7,6 @@
  * visualisation, trend indicators, expandable detail cards with stats grid,
  * worst-gauge hero banner, station count analytics, and live status badges.
  *
- * How it connects:
  * - Used across both admin and citizen interfaces */
 
 import { useState, useEffect, useMemo } from 'react'
@@ -161,7 +160,7 @@ export default function RiverGaugePanel(): JSX.Element {
                 { label: 'Stations', value: stats.total, icon: BarChart2, color: 'text-blue-500' },
                 { label: 'Alerts', value: stats.alertCount, icon: ShieldAlert, color: stats.alertCount > 0 ? 'text-red-500' : 'text-gray-400' },
                 { label: 'Warnings', value: stats.warnCount, icon: AlertTriangle, color: stats.warnCount > 0 ? 'text-amber-500' : 'text-gray-400' },
-                { label: 'Avg Level', value: `${stats.avgLevel.toFixed(2)}m`, icon: Gauge, color: 'text-cyan-500' },
+                { label: 'Avg Flow', value: gauges[0]?.source === 'open-meteo' ? `${stats.avgLevel.toFixed(0)} m³/s` : `${stats.avgLevel.toFixed(2)}m`, icon: Gauge, color: 'text-cyan-500' },
               ].map(s => (
                 <div key={s.label} className="text-center">
                   <s.icon className={`w-3 h-3 mx-auto mb-0.5 ${s.color}`} />
@@ -184,7 +183,9 @@ export default function RiverGaugePanel(): JSX.Element {
                   <p className="text-xs font-bold text-gray-900 dark:text-white mt-0.5 truncate">{stats.highestGauge.name}</p>
                   {stats.highestGauge.river && <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{stats.highestGauge.river}</p>}
                   <div className="flex items-center gap-3 mt-1.5">
-                    <span className={`text-sm font-mono font-bold ${getGaugeColor(stats.highestGauge.status)}`}>{stats.highestGauge.level.toFixed(3)}m</span>
+                    <span className={`text-sm font-mono font-bold ${getGaugeColor(stats.highestGauge.status)}`}>
+                      {stats.highestGauge.source === 'open-meteo' ? `${stats.highestGauge.level.toFixed(0)} m³/s` : `${stats.highestGauge.level.toFixed(3)}m`}
+                    </span>
                     <TrendIcon trend={stats.highestGauge.levelTrend} />
                     <span className="text-[9px] text-gray-400">Alert: {stats.highestGauge.alertLevel.toFixed(2)}m</span>
                   </div>
@@ -260,7 +261,9 @@ export default function RiverGaugePanel(): JSX.Element {
 
                     {/* Level + badge */}
                     <div className="text-right flex-shrink-0">
-                      <div className={`text-sm font-mono font-bold ${getGaugeColor(g.status)}`}>{g.level.toFixed(2)}m</div>
+                      <div className={`text-sm font-mono font-bold ${getGaugeColor(g.status)}`}>
+                        {g.source === 'open-meteo' ? `${g.level.toFixed(0)} m³/s` : `${g.level.toFixed(2)}m`}
+                      </div>
                       <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-lg ${cfg.bg} ${cfg.text}`}>{cfg.label}</span>
                     </div>
                   </button>
@@ -285,9 +288,9 @@ export default function RiverGaugePanel(): JSX.Element {
                       {/* Stats grid */}
                       <div className="grid grid-cols-3 gap-1.5">
                         {[
-                          { label: t('river.current', lang), value: `${g.level.toFixed(3)}m`, color: getGaugeColor(g.status) },
-                          { label: t('river.warningLabel', lang), value: `${g.warningLevel.toFixed(2)}m`, color: 'text-amber-500' },
-                          { label: t('river.alertLabel', lang), value: `${g.alertLevel.toFixed(2)}m`, color: 'text-red-500' },
+                          { label: t('river.current', lang), value: g.source === 'open-meteo' ? `${g.level.toFixed(0)} m³/s` : `${g.level.toFixed(3)}m`, color: getGaugeColor(g.status) },
+                          { label: t('river.warningLabel', lang), value: g.source === 'open-meteo' ? `${g.warningLevel.toFixed(0)} m³/s` : `${g.warningLevel.toFixed(2)}m`, color: 'text-amber-500' },
+                          { label: t('river.alertLabel', lang), value: g.source === 'open-meteo' ? `${g.alertLevel.toFixed(0)} m³/s` : `${g.alertLevel.toFixed(2)}m`, color: 'text-red-500' },
                         ].map(item => (
                           <div key={item.label} className="bg-white/80 dark:bg-gray-900/60 rounded-lg p-2 text-center border border-gray-200/50 dark:border-gray-700/30">
                             <div className={`text-sm font-mono font-bold ${item.color}`}>{item.value}</div>
@@ -306,7 +309,7 @@ export default function RiverGaugePanel(): JSX.Element {
                           <Clock className="w-2.5 h-2.5" /> {new Date(g.lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                         <span className="flex items-center gap-0.5 uppercase font-bold text-[8px] bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">
-                          {g.source === 'sepa' ? 'SEPA' : 'EA'}
+                          {g.source === 'sepa' ? 'SEPA' : g.source === 'open-meteo' ? 'Global' : 'EA'}
                         </span>
                       </div>
 

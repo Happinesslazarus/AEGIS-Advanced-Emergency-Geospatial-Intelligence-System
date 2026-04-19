@@ -1,14 +1,10 @@
-/**
+﻿/**
  * Module: index.ts
  *
  * Wildfire and bushfire events incident module (handles wildfire specific logic).
  *
- * How it connects:
  * - Part of the incident module system, registered via incidents/registry.ts
- *
- * Simple explanation:
- * Manages detection, assessment, and response for wildfire events.
- */
+ * */
 
 import { BaseIncidentModule } from '../baseModule.js'
 import type { IncidentRegistryEntry, IncidentPrediction } from '../types.js'

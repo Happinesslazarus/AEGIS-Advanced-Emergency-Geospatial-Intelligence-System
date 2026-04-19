@@ -9,13 +9,14 @@
  *   GITHUB_CLIENT_ID      — GitHub OAuth App client ID
  *   GITHUB_CLIENT_SECRET   — GitHub OAuth App client secret
  *
- * Works for citizens. If the email matches an operator, links that too.
+ * Works for existing citizens only.
  */
 
 import { Router, Request, Response } from 'express'
 import crypto from 'crypto'
 import pool from '../models/db.js'
-import { generateToken, generateRefreshToken } from '../middleware/auth.js'
+import { generateToken, generateRefreshToken, createSession } from '../middleware/auth.js'
+import { getClientIp } from '../utils/securityUtils.js'
 import { logger } from '../services/logger.js'
 
 const router = Router()
@@ -116,41 +117,38 @@ router.get('/github/callback', async (req: Request, res: Response) => {
     const emails = await emailsRes.json() as any[]
 
     // Get primary verified email
-    const primaryEmail = emails?.find((e: any) => e.primary && e.verified)?.email
+    const rawPrimaryEmail = emails?.find((e: any) => e.primary && e.verified)?.email
       || emails?.find((e: any) => e.verified)?.email
       || profile.email
-    if (!primaryEmail) throw new Error('No verified email from GitHub')
+    if (!rawPrimaryEmail) throw new Error('No verified email from GitHub')
+    const primaryEmail = String(rawPrimaryEmail).trim().toLowerCase()
 
-    const githubId = String(profile.id)
     const displayName = profile.name || profile.login || primaryEmail.split('@')[0]
     const avatarUrl = profile.avatar_url || null
 
-    // Find or create citizen
+    // Find existing citizen by normalized email.
     let result = await pool.query(
-      `SELECT id, email, display_name, role, avatar_url, github_id
-       FROM citizens WHERE github_id = $1 OR LOWER(email) = LOWER($2) LIMIT 1`,
-      [githubId, primaryEmail],
+      `SELECT id, email, display_name, role, avatar_url, is_active, deleted_at
+       FROM citizens
+       WHERE LOWER(TRIM(email)) = LOWER(TRIM($1))
+       LIMIT 1`,
+      [primaryEmail],
     )
-    let citizen = result.rows[0]
+    const citizen = result.rows[0]
 
-    if (citizen) {
-      if (!citizen.github_id) {
-        await pool.query(`UPDATE citizens SET github_id = $1, email_verified = true WHERE id = $2`, [githubId, citizen.id])
-      }
-      if (!citizen.avatar_url && avatarUrl) {
-        await pool.query(`UPDATE citizens SET avatar_url = $1 WHERE id = $2`, [avatarUrl, citizen.id])
-      }
-      await pool.query(`UPDATE citizens SET last_login = NOW(), login_count = login_count + 1 WHERE id = $1`, [citizen.id])
-    } else {
-      const insertResult = await pool.query(
-        `INSERT INTO citizens (email, display_name, password_hash, avatar_url, github_id, email_verified, is_active, role)
-         VALUES ($1, $2, 'OAUTH_NO_PASSWORD', $3, $4, true, true, 'citizen')
-         RETURNING id, email, display_name, role, avatar_url`,
-        [primaryEmail, displayName, avatarUrl, githubId],
-      )
-      citizen = insertResult.rows[0]
-      await pool.query(`INSERT INTO citizen_preferences (citizen_id) VALUES ($1) ON CONFLICT DO NOTHING`, [citizen.id])
+    // No account found — require manual registration first.
+    if (!citizen || !citizen.is_active || citizen.deleted_at) {
+      const params = new URLSearchParams({ error: 'oauth_account_not_found', social_email: primaryEmail })
+      res.redirect(`${CLIENT_URL}/citizen/login?${params.toString()}`)
+      return
     }
+
+    // Account exists — link GitHub and update login stats
+    if (!citizen.avatar_url && avatarUrl) {
+      await pool.query(`UPDATE citizens SET avatar_url = $1 WHERE id = $2`, [avatarUrl, citizen.id])
+    }
+    await pool.query(`UPDATE citizens SET oauth_provider = 'github', email_verified = true WHERE id = $1`, [citizen.id])
+    await pool.query(`UPDATE citizens SET last_login = NOW(), login_count = login_count + 1 WHERE id = $1`, [citizen.id])
 
     // Generate exchange code
     const exchangeCode = crypto.randomBytes(32).toString('base64url')
@@ -173,7 +171,7 @@ router.get('/github/callback', async (req: Request, res: Response) => {
 /**
  * POST /api/auth/github/exchange — Exchange code for JWT
  */
-router.post('/github/exchange', (req: Request, res: Response) => {
+router.post('/github/exchange', async (req: Request, res: Response) => {
   const { code } = req.body
   if (!code) { res.status(400).json({ success: false, error: 'Code required' }); return }
 
@@ -189,6 +187,16 @@ router.post('/github/exchange', (req: Request, res: Response) => {
     role: pending.role, displayName: pending.displayName,
   })
   const refreshToken = generateRefreshToken({ id: pending.userId, role: pending.role })
+
+  // Store session in DB so refresh tokens can be validated later
+  await createSession({
+    userId: pending.userId,
+    userType: 'citizen',
+    refreshToken,
+    ipAddress: getClientIp(req),
+    userAgent: req.headers['user-agent'] as string,
+    ttlDays: 7,
+  })
 
   res.cookie('aegis_refresh', refreshToken, {
     httpOnly: true,

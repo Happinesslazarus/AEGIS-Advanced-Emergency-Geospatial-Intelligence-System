@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: CountrySearch.tsx
  *
  * Country search shared component (reusable UI element used across pages).
  *
- * How it connects:
  * - Used across both admin and citizen interfaces */
 
 import { useState, useRef, useEffect } from 'react'

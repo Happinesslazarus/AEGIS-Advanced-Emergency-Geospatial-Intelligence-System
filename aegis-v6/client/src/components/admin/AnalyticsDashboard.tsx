@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Module: AnalyticsDashboard.tsx
  *
  * Admin analytics dashboard showing KPIs, trend charts, severity/status
@@ -21,7 +21,6 @@
  *   onFilterCategory, onFilterSeverity, onFilterStatus are forwarded up to
  *   AdminPage so clicking a chart segment pre-fills the report list filter.
  *
- * How it connects:
  * - Rendered inside AdminPage.tsx based on active view */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'

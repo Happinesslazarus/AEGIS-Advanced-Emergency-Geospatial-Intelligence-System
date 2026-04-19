@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: AllReportsManager.tsx
  *
  * Report management console (view, filter, triage all reports).
  *
- * How it connects:
  * - Rendered inside AdminPage.tsx based on active view */
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react'

@@ -8,13 +8,13 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { Loader2, AlertCircle, Shield } from 'lucide-react'
-import { useCitizenAuth } from '../contexts/CitizenAuthContext'
+import { useCitizenAuth, getCitizenToken } from '../contexts/CitizenAuthContext'
 import { API_BASE } from '../utils/helpers'
 
 export default function OAuthCallback() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const { complete2FA } = useCitizenAuth()
+  const { oauthLogin } = useCitizenAuth()
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -52,8 +52,31 @@ export default function OAuthCallback() {
           : data?.error?.message
 
         if (data?.success && token && user) {
-          complete2FA(token, user)
-          navigate('/citizen/dashboard', { replace: true })
+          const result = await oauthLogin(token)
+          if (result.success) {
+            // If the user arrived here from scanning a Phone Browser QR code,
+            // auto-approve that QR session before going to the dashboard.
+            const pendingQrSession = sessionStorage.getItem('aegis_pending_qr_session')
+            if (pendingQrSession) {
+              sessionStorage.removeItem('aegis_pending_qr_session')
+              const tok = getCitizenToken()
+              if (tok) {
+                try {
+                  await fetch(`${API_BASE}/api/auth/qr/approve`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${tok}` },
+                    body: JSON.stringify({ sessionId: pendingQrSession }),
+                  })
+                } catch {
+                  // Non-fatal: user is still logged in, QR approve just didn't fire
+                }
+              }
+            }
+            navigate('/citizen/dashboard', { replace: true })
+          } else {
+            setError(result.error || 'Failed to load account profile')
+            sessionStorage.removeItem(dedupeKey)
+          }
         } else {
           setError(errorMessage || 'Failed to complete sign-in')
           sessionStorage.removeItem(dedupeKey)
@@ -65,7 +88,7 @@ export default function OAuthCallback() {
     }
 
     exchange()
-  }, [searchParams, navigate, complete2FA])
+  }, [searchParams, navigate, oauthLogin])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950 dark:to-gray-900 flex items-center justify-center p-4">

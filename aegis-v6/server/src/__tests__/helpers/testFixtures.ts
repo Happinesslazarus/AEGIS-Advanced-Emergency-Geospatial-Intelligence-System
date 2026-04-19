@@ -1,11 +1,9 @@
-/**
+﻿/**
  * Module: testFixtures.ts
  *
  * Test fixtures server module.
  *
- * How it connects:
  * - Run by the test runner (Vitest or Jest)
- *
  */
 
 import { getTestPool } from './testDb'

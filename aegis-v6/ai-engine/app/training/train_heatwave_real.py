@@ -131,6 +131,7 @@ class HeatwaveRealPipeline(BaseRealPipeline):
         min_positive_samples=20,
         min_stations=3,
         promotion_min_roc_auc=0.70,
+        fixed_test_date="2022-01-01",
     )
 
     async def fetch_raw_data(self) -> dict[str, pd.DataFrame]:

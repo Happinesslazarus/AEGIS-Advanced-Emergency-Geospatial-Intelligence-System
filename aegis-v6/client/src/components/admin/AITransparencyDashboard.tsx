@@ -1,7 +1,4 @@
-/**
- * File: AITransparencyDashboard.tsx
- *
- * What this file does:
+﻿/**
  * Admin-facing AI governance and observability dashboard. Shows model metrics
  * (accuracy, F1, precision, recall), data drift detection, prediction audit
  * trails, LLM provider status, and model comparison tables.
@@ -18,14 +15,9 @@
  * - Partial failures are surfaced as amber warnings (not catastrophic errors)
  * - Retrain triggers POST /api/ai/governance/retrain/:hazardType
  *
- * How it connects:
  * - Rendered inside AdminPage.tsx when the AI view is active
  * - Uses apiGetGovernanceModels, apiGetAIDrift, apiGetAIAuditLog, etc. from utils/api.ts
- *
- * Simple explanation:
- * Gives operators full visibility into what the AI models are doing, how
- * well they're performing, and which ones need to be retrained.
- */
+ * */
 
 import { useState, useEffect, useRef, Component, type ReactNode, type ErrorInfo, useCallback } from 'react'
 import {

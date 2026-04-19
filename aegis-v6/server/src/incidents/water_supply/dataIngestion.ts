@@ -1,14 +1,10 @@
-/**
+﻿/**
  * Module: dataIngestion.ts
  *
  * Water supply disruptions incident module (handles water supply specific logic).
  *
- * How it connects:
  * - Part of the incident module system, registered via incidents/registry.ts
- *
- * Simple explanation:
- * Manages detection, assessment, and response for water supply events.
- */
+ * */
 
 import pool from '../../models/db.js'
 import { logger } from '../../services/logger.js'

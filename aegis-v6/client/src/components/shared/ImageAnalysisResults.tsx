@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Module: ImageAnalysisResults.tsx
  *
  * Displays the AI image analysis output produced when a citizen attaches a
@@ -20,7 +20,6 @@
  * The panel is collapsible; compact=true collapses it by default so it can
  * sit in a sidebar without dominating the layout.
  *
- * How it connects:
  * - Used across both admin and citizen interfaces */
 
 import { useState } from 'react'

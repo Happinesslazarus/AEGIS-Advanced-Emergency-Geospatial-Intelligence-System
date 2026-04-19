@@ -1,18 +1,12 @@
-/**
- * File: fusionEngine.ts
- *
+﻿/**
  * Multi-source data fusion engine — normalises and combines 10 real-time data
  * sources (water level, rainfall, soil moisture, citizen NLP, photos, satellite,
  * etc.) into a single flood probability score with confidence and risk level.
  *
- * How it connects:
  * - Reads live data from DB, weather APIs (Open-Meteo), and region config
  * - Consumed by floodFingerprinting for pattern matching
  * - Uses evidence-based feature weights for ensemble scoring
- *
- * Simple explanation:
- * Merges weather, sensor, and report data into one number that says how likely a flood is.
- */
+ * */
 
 import pool from '../models/db.js'
 import { devLog } from '../utils/logger.js'

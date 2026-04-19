@@ -1,6 +1,4 @@
-/**
- * File: reports.integration.test.ts
- *
+﻿/**
  * What it tests:
  * Integration tests for the incident report submission and retrieval flow.
   * Verifies report creation, AI analysis trigger, media upload,

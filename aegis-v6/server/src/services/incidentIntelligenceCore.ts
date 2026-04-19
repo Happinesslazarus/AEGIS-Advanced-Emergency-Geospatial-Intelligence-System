@@ -1,7 +1,4 @@
-/**
- * File: incidentIntelligenceCore.ts
- *
- * What this file does:
+﻿/**
  * The analytical brain that spots patterns in live incident data. Contains:
  * - Spatial/temporal clustering (Union-Find algorithm over Haversine distances)
  * - Cascading incident inference (predicts what comes next from current signals)
@@ -16,17 +13,11 @@
  * processes arrays of `EvidenceEvent` objects (citizen reports, sensor readings,
  * external feeds). All spatial math uses 2D Haversine distance.
  *
- * How it connects:
  * - Used by server/src/services/evacuationService.ts for live risk assessment
  * - Consumed by server/src/routes/incidentRoutes.ts for dashboard analytics
  * - Types (IncidentCluster, CascadingInsight, etc.) used throughout the server
  * - Region config from server/src/config/regions/types.ts
- *
- * Simple explanation:
- * Given a list of incident reports, this module answers:
- * "Where are clusters forming?", "What will likely happen next?",
- * "How fast is this escalating?", and "How bad could this get?"
- */
+ * */
 
 import type { CityRegionConfig } from '../config/regions/types.js'
 

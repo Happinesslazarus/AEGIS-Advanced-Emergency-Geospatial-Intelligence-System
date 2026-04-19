@@ -1,18 +1,11 @@
-/**
- * File: phoneValidation.ts
- *
- * What this file does:
+﻿/**
  * Validates and normalises phone numbers based on the active region's
  * phone format rules. Strips formatting characters, applies country
  * code prefix, and validates length.
  *
- * How it connects:
  * - Used by citizenAuthRoutes.ts and authRoutes.ts during registration
  * - Gets the expected phone format from the active region adapter
- *
- * Simple explanation:
- * Makes sure phone numbers are valid and consistently formatted.
- */
+ * */
 
 import { regionRegistry } from '../adapters/regions/RegionRegistry.js'
 

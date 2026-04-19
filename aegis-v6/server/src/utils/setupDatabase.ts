@@ -1,19 +1,12 @@
-/**
- * File: setupDatabase.ts
- *
- * What this file does:
+﻿/**
  * Database initialisation script: runs all SQL migration files in order,
  * creates the schema, seeds initial data (admin account, regions, hazard
  * types), and sets up PostGIS extensions.
  *
- * How it connects:
  * - Can be run standalone: npx ts-node src/utils/setupDatabase.ts
  * - Reads SQL files from server/sql/ directory
  * - Creates the first admin account if none exists
- *
- * Simple explanation:
- * Sets up the database from scratch — creates tables, adds initial data.
- */
+ * */
 
 import fs from 'fs'
 import path from 'path'

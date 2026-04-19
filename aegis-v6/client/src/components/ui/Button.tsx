@@ -1,14 +1,10 @@
-/**
+﻿/**
  * Module: Button.tsx
  *
  * Button UI primitive (low-level UI building block).
  *
- * How it connects:
  * - Uses Spinner from LoadingStates for the loading state
  * - Uses useReducedMotion for animation preferences
- * Simple explanation:
- * The main button primitive used everywhere in the app. */
-
 import React, { forwardRef, memo } from 'react'
 import { useReducedMotion } from '../../hooks/useReducedMotion'
 import { Spinner } from './LoadingStates'

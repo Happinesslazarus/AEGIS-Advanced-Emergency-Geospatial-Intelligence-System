@@ -1,18 +1,11 @@
-/**
- * File: translationRoutes.ts
- *
- * What this file does:
+﻿/**
  * API for translating text between the 9 supported languages.
  * Supports single text, batch translation, and language detection.
  *
- * How it connects:
  * - Mounted at /api/translate in index.ts
  * - Uses translationService which routes to Azure, DeepL, or LibreTranslate
  * - Called by the frontend LanguageSelector component
- *
- * Simple explanation:
- * Translates text so the platform works in multiple languages.
- */
+ * */
 import { Router, Request, Response, NextFunction } from 'express'
 import rateLimit from 'express-rate-limit'
 import {

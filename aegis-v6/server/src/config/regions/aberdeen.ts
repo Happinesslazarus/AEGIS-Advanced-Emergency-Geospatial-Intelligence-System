@@ -1,11 +1,9 @@
-/**
+﻿/**
  * Module: aberdeen.ts
  *
  * Aberdeen server module.
  *
- * How it connects:
  * - Imported by services and components that need this configuration
- *
  */
 
 import type { CityRegionConfig } from './types.js'

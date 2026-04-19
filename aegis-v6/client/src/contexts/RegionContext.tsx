@@ -1,9 +1,8 @@
-/**
+﻿/**
  * Module: RegionContext.tsx
  *
  * Region context React context provider (shares state across components).
  *
- * How it connects:
  * - Wraps components in App.tsx via AppProviders */
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react'

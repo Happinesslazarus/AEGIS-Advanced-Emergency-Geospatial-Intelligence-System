@@ -1,12 +1,8 @@
-/**
- * File: EmptyState.tsx
- *
- * What this file does:
+﻿/**
  * Reusable empty-state illustration shown when a list has no items
  * (no reports, no alerts, no messages, etc.). Accepts an icon, title,
  * description, and up to two action buttons.
  *
- * How it connects:
  * - Used across AdminPage, AlertsPage, and any list component
  * - Compact prop shrinks padding for use inside table cells
  * - Uses i18n t() for button/label text

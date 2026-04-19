@@ -1,6 +1,4 @@
-/**
- * File: auth.integration.test.ts
- *
+﻿/**
  * What it tests:
  * Integration tests for the authentication middleware.
   * Verifies JWT verification, role enforcement, refresh token rotation,

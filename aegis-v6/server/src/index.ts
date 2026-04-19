@@ -1,14 +1,10 @@
-/**
- * File: index.ts
- *
- * What this file does:
+﻿/**
  * The main entry point for the AEGIS Express server. It validates startup
  * configuration, wires up the entire middleware pipeline (security, rate
  * limiting, CSRF, authentication, tracing, QoS), mounts all API routes,
  * initialises Socket.IO for real-time communication, starts background cron
  * jobs, and registers graceful shutdown hooks.
  *
- * How it connects:
  * - All API routes in server/src/routes/ are mounted here under /api/
  * - Socket.IO is initialised here and its instance is shared with services
  *   that broadcast live data (river levels, threat levels, community events)
@@ -27,7 +23,6 @@
  * - GET  /api/internal/*      — admin-only introspection (circuits, QoS, chaos, etc.)
  * - All other /api/* routes are mounted from server/src/routes/
  *
- * Learn more:
  * - server/src/middleware/auth.ts        — JWT verification & role-based gating
  * - server/src/middleware/errorHandler.ts — central error shaping for all routes
  * - server/src/models/db.ts              — PostgreSQL pool (used by all services)
@@ -37,12 +32,7 @@
  * - server/src/services/circuitBreaker.ts — protecting external dependency calls
  * - server/src/services/llmRouter.ts     — LLM provider routing + model warm-up
  * - server/src/routes/                   — all individual API route handlers
- *
- * Simple explanation:
- * Think of this file as the control room for the whole server. It decides
- * what security rules apply, which API addresses exist, who can call what,
- * and how we handle failures. Everything starts and stops through here.
- */
+ * */
 
 import express from 'express'
 import 'express-async-errors'
@@ -276,6 +266,9 @@ import emergencyQRAuthRoutes from './routes/emergencyQRAuthRoutes.js'
 import incidentRoutes from './routes/incidentRoutes.js'
 import setupRoutes from './routes/setupRoutes.js'
 import mapTileRoutes from './routes/mapTileRoutes.js'
+import adaptiveMFARoutes from './routes/adaptiveMFARoutes.js'
+import { initAdaptiveMFA } from './services/adaptiveMFAService.js'
+import helplinesRoutes from './routes/helplinesRoutes.js'
 import { errorHandler } from './middleware/errorHandler.js'
 import { requestIdMiddleware } from './middleware/requestId.js'
 import pool from './models/db.js'
@@ -294,29 +287,21 @@ import { requestTimeoutMiddleware } from './middleware/requestTimeout.js'
 import { updatePoolMetrics } from './services/queryLogger.js'
 
 // Infrastructure services
-import { tracingMiddleware, startSpan, endSpan } from './services/distributedTracing.js'
 import { initFlags, isFeatureEnabled, featureFlagMiddleware, getFlagStats } from './services/featureFlags.js'
 import { adaptiveRateLimitMiddleware, getRateLimitStats } from './services/adaptiveRateLimiting.js'
 import { startSelfHealing, getHealthStatus } from './services/selfHealing.js'
-import { chaosMiddleware, EXPERIMENT_TEMPLATES, getExperiments } from './services/chaosEngineering.js'
 import { qosMiddleware, getQosStats, Priority } from './services/requestPrioritization.js'
-import { initEventSourcing, appendEvent, getAuditTrail, EventTypes } from './services/eventSourcing.js'
 import { initCircuits, Circuits, getAllStatus as getCircuitStatus } from './services/circuitBreaker.js'
 import { initZeroDowntime, livenessHandler, readinessHandler, startupHandler, healthHandler, registerShutdownHook, trackConnectionStart, trackConnectionEnd } from './services/zeroDowntime.js'
 
 // Resilience and operations services
 import { initBulkheads, getAllStatus as getBulkheadStatus, Bulkheads } from './services/bulkhead.js'
-import { initSecretsManager, getSecretsStats, Secrets } from './services/secretsManager.js'
-import { serviceMeshMiddleware, getMeshStats, getVirtualServiceConfig } from './services/serviceMesh.js'
 import { getGatewayStats, apiKeyMiddleware, versioningMiddleware } from './services/apiGateway.js'
 import { coalesce, getCoalescingStats, createUserLoader, createReportLoader } from './services/requestCoalescing.js'
 
 // Data layer and API services
-import graphqlFederation from './services/graphqlFederation.js'
 import eventStreaming from './services/eventStreaming.js'
-import grpcServices from './services/grpcServices.js'
 import openApiGenerator from './services/openApiGenerator.js'
-import readReplicas from './services/readReplicas.js'
 
 const app = express()
 const httpServer = createServer(app)  // Wrap Express in raw http.Server so Socket.IO can share the same port
@@ -335,54 +320,30 @@ initFlags().catch((err: Error) => {
   console.warn(' [WARN] Feature flags failed to initialize:', err.message)
 })
 
-initEventSourcing(pool).catch(err => {
-  console.warn(' [WARN] Event sourcing failed to initialize:', err.message)
-})
-
 console.log(' [OK] Infrastructure initialized')
 console.log('      - Circuit breakers: protecting external dependencies')
 console.log('      - Self-healing: autonomous failure recovery')
 console.log('      - Feature flags: gradual rollout support')
-console.log('      - Event sourcing: immutable audit trail')
-console.log('      - Zero-downtime: graceful deployment support')
 
 // Resilience services
 initBulkheads()
-initSecretsManager()
-console.log('      - Secrets Manager configured (provider auto-detected from env)')
-console.log('      - API Gateway middleware ready')
-
 console.log(' [OK] Resilience services initialized')
 console.log('      - Bulkheads: resource isolation per service')
-console.log('      - Secrets Manager: credential rotation')
-console.log('      - Service Mesh: Istio/Envoy compatibility')
 console.log('      - API Gateway: key management & versioning')
 console.log('      - Request Coalescing: thundering herd prevention')
 console.log('')
-
-// Data layer and API services
-graphqlFederation.initGraphQLFederation().catch((err: Error) => {
-  console.warn(' [WARN] GraphQL Federation failed to initialize:', err.message)
-})
 
 eventStreaming.initEventStreaming().catch((err: Error) => {
   console.warn(' [WARN] Event streaming failed to initialize:', err.message)
 })
 
-grpcServices.initGrpcServices().catch((err: Error) => {
-  console.warn(' [WARN] gRPC services failed to initialize:', err.message)
-})
-
-readReplicas.initReadReplicas().catch((err: Error) => {
-  console.warn(' [WARN] Read replicas failed to initialize:', err.message)
+initAdaptiveMFA().catch((err: Error) => {
+  console.warn(' [WARN] Adaptive MFA failed to initialize:', err.message)
 })
 
 console.log(' [OK] Data layer services initialized')
-console.log('      - GraphQL Federation: Apollo Federation 2.0 gateway')
-console.log('      - Event Streaming: Kafka/RabbitMQ/Redis async messaging')
-console.log('      - gRPC Services: high-performance binary RPC')
+console.log('      - Event Streaming: async messaging')
 console.log('      - OpenAPI 3.1: auto-generated API documentation')
-console.log('      - Read Replicas: horizontal database scaling')
 console.log('')
 
 // Trust exactly one proxy hop (nginx/Docker gateway). This tells Express to
@@ -508,12 +469,6 @@ app.use('/api', (req, res, next) => {
   next()
 })
 
-// Distributed tracing (OpenTelemetry-compatible, W3C Trace Context propagation)
-app.use(tracingMiddleware)
-
-// Service mesh integration (Istio/Envoy-compatible, B3 header propagation)
-app.use(serviceMeshMiddleware)
-
 // Request prioritization (QoS) - emergency/distress requests get priority
 app.use(qosMiddleware)
 
@@ -522,13 +477,6 @@ app.use(adaptiveRateLimitMiddleware)
 
 // Feature flags - injects feature evaluation into request context
 app.use(featureFlagMiddleware)
-
-// Chaos engineering middleware (ONLY when CHAOS_ENGINEERING_ENABLED=true)
-// Enables controlled fault injection for resilience testing
-if (process.env.CHAOS_ENGINEERING_ENABLED === 'true') {
-  console.log(' [WARN] Chaos engineering middleware ENABLED (dev/test only!)')
-  app.use(chaosMiddleware)
-}
 
 // Connection tracking for graceful shutdown
 app.use((req, res, next) => {
@@ -576,7 +524,7 @@ app.use(hpp({
 
 app.use(rateLimit({
   windowMs: 60 * 1000,
-  max: 600,
+  max: 2000,
   message: { error: 'Too many requests. Please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -585,8 +533,8 @@ app.use(rateLimit({
 
 app.use(slowDown({
   windowMs: 60 * 1000,
-  delayAfter: 300,
-  delayMs: (hits) => (hits - 300) * 50,
+  delayAfter: 1000,
+  delayMs: (hits) => (hits - 1000) * 50,
   skip: (req) => req.path === '/metrics' || req.path.startsWith('/api/map-tiles/'),
 }))
 
@@ -636,7 +584,9 @@ app.use((req, res, next) => {
   const safeMethods = ['GET', 'HEAD', 'OPTIONS']
   // Auth endpoints are exempt: login/register have no session to protect, refresh/logout
   // use httpOnly cookies which prevent CSRF by design (JS cannot read them to forge requests).
-  const csrfExemptPaths = ['/api/internal/', '/api/telegram/', '/api/map-tiles/', '/api/auth/', '/api/citizen-auth/', '/api/spatial/', '/api/chat', '/api/notifications/', '/api/voice/', '/api/translate']
+  // /api/security/passkeys/ is exempt because WebAuthn uses its own cryptographic challenge
+  // binding (clientDataJSON origin check) which provides equivalent CSRF protection.
+  const csrfExemptPaths = ['/api/internal/', '/api/telegram/', '/api/map-tiles/', '/api/auth/', '/api/citizen-auth/', '/api/spatial/', '/api/chat', '/api/notifications/', '/api/voice/', '/api/translate', '/api/security/']
 
   if (safeMethods.includes(req.method) || csrfExemptPaths.some(p => req.path.startsWith(p))) {
     return next()
@@ -671,11 +621,16 @@ app.use('/uploads', (req, res, next) => {
   // Set security headers for served files
   res.setHeader('X-Content-Type-Options', 'nosniff')
   res.setHeader('Content-Disposition', 'inline')
-  res.setHeader('Cache-Control', 'public, max-age=86400')
   next()
 }, express.static(path.join(process.cwd(), 'uploads'), {
   dotfiles: 'deny',
   index: false, // Prevent directory listing
+  maxAge: '1d', // Cache successful responses only
+}), express.static(path.join(process.cwd(), 'uploads', 'evidence'), {
+  // Fallback: serve evidence/ files for legacy URLs that omit the /evidence/ path segment
+  dotfiles: 'deny',
+  index: false,
+  maxAge: '1d',
 }))
 
 /* ─── API Routes ─────────────────────────────────────────────────────────────
@@ -716,37 +671,8 @@ app.get('/api/internal/idempotency', authMiddleware as any, requireRole('admin')
   res.json({ success: true, idempotency: getIdempotencyStats() })
 })
 
-app.get('/api/internal/chaos', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
-  res.json({
-    success: true,
-    chaosEnabled: process.env.CHAOS_ENGINEERING_ENABLED === 'true',
-    activeExperiments: getExperiments(),
-    templates: Object.keys(EXPERIMENT_TEMPLATES),
-  })
-})
-
-app.get('/api/internal/audit-trail', authMiddleware as any, requireRole('admin') as any, async (req: any, res) => {
-  const { userId, aggregateType, fromDate, toDate, limit } = req.query
-  const trail = await getAuditTrail({
-    userId: userId as string,
-    aggregateType: aggregateType as string,
-    fromDate: fromDate ? new Date(fromDate as string) : undefined,
-    toDate: toDate ? new Date(toDate as string) : undefined,
-    limit: limit ? parseInt(limit as string, 10) : 100,
-  })
-  res.json({ success: true, count: trail.length, events: trail })
-})
-
 app.get('/api/internal/bulkheads', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
   res.json({ success: true, bulkheads: getBulkheadStatus() })
-})
-
-app.get('/api/internal/secrets', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
-  res.json({ success: true, secrets: getSecretsStats() })
-})
-
-app.get('/api/internal/service-mesh', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
-  res.json({ success: true, serviceMesh: getMeshStats() })
 })
 
 app.get('/api/internal/api-gateway', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
@@ -757,20 +683,8 @@ app.get('/api/internal/coalescing', authMiddleware as any, requireRole('admin') 
   res.json({ success: true, coalescing: getCoalescingStats() })
 })
 
-app.get('/api/internal/graphql', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
-  res.json({ success: true, graphql: graphqlFederation.getGraphQLStats() })
-})
-
 app.get('/api/internal/streaming', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
   res.json({ success: true, streaming: eventStreaming.getEventStreamingStats() })
-})
-
-app.get('/api/internal/grpc', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
-  res.json({ success: true, grpc: grpcServices.getGrpcStats() })
-})
-
-app.get('/api/internal/replicas', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
-  res.json({ success: true, replicas: readReplicas.getReadReplicaStats() })
 })
 
 app.get('/api/internal/openapi-stats', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
@@ -784,6 +698,7 @@ app.use('/api/auth/login', loginLimiter) // Brute-force protection for login
 app.use('/api/citizen-auth/login', loginLimiter) // Brute-force protection for citizen login
 app.use('/api/auth', authRoutes) // Authentication
 app.use('/api/auth/2fa', twoFactorRoutes) // TOTP Two-Factor Authentication
+app.use('/api/auth/mfa', adaptiveMFARoutes) // Adaptive MFA step-up (NIST SP 800-63B)
 app.use('/api/security', securityRoutes) // Device Trust, Security Dashboard, Alert Preferences
 app.use('/api/auth', oauthRoutes) // OAuth social login (Google etc.)
 app.use('/api/auth', githubOAuthRoutes) // GitHub OAuth social login
@@ -816,6 +731,7 @@ app.use('/api/spatial', spatialRoutes) // PostGIS spatial analysis tools
 app.use('/api/v1/incidents', incidentRoutes) // Multi-incident plugin system (v1 API)
 app.use('/api/map-tiles', mapTileRoutes) // Same-origin map tile proxy (adblock/network resilient)
 app.use('/api/telegram', telegramRoutes) // Telegram bot webhook & chat-id capture
+app.use('/api/helplines', helplinesRoutes) // Mental health & crisis helpline directory (findahelpline.com)
 
 // Sentry error handler - must be after all routes and before other error handlers
 if (process.env.SENTRY_DSN) {
@@ -918,6 +834,30 @@ httpServer.listen(PORT, () => {
   console.log(` Uploads: http://localhost:${PORT}/uploads/`)
   console.log(` Chat API: http://localhost:${PORT}/api/chat`)
   console.log(` Config API: http://localhost:${PORT}/api/config\n`)
+
+  // One-time fix: avatar URLs were incorrectly saved as /uploads/<file> instead
+  // of /uploads/avatars/<file>. This corrects any existing rows in the database.
+  ;(async () => {
+    try {
+      const res = await pool.query(`
+        UPDATE citizens
+           SET avatar_url = '/uploads/avatars/' || regexp_replace(avatar_url, '^/uploads/', '')
+         WHERE avatar_url IS NOT NULL
+           AND avatar_url LIKE '/uploads/%'
+           AND avatar_url NOT LIKE '/uploads/avatars/%'
+      `)
+      const opRes = await pool.query(`
+        UPDATE operators
+           SET avatar_url = '/uploads/avatars/' || regexp_replace(avatar_url, '^/uploads/', '')
+         WHERE avatar_url IS NOT NULL
+           AND avatar_url LIKE '/uploads/%'
+           AND avatar_url NOT LIKE '/uploads/avatars/%'
+      `)
+      if ((res.rowCount ?? 0) + (opRes.rowCount ?? 0) > 0) {
+        console.log(` [startup] Repaired ${(res.rowCount ?? 0) + (opRes.rowCount ?? 0)} broken avatar URL(s)`)
+      }
+    } catch { /* non-fatal — operators table may not have avatar_url */ }
+  })()
 
   // Start background cron jobs (SEPA river ingestion, cleanup, scheduled reports, etc.)
   // See server/src/services/cronJobs.ts for what runs and on what schedule.

@@ -1,25 +1,35 @@
 /**
  * File: config.ts
-  *
-  * What this file does:
-  * Initialises i18next with react-i18next and the browser language
-  * detector. Loads translation JSON bundles (lazy-loaded per locale),
-  * sets fallback language to English, and configures namespace and key
-  * separator conventions for the whole client.
-  *
-  * How it connects:
-  * - Imported once in client/src/main.tsx before React renders
-  * - Translation files in client/public/locales/<lang>/translation.json
-  * - Used everywhere via useTranslation() or utils/i18n.ts t()
-  * - Language preference persisted in localStorage by LanguageDetector
-  * - Learn more: https://react.i18next.com
+ *
+ * What this file does:
+ * Initialises i18next with react-i18next and the browser language detector.
+ *
+ * Language loading strategy:
+ * - English:  statically bundled at build time — it is the fallback language
+ *             and must always be available with zero latency.
+ * - Arabic:   statically bundled — RTL layout requires dedicated CSS direction
+ *             handling (document dir, flex mirroring, text alignment) that was
+ *             manually tested and verified against the static bundle.
+ * - All other languages: resolved dynamically via the AEGIS translation
+ *             microservice (POST /api/translate/batch).  The service cascades
+ *             through Azure Cognitive Translator → DeepL → LibreTranslate,
+ *             caches results in PostgreSQL for 30 days, and the client adds a
+ *             second cache layer in localStorage (7-day TTL) so subsequent
+ *             language switches are served instantly without a network round-trip.
+ *
+ * How it connects:
+ * - Imported once in client/src/main.tsx before React renders
+ * - Dynamic translation handled by client/src/i18n/dynamicLocaleLoader.ts
+ * - Backend endpoint: server/src/routes/translationRoutes.ts POST /api/translate/batch
+ * - Language preference persisted in localStorage by LanguageDetector
  */
 
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
+import { translateNamespace } from './dynamicLocaleLoader'
 
-// English (always bundled — fallback language, zero load delay)
+// English — statically bundled, always available, zero load delay
 import enCommon from './locales/en/common.json'
 import enIncidents from './locales/en/incidents.json'
 import enDashboard from './locales/en/dashboard.json'
@@ -29,34 +39,54 @@ import enAdmin from './locales/en/admin.json'
 import enCitizen from './locales/en/citizen.json'
 import enLanding from './locales/en/landing.json'
 
+// Arabic — statically bundled for RTL layout correctness
+import arCommon from './locales/ar/common.json'
+import arIncidents from './locales/ar/incidents.json'
+import arDashboard from './locales/ar/dashboard.json'
+import arAlerts from './locales/ar/alerts.json'
+import arMap from './locales/ar/map.json'
+import arAdmin from './locales/ar/admin.json'
+import arCitizen from './locales/ar/citizen.json'
+import arLanding from './locales/ar/landing.json'
+
 const NAMESPACES = ['common', 'incidents', 'dashboard', 'alerts', 'map', 'admin', 'citizen', 'landing'] as const
+
+/** English namespace bundles keyed by namespace name — used as the translation source. */
+const EN_BUNDLES: Record<string, Record<string, unknown>> = {
+  common: enCommon, incidents: enIncidents, dashboard: enDashboard,
+  alerts: enAlerts, map: enMap, admin: enAdmin, citizen: enCitizen, landing: enLanding,
+}
+
+/** Arabic namespace bundles — statically available. */
+const AR_BUNDLES: Record<string, Record<string, unknown>> = {
+  common: arCommon, incidents: arIncidents, dashboard: arDashboard,
+  alerts: arAlerts, map: arMap, admin: arAdmin, citizen: arCitizen, landing: arLanding,
+}
 
 const resources = {
   en: { common: enCommon, incidents: enIncidents, dashboard: enDashboard, alerts: enAlerts, map: enMap, admin: enAdmin, citizen: enCitizen, landing: enLanding },
+  ar: { common: arCommon, incidents: arIncidents, dashboard: arDashboard, alerts: arAlerts, map: arMap, admin: arAdmin, citizen: arCitizen, landing: arLanding },
 }
+
+const loadedLanguages = new Set<string>(['en', 'ar'])
 
 /**
- * Lazy-load translation bundles for non-English languages.
- * Uses Vite dynamic imports so each language is code-split into its own chunk.
+ * Load a language into i18next.
+ *
+ * - English and Arabic are already registered at init time.
+ * - Any other language is translated on demand via the backend microservice,
+ *   with results cached in localStorage so repeat calls are instant.
  */
-const loaders: Record<string, () => Promise<Record<string, unknown>>[]> = {
-  es: () => NAMESPACES.map(ns => import(`./locales/es/${ns}.json`)),
-  fr: () => NAMESPACES.map(ns => import(`./locales/fr/${ns}.json`)),
-  ar: () => NAMESPACES.map(ns => import(`./locales/ar/${ns}.json`)),
-  de: () => NAMESPACES.map(ns => import(`./locales/de/${ns}.json`)),
-  pt: () => NAMESPACES.map(ns => import(`./locales/pt/${ns}.json`)),
-  hi: () => NAMESPACES.map(ns => import(`./locales/hi/${ns}.json`)),
-  zh: () => NAMESPACES.map(ns => import(`./locales/zh/${ns}.json`)),
-  sw: () => NAMESPACES.map(ns => import(`./locales/sw/${ns}.json`)),
-}
-
-const loadedLanguages = new Set<string>(['en'])
-
 export async function loadLanguage(lng: string): Promise<void> {
-  if (loadedLanguages.has(lng) || !loaders[lng]) return
-  const modules = await Promise.all(loaders[lng]())
+  if (loadedLanguages.has(lng)) return
+
+  // Dynamically translate all namespaces via the AEGIS translation microservice.
+  // translateNamespace handles batching, the provider cascade, and localStorage caching.
+  const translated = await Promise.all(
+    NAMESPACES.map(ns => translateNamespace(EN_BUNDLES[ns], lng, ns))
+  )
   NAMESPACES.forEach((ns, i) => {
-    i18n.addResourceBundle(lng, ns, (modules[i] as any).default ?? modules[i], true, true)
+    i18n.addResourceBundle(lng, ns, translated[i], true, true)
   })
   loadedLanguages.add(lng)
 }
@@ -83,9 +113,10 @@ i18n
     },
   })
 
-// Pre-load detected language on startup (non-blocking)
+// Pre-load detected language on startup (non-blocking).
+// Arabic is already in resources; other languages trigger the translation pipeline.
 const detected = i18n.language?.split('-')[0]
-if (detected && detected !== 'en' && loaders[detected]) {
+if (detected && detected !== 'en' && detected !== 'ar') {
   loadLanguage(detected).then(() => i18n.changeLanguage(detected))
 }
 
