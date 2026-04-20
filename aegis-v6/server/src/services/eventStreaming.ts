@@ -1,27 +1,13 @@
 /**
- * Pluggable event streaming -- swap the broker by setting one environment
- * variable, no application code changes required.
- *
- *   MemoryStreamBackend   default, zero deps, works in dev/CI
- *   KafkaStreamBackend    set KAFKA_BROKERS  (kafkajs is installed)
- *   RabbitMQStreamBackend set RABBITMQ_URL   (install amqplib to activate)
- *   RedisStreamBackend    set REDIS_URL      (install ioredis to activate)
- *
- * All four backends share the same StreamEvent / EventHandler interface so
- * the rest of the codebase is broker-agnostic. The Kafka backend uses the
- * Transactional Outbox pattern (Richardson --
- * https://microservices.io/patterns/data/transactional-outbox.html): events
- * are written to the DB before publish so none are lost if the broker is
- * temporarily unreachable. Consumer group offset management follows the
- * log-based approach from Kleppmann (2017) "Designing Data-Intensive
- * Applications" Ch.11.
- *
- * KafkaJS docs: https://kafka.js.org/docs/getting-started
+ * In-process event streaming service -- zero external broker dependencies.
+ * Uses MemoryStreamBackend (EventEmitter) for fan-out, the Transactional
+ * Outbox pattern (Richardson -- https://microservices.io/patterns/data/
+ * transactional-outbox.html) for durability, and dead-letter queuing with
+ * exponential back-off (Kleppmann 2017, Ch.11) for fault isolation.
  */
 
 import { EventEmitter } from 'events'
 import { createHash, randomUUID } from 'crypto'
-import type { Kafka, Producer, Consumer, Admin } from 'kafkajs'
 import pool from '../models/db.js'
 import { logger } from './logger.js'
 
@@ -37,30 +23,6 @@ export interface StreamEvent<T = any> {
   partition?: number
   offset?: number
   schemaVersion?: string
-}
-
-export interface ProducerConfig {
-  clientId: string
-  brokers?: string[]
-  acks?: 'all' | 'leader' | 'none'
-  retries?: number
-  retryDelayMs?: number
-  compressionType?: 'none' | 'gzip' | 'snappy' | 'lz4'
-  batchSize?: number
-  lingerMs?: number
-  idempotent?: boolean
-}
-
-export interface ConsumerConfig {
-  groupId: string
-  clientId?: string
-  topics: string[]
-  fromBeginning?: boolean
-  autoCommit?: boolean
-  autoCommitIntervalMs?: number
-  maxPollRecords?: number
-  sessionTimeoutMs?: number
-  heartbeatIntervalMs?: number
 }
 
 export interface EventSchema {
@@ -80,7 +42,7 @@ export interface SchemaField {
 
 type EventHandler<T = any> = (event: StreamEvent<T>) => Promise<void>
 
-type StreamBackend = 'kafka' | 'rabbitmq' | 'redis' | 'memory'
+type StreamBackend = 'memory'
 
 interface DeadLetterEntry {
   originalEvent: StreamEvent
@@ -302,296 +264,6 @@ class MemoryStreamBackend {
   }
 }
 
-//KAFKA BACKEND ADAPTER
-
-class KafkaStreamBackend {
-  private config: ProducerConfig
-  private kafka: Kafka | null = null
-  private producer: Producer | null = null
-  private activeConsumers: Consumer[] = []
-  private connected = false
-  private memoryFallback = new MemoryStreamBackend()
-
-  constructor(config: ProducerConfig) {
-    this.config = config
-  }
-
-  async connect(): Promise<void> {
-    const brokers = this.config.brokers || process.env.KAFKA_BROKERS?.split(',')
-
-    if (!brokers || brokers.length === 0) {
-      logger.info('[EventStreaming] No KAFKA_BROKERS configured, using in-memory backend')
-      return
-    }
-
-    try {
-      const { Kafka } = await import('kafkajs')
-      this.kafka = new Kafka({
-        clientId: this.config.clientId,
-        brokers,
-        retry: { retries: this.config.retries ?? 3 },
-      })
-      this.producer = this.kafka.producer({ idempotent: this.config.idempotent ?? true })
-      await this.producer.connect()
-      this.connected = true
-      logger.info(`[EventStreaming] Kafka connected (brokers: ${brokers.join(',')})`)
-    } catch (err) {
-      logger.error({ err }, '[EventStreaming] Kafka connection failed, falling back to in-memory backend')
-    }
-  }
-
-  async produce(event: StreamEvent): Promise<string> {
-    if (!this.connected || !this.producer) {
-      return this.memoryFallback.produce(event)
-    }
-
-    try {
-      await this.producer.send({
-        topic: event.topic,
-        messages: [{
-          key: event.key ?? null,
-          value: JSON.stringify(event.value),
-          headers: event.headers,
-        }],
-      })
-      return event.id
-    } catch (err) {
-      logger.error({ err }, `[EventStreaming] Kafka produce failed for topic ${event.topic}, using fallback`)
-      return this.memoryFallback.produce(event)
-    }
-  }
-
-  subscribe(topic: string, handler: EventHandler, groupId?: string): () => void {
-    if (!this.connected || !this.kafka) {
-      return this.memoryFallback.subscribe(topic, handler, groupId)
-    }
-
-    const consumer = this.kafka.consumer({
-      groupId: groupId || `aegis-${topic}`,
-    })
-    this.activeConsumers.push(consumer)
-
-    consumer.connect()
-      .then(() => consumer.subscribe({ topic, fromBeginning: false }))
-      .then(() => consumer.run({
-        eachMessage: async ({ partition, message }) => {
-          const rawHeaders: Record<string, string> = {}
-          for (const [k, v] of Object.entries(message.headers ?? {})) {
-            rawHeaders[k] = Buffer.isBuffer(v) ? v.toString() : String(v ?? '')
-          }
-          await handler({
-            id: rawHeaders['x-correlation-id'] || randomUUID(),
-            topic,
-            key: message.key?.toString(),
-            value: message.value ? JSON.parse(message.value.toString()) : null,
-            headers: rawHeaders,
-            timestamp: new Date(Number(message.timestamp)),
-            offset: Number(message.offset),
-            partition,
-          })
-        },
-      }))
-      .catch(err => logger.error({ err }, `[EventStreaming] Kafka consumer setup failed for topic ${topic}`))
-
-    return () => {
-      consumer.disconnect().catch(() => {})
-      const idx = this.activeConsumers.indexOf(consumer)
-      if (idx !== -1) this.activeConsumers.splice(idx, 1)
-    }
-  }
-
-  async replay(topic: string, fromOffset: number, handler: EventHandler): Promise<void> {
-    if (!this.connected || !this.kafka) {
-      return this.memoryFallback.replay(topic, fromOffset, handler)
-    }
-
-    const admin: Admin = this.kafka.admin()
-    const consumer: Consumer = this.kafka.consumer({ groupId: `aegis-replay-${randomUUID()}` })
-
-    try {
-      await Promise.all([admin.connect(), consumer.connect()])
-
-      const topicOffsets = await admin.fetchTopicOffsets(topic)
-      //Only partition 0 is addressed for simplicity (single-partition topics)
-      const highWatermark = Number(topicOffsets.find(p => p.partition === 0)?.high ?? fromOffset)
-      if (highWatermark <= fromOffset) return
-
-      await consumer.subscribe({ topic, fromBeginning: true })
-
-      await new Promise<void>((resolve, reject) => {
-        consumer.on(consumer.events.GROUP_JOIN, () => {
-          consumer.seek({ topic, partition: 0, offset: String(fromOffset) })
-        })
-
-        consumer.run({
-          eachMessage: async ({ partition, message }) => {
-            const offset = Number(message.offset)
-            const rawHeaders: Record<string, string> = {}
-            for (const [k, v] of Object.entries(message.headers ?? {})) {
-              rawHeaders[k] = Buffer.isBuffer(v) ? v.toString() : String(v ?? '')
-            }
-            await handler({
-              id: rawHeaders['x-correlation-id'] || randomUUID(),
-              topic,
-              key: message.key?.toString(),
-              value: message.value ? JSON.parse(message.value.toString()) : null,
-              headers: rawHeaders,
-              timestamp: new Date(Number(message.timestamp)),
-              offset,
-              partition,
-            })
-            if (offset >= highWatermark - 1) resolve()
-          },
-        }).catch(reject)
-      })
-    } finally {
-      await Promise.allSettled([admin.disconnect(), consumer.disconnect()])
-    }
-  }
-
-  async disconnect(): Promise<void> {
-    await Promise.allSettled([
-      this.producer?.disconnect(),
-      ...this.activeConsumers.map(c => c.disconnect()),
-    ])
-  }
-
-  getStats() {
-    return this.connected
-      ? { topics: 0, events: 0, consumers: this.activeConsumers.length, backend: 'kafka' as const, connected: true }
-      : { ...this.memoryFallback.getStats(), backend: 'kafka' as const, connected: false }
-  }
-}
-
-//RABBITMQ BACKEND ADAPTER
-
-class RabbitMQStreamBackend {
-  private config: ProducerConfig
-  private connected = false
-  private memoryFallback = new MemoryStreamBackend()
-  
-  constructor(config: ProducerConfig) {
-    this.config = config
-  }
-  
-  async connect(): Promise<void> {
-    const amqpUrl = process.env.RABBITMQ_URL || process.env.AMQP_URL
-    
-    if (!amqpUrl) {
-      logger.info('[EventStreaming] No RabbitMQ URL configured, using in-memory backend')
-      return
-    }
-    
-    try {
-      //External RabbitMQ broker is intentionally not connected here.
-      //To activate: install amqplib, set RABBITMQ_URL, then uncomment:
-      //const amqp = await import('amqplib')
-      //this.connection = await amqp.connect(amqpUrl)
-      //this.channel = await this.connection.createChannel()
-      //Until then, fall through to the in-memory fallback below.
-      logger.info('[EventStreaming] RABBITMQ_URL set but amqplib not installed -- using in-memory fallback')
-    } catch (err) {
-      logger.error({ err }, '[EventStreaming] RabbitMQ connection failed, using fallback')
-    }
-  }
-  
-  async produce(event: StreamEvent): Promise<string> {
-    if (!this.connected) {
-      return this.memoryFallback.produce(event)
-    }
-    
-    //Production RabbitMQ publish:
-    //this.channel.publish(
-    //   'aegis.events',
-    //  event.topic,
-    //  Buffer.from(JSON.stringify(event.value)),
-    //   { headers: event.headers, persistent: true }
-    // )
-    
-    return this.memoryFallback.produce(event)
-  }
-  
-  subscribe(topic: string, handler: EventHandler, groupId?: string): () => void {
-    return this.memoryFallback.subscribe(topic, handler, groupId)
-  }
-  
-  async replay(topic: string, fromOffset: number, handler: EventHandler): Promise<void> {
-    return this.memoryFallback.replay(topic, fromOffset, handler)
-  }
-  
-  getStats() {
-    return {
-      ...this.memoryFallback.getStats(),
-      backend: 'rabbitmq' as const,
-      connected: this.connected,
-    }
-  }
-}
-
-//REDIS STREAMS BACKEND ADAPTER
-
-class RedisStreamBackend {
-  private config: ProducerConfig
-  private connected = false
-  private memoryFallback = new MemoryStreamBackend()
-  
-  constructor(config: ProducerConfig) {
-    this.config = config
-  }
-  
-  async connect(): Promise<void> {
-    const redisUrl = process.env.REDIS_URL
-    
-    if (!redisUrl) {
-      logger.info('[EventStreaming] No Redis URL configured, using in-memory backend')
-      return
-    }
-    
-    try {
-      //External Redis Streams backend is intentionally not connected here.
-      //To activate: install ioredis, set REDIS_URL, then uncomment:
-      //const Redis = await import('ioredis')
-      //this.redis = new Redis.default(redisUrl)
-      //Until then, fall through to the in-memory fallback below.
-      logger.info('[EventStreaming] REDIS_URL set but ioredis not installed for streams -- using in-memory fallback')
-    } catch (err) {
-      logger.error({ err }, '[EventStreaming] Redis connection failed, using fallback')
-    }
-  }
-  
-  async produce(event: StreamEvent): Promise<string> {
-    if (!this.connected) {
-      return this.memoryFallback.produce(event)
-    }
-    
-    //Production Redis XADD:
-    //const streamId = await this.redis.xadd(
-    //  event.topic,
-    //   '*',
-    //   'data', JSON.stringify(event.value),
-    //   'headers', JSON.stringify(event.headers)
-    // )
-    
-    return this.memoryFallback.produce(event)
-  }
-  
-  subscribe(topic: string, handler: EventHandler, groupId?: string): () => void {
-    return this.memoryFallback.subscribe(topic, handler, groupId)
-  }
-  
-  async replay(topic: string, fromOffset: number, handler: EventHandler): Promise<void> {
-    return this.memoryFallback.replay(topic, fromOffset, handler)
-  }
-  
-  getStats() {
-    return {
-      ...this.memoryFallback.getStats(),
-      backend: 'redis' as const,
-      connected: this.connected,
-    }
-  }
-}
-
 //DEAD LETTER QUEUE
 
 const deadLetterQueue: DeadLetterEntry[] = []
@@ -727,7 +399,7 @@ export async function processOutbox(): Promise<number> {
 
 //MAIN EVENT STREAMING SERVICE
 
-let backend: KafkaStreamBackend | RabbitMQStreamBackend | RedisStreamBackend | MemoryStreamBackend
+let backend: MemoryStreamBackend
 let initialized = false
 
 const subscriptionHandlers = new Map<string, Map<string, EventHandler>>()
@@ -735,41 +407,9 @@ const subscriptionHandlers = new Map<string, Map<string, EventHandler>>()
 /**
  * Initialize event streaming service
  */
-export async function initEventStreaming(config?: {
-  backend?: StreamBackend
-  producerConfig?: Partial<ProducerConfig>
-}): Promise<void> {
-  const backendType = config?.backend || 
-    (process.env.KAFKA_BROKERS ? 'kafka' : 
-     process.env.RABBITMQ_URL ? 'rabbitmq' :
-     process.env.REDIS_URL ? 'redis' : 'memory')
-  
-  const producerConfig: ProducerConfig = {
-    clientId: config?.producerConfig?.clientId || 'aegis-backend',
-    idempotent: true,
-    retries: 3,
-    acks: 'all',
-    ...config?.producerConfig,
-  }
-  
-  switch (backendType) {
-    case 'kafka':
-      backend = new KafkaStreamBackend(producerConfig)
-      break
-    case 'rabbitmq':
-      backend = new RabbitMQStreamBackend(producerConfig)
-      break
-    case 'redis':
-      backend = new RedisStreamBackend(producerConfig)
-      break
-    default:
-      backend = new MemoryStreamBackend()
-  }
-  
-  if ('connect' in backend) {
-    await backend.connect()
-  }
-  
+export async function initEventStreaming(): Promise<void> {
+  backend = new MemoryStreamBackend()
+
   //Ensure outbox/DLQ tables exist before polling
   await createEventStreamingTables()
 
@@ -777,7 +417,7 @@ export async function initEventStreaming(config?: {
   setInterval(processOutbox, 5000)
 
   initialized = true
-  logger.info(`[EventStreaming] Initialized with ${backendType} backend`)
+  logger.info('[EventStreaming] Initialized with memory backend')
 }
 
 /**
