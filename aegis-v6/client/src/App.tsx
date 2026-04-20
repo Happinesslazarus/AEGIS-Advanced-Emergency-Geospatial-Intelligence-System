@@ -50,7 +50,6 @@ const GuestDashboard = lazy(() => import('./pages/GuestDashboard'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 const OAuthCallback = lazy(() => import('./pages/OAuthCallback'))
 const QRAuthPage = lazy(() => import('./pages/QRAuthPage'))
-const MagicLinkCallback = lazy(() => import('./pages/MagicLinkCallback'))
 import AccessibilityPanel from './components/shared/AccessibilityPanel'
 import CitizenPreferencesBridge from './components/shared/CitizenPreferencesBridge'
 import FloatingChatWidget from './components/FloatingChatWidget'
@@ -107,7 +106,6 @@ export default function App(): JSX.Element {
               <Route path="/citizen/auth" element={<CitizenAuthPage />} />
               <Route path="/citizen/oauth/callback" element={<OAuthCallback />} />
               <Route path="/citizen/qr-auth" element={<QRAuthPage />} />
-              <Route path="/citizen/magic-link" element={<MagicLinkCallback />} />
               <Route path="/citizen/dashboard" element={
                 <ErrorBoundary name="CitizenDashboard">
                   <CitizenDashboard />

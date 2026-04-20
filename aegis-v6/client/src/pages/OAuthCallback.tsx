@@ -1,7 +1,7 @@
 /**
- * OAuthCallback.tsx -- Handles OAuth exchange code from Google & GitHub
+ * OAuthCallback.tsx -- Handles OAuth exchange code from Google
  * 
- * The server redirects to /citizen/oauth/callback?code=...&provider=...
+ * The server redirects to /citizen/oauth/callback?code=...
  * This page exchanges the one-time code for a JWT, then redirects to dashboard.
  */
 
@@ -19,24 +19,20 @@ export default function OAuthCallback() {
 
   useEffect(() => {
     const code = searchParams.get('code')
-    const provider = searchParams.get('provider') || 'google' // default google for backward compat
-
     if (!code) {
       setError('No authorization code received')
       return
     }
 
     const exchange = async () => {
-      const dedupeKey = `aegis-oauth-exchanged:${provider}:${code}`
+      const dedupeKey = `aegis-oauth-exchanged:google:${code}`
       if (sessionStorage.getItem(dedupeKey) === '1') {
         return
       }
       sessionStorage.setItem(dedupeKey, '1')
 
       try {
-        const endpoint = provider === 'github'
-          ? `${API_BASE}/api/auth/github/exchange`
-          : `${API_BASE}/api/auth/oauth/exchange`
+        const endpoint = `${API_BASE}/api/auth/oauth/exchange`
 
         const res = await fetch(endpoint, {
           method: 'POST',

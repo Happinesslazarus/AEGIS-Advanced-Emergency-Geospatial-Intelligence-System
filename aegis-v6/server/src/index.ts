@@ -260,8 +260,6 @@ import oauthRoutes from './routes/oauthRoutes.js'
 import twoFactorRoutes from './routes/twoFactorRoutes.js'
 import citizenTwoFactorRoutes from './routes/citizenTwoFactorRoutes.js'
 import securityRoutes from './routes/securityRoutes.js'
-import magicLinkRoutes from './routes/magicLinkRoutes.js'
-import githubOAuthRoutes from './routes/githubOAuthRoutes.js'
 import emergencyQRAuthRoutes from './routes/emergencyQRAuthRoutes.js'
 import incidentRoutes from './routes/incidentRoutes.js'
 import setupRoutes from './routes/setupRoutes.js'
@@ -691,9 +689,7 @@ app.use('/api/citizen-auth/login', loginLimiter) // Brute-force protection for c
 app.use('/api/auth', authRoutes) // Authentication
 app.use('/api/auth/2fa', twoFactorRoutes) // TOTP Two-Factor Authentication
 app.use('/api/security', securityRoutes) // Device Trust, Security Dashboard, Alert Preferences
-app.use('/api/auth', oauthRoutes) // OAuth social login (Google etc.)
-app.use('/api/auth', githubOAuthRoutes) // GitHub OAuth social login
-app.use('/api/auth/magic-link', magicLinkRoutes) // Magic Link passwordless email login
+app.use('/api/auth', oauthRoutes) // OAuth social login (Google)
 app.use('/api/auth/qr', emergencyQRAuthRoutes) // Emergency QR code quick-auth
 app.use('/api/citizen-auth', citizenAuthRoutes) // Citizen auth
 app.use('/api/citizen-auth/2fa', citizenTwoFactorRoutes) // Citizen TOTP Two-Factor Authentication
