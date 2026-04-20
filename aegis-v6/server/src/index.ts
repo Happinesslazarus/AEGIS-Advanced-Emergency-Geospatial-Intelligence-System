@@ -244,13 +244,11 @@ import userRoutes from './routes/userRoutes.js'
 import chatRoutes from './routes/chatRoutes.js'
 import configRoutes from './routes/configRoutes.js'
 import docsRoutes from './routes/docsRoutes.js'
-import communityRoutes from './routes/communityRoutes.js'
 import uploadRoutes from './routes/uploadRoutes.js'
 import riverRoutes from './routes/riverRoutes.js'
 import floodRoutes from './routes/floodRoutes.js'
 import distressRoutes from './routes/distressRoutes.js'
 import internalRoutes from './routes/internalRoutes.js'
-import adminCommunityRoutes from './routes/adminCommunityRoutes.js'
 import adminMessagingRoutes from './routes/adminMessagingRoutes.js'
 import adminCacheRoutes from './routes/adminCacheRoutes.js'
 import adminAiRoutes from './routes/adminAiRoutes.js'
@@ -273,8 +271,6 @@ import { requestLogger } from './services/logger.js'
 import { startCronJobs } from './services/cronJobs.js'
 import { setIOInstance as setRiverIO } from './services/riverLevelService.js'
 import { setThreatIO } from './services/threatLevelService.js'
-import { setCommunityRealtimeIo } from './services/communityRealtime.js'
-import { startN8nHealthMonitor } from './services/n8nHealthCheck.js'
 import { startModelWarmup } from './services/llmRouter.js'
 import { metricsMiddleware, metricsHandler, collectDBPoolMetrics, activeWebsocketConnections, trustedDevicesGauge } from './services/metrics.js'
 import { authMiddleware, requireRole, AuthRequest } from './middleware/auth.js'
@@ -283,7 +279,6 @@ import { requestTimeoutMiddleware } from './middleware/requestTimeout.js'
 import { updatePoolMetrics } from './services/queryLogger.js'
 
 //Infrastructure services
-import { initFlags, isFeatureEnabled, featureFlagMiddleware, getFlagStats } from './services/featureFlags.js'
 import { adaptiveRateLimitMiddleware, getRateLimitStats } from './services/adaptiveRateLimiting.js'
 import { startSelfHealing, getHealthStatus } from './services/selfHealing.js'
 import { qosMiddleware, getQosStats, Priority } from './services/requestPrioritization.js'
@@ -304,22 +299,15 @@ const httpServer = createServer(app)  // Wrap Express in raw http.Server so Sock
 const PORT = parseInt(process.env.PORT || '3001')
 
 //Infrastructure Initialization
-//These must come before any route imports that use them.
 //Circuits + self-healing protect outbound calls (to DB, AI engine, external APIs).
 //Event sourcing creates the immutable audit trail needed by admin routes.
-//Feature flags lets us toggle behaviour without a redeploy.
 initCircuits()
 initZeroDowntime({ server: httpServer, dbPool: pool })
 startSelfHealing()
 
-initFlags().catch((err: Error) => {
-  console.warn(' [WARN] Feature flags failed to initialize:', err.message)
-})
-
 console.log(' [OK] Infrastructure initialized')
 console.log('      - Circuit breakers: protecting external dependencies')
 console.log('      - Self-healing: autonomous failure recovery')
-console.log('      - Feature flags: gradual rollout support')
 
 //Resilience services
 initBulkheads()
@@ -358,7 +346,6 @@ app.set('io', io)
 //Each service keeps its own reference so it can emit without going through a route.
 setRiverIO(io)        // river level service broadcasts flood alerts
 setThreatIO(io)       // threat level service broadcasts amber/red escalations
-setCommunityRealtimeIo(io)  // community moderation broadcasts live updates
 
 /* --- Middleware stack --------------------------------------------------------
  * ORDER MATTERS here. Each layer sees the request before ones below it.
@@ -466,9 +453,6 @@ app.use(qosMiddleware)
 
 //Adaptive rate limiting - adjusts limits based on system load (CPU, memory, DB pool)
 app.use(adaptiveRateLimitMiddleware)
-
-//Feature flags - injects feature evaluation into request context
-app.use(featureFlagMiddleware)
 
 //Connection tracking for graceful shutdown
 app.use((req, res, next) => {
@@ -653,10 +637,6 @@ app.get('/api/internal/self-healing', authMiddleware as any, requireRole('admin'
   res.json({ success: true, selfHealing: getHealthStatus() })
 })
 
-app.get('/api/internal/feature-flags', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
-  res.json({ success: true, featureFlags: getFlagStats() })
-})
-
 app.get('/api/internal/idempotency', authMiddleware as any, requireRole('admin') as any, async (_req, res) => {
   res.json({ success: true, idempotency: getIdempotencyStats() })
 })
@@ -700,9 +680,7 @@ app.use('/api', dataRoutes) // Alerts, activity, AI metrics, weather
 app.use('/api', extendedRoutes) // Subscriptions, audit, community, departments
 app.use('/api/ai', aiRoutes) // AI prediction engine integration
 app.use('/api/chat', chatRoutes) // LLM chatbot with RAG
-app.use('/api/community', communityRoutes) // Community posts, comments, likes
 app.use('/api/admin/setup', setupRoutes) // First-run onboarding wizard
-app.use('/api/admin/community', adminCommunityRoutes)
 app.use('/api/admin/messages', adminMessagingRoutes)
 app.use('/api/admin/cache', adminCacheRoutes) // Cache management (Admin only)
 app.use('/api/admin/ai', adminAiRoutes) // AI system management (Admin only)
@@ -849,9 +827,6 @@ httpServer.listen(PORT, () => {
   //Start background cron jobs (SEPA river ingestion, cleanup, scheduled reports, etc.)
   //See server/src/services/cronJobs.ts for what runs and on what schedule.
   startCronJobs()
-
-  //Start n8n health monitoring. If n8n is unreachable, falls back to built-in cron logic.
-  startN8nHealthMonitor()
 
   //Pre-warm the primary Ollama/LLM model so the first real chat request isn't slow.
   //Errors here are non-fatal; chat still works, just with a cold-start delay.

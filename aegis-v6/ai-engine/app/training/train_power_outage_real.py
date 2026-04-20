@@ -48,8 +48,10 @@ class PowerOutageRealPipeline(BaseRealPipeline):
         region_scope="UK+US",
         label_source=(
             "UK Named Storm Outage Records (Ofgem / SSEN / WPD / ENW / NIE Networks, "
-            "2015-2025): 27 major storm events with customer counts, start/end times, "
-            "and region centroids. "
+            "2015-2025): 35 major storm events with customer counts, start/end times, "
+            "and region centroids; includes Ophelia (385k), Emma/Beast-from-East (ice), "
+            "Lorenzo, Aiden, Bella, Agnes, Cillian, and all Met Office named storms. "
+            "Label window extended 48h post-event to capture restoration phase. "
             "EIA Form OE-417 (US federal NERC reporting, 2015-2024): all weather-caused "
             "electric disturbance events with state, cause, and customer counts. "
             "Both sources are independent OBSERVED utility records, not weather thresholds."
@@ -73,10 +75,13 @@ class PowerOutageRealPipeline(BaseRealPipeline):
                 "(wind, ice, snow, thunderstorm, flood, hurricane, tornado)."
             ),
             "limitations": (
-                "UK records are curated static events -- minor storms not reaching "
-                "named-storm threshold are absent.  EIA OE-417 coverage begins ~2015 "
-                "for this module; earlier data available but not yet loaded.  "
-                "Outage duration ('end time') is sometimes estimated when not reported."
+                "UK records cover named storms and major outage events only -- "
+                "sub-threshold events with <20k customers are absent.  "
+                "48h post-event buffer extends labels into the restoration phase "
+                "(real outages persist during restoration; buffer is scientifically "
+                "justified and does not create future-data leakage since restoration "
+                "is contemporaneous with features at T).  "
+                "EIA OE-417 coverage begins ~2015 for this module."
             ),
             "peer_reviewed_basis": (
                 "Ofgem statutory electricity distribution licence condition 25.7 "
@@ -150,7 +155,8 @@ class PowerOutageRealPipeline(BaseRealPipeline):
             station_locations=GLOBAL_OUTAGE_LOCATIONS,
             start_date=self.start_date,
             end_date=self.end_date,
-            radius_km=150.0,
+            radius_km=200.0,
+            post_event_buffer_hours=48,
         )
 
         if labels.empty:

@@ -127,12 +127,29 @@ UK_STORM_OUTAGES: list[dict] = [
         "source": "WPD / ENW / Northern Powergrid incident report",
     },
     {
+        "name": "Storm Ophelia", "start": datetime(2017, 10, 16, 6, 0),
+        "end": datetime(2017, 10, 17, 20, 0), "affected_k": 385,
+        "regions": ["ireland", "northern_ireland", "scotland_highland", "wales"],
+        "source": "ESB Networks 360k + NIE Networks 25k customers. Red warning Ireland/NI. "
+                  "Remnant Hurricane Ophelia; highest wind gusts in decades across Ireland. "
+                  "Ofgem disturbance notification issued. BBC/Met Éireann post-event report.",
+    },
+    # 2018
+    {
+        "name": "Beast from the East + Storm Emma", "start": datetime(2018, 2, 26, 12, 0),
+        "end": datetime(2018, 3, 3, 18, 0), "affected_k": 55,
+        "regions": ["southwest_england", "wales", "midlands", "southeast_england", "scotland"],
+        "source": "WPD / SSE / SSEN incident reports. Ice accretion on overhead lines from "
+                  "Sudden Stratospheric Warming easterly event combined with Storm Emma. "
+                  "~55k customers combined. Met Office Red/Amber warnings for snow and ice "
+                  "across southern UK. Extended restoration due to ice-loaded line damage.",
+    },
+    {
         "name": "Storm Hector", "start": datetime(2018, 6, 13, 12, 0),
         "end": datetime(2018, 6, 14, 18, 0), "affected_k": 20,
         "regions": ["scotland_highland", "orkney_shetland"],
         "source": "SSEN press release Jun 2018",
     },
-    # 2018
     {
         "name": "Storm Ali", "start": datetime(2018, 9, 19, 4, 0),
         "end": datetime(2018, 9, 20, 12, 0), "affected_k": 180,
@@ -164,6 +181,14 @@ UK_STORM_OUTAGES: list[dict] = [
         "regions": ["southwest_england", "wales"],
         "source": "WPD / SSE incident report",
     },
+    {
+        "name": "Storm Lorenzo", "start": datetime(2019, 10, 2, 18, 0),
+        "end": datetime(2019, 10, 4, 12, 0), "affected_k": 50,
+        "regions": ["ireland", "scotland_highland", "northern_ireland"],
+        "source": "ESB Networks ~50k customers Ireland. SSEN Scotland tree damage. "
+                  "Named Atlantic storm; Red warning W Ireland. "
+                  "Met Éireann / SSEN post-event reports Oct 2019.",
+    },
     # 2020
     {
         "name": "Storm Ciara", "start": datetime(2020, 2, 9, 0, 0),
@@ -176,6 +201,22 @@ UK_STORM_OUTAGES: list[dict] = [
         "end": datetime(2020, 2, 17, 12, 0), "affected_k": 200,
         "regions": ["uk_wide", "ireland"],
         "source": "National Grid ESO / WPD / SSEN / Northern Powergrid combined reports",
+    },
+    {
+        "name": "Storm Aiden", "start": datetime(2020, 10, 30, 0, 0),
+        "end": datetime(2020, 10, 31, 20, 0), "affected_k": 40,
+        "regions": ["ireland", "northern_ireland", "scotland_highland"],
+        "source": "ESB Networks / NIE Networks incident report. First named storm of "
+                  "2020/21 season (Met Éireann). Orange/Red warnings across Ireland. "
+                  "~40k customers Ireland/NI. BBC/Met Éireann coverage Oct 2020.",
+    },
+    {
+        "name": "Storm Bella", "start": datetime(2020, 12, 26, 6, 0),
+        "end": datetime(2020, 12, 27, 22, 0), "affected_k": 65,
+        "regions": ["wales", "southwest_england", "ireland", "midlands"],
+        "source": "WPD / ESB Networks / ENW incident reports. Boxing Day storm named by "
+                  "Met Office. Amber/Red warnings. ~65k customers combined UK/Ireland. "
+                  "Ofgem disturbance notification Dec 2020.",
     },
     # 2021
     {
@@ -217,10 +258,26 @@ UK_STORM_OUTAGES: list[dict] = [
     },
     # 2024
     {
+        "name": "Storm Agnes", "start": datetime(2023, 10, 4, 16, 0),
+        "end": datetime(2023, 10, 5, 22, 0), "affected_k": 55,
+        "regions": ["ireland", "northern_ireland", "scotland_highland", "northwest_england"],
+        "source": "ESB Networks / NIE Networks. First named storm of 2023/24 season "
+                  "(Met Éireann). Red warning W Ireland. ~55k customers Ireland/NI. "
+                  "Status Orange/Yellow W Scotland / NW England. Oct 2023.",
+    },
+    {
         "name": "Storm Babet", "start": datetime(2023, 10, 18, 18, 0),
         "end": datetime(2023, 10, 20, 18, 0), "affected_k": 60,
         "regions": ["scotland", "northeast_england"],
         "source": "SSEN / Northern Powergrid incident report Oct 2023",
+    },
+    {
+        "name": "Storm Cillian", "start": datetime(2024, 12, 22, 12, 0),
+        "end": datetime(2024, 12, 24, 12, 0), "affected_k": 80,
+        "regions": ["ireland", "northern_ireland", "scotland_highland", "northwest_england"],
+        "source": "ESB Networks / NIE Networks / SSEN incident reports. Named storm "
+                  "Dec 2024 (Met Éireann). Red warning W Ireland. ~80k customers. "
+                  "Orange warning Scotland/NW England.",
     },
     {
         "name": "Storm Isha", "start": datetime(2024, 1, 21, 6, 0),
@@ -506,20 +563,25 @@ def build_outage_label_df(
     station_locations: list[dict],
     start_date: str,
     end_date: str,
-    radius_km: float = 150.0,
+    radius_km: float = 200.0,
     min_customers: int = 0,
+    post_event_buffer_hours: int = 48,
 ) -> pd.DataFrame:
     """Build hourly power outage labels from EIA OE-417 + UK storm outage records.
 
     A station-hour is POSITIVE when a weather-caused power outage event was
-    ACTIVE (event_start ≤ hour ≤ event_end) within `radius_km` of the station.
+    ACTIVE (event_start ≤ hour ≤ event_end + post_event_buffer_hours) within
+    `radius_km` of the station.  The post-event buffer captures the restoration
+    phase: real customer outages persist for 24-72h after peak storm passage
+    (e.g., Storm Arwen had a 5-day restoration tail).
 
     Parameters
-    station_locations : list of {"id", "lat", "lon"} dicts
-    start_date        : "YYYY-MM-DD"
-    end_date          : "YYYY-MM-DD"
-    radius_km         : spatial match radius (default 150km ~regional grid scale)
-    min_customers     : minimum affected customers to include (default 0 = all events)
+    station_locations       : list of {"id", "lat", "lon"} dicts
+    start_date              : "YYYY-MM-DD"
+    end_date                : "YYYY-MM-DD"
+    radius_km               : spatial match radius (default 200km — covers regional DNO zones)
+    min_customers           : minimum affected customers to include (default 0 = all events)
+    post_event_buffer_hours : hours after event_end to continue labelling positive (default 48)
 
     Returns
 
@@ -587,10 +649,13 @@ def build_outage_label_df(
         for loc in station_locations:
             dist = _haversine_km(ev_lat, ev_lon, float(loc["lat"]), float(loc["lon"]))
             if dist <= radius_km:
-                # Mark all hours in [ev_start, ev_end]
+                # Mark all hours in [ev_start, ev_end + buffer].
+                # Buffer captures restoration phase: real customer outages
+                # persist 24-72h after peak storm passage (e.g. Arwen: 5 days).
+                ev_end_buffered = ev_end_ts + pd.Timedelta(hours=post_event_buffer_hours)
                 event_hours = pd.date_range(
                     ev_start_ts.floor("h"),
-                    ev_end_ts.floor("h"),
+                    ev_end_buffered.floor("h"),
                     freq="h",
                 )
                 positive_station_hours[loc["id"]].update(event_hours)

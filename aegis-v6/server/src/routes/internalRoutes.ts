@@ -1,11 +1,9 @@
 ﻿/**
- * Internal service endpoints: n8n WebSocket bridge, frontend error
- * logging (React error boundaries POST here), system health status,
- * live region configuration, and circuit breaker states.
+ * Internal service endpoints: frontend error logging (React error boundaries POST
+ * here), system health status, live region configuration, and circuit breaker states.
  *
  * - Mounted at /api/internal in index.ts
  * - Protected by internalAuth middleware (API key / webhook signature)
- * - n8n automation workflows call these endpoints
  * - Frontend error boundaries log client errors here
  * */
 
@@ -14,10 +12,8 @@ import rateLimit from 'express-rate-limit'
 import pool from '../models/db.js'
 import { devLog } from '../utils/logger.js'
 import { getActiveCityRegion } from '../config/regions/index.js'
-import { getN8nHealthState } from '../services/n8nHealthCheck.js'
 import { isFallbackActive } from '../services/cronJobs.js'
 import { getCircuitBreakerStates } from '../services/externalApiWrapper.js'
-import { getWorkflowDefinitions } from '../services/n8nWorkflowService.js'
 import { internalAuth, n8nWebhookAuth, internalApiKeyAuth } from '../middleware/internalAuth.js'
 import { authMiddleware, operatorOnly } from '../middleware/auth.js'
 import { AppError } from '../utils/AppError.js'
@@ -139,9 +135,6 @@ router.get('/health/system', authMiddleware, operatorOnly, async (_req: Request,
       aiOk = r.ok
     } catch { /* ai engine down */ }
 
-    //n8n health
-    const n8nHealth = getN8nHealthState()
-
     //External API circuit breakers
     const circuitBreakers = getCircuitBreakerStates()
 
@@ -182,21 +175,10 @@ router.get('/health/system', authMiddleware, operatorOnly, async (_req: Request,
       },
       database: { ok: dbOk, latency_ms: dbLatency },
       ai_engine: { ok: aiOk, url: aiUrl, latency_ms: aiLatency },
-      n8n: {
-        healthy: n8nHealth.isHealthy || n8nHealth.fallbackActive,
-        status: n8nHealth.status,
-        consecutive_failures: n8nHealth.consecutiveFailures,
-        last_check: n8nHealth.lastChecked,
-        fallback_active: n8nHealth.fallbackActive,
-        version: n8nHealth.version,
-        workflow_count: n8nHealth.workflowCount,
-        active_workflow_count: n8nHealth.activeWorkflowCount,
-      },
       cron_fallback_active: cronFallback,
       circuit_breakers: circuitBreakers,
       recent_errors: recentErrors,
       recent_jobs: recentJobs,
-      workflow_definitions: getWorkflowDefinitions(),
     })
   } catch (err) {
     next(err)

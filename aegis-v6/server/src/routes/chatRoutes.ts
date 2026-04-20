@@ -30,7 +30,7 @@ import multer from 'multer'
 import path from 'path'
 import fs from 'fs'
 import Tesseract from 'tesseract.js'
-import { processChat, processChatStream, getChatHistory, listSessions, verifySessionOwnership, getChatSessionBudget, endChatSession, logSuggestionClick } from '../services/chatService.js'
+import { processChat, processChatStream, getChatHistory, listSessions, verifySessionOwnership, getChatSessionBudget, endChatSession } from '../services/chatService.js'
 import { getProviderStatus } from '../services/llmRouter.js'
 import { validate, chatMessageSchema } from '../middleware/validate.js'
 import { verifyToken } from '../middleware/auth.js'
@@ -589,25 +589,6 @@ router.post('/sessions/:id/end', async (req: Request, res: Response, next: NextF
     }
 
     await endChatSession(req.params.id)
-    res.json({ ok: true })
-  } catch (err) {
-    next(err)
-  }
-})
-
-/**
- * POST /api/chat/suggestion-click -- Log when a user clicks a smart suggestion
- * Body: { sessionId: string, suggestionText: string, category: string }
- */
-router.post('/suggestion-click', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const user = optionalAuth(req)
-    const { sessionId: sId, suggestionText, category } = req.body
-    if (!sId || !suggestionText) {
-      return res.status(400).json({ error: 'sessionId and suggestionText required' })
-    }
-
-    await logSuggestionClick(sId, user?.id ?? undefined, suggestionText, category || 'general')
     res.json({ ok: true })
   } catch (err) {
     next(err)

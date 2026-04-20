@@ -15,7 +15,6 @@
  * Routes:
  * - server/src/routes/chatRoutes.ts          -- HTTP and SSE endpoints
  * - server/src/services/llmRouter.ts         -- LLM provider selection
- * - server/src/services/personalizationEngine.ts -- user memory and behaviour
  */
 import pool from '../models/db.js'
 import {
@@ -30,15 +29,6 @@ import crypto from 'crypto'
 import { devLog } from '../utils/logger.js'
 import { logger } from './logger.js'
 import { logSecurityEvent } from './securityLogger.js'
-import {
-  loadCitizenMemories, extractAndSaveMemories, buildMemoryContext,
-  loadBehaviorProfile, loadOperatorProfile, buildBehaviorContext,
-  updateBehaviorProfile, updateOperatorProfile,
-  loadRecentSummaries, buildSummaryContext, generateAndSaveSummary,
-  loadEpisodicMemories, buildEpisodicContext, extractEpisodicEvents,
-  generateSmartSuggestions, logSuggestionClick,
-  type ChatMemory, type BehaviorProfile, type SmartSuggestion,
-} from './personalizationEngine.js'
 import {
   COMPACT_SYSTEM_PROMPT,
   CREATOR_PROFILE,
@@ -331,67 +321,6 @@ export async function processChat(req: ChatCompletionRequest): Promise<ChatCompl
   const userProfile = await loadUserProfile(req.citizenId)
   const userProfileContext = buildUserProfileContext(userProfile)
 
-  //ADVANCED PERSONALIZATION -- Cross-session memory, behavior profiles,
-  //conversation summaries, and smart suggestions for signed-in users.
-  //Anonymous citizens get baseline responses; signed-in users get the
-  //full intelligence experience.
-
-  // P1: Cross-session memory -- persistent facts remembered across chats
-  let memoryContext = ''
-  let episodicContext = ''
-  if (req.citizenId) {
-    const memories = await loadCitizenMemories(req.citizenId)
-    memoryContext = buildMemoryContext(memories)
-    //Episodic memory -- specific past incidents this citizen experienced
-    const episodes = await loadEpisodicMemories(req.citizenId)
-    episodicContext = buildEpisodicContext(episodes)
-    //Fire-and-forget: extract new memories + episodes from this message
-    extractAndSaveMemories(req.citizenId, sanitizedMessage, sessionId!).catch(() => {})
-    extractEpisodicEvents(req.citizenId, sanitizedMessage, '').catch(() => {})
-  }
-
-  // P2: Behavioral profiling -- adapt communication style to learned preferences
-  let behaviorContext = ''
-  if (req.citizenId) {
-    const behaviorProfile = await loadBehaviorProfile(req.citizenId)
-    behaviorContext = buildBehaviorContext(behaviorProfile)
-  }
-
-  // P3: Operator profiling -- enhanced admin intelligence
-  let operatorContext = ''
-  if (req.operatorId) {
-    const opProfile = await loadOperatorProfile(req.operatorId)
-    if (opProfile) {
-      const opParts: string[] = []
-      if (opProfile.specialization?.length > 0) {
-        opParts.push(`Operator specialization: ${opProfile.specialization.join(', ')}`)
-      }
-      if (opProfile.preferred_report_format) {
-        opParts.push(`Preferred report format: ${opProfile.preferred_report_format}`)
-      }
-      if (opProfile.preferred_data_depth) {
-        opParts.push(`Preferred data depth: ${opProfile.preferred_data_depth}`)
-      }
-      if (opProfile.active_operations?.length > 0) {
-        opParts.push(`Currently tracking operations: ${opProfile.active_operations.join(', ')}`)
-      }
-      if (opParts.length > 0) {
-        operatorContext = `\n\n[OPERATOR PROFILE]\n${opParts.join('\n')}\nAdapt response format and depth to this operator's preferences.`
-      }
-    }
-  }
-
-  // P4: Cross-session conversation summaries -- continuity across chats
-  let summaryContext = ''
-  if (req.citizenId) {
-    const recentSummaries = await loadRecentSummaries(req.citizenId)
-    summaryContext = buildSummaryContext(recentSummaries)
-  } else if (req.operatorId) {
-    //Operators also benefit from cross-shift continuity
-    const recentSummaries = await loadRecentSummaries(req.operatorId)
-    summaryContext = buildSummaryContext(recentSummaries)
-  }
-
   //Build emergency context for the prompt
   const emergencyInstruction = emergency.isEmergency
     ? `\n\n?? EMERGENCY DETECTED: The user appears to be in a ${emergency.type || 'unknown'} emergency (severity: ${emergency.severity}). Prioritize immediate safety guidance. Lead with the most critical actions.`
@@ -414,12 +343,10 @@ export async function processChat(req: ChatCompletionRequest): Promise<ChatCompl
     : ''
   const effectiveLiveContext = isDocumentUpload ? '' : liveContext
 
-  //Build messages array with full personalization stack:
-  //System prompt + Creator Profile + Agent + Admin + Language + Emergency + Entity + Dialogue +
-  //User Profile + Cross-Session Memory + Episodic Memory + Behavior Profile +
-  //Operator Profile + Session Summaries + Live Context + RAG
+  //Build messages array:
+  //System prompt + Creator Profile + Agent + Admin + Emergency + Entity + Dialogue + User Profile + Live Context + RAG
   const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
-    { role: 'system', content: languageInstruction + '\n\n' + COMPACT_SYSTEM_PROMPT + '\n\n' + CREATOR_PROFILE + agent.systemAddendum + adminAddendum + emergencyInstruction + entityContext + dialogueStateContext + userProfileContext + memoryContext + episodicContext + behaviorContext + operatorContext + summaryContext + imageAnalysisContext + effectiveLiveContext + ragContext + documentOverride + '\n\n' + languageInstruction },
+    { role: 'system', content: languageInstruction + '\n\n' + COMPACT_SYSTEM_PROMPT + '\n\n' + CREATOR_PROFILE + agent.systemAddendum + adminAddendum + emergencyInstruction + entityContext + dialogueStateContext + userProfileContext + imageAnalysisContext + effectiveLiveContext + ragContext + documentOverride + '\n\n' + languageInstruction },
     ...compressedHistory.map(m => ({ role: m.role as 'system' | 'user' | 'assistant', content: m.content })),
   ]
 
@@ -642,45 +569,6 @@ export async function processChat(req: ChatCompletionRequest): Promise<ChatCompl
   //Update user long-term memory (non-blocking)
   updateUserProfile(req.citizenId, memory.entities, detectedLanguage).catch(() => {})
 
-  //ADVANCED PERSONALIZATION -- Post-response learning (non-blocking)
-
-  // P5: Update behavior profile -- learn from this interaction
-  if (req.citizenId) {
-    updateBehaviorProfile(req.citizenId, {
-      messageCount: 1,
-      topics: memory.entities.hazardTypes,
-      locations: memory.entities.locations.map(l => ({ name: l })),
-      detectedLanguage,
-      sentiment: routing.emotion,
-    }).catch(() => {})
-  }
-
-  // P6: Update operator profile
-  if (req.operatorId) {
-    updateOperatorProfile(req.operatorId, toolsUsed).catch(() => {})
-  }
-
-  // P7: Auto-summarize conversations that are getting long (>15 messages)
-  const messageCount = history.length
-  if (messageCount >= 15 && messageCount % 10 === 0 && (req.citizenId || req.operatorId)) {
-    generateAndSaveSummary(sessionId!, req.citizenId, req.operatorId).catch(() => {})
-  }
-
-  // P8: Generate smart suggestions personalized to this user
-  let smartSuggestions: SmartSuggestion[] = []
-  if (req.citizenId || req.operatorId) {
-    const memories = req.citizenId ? await loadCitizenMemories(req.citizenId) : []
-    const profile = req.citizenId ? await loadBehaviorProfile(req.citizenId) : null
-    smartSuggestions = generateSmartSuggestions({
-      isAuthenticated: !!req.citizenId,
-      memories,
-      profile,
-      lastBotMessage: finalReply,
-      isEmergency: emergency.isEmergency,
-      adminMode: req.adminMode,
-    })
-  }
-
   //Cache the response (only if no tools were used, no safety flags, and not an emergency)
   if (toolsUsed.length === 0 && safetyFlags.length === 0 && !emergency.isEmergency) {
     await cacheResponse(queryHash, req.message, finalReply, response.model)
@@ -714,8 +602,6 @@ export async function processChat(req: ChatCompletionRequest): Promise<ChatCompl
     emergency,
     qualityScore,
     analytics,
-    smartSuggestions,
-    isPersonalized: !!(req.citizenId || req.operatorId),
   }
 }
 
@@ -902,47 +788,8 @@ export async function processChatStream(
     ? `\n\nConversation context -- previously mentioned: locations=[${memory.entities.locations.join(', ')}], hazards=[${memory.entities.hazardTypes.join(', ')}]. Maintain continuity with these references.`
     : ''
 
-  //ADVANCED PERSONALIZATION -- Stream variant
-
-  //Load user profile for basic personalization
-  //PARALLEL WAVE 2: All profile/memory loads (was 5 sequential awaits -- saves ~100-200ms)
-  const [userProfile, citizenMemories, citizenEpisodes, behaviorProfile, opProfile, recentSummaries] = await Promise.all([
-    loadUserProfile(req.citizenId),
-    req.citizenId ? loadCitizenMemories(req.citizenId) : Promise.resolve(null),
-    req.citizenId ? loadEpisodicMemories(req.citizenId) : Promise.resolve(null),
-    req.citizenId ? loadBehaviorProfile(req.citizenId) : Promise.resolve(null),
-    req.operatorId ? loadOperatorProfile(req.operatorId) : Promise.resolve(null),
-    (req.citizenId || req.operatorId) ? loadRecentSummaries((req.citizenId || req.operatorId)!) : Promise.resolve(null),
-  ])
-
+  const userProfile = await loadUserProfile(req.citizenId)
   const userProfileContext = buildUserProfileContext(userProfile)
-
-  let memoryContext = ''
-  let episodicContext = ''
-  if (req.citizenId) {
-    if (citizenMemories) memoryContext = buildMemoryContext(citizenMemories)
-    if (citizenEpisodes) episodicContext = buildEpisodicContext(citizenEpisodes)
-    extractAndSaveMemories(req.citizenId, sanitizedMessage, sessionId!).catch(() => {})
-    extractEpisodicEvents(req.citizenId, sanitizedMessage, '').catch(() => {})
-  }
-
-  let behaviorContext = ''
-  if (req.citizenId && behaviorProfile) {
-    behaviorContext = buildBehaviorContext(behaviorProfile)
-  }
-
-  let operatorContext = ''
-  if (req.operatorId && opProfile) {
-    const opParts: string[] = []
-    if (opProfile.specialization?.length > 0) opParts.push(`Specialization: ${opProfile.specialization.join(', ')}`)
-    if (opProfile.preferred_report_format) opParts.push(`Report format: ${opProfile.preferred_report_format}`)
-    if (opParts.length > 0) operatorContext = `\n\n[OPERATOR PROFILE]\n${opParts.join('\n')}`
-  }
-
-  let summaryContext = ''
-  if (recentSummaries) {
-    summaryContext = buildSummaryContext(recentSummaries)
-  }
 
   //Dialogue state for context continuity
   const dialogueState = inferDialogueState(redactedHistory, sanitizedMessage, emergency, routing.emotion)
@@ -957,7 +804,7 @@ export async function processChatStream(
   const effectiveLiveContextStream = isDocumentUpload ? '' : liveContext
 
   const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
-    { role: 'system', content: languageInstruction + '\n\n' + COMPACT_SYSTEM_PROMPT + '\n\n' + CREATOR_PROFILE + agent.systemAddendum + adminAddendum + emergencyInstruction + entityContext + dialogueStateContext + userProfileContext + memoryContext + episodicContext + behaviorContext + operatorContext + summaryContext + imageAnalysisContext + effectiveLiveContextStream + ragContext + documentOverrideStream + '\n\n' + languageInstruction },
+    { role: 'system', content: languageInstruction + '\n\n' + COMPACT_SYSTEM_PROMPT + '\n\n' + CREATOR_PROFILE + agent.systemAddendum + adminAddendum + emergencyInstruction + entityContext + dialogueStateContext + userProfileContext + imageAnalysisContext + effectiveLiveContextStream + ragContext + documentOverrideStream + '\n\n' + languageInstruction },
     ...compressedHistory.map(m => ({ role: m.role as 'system' | 'user' | 'assistant', content: m.content })),
   ]
 
@@ -1201,47 +1048,8 @@ export async function processChatStream(
     [response.tokensUsed, response.model, sessionId],
   )
 
-  //ADVANCED PERSONALIZATION -- Post-stream learning (non-blocking)
-
-  //Update user profile (legacy)
+  //Update user profile (non-blocking)
   updateUserProfile(req.citizenId, memory.entities, detectedLanguage).catch(() => {})
-
-  //Update behavior profile
-  if (req.citizenId) {
-    updateBehaviorProfile(req.citizenId, {
-      messageCount: 1,
-      topics: memory.entities.hazardTypes,
-      locations: memory.entities.locations.map(l => ({ name: l })),
-      detectedLanguage,
-      sentiment: routing.emotion,
-    }).catch(() => {})
-  }
-
-  //Update operator profile
-  if (req.operatorId) {
-    updateOperatorProfile(req.operatorId, streamToolsUsed).catch(() => {})
-  }
-
-  //Auto-summarize long conversations
-  const streamMessageCount = history.length
-  if (streamMessageCount >= 15 && streamMessageCount % 10 === 0 && (req.citizenId || req.operatorId)) {
-    generateAndSaveSummary(sessionId!, req.citizenId, req.operatorId).catch(() => {})
-  }
-
-  //Generate smart suggestions
-  let smartSuggestions: SmartSuggestion[] = []
-  if (req.citizenId || req.operatorId) {
-    const memories = req.citizenId ? await loadCitizenMemories(req.citizenId) : []
-    const profile = req.citizenId ? await loadBehaviorProfile(req.citizenId) : null
-    smartSuggestions = generateSmartSuggestions({
-      isAuthenticated: !!req.citizenId,
-      memories,
-      profile,
-      lastBotMessage: finalReply,
-      isEmergency: emergency.isEmergency,
-      adminMode: req.adminMode,
-    })
-  }
 
   const sources: Array<{ title: string; relevance: number }> = []
   if (ragContext) {
@@ -1271,8 +1079,6 @@ export async function processChatStream(
     emergency,
     qualityScore,
     analytics,
-    smartSuggestions,
-    isPersonalized: !!(req.citizenId || req.operatorId),
   }
 }
 
@@ -1348,13 +1154,8 @@ export async function endChatSession(
       `UPDATE chat_sessions SET status = 'completed', ended_at = NOW(), updated_at = NOW() WHERE id = $1`,
       [sessionId],
     )
-    //Generate and persist summary for future session context
-    await generateAndSaveSummary(sessionId, citizenId, operatorId)
   } catch (err) {
     logger.warn({ err }, '[Chat] Failed to end session cleanly')
   }
 }
-
-//Re-export personalization utilities for route handlers
-export { logSuggestionClick, generateSmartSuggestions } from './personalizationEngine.js'
 
