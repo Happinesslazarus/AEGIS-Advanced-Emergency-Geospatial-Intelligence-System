@@ -1,7 +1,8 @@
 /**
- * Profile country picker shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * User-profile country picker with a hierarchical region list and
+ * search box. Highlights the currently saved country and fires an
+ * onChange callback with the new ISO code on selection.
+ */
 
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'

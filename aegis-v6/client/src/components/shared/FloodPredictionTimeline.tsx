@@ -1,7 +1,8 @@
 /**
- * Flood prediction timeline shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * Horizontal timeline chart showing hourly flood-risk predictions for
+ * the next 72 hours. Colour-codes each time slot by severity and
+ * highlights the current hour with a pulsing marker.
+ */
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import {

@@ -1,7 +1,8 @@
 /**
- * Confirm dialog shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * Generic yes/no modal used before destructive actions (delete report,
+ * revoke access, etc.). Accepts title, message, and confirm/cancel
+ * callbacks via props.
+ */
 
 import { AlertTriangle } from 'lucide-react'
 import { t } from '../../utils/i18n'

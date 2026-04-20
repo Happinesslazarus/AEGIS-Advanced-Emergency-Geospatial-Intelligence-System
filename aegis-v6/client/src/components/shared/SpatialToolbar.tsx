@@ -1,7 +1,8 @@
 /**
- * Spatial toolbar shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * Map-attached drawing and measurement toolbar. Lets users draw
+ * lines (distance), polygons (area), and circles (radius query)
+ * on the Leaflet canvas and displays metric results inline.
+ */
 
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useMap, useMapEvents, Marker, Circle, Polyline, Polygon, Popup } from 'react-leaflet'

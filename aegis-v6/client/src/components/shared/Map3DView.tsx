@@ -1,7 +1,8 @@
 /**
- * Map3 d view shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * Extended 3D map with colour-coded risk overlays and hazard-zone
+ * extrusions. Layers are toggled through the HazardPredictionTimeline
+ * and the colour ramp follows the global severity palette.
+ */
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { getAnyToken } from '../../utils/api'

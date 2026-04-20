@@ -1,7 +1,8 @@
 /**
- * Incident map layers shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * Generates Leaflet GeoJSON layers for incidents, colouring each
+ * marker by its incident type (blue for flood, red for fire, etc.).
+ * Attaches click handlers that open the incident detail popup.
+ */
 
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'

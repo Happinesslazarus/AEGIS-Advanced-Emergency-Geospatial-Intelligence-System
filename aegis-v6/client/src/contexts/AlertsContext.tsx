@@ -1,7 +1,9 @@
 /**
- * Alerts context React context provider (shares state across components).
- *
- * - Wraps components in App.tsx via AppProviders */
+ * Global alert state manager. Fetches the initial alert list from
+ * /api/alerts on mount, subscribes to the Socket.IO "new-alert" and
+ * "alert-updated" events, and exposes the alert array plus an unread
+ * count to all child components.
+ */
 
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, ReactNode } from 'react'
 import { apiGetAlerts } from '../utils/api'

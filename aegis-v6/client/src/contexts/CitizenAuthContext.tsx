@@ -1,7 +1,8 @@
 /**
- * Citizen auth context React context provider (shares state across components).
- *
- * - Wraps components in App.tsx via AppProviders */
+ * Handles citizen authentication: login, registration, logout, JWT
+ * storage in localStorage, automatic token refresh, and exposes the
+ * current user profile to the component tree.
+ */
 
 import { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from 'react'
 import { API_BASE } from '../utils/helpers'

@@ -1,7 +1,8 @@
 /**
- * Offline indicator shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * Small banner that appears at the top of the page when the browser
+ * loses its network connection. Hides automatically once connectivity
+ * is restored.
+ */
 
 import React, { useEffect, useState } from 'react'
 import { WifiOff, RefreshCw, Check } from 'lucide-react'

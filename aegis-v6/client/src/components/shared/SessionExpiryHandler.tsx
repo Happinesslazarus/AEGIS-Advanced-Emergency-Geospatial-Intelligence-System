@@ -1,7 +1,8 @@
 /**
- * Session expiry handler shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * Monitors the JWT expiry timestamp and shows a countdown warning
+ * modal 2 minutes before the session ends. If the user dismisses
+ * the warning the token is refreshed; otherwise auto-logout fires.
+ */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'

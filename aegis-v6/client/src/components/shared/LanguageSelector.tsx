@@ -1,7 +1,8 @@
 /**
- * Language selector shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * Compact globe-icon dropdown that lists the 9 language codes (en, es,
+ * fr, ar, …). Changing the selection calls i18n.changeLanguage() and
+ * persists the choice in localStorage.
+ */
 
 import { Globe } from 'lucide-react'
 import { useTheme } from '../../contexts/ThemeContext'

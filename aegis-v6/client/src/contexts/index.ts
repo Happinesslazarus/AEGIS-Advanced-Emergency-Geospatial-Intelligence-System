@@ -1,8 +1,8 @@
 /**
- * Index React context provider (shares state across components).
- *
- * How it connects:
- * - Wraps components in App.tsx via AppProviders */
+ * Barrel file that re-exports every context provider and its
+ * associated hook (useAlerts, useAuth, useSocket, …) from the
+ * contexts/ directory for cleaner imports.
+ */
 
 export { AppProviders, MinimalProviders, PublicProviders, CitizenProviders, composeProviders } from './AppProviders'
 export { AlertsProvider, useAlerts } from './AlertsContext'

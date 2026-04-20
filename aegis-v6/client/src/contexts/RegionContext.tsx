@@ -1,7 +1,8 @@
 /**
- * Region context React context provider (shares state across components).
- *
- * - Wraps components in App.tsx via AppProviders */
+ * Manages the active deployment region (UK, EU, AU, …). Reads the
+ * VITE_REGION env var on startup and exposes region-specific config
+ * (currency, date format, emergency numbers) to all components.
+ */
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react'
 

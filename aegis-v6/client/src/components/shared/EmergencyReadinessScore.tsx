@@ -1,7 +1,8 @@
 /**
- * Emergency readiness score shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * Personal preparedness checklist that scores the citizen from 0 to 100
+ * based on completed items (emergency kit, evacuation plan, contact list).
+ * Progress ring animates on mount.
+ */
 
 import { useState, useEffect, useRef } from 'react'
 import { Shield, CheckCircle2, Circle, ChevronDown, ChevronUp, Sparkles } from 'lucide-react'

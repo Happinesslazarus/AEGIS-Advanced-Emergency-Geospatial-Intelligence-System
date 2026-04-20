@@ -1,7 +1,8 @@
 /**
- * Consent dialog shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * GDPR-style data-processing consent dialog. Shows a plain-language
+ * summary of what data will be collected and gives the user accept /
+ * decline buttons. Blocks interaction until dismissed.
+ */
 
 import { Shield, AlertTriangle } from 'lucide-react'
 import type { ConsentConfig } from '../../types'

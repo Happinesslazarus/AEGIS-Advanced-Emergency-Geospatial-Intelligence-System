@@ -1,7 +1,8 @@
 /**
- * Error boundary shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * React error boundary that catches render-time exceptions, logs them
+ * to Sentry via captureException(), and shows a friendly fallback UI
+ * with a "Try again" button that resets component state.
+ */
 
 import { Component, type ErrorInfo, type ReactNode, createRef } from 'react'
 import * as Sentry from '@sentry/react'

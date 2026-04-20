@@ -1,7 +1,8 @@
 /**
- * Incoming alerts widget shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * Live-feed widget that subscribes to the alerts socket channel and
+ * displays the most recent 5 alerts as a scrollable list with hazard
+ * icons and relative timestamps.
+ */
 
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'

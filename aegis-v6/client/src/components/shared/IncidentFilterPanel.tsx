@@ -1,7 +1,8 @@
 /**
- * Incident filter panel shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * Sidebar filter panel for the incident list view. Lets users narrow
+ * results by incident type (flood, fire, …), severity, date range,
+ * and geographic radius using Lucide icons for each category.
+ */
 
 import { type ElementType } from 'react'
 import {

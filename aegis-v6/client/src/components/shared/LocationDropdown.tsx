@@ -1,7 +1,8 @@
 /**
- * Location dropdown shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * Cascading three-level location picker: region → district → ward.
+ * Each level fetches its options from /api/locations and icons indicate
+ * the location type (city, village, etc.).
+ */
 
 import { useState, useRef, useEffect, useMemo } from 'react'
 import {

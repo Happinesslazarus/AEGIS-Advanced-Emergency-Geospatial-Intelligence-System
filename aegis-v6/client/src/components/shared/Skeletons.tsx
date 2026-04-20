@@ -1,7 +1,8 @@
 /**
- * Skeletons shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * Collection of placeholder skeleton components (SkeletonBox,
+ * SkeletonCard, SkeletonList) used as loading states while async
+ * data is being fetched.
+ */
 
 /* Generic rectangular skeleton with pulse animation */
 export function SkeletonBox({ className = '' }: { className?: string }): JSX.Element {

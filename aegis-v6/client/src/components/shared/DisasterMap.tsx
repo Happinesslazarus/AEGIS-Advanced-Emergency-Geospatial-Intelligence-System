@@ -1,7 +1,9 @@
 /**
- * Disaster map shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * Primary Leaflet map used on the citizen and admin dashboards.
+ * Renders incident markers, flood-depth polygons, weather radar
+ * tiles, and river sensor pins. Supports click-to-inspect popups
+ * and real-time marker updates via SocketContext.
+ */
 
 import { useMemo, useEffect, useState, useCallback, useRef } from 'react'
 import {

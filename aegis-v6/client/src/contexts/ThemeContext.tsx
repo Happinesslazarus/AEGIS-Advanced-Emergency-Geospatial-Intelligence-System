@@ -1,7 +1,8 @@
 /**
- * Theme context React context provider (shares state across components).
- *
- * - Wraps components in App.tsx via AppProviders */
+ * Provides light / dark / system theme state to the entire app.
+ * Persists the user's choice in localStorage and applies the
+ * "dark" class to the document root element.
+ */
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 

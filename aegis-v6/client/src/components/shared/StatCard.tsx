@@ -1,7 +1,8 @@
 /**
- * Stat card shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * Single-metric statistic card that takes a number, label, colour
+ * key, and optional trend icon. Used on dashboards to show KPIs
+ * like total alerts, active incidents, or response time.
+ */
 
 import type { LucideIcon } from 'lucide-react'
 import { t } from '../../utils/i18n'

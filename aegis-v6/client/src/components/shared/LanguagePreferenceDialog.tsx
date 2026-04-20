@@ -1,7 +1,8 @@
 /**
- * Language preference dialog shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * Modal dialog that presents all 9 supported languages as a grid of
+ * flag-labelled buttons. Saves the selection to the user profile via
+ * PATCH /api/users/me and updates i18next on the fly.
+ */
 
 import { useState, useEffect } from 'react'
 import { Globe, Check, X } from 'lucide-react'

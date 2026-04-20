@@ -1,7 +1,8 @@
 /**
- * Alert caption overlay shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * Semi-transparent caption strip rendered on top of alert images.
+ * Shows the alert title, severity, and timestamp so the text remains
+ * readable regardless of the background photo.
+ */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { AlertTriangle, Info, ShieldAlert, X, Volume2 } from 'lucide-react'

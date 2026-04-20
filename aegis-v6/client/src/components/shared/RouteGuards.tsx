@@ -1,7 +1,8 @@
 /**
- * Route guards shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * Higher-order route wrappers that check the JWT token before rendering
+ * child routes. Redirects unauthenticated users to /login and enforces
+ * role-based access (admin, operator, citizen).
+ */
 
 import { type ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'

@@ -1,7 +1,8 @@
 /**
- * Two factor challenge admin component (operator dashboard panel).
- *
- * - Rendered inside AdminPage.tsx based on active view */
+ * TOTP code entry form shown after the operator enters their password
+ * when two-factor authentication is enabled. Validates the 6-digit
+ * code against /api/auth/2fa/verify before granting access.
+ */
 
 import { useState, useRef, useEffect } from 'react'
 import { Shield, Key, ArrowLeft, Loader2, AlertCircle, CheckCircle, Monitor } from 'lucide-react'

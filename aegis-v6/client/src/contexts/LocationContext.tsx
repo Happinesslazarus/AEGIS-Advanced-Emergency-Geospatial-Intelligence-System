@@ -1,7 +1,8 @@
 /**
- * Location context React context provider (shares state across components).
- *
- * - Wraps components in App.tsx via AppProviders */
+ * Stores the user's selected geographic scope (region, district, ward)
+ * and their browser geolocation coordinates. Components use this to
+ * filter map data and incident feeds by area.
+ */
 
 import { createContext, useContext, useState, useMemo, ReactNode } from 'react'
 import type { LocationConfig, LocationOption } from '../types'

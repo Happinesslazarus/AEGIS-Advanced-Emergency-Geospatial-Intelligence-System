@@ -1,7 +1,8 @@
 /**
- * Climate risk dashboard shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * Full-page climate risk overview with line charts for temperature and
+ * rainfall trends, a regional risk heat-map, and summary cards for each
+ * hazard category. Fetches data from /api/climate.
+ */
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import {

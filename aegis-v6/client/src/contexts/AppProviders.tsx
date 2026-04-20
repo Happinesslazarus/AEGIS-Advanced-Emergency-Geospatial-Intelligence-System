@@ -1,7 +1,8 @@
 /**
- * App providers React context provider (shares state across components).
- *
- * - Wraps components in App.tsx via AppProviders */
+ * Composes every React context provider (auth, socket, alerts, theme,
+ * region, location, incidents, reports) into a single nested wrapper
+ * so App.tsx only needs one import.
+ */
 
 import { type ReactNode, type ComponentType, type FC } from 'react'
 import { QueryClientProvider } from '@tanstack/react-query'

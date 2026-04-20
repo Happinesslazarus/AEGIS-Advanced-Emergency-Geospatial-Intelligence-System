@@ -1,7 +1,8 @@
 /**
- * Cookie consent shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * Bottom-of-page cookie banner with granular category toggles
+ * (essential, analytics, marketing). Stores consent choices in a
+ * signed cookie and hides itself once the user decides.
+ */
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Shield, Settings, X, ChevronDown, ChevronUp, Cookie } from 'lucide-react'

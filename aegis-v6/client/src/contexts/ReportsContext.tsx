@@ -1,7 +1,8 @@
 /**
- * Reports context React context provider (shares state across components).
- *
- * - Wraps components in App.tsx via AppProviders */
+ * Fetches citizen-submitted incident reports from /api/reports with
+ * cursor-based pagination. Caches pages locally and exposes
+ * submitReport / updateReport helpers.
+ */
 
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, type ReactNode } from 'react'
 import { apiGetReports, apiUpdateReportStatus, apiSubmitReport } from '../utils/api'

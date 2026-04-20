@@ -1,7 +1,8 @@
 /**
- * Intelligence dashboard shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * AI-powered intelligence summary panel. Pulls model confidence scores,
+ * active threat counts, and anomaly flags from /api/intelligence and
+ * renders them as gauge charts with trend arrows.
+ */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {

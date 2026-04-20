@@ -1,7 +1,8 @@
 /**
- * Grouped country picker shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * Country selector whose options are grouped by continent (Africa,
+ * Asia, Europe, …). Supports keyboard navigation and type-ahead
+ * search within the grouped list.
+ */
 
 import React, { useState, useRef, useEffect, useMemo } from 'react'
 import { CONTINENT_GROUPS, ALL_COUNTRIES, REGION_MAP, type CountryEntry } from '../../data/allCountries'

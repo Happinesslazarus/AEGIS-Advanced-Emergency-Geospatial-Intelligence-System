@@ -1,7 +1,8 @@
 /**
- * Notification toast shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * Lightweight toast component that maps a notification type (success,
+ * error, warning, info) to a Lucide icon and background colour.
+ * Rendered by the ToastProvider stack.
+ */
 
 import { X, CheckCircle, AlertTriangle, Info, LucideIcon } from 'lucide-react'
 import { useAlerts } from '../../contexts/AlertsContext'

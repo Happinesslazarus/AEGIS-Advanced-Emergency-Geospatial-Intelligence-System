@@ -1,7 +1,8 @@
 /**
- * Map3 d shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * Mapbox GL JS wrapper that renders a 3D terrain view with extruded
+ * buildings and satellite imagery. Falls back to a flat Leaflet map
+ * when the Mapbox token is missing.
+ */
 
 import { useRef, useEffect, useState, useCallback } from 'react'
 import mapboxgl from 'mapbox-gl'

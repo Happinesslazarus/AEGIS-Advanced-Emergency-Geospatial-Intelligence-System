@@ -1,7 +1,8 @@
 /**
- * Emergency banner shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * Full-width red banner pinned to the top of the viewport during an
+ * active emergency broadcast. Dismissible per session via a close
+ * button; auto-reappears if a new broadcast arrives.
+ */
 
 import { useState, useCallback, useEffect } from 'react'
 import { Phone, X } from 'lucide-react'

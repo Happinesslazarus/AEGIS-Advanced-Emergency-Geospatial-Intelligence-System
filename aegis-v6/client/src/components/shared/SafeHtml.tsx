@@ -1,7 +1,8 @@
 /**
- * Safe html shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * XSS-safe HTML renderer. Strips script/style/iframe tags and dangerous
+ * attributes (onerror, onclick) while preserving safe formatting tags
+ * (b, i, a, ul, li, p, br).
+ */
 
 import React from 'react'
 

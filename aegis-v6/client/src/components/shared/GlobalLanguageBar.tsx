@@ -1,7 +1,8 @@
 /**
- * Global language bar shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * Thin bar at the very top of the page that shows the current UI
+ * language with a flag icon. Clicking it opens the language selector
+ * dropdown for quick switching.
+ */
 
 import { Globe } from 'lucide-react'
 import { useLocation } from 'react-router-dom'

@@ -1,7 +1,8 @@
 /**
- * Alert card shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * Renders a single emergency alert as a card with a colour-coded severity
+ * badge, human-readable timestamp, location tag, and expand/collapse
+ * toggle for the full alert body.
+ */
 
 import { useState, memo } from 'react'
 import {

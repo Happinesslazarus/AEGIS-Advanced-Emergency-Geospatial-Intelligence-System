@@ -1,7 +1,8 @@
 /**
- * Modern notification shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * Styled notification popup with an icon, title, body, and auto-dismiss
+ * timer. Slides in from the top-right corner and fades out after the
+ * configured duration.
+ */
 
 import { useState, useEffect } from 'react'
 import { AlertCircle, CheckCircle, Info, AlertTriangle, Bell, X } from 'lucide-react'

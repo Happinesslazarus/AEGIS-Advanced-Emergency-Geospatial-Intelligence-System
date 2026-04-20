@@ -1,7 +1,8 @@
 /**
- * Accessibility panel shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * Floating toolbar that lets users toggle screen-reader announcements,
+ * high-contrast colours, and large-text mode. Persists preferences in
+ * localStorage so settings survive page reloads.
+ */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Accessibility, X, Eye, Type, Contrast, Monitor, MousePointer, Volume2 } from 'lucide-react'

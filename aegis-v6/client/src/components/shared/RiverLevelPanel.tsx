@@ -1,7 +1,8 @@
 /**
- * River level panel shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * Panel that fetches live river gauge data from /api/rivers and
+ * renders a line chart of water levels against configurable flood-
+ * threshold lines (minor, moderate, major).
+ */
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import {

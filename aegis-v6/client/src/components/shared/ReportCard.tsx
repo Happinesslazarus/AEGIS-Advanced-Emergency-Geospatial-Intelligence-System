@@ -1,7 +1,8 @@
 /**
- * Report card shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * Compact card that displays a citizen-submitted incident report with
+ * its status badge (pending, verified, resolved), category icon, and
+ * optional quick-action buttons for operators.
+ */
 
 import { memo, useState } from 'react'
 import { MapPin, Clock, CheckCircle, AlertTriangle, Camera, Bot, Loader2 } from 'lucide-react'

@@ -1,7 +1,8 @@
 /**
- * Two factor settings admin component (operator dashboard panel).
- *
- * - Rendered inside AdminPage.tsx based on active view */
+ * Settings panel where operators enable or disable TOTP two-factor
+ * authentication. Generates a QR code for authenticator apps, displays
+ * one-time backup codes, and handles the disable confirmation flow.
+ */
 
 import { useState, useEffect, useRef } from 'react'
 import {

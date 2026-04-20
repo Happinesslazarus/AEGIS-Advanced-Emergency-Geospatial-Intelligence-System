@@ -1,7 +1,8 @@
 /**
- * Incident context React context provider (shares state across components).
- *
- * - Wraps components in App.tsx via AppProviders */
+ * Tracks the live list of incidents by polling /api/incidents and
+ * listening to socket events. Provides add/update/remove helpers
+ * and per-type incident counts.
+ */
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
 import { io, type Socket } from 'socket.io-client'

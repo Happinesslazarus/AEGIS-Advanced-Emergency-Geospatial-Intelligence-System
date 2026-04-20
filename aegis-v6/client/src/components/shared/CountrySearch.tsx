@@ -1,7 +1,8 @@
 /**
- * Country search shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * Searchable dropdown that lists all countries with their flag emoji.
+ * Filters results as the user types and calls onChange with the
+ * selected ISO-3166 country code.
+ */
 
 import { useState, useRef, useEffect } from 'react'
 import { useTheme } from '../../contexts/ThemeContext'

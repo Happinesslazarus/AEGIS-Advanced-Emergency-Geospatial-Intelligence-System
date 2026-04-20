@@ -1,7 +1,8 @@
 /**
- * Public safety mode shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * Simplified emergency UI mode with extra-large buttons, minimal
+ * text, and high-contrast colours. Designed for use on public kiosks
+ * or during active evacuations when speed matters.
+ */
 
 import { useState, useEffect, useCallback } from 'react'
 import {

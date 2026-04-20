@@ -1,7 +1,8 @@
 /**
- * Threat radar widget shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * Radar-style widget that arranges active threats in concentric
+ * severity rings (critical → low). Each threat appears as a dot
+ * positioned by category and coloured by severity.
+ */
 
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { AlertTriangle, Activity, Droplets, Flame, Wind, CloudLightning, RefreshCw, MapPin, Clock, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react'

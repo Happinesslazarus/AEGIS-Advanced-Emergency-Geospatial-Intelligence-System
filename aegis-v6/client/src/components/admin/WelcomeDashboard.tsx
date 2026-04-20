@@ -1,7 +1,8 @@
 /**
- * Welcome dashboard admin component (operator dashboard panel).
- *
- * - Rendered inside AdminPage.tsx based on active view */
+ * Default landing view inside the admin panel. Shows summary stat cards
+ * (active incidents, pending reports, online operators), a recent
+ * activity feed, and quick-action shortcuts.
+ */
 
 import { useMemo, useState, useEffect, useRef } from 'react'
 import {

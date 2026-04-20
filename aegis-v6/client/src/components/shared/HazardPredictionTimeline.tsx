@@ -1,7 +1,8 @@
 /**
- * Hazard prediction timeline shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * Multi-hazard version of FloodPredictionTimeline. Shows side-by-side
+ * timelines for flood, wildfire, drought, and other hazards with
+ * per-hazard colour coding and a shared time axis.
+ */
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {

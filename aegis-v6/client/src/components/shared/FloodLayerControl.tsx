@@ -1,7 +1,8 @@
 /**
- * Flood layer control shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * Checkbox group that toggles flood-related map overlays on and off
+ * (predicted depth, observed extent, river sensors, evacuation routes).
+ * Passes the active layer set up to the parent map component.
+ */
 
 import { useState, useMemo } from 'react'
 import {

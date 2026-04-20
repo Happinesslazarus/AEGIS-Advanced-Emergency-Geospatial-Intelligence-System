@@ -1,7 +1,8 @@
 /**
- * Socket context React context provider (shares state across components).
- *
- * - Wraps components in App.tsx via AppProviders */
+ * Creates a single Socket.IO client connection on mount and tears it
+ * down on unmount. Exposes the socket instance so any component can
+ * emit events or subscribe to channels.
+ */
 
 import { createContext, useContext, useEffect, type ReactNode } from 'react'
 import { useSocket, type SocketState } from '../hooks/useSocket'

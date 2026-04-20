@@ -1,7 +1,8 @@
 /**
- * Live map shared component (reusable UI element used across pages).
- *
- * - Used across both admin and citizen interfaces */
+ * Real-time Leaflet map that subscribes to WebSocket events for new
+ * incidents, updated alerts, and sensor readings. Adds, moves, or
+ * removes markers automatically without a full data re-fetch.
+ */
 
 import { useRef, useEffect, useState, useCallback } from 'react'
 import { getAnyToken } from '../../utils/api'
