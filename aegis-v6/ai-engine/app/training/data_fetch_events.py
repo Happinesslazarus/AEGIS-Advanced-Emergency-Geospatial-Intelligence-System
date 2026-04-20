@@ -462,10 +462,10 @@ async def fetch_nasa_firms_events(
 
     west, south, east, north = bbox
 
-    # FIRMS API accepts at most 10 days per call; split into chunks
+    # FIRMS area/csv API accepts at most 5 days per call for historical data
     dt_start = datetime.strptime(start_date, "%Y-%m-%d")
     dt_end = datetime.strptime(end_date, "%Y-%m-%d")
-    chunk_days = 10
+    chunk_days = 5
     all_chunks: list[pd.DataFrame] = []
 
     _FIRMS_CACHE_DIR.mkdir(parents=True, exist_ok=True)

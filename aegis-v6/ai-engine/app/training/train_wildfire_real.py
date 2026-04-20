@@ -223,12 +223,18 @@ class WildfireRealPipeline(BaseRealPipeline):
         if not firms_df.empty:
             return self._build_firms_labels(weather, firms_df)
         else:
-            logger.warning(
-                "  FIRMS data not available — falling back to FWI-threshold "
-                "proxy labels.  data_validity demoted to 'proxy'."
+            # FWI fallback uses ERA5-derived thresholds on the same variables used as
+            # features — tautological leakage. A model trained this way would achieve
+            # artificially high AUC by reconstructing the label formula, not learning
+            # genuine fire-weather relationships. Hard-block: raise so training aborts
+            # rather than silently producing a scientifically invalid model.
+            raise RuntimeError(
+                "FIRMS satellite data unavailable and FWI-threshold fallback is blocked "
+                "because FWI is computed from ERA5 variables also used as features "
+                "(tautological label leakage — AUC would be inflated to ~0.95+). "
+                "Fix: ensure FIRMS_MAP_KEY is set and the API is reachable, or supply "
+                "an offline FIRMS CSV in data/cache/firms/."
             )
-            self._used_firms = False
-            return self._build_fwi_fallback_labels(weather)
 
     def _build_firms_labels(
         self, weather: pd.DataFrame, firms_df: pd.DataFrame
