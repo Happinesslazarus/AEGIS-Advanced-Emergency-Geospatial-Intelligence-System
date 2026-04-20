@@ -1,6 +1,4 @@
-﻿/**
- * Module: GenericAdapter.ts
- *
+/**
  * Generic adapter server module.
  *
  * - Used by services for external data fetching

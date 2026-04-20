@@ -1,6 +1,4 @@
 /**
- * Module: useDistress.test.ts
- *
  * Use distress test suite (automated tests for this feature).
  *
  * Glossary:

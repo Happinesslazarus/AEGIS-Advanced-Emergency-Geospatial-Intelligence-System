@@ -1,6 +1,4 @@
 /**
- * Module: chatbotEngine.test.ts
- *
  * Tests for the client-side chatbot engine — a keyword/pattern matching NLP
  * (Natural Language Processing) engine that maps user messages to known intents
  * and returns pre-written safety advice. Because the engine runs entirely in the

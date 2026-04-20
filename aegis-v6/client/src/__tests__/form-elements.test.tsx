@@ -1,6 +1,4 @@
-﻿/**
- * Module: form-elements.test.tsx
- *
+/**
  * Tests for the shared form UI components used throughout the AEGIS client:
  *   - FormField         — label + children wrapper with error / hint / required support
  *   - Input             — styled text input with icon slots and size variants

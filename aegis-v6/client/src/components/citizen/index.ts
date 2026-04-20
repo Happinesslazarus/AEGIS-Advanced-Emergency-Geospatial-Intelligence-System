@@ -1,6 +1,4 @@
 /**
- * Module: index.ts
- *
  * Index citizen component (public-facing UI element).
  *
  * How it connects:

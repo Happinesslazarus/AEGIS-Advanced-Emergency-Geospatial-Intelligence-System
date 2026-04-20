@@ -1,6 +1,4 @@
-﻿/**
- * Module: index.ts
- *
+/**
  * Public safety incidents incident module (handles public safety specific logic).
  *
  * - Part of the incident module system, registered via incidents/registry.ts

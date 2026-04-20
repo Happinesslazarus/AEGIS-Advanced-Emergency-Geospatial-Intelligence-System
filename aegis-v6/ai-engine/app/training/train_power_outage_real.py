@@ -102,11 +102,13 @@ class PowerOutageRealPipeline(BaseRealPipeline):
         min_positive_samples=20,
         min_stations=3,
         promotion_min_roc_auc=0.68,
-        fixed_test_date="2021-01-01",
+        # fixed_test_date removed: "2021-01-01" put val_pos=0 (all positives fell in test),
+        # making Optuna hyperparameter selection completely blind to positive-class performance.
+        # Use 70/15/15 chronological split so positives are distributed across all folds.
+        allow_sparse_test=True,
         # allow_temporal_drift: UK+US multi-region model. La Niña/El Niño inter-annual
         # variability and differing UK winter vs US Midwest ice-storm seasonality produce
         # apparent quarter-to-quarter drift that is geographic, not model degradation.
-        # Storm Arwen (Nov 2021, 100k UK customers) is captured in the 2021 test fold.
         allow_temporal_drift=True,
     )
 

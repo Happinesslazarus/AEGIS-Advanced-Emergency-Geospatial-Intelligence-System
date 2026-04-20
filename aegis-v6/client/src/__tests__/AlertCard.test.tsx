@@ -1,6 +1,4 @@
-﻿/**
- * Module: AlertCard.test.tsx
- *
+/**
  * Tests for the AlertCard component — a visual card that displays a single
  * emergency alert (flood, wildfire, evacuation, etc.) with its severity level,
  * message, source, and optional dismiss button.

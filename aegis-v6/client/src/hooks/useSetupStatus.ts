@@ -1,6 +1,4 @@
 /**
- * Module: useSetupStatus.ts
- *
  * useSetupStatus custom React hook (setup status logic).
  *
  * How it connects:

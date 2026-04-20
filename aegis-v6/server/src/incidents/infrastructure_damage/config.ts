@@ -1,6 +1,4 @@
-﻿/**
- * Module: config.ts
- *
+/**
  * Infrastructure damage assessment incident module (handles infrastructure damage specific logic).
  *
  * - Part of the incident module system, registered via incidents/registry.ts

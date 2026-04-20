@@ -1,6 +1,4 @@
-﻿/**
- * Module: admin-components.test.tsx
- *
+/**
  * Tests for the <ActivityLog> admin component and its companion utilities:
  *   - ActivityLog component   — renders a scrollable card of recent operator actions
  *   - useActivityLog() hook   — subscribes to the shared activity list (pub/sub pattern)

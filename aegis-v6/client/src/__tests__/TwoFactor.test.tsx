@@ -1,6 +1,4 @@
-﻿/**
- * Module: TwoFactor.test.tsx
- *
+/**
  * Tests for the two-factor authentication (2FA) UI components:
  *   - TwoFactorChallenge — the login step where the user enters a TOTP or backup code
  *   - TwoFactorSettings  — the settings page where staff can enable, disable, and manage 2FA

@@ -1,6 +1,4 @@
 /**
- * Module: index.ts
- *
  * index custom React hook (index logic).
  *
  * How it connects:

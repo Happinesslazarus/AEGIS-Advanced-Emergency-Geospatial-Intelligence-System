@@ -1,6 +1,4 @@
-﻿/**
- * Module: ui-components.test.tsx
- *
+/**
  * Tests for the shared low-level UI primitives used everywhere in the AEGIS client:
  *   - Button / CloseButton  — accessible buttons with variant, size, icon, and loading support
  *   - Modal                 — accessible dialog with focus management and keyboard handling

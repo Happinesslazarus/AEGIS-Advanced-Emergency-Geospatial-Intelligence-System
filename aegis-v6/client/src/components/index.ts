@@ -1,6 +1,4 @@
 /**
- * Module: index.ts
- *
  * Index React component.
  *
  * How it connects:

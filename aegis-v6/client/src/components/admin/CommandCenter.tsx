@@ -1,6 +1,4 @@
-﻿/**
- * Module: CommandCenter.tsx
- *
+/**
  * Command center dashboard (real-time operational overview).
  *
  * - Rendered inside AdminPage.tsx based on active view */

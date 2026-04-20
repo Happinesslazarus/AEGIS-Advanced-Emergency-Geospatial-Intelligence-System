@@ -1,6 +1,4 @@
-﻿/**
- * Module: index.ts
- *
+/**
  * Riverdata barrel export (re-exports module contents).
  *
  * - Used by services for external data fetching

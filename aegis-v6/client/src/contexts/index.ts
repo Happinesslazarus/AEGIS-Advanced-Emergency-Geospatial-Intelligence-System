@@ -1,6 +1,4 @@
 /**
- * Module: index.ts
- *
  * Index React context provider (shares state across components).
  *
  * How it connects:

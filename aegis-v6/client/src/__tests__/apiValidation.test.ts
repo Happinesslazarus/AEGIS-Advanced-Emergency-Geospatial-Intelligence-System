@@ -1,6 +1,4 @@
 /**
- * Module: apiValidation.test.ts
- *
  * Tests for the API validation library — a collection of Zod schemas and wrapper
  * functions that validate and sanitise data received from the server before the
  * rest of the client code touches it. This prevents malformed or malicious server

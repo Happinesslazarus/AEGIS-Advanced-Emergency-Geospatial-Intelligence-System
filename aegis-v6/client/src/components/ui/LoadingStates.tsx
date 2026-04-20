@@ -1,6 +1,4 @@
-﻿/**
- * Module: LoadingStates.tsx
- *
+/**
  * Loading states UI primitive (low-level UI building block).
  *
  * - Used by data-fetching components as placeholder content

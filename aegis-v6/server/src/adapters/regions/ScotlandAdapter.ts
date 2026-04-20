@@ -1,6 +1,4 @@
-﻿/**
- * Module: ScotlandAdapter.ts
- *
+/**
  * RegionAdapter implementation for Scotland. Fetches live data from SEPA
  * (Scottish Environment Protection Agency) and the Environment Agency (EA)
  * as a fallback, then normalises the results into the shared

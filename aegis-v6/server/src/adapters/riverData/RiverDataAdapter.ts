@@ -1,6 +1,4 @@
-﻿/**
- * Module: RiverDataAdapter.ts
- *
+/**
  * River data adapter server module.
  *
  * - Used by services for external data fetching

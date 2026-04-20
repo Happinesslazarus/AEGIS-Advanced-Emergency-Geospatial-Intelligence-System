@@ -1,6 +1,4 @@
 /**
- * Module: regionConfig.ts
- *
  * Region config frontend module.
  *
  * How it connects:

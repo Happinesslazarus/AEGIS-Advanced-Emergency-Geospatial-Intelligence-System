@@ -1,6 +1,4 @@
-﻿/**
- * Module: TopNavbar.tsx
- *
+/**
  * Top navbar React component.
  *
  * - Rendered by AppLayout

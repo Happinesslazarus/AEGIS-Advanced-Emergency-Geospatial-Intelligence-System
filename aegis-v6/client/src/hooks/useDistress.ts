@@ -1,6 +1,4 @@
 /**
- * Module: useDistress.ts
- *
  * useDistress custom React hook (distress logic).
  *
  * How it connects:

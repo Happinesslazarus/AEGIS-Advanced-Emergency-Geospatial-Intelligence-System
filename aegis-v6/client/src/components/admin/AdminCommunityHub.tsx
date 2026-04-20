@@ -1,6 +1,4 @@
-﻿/**
- * Module: AdminCommunityHub.tsx
- *
+/**
  * Community hub management panel (moderate forums and resources).
  *
  * - Rendered inside AdminPage.tsx based on active view */

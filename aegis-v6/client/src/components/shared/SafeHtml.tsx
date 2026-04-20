@@ -1,6 +1,4 @@
-﻿/**
- * Module: SafeHtml.tsx
- *
+/**
  * Safe html shared component (reusable UI element used across pages).
  *
  * - Used across both admin and citizen interfaces */

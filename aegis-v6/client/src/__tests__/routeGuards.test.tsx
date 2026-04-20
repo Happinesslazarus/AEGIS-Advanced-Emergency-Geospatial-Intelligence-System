@@ -1,6 +1,4 @@
-﻿/**
- * Module: routeGuards.test.tsx
- *
+/**
  * Tests for the route-guard components and utilities that control page access
  * based on authentication status and user role.  AEGIS has two separate auth
  * systems running in parallel:

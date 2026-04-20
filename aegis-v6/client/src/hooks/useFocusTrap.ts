@@ -1,6 +1,4 @@
 /**
- * Module: useFocusTrap.ts
- *
  * useFocusTrap custom React hook (focus trap logic).
  *
  * How it connects:

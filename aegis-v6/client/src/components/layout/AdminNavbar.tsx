@@ -1,6 +1,4 @@
-﻿/**
- * Module: AdminNavbar.tsx
- *
+/**
  * Admin navbar React component.
  *
  * - Rendered by AdminLayout

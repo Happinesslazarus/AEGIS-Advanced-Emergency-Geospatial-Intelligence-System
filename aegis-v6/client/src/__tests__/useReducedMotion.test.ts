@@ -1,6 +1,4 @@
 /**
- * Module: useReducedMotion.test.ts
- *
  * Use reduced motion test suite (automated tests for this feature).
  *
  * Glossary:

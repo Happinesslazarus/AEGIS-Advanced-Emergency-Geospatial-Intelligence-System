@@ -1,6 +1,4 @@
 /**
- * Module: accessibility.ts
- *
  * Accessibility client utility (helper functions).
  *
  * How it connects:

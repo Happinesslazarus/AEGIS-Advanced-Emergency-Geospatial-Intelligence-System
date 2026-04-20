@@ -1,6 +1,4 @@
-﻿/**
- * Module: chatEvalScenarios.ts
- *
+/**
  * Chat eval scenarios (AI quality evaluation definitions).
  *
  * - Used by scripts/runChatEvals.ts to run automated chat quality tests

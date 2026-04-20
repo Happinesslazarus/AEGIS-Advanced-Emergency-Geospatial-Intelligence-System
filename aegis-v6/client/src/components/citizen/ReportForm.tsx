@@ -1,3 +1,12 @@
+/**
+ * Multi-step citizen incident report form. Walks the user through selecting
+ * an incident category, picking a map location, uploading photos, and
+ * describing what they witnessed. Submitted reports are posted to
+ * /api/reports and immediately reflected in the live map via Socket.IO.
+ *
+ * - Rendered inside CitizenDashboard as a modal slide-over panel
+ * - Reads incident category taxonomy from client/src/data/disasterTypes.ts
+ */
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { X, ChevronRight, ChevronLeft, MapPin, Camera, Send, AlertTriangle, CheckCircle, Wind, Flame, Droplets, Home, Construction, Zap, Users, Siren } from 'lucide-react'

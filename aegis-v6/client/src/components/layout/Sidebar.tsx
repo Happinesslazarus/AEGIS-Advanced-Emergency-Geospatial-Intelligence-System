@@ -1,6 +1,4 @@
-﻿/**
- * Module: Sidebar.tsx
- *
+/**
  * Collapsible citizen navigation sidebar with desktop, tablet, and mobile modes.
  *
  * Layout behaviour:

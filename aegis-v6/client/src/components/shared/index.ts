@@ -1,6 +1,4 @@
 /**
- * Module: index.ts
- *
  * Index shared component (reusable UI element used across pages).
  *
  * How it connects:

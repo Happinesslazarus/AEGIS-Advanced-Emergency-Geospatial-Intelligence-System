@@ -1,6 +1,4 @@
-﻿/**
- * Module: CommunityHelp.tsx
- *
+/**
  * Community help citizen component (public-facing UI element).
  *
  * - Rendered inside CitizenPage.tsx or CitizenDashboard.tsx */

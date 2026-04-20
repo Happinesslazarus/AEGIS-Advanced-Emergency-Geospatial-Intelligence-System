@@ -1,6 +1,4 @@
 /**
- * Module: useAudioAlerts.test.ts
- *
  * Use audio alerts test suite (automated tests for this feature).
  *
  * Glossary:

@@ -1,6 +1,4 @@
-﻿/**
- * Module: EnglandAdapter.ts
- *
+/**
  * Region adapter for England and Wales, drawing data from the Environment
  * Agency (EA) Flood Monitoring API and Open-Meteo / OpenWeatherMap.
  *

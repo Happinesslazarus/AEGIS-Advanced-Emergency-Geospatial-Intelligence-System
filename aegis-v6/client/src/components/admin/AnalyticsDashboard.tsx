@@ -1,6 +1,4 @@
-﻿/**
- * Module: AnalyticsDashboard.tsx
- *
+/**
  * Admin analytics dashboard showing KPIs, trend charts, severity/status
  * breakdowns, and spatial clusters for the selected time range.
  *

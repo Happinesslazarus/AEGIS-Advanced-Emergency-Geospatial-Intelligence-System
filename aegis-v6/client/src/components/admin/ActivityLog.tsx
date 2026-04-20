@@ -1,6 +1,4 @@
-﻿/**
- * Module: ActivityLog.tsx
- *
+/**
  * Operator activity log viewer (shows who did what and when).
  *
  * - Rendered inside AdminPage.tsx based on active view */

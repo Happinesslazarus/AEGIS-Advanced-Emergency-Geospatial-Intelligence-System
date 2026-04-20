@@ -1,6 +1,4 @@
-﻿/**
- * Module: registry.ts
- *
+/**
  * Incident module registry (central lookup for all 11 incident types).
  *
  * - Part of the incident module system, registered via incidents/registry.ts

@@ -1,6 +1,4 @@
-﻿/**
- * Module: CommunityChatRoom.tsx
- *
+/**
  * Community chat room citizen component (public-facing UI element).
  *
  * - Rendered inside CitizenPage.tsx or CitizenDashboard.tsx */

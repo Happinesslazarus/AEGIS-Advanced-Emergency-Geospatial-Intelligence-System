@@ -1,6 +1,4 @@
-﻿/**
- * Module: LiveIncidentMapPanel.tsx
- *
+/**
  * Live incident map panel citizen component (public-facing UI element).
  *
  * - Rendered inside CitizenPage.tsx or CitizenDashboard.tsx */

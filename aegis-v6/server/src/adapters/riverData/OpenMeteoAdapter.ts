@@ -1,6 +1,4 @@
-﻿/**
- * Module: OpenMeteoAdapter.ts
- *
+/**
  * Open meteo adapter server module.
  *
  * - Used by services for external data fetching

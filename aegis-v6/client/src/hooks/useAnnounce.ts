@@ -1,6 +1,4 @@
 /**
- * Module: useAnnounce.ts
- *
  * useAnnounce custom React hook (announce logic).
  *
  * How it connects:

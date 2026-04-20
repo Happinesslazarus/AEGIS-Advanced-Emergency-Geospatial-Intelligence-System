@@ -1,6 +1,4 @@
-﻿/**
- * Module: FloodPredictionTimeline.tsx
- *
+/**
  * Flood prediction timeline shared component (reusable UI element used across pages).
  *
  * - Used across both admin and citizen interfaces */

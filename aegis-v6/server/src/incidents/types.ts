@@ -1,6 +1,4 @@
-﻿/**
- * Module: types.ts
- *
+/**
  * Types incident component.
  *
  * - Part of the incident module system, registered via incidents/registry.ts

@@ -1,6 +1,4 @@
-﻿/**
- * Module: FormElements.tsx
- *
+/**
  * Form elements UI primitive (low-level UI building block).
  *
  * - Used by any form across the app

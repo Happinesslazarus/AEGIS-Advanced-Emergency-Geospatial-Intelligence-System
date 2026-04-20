@@ -1,6 +1,4 @@
 /**
- * Module: useKeyboardShortcuts.ts
- *
  * useKeyboardShortcuts custom React hook (keyboard shortcuts logic).
  *
  * How it connects:

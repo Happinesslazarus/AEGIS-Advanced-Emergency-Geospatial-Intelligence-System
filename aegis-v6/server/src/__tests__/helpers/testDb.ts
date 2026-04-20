@@ -1,6 +1,4 @@
-﻿/**
- * Module: testDb.ts
- *
+/**
  * Test db server module.
  *
  * - Run by the test runner (Vitest or Jest)

@@ -1,6 +1,4 @@
 /**
- * Module: useFloodData.ts
- *
  * useFloodData custom React hook (flood data logic).
  *
  * How it connects:

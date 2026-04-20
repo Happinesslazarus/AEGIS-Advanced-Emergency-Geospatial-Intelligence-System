@@ -1,6 +1,4 @@
-﻿/**
- * Module: ReportForm.test.tsx
- *
+/**
  * Tests for the <ReportForm> citizen component — a multi-step wizard that lets
  * citizens submit incident / disaster reports with location, severity, category,
  * subtype, and media attachments.  Tests cover initial render, step navigation,

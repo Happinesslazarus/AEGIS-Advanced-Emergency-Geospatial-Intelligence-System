@@ -1,6 +1,4 @@
-﻿/**
- * Module: AdminCrowdDensity.tsx
- *
+/**
  * Crowd density monitoring panel (shows real-time crowd levels).
  *
  * - Pulls spatial density data from the backend API

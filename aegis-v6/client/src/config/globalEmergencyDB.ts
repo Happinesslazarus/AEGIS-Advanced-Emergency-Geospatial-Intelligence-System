@@ -1,6 +1,4 @@
 /**
- * Module: globalEmergencyDB.ts
- *
  * Global emergency d b frontend module.
  *
  * How it connects:

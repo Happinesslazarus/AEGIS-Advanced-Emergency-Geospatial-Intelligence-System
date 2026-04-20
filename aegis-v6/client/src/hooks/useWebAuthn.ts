@@ -1,6 +1,4 @@
 /**
- * Module: useWebAuthn.ts
- *
  * useWebAuthn custom React hook (web authn logic).
  *
  * How it connects:

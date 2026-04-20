@@ -1,6 +1,4 @@
 /**
- * Module: AdminAlertBroadcast.tsx
- *
  * Alert broadcast panel (compose and send emergency alerts). */
 
 import { useState, useMemo, useCallback, useEffect } from 'react'

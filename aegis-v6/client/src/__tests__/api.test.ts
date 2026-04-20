@@ -1,6 +1,4 @@
 /**
- * Module: api.test.ts
- *
  * Tests for the api.ts utility, which is the lowest-level token/user store used
  * by every authenticated request in the app. Responsibilities:
  *   - Hold the admin JWT in memory (never persisted to localStorage)

@@ -1,6 +1,4 @@
-﻿/**
- * Module: LiveOperationsMap.tsx
- *
+/**
  * Live operations map (real-time geospatial situational awareness).
  *
  * - Rendered inside AdminPage.tsx based on active view */

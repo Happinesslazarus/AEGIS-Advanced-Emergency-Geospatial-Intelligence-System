@@ -1,6 +1,4 @@
 /**
- * Module: useAudioAlerts.ts
- *
  * useAudioAlerts custom React hook (audio alerts logic).
  *
  * How it connects:

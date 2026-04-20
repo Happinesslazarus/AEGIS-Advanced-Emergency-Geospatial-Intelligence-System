@@ -1,6 +1,4 @@
-﻿/**
- * Module: DeliveryDashboard.tsx
- *
+/**
  * Resource delivery tracking dashboard (monitors supply distribution).
  *
  * - Rendered inside AdminPage.tsx based on active view */

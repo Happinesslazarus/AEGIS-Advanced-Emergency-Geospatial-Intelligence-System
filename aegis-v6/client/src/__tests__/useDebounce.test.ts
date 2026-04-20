@@ -1,6 +1,4 @@
 /**
- * Module: useDebounce.test.ts
- *
  * Tests for the useDebounce hook (delays a value update) and the
  * useDebouncedCallback hook (delays a function call).
  *

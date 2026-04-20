@@ -1,6 +1,4 @@
 /**
- * Module: useWebPush.ts
- *
  * useWebPush custom React hook (web push logic).
  *
  * How it connects:

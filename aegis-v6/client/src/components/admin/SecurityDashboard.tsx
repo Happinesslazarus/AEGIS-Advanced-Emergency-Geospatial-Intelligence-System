@@ -1,6 +1,4 @@
-﻿/**
- * Module: SecurityDashboard.tsx
- *
+/**
  * Security monitoring dashboard (threat indicators and alerts).
  *
  * - Rendered inside AdminPage.tsx based on active view */

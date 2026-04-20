@@ -1,6 +1,4 @@
 /**
- * Module: index.ts
- *
  * Config barrel export (re-exports module contents).
  *
  * How it connects:

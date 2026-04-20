@@ -1,6 +1,4 @@
 /**
- * Module: useLanguage.ts
- *
  * useLanguage custom React hook (language logic).
  *
  * How it connects:

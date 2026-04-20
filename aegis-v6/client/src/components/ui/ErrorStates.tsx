@@ -1,6 +1,4 @@
-﻿/**
- * Module: ErrorStates.tsx
- *
+/**
  * Error states UI primitive (low-level UI building block).
  *
  * - Wraps route-level components as error boundaries

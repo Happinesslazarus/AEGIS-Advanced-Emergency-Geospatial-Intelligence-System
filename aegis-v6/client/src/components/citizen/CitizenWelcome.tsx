@@ -1,6 +1,4 @@
-﻿/**
- * Module: CitizenWelcome.tsx
- *
+/**
  * Personalised welcome dashboard shown at the top of the citizen area for
  * authenticated users.
  *

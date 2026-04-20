@@ -1,6 +1,4 @@
-﻿/**
- * Module: WelcomeDashboard.tsx
- *
+/**
  * Welcome dashboard admin component (operator dashboard panel).
  *
  * - Rendered inside AdminPage.tsx based on active view */

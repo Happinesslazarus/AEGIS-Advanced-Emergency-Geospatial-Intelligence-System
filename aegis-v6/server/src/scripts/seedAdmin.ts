@@ -1,7 +1,5 @@
-﻿#!/usr/bin/env ts-node
+#!/usr/bin/env ts-node
 /**
- * Module: seedAdmin.ts
- *
  * Initial admin account seeder (creates the first admin user on fresh installs).
  *
  * - Run manually or on first startup to create the initial admin user

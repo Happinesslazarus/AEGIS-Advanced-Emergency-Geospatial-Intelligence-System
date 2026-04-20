@@ -1,6 +1,4 @@
 /**
- * Module: vite-env.d.ts
- *
  * Vite-env.d frontend module.
  *
  * How it connects:

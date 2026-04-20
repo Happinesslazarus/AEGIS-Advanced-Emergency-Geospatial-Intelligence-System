@@ -1,6 +1,4 @@
-﻿/**
- * Module: dataIngestion.ts
- *
+/**
  * Wildfire and bushfire events incident module (handles wildfire specific logic).
  *
  * - Part of the incident module system, registered via incidents/registry.ts

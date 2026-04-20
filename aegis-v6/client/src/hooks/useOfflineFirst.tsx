@@ -1,6 +1,4 @@
-﻿/**
- * Module: useOfflineFirst.tsx
- *
+/**
  * useOfflineFirst custom React hook (offline first logic).
  *
  * - Used by React components that need this functionality */

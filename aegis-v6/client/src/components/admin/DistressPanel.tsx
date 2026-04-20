@@ -1,6 +1,4 @@
-﻿/**
- * Module: DistressPanel.tsx
- *
+/**
  * Distress signal management panel (SOS alerts from citizens).
  *
  * - Rendered inside AdminPage.tsx based on active view */

@@ -655,7 +655,7 @@ export default function CitizenAuthPage(): JSX.Element {
             )}
           </div>
 
-          {/* Continue as Guest */}
+          {/* Explore (guest access) */}
           <Link to="/citizen" className="relative text-xs font-bold px-3.5 py-2.5 rounded-xl overflow-hidden group bg-aegis-600 hover:bg-aegis-700 shadow-lg shadow-aegis-600/20 hover:shadow-aegis-400/40 transition-all hover:scale-[1.03] active:scale-[0.97] text-white min-h-[40px] flex items-center">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out" />
             <span className="relative z-10">{t('citizen.auth.guestContinue', lang)}</span>

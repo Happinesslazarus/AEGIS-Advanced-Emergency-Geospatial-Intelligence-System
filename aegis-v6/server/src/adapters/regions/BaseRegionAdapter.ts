@@ -1,6 +1,4 @@
-﻿/**
- * Module: BaseRegionAdapter.ts
- *
+/**
  * Base region adapter server module.
  *
  * - Used by services for external data fetching

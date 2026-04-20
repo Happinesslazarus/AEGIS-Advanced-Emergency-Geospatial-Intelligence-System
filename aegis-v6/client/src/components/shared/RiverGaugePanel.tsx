@@ -1,6 +1,4 @@
-﻿/**
- * Module: RiverGaugePanel.tsx
- *
+/**
  * Advanced river level intelligence panel displaying live gauge readings from
  * SEPA (Scotland) and Environment Agency (England & Wales) via sepaApi utility.
  * Features: severity-sorted gauge list, animated level bars, threshold

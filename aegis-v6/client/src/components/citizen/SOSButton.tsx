@@ -1,6 +1,4 @@
-﻿/**
- * Module: SOSButton.tsx
- *
+/**
  * S o s button citizen component (public-facing UI element).
  *
  * - Rendered inside CitizenPage.tsx or CitizenDashboard.tsx */

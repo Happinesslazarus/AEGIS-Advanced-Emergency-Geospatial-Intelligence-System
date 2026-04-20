@@ -1,6 +1,4 @@
-﻿/**
- * Module: error-boundary.test.tsx
- *
+/**
  * Tests for the ErrorBoundary component — a React class component that wraps any
  * section of the UI and catches JavaScript errors thrown during rendering or
  * in lifecycle methods, preventing a single crash from taking down the whole page.

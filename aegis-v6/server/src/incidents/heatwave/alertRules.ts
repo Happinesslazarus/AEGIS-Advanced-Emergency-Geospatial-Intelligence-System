@@ -1,6 +1,4 @@
-﻿/**
- * Module: alertRules.ts
- *
+/**
  * Extreme heat events incident module (handles heatwave specific logic).
  *
  * - Part of the incident module system, registered via incidents/registry.ts

@@ -1,6 +1,4 @@
-﻿/**
- * Module: routes.ts  (flood/routes.ts)
- *
+/**
  * Flood-specific supplementary routes mounted on top of the standard
  * BaseIncidentModule routes for the flood incident type.
  *

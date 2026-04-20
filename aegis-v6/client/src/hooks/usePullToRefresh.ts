@@ -1,6 +1,4 @@
 /**
- * Module: usePullToRefresh.ts
- *
  * usePullToRefresh custom React hook (pull to refresh logic).
  *
  * How it connects:

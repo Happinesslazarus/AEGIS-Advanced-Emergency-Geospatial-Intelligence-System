@@ -1,6 +1,4 @@
 /**
- * Module: useDebounce.ts
- *
  * useDebounce custom React hook (debounce logic).
  *
  * How it connects:

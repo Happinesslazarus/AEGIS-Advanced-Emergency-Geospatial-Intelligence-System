@@ -1,6 +1,4 @@
-﻿/**
- * Module: testAuth.ts
- *
+/**
  * Test auth server module.
  *
  * - Run by the test runner (Vitest or Jest)

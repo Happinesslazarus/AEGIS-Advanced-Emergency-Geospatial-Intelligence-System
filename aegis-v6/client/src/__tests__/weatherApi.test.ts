@@ -1,6 +1,4 @@
 /**
- * Module: weatherApi.test.ts
- *
  * Tests for the weatherApi utility functions: fetching live weather and
  * forecast data from Open-Meteo, flood-risk assessment, and API key management.
  *

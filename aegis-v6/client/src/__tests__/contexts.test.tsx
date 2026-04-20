@@ -1,6 +1,4 @@
-﻿/**
- * Module: contexts.test.tsx
- *
+/**
  * Tests for React context providers. Currently covers ThemeContext, which
  * supplies the active colour theme to all components via React's Context API.
  *

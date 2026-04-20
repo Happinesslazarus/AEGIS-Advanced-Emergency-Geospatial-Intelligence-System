@@ -1,3 +1,12 @@
+/**
+ * Invisible bridge component that runs after citizen login and syncs saved
+ * preferences (language, theme, audio alert volume) stored in the database
+ * into the relevant React contexts and localStorage. Also renders the
+ * AlertCaptionOverlay for screen-reader accessible live captions.
+ *
+ * - Mounted once inside CitizenDashboard (renders null, no visible UI)
+ * - Reads preferences from CitizenAuthContext after a successful login
+ */
 import { useEffect } from 'react'
 import { useCitizenAuth } from '../../contexts/CitizenAuthContext'
 import { useTheme } from '../../contexts/ThemeContext'

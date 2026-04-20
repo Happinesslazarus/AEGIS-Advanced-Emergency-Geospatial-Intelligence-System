@@ -1,6 +1,4 @@
 /**
- * Module: useOfflineQueue.ts
- *
  * useOfflineQueue custom React hook (offline queue logic).
  *
  * How it connects:

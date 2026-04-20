@@ -1,6 +1,4 @@
 /**
- * Module: index.ts
- *
  * Index page component (top-level route view).
  *
  * How it connects:

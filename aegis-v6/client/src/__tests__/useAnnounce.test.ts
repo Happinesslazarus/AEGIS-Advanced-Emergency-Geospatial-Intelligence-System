@@ -1,6 +1,4 @@
 /**
- * Module: useAnnounce.test.ts
- *
  * Tests for the useAnnounce hook, which injects screen-reader announcements
  * into the page via ARIA live regions without interrupting visual layout.
  *

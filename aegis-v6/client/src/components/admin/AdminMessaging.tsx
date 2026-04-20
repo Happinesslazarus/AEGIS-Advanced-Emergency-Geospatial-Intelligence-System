@@ -1,6 +1,4 @@
-﻿/**
- * Module: AdminMessaging.tsx
- *
+/**
  * Operator messaging panel (internal team communication).
  *
  * - Rendered inside AdminPage.tsx based on active view */

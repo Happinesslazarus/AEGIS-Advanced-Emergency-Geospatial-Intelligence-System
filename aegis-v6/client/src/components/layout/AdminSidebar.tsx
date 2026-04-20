@@ -1,6 +1,4 @@
-﻿/**
- * Module: AdminSidebar.tsx
- *
+/**
  * Collapsible admin navigation sidebar with desktop and mobile modes.
  *
  * Layout behaviour:

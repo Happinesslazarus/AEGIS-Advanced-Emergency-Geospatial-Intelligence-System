@@ -1,6 +1,4 @@
-﻿/**
- * Module: RiskAssessment.tsx
- *
+/**
  * Risk assessment citizen component (public-facing UI element).
  *
  * - Rendered inside CitizenPage.tsx or CitizenDashboard.tsx */

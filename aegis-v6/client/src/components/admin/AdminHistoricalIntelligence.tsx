@@ -1,6 +1,4 @@
-﻿/**
- * Module: AdminHistoricalIntelligence.tsx
- *
+/**
  * Historical intelligence dashboard (past incident analysis).
  *
  * - Rendered inside AdminPage.tsx based on active view */

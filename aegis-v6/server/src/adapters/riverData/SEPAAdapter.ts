@@ -1,6 +1,4 @@
-﻿/**
- * Module: SEPAAdapter.ts
- *
+/**
  * S e p a adapter server module.
  *
  * - Used by services for external data fetching

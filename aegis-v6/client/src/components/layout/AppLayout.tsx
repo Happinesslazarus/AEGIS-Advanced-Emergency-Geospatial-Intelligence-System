@@ -1,6 +1,4 @@
-﻿/**
- * Module: AppLayout.tsx
- *
+/**
  * App layout React component.
  *
  * - Used by CitizenPage and CitizenDashboard to wrap citizen views

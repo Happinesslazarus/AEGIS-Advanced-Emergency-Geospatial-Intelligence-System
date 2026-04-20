@@ -1,6 +1,4 @@
 /**
- * Module: index.ts
- *
  * Index UI primitive (low-level UI building block).
  *
  * How it connects:

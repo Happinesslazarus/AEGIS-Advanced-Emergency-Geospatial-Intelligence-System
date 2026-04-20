@@ -1,6 +1,4 @@
 /**
- * Module: setup.ts
- *
  * Global test setup file — runs ONCE before any test suite via the `setupFiles`
  * option in vitest.config.ts.  Its job is to:
  *   1. Extend Jest/Vitest matchers with helpful DOM assertions (jest-dom)

@@ -60,6 +60,31 @@ class _LGBFocalObjective:
         p = 1.0 / (1.0 + np.exp(-y_pred))
         fl_weight = (1.0 - p) ** self.gamma
         return fl_weight * (p - y_true), fl_weight * p * (1.0 - p)
+
+
+class _StackModel:
+    """Picklable stacking ensemble: predict_proba stacks base model outputs into meta-learner."""
+    def __init__(self, base_models: dict, meta_lr) -> None:
+        self._bases = list(base_models.values())
+        self._meta = meta_lr
+
+    def predict_proba(self, X):
+        import warnings
+        cols = []
+        for m in self._bases:
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore")
+                _p = m.predict_proba(X)
+                _s = _p[:, 1] if _p.ndim == 2 else _p.ravel()
+                if _s.min() < 0.0 or _s.max() > 1.0:
+                    _s = 1.0 / (1.0 + np.exp(-_s))
+                cols.append(_s)
+        return self._meta.predict_proba(np.column_stack(cols))
+
+    def __getattr__(self, name):
+        if name in ("_meta", "_bases"):
+            raise AttributeError(name)
+        return getattr(self._meta, name)
 from app.training.evaluate import ModelEvaluator, DataQualityReporter, UK_KNOWN_EVENTS
 from app.training.hazard_validator import HazardValidator
 from app.training.hazard_status import HazardStatus, ValidationResult, UNSUPPORTED_HAZARDS
@@ -1036,24 +1061,15 @@ class BaseRealPipeline(ABC):
                     reg_alpha         = trial.suggest_float("reg_alpha", 1e-4, 10.0, log=True),
                     reg_lambda        = trial.suggest_float("reg_lambda", 1e-4, 10.0, log=True),
                     num_leaves        = trial.suggest_int("num_leaves", 20, 150),
+                    # Always binary objective — LightGBM custom objectives break predict_proba.
+                    # Use scale_pos_weight + is_unbalance for imbalance handling instead.
+                    objective         = "binary",
                     scale_pos_weight  = scale_pos_weight,
                     random_state      = 42,
                     device            = _lgb_device,
                     n_jobs            = 1,
                     verbose           = -1,
                 )
-                # Focal loss via LightGBM custom objective when imbalance > 50:1
-                if use_focal:
-                    gamma_fl = trial.suggest_float("focal_gamma", 0.5, 3.0)
-                    def _lgb_focal(y_true, y_pred):
-                        p = 1.0 / (1.0 + np.exp(-y_pred))
-                        fl_weight = (1.0 - p) ** gamma_fl
-                        grad = fl_weight * (p - y_true)
-                        hess = fl_weight * p * (1.0 - p)
-                        return grad, hess
-                    params["objective"] = _lgb_focal
-                else:
-                    params["objective"] = "binary"
                 m = lgb.LGBMClassifier(**params)
                 aucs = []
                 with _warnings.catch_warnings():
@@ -1075,13 +1091,8 @@ class BaseRealPipeline(ABC):
                 lgb_study.optimize(_lgb_objective, n_trials=40, show_progress_bar=False)
 
             best_lgb_p = lgb_study.best_params.copy()
-            focal_gamma_lgb = best_lgb_p.pop("focal_gamma", None)
-            best_lgb_p.update({"scale_pos_weight": scale_pos_weight, "random_state": 42,
-                                "device": _lgb_device, "n_jobs": 1, "verbose": -1})
-            if use_focal and focal_gamma_lgb is not None:
-                best_lgb_p["objective"] = _LGBFocalObjective(focal_gamma_lgb)
-            else:
-                best_lgb_p["objective"] = "binary"
+            best_lgb_p.update({"objective": "binary", "scale_pos_weight": scale_pos_weight,
+                                "random_state": 42, "device": _lgb_device, "n_jobs": 1, "verbose": -1})
             lgb_best = lgb.LGBMClassifier(**best_lgb_p)
             with _warnings.catch_warnings():
                 _warnings.filterwarnings("ignore")
@@ -1103,7 +1114,7 @@ class BaseRealPipeline(ABC):
                 "best_params": lgb_study.best_params,
             }
             logger.info(f"  LightGBM val AUC: {lgb_val_auc:.4f}  PR-AUC: {lgb_val_prauc:.4f}"
-                        + (f"  [focal γ={focal_gamma_lgb:.2f}]" if use_focal and focal_gamma_lgb else ""))
+                        + (f"  [scale_pos_weight={scale_pos_weight:.1f}]" if use_focal else ""))
         except Exception as e:
             logger.warning(f"  LightGBM training failed: {e}")
 
@@ -1190,26 +1201,7 @@ class BaseRealPipeline(ABC):
                 ]))
                 stack_val_prauc = average_precision_score(y_v, meta.predict_proba(val_meta_X)[:, 1]) if len(np.unique(y_v)) >= 2 else 0.0
 
-                # Wrap meta-learner so it can be used transparently downstream
-                class _StackModel:
-                    """Meta-learner wrapper: predict_proba stacks base model outputs."""
-                    def __init__(self, base_models, meta_lr):
-                        self._bases = list(base_models.values())
-                        self._meta = meta_lr
-                    def predict_proba(self, X):
-                        import warnings
-                        cols = []
-                        for m in self._bases:
-                            with warnings.catch_warnings():
-                                warnings.filterwarnings("ignore")
-                                _p = m.predict_proba(X)
-                                _s = _p[:, 1] if _p.ndim == 2 else _p.ravel()
-                                if _s.min() < 0.0 or _s.max() > 1.0:
-                                    _s = 1.0 / (1.0 + np.exp(-_s))
-                                cols.append(_s)
-                        return self._meta.predict_proba(np.column_stack(cols))
-                    def __getattr__(self, name):
-                        return getattr(self._meta, name)
+                # _StackModel is defined at module level (picklable)
 
                 stack_model = _StackModel(
                     {k: v["model"] for k, v in candidates.items()}, meta

@@ -1,6 +1,4 @@
 /**
- * Module: apiValidation.ts
- *
  * Api validation client utility (helper functions).
  *
  * How it connects:

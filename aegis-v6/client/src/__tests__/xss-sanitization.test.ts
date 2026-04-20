@@ -1,6 +1,4 @@
 /**
- * Module: xss-sanitization.test.ts
- *
  * Security test suite that verifies all client-side XSS sanitization helpers.
  * XSS (Cross-Site Scripting) = an attacker injects malicious JavaScript into a
  * web page so it executes in other users' browsers, stealing sessions or data.

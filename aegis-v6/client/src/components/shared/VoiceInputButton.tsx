@@ -1,6 +1,4 @@
-﻿/**
- * Module: VoiceInputButton.tsx
- *
+/**
  * Record button component for adding voice-to-text to any AEGIS form field.
  *
  * Features:

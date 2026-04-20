@@ -1,6 +1,4 @@
 /**
- * Module: useFocusTrap.test.ts
- *
  * Tests for the useFocusTrap hook, which confines Tab/Shift+Tab keyboard focus
  * to a specific container — used in modals, dialogs, and side-drawers so keyboard
  * users cannot navigate outside the overlay while it is open.

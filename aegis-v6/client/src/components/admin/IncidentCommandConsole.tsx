@@ -1,6 +1,4 @@
-﻿/**
- * Module: IncidentCommandConsole.tsx
- *
+/**
  * Incident command console (manage active incidents).
  *
  * - Rendered inside AdminPage.tsx based on active view */

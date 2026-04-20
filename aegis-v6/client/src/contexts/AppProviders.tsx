@@ -1,6 +1,4 @@
-﻿/**
- * Module: AppProviders.tsx
- *
+/**
  * App providers React context provider (shares state across components).
  *
  * - Wraps components in App.tsx via AppProviders */

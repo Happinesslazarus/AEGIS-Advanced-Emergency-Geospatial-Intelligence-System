@@ -1,6 +1,4 @@
-﻿/**
- * Module: ThemeContext.tsx
- *
+/**
  * Theme context React context provider (shares state across components).
  *
  * - Wraps components in App.tsx via AppProviders */

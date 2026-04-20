@@ -1,6 +1,4 @@
-﻿/**
- * Module: IncidentQueue.tsx
- *
+/**
  * Incident queue (prioritised list of pending incidents).
  *
  * - Rendered inside AdminPage.tsx based on active view */

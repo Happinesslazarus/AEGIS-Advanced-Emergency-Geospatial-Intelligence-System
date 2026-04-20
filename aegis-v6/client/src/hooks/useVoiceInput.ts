@@ -1,6 +1,4 @@
 /**
- * Module: useVoiceInput.ts
- *
  * React hook that wraps the browser MediaRecorder API and the AEGIS
  * voice-transcription WebSocket to provide real-time voice-to-text for
  * incident report forms.

@@ -1,6 +1,4 @@
 /**
- * Module: useOnlineStatus.ts
- *
  * useOnlineStatus custom React hook (online status logic).
  *
  * How it connects:

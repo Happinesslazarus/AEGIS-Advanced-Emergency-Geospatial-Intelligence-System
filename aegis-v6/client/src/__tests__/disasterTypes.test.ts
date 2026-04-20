@@ -1,6 +1,4 @@
 /**
- * Module: disasterTypes.test.ts
- *
  * Tests for the disasterTypes data module — a static configuration file that
  * defines all supported disaster/incident category names, icons, and colours,
  * plus the sub-types (specific events) nested under each category.

@@ -1,6 +1,4 @@
-﻿/**
- * Module: baseModule.ts
- *
+/**
  * Base incident module (abstract class all incident types extend).
  *
  * - Part of the incident module system, registered via incidents/registry.ts

@@ -1,6 +1,4 @@
-﻿/**
- * Module: aberdeen.ts
- *
+/**
  * Aberdeen server module.
  *
  * - Imported by services and components that need this configuration

@@ -1,6 +1,4 @@
 /**
- * Module: i18n.test.ts
- *
  * Tests for the i18n (internationalisation) utility functions: language-code
  * normalisation, the t() translation lookup, RTL detection, language state
  * management, human-readable language names for the chat interface, and

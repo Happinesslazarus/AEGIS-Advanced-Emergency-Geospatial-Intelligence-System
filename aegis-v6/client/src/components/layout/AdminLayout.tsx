@@ -1,6 +1,4 @@
-﻿/**
- * Module: AdminLayout.tsx
- *
+/**
  * Admin layout React component.
  *
  * - Used by AdminPage to wrap all admin views

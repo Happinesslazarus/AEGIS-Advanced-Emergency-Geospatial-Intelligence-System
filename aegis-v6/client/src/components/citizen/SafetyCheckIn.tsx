@@ -1,6 +1,4 @@
-﻿/**
- * Module: SafetyCheckIn.tsx
- *
+/**
  * Safety check in citizen component (public-facing UI element).
  *
  * - Rendered inside CitizenPage.tsx or CitizenDashboard.tsx */

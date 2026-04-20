@@ -1,6 +1,4 @@
-﻿/**
- * Module: AnalyticsCenter.tsx
- *
+/**
  * Analytics center (charts, metrics, and data visualisation).
  *
  * - Rendered inside AdminPage.tsx based on active view */

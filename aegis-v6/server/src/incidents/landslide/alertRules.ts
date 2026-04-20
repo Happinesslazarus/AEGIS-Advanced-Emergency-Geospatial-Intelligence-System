@@ -1,6 +1,4 @@
-﻿/**
- * Module: alertRules.ts
- *
+/**
  * Ground movement and landslides incident module (handles landslide specific logic).
  *
  * - Part of the incident module system, registered via incidents/registry.ts

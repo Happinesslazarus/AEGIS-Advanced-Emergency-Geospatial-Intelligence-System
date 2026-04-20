@@ -1,3 +1,12 @@
+/**
+ * Emergency helpline directory API. Accepts an ISO 3166-1 alpha-2 country
+ * code (e.g. GB, US, AU) and returns a list of relevant crisis support
+ * organisations and phone numbers, sourced live from findahelpline.com and
+ * cached in-memory for one hour per country. Rate-limited to 60 req/min.
+ *
+ * - Mounted at /api/helplines in server/src/index.ts
+ * - Used by the citizen SOS panel and the public safety map overlay
+ */
 import { Router, Request, Response } from 'express'
 import rateLimit from 'express-rate-limit'
 

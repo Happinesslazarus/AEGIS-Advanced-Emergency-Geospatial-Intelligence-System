@@ -1,6 +1,4 @@
-﻿/**
- * Module: CountrySearch.tsx
- *
+/**
  * Country search shared component (reusable UI element used across pages).
  *
  * - Used across both admin and citizen interfaces */

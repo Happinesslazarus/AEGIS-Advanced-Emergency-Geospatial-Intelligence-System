@@ -1,6 +1,4 @@
-﻿/**
- * Module: Navigation.tsx
- *
+/**
  * Navigation UI primitive (low-level UI building block).
  *
  * - Uses useResponsive for breakpoint detection

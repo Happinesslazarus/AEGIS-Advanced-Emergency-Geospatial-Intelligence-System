@@ -1,11 +1,12 @@
-﻿
 /**
- * Module: index.ts
+ * Barrel re-export for the incident module registry. Every hazard type
+ * (flood, heatwave, landslide, etc.) registers itself in registry.ts; this
+ * index exposes the full lookup and query API so the rest of the server can
+ * import from 'incidents/' without knowing the internal file structure.
  *
- * Index incident component.
- *
- * - Part of the incident module system, registered via incidents/registry.ts
- * */
+ * - Consumed by server/src/index.ts when mounting incident-specific routes
+ * - `getEnabledHazards()` in hazards.ts controls which modules are operational
+ */
 
 export {
   getIncidentModule,

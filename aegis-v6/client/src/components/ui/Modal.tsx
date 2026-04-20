@@ -1,6 +1,4 @@
-﻿/**
- * Module: Modal.tsx
- *
+/**
  * Modal UI primitive (low-level UI building block).
  *
  * - Renders via React portal to document body

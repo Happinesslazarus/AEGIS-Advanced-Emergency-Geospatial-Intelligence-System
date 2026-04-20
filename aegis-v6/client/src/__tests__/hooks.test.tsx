@@ -1,6 +1,4 @@
-﻿/**
- * Module: hooks.test.tsx
- *
+/**
  * Tests for five shared React hooks used throughout the client:
  *   - useDebounce / useDebouncedCallback  (delay propagation of quickly-changing values)
  *   - useOnlineStatus                     (detect internet connectivity events)

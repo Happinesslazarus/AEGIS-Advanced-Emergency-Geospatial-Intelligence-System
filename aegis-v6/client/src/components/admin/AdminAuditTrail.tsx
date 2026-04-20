@@ -1,6 +1,4 @@
-﻿/**
- * Module: AdminAuditTrail.tsx
- *
+/**
  * Full audit trail viewer (detailed security and action logs).
  *
  * - Fetches data from apiGetAuditLog

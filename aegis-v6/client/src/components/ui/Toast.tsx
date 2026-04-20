@@ -1,6 +1,4 @@
-﻿/**
- * Module: Toast.tsx
- *
+/**
  * Toast UI primitive (low-level UI building block).
  *
  * - Provides ToastContext consumed via useToast() hook

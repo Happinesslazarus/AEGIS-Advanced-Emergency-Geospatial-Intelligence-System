@@ -1,6 +1,4 @@
-﻿/**
- * Module: keyboard-shortcuts.test.tsx
- *
+/**
  * Tests for the useKeyboardShortcuts hook, which registers global keyboard
  * shortcuts (Ctrl+K, Ctrl+/, Escape, etc.) and the SHORTCUTS constant that
  * describes each shortcut for display in a help overlay.

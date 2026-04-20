@@ -1,6 +1,4 @@
-﻿/**
- * Module: AllReportsManager.tsx
- *
+/**
  * Report management console (view, filter, triage all reports).
  *
  * - Rendered inside AdminPage.tsx based on active view */

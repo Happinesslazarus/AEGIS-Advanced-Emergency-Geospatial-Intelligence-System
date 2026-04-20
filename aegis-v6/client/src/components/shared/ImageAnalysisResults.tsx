@@ -1,6 +1,4 @@
-﻿/**
- * Module: ImageAnalysisResults.tsx
- *
+/**
  * Displays the AI image analysis output produced when a citizen attaches a
  * photo to an incident report.  The analysis object contains up to four
  * sections, all optional depending on whether the server-side pipeline ran

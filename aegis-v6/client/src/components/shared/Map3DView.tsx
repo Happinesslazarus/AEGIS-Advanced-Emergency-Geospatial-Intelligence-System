@@ -1,6 +1,4 @@
-﻿/**
- * Module: Map3DView.tsx
- *
+/**
  * Map3 d view shared component (reusable UI element used across pages).
  *
  * - Used across both admin and citizen interfaces */

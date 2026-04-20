@@ -1,6 +1,4 @@
-﻿/**
- * Module: useVirtualList.tsx
- *
+/**
  * useVirtualList custom React hook (virtual list logic).
  *
  * - Used by React components that need this functionality */

@@ -1,6 +1,4 @@
-﻿/**
- * Module: TwoFactorSettings.tsx
- *
+/**
  * Two factor settings admin component (operator dashboard panel).
  *
  * - Rendered inside AdminPage.tsx based on active view */

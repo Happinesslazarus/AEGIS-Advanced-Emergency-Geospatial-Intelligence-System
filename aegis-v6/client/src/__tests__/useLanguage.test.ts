@@ -1,6 +1,4 @@
 /**
- * Module: useLanguage.test.ts
- *
  * Tests for the useLanguage hook, which reads the active UI language from i18n
  * utilities, subscribes to language-change events, and keeps the document's
  * HTML attributes (lang, dir, translate) in sync.

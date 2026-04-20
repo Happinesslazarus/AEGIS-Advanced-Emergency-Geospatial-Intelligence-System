@@ -1,6 +1,4 @@
-﻿/**
- * Module: index.ts
- *
+/**
  * Regions barrel export (re-exports module contents).
  *
  * - Used by services for external data fetching

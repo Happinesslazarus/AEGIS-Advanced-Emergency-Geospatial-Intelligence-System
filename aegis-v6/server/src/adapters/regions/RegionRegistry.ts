@@ -1,6 +1,4 @@
-﻿/**
- * Module: RegionRegistry.ts
- *
+/**
  * Singleton registry that holds all RegionAdapter instances and tracks which
  * region is currently active. At startup cronJobs and ingestion services call
  * getActiveRegion() to obtain the correct adapter for fetching flood warnings,

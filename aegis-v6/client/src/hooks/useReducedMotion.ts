@@ -1,6 +1,4 @@
 /**
- * Module: useReducedMotion.ts
- *
  * useReducedMotion custom React hook (reduced motion logic).
  *
  * How it connects:

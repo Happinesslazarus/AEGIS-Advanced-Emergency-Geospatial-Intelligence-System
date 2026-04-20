@@ -1,6 +1,4 @@
 /**
- * Module: accessibilityUtils.test.ts
- *
  * Tests for the accessibility utility functions — a collection of pure helpers
  * that implement WCAG (Web Content Accessibility Guidelines) requirements such
  * as focus management, keyboard navigation, motion reduction, and colour contrast.

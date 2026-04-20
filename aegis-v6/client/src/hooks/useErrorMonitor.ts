@@ -1,6 +1,4 @@
 /**
- * Module: useErrorMonitor.ts
- *
  * useErrorMonitor custom React hook (error monitor logic).
  *
  * How it connects:

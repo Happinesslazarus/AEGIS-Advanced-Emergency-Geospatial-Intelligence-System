@@ -1,6 +1,4 @@
 /**
- * Module: helpers.test.ts
- *
  * Helpers test suite (automated tests for this feature).
  *
  * Glossary:

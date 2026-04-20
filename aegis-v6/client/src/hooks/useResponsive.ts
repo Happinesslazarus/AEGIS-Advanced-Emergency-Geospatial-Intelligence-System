@@ -1,6 +1,4 @@
 /**
- * Module: useResponsive.ts
- *
  * useResponsive custom React hook (responsive logic).
  *
  * How it connects:

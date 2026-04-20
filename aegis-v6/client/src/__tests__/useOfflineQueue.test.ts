@@ -1,6 +1,4 @@
 /**
- * Module: useOfflineQueue.test.ts
- *
  * Use offline queue test suite (automated tests for this feature).
  *
  * Glossary:

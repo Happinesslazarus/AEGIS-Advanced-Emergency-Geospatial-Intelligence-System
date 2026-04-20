@@ -1,6 +1,4 @@
-﻿/**
- * Module: SOSButton.test.tsx
- *
+/**
  * Tests for the SOSButton component — the floating red emergency distress button
  * shown on the citizen dashboard. The button starts a countdown before sending a
  * live distress signal with GPS coordinates to the server.

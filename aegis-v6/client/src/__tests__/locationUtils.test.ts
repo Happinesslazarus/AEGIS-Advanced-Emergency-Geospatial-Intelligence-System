@@ -1,6 +1,4 @@
 /**
- * Module: locationUtils.test.ts
- *
  * Tests for the locationUtils helper functions: haversineKm (great-circle
  * distance), getDeviceLocation (browser GPS wrapper), reverseGeocode (lat/lng
  * → human address), and forwardGeocode (text query → lat/lng).

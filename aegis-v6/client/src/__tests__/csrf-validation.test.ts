@@ -1,6 +1,4 @@
 /**
- * Module: csrf-validation.test.ts
- *
  * Tests and utility implementations for CSRF (Cross-Site Request Forgery) protection.
  * This file is both a test suite AND the authoritative source for several CSRF
  * helper functions used across the client (exported at the bottom).

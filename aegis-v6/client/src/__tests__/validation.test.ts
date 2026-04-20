@@ -1,6 +1,4 @@
 /**
- * Module: validation.test.ts
- *
  * Validation test suite (automated tests for this feature).
  *
  * Glossary:

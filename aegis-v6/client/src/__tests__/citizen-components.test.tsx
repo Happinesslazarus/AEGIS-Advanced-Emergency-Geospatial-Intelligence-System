@@ -1,6 +1,4 @@
-﻿/**
- * Module: citizen-components.test.tsx
- *
+/**
  * Tests for the <SafetyCheckIn> citizen component — a UI panel that asks citizens
  * whether they are safe after a disaster and records their status by firing a
  * push-notification through the AlertsContext.

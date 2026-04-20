@@ -1,6 +1,4 @@
-﻿/**
- * Module: testFixtures.ts
- *
+/**
  * Test fixtures server module.
  *
  * - Run by the test runner (Vitest or Jest)

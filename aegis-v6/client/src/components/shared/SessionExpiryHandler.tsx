@@ -1,6 +1,4 @@
-﻿/**
- * Module: SessionExpiryHandler.tsx
- *
+/**
  * Session expiry handler shared component (reusable UI element used across pages).
  *
  * - Used across both admin and citizen interfaces */

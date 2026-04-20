@@ -1,6 +1,4 @@
 /**
- * Module: useResponsive.test.ts
- *
  * Tests for the useResponsive hook and related utilities, which expose the
  * current viewport size, breakpoint name, device type, and orientation so
  * components can adapt their layout without relying on CSS media queries alone.

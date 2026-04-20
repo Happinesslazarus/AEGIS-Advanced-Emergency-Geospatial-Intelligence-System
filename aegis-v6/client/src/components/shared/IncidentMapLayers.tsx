@@ -1,6 +1,4 @@
-﻿/**
- * Module: IncidentMapLayers.tsx
- *
+/**
  * Incident map layers shared component (reusable UI element used across pages).
  *
  * - Used across both admin and citizen interfaces */

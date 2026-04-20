@@ -1,6 +1,4 @@
-﻿/**
- * Module: Button.tsx
- *
+/**
  * Button UI primitive (low-level UI building block).
  *
  * - Uses Spinner from LoadingStates for the loading state

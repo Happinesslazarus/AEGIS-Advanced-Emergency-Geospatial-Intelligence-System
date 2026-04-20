@@ -1,3 +1,9 @@
+/**
+ * Floating action button (FAB) that appears once the user scrolls away from
+ * the top of the page. Shows a chevron-up arrow in the upper half of the
+ * scroll range and chevron-down near the bottom, clicking either jumps to
+ * the opposite end of the page with smooth scroll behaviour.
+ */
 import { useState, useEffect } from 'react'
 import { ChevronUp, ChevronDown } from 'lucide-react'
 

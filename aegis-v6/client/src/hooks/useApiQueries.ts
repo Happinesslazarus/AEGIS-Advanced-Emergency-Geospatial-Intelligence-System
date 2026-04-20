@@ -1,6 +1,4 @@
 /**
- * Module: useApiQueries.ts
- *
  * useApiQueries custom React hook (api queries logic).
  *
  * How it connects:

@@ -1,6 +1,4 @@
 /**
- * Module: api.ts
- *
  * Core API client for the AEGIS frontend.  Every HTTP call to the backend
  * goes through `apiFetch()` which handles authentication headers, timeouts,
  * retries, CSRF tokens, and 401 session-expiry redirects automatically.

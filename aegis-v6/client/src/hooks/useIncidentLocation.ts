@@ -1,6 +1,4 @@
 /**
- * Module: useIncidentLocation.ts
- *
  * useIncidentLocation custom React hook (incident location logic).
  *
  * How it connects:

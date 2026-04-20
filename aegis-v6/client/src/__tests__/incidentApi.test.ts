@@ -1,6 +1,4 @@
 /**
- * Module: incidentApi.test.ts
- *
  * Tests for the incidentApi utility module, which provides typed async functions
  * that call the AEGIS server's incident endpoints.  Also validates the TypeScript
  * interface shapes (IncidentRegistryEntry, IncidentPrediction, IncidentAlert, etc.)

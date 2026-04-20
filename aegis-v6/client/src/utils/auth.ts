@@ -1,6 +1,4 @@
 /**
- * Module: auth.ts
- *
  * Client-side logout and session inspection helpers. Provides a unified
  * logout() function that hits both the operator and citizen logout endpoints,
  * clears all in-memory tokens, localStorage/sessionStorage keys, non-httpOnly

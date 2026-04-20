@@ -1,3 +1,12 @@
+/**
+ * Interactive Leaflet map showing the nearest emergency shelters, hospitals,
+ * fire stations, community centres, and schools relative to the citizen's
+ * current location. Supports satellite/terrain tile switching and renders
+ * distance rings around the user's position.
+ *
+ * - Rendered inside the CitizenDashboard safety tab
+ * - Shelter data sourced from /api/shelters (PostgreSQL via server shelter routes)
+ */
 import { useMemo, useState } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet'
 import L from 'leaflet'

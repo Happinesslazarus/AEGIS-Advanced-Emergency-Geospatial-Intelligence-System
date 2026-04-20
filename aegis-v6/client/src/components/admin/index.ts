@@ -1,6 +1,4 @@
 /**
- * Module: index.ts
- *
  * Index admin component (operator dashboard panel).
  *
  * How it connects:

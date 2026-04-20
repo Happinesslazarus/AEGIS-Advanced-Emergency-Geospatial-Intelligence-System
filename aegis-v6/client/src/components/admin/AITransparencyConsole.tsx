@@ -1,6 +1,4 @@
-﻿/**
- * Module: AITransparencyConsole.tsx
- *
+/**
  * AI transparency console (shows AI decision explanations and confidence scores).
  *
  * - Rendered inside AdminPage.tsx based on active view */

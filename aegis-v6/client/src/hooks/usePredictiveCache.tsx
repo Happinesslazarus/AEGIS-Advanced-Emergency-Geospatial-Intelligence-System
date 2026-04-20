@@ -1,6 +1,4 @@
-﻿/**
- * Module: usePredictiveCache.tsx
- *
+/**
  * usePredictiveCache custom React hook (predictive cache logic).
  *
  * - Used by React components that need this functionality */

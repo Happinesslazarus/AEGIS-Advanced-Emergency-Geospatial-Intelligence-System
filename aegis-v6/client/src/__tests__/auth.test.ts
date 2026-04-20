@@ -1,6 +1,4 @@
 /**
- * Module: auth.test.ts
- *
  * Tests for the auth.ts utility functions: getSession (read from in-memory store),
  * isTokenValid (decode a JWT and check its expiry), and logout (clear all tokens,
  * notify listeners, and redirect).

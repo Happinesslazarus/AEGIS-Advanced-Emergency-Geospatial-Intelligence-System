@@ -1,6 +1,4 @@
 /**
- * Module: useSocket.ts
- *
  * useSocket custom React hook (socket logic).
  *
  * How it connects:

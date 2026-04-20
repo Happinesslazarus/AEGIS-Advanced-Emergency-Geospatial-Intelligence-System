@@ -1,6 +1,4 @@
-﻿/**
- * Module: WeatherPanel.tsx
- *
+/**
  * Advanced weather intelligence panel — fetches live data from the Open-Meteo API
  * (no API key required) for the user's GPS location. Includes hourly forecast,
  * feels-like temperature, UV index, pressure, dew point, wind direction compass,

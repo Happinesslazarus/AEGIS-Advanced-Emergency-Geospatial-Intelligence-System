@@ -219,7 +219,7 @@ const en = {
   'citizen.hero.title': 'Real-Time Emergency Awareness',
   'citizen.hero.subtitle': 'Monitor live incidents, report emergencies, check safety status, and stay informed with AI-powered alerts.',
   //  Citizen auth
-  'citizen.auth.guestContinue': 'Continue as Guest',
+  'citizen.auth.guestContinue': 'Explore',
   'citizen.auth.alerts.title': 'Active Alerts',
   'citizen.auth.alerts.subtitle': 'Live emergency alerts in your region',
   'citizen.auth.loginTitle': 'Citizen Login',

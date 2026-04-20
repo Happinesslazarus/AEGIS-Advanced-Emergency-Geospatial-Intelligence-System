@@ -1,6 +1,4 @@
-﻿/**
- * Module: regions.ts
- *
+/**
  * Regions server module.
  *
  * - Imported by services and components that need this configuration

@@ -1,6 +1,4 @@
-﻿/**
- * Module: accessibility.test.tsx
- *
+/**
  * Automated WCAG (Web Content Accessibility Guidelines) compliance tests for
  * shared UI components: Button, Modal, EmptyState, and Skeleton. Uses axe-core
  * to detect violations (missing alt text, bad contrast, missing ARIA roles, etc.)

@@ -1,6 +1,4 @@
 /**
- * Module: sepaApi.test.ts
- *
  * Tests for the sepaApi utility module, which fetches real-time river gauge data
  * from SEPA (Scottish Environment Protection Agency) and provides colour-coding
  * helpers for gauge status display.
