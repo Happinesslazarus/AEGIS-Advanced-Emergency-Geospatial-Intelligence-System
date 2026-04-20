@@ -1,16 +1,11 @@
 /**
- * File: i18n.ts
- *
- * What this file does:
  * Thin wrapper around i18next providing t(), setLanguage(), getLanguage(),
  * and isRtl() for programmatic language access outside React hooks.
  *
- * How it connects:
  * - Used across the whole client for translated text
  * - Language resources defined in client/src/i18n/config.ts
  * - Language preference stored in localStorage
  *
- * Learn more:
  * - client/src/i18n/config.ts       -- language bundles and i18next setup
  * - client/src/hooks/useLanguage.ts -- React hook for language switching
  */
@@ -1713,7 +1708,7 @@ const en = {
   'landing.stats.responseTime': 'Avg Response Time',
   'landing.stats.dataPoints': 'Daily Data Points',
   'landing.features.title': 'Features',
-  'landing.features.subtitle': 'Comprehensive disaster management powered by cutting-edge technology',
+  'landing.features.subtitle': 'Multi-hazard disaster management with real-time AI analysis',
   'landing.features.floodPrediction': 'Flood Prediction AI',
   'landing.features.floodPredictionDesc': 'Machine learning models analyse river levels, rainfall, and terrain data to predict floods 24-72 hours ahead.',
   'landing.features.multiChannelAlerts': 'Multi-Channel Alert System',
@@ -4614,7 +4609,7 @@ const en = {
   'about.institutionVal': 'Robert Gordon University',
   'about.keyFeatures': 'Key Features',
   'about.locationVal': 'Aberdeen, Scotland',
-  'about.missionP1': 'AEGIS is dedicated to saving lives through intelligent emergency management. We combine cutting-edge AI, real-time environmental data, and community engagement to deliver timely flood monitoring, risk assessment, and multi-channel alerts.',
+  'about.missionP1': 'AEGIS is dedicated to saving lives through intelligent emergency management. We combine machine learning, real-time environmental data, and community engagement to deliver timely flood monitoring, risk assessment, and multi-channel alerts.',
   'about.missionP2': 'Our goal is to empower citizens, operators, and emergency services with the tools and information they need to prepare for, respond to, and recover from natural hazards.',
   'about.moduleVal': 'Honours Project 2025/26',
   'about.ourMission': 'Our Mission',

@@ -28,7 +28,6 @@
  *   source: 'live'          = indicates data came from a real API call (vs. 'cached' or 'demo')
  *   rainfall1h / rainfall3h = rainfall accumulated over the last 1 / 3 hours in mm
  *
- * How it connects:
  * - Run by the test runner (Vitest) with `vitest run` or `vitest watch`
  */
 

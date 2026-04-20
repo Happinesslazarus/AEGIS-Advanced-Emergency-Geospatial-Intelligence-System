@@ -1,10 +1,8 @@
 ﻿/**
- * What it tests:
  * Unit tests for the incident-type registry (in-memory config).
   * Confirms that all 10 hazard types are registered, that upsertIncidentType
   * updates correctly, and that unknown types return null cleanly.
   *
-  * How it connects:
   * - Tests server/src/config/incidentTypes.ts
   * - Pure unit test -- no DB or network calls
   * - Run via: npm test -- incidentRegistry

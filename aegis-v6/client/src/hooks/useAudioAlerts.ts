@@ -1,7 +1,6 @@
 /**
  * useAudioAlerts custom React hook (audio alerts logic).
  *
- * How it connects:
  * - Used by React components that need this functionality */
 
 import { useState, useEffect, useCallback, useRef } from 'react'

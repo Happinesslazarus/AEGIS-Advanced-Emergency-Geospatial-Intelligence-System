@@ -57,7 +57,6 @@
  *   toContain()             = asserts a string/array includes the given substring/item
  *   toHaveProperty()        = asserts an object has a property with (optionally) a given value
  *
- * How it connects:
  * - Run by the test runner (Vitest) with `vitest run` or `vitest watch`
  */
 

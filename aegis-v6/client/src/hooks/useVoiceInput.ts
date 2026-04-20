@@ -18,7 +18,6 @@
  *  - If the WebSocket fails, falls back to polling the POST endpoint with
  *    the entire accumulated audio blob on stop
  *
- * Integration points:
  *  - Used by VoiceInputButton.tsx (the record button component)
  *  - WebSocket connects to server/src/routes/voice.ts
  *  - Server routes to ai-engine/app/services/voice_transcription.py

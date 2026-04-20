@@ -174,7 +174,7 @@ export default function OnboardingTutorial(): JSX.Element | null {
 
           {/* Keyboard hint */}
           <p className="text-[10px] text-gray-400 dark:text-gray-600 text-center mt-3">
- Use <- -> arrow keys to navigate &middot; Esc to close
+ Use {'<-'} {'->'}  arrow keys to navigate &middot; Esc to close
           </p>
         </div>
       </div>

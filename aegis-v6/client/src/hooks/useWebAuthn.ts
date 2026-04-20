@@ -1,7 +1,6 @@
 /**
  * useWebAuthn custom React hook (web authn logic).
  *
- * How it connects:
  * - Used by React components that need this functionality */
 
 import { useState, useCallback, useEffect } from 'react'

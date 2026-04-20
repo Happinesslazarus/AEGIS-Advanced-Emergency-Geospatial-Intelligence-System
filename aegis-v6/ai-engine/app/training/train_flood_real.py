@@ -95,6 +95,8 @@ class FloodRealPipeline(BaseRealPipeline):
         # 2020-2021 holdout gives a genuine temporal test with documented flood events.
         fixed_test_date="2020-01-01",
         allow_sparse_test=True,
+        disable_focal=True,
+        use_smote=True,
     )
 
     async def fetch_raw_data(self) -> dict[str, pd.DataFrame]:
@@ -175,7 +177,7 @@ class FloodRealPipeline(BaseRealPipeline):
             station_locations=GLOBAL_HEATWAVE_LOCATIONS,
             start_date=self.start_date,
             end_date=self.end_date,
-            radius_km=80.0,
+            radius_km=200.0,
             precursor_days=5,
         )
         if not emdat_labels.empty and emdat_labels["label"].sum() > 0:

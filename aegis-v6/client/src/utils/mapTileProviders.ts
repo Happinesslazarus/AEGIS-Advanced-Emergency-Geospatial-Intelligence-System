@@ -1,6 +1,4 @@
 /**
- * File: mapTileProviders.ts
- *
  * Shared Leaflet tile provider definitions used across all map components.
  * Import from here instead of defining tile URLs inline in each component.
  */

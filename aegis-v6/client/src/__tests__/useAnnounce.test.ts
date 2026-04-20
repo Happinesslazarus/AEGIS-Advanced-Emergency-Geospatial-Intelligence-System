@@ -19,7 +19,6 @@
  *   visually hidden     = element positioned off-screen (1px) so sighted users don't see it
  *                         but screen readers still read it
  *
- * How it connects:
  * - Run by the test runner (Vitest) with `vitest run` or `vitest watch`
  */
 

@@ -1,11 +1,9 @@
 ﻿/**
- * What it tests:
  * Integration tests for the SSE streaming chat endpoint.
   * Verifies that POST /api/chat/stream emits incremental text chunks,
   * flushes the [DONE] sentinel, handles LLM errors gracefully, and
   * closes the connection cleanly.
   *
-  * How it connects:
   * - Tests server/src/routes/chatRoutes.ts /stream endpoint
   * - Relies on server/src/services/chatService.ts + llmRouter.ts
   * - Run via: npm test -- chat.stream

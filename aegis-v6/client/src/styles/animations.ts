@@ -1,12 +1,8 @@
 /**
- * File: animations.ts
-  *
-  * What this file does:
   * Shared animation duration and easing constants used across the UI.
   * Centralising these values ensures consistent motion feel and makes
   * it easy to tune the whole app by adjusting one place.
   *
-  * How it connects:
   * - Imported by components/ui/Polish.tsx and other animated components
   * - Values align with Tailwind transition duration classes
  */

@@ -1,12 +1,8 @@
 /**
- * File: worldRegions.ts
-  *
-  * What this file does:
   * Global region and country lookup table used in the Setup Wizard
   * and admin localisation settings. Maps ISO codes to display labels
   * and flag emojis for a consistent region picker across the UI.
   *
-  * How it connects:
   * - Used by client/src/pages/SetupWizard.tsx region selection step
   * - Used by admin locale settings panel
  */

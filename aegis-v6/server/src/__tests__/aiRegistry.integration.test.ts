@@ -1,10 +1,8 @@
 ﻿/**
- * What it tests:
  * Integration tests for the AI Model Governance service.
   * Verifies model registration, approval workflow, drift detection,
   * and rollback operations against a real PostgreSQL database.
   *
-  * How it connects:
   * - Tests server/src/services/modelMonitoringService.ts
   * - Uses the model_governance table in PostgreSQL
   * - Run via: npm test -- aiRegistry

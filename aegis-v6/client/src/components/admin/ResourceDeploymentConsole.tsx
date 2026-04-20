@@ -2002,7 +2002,7 @@ export default function ResourceDeploymentConsole({
             <div>
               {createStep > 0 && (
                 <button onClick={() => setCreateStep(s => s - 1)} className="px-4 py-2 text-xs font-semibold rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
- <- Back
+ {'<-'} Back
                 </button>
               )}
             </div>
@@ -2028,7 +2028,7 @@ export default function ResourceDeploymentConsole({
                   }}
                   className="px-5 py-2.5 text-xs font-bold rounded-xl bg-violet-600 hover:bg-violet-700 text-white disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 transition-all shadow-sm hover:shadow-md"
                 >
- Next ->
+ Next {'->'}
                 </button>
               ) : (
                 <button

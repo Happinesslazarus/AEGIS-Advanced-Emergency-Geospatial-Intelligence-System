@@ -835,7 +835,7 @@ export default function CitizenAuthPage(): JSX.Element {
               )}
               <button onClick={() => { setMode('login'); setError(''); setForgotSent(false); setForgotEmail('') }}
                 className="w-full text-xs text-aegis-600 hover:text-aegis-700 font-semibold py-2">
- <- {t('citizen.auth.forgot.backToLogin', lang)}
+ {'<-'} {t('citizen.auth.forgot.backToLogin', lang)}
               </button>
             </div>
           )}

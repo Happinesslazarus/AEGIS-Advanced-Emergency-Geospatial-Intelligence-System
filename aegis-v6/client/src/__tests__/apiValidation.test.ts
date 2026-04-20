@@ -45,7 +45,6 @@
  *   javascript:/data: URLs  = dangerous URL schemes that can execute code; must be rejected
  *                             by the URL sanitiser (OWASP A03: Injection prevention)
  *
- * How it connects:
  * - Run by the test runner (Vitest) with `vitest run` or `vitest watch`
  */
 

@@ -1,10 +1,8 @@
 ﻿/**
- * What it tests:
  * Integration tests for the authentication middleware.
   * Verifies JWT verification, role enforcement, refresh token rotation,
   * session invalidation, and anonymous-access guards.
   *
-  * How it connects:
   * - Tests server/src/middleware/auth.ts
   * - Uses real JWTs signed with test secrets
   * - Run via: npm test -- auth.integration

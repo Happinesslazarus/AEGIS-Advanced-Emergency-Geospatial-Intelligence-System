@@ -1,6 +1,4 @@
 /**
- * File: colorTokens.ts
- *
  * Design-system colour tokens for the AEGIS frontend.  Provides a single
  * source of truth for colours used to represent severity levels, risk tiers,
  * alert states, incident types, status indicators, and feedback states.
@@ -35,7 +33,6 @@
  *   ACTIVITY_COLORS   = icon text + background for the activity log panel
  *   STAT_CARD_COLORS  = left-border accent + heading text for dashboard statistic cards
  *
- * How it connects:
  * - Imported by ReportCard, AlertCard, and any component showing severity or status
  * - Works alongside client/src/styles/globals.css Tailwind CSS custom properties
  */

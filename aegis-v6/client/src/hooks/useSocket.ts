@@ -1,7 +1,6 @@
 /**
  * useSocket custom React hook (socket logic).
  *
- * How it connects:
  * - Used by React components that need this functionality */
 
 import { useEffect, useRef, useState, useCallback } from 'react'

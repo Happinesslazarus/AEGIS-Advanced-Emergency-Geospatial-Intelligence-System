@@ -1,6 +1,4 @@
 /**
- * File: geoJsonLoader.ts
- *
  * Flood-zone GeoJSON loading and spatial query utilities for the interactive map.
  * Fetches static flood-risk polygon files, caches them in memory, and exposes
  * helpers to check whether a map coordinate falls inside a flood zone.
@@ -31,7 +29,6 @@
  *   confidenceBoost  = amount added to the AI engine's confidence score when a
  *                      reported incident location overlaps a known flood zone
  *
- * How it connects:
  * - Used by DisasterMap.tsx and LiveMap.tsx for polygon overlays
  * - GeoJSON files served as static assets from client/public/data/
  * - SEPA WMS URL streamed directly as image tiles via react-leaflet's WMSTileLayer

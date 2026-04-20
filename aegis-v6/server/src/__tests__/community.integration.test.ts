@@ -1,10 +1,8 @@
 ﻿/**
- * What it tests:
  * Integration tests for the community help-request and chat endpoints.
   * Verifies post creation, moderation, upvoting, and real-time
   * Socket.IO broadcast of new community posts.
   *
-  * How it connects:
   * - Tests server/src/routes/communityRoutes.ts
   * - Database fixtures truncated between tests
   * - Run via: npm test -- community.integration

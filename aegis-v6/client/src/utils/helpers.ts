@@ -1,16 +1,11 @@
 /**
- * File: helpers.ts
- *
- * What this file does:
  * Shared UI helper functions used across multiple components. Includes
  * severity colour mapping, status label formatting, date display helpers,
  * and text truncation utilities.
  *
- * How it connects:
  * - Imported by components throughout client/src/components/ and pages/
  * - Pure functions with no side effects and no API calls
  *
- * Learn more:
  * - client/src/types/index.ts -- SeverityLevel and ReportStatus types used here
  */
 

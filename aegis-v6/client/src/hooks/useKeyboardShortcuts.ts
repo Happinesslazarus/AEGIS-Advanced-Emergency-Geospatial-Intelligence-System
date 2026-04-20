@@ -1,7 +1,6 @@
 /**
  * useKeyboardShortcuts custom React hook (keyboard shortcuts logic).
  *
- * How it connects:
  * - Used by React components that need this functionality */
 
 import { useEffect, useCallback } from 'react'

@@ -23,7 +23,6 @@
  *   implemented             = flag on each subtype; true means the AI engine can
  *                             classify and handle that specific event type
  *
- * How it connects:
  * - Run by the test runner (Vitest) with `vitest run` or `vitest watch`
  */
 

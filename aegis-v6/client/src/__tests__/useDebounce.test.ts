@@ -28,7 +28,6 @@
  *   debounce timer reset       = each new value/call restarts the countdown from scratch;
  *                                only the most recent call within a burst gets through
  *
- * How it connects:
  * - Run by the test runner (Vitest) with `vitest run` or `vitest watch`
  */
 

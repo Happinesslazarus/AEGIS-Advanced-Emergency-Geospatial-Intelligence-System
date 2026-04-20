@@ -24,7 +24,6 @@
  *   KeyboardEvent       = browser event fired on every key press; dispatched manually in tests
  *                         to simulate the user pressing Escape
  *
- * How it connects:
  * - Run by the test runner (Vitest) with `vitest run` or `vitest watch`
  */
 

@@ -1,10 +1,8 @@
 ﻿/**
- * What it tests:
  * Integration tests for the AI model governance routes.
   * Covers model status queries, retraining triggers, and the governance
  * lifecycle (shadow -> candidate -> active) via real HTTP routes.
   *
-  * How it connects:
   * - Tests server/src/routes/aiRoutes.ts (registry governance endpoints)
   * - Testing server/src/services/modelMonitoringService.ts in integration
   * - Run via: npm test -- ai.registry.real

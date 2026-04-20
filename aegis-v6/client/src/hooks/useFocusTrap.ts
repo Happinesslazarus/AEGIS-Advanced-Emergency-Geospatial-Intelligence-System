@@ -1,7 +1,6 @@
 /**
  * useFocusTrap custom React hook (focus trap logic).
  *
- * How it connects:
  * - Used by React components that need this functionality */
 
 import { useEffect, useRef, useCallback } from 'react'

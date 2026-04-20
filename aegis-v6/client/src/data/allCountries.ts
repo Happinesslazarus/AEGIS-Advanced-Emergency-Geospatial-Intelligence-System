@@ -1,12 +1,8 @@
 /**
- * File: allCountries.ts
-  *
-  * What this file does:
   * Complete list of all UN-recognised countries with ISO code,
   * display name, and flag emoji. Used for country-of-origin dropdowns
   * in the registration form, report submission, and admin export.
   *
-  * How it connects:
   * - Imported by data/index.ts barrel
   * - Uses codeToFlag() from data/countryCodes.ts
  */

@@ -43,7 +43,6 @@
  *   boundingbox             = [south, north, west, east] decimal-degree extents of a result area
  *   global.fetch            = the browser Fetch API; spied on here to avoid real HTTP requests
  *
- * How it connects:
  * - Run by the test runner (Vitest) with `vitest run` or `vitest watch`
  */
 

@@ -175,6 +175,8 @@ class HazardConfig:
         allow_temporal_drift: bool = False,
         fixed_test_date: Optional[str] = None,
         allow_sparse_test: bool = False,
+        disable_focal: bool = False,
+        use_smote: bool = False,
     ):
         self.hazard_type = hazard_type
         self.task_type = task_type
@@ -199,6 +201,8 @@ class HazardConfig:
         # time, not just the last 15% of the same training window.
         self.fixed_test_date = fixed_test_date
         self.allow_sparse_test = allow_sparse_test
+        self.disable_focal = disable_focal
+        self.use_smote = use_smote
         # allow_sparse_test: when True, a test fold with 0 positive samples does NOT hard-
         # block training (downgraded to PARTIAL instead of NOT_TRAINABLE).  Use only when:
         # (a) training has sufficient positives (≥ min_positive_samples),
@@ -930,16 +934,35 @@ class BaseRealPipeline(ABC):
         n_pos = max((y_train == 1).sum(), 1)
         scale_pos_weight = n_neg / n_pos
         # Use focal loss when imbalance is severe (>50:1) -- Lin et al. 2017
-        use_focal = scale_pos_weight > 50.0
+        # disable_focal overrides this: use scale_pos_weight alone instead (more stable
+        # under extreme imbalance when Optuna trials are limited to 40).
+        use_focal = scale_pos_weight > 50.0 and not getattr(self.HAZARD_CONFIG, 'disable_focal', False)
 
-        lead_h = getattr(self.HAZARD_CONFIG, "lead_hours", 6)
-        cv_gap = max(lead_h, 24)
-        tscv = TimeSeriesSplit(n_splits=5, gap=cv_gap)
-
+        # SMOTE oversampling: if use_smote=True, resample training set to ~10:1 before
+        # fitting.  Applied ONLY to X_tr/y_tr (never val/test) to avoid data leakage.
+        # Target ratio 10:1 keeps enough majority class signal while giving minority
+        # class ~10x the gradient signal it had at the original imbalance ratio.
         X_tr = np.ascontiguousarray(X_train, dtype=np.float32)
         X_v  = np.ascontiguousarray(X_val,   dtype=np.float32)
         y_tr = np.asarray(y_train).ravel()
         y_v  = np.asarray(y_val).ravel()
+
+        if getattr(self.HAZARD_CONFIG, 'use_smote', False) and n_pos >= 10:
+            try:
+                from imblearn.over_sampling import SMOTE
+                target_ratio = min(0.1, n_pos / max(n_neg, 1) * 5)
+                smote = SMOTE(sampling_strategy=target_ratio, random_state=42, k_neighbors=5)
+                X_tr, y_tr = smote.fit_resample(X_tr, y_tr)
+                n_pos_sm = int((y_tr == 1).sum())
+                n_neg_sm = int((y_tr == 0).sum())
+                scale_pos_weight = n_neg_sm / max(n_pos_sm, 1)
+                logger.info(f"  SMOTE: {n_pos} -> {n_pos_sm} positives, {n_neg} -> {n_neg_sm} negatives (ratio now {scale_pos_weight:.1f}:1)")
+            except Exception as e:
+                logger.warning(f"  SMOTE failed, training on original data: {e}")
+
+        lead_h = getattr(self.HAZARD_CONFIG, "lead_hours", 6)
+        cv_gap = max(lead_h, 24)
+        tscv = TimeSeriesSplit(n_splits=5, gap=cv_gap)
 
         candidates = {}
 
@@ -1159,14 +1182,21 @@ class BaseRealPipeline(ABC):
         # training labels directly (no leakage).  Provides +1-3% AUC on tabular
         # hazard benchmarks by learning optimal model blending weights.
         try:
-            if len(candidates) >= 2:
+            # Only stack models that are not inverted (val_auc >= 0.50).
+            # An inverted base learner poisons the meta-learner because its OOF
+            # probabilities are anti-correlated with the true label -- LogReg
+            # with C=1.0 cannot reliably assign negative weight under limited data.
+            stack_candidates = {
+                k: v for k, v in candidates.items() if v.get("val_auc", 0.0) >= 0.50
+            }
+            if len(stack_candidates) >= 2:
                 oof_cols = {}
                 # Use no-gap CV for stacking OOF -- cross_val_predict requires
                 # all samples covered; TimeSeriesSplit with gap leaves gaps uncovered
                 tscv_oof = TimeSeriesSplit(n_splits=5)
                 with _warnings.catch_warnings():
                     _warnings.filterwarnings("ignore")
-                    for name, cand in candidates.items():
+                    for name, cand in stack_candidates.items():
                         m = cand["model"]
                         try:
                             _oof = cross_val_predict(m, X_tr, y_tr, cv=tscv_oof,
@@ -1182,9 +1212,9 @@ class BaseRealPipeline(ABC):
                 meta = LogisticRegression(C=1.0, max_iter=1000, random_state=42)
                 meta.fit(oof_X, y_tr)
 
-                # Val predictions for stacking
+                # Val predictions for stacking (only from the non-inverted candidates)
                 val_cols = []
-                for name, cand in candidates.items():
+                for name, cand in stack_candidates.items():
                     with _warnings.catch_warnings():
                         _warnings.filterwarnings("ignore")
                         _vp = cand["model"].predict_proba(X_v)
@@ -1204,16 +1234,27 @@ class BaseRealPipeline(ABC):
                 # StackModel is defined at module level (picklable)
 
                 stack_model = _StackModel(
-                    {k: v["model"] for k, v in candidates.items()}, meta
+                    {k: v["model"] for k, v in stack_candidates.items()}, meta
                 )
-                candidates["stacking"] = {
-                    "model": stack_model,
-                    "val_auc": stack_val_auc,
-                    "val_prauc": stack_val_prauc,
-                    "cv_auc": stack_cv_auc,
-                    "best_params": {"meta": "LogisticRegression", "bases": list(candidates.keys())},
-                }
-                logger.info(f"  Stacking val AUC: {stack_val_auc:.4f}  PR-AUC: {stack_val_prauc:.4f}")
+                # Guard: only add stacking as a candidate if it beats the best
+                # individual model's val AUC.  When a base learner degrades the
+                # meta-learner (e.g. LightGBM dragging wildfire AUC 0.7557->0.6780),
+                # this prevents stacking from being selected over its own components.
+                best_individual_val_auc = max(v["val_auc"] for v in candidates.values())
+                if stack_val_auc >= best_individual_val_auc:
+                    candidates["stacking"] = {
+                        "model": stack_model,
+                        "val_auc": stack_val_auc,
+                        "val_prauc": stack_val_prauc,
+                        "cv_auc": stack_cv_auc,
+                        "best_params": {"meta": "LogisticRegression", "bases": list(stack_candidates.keys())},
+                    }
+                    logger.info(f"  Stacking val AUC: {stack_val_auc:.4f}  PR-AUC: {stack_val_prauc:.4f}")
+                else:
+                    logger.info(
+                        f"  Stacking val AUC: {stack_val_auc:.4f} -- below best individual "
+                        f"({best_individual_val_auc:.4f}), dropping stack, keeping best single model"
+                    )
         except Exception as e:
             logger.warning(f"  Stacking ensemble failed (non-fatal): {e}")
 

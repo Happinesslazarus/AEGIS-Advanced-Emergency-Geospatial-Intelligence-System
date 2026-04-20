@@ -1,6 +1,4 @@
 /**
- * File: translateService.ts
- *
  * Client-side translation helper that calls the AEGIS translation API,
  * which proxies one of several backends (Azure Translator, DeepL, or LibreTranslate).
  * Includes an in-memory LRU-style cache with a 15-minute TTL to avoid
@@ -28,7 +26,6 @@
  * buildTranslationMap = returns a {original -> translated} lookup object;
  *                         used by pages that need to translate many strings at once
  *
- * How it connects:
  * - Used by client/src/pages/AdminPage.tsx (inline report translation)
  * - Used by client/src/pages/CitizenDashboard.tsx for community content
  * - Calls POST /api/translate and POST /api/translate/batch on the AEGIS server

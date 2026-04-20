@@ -9,7 +9,6 @@
  *   toHaveLength() = checks the .length property of an array or string
  *   toContain() = checks whether an array includes a specific item
  *
- * How it connects:
  * - Run by the test runner (Vitest or Jest) */
 
 import { describe, test, expect } from 'vitest'

@@ -1,10 +1,8 @@
 ﻿/**
- * What it tests:
  * Real-route integration tests for the flood endpoints with mocked services.
   * Tests authentication guards, response shapes, and cache behaviour
   * without hitting external flood data APIs.
   *
-  * How it connects:
   * - Tests server/src/routes/floodRoutes.ts with mocked riverLevelService
   * - Run via: npm test -- flood.real
  */

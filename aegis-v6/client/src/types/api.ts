@@ -1,12 +1,8 @@
 /**
- * File: api.ts
-  *
-  * What this file does:
   * Generic TypeScript types for the HTTP API layer: ApiResponse<T>
   * envelope, PaginatedResponse<T>, ApiError, and request option types.
   * All fetch utilities in utils/api.ts return these shapes.
   *
-  * How it connects:
   * - Used by client/src/utils/api.ts for response typing
   * - Imported by any hook or component that calls the REST API
   * - Should stay in sync with server response shapes in server/src/routes/

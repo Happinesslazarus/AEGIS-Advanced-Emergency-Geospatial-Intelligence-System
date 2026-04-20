@@ -404,7 +404,7 @@ export default function PreparednessGuide({ onClose, lang = 'en', isEmergencyAct
           {tab === 'scenarios' && sc && (
             <div className="animate-fade-in">
               <div className="flex items-center justify-between mb-4">
- <button onClick={() => { setScenario(null); if (drillRef.current) clearInterval(drillRef.current); setDrillActive(false) }} className="text-xs text-gray-500 dark:text-gray-400 hover:text-aegis-600 flex items-center gap-1 font-medium"><- Back</button>
+ <button onClick={() => { setScenario(null); if (drillRef.current) clearInterval(drillRef.current); setDrillActive(false) }} className="text-xs text-gray-500 dark:text-gray-400 hover:text-aegis-600 flex items-center gap-1 font-medium">{'<-'} Back</button>
                 {!drillActive ? (
                   <button onClick={startDrill} className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-aegis-600 to-aegis-700 text-white text-xs font-bold rounded-xl hover:from-aegis-500 hover:to-aegis-600 transition-all shadow-lg shadow-aegis-600/20"><Timer className="w-3.5 h-3.5" /> Start Drill Timer</button>
                 ) : (
@@ -450,9 +450,9 @@ export default function PreparednessGuide({ onClose, lang = 'en', isEmergencyAct
               </div>
 
               <div className="flex gap-2 mt-5">
- {step > 0 && <button onClick={() => setStep(s => s - 1)} className="px-5 py-2.5 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 text-sm rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-medium"><- Prev</button>}
+ {step > 0 && <button onClick={() => setStep(s => s - 1)} className="px-5 py-2.5 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 text-sm rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-medium">{'<-'} Prev</button>}
                 {step < sc.steps.length - 1 ? (
- <button onClick={() => setStep(s => s + 1)} className="flex-1 py-2.5 bg-gradient-to-r from-aegis-600 to-aegis-700 hover:from-aegis-500 hover:to-aegis-600 text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-aegis-600/20">Next Step -></button>
+ <button onClick={() => setStep(s => s + 1)} className="flex-1 py-2.5 bg-gradient-to-r from-aegis-600 to-aegis-700 hover:from-aegis-500 hover:to-aegis-600 text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-aegis-600/20">Next Step {'>'}</button>
                 ) : (
                   <button onClick={() => completeScenario(sc.id)} className="flex-1 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-green-600/20 flex items-center justify-center gap-2">
                     <CheckCircle className="w-4 h-4" /> {completedScenarios.has(sc.id) ? 'Mark Complete Again' : 'Complete Scenario'}

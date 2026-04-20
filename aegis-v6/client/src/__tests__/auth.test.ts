@@ -40,7 +40,6 @@
  *   configurable: true      = required when overriding window.location so it can be
  *                             restored afterwards
  *
- * How it connects:
  * - Run by the test runner (Vitest) with `vitest run` or `vitest watch`
  */
 

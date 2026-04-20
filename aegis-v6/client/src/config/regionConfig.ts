@@ -1,7 +1,6 @@
 /**
  * Region config frontend module.
  *
- * How it connects:
  * - Imported by services and components that need this configuration */
 
 import { codeToFlag } from '../data/countryCodes'

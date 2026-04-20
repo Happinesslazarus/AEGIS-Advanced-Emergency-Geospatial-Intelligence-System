@@ -43,7 +43,6 @@
  *   BASE              = VITE_API_BASE_URL env var; empty string in development (same origin)
  *   encodeURIComponent() = percent-encodes special characters for safe URL embedding
  *
- * How it connects:
  * - Imported by every component or hook that calls the backend
  * - CitizenAuthContext writes the citizen token; getCitizenToken() reads it back
  * - getAnyToken() bridges both token systems for shared UI components

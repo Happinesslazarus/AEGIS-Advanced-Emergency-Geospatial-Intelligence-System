@@ -31,7 +31,6 @@
  *   ga                      = ISO 639-1 code for Irish Gaelic
  *   test.each()             = runs the same test with multiple data values -- avoids copy-paste
  *
- * How it connects:
  * - Run by the test runner (Vitest) with `vitest run` or `vitest watch`
  */
 

@@ -1,12 +1,8 @@
 /**
- * File: communityChat.ts
-  *
-  * What this file does:
   * TypeScript interfaces for the community chat feature: OnlineUser,
   * CommunityMessage, ChatRoom, and related socket event payloads.
   * Shared between components and contexts that handle community chat.
   *
-  * How it connects:
   * - Used by FloatingChatWidget.tsx and communityRoutes-related hooks
   * - Socket event payloads should match server/src/services/socket.ts types
   * - Extends the general Message type from types/index.ts

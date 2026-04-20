@@ -1,10 +1,8 @@
 ﻿/**
- * What it tests:
  * Real-route integration tests for the SOS distress endpoints.
   * Runs full HTTP + auth + DB stack to verify rate limiting, CSRF
   * protection, and edge cases (duplicate SOS, GPS missing).
   *
-  * How it connects:
   * - Tests server/src/routes/distressRoutes.ts end-to-end
   * - Run via: npm test -- distress.real
  */

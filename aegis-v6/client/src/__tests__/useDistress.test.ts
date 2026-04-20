@@ -15,7 +15,6 @@
  *   configurable: true        = allows the property to be redefined between
  *                               tests (needed to reset mocks cleanly).
  *
- * How it connects:
  * - Run by the test runner (Vitest or Jest) */
 
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'

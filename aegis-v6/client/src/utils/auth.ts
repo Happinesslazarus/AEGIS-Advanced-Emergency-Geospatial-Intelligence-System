@@ -5,7 +5,6 @@
  * cookies, and fires the 'ae:logout' custom DOM event so every React auth
  * context resets its state in a single coordinated operation.
  *
- * How it connects:
  * - getSession() reads the current operator/admin user from memory via api.ts
  * - logout() is called from header dropdowns, idle timeouts, and 401 handlers
  * - The 'ae:logout' event is listened to by CitizenAuthContext and auth middleware

@@ -216,13 +216,13 @@ describe('Button', () => {
   //Icon slots -- elements inserted before/after the button text
   describe('icons', () => {
     test('renders with left icon', () => {
- const Icon = () => <span data-testid="left-icon"><-</span>
+ const Icon = () => <span data-testid="left-icon">{'<-'}</span>
       render(<Button leftIcon={<Icon />}>With Icon</Button>)
       expect(screen.getByTestId('left-icon')).toBeInTheDocument()
     })
 
     test('renders with right icon', () => {
- const Icon = () => <span data-testid="right-icon">-></span>
+ const Icon = () => <span data-testid="right-icon">{'->'}</span>
       render(<Button rightIcon={<Icon />}>With Icon</Button>)
       expect(screen.getByTestId('right-icon')).toBeInTheDocument()
     })

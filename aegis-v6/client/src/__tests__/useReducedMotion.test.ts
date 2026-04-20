@@ -14,7 +14,6 @@
  *                               addEventListener so tests can fire them
  *                               manually to simulate OS preference changes.
  *
- * How it connects:
  * - Run by the test runner (Vitest or Jest) */
 
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'

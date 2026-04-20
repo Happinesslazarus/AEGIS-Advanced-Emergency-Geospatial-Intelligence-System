@@ -1,7 +1,4 @@
 /**
- * File: config.ts
- *
- * What this file does:
  * Initialises i18next with react-i18next and the browser language detector.
  *
  * Language loading strategy:
@@ -17,7 +14,6 @@
  *             second cache layer in localStorage (7-day TTL) so subsequent
  *             language switches are served instantly without a network round-trip.
  *
- * How it connects:
  * - Imported once in client/src/main.tsx before React renders
  * - Dynamic translation handled by client/src/i18n/dynamicLocaleLoader.ts
  * - Backend endpoint: server/src/routes/translationRoutes.ts POST /api/translate/batch

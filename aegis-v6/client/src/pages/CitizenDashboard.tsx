@@ -1123,7 +1123,7 @@ function NewsTab({ newsPool, newsOffset, setNewsOffset, NEWS_BATCH, filteredNews
               onClick={() => setNewsOffset(o => Math.max(0, o - NEWS_BATCH))}
               className="flex items-center gap-1 text-xs text-gray-500 hover:text-aegis-600 bg-gray-100/80 dark:bg-gray-800/60 border border-gray-200/60 dark:border-gray-700/60 px-3 py-2 rounded-xl transition-all hover:scale-[1.02] font-bold"
             >
- <- Prev
+ {'<-'} Prev
             </button>
           )}
           <button

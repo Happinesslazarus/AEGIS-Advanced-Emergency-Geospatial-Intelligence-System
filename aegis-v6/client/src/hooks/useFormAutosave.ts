@@ -1,6 +1,4 @@
 /**
- * File: useFormAutosave.ts
- *
  * Persists form state to IndexedDB so drafts survive page refreshes.
  * Uses a debounced write (500ms) to avoid hammering IDB on every keystroke.
  *

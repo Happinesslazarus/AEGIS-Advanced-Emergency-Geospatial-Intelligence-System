@@ -1,7 +1,6 @@
 /**
  * useWebPush custom React hook (web push logic).
  *
- * How it connects:
  * - Used by React components that need this functionality */
 
 import { useEffect, useState } from 'react'

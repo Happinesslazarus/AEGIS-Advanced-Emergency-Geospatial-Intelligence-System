@@ -34,7 +34,6 @@
  *   document.body.innerHTML   = clearing this between tests removes any DOM nodes
  *                               that a component mounted during the previous test
  *
- * How it connects:
  * - Referenced in vitest.config.ts as `setupFiles: ['src/__tests__/setup.ts']`
  * - Runs automatically before every test file; no explicit import needed
  */

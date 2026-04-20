@@ -1,12 +1,8 @@
 /**
- * File: locationUtils.ts
- *
- * What this file does:
  * Geolocation and coordinate helpers: get the user GPS position, calculate
  * distance between points (haversine), format coordinates for display, and
  * reverse-geocode a lat/lng to a place name.
  *
- * How it connects:
  * - Used by report forms to pre-fill the location field
  * - Used by client/src/hooks/useIncidentLocation.ts
  * - Used by SOS distress beacon (needs accurate coordinates)

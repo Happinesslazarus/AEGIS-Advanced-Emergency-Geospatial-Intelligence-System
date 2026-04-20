@@ -551,7 +551,7 @@ export default function SetupWizard({ user, onComplete, setupStatus }: SetupWiza
                     <p className="text-xs text-green-600 dark:text-green-400 mt-1"> Valid HTTPS webhook URL</p>
                   )}
                   {!webhookState && (
- <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">You can configure this later in System Settings -> Webhooks.</p>
+ <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">You can configure this later in System Settings {'>'} Webhooks.</p>
                   )}
                 </>
               )

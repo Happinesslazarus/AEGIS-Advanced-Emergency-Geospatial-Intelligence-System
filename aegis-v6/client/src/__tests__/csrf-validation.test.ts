@@ -48,7 +48,6 @@
  *   document.cookie         = string-concatenation of all non-HttpOnly cookies for this origin
  *   window.location.origin  = scheme + hostname + port of the current page (e.g. http://localhost:5173)
  *
- * How it connects:
  * - Run by Vitest; exported functions are also used in the client's fetch wrapper
  */
 

@@ -315,7 +315,7 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-[9px] font-bold text-gray-400 dark:text-gray-300 uppercase tracking-widest">{t('allReports.activityTimeline', lang)}</span>
- <span className="text-[9px] text-gray-400 dark:text-gray-300">-></span>
+ <span className="text-[9px] text-gray-400 dark:text-gray-300">{'->'}</span>
               </div>
               <div className="flex items-end gap-px h-8">
                 {sparkline.map((v, i) => (
@@ -661,7 +661,7 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
             disabled={page === 0}
             className="text-xs font-semibold px-3 py-1.5 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
           >
- <- {t('common.previous', lang)}
+ {'<-'} {t('common.previous', lang)}
           </button>
           <span className="text-xs text-gray-500 dark:text-gray-400 tabular-nums font-semibold">
             {page + 1} / {totalPages}
@@ -671,7 +671,7 @@ export default function AllReportsManager(props: AllReportsManagerProps) {
             disabled={page >= totalPages - 1}
             className="text-xs font-semibold px-3 py-1.5 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
           >
- {t('common.next', lang)} ->
+ {t('common.next', lang)} {'->'}
           </button>
         </div>
       )}

@@ -1,16 +1,11 @@
 /**
- * File: weatherApi.ts
- *
- * What this file does:
  * Fetches current weather data using Open-Meteo (free, no API key required)
  * or OpenWeatherMap. Shows weather context alongside disaster reports and
  * risk assessments in the citizen UI.
  *
- * How it connects:
  * - Used by client/src/components/shared/WeatherPanel.tsx
  * - Used by client/src/pages/CitizenDashboard.tsx weather summary section
  *
- * Learn more:
  * - server/src/services/dataIngestionService.ts -- server also fetches weather for cron jobs
  */
 

@@ -1,10 +1,8 @@
 ﻿/**
- * What it tests:
  * End-to-end tests for the full authentication flow.
  * Covers registration -> email verification -> login -> token refresh
  * -> logout using real HTTP requests against the running server.
   *
-  * How it connects:
   * - Tests server/src/routes/authRoutes.ts end-to-end
   * - Requires running server + PostgreSQL
   * - Run via: npm test -- auth.e2e

@@ -1,7 +1,6 @@
 /**
  * useFloodData custom React hook (flood data logic).
  *
- * How it connects:
  * - Used by React components that need this functionality */
 
 import { useState, useEffect, useCallback } from 'react'

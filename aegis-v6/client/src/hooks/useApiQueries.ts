@@ -1,7 +1,6 @@
 /**
  * useApiQueries custom React hook (api queries logic).
  *
- * How it connects:
  * - Used by React components that need this functionality */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'

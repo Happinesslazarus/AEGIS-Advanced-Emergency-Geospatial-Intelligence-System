@@ -20,7 +20,6 @@
  *   expect.stringContaining() = a partial-match matcher; passes if the actual
  *                               string contains the given substring.
  *
- * How it connects:
  * - Run by the test runner (Vitest or Jest) */
 
 import { describe, test, expect, vi, beforeEach } from 'vitest'

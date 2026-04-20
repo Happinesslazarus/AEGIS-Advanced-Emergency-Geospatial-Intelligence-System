@@ -1,7 +1,6 @@
 /**
  * useReducedMotion custom React hook (reduced motion logic).
  *
- * How it connects:
  * - Used by React components that need this functionality */
 
 import { useState, useEffect } from 'react'

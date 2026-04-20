@@ -45,7 +45,6 @@
  *   severity                = 'low' | 'medium' | 'high' | 'critical'
  *   region                  = geographic filter string, e.g. 'scotland', 'edinburgh'
  *
- * How it connects:
  * - Run by the test runner (Vitest) with `vitest run` or `vitest watch`
  */
 

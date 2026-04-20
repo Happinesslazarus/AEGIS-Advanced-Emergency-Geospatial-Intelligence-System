@@ -427,7 +427,7 @@ export default function GuestDashboard(): JSX.Element {
                       <div className="px-4 py-3 border-t border-gray-100 dark:border-white/6 bg-gray-50/50 dark:bg-white/[0.02]">
                         <Link to="/citizen/login" onClick={() => setSignInOpen(false)}
                           className="text-[11px] text-aegis-600 dark:text-aegis-400 hover:text-aegis-500 dark:hover:text-aegis-300 transition-colors font-medium">
- {ct('guest.newHere',lang)} <span className="font-bold underline underline-offset-2">{ct('guest.createFreeAccount',lang)} -></span>
+ {ct('guest.newHere',lang)} <span className="font-bold underline underline-offset-2">{ct('guest.createFreeAccount',lang)} {'>'}</span>
                         </Link>
                       </div>
                     </div>

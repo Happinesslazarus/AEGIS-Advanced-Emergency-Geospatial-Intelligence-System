@@ -1,7 +1,6 @@
 /**
  * useOnlineStatus custom React hook (online status logic).
  *
- * How it connects:
  * - Used by React components that need this functionality */
 
 import { useState, useEffect, useCallback } from 'react'

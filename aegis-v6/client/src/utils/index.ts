@@ -1,6 +1,4 @@
 /**
- * File: index.ts  (utils barrel export)
- *
  * Central re-export point for all utilities in client/src/utils/.
  * Consumers import from this barrel instead of individual files:
  *
@@ -18,7 +16,6 @@
  *   i18n          = internationalisation -- translation and locale utilities;
  *                   only t, getLanguage, and setLanguage are exposed here
  *
- * How it connects:
  * - All utility modules are listed below; add new utils to this file when created
  * - The i18n module exports only t, getLanguage, setLanguage to prevent leaking
  *   i18next internal symbols that could conflict with other exports

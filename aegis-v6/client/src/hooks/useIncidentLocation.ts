@@ -1,7 +1,6 @@
 /**
  * useIncidentLocation custom React hook (incident location logic).
  *
- * How it connects:
  * - Used by React components that need this functionality */
 
 import { useMemo, useState } from 'react'

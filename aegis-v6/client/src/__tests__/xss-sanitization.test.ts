@@ -36,7 +36,6 @@
  *   OWASP                  = Open Web Application Security Project; the XSS vectors tested
  *                            here are sourced from the OWASP XSS Filter Evasion Cheat Sheet
  *
- * How it connects:
  * - Run by the test runner (Vitest) with `vitest run` or `vitest watch`
  * - The sanitization functions are inlined in this file AND exported for app use
  */

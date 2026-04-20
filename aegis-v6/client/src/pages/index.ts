@@ -1,7 +1,6 @@
 /**
  * Index page component (top-level route view).
  *
- * How it connects:
  * - Lazy-loaded by App.tsx router */
 
 export { default as AboutPage } from './AboutPage'

@@ -1,7 +1,6 @@
 /**
  * usePullToRefresh custom React hook (pull to refresh logic).
  *
- * How it connects:
  * - Used by React components that need this functionality */
 
 import { useRef, useEffect, useCallback, useState } from 'react'

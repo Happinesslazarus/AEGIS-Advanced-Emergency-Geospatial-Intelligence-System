@@ -1,13 +1,9 @@
 /**
- * File: cookiePreferences.ts
- *
- * What this file does:
  * Manages GDPR cookie-consent state stored in localStorage. Provides
  * getConsent(), setConsent(), hasConsentFor(), and revokeConsent().
  * Dispatches an aegis-consent-change window event so listening components
  * update without a full reload.
  *
- * How it connects:
  * - Read by CookieConsent.tsx banner to gate analytics initialisation
  * - Read by client/src/utils/api.ts to decide whether to attach analytics IDs
  * - Learn more: client/src/components/CookieConsent.tsx

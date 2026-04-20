@@ -16,7 +16,6 @@
  *   window.dispatchEvent()    = simulates browser events (online/offline) by
  *                               firing them on the window object directly.
  *
- * How it connects:
  * - Run by the test runner (Vitest or Jest) */
 
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'

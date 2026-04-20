@@ -1,10 +1,8 @@
 ﻿/**
- * What it tests:
  * Integration tests for the SOS distress beacon endpoints.
   * Verifies one-active-per-citizen enforcement, real-time Socket.IO
   * broadcasting, responder acknowledgement, and distress resolution flow.
   *
-  * How it connects:
   * - Tests server/src/routes/distressRoutes.ts
   * - Relies on PostgreSQL distress_signals table
   * - Run via: npm test -- distress.integration

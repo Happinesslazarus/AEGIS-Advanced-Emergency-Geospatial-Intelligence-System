@@ -1,13 +1,9 @@
 /**
- * File: validation.ts
- *
- * What this file does:
  * Client-side form validation functions for report, auth, and profile forms.
  * Validates description length, location format, and image file sizes, then
  * returns structured error messages. Mirrors server Zod schemas to catch
  * issues before they hit the API.
  *
- * How it connects:
  * - Used by client/src/components/citizen/ReportForm.tsx
  * - Used by client/src/pages/CitizenAuthPage.tsx
  * - Server-side counterpart: server/src/middleware/validate.ts

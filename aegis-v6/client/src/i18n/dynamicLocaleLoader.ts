@@ -1,7 +1,4 @@
 /**
- * File: dynamicLocaleLoader.ts
- *
- * What this file does:
  * Dynamically loads i18next namespace bundles for any language that is not
  * statically bundled, by calling the AEGIS backend translation microservice.
  *
@@ -18,7 +15,6 @@
  * Fallback: if the API is unreachable, the original English namespace is returned
  * unchanged -- the app stays fully functional, just in English.
  *
- * How it connects:
  * - Called by client/src/i18n/config.ts -> loadLanguage()
  * - Calls server/src/routes/translationRoutes.ts POST /api/translate/batch
  * - Reads/writes localStorage for client-side caching

@@ -1,6 +1,4 @@
 /**
- * File: sepaApi.ts
- *
  * Fetches live river level data from two authoritative UK sources:
  *   1. SEPA KiWIS  -- the Scottish Environment Protection Agency's real-time
  *                    river-gauge web service (used for Scottish locations)
@@ -37,7 +35,6 @@
  *   KNOWN_GAUGES      = hand-curated mapping of major cities to their known station IDs;
  *                       used as a fallback to identify river names when the API omits them
  *
- * How it connects:
  * - Used by client/src/components/shared/RiverGaugePanel.tsx
  * - Used by client/src/hooks/useFloodData.ts
  * - Server-side equivalent: server/src/services/riverLevelService.ts

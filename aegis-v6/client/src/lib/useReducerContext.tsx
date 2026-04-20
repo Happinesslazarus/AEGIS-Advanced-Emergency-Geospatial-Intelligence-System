@@ -1,13 +1,9 @@
 /**
- * File: useReducerContext.tsx
-  *
-  * What this file does:
   * Generic factory that creates a paired React Context + useReducer
   * hook. Calling createReducerContext(reducer, initialState) returns
   * a [Provider, useContext] tuple that is fully TypeScript-typed without
   * any boilerplate.
   *
-  * How it connects:
   * - Used by complex contexts in client/src/contexts/ that need
   *   reducer-pattern state (e.g. OfflineQueueContext)
   * - createAction() utility keeps the action creator pattern consistent

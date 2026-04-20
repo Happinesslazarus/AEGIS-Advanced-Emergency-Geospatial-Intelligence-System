@@ -1,7 +1,6 @@
 /**
  * index custom React hook (index logic).
  *
- * How it connects:
  * - Used by React components that need this functionality */
 
 export { useAnnounce } from './useAnnounce'

@@ -31,7 +31,6 @@
  *   JSON.parse(str)         = parses a JSON string back to an object; can throw on invalid input
  *   isAuthenticated()       = returns true if any token is present (admin or citizen)
  *
- * How it connects:
  * - Run by the test runner (Vitest) with `vitest run` or `vitest watch`
  */
 

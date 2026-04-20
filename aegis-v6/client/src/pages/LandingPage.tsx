@@ -300,7 +300,7 @@ export default function LandingPage(): JSX.Element {
         <Reveal>
           <div className="text-center mb-16">
             <span className="text-xs font-bold text-aegis-600 dark:text-aegis-400 tracking-widest uppercase">Capabilities</span>
-            <h2 className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white mt-3 mb-4">Enterprise-Grade Emergency Intelligence</h2>
+            <h2 className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white mt-3 mb-4">Emergency Intelligence Platform</h2>
             <p className="text-sm text-gray-500 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed">A comprehensive platform combining real-time data ingestion, AI-powered analysis, and multi-channel communication to protect communities.</p>
           </div>
         </Reveal>

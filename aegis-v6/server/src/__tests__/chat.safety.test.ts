@@ -1,11 +1,9 @@
 ﻿/**
- * What it tests:
  * Unit tests for prompt-injection detection in the chat pipeline.
   * Verifies that known injection patterns (role-playing, jailbreak,
   * system-override attempts) are detected and blocked before being
   * forwarded to the LLM.
   *
-  * How it connects:
   * - Tests server/src/services/chatService.ts safety filters
   * - No external calls needed -- mock LLM responses used
   * - Run via: npm test -- chat.safety

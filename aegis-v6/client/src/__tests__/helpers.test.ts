@@ -12,7 +12,6 @@
  *   beforeEach/afterEach = run setup/teardown code before or after every test
  *                          in the enclosing describe() block.
  *
- * How it connects:
  * - Run by the test runner (Vitest or Jest) */
 
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'

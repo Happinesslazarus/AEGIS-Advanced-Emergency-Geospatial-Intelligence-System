@@ -1,10 +1,8 @@
 ﻿/**
- * What it tests:
  * Unit tests for the cacheService (in-memory LRU + Redis adapter).
   * Verifies get/set/delete, TTL expiry, Redis fallback logic,
   * and cache invalidation by prefix.
   *
-  * How it connects:
   * - Tests server/src/services/cacheService.ts
   * - Redis connection mocked (no live Redis required)
   * - Run via: npm test -- cacheService

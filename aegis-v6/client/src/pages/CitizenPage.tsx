@@ -1629,7 +1629,7 @@ export default function CitizenPage(): JSX.Element {
                     onClick={() => setNewsOffset(o => Math.max(0, o - NEWS_BATCH))}
                     className="flex items-center gap-1 text-xs text-gray-500 hover:text-aegis-600 bg-gray-100/80 dark:bg-gray-800/60 border border-gray-200/60 dark:border-gray-700/60 px-3 py-2 rounded-xl transition-all hover:scale-[1.02] font-bold"
                   >
- <- Prev
+ {'<-'} Prev
                   </button>
                 )}
                 <button
@@ -1772,7 +1772,7 @@ export default function CitizenPage(): JSX.Element {
             {/* Sign in CTA */}
             <div className="flex items-center justify-center gap-3 py-2">
               <Link to="/citizen/login" className="flex items-center gap-2 text-sm font-bold text-emerald-700 dark:text-emerald-400 hover:text-emerald-600 transition-colors group">
- <BookOpen className="w-4 h-4 group-hover:scale-110 transition-transform"/> Full preparedness guide & training (sign in) ->
+ <BookOpen className="w-4 h-4 group-hover:scale-110 transition-transform"/> Full preparedness guide & training (sign in) {'>'}
               </Link>
             </div>
           </div>

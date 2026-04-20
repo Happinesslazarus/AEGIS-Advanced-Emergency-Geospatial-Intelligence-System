@@ -1,7 +1,6 @@
 /**
  * useAnnounce custom React hook (announce logic).
  *
- * How it connects:
  * - Used by React components that need this functionality */
 
 import { useCallback, useEffect, useRef } from 'react'

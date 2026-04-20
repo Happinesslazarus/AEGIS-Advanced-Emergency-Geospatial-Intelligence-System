@@ -38,7 +38,6 @@
  *   Object.defineProperty() = injects a fake localStorage into the test environment
  *   configurable: true      = required so the property can be redefined between tests
  *
- * How it connects:
  * - Run by the test runner (Vitest) with `vitest run` or `vitest watch`
  */
 

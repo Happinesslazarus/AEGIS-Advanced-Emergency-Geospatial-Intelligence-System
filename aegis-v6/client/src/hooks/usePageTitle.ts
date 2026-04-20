@@ -1,6 +1,4 @@
 /**
- * File: usePageTitle.ts
- *
  * Sets document.title dynamically and restores it on unmount.
  * Format: "<page> -- AEGIS Emergency Management"
  */

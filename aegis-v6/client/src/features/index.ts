@@ -1,12 +1,8 @@
 /**
- * File: index.ts  (features barrel)
-  *
-  * What this file does:
   * Placeholder barrel for future feature-sliced modules.
   * As the codebase grows, feature domains (auth, incidents, reports)
   * can be extracted here and exported from a single entry point.
   *
-  * How it connects:
   * - Currently empty -- add exports here as feature slices are created
  */
 

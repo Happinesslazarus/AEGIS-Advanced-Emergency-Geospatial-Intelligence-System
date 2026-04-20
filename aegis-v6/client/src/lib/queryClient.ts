@@ -1,13 +1,9 @@
 /**
- * File: queryClient.ts
-  *
-  * What this file does:
   * Creates and exports the singleton TanStack Query client with
   * global defaults: 2 retries on failure, a 5-minute stale time,
   * and a 10-minute garbage-collection window. This single instance
   * is shared across the whole app so the cache is never duplicated.
   *
-  * How it connects:
   * - Provided to the app by QueryClientProvider in AppProviders.tsx
   * - Imported by hooks that need to invalidate or prefetch queries
   * - Learn more: https://tanstack.com/query/latest/docs/react/reference/QueryClient

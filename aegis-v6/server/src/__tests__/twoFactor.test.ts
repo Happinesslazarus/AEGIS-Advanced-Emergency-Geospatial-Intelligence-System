@@ -1,10 +1,8 @@
 ﻿/**
- * What it tests:
  * Unit tests for the AES-256-GCM 2FA secret encryption layer.
   * Verifies encrypt/decrypt round-trips, IV uniqueness, tamper
   * detection (wrong key returns null), and ciphertext format.
   *
-  * How it connects:
   * - Tests server/src/utils/twoFactor.ts encryption helpers
   * - Pure unit test -- no DB or network calls
   * - Run via: npm test -- twoFactor

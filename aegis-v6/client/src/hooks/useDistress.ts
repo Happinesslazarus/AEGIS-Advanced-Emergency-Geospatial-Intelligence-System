@@ -1,7 +1,6 @@
 /**
  * useDistress custom React hook (distress logic).
  *
- * How it connects:
  * - Used by React components that need this functionality */
 
 import { useState, useEffect, useRef, useCallback } from 'react'

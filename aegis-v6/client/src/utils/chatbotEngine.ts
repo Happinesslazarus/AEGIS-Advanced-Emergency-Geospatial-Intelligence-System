@@ -1,6 +1,4 @@
 /**
- * File: chatbotEngine.ts
- *
  * Client-side emergency guidance chatbot engine.
  * Classifies an incoming plain-text message into one of 30+ intents using a
  * fast keyword-matching algorithm, then returns a pre-written Markdown response.
@@ -30,7 +28,6 @@
  *   3. Return the intent with the highest score  
  *   4. If no keyword matched, return I.UNK with a low confidence (0.15)
  *
- * How it connects:
  * - Called from client/src/components/Chatbot.tsx on user message submit
  * - ChatResponse type defined in client/src/types/index.ts
  */

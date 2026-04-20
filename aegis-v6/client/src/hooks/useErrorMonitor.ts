@@ -1,7 +1,6 @@
 /**
  * useErrorMonitor custom React hook (error monitor logic).
  *
- * How it connects:
  * - Used by React components that need this functionality */
 
 import { useEffect, useRef } from 'react'

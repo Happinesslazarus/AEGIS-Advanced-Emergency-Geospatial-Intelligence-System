@@ -1,7 +1,6 @@
 /**
  * useLanguage custom React hook (language logic).
  *
- * How it connects:
  * - Used by React components that need this functionality */
 
 import { useState, useEffect } from 'react'

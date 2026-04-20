@@ -1,12 +1,8 @@
 /**
- * File: exportData.ts
- *
- * What this file does:
  * Exports incident reports to CSV for offline analysis. Builds a
  * comma-separated file in memory, triggers a browser download, and
  * revokes the object URL afterwards to free memory.
  *
- * How it connects:
  * - Called by AdminPage.tsx export button
  * - Imports the Report type from client/src/types/index.ts
  * - No server call needed -- works entirely from in-memory report data

@@ -1,6 +1,4 @@
 /**
- * File: i18nUtils.ts
- *
  * Locale-aware formatting utilities that complement the react-i18next translation layer.
  * Every function uses the browser's built-in Intl APIs (ECMAScript Internationalisation
  * API Specification) and falls back to simple string manipulation when an Intl constructor
@@ -34,7 +32,6 @@
  *   sensitivity: 'base'    = Collator option: compare only base letters, ignoring
  *                            accents and case ('a' == 'à' == 'A')
  *
- * How it connects:
  * - Used alongside react-i18next throughout the app
  * - Follows ICU MessageFormat conventions for pluralisation
  * - The applyRTL() function is called by ThemeContext when the user changes language

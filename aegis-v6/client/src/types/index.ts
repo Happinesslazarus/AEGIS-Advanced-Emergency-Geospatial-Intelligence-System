@@ -1,13 +1,9 @@
 /**
- * File: index.ts  (types barrel)
-  *
-  * What this file does:
   * Master TypeScript type definitions for the Aegis client: Report,
   * Alert, User, IncidentCategory, PreparednessTip, HistoricalEvent,
   * and all associated enums and helper types. All client components
   * import their types from here.
   *
-  * How it connects:
   * - Imported across the entire client codebase
   * - API response shapes should mirror server/src/types/ definitions
   * - Sub-type files (api.ts, communityChat.ts) re-exported from here

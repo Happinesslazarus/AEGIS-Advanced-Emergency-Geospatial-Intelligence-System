@@ -34,7 +34,6 @@
  *   addEventListener('change')= fires when the media-query match state changes
  *   BREAKPOINTS               = exported JS object mirroring Tailwind's default breakpoint map
  *
- * How it connects:
  * - Run by the test runner (Vitest) with `vitest run` or `vitest watch`
  */
 

@@ -1,10 +1,8 @@
 ﻿/**
- * What it tests:
  * Schema regression tests for the safety-reminder cron job.
   * Confirms the job produces correctly shaped notification objects
   * and that the safety tip categories have not been accidentally removed.
   *
-  * How it connects:
   * - Tests server/src/services/cronJobs.ts safetyReminderJob
   * - Pure unit test -- no DB or network calls
   * - Run via: npm test -- cronJobs.test

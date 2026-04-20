@@ -49,7 +49,6 @@
  *   loop option             = when true, arrow navigation wraps from last item back to first
  *   orientation option      = 'horizontal' uses ArrowLeft/Right; 'vertical' uses ArrowUp/Down
  *
- * How it connects:
  * - Run by the test runner (Vitest) with `vitest run` or `vitest watch`
  */
 

@@ -33,7 +33,6 @@
  *   mockFetch.mockResolvedValue() = makes the mock return a resolved Promise
  *   mockFetch.mockReset() = clears pending resolved/rejected values alongside clearAllMocks
  *
- * How it connects:
  * - Run by the test runner (Vitest) with `vitest run` or `vitest watch`
  */
 

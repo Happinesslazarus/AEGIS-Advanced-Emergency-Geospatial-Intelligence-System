@@ -1,13 +1,9 @@
 /**
- * File: disasterTypes.ts
-  *
-  * What this file does:
   * Static lookup tables for all incident categories, subtypes, severity
   * configuration, trapped-person options, community help types, and
   * supported language options. These are the master data values used
   * by report forms, map filters, and the admin panel.
   *
-  * How it connects:
   * - Used by report forms (ReportForm.tsx, CitizenPage.tsx)
   * - Imported by RiskAssessment.tsx for filter and display logic
   * - Should stay in sync with server/src/config/incidentTypes.ts

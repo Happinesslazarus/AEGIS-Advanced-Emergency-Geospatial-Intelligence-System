@@ -1,7 +1,6 @@
 /**
  * Index admin component (operator dashboard panel).
  *
- * How it connects:
  * - Rendered inside AdminPage.tsx based on active view */
 
 export { default as ActivityLog } from './ActivityLog'

@@ -1,10 +1,8 @@
 ﻿/**
- * What it tests:
  * Integration tests for the incident report submission and retrieval flow.
   * Verifies report creation, AI analysis trigger, media upload,
   * status transitions, and admin approval flow.
   *
-  * How it connects:
   * - Tests server/src/routes/reportRoutes.ts
   * - AI analysis mocked to isolate from ai-engine service
   * - Run via: npm test -- reports.integration

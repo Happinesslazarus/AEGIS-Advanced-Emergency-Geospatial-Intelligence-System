@@ -1,6 +1,4 @@
 /**
- * File: incidentApi.ts
- *
  * HTTP client functions for AEGIS's multi-incident plugin system.
  * All requests target the /api/v1/incidents versioned prefix and are
  * authenticated with a Bearer token via the shared v1Fetch helper.
@@ -37,7 +35,6 @@
  *   encodeURIComponent    = URL-safe encoding of parameter values; prevents injection via
  *                           special characters in region or type strings
  *
- * How it connects:
  * - Used by client/src/components/admin/IncidentCommandConsole.tsx
  * - Server routes: server/src/routes/incidentRoutes.ts (mounted at /api/v1/incidents)
  */

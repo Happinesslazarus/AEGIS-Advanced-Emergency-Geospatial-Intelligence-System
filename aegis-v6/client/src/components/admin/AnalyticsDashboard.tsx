@@ -364,7 +364,7 @@ export default function AnalyticsDashboard({ onFilterCategory, onFilterSeverity,
                 max={customTo || undefined}
                 className="text-xs px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-aegis-500/30 focus:border-aegis-500 transition-colors"
               />
- <span className="text-[10px] text-gray-400">-></span>
+ <span className="text-[10px] text-gray-400">{'->'}</span>
               <input
                 type="date"
                 value={customTo}
