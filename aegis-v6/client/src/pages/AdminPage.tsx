@@ -1158,7 +1158,7 @@ export default function AdminPage(): JSX.Element {
               {mediaItems.length > 0 && (
                 <div className="bg-gradient-to-br from-purple-50/80 to-pink-50/80 dark:from-purple-950/30 dark:to-pink-950/30 rounded-xl p-3 border border-purple-100/60 dark:border-purple-800/30">
                   <h4 className="text-xs font-extrabold flex items-center gap-2 text-purple-800 dark:text-purple-200 mb-2"><Camera className="w-3.5 h-3.5 text-purple-500"/>{t('admin.detail.evidenceGallery',lang)} <span className="text-purple-400 font-normal">({mediaItems.length} photo{mediaItems.length!==1?'s':''})</span></h4>
-                  <div className={`grid gap-2 ${mediaItems.length===1?'grid-cols-1':mediaItems.length===2?'grid-cols-2':'grid-cols-3'}`}>
+                  <div className={`grid gap-2 ${mediaItems.length===1?'grid-cols-1':mediaItems.length===2?'grid-cols-2':'grid-cols-2 sm:grid-cols-3'}`}>
                     {mediaItems.map((m:any,i:number)=>(
                       <div key={m.id||i} className="relative group cursor-pointer rounded-xl overflow-hidden border-2 border-purple-200/40 dark:border-purple-700/30 hover:border-purple-400 dark:hover:border-purple-500 transition-all hover:shadow-lg hover:shadow-purple-500/10 hover:scale-[1.02]" onClick={()=>{setGalleryIndex(i);setGalleryOpen(true)}}>
                         <img src={m.url||m.file_url} alt={`Evidence ${i+1}`} className={`w-full object-cover transition-transform group-hover:scale-110 duration-300 ${mediaItems.length===1?'max-h-52':'h-32'}`}/>
@@ -1391,7 +1391,7 @@ export default function AdminPage(): JSX.Element {
         {notifications.map(n=>{
           const cfg = n.type==='success'?{bg:'bg-emerald-600',icon:'check'}:n.type==='warning'?{bg:'bg-amber-500',icon:'warn'}:n.type==='error'?{bg:'bg-red-600',icon:'err'}:{bg:'bg-blue-600',icon:'info'}
           return (
-            <div key={n.id} role="alert" className={`flex items-start gap-2.5 px-4 py-3 rounded-xl text-sm text-white shadow-xl backdrop-blur-sm animate-fade-in max-w-sm border border-white/10 ${cfg.bg}`}>
+            <div key={n.id} role="alert" className={`flex items-start gap-2.5 px-4 py-3 rounded-xl text-sm text-white shadow-xl backdrop-blur-sm animate-fade-in max-w-[calc(100vw-2rem)] sm:max-w-sm border border-white/10 ${cfg.bg}`}>
               <span className="mt-0.5 flex-shrink-0">
                 {cfg.icon==='check'&&<CheckCircle className="w-4 h-4" />}
                 {cfg.icon==='warn'&&<AlertTriangle className="w-4 h-4" />}

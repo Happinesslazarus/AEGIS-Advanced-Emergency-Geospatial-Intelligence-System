@@ -744,7 +744,7 @@ export default function CitizenDashboard(): JSX.Element {
       {/* Toasts */}
       <div className="fixed top-16 right-4 z-50 space-y-2">
         {notifications?.map(n => (
-          <div key={n.id} onClick={() => dismissNotification?.(n.id)} className={`px-4 py-2.5 rounded-xl text-sm shadow-lg cursor-pointer animate-fade-in max-w-xs ${n.type === 'success' ? 'bg-green-600 text-white' : n.type === 'warning' ? 'bg-amber-500 text-white' : n.type === 'error' ? 'bg-red-600 text-white' : 'bg-blue-600 text-white'}`}>{n.message}</div>
+          <div key={n.id} onClick={() => dismissNotification?.(n.id)} className={`px-4 py-2.5 rounded-xl text-sm shadow-lg cursor-pointer animate-fade-in max-w-[calc(100vw-2rem)] sm:max-w-xs ${n.type === 'success' ? 'bg-green-600 text-white' : n.type === 'warning' ? 'bg-amber-500 text-white' : n.type === 'error' ? 'bg-red-600 text-white' : 'bg-blue-600 text-white'}`}>{n.message}</div>
         ))}
       </div>
     </AppLayout>
@@ -903,7 +903,7 @@ function ReportsTab({ reports, loading, searchTerm, setSearchTerm, sortField, se
       </div>
 
       {/* STATUS PIPELINE */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 overflow-x-auto">
         {([
           { key: 'all' as const, label: t('cdash.reports.all', lang), count: stats.total, color: 'text-gray-600 dark:text-gray-400', activeBg: 'bg-gray-100 dark:bg-gray-700' },
           { key: 'Unverified' as const, label: t('cdash.reports.unverified', lang), count: stats.unverified, color: 'text-yellow-600', activeBg: 'bg-yellow-50 dark:bg-yellow-950/30' },

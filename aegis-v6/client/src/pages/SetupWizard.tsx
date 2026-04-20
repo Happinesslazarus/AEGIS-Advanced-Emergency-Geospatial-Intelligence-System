@@ -250,7 +250,7 @@ export default function SetupWizard({ user, onComplete, setupStatus }: SetupWiza
   /* Stepper */
 
   const Stepper = () => (
-    <div className="flex items-center justify-center mb-8" role="list" aria-label="Setup steps">
+    <div className="flex items-center justify-center mb-8 overflow-x-auto px-2" role="list" aria-label="Setup steps">
       {STEPS.map((s, i) => {
         const stepNum = (i + 1) as Step
         const Icon = s.icon

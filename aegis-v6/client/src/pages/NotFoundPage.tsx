@@ -86,7 +86,7 @@ export default function NotFoundPage() {
           <h1
             ref={headingRef}
             tabIndex={-1}
-            className="text-6xl font-bold text-gray-300 dark:text-gray-700 mb-2 select-none outline-none"
+            className="text-5xl sm:text-6xl font-bold text-gray-300 dark:text-gray-700 mb-2 select-none outline-none"
           >
             {t('notFound.heading', lang)}
           </h1>
