@@ -215,7 +215,6 @@ export async function calculateThreatLevel(): Promise<ThreatAssessment> {
   return assessment
 }
 
-// —2  MULTI-HAZARD THREAT ASSESSMENT
 
 /**
  * Calculate threat levels across multiple hazard types, not just flooding.
@@ -327,7 +326,6 @@ export async function calculateMultiHazardThreat(): Promise<{
   return { overall, perHazard, composite }
 }
 
-// —3  THREAT TRAJECTORY PREDICTION
 
 /**
  * Predict how the threat level will evolve over the next 1, 3, and 6 hours.
@@ -388,7 +386,6 @@ export async function predictThreatTrajectory(): Promise<{
   return { current, predictions }
 }
 
-// —4  THREAT EXPLANATION
 
 /**
  * Provide a human-readable explanation of the current threat level with escalation/de-escalation triggers.
@@ -462,7 +459,6 @@ export async function explainThreatLevel(): Promise<{
   return { summary, factors, escalationTriggers, deescalationTriggers }
 }
 
-// —5  ZONE-SPECIFIC THREATS
 
 /**
  * Compute per-zone threat levels using zone risk scores and local conditions.

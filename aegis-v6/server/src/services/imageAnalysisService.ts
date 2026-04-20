@@ -69,7 +69,6 @@ export interface FullImageAnalysis {
   processingTimeMs: number
 }
 
-// -1  IMAGE CLASSIFICATION (ViT - Is this a disaster/flood image?)
 
 async function classifyImage(imageBuffer: Buffer): Promise<Array<{ label: string; score: number }>> {
   if (!HF_API_KEY) {
@@ -100,7 +99,6 @@ async function classifyImage(imageBuffer: Buffer): Promise<Array<{ label: string
   }
 }
 
-// -2  OBJECT DETECTION (DETR - What objects are in the image?)
 
 async function detectObjects(imageBuffer: Buffer): Promise<Array<{ label: string; score: number; box: any }>> {
   if (!HF_API_KEY) return []
@@ -124,7 +122,6 @@ async function detectObjects(imageBuffer: Buffer): Promise<Array<{ label: string
   }
 }
 
-// -3  EXIF METADATA EXTRACTION (using exifr library)
 
 async function extractExif(imageBuffer: Buffer): Promise<ExifAnalysisResult> {
   const result: ExifAnalysisResult = {
@@ -187,7 +184,6 @@ async function extractExif(imageBuffer: Buffer): Promise<ExifAnalysisResult> {
   return result
 }
 
-// -3b  TEMPORAL PLAUSIBILITY SCORING
 
  /*
  * Grades how plausible it is that an image was captured at the reported incident time.
@@ -266,7 +262,6 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
-// -4  IMAGE QUALITY ASSESSMENT
 
 function assessImageQuality(imageBuffer: Buffer): 'low' | 'medium' | 'high' {
   const sizeKB = imageBuffer.length / 1024
@@ -308,7 +303,6 @@ function assessImageQuality(imageBuffer: Buffer): 'low' | 'medium' | 'high' {
   return 'high'
 }
 
-// -5  MAIN ANALYSIS FUNCTION
 
  /*
  * Analyse an uploaded image for disaster relevance, objects, EXIF metadata.
@@ -493,7 +487,6 @@ export async function analyseImage(
   }
 }
 
-// -6  DAMAGE SEVERITY ESTIMATION FROM IMAGE CLASSIFICATIONS & DETECTIONS
 
 const FIRE_LABELS = new Set([
   'fire', 'volcano', 'wildfire', 'smoke', 'flame', 'blaze', 'torch',
@@ -575,7 +568,6 @@ export function estimateDamageSeverityFromImage(
   return { severity, confidence: Number(confidence.toFixed(3)), indicators }
 }
 
-// -7  IMAGE MANIPULATION DETECTION
 
 /* Known editor software signatures found in EXIF/metadata */
 const EDITOR_SIGNATURES = [
@@ -651,7 +643,6 @@ export function detectManipulation(imageBuffer: Buffer): {
   }
 }
 
-// -8  SCENE UNDERSTANDING
 
 const URBAN_LABELS = new Set([
   'building', 'skyscraper', 'office', 'apartment', 'church', 'mosque',
@@ -741,7 +732,6 @@ export function understandScene(
   return { description, environmentType, weatherIndicators, hazardIndicators }
 }
 
-// -9  MULTI-FRAME COMPARISON
 
 /**
  * Compare two PhotoValidationResult analyses (e.g., before/after images) to
@@ -787,7 +777,6 @@ export function compareImageAnalyses(
   }
 }
 
-// -10  ENHANCED IMAGE QUALITY ASSESSMENT
 
 /**
  * Perform an enhanced quality assessment on a raw image buffer, checking

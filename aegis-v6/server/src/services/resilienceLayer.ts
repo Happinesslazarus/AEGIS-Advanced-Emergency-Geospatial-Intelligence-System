@@ -11,7 +11,6 @@
 
 import { logger } from './logger.js'
 
-// -1  LRU CACHE WITH TTL
 
 interface CacheEntry<T> {
   value: T
@@ -90,7 +89,6 @@ export const apiCache = new LRUCache(500)       // API response cache
 export const embeddingCache = new LRUCache(200)  // Embedding vector cache
 export const llmCache = new LRUCache(100)        // LLM response cache
 
-// -2  RATE LIMITER
 
 interface RateLimitConfig {
   maxRequests: number
@@ -160,7 +158,6 @@ rateLimiter.configure('newsapi', { maxRequests: 5, windowMs: 60000 })
 rateLimiter.configure('wikipedia', { maxRequests: 10, windowMs: 60000 })
 rateLimiter.configure('nominatim', { maxRequests: 1, windowMs: 1000 }) // Strict 1/sec
 
-// -3  CIRCUIT BREAKER
 
 interface CircuitState {
   failures: number
@@ -233,7 +230,6 @@ class CircuitBreaker {
 
 export const circuitBreaker = new CircuitBreaker()
 
-// -4  RESILIENT FETCH - Combines all layers
 
 interface ResilientFetchOptions {
   provider: string
@@ -317,7 +313,6 @@ export async function resilientFetch<T = any>(
   throw lastError || new Error(`[Resilience] ${provider}: all retries exhausted`)
 }
 
-// -5  HEALTH MONITORING
 
 export function getResilienceStatus() {
   return {

@@ -345,14 +345,12 @@ function generateSmartMessage(report: Report): string {
   const now = new Date()
   const timestamp = now.toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' }) + ' ' + now.toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' })
 
-  // === HEADER ===
   lines.push(`AEGIS EMERGENCY ALERT — ${sevLabel}`)
   lines.push(`Type: ${typeLabel} | Severity: ${sevDesc}`)
   lines.push(`Location: ${report.location || 'Affected Area'}`)
   lines.push(`Issued: ${timestamp}`)
   lines.push(`Ref: ${report.reportNumber || 'N/A'}`)
 
-  // === SITUATION ASSESSMENT ===
   lines.push('')
   lines.push('--- SITUATION ASSESSMENT ---')
   lines.push(guidance.impactProfile)
@@ -368,44 +366,37 @@ function generateSmartMessage(report: Report): string {
     lines.push('PERSONS REPORTED TRAPPED — Search and rescue operations are being coordinated. If you are trapped: make noise, conserve energy, and cover your mouth to filter dust.')
   }
 
-  // === IMPACT ANALYSIS ===
   lines.push('')
   lines.push('--- IMPACT ANALYSIS ---')
   lines.push(`Estimated Impact Radius: ${guidance.estimatedImpactRadius}`)
   lines.push(`Infrastructure Risk: ${guidance.infrastructureImpact}`)
 
-  // === PROTECTIVE ACTIONS ===
   lines.push('')
   lines.push('--- PROTECTIVE ACTIONS (REQUIRED) ---')
   guidance.protectiveActions.forEach((action, i) => {
     lines.push(`${i + 1}. ${action}`)
   })
 
-  // === EVACUATION (if applicable) ===
   if (guidance.evacuationGuidance && (report.severity === 'High' || report.severity === 'Medium')) {
     lines.push('')
     lines.push('--- EVACUATION GUIDANCE ---')
     lines.push(guidance.evacuationGuidance)
   }
 
-  // === HEALTH RISKS ===
   lines.push('')
   lines.push('--- HEALTH & SAFETY RISKS ---')
   guidance.healthRisks.forEach(risk => {
     lines.push(`- ${risk}`)
   })
 
-  // === RECOVERY OUTLOOK ===
   lines.push('')
   lines.push('--- RECOVERY TIMELINE ---')
   lines.push(guidance.recoveryTimeline)
 
-  // === HISTORICAL CONTEXT ===
   lines.push('')
   lines.push('--- CONTEXT ---')
   lines.push(guidance.historicalContext)
 
-  // === FOOTER ===
   lines.push('')
   lines.push('--- END OF ALERT ---')
   lines.push(`This is an official emergency communication from AEGIS.`)

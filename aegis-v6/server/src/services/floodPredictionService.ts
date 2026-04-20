@@ -418,7 +418,6 @@ async function storePrediction(prediction: FloodPrediction, aiProbability: numbe
   }
 }
 
-// —2  NON-LINEAR PREDICTION MODEL
 
 /**
  * Predict river level using non-linear models:
@@ -460,7 +459,6 @@ function predictNonLinear(
   return Math.round(Math.max(0, currentLevel + drift + variation) * 100) / 100
 }
 
-// —3  HISTORICAL ANALOG MATCHING
 
 /**
  * Find historical flood events most similar to current conditions.
@@ -519,7 +517,6 @@ export async function findHistoricalAnalogs(
   }
 }
 
-// —4  ENSEMBLE PREDICTION
 
 /**
  * Combine standard linear, non-linear, and historical analog predictions into
@@ -595,7 +592,6 @@ export async function getEnsemblePredictions(): Promise<
   return ensembleResults
 }
 
-// —5  PREDICTION ACCURACY TRACKING
 
 /**
  * Compare past predictions (6-24h ago) with actual observed river levels
@@ -698,7 +694,6 @@ export async function trackPredictionAccuracy(): Promise<Array<{
   return results
 }
 
-// —6  MULTI-RIVER INTERACTION ANALYSIS
 
 /**
  * Analyze whether multiple rivers rising simultaneously creates amplified flood risk.

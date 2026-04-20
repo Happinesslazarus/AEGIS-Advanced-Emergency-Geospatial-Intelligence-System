@@ -45,7 +45,6 @@ function getActiveRegionId(): string {
   return process.env.REGION_ID || regionRegistry.getActiveRegion().getMetadata().regionId
 }
 
-// -1 JOB EXECUTION WRAPPER
 
 async function runJob(name: string, fn: () => Promise<number | string>): Promise<void> {
   const start = Date.now()
@@ -78,7 +77,6 @@ async function runJob(name: string, fn: () => Promise<number | string>): Promise
   }
 }
 
-// -2 FLOOD WARNINGS INGESTION (region-aware)
 
 async function ingestFloodWarnings(): Promise<number> {
   // Use the active region adapter to get flood warnings from the correct authority
@@ -169,7 +167,6 @@ function extractTag(xml: string, tag: string): string | null {
   return match ? match[1].replace(/<[^>]+>/g, '').trim() : null
 }
 
-// -3 CACHE CLEANUP
 
 async function cleanExpiredCache(): Promise<number> {
   const result = await pool.query(
@@ -178,7 +175,6 @@ async function cleanExpiredCache(): Promise<number> {
   return result.rowCount || 0
 }
 
-// -4 EXPIRE OLD CHAT SESSIONS
 
 async function expireChatSessions(): Promise<number> {
   const result = await pool.query(
@@ -188,7 +184,6 @@ async function expireChatSessions(): Promise<number> {
   return result.rowCount || 0
 }
 
-// -5 DATA RE-INGESTION (scheduled)
 
 async function scheduledDataIngestion(): Promise<number> {
   try {
@@ -217,7 +212,6 @@ async function scheduledDataIngestion(): Promise<number> {
   }
 }
 
-// -6 ML MODEL RETRAINING (scheduled)
 
 async function scheduledModelRetraining(): Promise<number> {
   try {
@@ -232,7 +226,6 @@ async function scheduledModelRetraining(): Promise<number> {
   }
 }
 
-// -7 AI CONFIDENCE MONITORING & ANOMALY DETECTION
 
 async function monitorAIConfidence(): Promise<number> {
   try {
@@ -339,7 +332,6 @@ async function monitorAIConfidence(): Promise<number> {
   }
 }
 
-// -8 RAG KNOWLEDGE BASE EXPANSION (scheduled)
 
 async function scheduledRAGExpansion(): Promise<number> {
   try {
@@ -354,7 +346,6 @@ async function scheduledRAGExpansion(): Promise<number> {
   }
 }
 
-// -9c SAFETY CHECK-IN REMINDERS (#36)
 // FIX (2026-03-16 audit): The INSERT used column "body" which does not exist in the
 // messages table (correct column: "content") and omitted the NOT NULL sender_id column.
 // Both bugs caused every reminder to silently fail at the per-citizen catch block while
@@ -493,7 +484,6 @@ async function sendSafetyReminders(): Promise<number> {
   return reminded
 }
 
-// -9b ACCOUNT DELETION PROCESSING (30-day grace period)
 
 async function processScheduledDeletions(): Promise<number> {
   // Find citizens whose 30-day grace period has expired
@@ -556,7 +546,6 @@ async function processScheduledDeletions(): Promise<number> {
   return processed
 }
 
-// -10 SCHEDULE ALL JOBS
 
 export function startCronJobs(): void {
   // Ingest flood warnings every 15 minutes
@@ -762,7 +751,6 @@ export function startCronJobs(): void {
   }
 }
 
-// -11 n8n FALLBACK MODE
 // When the n8n instance is unreachable, the health monitor calls
 // activateFallbackJobs() so the same data-fetching work still happens
 // via cron inside this Node process. When n8n comes back online,

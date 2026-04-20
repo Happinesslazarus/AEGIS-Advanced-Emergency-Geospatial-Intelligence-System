@@ -29,7 +29,6 @@ import type { ClassifierResponse } from '../types/index.js'
 import { devLog } from '../utils/logger.js'
 import { logger } from './logger.js'
 
-// —1  PIPELINE TYPES
 
 export interface CrossRefSimilarityEntry {
   id: string
@@ -87,7 +86,6 @@ export interface AIAnalysisResult {
   sources: string[]
 }
 
-// —2  INDIVIDUAL ANALYSIS STEPS
 
 /* Step 1: Sentiment analysis — detects emotional tone of report text */
 async function analyseSentiment(text: string): Promise<{ score: number; label: string; panicLevel: string }> {
@@ -232,7 +230,6 @@ function detectVulnerablePersons(text: string): { alert: boolean; keywords: stri
   }
 }
 
-// —2b  TF-IDF COSINE SIMILARITY  (no external dependencies)
 
 /* Tokenise text into normalised unigrams, filtering stop-words and short tokens */
 function tokenise(text: string): string[] {
@@ -291,7 +288,6 @@ function tfidfCosineSimilarity(a: string, b: string): number {
   return denom === 0 ? 0 : Math.round((dotProduct / denom) * 1000) / 1000
 }
 
-// —2c  WATER DEPTH ESTIMATOR
 
  /*
  * Estimates water depth from three independent signals and combines them:
@@ -570,7 +566,6 @@ Rules: panicLevel=High if people are trapped/requesting rescue; severity=high/cr
   }
 }
 
-// —3  MAIN PIPELINE
 
  /*
  * Run the complete AI analysis pipeline on a report.
@@ -912,7 +907,6 @@ export async function reanalyseReport(reportId: string): Promise<AIAnalysisResul
   }
 }
 
-// —4  ENHANCED ANALYSIS — Named Entity Recognition, Multi-Hazard Classification,
 //     Priority Scoring, Geospatial Context, Credibility Assessment, Triage, and Confidence Explanation
 
 /**

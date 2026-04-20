@@ -125,7 +125,6 @@ export function buildDialogueStateContext(state: DialogueState): string {
   return `\n\n[DIALOGUE STATE] Intent: ${state.intent} | Stage: ${state.stage} | Turn: ${state.turnCount + 1} | Sentiment: ${state.userSentiment}\nSlots: ${slotInfo}${state.unresolvedQuestions.length > 0 ? `\nPending questions from your last response: ${state.unresolvedQuestions.join(' ')}` : ''}\nIMPORTANT: If key information is missing (location, hazard type, number of people), ask for it. Do NOT assume. Confirm critical details before taking action.`
 }
 
-// —6e2  USER LONG-TERM MEMORY
 
 export interface UserProfile {
   frequentTopics: string[]
@@ -215,7 +214,6 @@ export function buildUserProfileContext(profile: UserProfile | null): string {
   return `\n\n[RETURNING USER — interaction #${profile.interactionCount + 1}] ${parts.join(' | ')}\nUse this context to personalize your response. Reference their known locations when relevant.`
 }
 
-// —6e3  CONVERSATION MEMORY
 
 export interface ConversationMemory {
   summary: string

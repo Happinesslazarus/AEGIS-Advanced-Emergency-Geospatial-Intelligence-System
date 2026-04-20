@@ -14,7 +14,6 @@ import { devLog } from '../utils/logger.js'
 import { logger } from './logger.js'
 import { chatCompletion } from './llmRouter.js'
 
-// -1  CROSS-SESSION MEMORY - Remember important facts across chats
 
 export interface ChatMemory {
   id: string
@@ -212,7 +211,6 @@ export function buildMemoryContext(memories: ChatMemory[]): string {
   return `\n\n[CITIZEN MEMORY - PERSISTENT CROSS-SESSION KNOWLEDGE]\n${sections.join('\n')}\nUse this memory to provide personalized, context-aware responses. Reference their known locations and vulnerabilities proactively when relevant. If they mention something you already know, acknowledge it naturally ("As you mentioned before..." or "Since you live near...").`
 }
 
-// -2  BEHAVIORAL PROFILING - Learn communication preferences
 
 export interface BehaviorProfile {
   preferredDetailLevel: string
@@ -418,7 +416,6 @@ export async function updateOperatorProfile(
   }
 }
 
-// -3  CONVERSATION SUMMARIZATION - Bridge sessions with context
 
 /**
  * Load the latest conversation summaries for a citizen to provide
@@ -753,7 +750,6 @@ function detectOverallSentiment(messages: string[]): string {
   return 'neutral'
 }
 
-// -4  SMART SUGGESTIONS - Context-aware quick actions
 
 export interface SmartSuggestion {
   text: string
@@ -946,7 +942,6 @@ function generateAdminSuggestions(opts: any): SmartSuggestion[] {
   return suggestions.slice(0, 5)
 }
 
-// -5  LOG SUGGESTION CLICKS - Learn from user behavior
 
 export async function logSuggestionClick(
   sessionId: string | undefined,
@@ -965,7 +960,6 @@ export async function logSuggestionClick(
   }
 }
 
-// -6  EPISODIC MEMORY - Remember specific past incidents & outcomes
 
 export interface EpisodicMemory {
   id: string

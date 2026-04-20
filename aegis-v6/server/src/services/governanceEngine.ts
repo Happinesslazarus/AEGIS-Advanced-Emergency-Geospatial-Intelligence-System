@@ -20,7 +20,6 @@
 import pool from '../models/db.js'
 import { logger } from './logger.js'
 
-// —1  TYPES
 
 export interface ModelMetrics {
   id: number
@@ -71,7 +70,6 @@ export interface ExecutionAuditEntry {
   createdAt: Date
 }
 
-// —2  MODEL METRICS FROM DATABASE (Feature #32)
 
  /*
  * Get all model metrics from the database — NOT hardcoded.
@@ -137,7 +135,6 @@ export async function getModelMetrics(): Promise<ModelMetrics[]> {
   }
 }
 
-// —3  HUMAN-IN-THE-LOOP ENFORCEMENT (Feature #31)
 
 // Per-hazard confidence thresholds — different hazards require different confidence
 // levels for automated decisions. Life-safety hazards need higher confidence.
@@ -281,7 +278,6 @@ export async function enforceGovernance(
   return decision
 }
 
-// —4  CONFIDENCE DISTRIBUTION (Feature #34)
 
  /*
  * Compute confidence distribution from stored AI execution data.
@@ -337,7 +333,6 @@ export async function computeConfidenceDistribution(
   }
 }
 
-// —5  AI EXECUTION AUDIT LOG (Feature #33)
 
  /*
  * Get paginated AI execution audit trail.
@@ -395,7 +390,6 @@ export async function getExecutionAuditLog(
   }
 }
 
-// —6  DRIFT DETECTION (Feature matching model_drift_metrics table)
 
  /*
  * Check for model drift by comparing recent execution metrics
@@ -466,7 +460,6 @@ export async function checkModelDrift(): Promise<DriftCheck[]> {
   return checks
 }
 
-// —7  TRAINING LABELS (Human-in-the-loop annotation)
 
  /*
  * Add a training label for a report (operator annotation).
@@ -510,7 +503,6 @@ export async function addTrainingLabel(
   }
 }
 
-// —8  RISK HEATMAP COMPUTATION (Feature #29)
 
  /*
  * Compute dynamic risk heatmap from real data:
@@ -594,7 +586,6 @@ export async function computeRiskHeatmap(): Promise<
   }
 }
 
-// —9  DAMAGE COST ESTIMATION MODEL (Feature #28)
 
  /*
  * Estimate economic damage cost using regression on historical data.
@@ -689,7 +680,6 @@ export async function estimateDamageCost(
   return { estimatedCostGbp: estimatedCost, affectedProperties, affectedPeople, confidence, breakdown }
 }
 
-// —10  RETRAINING TRIGGER DETECTION
 
 /**
  * Determine which models need retraining based on drift, label volume, and age.
@@ -779,7 +769,6 @@ export async function checkRetrainingNeeded(): Promise<{
   return { modelsNeedingRetrain, reasons, priority }
 }
 
-// —11  FAIRNESS METRICS
 
 /**
  * Compute fairness metrics across location zones based on AI confidence distribution.
@@ -859,7 +848,6 @@ export async function computeFairnessMetrics(): Promise<{
   }
 }
 
-// —12  MODEL EXPLANATION
 
 /**
  * Generate a human-readable explanation for a report's AI analysis.
@@ -937,7 +925,6 @@ export async function generateModelExplanation(
   }
 }
 
-// —13  GOVERNANCE HEALTH CHECK
 
 /**
  * Check overall governance health: auto-verifications, flagging rates, review backlog, model errors.
@@ -1021,7 +1008,6 @@ export async function checkGovernanceHealth(): Promise<{
   }
 }
 
-// —14  SEVERITY BIAS DETECTION
 
 /**
  * Detect severity assignment bias — whether AI assigns certain severity levels
@@ -1080,7 +1066,6 @@ export async function computeSeverityBias(): Promise<{
   }
 }
 
-// —15  TEMPORAL BIAS DETECTION
 
 /**
  * Detect time-of-day performance variation — whether AI confidence or error rates
@@ -1163,7 +1148,6 @@ export async function computeTemporalBias(): Promise<{
   }
 }
 
-// —16  LANGUAGE BIAS DETECTION
 
 /**
  * Detect language-based performance variation — whether AI performs differently
@@ -1236,7 +1220,6 @@ export async function computeLanguageBias(): Promise<{
   }
 }
 
-// —17  COMPREHENSIVE BIAS REPORT
 
 /**
  * Generate a comprehensive bias report combining all bias metrics.

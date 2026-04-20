@@ -34,7 +34,6 @@ interface StreamHandlers {
   signal?: AbortSignal
 }
 
-// —1  PROVIDER REGISTRY
 
 interface ProviderState {
   config: LLMProvider
@@ -471,7 +470,6 @@ function initProviders(): void {
   }
 }
 
-// —2  RATE-LIMIT TRACKING
 
 function isRateLimited(state: ProviderState): boolean {
   const now = Date.now()
@@ -510,7 +508,6 @@ function recordError(state: ProviderState, error: string): void {
   state.lastErrorAt = Date.now()
 }
 
-// —3  PROVIDER-SPECIFIC CALL IMPLEMENTATIONS
 
 async function callGemini(config: LLMProvider, req: LLMRequest): Promise<LLMResponse> {
   const start = Date.now()
@@ -995,7 +992,6 @@ async function callProviderStream(config: LLMProvider, req: LLMRequest, handlers
   }
 }
 
-// —3b  QUERY CLASSIFICATION & INTELLIGENT MODEL SELECTION
 // Classifies incoming queries to route to the optimal Ollama model,
 // or decide when cloud escalation is necessary.
 
@@ -1225,7 +1221,6 @@ function getOrderedProviders(classification?: QueryClassification): ProviderStat
   return ordered
 }
 
-// —4  PUBLIC API
 
  /*
  * Send a chat completion request through the LLM rotation engine.
@@ -1375,7 +1370,6 @@ export function getPreferredProvider(): string | null {
   return null
 }
 
-// —5  ENHANCED UTILITIES
 
 /* Record a latency sample for a provider (keeps last 20) */
 function trackLatency(providerName: string, latencyMs: number): void {
@@ -1390,7 +1384,6 @@ function trackLatency(providerName: string, latencyMs: number): void {
   }
 }
 
-// —5.1  STRUCTURED JSON OUTPUT MODE
 
 /**
  * Send a chat completion that expects a JSON response.
@@ -1463,7 +1456,6 @@ function tryParseJSON<T>(text: string): T | undefined {
   return undefined
 }
 
-// —5.1  PROVIDER-AWARE MESSAGE PREPARATION
 // Cloud providers have much lower token budgets than local Ollama.
 // This function condenses the system prompt and trims history to fit
 // within the provider's input token limit, preserving the local-first
@@ -1576,7 +1568,6 @@ function prepareMessagesForProvider(
   return prepared
 }
 
-// —5.2  TOKEN ESTIMATION & CONTEXT TRIMMING
 
 /**
  * Estimate token count using improved heuristic.
@@ -1656,7 +1647,6 @@ export function trimMessagesToFit(
   return [systemMsg, summaryMsg, ...recentMsgs]
 }
 
-// —5.3  INTELLIGENT PROVIDER SELECTION
 
 /**
  * Score and select the best provider for a given request based on
@@ -1733,7 +1723,6 @@ export function selectBestProvider(req: LLMRequest): string | null {
   return bestProvider
 }
 
-// —5.4  RESPONSE QUALITY SCORING
 
 /**
  * Score the quality of an LLM response on a 0-100 scale.
@@ -1788,7 +1777,6 @@ export function scoreResponseQuality(
   return { score: Math.max(0, score), issues }
 }
 
-// —5.5  PROVIDER HEALTH ENHANCED
 
 /**
  * Get detailed health information for all configured providers,

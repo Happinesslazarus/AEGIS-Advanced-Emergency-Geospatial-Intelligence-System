@@ -13,7 +13,6 @@ import pool from '../models/db.js'
 import { regionRegistry } from '../adapters/regions/RegionRegistry.js'
 import { logger } from './logger.js'
 
-// -0  CONFIGURATION & TYPES
 
 const EA_FLOOD_API = 'https://environment.data.gov.uk/flood-monitoring'
 const SEPA_LEVELS_API = 'https://timeseries.sepa.org.uk/KiWIS/KiWIS'
@@ -84,7 +83,6 @@ interface IngestionStats {
   errors: string[]
 }
 
-// -1  SCHEMA CREATION - Ensure all required tables exist
 
 export async function ensureIngestionSchema(): Promise<void> {
   await pool.query(`
@@ -205,7 +203,6 @@ export async function ensureIngestionSchema(): Promise<void> {
   logger.info('[Ingestion] Schema ensured - all tables ready')
 }
 
-// -2  UK ENVIRONMENT AGENCY - River Gauge Readings
 
 export async function ingestEAFloodData(limit = 200): Promise<IngestionStats> {
   const start = Date.now()
@@ -285,7 +282,6 @@ export async function ingestEAFloodData(limit = 200): Promise<IngestionStats> {
   return stats
 }
 
-// -3  SEPA KiWIS API - Scottish River Levels
 
 export async function ingestSEPAData(): Promise<IngestionStats> {
   const start = Date.now()
@@ -365,7 +361,6 @@ export async function ingestSEPAData(): Promise<IngestionStats> {
   return stats
 }
 
-// -4  NASA POWER API - Climate Data (Rainfall, Temperature, Solar)
 
 export async function ingestNASAPowerData(): Promise<IngestionStats> {
   const start = Date.now()
@@ -462,7 +457,6 @@ export async function ingestNASAPowerData(): Promise<IngestionStats> {
   return stats
 }
 
-// -5  Open-Meteo - Free Weather API (NO KEY NEEDED)
 
 export async function ingestOpenMeteoData(): Promise<IngestionStats> {
   const start = Date.now()
@@ -540,7 +534,6 @@ export async function ingestOpenMeteoData(): Promise<IngestionStats> {
   return stats
 }
 
-// -6  UK GOV FLOOD HISTORY - DEFRA Open Data
 
 export async function ingestUKFloodHistory(): Promise<IngestionStats> {
   const start = Date.now()
@@ -687,7 +680,6 @@ function getUKHistoricalFloodDatabase() {
   ]
 }
 
-// -7  NEWS API - Flood & Disaster News
 
 export async function ingestNewsArticles(): Promise<IngestionStats> {
   const start = Date.now()
@@ -765,7 +757,6 @@ export async function ingestNewsArticles(): Promise<IngestionStats> {
   return stats
 }
 
-// -8  WIKIPEDIA - Flood Knowledge Base
 
 export async function ingestWikipediaFloodKnowledge(): Promise<IngestionStats> {
   const start = Date.now()
@@ -864,7 +855,6 @@ export async function ingestWikipediaFloodKnowledge(): Promise<IngestionStats> {
   return stats
 }
 
-// -9  OpenWeatherMap - Current + Forecast (if key available)
 
 export async function ingestOpenWeatherData(): Promise<IngestionStats> {
   const start = Date.now()
@@ -926,7 +916,6 @@ export async function ingestOpenWeatherData(): Promise<IngestionStats> {
   return stats
 }
 
-// -10  HELPER FUNCTIONS
 
 const COUNT_ROWS_WHITELIST = new Set([
   'reports', 'river_gauge_readings', 'climate_observations',
@@ -956,7 +945,6 @@ async function logIngestion(stats: IngestionStats): Promise<void> {
   } catch { /* non-critical */ }
 }
 
-// -11  ORCHESTRATOR - Run full ingestion pipeline
 
 export async function runFullIngestion(): Promise<{
   totalRows: number

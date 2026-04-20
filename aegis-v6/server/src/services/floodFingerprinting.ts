@@ -14,7 +14,6 @@ import { devLog } from '../utils/logger.js'
 import { regionRegistry } from '../adapters/regions/RegionRegistry.js'
 import { logger } from './logger.js'
 
-// -1  TYPES
 
 export interface FloodFingerprint {
   eventId: string
@@ -58,7 +57,6 @@ export interface FloodPrediction {
   createdAt?: Date
 }
 
-// -2  COSINE SIMILARITY
 
 function cosineSimilarity(a: Record<string, number>, b: Record<string, number>): number {
   // Get union of all keys
@@ -83,7 +81,6 @@ function cosineSimilarity(a: Record<string, number>, b: Record<string, number>):
   return dotProduct / denominator
 }
 
-// -3  BUILD CURRENT STATE VECTOR
 
 function buildCurrentVector(features: Array<{name: string; rawValue: number; normalised: number; unit: string}>): Record<string, number> {
   const vector: Record<string, number> = {}
@@ -118,7 +115,6 @@ function buildCurrentVector(features: Array<{name: string; rawValue: number; nor
   return vector
 }
 
-// -4  LOAD HISTORICAL FINGERPRINTS
 
 async function loadFingerprints(): Promise<FloodFingerprint[]> {
   try {
@@ -145,7 +141,6 @@ async function loadFingerprints(): Promise<FloodFingerprint[]> {
   }
 }
 
-// -5  DOWNSTREAM PROPAGATION PREDICTION
 
 /* Predict which areas will be affected next based on the best matching historical event */
 function predictNextAreas(bestMatch: FingerprintMatch, currentArea: string): string[] {
@@ -169,7 +164,6 @@ function predictNextAreas(bestMatch: FingerprintMatch, currentArea: string): str
   return Array.from(predicted).slice(0, 8)
 }
 
-// -6  MAIN FINGERPRINTING FUNCTION
 
  /*
  * Run the flood fingerprinting algorithm.
@@ -328,7 +322,6 @@ export async function runFingerprinting(
   return prediction
 }
 
-// -7  PRE-ALERT SYSTEM (Feature #27)
 
  /*
  * Send pre-alert notifications for a flood prediction.
@@ -411,7 +404,6 @@ export async function sendPreAlert(
   return { sent, channels: Array.from(channelsUsed) }
 }
 
-// -8  GET ACTIVE PREDICTIONS
 
  /*
  * Get all active (non-expired) flood predictions.

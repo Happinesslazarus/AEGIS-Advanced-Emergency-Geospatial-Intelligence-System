@@ -53,7 +53,6 @@ router.use((req, res, next) => {
   internalAuth(req, res, next)
 })
 
-// —1  n8n ? WebSocket bridge
 //
 // n8n workflows call POST /api/internal/ws-broadcast with:
 //   { event: "gauge:update", payload: { ... } }
@@ -415,7 +414,6 @@ router.post('/n8n-webhook/escalation', async (req: Request, res: Response, next:
   }
 })
 
-// —6  Generic Incident Alert Endpoint (WF7-WF15)
 //
 // All new per-incident n8n workflows post to this single endpoint.
 // Body: { incidentType, severity, probability, message, source, metadata }

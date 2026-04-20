@@ -142,7 +142,6 @@ function checkRateLimit(): boolean {
   return requestCount < MAX_REQUESTS_PER_MINUTE
 }
 
-// -1  SENTIMENT ANALYSIS
 
 async function classifySentiment(text: string): Promise<ClassifierResponse> {
   const model = TASK_MODELS.sentiment
@@ -188,7 +187,6 @@ async function classifySentiment(text: string): Promise<ClassifierResponse> {
   }
 }
 
-// -2  FAKE DETECTION
 
 async function classifyFake(text: string): Promise<ClassifierResponse> {
   const model = TASK_MODELS.fake_detection
@@ -237,7 +235,6 @@ async function classifyFake(text: string): Promise<ClassifierResponse> {
   }
 }
 
-// -3  ZERO-SHOT CLASSIFICATION (severity, category, urgency)
 
 async function classifyZeroShot(
   text: string,
@@ -289,7 +286,6 @@ async function classifyZeroShot(
   }
 }
 
-// -4  LANGUAGE DETECTION
 
 async function classifyLanguage(text: string): Promise<ClassifierResponse> {
   const model = TASK_MODELS.language
@@ -334,7 +330,6 @@ async function classifyLanguage(text: string): Promise<ClassifierResponse> {
   }
 }
 
-// -5  PUBLIC API
 
  /*
  * Classify text for the given task. Routes to the appropriate model
@@ -430,7 +425,6 @@ export async function batchClassify(
   return results
 }
 
-// -6  CLASSIFICATION CACHING
 
 const CACHE_TTL_MS = 30 * 60 * 1000 // 30 minutes
 
@@ -456,7 +450,6 @@ export async function classifyWithCache(req: ClassifierRequest): Promise<Classif
   return result
 }
 
-// -7  ENSEMBLE CLASSIFICATION
 
 export async function classifyEnsemble(
   req: ClassifierRequest,
@@ -503,7 +496,6 @@ export async function classifyEnsemble(
   return { ...result, ensembleSize: 1 }
 }
 
-// -8  CONFIDENCE CALIBRATION
 
 export function calibrateConfidence(rawScore: number, task: ClassifierRequest['task']): number {
   // Calibration curves derived from empirical observation of HuggingFace model outputs:
@@ -530,7 +522,6 @@ export function calibrateConfidence(rawScore: number, task: ClassifierRequest['t
   }
 }
 
-// -9  EXTENDED CLASSIFICATION TASKS
 
 const EXTENDED_TASK_MODELS: Record<string, string> = {
   emotion: 'SamLowe/roberta-base-go_emotions',
@@ -619,7 +610,6 @@ export async function classifyExtended(
   }
 }
 
-// -10  BATCH CLASSIFICATION WITH CONCURRENCY CONTROL
 
 export async function batchClassifyConcurrent(
   texts: string[],

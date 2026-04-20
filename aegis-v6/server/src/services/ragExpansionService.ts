@@ -17,7 +17,6 @@
 import pool from '../models/db.js'
 import { logger } from './logger.js'
 
-// -1  RAG DOCUMENT STORE MANAGEMENT
 
 interface RAGDocument {
   title: string
@@ -169,7 +168,6 @@ async function storeRAGDocument(doc: RAGDocument): Promise<number> {
   return stored
 }
 
-// -2  KNOWLEDGE BASE: FLOOD MANAGEMENT EXPERTISE
 
 const FLOOD_KNOWLEDGE_BASE: RAGDocument[] = [
   {
@@ -234,7 +232,6 @@ const FLOOD_KNOWLEDGE_BASE: RAGDocument[] = [
   },
 ]
 
-// -2b  GLOBAL KNOWLEDGE BASE: UNIVERSAL DISASTER MANAGEMENT
 
 const GLOBAL_KNOWLEDGE_BASE: RAGDocument[] = [
   {
@@ -287,7 +284,6 @@ const GLOBAL_KNOWLEDGE_BASE: RAGDocument[] = [
   },
 ]
 
-// -3  BUILD RAG INDEX FROM ALL SOURCES
 
 export async function expandRAGKnowledgeBase(): Promise<{
   totalDocuments: number
@@ -428,7 +424,6 @@ export async function expandRAGKnowledgeBase(): Promise<{
   return { totalDocuments: total, newDocuments: newDocs, sources }
 }
 
-// -4  RAG RETRIEVAL - Vector similarity first, full-text fallback
 
  /*
  * Retrieve relevant RAG documents.
@@ -517,7 +512,6 @@ export async function ragRetrieve(query: string, limit = 5): Promise<Array<{
   }
 }
 
-// -5  QUERY EXPANSION WITH DISASTER SYNONYM DICTIONARY
 
 export const DISASTER_SYNONYMS: Record<string, string[]> = {
   flood: ['flooding', 'inundation', 'water level', 'river overflow', 'flash flood', 'deluge', 'submerge'],
@@ -556,7 +550,6 @@ export function expandQuery(query: string): string {
   return Array.from(expanded).join(' ')
 }
 
-// -6  BM25 SCORING
 
 const STOPWORDS = new Set([
   'a', 'an', 'the', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
@@ -625,7 +618,6 @@ export function computeBM25Score(
   return score
 }
 
-// -7  CONTEXTUAL RE-RANKING
 
 const SOURCE_AUTHORITY: Record<string, number> = {
   expert_knowledge: 1.0,
@@ -675,7 +667,6 @@ export function rerankResults(
   return scored
 }
 
-// -8  MULTI-HAZARD EXPERT KNOWLEDGE BASE
 
 const MULTI_HAZARD_KNOWLEDGE_BASE: RAGDocument[] = [
   {
@@ -740,7 +731,6 @@ const MULTI_HAZARD_KNOWLEDGE_BASE: RAGDocument[] = [
   },
 ]
 
-// -9  ENHANCED RAG RETRIEVE WITH QUERY EXPANSION
 
 /**
  * Enhanced retrieval pipeline:
@@ -765,7 +755,6 @@ export async function ragRetrieveEnhanced(
   return reranked.slice(0, limit)
 }
 
-// -10  DYNAMIC KNOWLEDGE INJECTION
 
 /**
  * Pull the latest predictions, alerts, and threat assessments from the

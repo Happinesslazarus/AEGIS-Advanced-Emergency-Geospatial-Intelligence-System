@@ -14,7 +14,6 @@ import { getActiveCityRegion } from '../config/regions/index.js'
 import { OpenMeteoAdapter } from '../adapters/riverData/OpenMeteoAdapter.js'
 import { logger } from './logger.js'
 
-// -1  TYPES
 
 export interface FusionInput {
   regionId: string
@@ -62,7 +61,6 @@ export interface FusionResult {
   computationTimeMs: number
 }
 
-// -2  FEATURE WEIGHTS (loaded from training pipeline, with evidence-based defaults)
 
 /* Evidence-based defaults from UK flood research (used until model trains) */
 const EVIDENCE_BASED_DEFAULTS: Record<string, number> = {
@@ -258,7 +256,6 @@ async function getLearnedWeights(): Promise<Record<string, number>> {
   return _cachedWeights
 }
 
-// -3  INDIVIDUAL FEATURE NORMALISATION FUNCTIONS
 
 /* #16: Water Level - normalise gauge reading to risk (0-1) */
 function normaliseWaterLevel(levelM: number, thresholdM: number): number {
@@ -446,7 +443,6 @@ function normaliseUrbanDensity(ratio: number | undefined): number {
   return Math.min(1.0, Math.max(0, ratio))
 }
 
-// -4  MAIN FUSION FUNCTION
 
  /*
  * Run the multi-source fusion algorithm.
@@ -658,7 +654,6 @@ export async function runFusion(input: FusionInput): Promise<FusionResult> {
   return result
 }
 
-// -5  LIVE DATA FETCHERS
 
  /*
  * Fetch all available live data for a region and return a FusionInput.
@@ -739,7 +734,6 @@ export async function gatherFusionData(
   return input
 }
 
-// -6  DATA SOURCE IMPLEMENTATIONS
 
 /* Fetch river gauge data from SEPA/EA API */
 async function fetchGaugeData(lat: number, lng: number): Promise<{
@@ -1084,7 +1078,6 @@ function estimateUrbanDensity(lat: number, lng: number): number {
   return 0.10                             // Rural
 }
 
-// -7  BAYESIAN FUSION
 
 /**
  * Fuse features using Bayes' theorem.
@@ -1119,7 +1112,6 @@ export function fuseBayesian(features: FusionFeature[], prior = 0.05): number {
   return Math.max(0, Math.min(1, Number(posterior.toFixed(6))))
 }
 
-// -8  MAX-POOLING FUSION (CONSERVATIVE)
 
 /**
  * Conservative fusion strategy: return the single highest weighted feature
@@ -1143,7 +1135,6 @@ export function fuseMaxPooling(features: FusionFeature[]): number {
   return Math.min(1.0, maxContribution / maxWeight)
 }
 
-// -9  MAJORITY VOTING
 
 /**
  * Count how many features exceed a threshold and derive a probability from
@@ -1164,7 +1155,6 @@ export function fuseMajorityVoting(
   }
 }
 
-// -10  TEMPORAL FUSION
 
 /**
  * Query recent fusion computations for a region and compute an exponentially
@@ -1245,7 +1235,6 @@ export async function fuseTemporalSequence(
   }
 }
 
-// -11  UNCERTAINTY QUANTIFICATION
 
 /**
  * Compute a 90% confidence interval around the fused probability, accounting
@@ -1298,7 +1287,6 @@ export function quantifyUncertainty(
   }
 }
 
-// -12  FEATURE INTERACTION DETECTION
 
 /* Interaction rule definition */
 interface InteractionRule {
@@ -1365,7 +1353,6 @@ export function detectFeatureInteractions(
   }
 }
 
-// -13  MULTI-HAZARD FUSION PROFILES
 
 /**
  * Weight profiles for non-flood hazard types. Each profile maps feature
