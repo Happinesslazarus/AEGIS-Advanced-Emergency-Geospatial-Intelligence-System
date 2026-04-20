@@ -49,9 +49,11 @@ function useCounter(end: number, duration = 2000) {
   const ref = useRef<HTMLDivElement>(null)
   const hasRun = useRef(false)
   useEffect(() => {
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const obs = new IntersectionObserver(([e]) => {
       if (e.isIntersecting && !hasRun.current) {
         hasRun.current = true
+        if (reducedMotion) { setCount(end); return }
         const start = performance.now()
         const animate = (now: number) => {
           const p = Math.min((now - start) / duration, 1)

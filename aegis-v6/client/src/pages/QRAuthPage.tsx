@@ -50,8 +50,12 @@ function QRGenerate() {
         </div>
 
         {/* Mode tabs */}
-        <div className="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 gap-1">
+        <div className="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 gap-1" role="tablist" aria-label="Authentication mode">
           <button
+            role="tab"
+            aria-selected={mode === 'phone'}
+            aria-controls="qr-panel"
+            id="tab-phone"
             onClick={() => setMode('phone')}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
               mode === 'phone'
@@ -63,6 +67,10 @@ function QRGenerate() {
             Phone Browser
           </button>
           <button
+            role="tab"
+            aria-selected={mode === 'totp'}
+            aria-controls="qr-panel"
+            id="tab-totp"
             onClick={() => setMode('totp')}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
               mode === 'totp'
@@ -76,7 +84,7 @@ function QRGenerate() {
         </div>
 
         {/* Panel */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 p-8">
+        <div id="qr-panel" role="tabpanel" aria-labelledby={mode === 'phone' ? 'tab-phone' : 'tab-totp'} className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 p-8">
           {mode === 'phone' ? <PhoneBrowserMode /> : <AuthenticatorMode />}
         </div>
 

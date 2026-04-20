@@ -250,7 +250,7 @@ export default function SetupWizard({ user, onComplete, setupStatus }: SetupWiza
   /* Stepper */
 
   const Stepper = () => (
-    <div className="flex items-center justify-center mb-8">
+    <div className="flex items-center justify-center mb-8" role="list" aria-label="Setup steps">
       {STEPS.map((s, i) => {
         const stepNum = (i + 1) as Step
         const Icon = s.icon
@@ -263,8 +263,11 @@ export default function SetupWizard({ user, onComplete, setupStatus }: SetupWiza
                 isComplete ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-700'
               }`} />
             )}
-            <div className="flex flex-col items-center">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
+            <div className="flex flex-col items-center" role="listitem">
+              <div
+                aria-current={isActive ? 'step' : undefined}
+                aria-label={`Step ${stepNum} of ${STEPS.length}: ${s.label}${isComplete ? ' (completed)' : isActive ? ' (current)' : ''}`}
+                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
                 isComplete
                   ? 'bg-green-500 text-white'
                   : isActive
@@ -365,6 +368,7 @@ export default function SetupWizard({ user, onComplete, setupStatus }: SetupWiza
           value={regionSearch}
           onChange={e => setRegionSearch(e.target.value)}
           placeholder={`Search ${availableRegions.length} countries…`}
+          aria-label="Search deployment regions"
           className={`w-full pl-9 pr-4 py-2.5 rounded-lg border text-sm outline-none transition focus:ring-2 focus:ring-aegis-500/40 focus:border-aegis-400 ${
             dark
               ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-500'
@@ -471,13 +475,16 @@ export default function SetupWizard({ user, onComplete, setupStatus }: SetupWiza
           </p>
         </div>
 
-        <div className="space-y-3">
+        <fieldset className="space-y-3 border-0 p-0 m-0">
+          <legend className="sr-only">Notification Channels</legend>
           {channelDefs.map(ch => {
             const Icon = ch.icon
             const active = channels[ch.key]
             return (
               <button
                 key={ch.key}
+                role="switch"
+                aria-checked={active}
                 onClick={() => setChannels(prev => ({ ...prev, [ch.key]: !prev[ch.key] }))}
                 className={`w-full p-4 rounded-xl border text-left flex items-center gap-4 transition-all duration-200 ${
                   active
@@ -508,7 +515,7 @@ export default function SetupWizard({ user, onComplete, setupStatus }: SetupWiza
               </button>
             )
           })}
-        </div>
+        </fieldset>
 
         {channels.webhook && (
           <div className={`rounded-xl border p-4 ${dark ? 'bg-gray-800/50 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>

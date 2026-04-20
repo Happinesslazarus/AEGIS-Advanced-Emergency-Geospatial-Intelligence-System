@@ -842,11 +842,13 @@ export default function CitizenAuthPage(): JSX.Element {
 
           {/* Step Indicator (register only) */}
           {mode === 'register' && (
-            <div className="flex items-center justify-center gap-2 mb-5">
+            <div className="flex items-center justify-center gap-2 mb-5" role="list" aria-label="Registration steps">
               {STEPS.map((s, i) => (
-                <div key={s.num} className="flex items-center gap-2">
+                <div key={s.num} className="flex items-center gap-2" role="listitem">
                   <button
                     onClick={() => { if (s.num < regStep || (s.num === 2 && validateStep1()) || s.num <= regStep) { setError(''); setRegStep(s.num) } }}
+                    aria-current={regStep === s.num ? 'step' : undefined}
+                    aria-label={`Step ${s.num} of ${STEPS.length}: ${s.label}${regStep > s.num ? ' (completed)' : regStep === s.num ? ' (current)' : ''}`}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
                       regStep === s.num
                         ? 'bg-aegis-600 text-white shadow-md'
@@ -1055,8 +1057,8 @@ export default function CitizenAuthPage(): JSX.Element {
                     </button>
                   </div>
                   {password.length > 0 && (
-                    <div className="mt-2 space-y-1.5">
-                      <div className="flex gap-1">
+                    <div className="mt-2 space-y-1.5" aria-live="polite" aria-atomic="true">
+                      <div className="flex gap-1" role="progressbar" aria-valuemin={0} aria-valuemax={5} aria-valuenow={pwStrength.score} aria-label={`Password strength: ${pwStrength.label}`}>
                         {[1,2,3,4,5].map(i => (
                           <div key={i} className={`h-1.5 flex-1 rounded-full transition-all ${i <= pwStrength.score ? pwStrength.color : 'bg-gray-200 dark:bg-gray-700'}`} />
                         ))}

@@ -17,7 +17,7 @@ import { Link } from 'react-router-dom'
 import { t as ct } from '../utils/i18n'
 import { useLanguage } from '../hooks/useLanguage'
 import { resetConsent } from '../utils/cookiePreferences'
-import { SEVERITY_PILL, SEVERITY_BG } from '../utils/colorTokens'
+import { SEVERITY_PILL, SEVERITY_BG, SEVERITY_HEX } from '../utils/colorTokens'
 import {
   AlertTriangle, Activity, MapPin, Shield, Bell, Clock,
   ChevronRight, Globe, RefreshCw, Droplets, CloudLightning,
@@ -102,6 +102,9 @@ function AnimatedCounter({ value, duration = 1400, className = '' }: { value: nu
     const from = prevRef.current
     const diff = value - from
     if (diff === 0) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setDisplay(value); prevRef.current = value; return
+    }
     const steps = 40
     const stepTime = duration / steps
     let step = 0
@@ -156,10 +159,10 @@ function SeverityRing({ critical, high, medium, low }: { critical: number; high:
   const total = critical + high + medium + low
   if (total === 0) return null
   const segments = [
-    { pct: critical / total, color: '#ef4444', label: 'Critical' },
-    { pct: high / total, color: '#f97316', label: 'High' },
-    { pct: medium / total, color: '#eab308', label: 'Medium' },
-    { pct: low / total, color: '#22c55e', label: 'Low' },
+    { pct: critical / total, color: SEVERITY_HEX.critical, label: 'Critical' },
+    { pct: high / total, color: SEVERITY_HEX.high, label: 'High' },
+    { pct: medium / total, color: SEVERITY_HEX.medium, label: 'Medium' },
+    { pct: low / total, color: SEVERITY_HEX.low, label: 'Low' },
   ].filter(s => s.pct > 0)
 
   let offset = 0
