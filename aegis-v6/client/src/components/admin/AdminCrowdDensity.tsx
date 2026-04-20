@@ -731,7 +731,7 @@ export default function AdminCrowdDensity(): JSX.Element {
                             <div className={`h-full rounded-full transition-all duration-700 ${capacityPct > 80 ? 'bg-red-500' : capacityPct > 60 ? 'bg-orange-500' : 'bg-emerald-500'}`} style={{ width: `${capacityPct}%` }} />
                           </div>
                         </div>
-                        <div className="grid grid-cols-4 gap-2 text-center">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
                           <div className="bg-white/60 dark:bg-gray-900/40 rounded-lg p-2">
                             <MapPin className="w-3 h-3 mx-auto text-gray-400 dark:text-gray-400 mb-0.5" />
                             <div className="text-[8px] font-mono text-gray-600 dark:text-gray-300">{zone.lat.toFixed(4)}, {zone.lng.toFixed(4)}</div>

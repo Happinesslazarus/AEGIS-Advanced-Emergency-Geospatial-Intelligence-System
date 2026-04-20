@@ -153,7 +153,7 @@ export default function RiverGaugePanel(): JSX.Element {
 
           {/* Analytics strip */}
           {stats.total > 0 && (
-            <div className="grid grid-cols-4 gap-1.5 px-3 py-2.5 bg-gray-50/30 dark:bg-gray-800/20 border-b border-gray-200/50 dark:border-gray-700/30">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 px-3 py-2.5 bg-gray-50/30 dark:bg-gray-800/20 border-b border-gray-200/50 dark:border-gray-700/30">
               {[
                 { label: 'Stations', value: stats.total, icon: BarChart2, color: 'text-blue-500' },
                 { label: 'Alerts', value: stats.alertCount, icon: ShieldAlert, color: stats.alertCount > 0 ? 'text-red-500' : 'text-gray-400' },

@@ -242,7 +242,7 @@ function DistributionBar({ zones, lang }: { zones: DensityZone[]; lang: string }
 
 function HeatmapGrid({ zones, selectedZone, onSelect, lang }: { zones: DensityZone[]; selectedZone: string | null; onSelect: (id: string | null) => void; lang: string }) {
   return (
-    <div className="grid grid-cols-4 gap-1.5 p-3">
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-3">
       {zones.map(zone => {
         const cfg = RISK_CONFIG[zone.riskLevel]
         const isSelected = selectedZone === zone.id
@@ -478,7 +478,7 @@ export default function CrowdDensityHeatmap(): JSX.Element {
         <>
           {/* DASHBOARD STATS */}
           <div className="px-4 pt-3 pb-0 space-y-3">
-            <div className="grid grid-cols-5 gap-1.5">
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
               <div className="bg-gray-50 dark:bg-gray-800/60 rounded-xl p-2 text-center border border-gray-100 dark:border-gray-700/40">
                 <div className="text-sm font-black text-gray-900 dark:text-white">{zones.length}</div>
                 <div className="text-micro text-gray-500 dark:text-gray-300 font-bold uppercase tracking-widest mt-0.5">{t('resource.zones', lang)}</div>
@@ -650,7 +650,7 @@ export default function CrowdDensityHeatmap(): JSX.Element {
                               <div className={`h-full rounded-full transition-all duration-700 ${capacityPct > 80 ? 'bg-red-500' : capacityPct > 60 ? 'bg-orange-500' : 'bg-emerald-500'}`} style={{ width: `${capacityPct}%` }} />
                             </div>
                           </div>
-                          <div className="grid grid-cols-4 gap-1.5 text-center">
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-center">
                             <div className="bg-white/60 dark:bg-gray-900/40 rounded-lg p-1.5">
                               <MapPin className="w-3 h-3 mx-auto text-gray-400 dark:text-gray-300 mb-0.5" />
                               <div className="text-[8px] font-mono text-gray-600 dark:text-gray-300">{zone.lat.toFixed(4)}</div>

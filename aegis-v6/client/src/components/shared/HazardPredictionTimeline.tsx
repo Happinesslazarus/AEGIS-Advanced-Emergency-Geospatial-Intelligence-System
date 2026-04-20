@@ -375,7 +375,7 @@ export default function HazardPredictionTimeline({ hazardType, onTimeChange, cla
           </div>
 
           {/* Stats summary */}
-          <div className="px-4 py-2 grid grid-cols-4 gap-2">
+          <div className="px-4 py-2 grid grid-cols-2 sm:grid-cols-4 gap-2">
             <div className="text-center">
               <div className="text-lg font-bold text-gray-900 dark:text-white">{stats.criticalCount}</div>
               <div className="text-[9px] text-gray-500 dark:text-gray-300 flex items-center justify-center gap-0.5">

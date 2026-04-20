@@ -324,7 +324,7 @@ export default function LiveIncidentMapPanel({ reports, userPosition, center, zo
 
           {/*  STATS ROW  */}
           <div className="px-3 py-2 border-t border-gray-100 dark:border-gray-800/50">
-            <div className="grid grid-cols-5 gap-2">
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
               {/* Active */}
               <div className="bg-white/80 dark:bg-gray-800/40 rounded-xl p-2 text-center border border-gray-100 dark:border-gray-700/30">
                 <Activity className="w-3.5 h-3.5 mx-auto text-orange-500 mb-0.5" />

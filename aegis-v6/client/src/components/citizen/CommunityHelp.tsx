@@ -637,7 +637,7 @@ export default function CommunityHelp({ onClose }: Props): JSX.Element {
 
         <div className="p-4">
           {/* Tabs */}
-          <div className="grid grid-cols-4 gap-1 mb-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 mb-3">
             {([
               ['resources', t('communityHelp.resources', lang), Navigation, 'bg-blue-600'],
               ['offer',     t('communityHelp.offer', lang),     Heart,       'bg-green-600'],

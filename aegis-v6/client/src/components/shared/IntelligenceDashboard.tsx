@@ -435,7 +435,7 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
             </div>
           </div>
           {/* Mini stat grid */}
-          <div className="px-4 pb-2.5 grid grid-cols-4 gap-1.5">
+          <div className="px-4 pb-2.5 grid grid-cols-2 sm:grid-cols-4 gap-1.5">
             <div className="text-center p-1.5 bg-gray-100 dark:bg-gray-800/40 rounded-lg">
               <div className={`text-sm font-bold ${(dashboard?.totalActiveIncidents ?? 0) > 0 ? 'text-red-400' : 'text-gray-400 dark:text-gray-300'}`}>
                 {dashboard?.totalActiveIncidents ?? 0}
@@ -562,7 +562,7 @@ export default function IntelligenceDashboard({ socket, className = '', collapse
           {incidentChanges && (
             <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700/30">
               <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-300 mb-2 uppercase tracking-wide">{t('intel.whatChanged', lang)}</p>
-              <div className="grid grid-cols-4 gap-2 mb-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
                 <div className="text-center p-1.5 bg-gray-100 dark:bg-gray-800/40 rounded">
                   <p className="text-sm font-bold text-emerald-400">{incidentChanges.totals.new_count}</p>
                   <p className="text-[9px] text-gray-500 dark:text-gray-300">{t('intel.new', lang)}</p>

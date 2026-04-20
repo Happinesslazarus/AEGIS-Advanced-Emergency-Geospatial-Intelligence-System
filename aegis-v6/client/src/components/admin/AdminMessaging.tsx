@@ -799,7 +799,7 @@ export default function AdminMessaging(): JSX.Element {
                     <ChevronDown className={`w-3 h-3 transition-transform ${showQuickReplies ? 'rotate-180' : ''}`} />
                   </button>
                   {showQuickReplies && (
-                    <div className="mt-2 grid grid-cols-4 gap-1.5 pb-2">
+                    <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-1.5 pb-2">
                       {QUICK_REPLIES.map((qr, i) => (
                         <button
                           key={i}

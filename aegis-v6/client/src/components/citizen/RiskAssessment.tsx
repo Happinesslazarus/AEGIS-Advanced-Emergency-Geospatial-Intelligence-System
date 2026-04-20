@@ -848,7 +848,7 @@ export default function RiskAssessment(): JSX.Element {
           </div>
 
           {/* RISK LEVEL BUCKETS*/}
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {(['high', 'elevated', 'moderate', 'low'] as const).map((level) => {
               const cfg = RISK_LEVELS[level]
               return (

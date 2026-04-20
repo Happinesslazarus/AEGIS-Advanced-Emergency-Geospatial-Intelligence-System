@@ -579,7 +579,7 @@ function AITransparencyDashboardInner(): JSX.Element {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-4 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {[
                         { label: t('ai.accuracy', lang), value: model.accuracy, showTrend: true },
                         { label: t('ai.precision', lang), value: model.precision, showTrend: false },

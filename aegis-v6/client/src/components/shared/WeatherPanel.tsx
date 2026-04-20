@@ -286,7 +286,7 @@ export default function WeatherPanel({ compact = false }: Props): JSX.Element {
       {w ? (
         <div className="p-4 pt-10 space-y-3">
           {/* Primary metrics grid */}
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {[
               { icon: Droplets, label: t('weather.rainfall', lang), value: `${w.rainfall.toFixed(1)} mm`, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-950/30' },
               { icon: Wind, label: t('weather.wind', lang), value: `${Math.round(w.windSpeed)} km/h`, color: 'text-teal-500', bg: 'bg-teal-50 dark:bg-teal-950/30' },

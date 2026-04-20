@@ -204,7 +204,7 @@ function EmojiPicker({ onSelect, onClose }: { onSelect: (emoji: string) => void;
   return (
     <div
       ref={ref}
-      className="absolute bottom-full mb-2 left-0 w-72 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-30 overflow-hidden"
+      className="absolute bottom-full mb-2 left-0 w-72 max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-30 overflow-hidden"
     >
       {/* Category tabs */}
       <div className="flex border-b border-gray-100 dark:border-gray-700 px-1 pt-1">
