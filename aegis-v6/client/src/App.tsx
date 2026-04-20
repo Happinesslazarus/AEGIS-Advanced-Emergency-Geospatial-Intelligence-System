@@ -32,6 +32,7 @@ import { useTranslation } from 'react-i18next'
 import { AppProviders } from './contexts/AppProviders'
 import ErrorBoundary from './components/shared/ErrorBoundary'
 import { useErrorMonitor } from './hooks/useErrorMonitor'
+import { useOfflinePrefetch } from './hooks/useOfflinePrefetch'
 import { SkeletonCard } from './components/ui/Skeleton'
 import PageTransition from './components/ui/PageTransition'
 const CitizenPage = lazy(() => import('./pages/CitizenPage'))
@@ -83,6 +84,12 @@ function SuspenseFallback() {
   )
 }
 
+/** Warms the React Query cache with critical safety data on first load. */
+function OfflineCacheWarmer(): null {
+  useOfflinePrefetch()
+  return null
+}
+
 export default function App(): JSX.Element {
   useErrorMonitor()
 
@@ -90,6 +97,7 @@ export default function App(): JSX.Element {
     <ErrorBoundary name="App" fullPage>
       <AppProviders>
         <RtlEnforcer />
+        <OfflineCacheWarmer />
         <CitizenPreferencesBridge />
         <Suspense fallback={<SuspenseFallback />}>
           <PageTransition>

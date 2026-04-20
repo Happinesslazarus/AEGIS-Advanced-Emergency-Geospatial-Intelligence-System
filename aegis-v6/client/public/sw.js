@@ -8,7 +8,7 @@
  * Sync:      offline report queue with background sync
   */
 
-const CACHE_VERSION = 'aegis-v6.9.1'
+const CACHE_VERSION = 'aegis-v6.9.2'
 const STATIC_CACHE = `${CACHE_VERSION}-static`
 const DATA_CACHE = `${CACHE_VERSION}-data`
 const IMAGE_CACHE = `${CACHE_VERSION}-images`
@@ -23,14 +23,33 @@ const APP_SHELL = [
   '/icons/icon-512.png',
 ]
 
-//INSTALL -- Pre-cache app shell
+//Critical API endpoints to pre-cache on install.
+//These are unauthenticated public endpoints that every citizen needs offline.
+const CRITICAL_API = [
+  '/api/alerts',
+]
+
+//INSTALL -- Pre-cache app shell + critical API data
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(STATIC_CACHE).then((cache) => {
-      console.log('[SW] Pre-caching app shell')
-      return cache.addAll(APP_SHELL)
-    }).then(() => self.skipWaiting())
+    Promise.all([
+      caches.open(STATIC_CACHE).then((cache) => {
+        console.log('[SW] Pre-caching app shell')
+        return cache.addAll(APP_SHELL)
+      }),
+      caches.open(DATA_CACHE).then(async (cache) => {
+        console.log('[SW] Pre-caching critical API data')
+        for (const url of CRITICAL_API) {
+          try {
+            const response = await fetch(url)
+            if (response.ok) cache.put(url, response)
+          } catch {
+            // Server unreachable during install — will be cached on first use
+          }
+        }
+      }),
+    ]).then(() => self.skipWaiting())
   )
 })
 
@@ -63,10 +82,13 @@ self.addEventListener('fetch', (event) => {
   //Skip cross-origin requests except tile servers
   if (url.origin !== self.location.origin && !isTileRequest(url)) return
 
-  //API requests: network-first (but never cache authenticated responses)
+  //API requests: network-first with cache fallback
   if (url.pathname.startsWith('/api/')) {
-    if (request.headers.get('Authorization')) {
-      //Authenticated request -- pass through to network without caching
+    //Authenticated GET requests for critical safety endpoints — cache the response
+    //so logged-in citizens still have access to alerts/reports/predictions offline.
+    const CACHEABLE_AUTH_PATHS = ['/api/alerts', '/api/reports', '/api/predictions', '/api/heatmap']
+    if (request.headers.get('Authorization') && !CACHEABLE_AUTH_PATHS.some(p => url.pathname.startsWith(p))) {
+      //Non-safety authenticated request — pass through to network without caching
       event.respondWith(
         fetch(request).catch(() =>
           new Response(JSON.stringify({ error: 'Offline', cached: false }), {
@@ -376,6 +398,30 @@ self.addEventListener('message', (event) => {
   if (event.data?.type === 'TRIM_CACHES') {
     trimCache(IMAGE_CACHE, 200)
     trimCache(DATA_CACHE, 100)
+  }
+
+  //WARM_CACHE -- Client requests pre-caching of additional API endpoints
+  //Usage from client: navigator.serviceWorker.controller.postMessage({ type: 'WARM_CACHE', urls: ['/api/alerts', '/api/reports'] })
+  if (event.data?.type === 'WARM_CACHE' && Array.isArray(event.data.urls)) {
+    event.waitUntil(
+      caches.open(DATA_CACHE).then(async (cache) => {
+        for (const url of event.data.urls) {
+          try {
+            // Only cache if not already present
+            const existing = await cache.match(url)
+            if (!existing) {
+              const response = await fetch(url)
+              if (response.ok) {
+                cache.put(url, response)
+                console.log('[SW] Warm-cached:', url)
+              }
+            }
+          } catch {
+            // Offline — skip silently
+          }
+        }
+      })
+    )
   }
 })
 

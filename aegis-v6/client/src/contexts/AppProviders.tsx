@@ -61,7 +61,7 @@ const CoreProviders: ProviderComponent[] = [
       persistOptions={{
         persister: queryPersister,
         maxAge: 24 * 60 * 60 * 1000,         // discard cache older than 24 hours
-        buster: '6.9.1',                       // bump on breaking API changes
+        buster: '6.9.2',                       // bump on breaking API changes
         dehydrateOptions: {
           shouldDehydrateQuery: (query) => {
             // Only persist successful queries; skip auth/session data
